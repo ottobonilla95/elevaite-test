@@ -6,9 +6,6 @@ export default function Document() {
     <Html lang="en">
       <Head />
       <body>
-        <div className='header-top'>
-          <h1 className='logo-text'>elevAIte</h1>
-        </div>
         <Main />
         <NextScript />
       </body>
