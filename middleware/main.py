@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from typing import Union
 import qdrant_client
+import pandas as pd
 from qdrant_client import QdrantClient
 import openai
 app = FastAPI()
@@ -18,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-openai.api_key = "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"
+openai.api_key = "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"
 embedding_model = "text-embedding-ada-002"
 collection_name = "kbDocs_openAI"
 MODEL = "text-embedding-ada-002"
@@ -46,6 +47,28 @@ def read_item(query: str):
         with_vectors=True,
         with_payload=True,
     )
-    context = "Context:"+result[0].payload['Text'] + result[1].payload['Text'] + result[2].payload['Text'] + "Answer only from the provided context. Here is the Question:" + query
-    completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": context}])
-    return completion.choices[0].message.content
+    print("Text chunk 1: ", result[0].payload['Text'], result[0].score, result[0].payload['url'])
+    print("Text chunk 2: ", result[1].payload['Text'], result[1].score, result[1].payload['url'])
+    print("Text chunk 3: ", result[2].payload['Text'], result[2].score, result[2].payload['url'])
+    data = [query, 
+            result[0].payload['Text'], result[0].score, result[0].payload['url'], 
+            result[1].payload['Text'], result[1].score, result[1].payload['url'],
+            result[2].payload['Text'], result[2].score, result[2].payload['url'],
+            ]
+    context = "Context:"+result[0].payload['Text'] + result[1].payload['Text'] + result[2].payload['Text'] + "Answer from the provided context only. Answer should be embedded in HTML tags." + query
+    # completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": context}])
+    completion = openai.Completion.create(model="text-davinci-003", prompt=context, temperature=0, max_tokens=2500)
+    data = [{"query":query, 
+            "text_1":result[0].payload['Text'], "score":result[0].score, "url_1":result[0].payload['url'], "topic_1":result[0].payload['Topic'], 
+            "text_2":result[1].payload['Text'], "score":result[1].score, "url_2":result[1].payload['url'], "topic_2":result[1].payload['Topic'], 
+            "text_3":result[2].payload['Text'], "score":result[2].score, "url_3":result[2].payload['url'], "topic_3":result[2].payload['Topic'], 
+            "answer":completion.choices[0].text}
+            ]
+    # columns=["query", "text_1", "score", "url_1", "text_2", "score", "url_2", "text_3", "score", "url_3", "answer"]
+    df = pd.DataFrame(data)
+    # print(df)
+    df.to_csv("out.csv")
+    return {"text":completion.choices[0].text, 
+            "url_1":result[0].payload['url'], "topic_1":result[0].payload['Sub-Topic'],
+            "url_2":result[1].payload['url'], "topic_2":result[1].payload['Sub-Topic'],
+            "url_3":result[2].payload['url'], "topic_3":result[2].payload['Sub-Topic']}
