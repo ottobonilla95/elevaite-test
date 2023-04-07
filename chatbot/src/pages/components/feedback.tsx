@@ -4,7 +4,7 @@ import {
   BsFillHandThumbsDownFill,
 } from "react-icons/bs";
 
-export function Feedback() {
+export default function Feedback() {
   const [isFeedbackButtonClicked, setIsFeedbackButtonClicked] = useState(false);
   const handleFeedback = (liked: boolean) => {
     //send the respone to 

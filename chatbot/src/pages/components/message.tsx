@@ -5,7 +5,7 @@ import { grey } from "@mui/material/colors";
 import { FaUserAlt } from "react-icons/fa";
 import { FaInfoCircle } from "react-icons/fa";
 // import HoverRating from "./hover_rating";
-import { Feedback } from "./feedback";
+import Feedback from "./feedback";
 type MessageProps = {
   message: MessageDetails;
 };
@@ -28,11 +28,11 @@ export default function Message(props: MessageProps) {
     <>
       <div
         className={`answer ${
-          props.message.from == "user" ? "user-message" : "system-message"
+          props?.message?.from == "user" ? "user-message" : "system-message"
         }`}
       >
         <div className="icon">
-          {props.message.from == "user" ? (
+          {props?.message?.from == "user" ? (
             <FaUserAlt size="30px" />
           ) : (
             <FaInfoCircle size="30px" />
@@ -41,10 +41,10 @@ export default function Message(props: MessageProps) {
 
         <div
           className="response"
-          dangerouslySetInnerHTML={{ __html: sanitzer(props.message.message) }}
+          dangerouslySetInnerHTML={{ __html: sanitzer(props?.message?.message) }}
         />
       </div>
-      {props.message.from == "system" ? (
+      {props?.message?.from == "system" ? (
         <>
           {isFeedBackSent ? (
             <p>Thank you for your feedback!</p>
