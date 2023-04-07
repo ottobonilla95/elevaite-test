@@ -1,28 +1,39 @@
-import React from "react";
+import React, { useState } from "react";
+import {
+  BsFillHandThumbsUpFill,
+  BsFillHandThumbsDownFill,
+} from "react-icons/bs";
 
 export function Feedback() {
-  return {
-    /* {response && !isLoading ? (
-            <div className="feedback">
-              <p> Did you like the response?</p>
-              <div>
-                <button className="feedback-button">
-                  <BsFillHandThumbsUpFill size="30px" />
-                </button>
-                <button onClick={handleFeedback} className="feedback-button">
-                  <BsFillHandThumbsDownFill size="30px" />
-                </button>
-              </div>
-               {
-                isFeedbackNeeded ? (
-                  <div className="feedback-body">
-                    <input className="chat-input" type="text" placeholder="Please provide additional details"/> 
-                    <button onClick={handleFeedback} className="button">Send feedback</button>
-                  </div>
-                ) : null
-  
-              } 
-            </div>
-          ) : null} */
+  const [isFeedbackButtonClicked, setIsFeedbackButtonClicked] = useState(false);
+  const handleFeedback = (liked: boolean) => {
+    //send the respone to 
+    if (liked){
+        console.log("liked");
+    } else {
+        console.log("disliked");
+    }
+    setIsFeedbackButtonClicked(() => true);
   };
+
+  return (
+    <>
+      {isFeedbackButtonClicked ? null : (
+        <>
+          <div className="feedback">
+          <p>Please rate the reponse!</p>
+            <div>
+              <button id="like" onClick={() => handleFeedback(true)} className="feedback-thumbs-button">
+                <BsFillHandThumbsUpFill size="30px" />
+              </button>
+              <button id="dislike" onClick={() => handleFeedback(false)} className="feedback-thumbs-button">
+                <BsFillHandThumbsDownFill size="30px" />
+              </button>
+            </div>
+          </div>
+        </>
+      )
+      }
+    </>
+  );
 }
