@@ -1,19 +1,10 @@
-import Head from "next/head";
-import Image from "next/image";
-import { Anybody, Inter } from "next/font/google";
-import styles from "@/styles/Home.module.css";
+import { Inter } from "next/font/google";
+
 import { useEffect, useRef, useState } from "react";
 
 import axios from "axios";
-
-import { Audio } from "react-loader-spinner";
-import DOMPurify from "isomorphic-dompurify";
 import TextareaAutosize from "@mui/base/TextareaAutosize";
-import {
-  BsFillHandThumbsUpFill,
-  BsFillHandThumbsDownFill,
-  BsFillCursorFill,
-} from "react-icons/bs";
+import { BsFillCursorFill } from "react-icons/bs";
 
 import Message from "./components/message";
 import Header from "./components/header";
@@ -32,15 +23,14 @@ export default function Home() {
   const [messages, setMessages] = useState<MessageDetails[]>([]);
   const [buttonClicked, setButtonClicked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFeedbackNeeded, setIsFeedbackNeeded] = useState(false);
   const [messageIdCount, setMessageIdCount] = useState(0);
   const initialRender = useRef(true);
-
+  const fetchAnswer = useRef(() => {});
   function handleClick(event: any) {
     setButtonClicked(() => true);
   }
-  function handleClearMessages(){
-    setMessages(()=> []);
+  function handleClearMessages() {
+    setMessages(() => []);
   }
 
   const handleKeyDown = (e: any) => {
@@ -50,10 +40,7 @@ export default function Home() {
     }
   };
 
-  const handleFeedback = () => {
-    setIsFeedbackNeeded(() => !isFeedbackNeeded);
-  };
-  const getAnswer = async () => {
+  fetchAnswer.current = async () => {
     if (buttonClicked) {
       const target = "_blank";
       return await axios
@@ -97,10 +84,10 @@ export default function Home() {
     } else {
       if (buttonClicked) {
         setIsLoading(() => true);
-        getAnswer();
+        fetchAnswer.current();
       }
     }
-  }, [ask, buttonClicked, initialRender, isFeedbackNeeded, isLoading]);
+  }, [ask, buttonClicked, initialRender, isLoading]);
 
   return (
     <>
@@ -135,15 +122,11 @@ export default function Home() {
               )}
             </div>
             <div>
-              {
-                messages.length > 0 ? (
-                  <button onClick={handleClearMessages} className="clear-button">
+              {messages.length > 0 ? (
+                <button onClick={handleClearMessages} className="clear-button">
                   Clear Messages
                 </button>
-                ) : (
-                  null
-                )
-              }
+              ) : null}
             </div>
           </div>
         </div>
