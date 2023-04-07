@@ -24,6 +24,9 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [messageIdCount, setMessageIdCount] = useState(0);
   const fetchAnswer = useRef(() => {});
+  const elevaiteApi = axios.create({
+        baseURL: 'https://api.iopex.ai'
+  })
 
   function handleClick(event: any) {
     setIsLoading(() => true);
@@ -41,8 +44,8 @@ export default function Home() {
   };
 
   fetchAnswer.current = async () => {
-    return await axios
-      .get("https://api.iopex.ai/query", { params: { query: ask } })
+    return await elevaiteApi
+      .get("query", { params: { query: ask } })
       .then((res) => {
         console.log(ask);
         console.log(res);

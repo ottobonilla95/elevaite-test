@@ -9,7 +9,7 @@ import openai
 app = FastAPI()
 
 
-origins = ["https://elevaite.iopex.ai/"]
+origins = ["https://elevaite.iopex.ai", "http://localhost", "https://api.iopex.ai"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,7 +35,7 @@ def read_root():
 def read_answer():
     return("Here is the answer")
 
-@app.get("/query/")
+@app.get("/query")
 def read_item(query: str):
     # retrieve based on ask
     print(query)
