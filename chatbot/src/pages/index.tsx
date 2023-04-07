@@ -35,9 +35,12 @@ export default function Home() {
   const [isFeedbackNeeded, setIsFeedbackNeeded] = useState(false);
   const [messageIdCount, setMessageIdCount] = useState(0);
   const initialRender = useRef(true);
-  const messageEl = useRef(null);
+
   function handleClick(event: any) {
     setButtonClicked(() => true);
+  }
+  function handleClearMessages(){
+    setMessages(()=> []);
   }
 
   const handleKeyDown = (e: any) => {
@@ -52,12 +55,21 @@ export default function Home() {
   };
   const getAnswer = async () => {
     if (buttonClicked) {
+      const target = "_blank";
       return await axios
         .get("http://127.0.0.1:8000/query", { params: { query: ask } })
         .then((res) => {
           console.log(ask);
           console.log(res);
-          const answer = "" + res["data"];
+          const answer =
+            "" +
+            res["data"]["text"] +
+            ` Please checkout these urls for more information <div>
+            1. <a target=${target} href=${res["data"]["url_1"]}> ${res["data"]["topic_1"]}</a> 
+            2. <a target=${target} href=${res["data"]["url_2"]}> ${res["data"]["topic_1"]}</a> 
+            3. <a target=${target} href=${res["data"]["url_3"]}> ${res["data"]["topic_1"]}</a>
+            </div>
+            `;
 
           if (answer) {
             setMessages(() => [
@@ -94,9 +106,9 @@ export default function Home() {
     <>
       <Header />
       <div className="final-container">
-      <div className="band"></div>
+        <div className="band"></div>
         <div className="parent-container">
-          <div className="parent" >
+          <div className="parent">
             {messages.map((message) => (
               <>
                 <Message key={message.id} message={message} />
@@ -121,6 +133,17 @@ export default function Home() {
                   <BsFillCursorFill size="30px" />
                 </button>
               )}
+            </div>
+            <div>
+              {
+                messages.length > 0 ? (
+                  <button onClick={handleClearMessages} className="clear-button">
+                  Clear Messages
+                </button>
+                ) : (
+                  null
+                )
+              }
             </div>
           </div>
         </div>
