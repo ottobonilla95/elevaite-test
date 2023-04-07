@@ -5,7 +5,7 @@ import { grey } from "@mui/material/colors";
 import { FaUserAlt } from "react-icons/fa";
 import { FaInfoCircle } from "react-icons/fa";
 // import HoverRating from "./hover_rating";
-import { Feedback } from "./feedback";
+import Feedback from "./feedback";
 type MessageProps = {
   message: MessageDetails;
 };
