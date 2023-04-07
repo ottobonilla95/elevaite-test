@@ -21,13 +21,13 @@ export type MessageDetails = {
 export default function Home() {
   const [ask, setAsk] = useState<string>("");
   const [messages, setMessages] = useState<MessageDetails[]>([]);
-  const [buttonClicked, setButtonClicked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [messageIdCount, setMessageIdCount] = useState(0);
-  const initialRender = useRef(true);
   const fetchAnswer = useRef(() => {});
+
   function handleClick(event: any) {
-    setButtonClicked(() => true);
+    setIsLoading(() => true);
+    fetchAnswer.current();
   }
   function handleClearMessages() {
     setMessages(() => []);
@@ -41,53 +41,38 @@ export default function Home() {
   };
 
   fetchAnswer.current = async () => {
-    if (buttonClicked) {
-      const target = "_blank";
-      return await axios
-        .get("http://127.0.0.1:8000/query", { params: { query: ask } })
-        .then((res) => {
-          console.log(ask);
-          console.log(res);
-          const answer =
-            "" +
-            res["data"]["text"] +
-            ` Please checkout these urls for more information <div>
-            1. <a target=${target} href=${res["data"]["url_1"]}> ${res["data"]["topic_1"]}</a> 
-            2. <a target=${target} href=${res["data"]["url_2"]}> ${res["data"]["topic_1"]}</a> 
-            3. <a target=${target} href=${res["data"]["url_3"]}> ${res["data"]["topic_1"]}</a>
+    return await axios
+      .get("https://api.iopex.ai/query", { params: { query: ask } })
+      .then((res) => {
+        console.log(ask);
+        console.log(res);
+        const answer =
+          "" +
+          res["data"]["text"] +
+          ` Please checkout these urls for more information <div>
+            1. <a target="_blank" href=${res["data"]["url_1"]}>${res["data"]["url_1"]}</a> 
+            2. <a target="_blank" href=${res["data"]["url_2"]}>${res["data"]["url_2"]}</a> 
+            3. <a target="_blank" href=${res["data"]["url_3"]}> ${res["data"]["url_3"]}</a>
             </div>
             `;
 
-          if (answer) {
-            setMessages(() => [
-              ...messages,
-              { id: messageIdCount, message: ask, from: "user" },
-              { id: messageIdCount + 1, message: answer, from: "system" },
-            ]);
-            setAsk(() => "");
-            setMessageIdCount(() => messageIdCount + 2);
-            setButtonClicked(() => false);
-            setIsLoading(() => false);
-          }
-        })
-        .catch((error) => console.log("Error occured"));
-    }
+        if (answer) {
+          setMessages(() => [
+            ...messages,
+            { id: messageIdCount, message: ask, from: "user" },
+            { id: messageIdCount + 1, message: answer, from: "system" },
+          ]);
+          setAsk(() => "");
+          setMessageIdCount(() => messageIdCount + 2);
+          setIsLoading(() => false);
+        }
+      })
+      .catch((error) => console.log("Error occured"));
   };
 
   const change = (event: any) => {
     setAsk(() => event.target.value);
   };
-
-  useEffect(() => {
-    if (initialRender.current) {
-      initialRender.current = false;
-    } else {
-      if (buttonClicked) {
-        setIsLoading(() => true);
-        fetchAnswer.current();
-      }
-    }
-  }, [ask, buttonClicked, initialRender, isLoading]);
 
   return (
     <>
