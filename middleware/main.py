@@ -9,7 +9,7 @@ import openai
 app = FastAPI()
 
 
-origins = ["*"]
+origins = ["https://elevaite.iopex.ai/"]
 
 app.add_middleware(
     CORSMiddleware,
