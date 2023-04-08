@@ -1,7 +1,6 @@
 import { Inter } from "next/font/google";
 
 import { useEffect, useRef, useState } from "react";
-
 import axios from "axios";
 import TextareaAutosize from "@mui/base/TextareaAutosize";
 import { BsFillCursorFill } from "react-icons/bs";
@@ -9,6 +8,9 @@ import { BsFillCursorFill } from "react-icons/bs";
 import Message from "./components/message";
 import Header from "./components/header";
 import CircularIndeterminate from "./components/progress_spinner";
+
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,9 +26,6 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [messageIdCount, setMessageIdCount] = useState(0);
   const fetchAnswer = useRef(() => {});
-  const elevaiteApi = axios.create({
-        baseURL: 'https://api.iopex.ai'
-  })
 
   function handleClick(event: any) {
     setIsLoading(() => true);
@@ -44,19 +43,18 @@ export default function Home() {
   };
 
   fetchAnswer.current = async () => {
-    return await elevaiteApi
-      .get("query", { params: { query: ask } })
+    return await axios
+      .get("https://api.iopex.ai/query", { params: { query: ask } })
       .then((res) => {
         console.log(ask);
         console.log(res);
         const answer =
           "" +
           res["data"]["text"] +
-          ` Please checkout these urls for more information <div>
-            1. <a target="_blank" href=${res["data"]["url_1"]}>${res["data"]["url_1"]}</a> 
-            2. <a target="_blank" href=${res["data"]["url_2"]}>${res["data"]["url_2"]}</a> 
-            3. <a target="_blank" href=${res["data"]["url_3"]}> ${res["data"]["url_3"]}</a>
-            </div>
+          ` <p>Please checkout these urls for more information:</p>
+            <li><a target="_blank" href=${res["data"]["url_1"]}>${res["data"]["url_1"]}</a></li> 
+            <li><a target="_blank" href=${res["data"]["url_2"]}>${res["data"]["url_2"]}</a></li> 
+            <li><a target="_blank" href=${res["data"]["url_3"]}> ${res["data"]["url_3"]}</a></li>
             `;
 
         if (answer) {
@@ -97,7 +95,7 @@ export default function Home() {
                 onChange={change}
                 value={ask}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask questions regarding the loaded docs here"
+                placeholder="Ask questions regarding your products here"
               />
               {isLoading ? (
                 <div className="loader">
