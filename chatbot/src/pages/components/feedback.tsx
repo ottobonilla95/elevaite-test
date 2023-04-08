@@ -55,7 +55,6 @@ export default function Feedback() {
       ) : (
         <>
           <div className="feedback">
-            <p>Please rate the reponse!</p>
             <div>
               <button
                 id="like"
