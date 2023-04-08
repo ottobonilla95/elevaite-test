@@ -55,9 +55,9 @@ def read_item(query: str):
             result[1].payload['Text'], result[1].score, result[1].payload['url'],
             result[2].payload['Text'], result[2].score, result[2].payload['url'],
             ]
-    context = "Context:"+result[0].payload['Text'] + result[1].payload['Text'] + result[2].payload['Text'] + "Answer from the provided context only. Answer should be embedded in HTML tags." + query
-    # completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": context}])
-    completion = openai.Completion.create(model="text-davinci-003", prompt=context, temperature=0, max_tokens=2500)
+    
+    context = "Provide recommendation for the following text"+ query + "Use only the context below to answer \n" + result[0].payload['Text'] + result[1].payload['Text'] + result[2].payload['Text'] + "\n Provide the answer in HTML format. \nGive the answer in sequence of steps whenever necessary."
+    completion = openai.Completion.create(model="text-davinci-003", prompt=context, temperature=0, max_tokens=3000)
     data = [{"query":query, 
             "text_1":result[0].payload['Text'], "score":result[0].score, "url_1":result[0].payload['url'], "topic_1":result[0].payload['Topic'], 
             "text_2":result[1].payload['Text'], "score":result[1].score, "url_2":result[1].payload['url'], "topic_2":result[1].payload['Topic'], 
