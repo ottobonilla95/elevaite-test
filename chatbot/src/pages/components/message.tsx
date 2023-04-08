@@ -1,10 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { MessageDetails } from "..";
 import DOMPurify from "isomorphic-dompurify";
-import { grey } from "@mui/material/colors";
 import { FaUserAlt } from "react-icons/fa";
 import { FaInfoCircle } from "react-icons/fa";
-// import HoverRating from "./hover_rating";
 import Feedback from "./feedback";
 type MessageProps = {
   message: MessageDetails;
@@ -12,6 +10,7 @@ type MessageProps = {
 
 export default function Message(props: MessageProps) {
   const [isFeedBackSent, setIsFeedBackSent] = useState(false);
+
   const sanitzer = DOMPurify.sanitize;
   DOMPurify.addHook('afterSanitizeAttributes', function (node) {
     // set all elements owning target to target=_blank
@@ -20,9 +19,7 @@ export default function Message(props: MessageProps) {
       node.setAttribute('rel', 'noopener');
     }
   });
-  function handleClick() {
-    setIsFeedBackSent(() => true);
-  }
+
 
   return (
     <>
@@ -38,7 +35,6 @@ export default function Message(props: MessageProps) {
             <FaInfoCircle size="30px" />
           )}
         </div>
-
         <div
           className="response"
           dangerouslySetInnerHTML={{ __html: sanitzer(props?.message?.message) }}
@@ -51,14 +47,6 @@ export default function Message(props: MessageProps) {
           ) : (
             <div className="feedback">
               <Feedback />
-              <input
-                className="feedback-input"
-                type="text"
-                placeholder="Please provide additional information!"
-              />
-              <button onClick={handleClick} className="feedback-button">
-                Send
-              </button>
             </div>
           )}
         </>
