@@ -1,9 +1,11 @@
 import { Inter } from "next/font/google";
 import Header from "./components/header";
+import TopHeader from "./components/topheader";
 // import SideBar from "./components/sidebar";
 import { AiOutlinePlus } from "react-icons/ai";
 import ChatWindow from "./components/chatwindow";
 import { useEffect, useState } from "react";
+import SubHeader from "./components/subheader";
 
 export type MessageDetails = {
   id: number;
@@ -29,7 +31,9 @@ export default function Home() {
 
   return (
     <>
-      <Header />
+      {/* <Header /> */}
+      <TopHeader />
+      <SubHeader />
       <div className="app-container">
         <div className="sidebar-container">
           <button onClick={handleClick} className="sidebar-button">
@@ -54,7 +58,7 @@ export default function Home() {
                   fill="white"
                 />
               </svg>
-              <p>Firmware Upgrade</p>
+              <p>Case ID: #135727</p>
             </div>
             <div className="session">
               <svg
