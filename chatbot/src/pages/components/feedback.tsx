@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import {
-  BsFillHandThumbsUpFill,
-  BsFillHandThumbsDownFill,
-} from "react-icons/bs";
+  FiThumbsUp,
+  FiThumbsDown,
+} from "react-icons/fi";
+import { TbFileExport } from "react-icons/tb";
 
 export default function Feedback() {
   const [isFeedbackButtonClicked, setIsFeedbackButtonClicked] = useState(false);
@@ -34,46 +35,31 @@ export default function Feedback() {
 
   return (
     <>
-      {isFeedbackButtonClicked ? (
-        isFeedbackInputReceived ? (
-          <p>Thank you for the response!</p>
-        ) : (
-          <>
-            <input
-              className="feedback-input"
-              type="text"
-              onChange={change}
-              value={feedback}
-              onKeyDown={handleKeyDown}
-              placeholder="Please provide additional information!"
-            />
-            <button onClick={handleClick} className="feedback-button">
-              Send
-            </button>
-          </>
-        )
-      ) : (
-        <>
-          <div className="feedback">
-            <div>
-              <button
-                id="like"
-                onClick={() => handleFeedback(true)}
-                className="feedback-thumbs-button"
-              >
-                <BsFillHandThumbsUpFill size="30px" />
-              </button>
-              <button
-                id="dislike"
-                onClick={() => handleFeedback(false)}
-                className="feedback-thumbs-button"
-              >
-                <BsFillHandThumbsDownFill size="30px" />
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <div className="feedback">
+        <div>
+          <button
+            id="like"
+            onClick={() => handleFeedback(true)}
+            className="feedback-thumbs-button"
+          >
+            <FiThumbsUp style={{color:"#A7A4C4"}} size="20px" />
+          </button>
+          <button
+            id="dislike"
+            onClick={() => handleFeedback(false)}
+            className="feedback-thumbs-button"
+          >
+            <FiThumbsDown style={{color:"#A7A4C4"}} size="20px" />
+          </button>
+          <button
+            id="send"
+            onClick={() => handleFeedback(false)}
+            className="feedback-thumbs-button"
+          >
+          <TbFileExport style={{color:"#A7A4C4"}} size="20px" />
+          </button>
+        </div>
+      </div>
     </>
   );
 }
