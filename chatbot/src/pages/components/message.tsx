@@ -71,7 +71,7 @@ export default function Message(props: MessageProps) {
                 __html: sanitzer(props?.message?.message),
               }}
             />
-            {props?.message?.from == "system" ? (
+            {props?.message?.from == "system"  && urls.length>0? (
               <div className="url-responses">
                 <>
                   <div onClick={hideOrShow} className="url-flex">
