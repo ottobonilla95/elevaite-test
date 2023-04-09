@@ -44,7 +44,7 @@ export default function ChatWindow() {
 
   fetchAnswer.current = async () => {
     return await axios
-      .get("http://localhost:8000/query", { params: { query: ask } })
+      .get("https://api.iopex.ai/query", { params: { query: ask } })
       .then((res) => {
         console.log(ask);
         console.log(res);
