@@ -8,14 +8,21 @@ import { TbFileExport } from "react-icons/tb";
 export default function Feedback() {
   const [isFeedbackButtonClicked, setIsFeedbackButtonClicked] = useState(false);
   const [isFeedbackInputReceived, setisFeedbackInputReceived] = useState(false);
+  const [isLikeClicked, setIsLikeClicked] = useState(false);
+  const [isDisLikeClicked, setIsDisLikeClicked] = useState(false);
   const [feedback, setFeedback] = useState<string>("");
   const handleFeedback = (liked: boolean) => {
     //send the respone to
     if (liked) {
       console.log("liked");
+      setIsLikeClicked(()=>true);
+      setIsDisLikeClicked(()=>false);
     } else {
       console.log("disliked");
+      setIsDisLikeClicked(()=>true);
+      setIsLikeClicked(()=>false);
     }
+
     setIsFeedbackButtonClicked(() => true);
   };
 
@@ -40,14 +47,14 @@ export default function Feedback() {
           <button
             id="like"
             onClick={() => handleFeedback(true)}
-            className="feedback-thumbs-button"
+            className={isLikeClicked ? "feedback-thumbs-button like-clicked":"feedback-thumbs-button" }
           >
             <FiThumbsUp style={{color:"#A7A4C4"}} size="20px" />
           </button>
           <button
             id="dislike"
             onClick={() => handleFeedback(false)}
-            className="feedback-thumbs-button"
+            className={isDisLikeClicked ? "feedback-thumbs-button dislike-clicked":"feedback-thumbs-button" }
           >
             <FiThumbsDown style={{color:"#A7A4C4"}} size="20px" />
           </button>

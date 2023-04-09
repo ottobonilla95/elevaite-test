@@ -6,6 +6,7 @@ import { AiOutlinePlus } from "react-icons/ai";
 import ChatWindow from "./components/chatwindow";
 import { useEffect, useState } from "react";
 import SubHeader from "./components/subheader";
+import { IoIosArrowBack } from "react-icons/io";
 
 export type MessageDetails = {
   id: number;
@@ -29,6 +30,8 @@ export default function Home() {
     setChats(() => [<ChatWindow key={count} />]);
   }
 
+  function backButtonClick() {}
+
   return (
     <>
       {/* <Header /> */}
@@ -36,6 +39,15 @@ export default function Home() {
       <SubHeader />
       <div className="app-container">
         <div className="sidebar-container">
+          <button
+            onClick={backButtonClick}
+            className="sidebar-button work-bench-button"
+          >
+            <IoIosArrowBack style={{ color: "white" }} />
+            <a href="http://elevaite.iopex.com.s3-website-us-west-1.amazonaws.com/">
+              <p>Back to Workbench</p>
+            </a>
+          </button>
           <button onClick={handleClick} className="sidebar-button">
             <AiOutlinePlus />
             <p>New Session</p>
@@ -45,7 +57,7 @@ export default function Home() {
             <div className="session-header">
               <p>CURRENT SESSIONS</p>
             </div>
-            <div className="session" style={{backgroundColor:"#3E3B63"}} >
+            <div className="session" style={{ backgroundColor: "#3E3B63" }}>
               <svg
                 width="20"
                 height="20"

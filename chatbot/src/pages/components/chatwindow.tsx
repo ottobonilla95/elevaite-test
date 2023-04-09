@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { Inter } from "next/font/google";
 
 import { useEffect, useRef, useState } from "react";
@@ -98,7 +99,9 @@ export default function ChatWindow() {
       <div className="chat-container">
         <div className="chat-header">
           <p> Case ID: #135727 </p>
+          <img src="/img/chat-header.svg" alt="search functionality"/>
         </div>
+
         <div className="final-container">
           <div className="grand-parent">
             <div className="parent-container">

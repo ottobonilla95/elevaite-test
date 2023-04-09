@@ -194,10 +194,26 @@ body {
   border: 1px solid #f46f22;
   height: 40px;
 }
+
+.sidebar-button:hover{
+  box-shadow: 1px 1px 1px 1px#58567C;
+}
 .sidebar-button p {
   color: #f46f22;
   margin-left: 15px;
   font-size: 12px;
+}
+
+.work-bench-button {
+  max-width: 172px;
+  height: 28px;
+  width:75%;
+  border-radius: 4px;
+  background-color: #f46f22;
+}
+.work-bench-button p{
+  color: white;
+
 }
 
 .app-container {
@@ -232,6 +248,8 @@ body {
   /* max-width: 1110px; */
   margin-top: 20px;
   align-items: center;
+  justify-content: space-between;
+  padding:10px;
   border-radius: 4px 4px 0 0;
   width: 100%;
   height: 60px;
@@ -465,14 +483,20 @@ textarea {
   align-items: center;
 }
 
-#like:hover {
-  box-shadow: 1px 1px 1px 1px #a7a4c4;
+#like > svg:hover{
+  stroke:#f46f22;
 }
-#dislike:hover {
-  box-shadow: 1px 1px 1px 1px #a7a4c4;
+.like-clicked > svg{
+  fill: #f46f22;
 }
-#send:hover {
-  box-shadow: 1px 1px 1px 1px #a7a4c4;
+#dislike > svg:hover{
+  stroke:#f46f22;
+}
+.dislike-clicked > svg{
+  fill: #f46f22;
+}
+#send > svg:hover{
+  stroke:#f46f22;
 }
 .feedback-input {
   width: 100%;
