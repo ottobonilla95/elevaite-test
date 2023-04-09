@@ -36,7 +36,6 @@ export default function Message(props: MessageProps) {
 
   const urls =
     props?.message?.urls != undefined ? Array.from(props?.message?.urls) : [];
-
   return (
     <>
       <div
