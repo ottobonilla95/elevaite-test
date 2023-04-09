@@ -59,9 +59,9 @@ def read_item(query: str):
     context = "Provide recommendation for the following text"+ query + "Use only the context below to answer \n" + result[0].payload['Text'] + result[1].payload['Text'] + result[2].payload['Text'] + "\n Provide the answer in HTML format. \nGive the answer in sequence of steps whenever necessary."
     completion = openai.Completion.create(model="text-davinci-003", prompt=context, temperature=0, max_tokens=3000)
     data = [{"query":query, 
-            "text_1":result[0].payload['Text'], "score":result[0].score, "url_1":result[0].payload['url'], "topic_1":result[0].payload['Topic'], 
-            "text_2":result[1].payload['Text'], "score":result[1].score, "url_2":result[1].payload['url'], "topic_2":result[1].payload['Topic'], 
-            "text_3":result[2].payload['Text'], "score":result[2].score, "url_3":result[2].payload['url'], "topic_3":result[2].payload['Topic'], 
+            "text_1":result[0].payload['Text'], "score":result[0].score, "url_1":result[0].payload['url'], "topic_1":result[0].payload['Sub-Topic'], 
+            "text_2":result[1].payload['Text'], "score":result[1].score, "url_2":result[1].payload['url'], "topic_2":result[1].payload['Sub-Topic'], 
+            "text_3":result[2].payload['Text'], "score":result[2].score, "url_3":result[2].payload['url'], "topic_3":result[2].payload['Sub-Topic'], 
             "answer":completion.choices[0].text}
             ]
     # columns=["query", "text_1", "score", "url_1", "text_2", "score", "url_2", "text_3", "score", "url_3", "answer"]

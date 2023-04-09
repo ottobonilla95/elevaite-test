@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 export type MessageDetails = {
   id: number;
   message: string;
+  urls?: Set<string>;
   from: string;
 };
 
@@ -22,7 +23,7 @@ export default function Home() {
 
   function handleClick() {
     console.log("Clicked");
-    setCount(()=>count+1);
+    setCount(() => count + 1);
     setChats(() => [<ChatWindow key={count} />]);
   }
 
@@ -33,9 +34,62 @@ export default function Home() {
         <div className="sidebar-container">
           <button onClick={handleClick} className="sidebar-button">
             <AiOutlinePlus />
-            New Case
+            <p>New Session</p>
           </button>
+
+          <div className="current-sessions">
+            <div className="session-header">
+              <p>CURRENT SESSIONS</p>
+            </div>
+            <div className="session" style={{backgroundColor:"#3E3B63"}} >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M18 0H2C0.9 0 0 0.9 0 2V20L4 16H18C19.1 16 20 15.1 20 14V2C20 0.9 19.1 0 18 0ZM18 14H4L2 16V2H18V14Z"
+                  fill="white"
+                />
+              </svg>
+              <p>Firmware Upgrade</p>
+            </div>
+            <div className="session">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M18 0H2C0.9 0 0 0.9 0 2V20L4 16H18C19.1 16 20 15.1 20 14V2C20 0.9 19.1 0 18 0ZM18 14H4L2 16V2H18V14Z"
+                  fill="white"
+                />
+              </svg>
+              <p>PAN OS Version Upgrade</p>
+            </div>
+            <div className="session">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M18 0H2C0.9 0 0 0.9 0 2V20L4 16H18C19.1 16 20 15.1 20 14V2C20 0.9 19.1 0 18 0ZM18 14H4L2 16V2H18V14Z"
+                  fill="white"
+                />
+              </svg>
+              <p>NAT Version Issue</p>
+            </div>
+            <div className="session"></div>
+          </div>
         </div>
+
         {chats.map((chat, idx) => chat)}
       </div>
     </>
