@@ -24,7 +24,7 @@ export default function TopHeader() {
           <img className="line-844 line" src="img/line-844.svg" alt="Line 844" />
           <img className="icon-question_mark" src="img/ci-help-questionmark.svg" alt="icon-question_mark" />
           <div className="frame-2-1">
-            <div className="name">Nathan Cooper</div>
+            <div className="name">Aadhithya Dinesh</div>
             <img
               className="heroicons-solidchevron-down"
               src="img/heroicons-solid-chevron-down.svg"
