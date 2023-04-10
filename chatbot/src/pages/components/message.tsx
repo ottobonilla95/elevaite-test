@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { MessageDetails } from "..";
 import DOMPurify from "isomorphic-dompurify";
 import { FaUserCircle } from "react-icons/fa";
@@ -7,6 +7,7 @@ import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
 import { GrDocumentText } from "react-icons/gr";
 
 import Feedback from "./feedback";
+import FeedbackInput from "./feedback_input";
 type MessageProps = {
   message: MessageDetails;
 };
@@ -15,12 +16,6 @@ export default function Message(props: MessageProps) {
   const [isFeedBackSent, setIsFeedBackSent] = useState(false);
   const [hideUrl, setHideUrl] = useState(false);
   const sanitzer = DOMPurify.sanitize;
-  const current = new Date();
-  const date = `${current.getDate()} ${current.toLocaleString("default", {
-    month: "short",
-  })}, ${current.getFullYear()} ${current.getHours()}:${
-    current.getMinutes() < 10 ? "0" : ""
-  }${current.getMinutes()}`;
 
   DOMPurify.addHook("afterSanitizeAttributes", function (node) {
     // set all elements owning target to target=_blank
@@ -50,7 +45,7 @@ export default function Message(props: MessageProps) {
             </div>
             <div>
               <p>Aadhithya Dinesh</p>
-              <p className="message-date">{date}</p>
+              <p className="message-date">{props?.message?.timestamp}</p>
             </div>
           </div>
         ) : (
@@ -60,7 +55,7 @@ export default function Message(props: MessageProps) {
             </div>
             <div>
               <p>elevAIte</p>
-              <p className="message-date">{date}</p>
+              <p className="message-date">{props?.message?.timestamp}</p>
             </div>
           </div>
         )}
@@ -109,6 +104,9 @@ export default function Message(props: MessageProps) {
             </>
           ) : null}
         </div>
+        {props?.message?.from == "system" ? (
+        <FeedbackInput/>) : null}
+
       </div>
     </>
   );

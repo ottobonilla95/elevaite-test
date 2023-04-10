@@ -195,7 +195,7 @@ body {
   height: 40px;
 }
 
-.sidebar-button:hover{
+.sidebar-button:hover {
   box-shadow: 1px 1px 1px 1px#58567C;
 }
 .sidebar-button p {
@@ -207,13 +207,12 @@ body {
 .work-bench-button {
   max-width: 172px;
   height: 28px;
-  width:75%;
+  width: 75%;
   border-radius: 4px;
   background-color: #f46f22;
 }
-.work-bench-button p{
+.work-bench-button p {
   color: white;
-
 }
 
 .app-container {
@@ -249,7 +248,7 @@ body {
   margin-top: 20px;
   align-items: center;
   justify-content: space-between;
-  padding:10px;
+  padding: 10px;
   border-radius: 4px 4px 0 0;
   width: 100%;
   height: 60px;
@@ -267,20 +266,20 @@ body {
   flex-direction: column;
 }
 
-.band-flex{
+.band-flex {
   display: flex;
   flex-direction: column;
   position: absolute;
   height: 100%;
   width: 100%;
 }
-.band-top{
-  background: #F46F22;
+.band-top {
+  background: #f46f22;
   width: 100%;
   height: 30%;
 }
 .band-bottom {
-  background: #58567C;
+  background: #58567c;
   width: 100%;
   height: 70%;
 }
@@ -483,20 +482,20 @@ textarea {
   align-items: center;
 }
 
-#like > svg:hover{
-  stroke:#f46f22;
+#like > svg:hover {
+  stroke: #f46f22;
 }
-.like-clicked > svg{
+.like-clicked > svg {
   fill: #f46f22;
 }
-#dislike > svg:hover{
-  stroke:#f46f22;
+#dislike > svg:hover {
+  stroke: #f46f22;
 }
-.dislike-clicked > svg{
+.dislike-clicked > svg {
   fill: #f46f22;
 }
-#send > svg:hover{
-  stroke:#f46f22;
+#send > svg:hover {
+  stroke: #f46f22;
 }
 .feedback-input {
   width: 100%;
@@ -505,6 +504,44 @@ textarea {
   outline: black;
   border-width: 2px;
   border-radius: 5px;
+}
+.feedback-input-button {
+  background-color: #2f2c53;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 28px;
+  width: 26px;
+}
+.feedback-container {
+  height: 76px;
+  width: 100%;
+  background-color: #8683a3;
+  display: flex;
+  padding: 10px;
+  border-radius: 8px;
+  flex-direction: column;
+  justify-content: center;
+}
+.feedback-input-container {
+  display: flex;
+  padding: 3px;
+  border: 1px solid #e7e7e7;
+  height: 32px;
+  color: #ffffff;
+  align-items: center;
+  border-radius: 4px;
+  background: rgba(65, 65, 95, 0.3);
+}
+
+.feedback-input-container  text-area {
+  overflow-y: scroll;
+}
+
+.feedback-container p {
+  color: #ffffff;
+  font-size: 13px;
+
 }
 .feedback-button {
   width: 60px;
@@ -544,8 +581,9 @@ a {
   width: 10px;
   height: 10px;
   border-radius: 5px;
-  background-color: #9880ff;
-  color: #9880ff;
+  background-color: #f46f22;
+  color: #f46f22;
+  margin: 15px;
   box-shadow: 9999px 0 0 -5px;
   animation: dot-pulse 1.5s infinite linear;
   animation-delay: 0.25s;
@@ -559,8 +597,8 @@ a {
   width: 10px;
   height: 10px;
   border-radius: 5px;
-  background-color: #9880ff;
-  color: #9880ff;
+  background-color: #f46f22;
+  color: #f46f22;
 }
 .dot-pulse::before {
   box-shadow: 9984px 0 0 -5px;
@@ -610,15 +648,14 @@ a {
   }
 }
 
-
 /* Figma css */
 
-:root { 
+:root {
   --black: #000000;
- 
+
   --font-size-l: 16px;
   --font-size-m: 14px;
- 
+
   --font-family-inter: "Inter", Helvetica;
   --font-family-poppins: "Poppins", Helvetica;
 }
@@ -626,8 +663,6 @@ a {
 @import url("https://fonts.googleapis.com/css?family=Poppins:400,700,500,600|Inter:400,700,500,600");
 /* The following line is used to measure usage of this code in production. For more info see our usage billing page */
 @import url("https://px.animaapp.com/6432fa411c238d5749f991ca.6432fa42014ecf4629b188be.4DmT77H.hcp.png");
-
-
 
 * {
   box-sizing: border-box;
@@ -650,8 +685,8 @@ a {
   align-items: center;
   display: flex;
   gap: 12px;
-  margin-bottom: -7.00px;
-  margin-top: -7.00px;
+  margin-bottom: -7px;
+  margin-top: -7px;
   position: relative;
   width: fit-content;
 }
@@ -681,8 +716,8 @@ a {
   align-items: center;
   display: flex;
   gap: 24px;
-  margin-bottom: -12.00px;
-  margin-top: -12.00px;
+  margin-bottom: -12px;
+  margin-top: -12px;
   position: relative;
   width: fit-content;
 }
@@ -804,12 +839,15 @@ a {
   position: relative;
 }
 
-
 /* screen - 359_2674 */
 
 .subheader {
   align-items: center;
-  background: linear-gradient(to right, rgb(81, 79, 114) 0%, rgb(0, 17, 33) 100%);
+  background: linear-gradient(
+    to right,
+    rgb(81, 79, 114) 0%,
+    rgb(0, 17, 33) 100%
+  );
   display: flex;
   height: 50px;
   justify-content: space-between;
@@ -831,7 +869,7 @@ a {
   font-weight: 400;
   letter-spacing: 0;
   line-height: 18px;
-  margin-top: -1.00px;
+  margin-top: -1px;
   position: relative;
   white-space: nowrap;
   width: fit-content;
@@ -849,7 +887,7 @@ a {
   font-weight: 400;
   letter-spacing: 0;
   line-height: normal;
-  margin-top: -1.00px;
+  margin-top: -1px;
   position: relative;
   width: fit-content;
 }
@@ -862,8 +900,8 @@ a {
 
 .frame {
   display: flex;
-  margin-bottom: -1.00px;
-  margin-top: -1.00px;
+  margin-bottom: -1px;
+  margin-top: -1px;
   position: relative;
   width: fit-content;
 }

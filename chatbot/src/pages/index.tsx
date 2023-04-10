@@ -13,6 +13,7 @@ export type MessageDetails = {
   message: string;
   urls?: Set<string>;
   from: string;
+  timestamp: string;
 };
 
 export default function Home() {
