@@ -21,6 +21,7 @@ MODEL = "text-embedding-ada-002"
 OPEN_AI_KEY = "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"
 DEFAULT_RESPONSE = "Sorry, I don't have the relevant knowledge base to answer this query at this time. I will keep learning as relevant documents \
                     related to this query is added."
+INVALID_REQUEST = "Sorry, the token limit has been breached for this query. Please try splitting the input into smaller chunks."
 DEFAULT_THRESHOLD = 0.76
 
 qdrant_client = QdrantClient(
@@ -36,16 +37,15 @@ logger = logging.getLogger(__file__)
 def read_root():
     return {"Hello": "World"}
 
-@app.get("/answer")
-def read_answer():
-    return("Here is the answer")
-
 @app.get("/query")
 def get_query_completion(query: str):
     # convert to vector
     openai.api_key = OPEN_AI_KEY
     time_start = int(time() * 1e+3)
-    vectorized_ask = openai.Embedding.create( input= query, engine=MODEL)
+    try:
+        vectorized_ask = openai.Embedding.create( input= query, engine=MODEL)
+    except:
+        return get_default_response()
     logger.info(f'Vectorized Query - {query} {int(time() * 1e+3) - time_start}ms')
     # get similar results
     time_start = int(time() * 1e+3)
@@ -58,6 +58,8 @@ def get_query_completion(query: str):
     
     if is_above_threshold(semantic_text_results) == True:
         query_completion = get_query_completion_result(query, semantic_text_results)
+        if query_completion == get_invalid_request():
+            return get_invalid_request()
         return get_response(query_completion, semantic_text_results)
     else:
         return get_default_response()
@@ -76,7 +78,12 @@ def get_query_completion_result(query: str, semantic_text_results):
     context = "Provide recommendation for the following text"+ query + "Use only the context below to answer \n" \
         + get_context(semantic_text_results) \
         + "\n Provide the answer in HTML format. \nGive the answer in sequence of steps whenever necessary."
-    completion = openai.Completion.create(model="text-davinci-003", prompt=context, temperature=0, max_tokens=3000)
+    try:
+        completion = openai.Completion.create(model="text-davinci-003", prompt=context, temperature=0, max_tokens=3000)
+    except openai.error.InvalidRequestError:
+        return get_invalid_request()
+    except:
+        return get_default_response()
     logger.info(f'Query Completion Elapsed Time - {int(time() * 1e+3) - time_start}ms')
     return completion
 
@@ -97,6 +104,9 @@ def get_response(query_completion, semantic_results: list):
 
 def get_default_response():
     return {"text" : DEFAULT_RESPONSE}
+def get_invalid_request():
+    return {"text" : INVALID_REQUEST}
+
 
 def is_above_threshold(sementic_text_results):
     is_above_threshold = False if len(sementic_text_results) <= 0 or sementic_text_results[0].score <= DEFAULT_THRESHOLD else True

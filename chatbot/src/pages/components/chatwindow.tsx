@@ -1,6 +1,4 @@
 /* eslint-disable @next/next/no-img-element */
-import { Inter } from "next/font/google";
-
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import axios from "axios";
@@ -21,12 +19,21 @@ export default function ChatWindow() {
   const listRef = useRef<HTMLDivElement>(null);
 
   function handleClick(event: any) {
-    setIsLoading(() => true);
-    fetchAnswer.current();
+    if (ask.trim() != "") {
+      setIsLoading(() => true);
+      setMessages(() => [
+        ...messages,
+        {
+          id: messageIdCount,
+          message: ask,
+          from: "user",
+          timestamp: getCurrentTimestamp(),
+        },
+      ]);
+      fetchAnswer.current();
+    }
   }
-  function handleClearMessages() {
-    setMessages(() => []);
-  }
+
   function scrollToLastMessage() {
     let lastChild = listRef.current!.lastElementChild;
     lastChild?.scrollIntoView({
@@ -42,6 +49,16 @@ export default function ChatWindow() {
       handleClick(e);
     }
   };
+
+  function getCurrentTimestamp() {
+    const current = new Date();
+    const date = `${current.getDate()} ${current.toLocaleString("default", {
+      month: "short",
+    })}, ${current.getFullYear()} ${current.getHours()}:${
+      current.getMinutes() < 10 ? "0" : ""
+    }${current.getMinutes()}`;
+    return date;
+  }
 
   fetchAnswer.current = async () => {
     return await axios
@@ -70,15 +87,30 @@ export default function ChatWindow() {
                 `<li><a target="_blank" href=${res["data"]["url_3"]}> ${res["data"]["topic_3"]}</a></li>`
               );
             }
+            const current = new Date();
+            const date = `${current.getDate()} ${current.toLocaleString(
+              "default",
+              {
+                month: "short",
+              }
+            )}, ${current.getFullYear()} ${current.getHours()}:${
+              current.getMinutes() < 10 ? "0" : ""
+            }${current.getMinutes()}`;
 
             setMessages(() => [
               ...messages,
-              { id: messageIdCount, message: ask, from: "user" },
+              {
+                id: messageIdCount,
+                message: ask,
+                from: "user",
+                timestamp: getCurrentTimestamp(),
+              },
               {
                 id: messageIdCount + 1,
                 message: answer,
                 from: "system",
                 urls: urls,
+                timestamp: getCurrentTimestamp(),
               },
             ]);
             setAsk(() => "");
@@ -126,6 +158,8 @@ export default function ChatWindow() {
             </div>
           </div>
         </div>
+        {isLoading ? <div className="dot-pulse"></div> : null}
+
         <div className="final-container-body">
           <div className="container-body">
             <TextareaAutosize
