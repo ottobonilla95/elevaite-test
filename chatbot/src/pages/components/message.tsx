@@ -49,7 +49,7 @@ export default function Message(props: MessageProps) {
               <FaUserCircle style={{ color: "#5665FB" }} size="40px" />
             </div>
             <div>
-              <p>Nathan Cooper</p>
+              <p>Aadhithya Dinesh</p>
               <p className="message-date">{date}</p>
             </div>
           </div>
