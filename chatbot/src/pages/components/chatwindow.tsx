@@ -50,22 +50,36 @@ export default function ChatWindow() {
         console.log(ask);
         console.log(res);
 
-        let answer =
-          "" +
-          res["data"]["text"];
+        let answer = "" + res["data"]["text"];
 
         if (answer) {
           flushSync(() => {
-            const urls = new Set<string>([
-                `<li><a target="_blank" href=${res["data"]["url_1"]}> ${res["data"]["topic_1"]}</a></li>`,
-                `<li><a target="_blank" href=${res["data"]["url_2"]}> ${res["data"]["topic_2"]}</a></li>`,
-                `<li><a target="_blank" href=${res["data"]["url_3"]}> ${res["data"]["topic_3"]}</a></li>`,
-              ]);
+            let urls = new Set<string>();
+            if (res["data"]["url_1"] != undefined) {
+              urls.add(
+                `<li><a target="_blank" href=${res["data"]["url_1"]}> ${res["data"]["topic_1"]}</a></li>`
+              );
+            }
+            if (res["data"]["url_2"] != undefined) {
+              urls.add(
+                `<li><a target="_blank" href=${res["data"]["url_2"]}> ${res["data"]["topic_2"]}</a></li>`
+              );
+            }
+            if (res["data"]["url_3"] != undefined) {
+              urls.add(
+                `<li><a target="_blank" href=${res["data"]["url_3"]}> ${res["data"]["topic_3"]}</a></li>`
+              );
+            }
 
             setMessages(() => [
               ...messages,
-              { id: messageIdCount, message: ask, from: "user"},
-              { id: messageIdCount + 1, message: answer, from: "system", urls:urls },
+              { id: messageIdCount, message: ask, from: "user" },
+              {
+                id: messageIdCount + 1,
+                message: answer,
+                from: "system",
+                urls: urls,
+              },
             ]);
             setAsk(() => "");
             setMessageIdCount(() => messageIdCount + 2);
@@ -81,14 +95,24 @@ export default function ChatWindow() {
   };
 
   useEffect(() => scrollToLastMessage(), [messages]);
-  useEffect(()=>setCaseId(()=>Math.floor(Math.random() * (999999-100000) + 100000)), []);
+  useEffect(
+    () =>
+      setCaseId(() => Math.floor(Math.random() * (999999 - 100000) + 100000)),
+    []
+  );
   return (
     <>
+      <div className="band-flex">
+        <div className="band-top">I am here</div>
+        <div className="band-bottom">i am bottom</div>
+      </div>
       <div className="band"></div>
       <div className="chat-container">
         <div className="chat-header">
-          <p> Case ID: #{caseId} </p>
+          <p> Case ID: #135727 </p>
+          <img src="/img/chat-header.svg" alt="search functionality" />
         </div>
+
         <div className="final-container">
           <div className="grand-parent">
             <div className="parent-container">
@@ -98,30 +122,30 @@ export default function ChatWindow() {
                     <Message key={idx} message={message} />
                   </>
                 ))}
-                <div className="final-container-body">
-                  <div className="container-body">
-                    <TextareaAutosize
-                      minRows={1}
-                      maxRows={7}
-                      className="chat-input"
-                      onChange={change}
-                      value={ask}
-                      onKeyDown={handleKeyDown}
-                      placeholder="Ask questions regarding your products here"
-                    />
-                    {isLoading ? (
-                      <div className="loader">
-                        <CircularIndeterminate />
-                      </div>
-                    ) : (
-                      <button className="button" onClick={handleClick}>
-                        <BsCursor style={{ color: "white" }} size="30px" />
-                      </button>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
+          </div>
+        </div>
+        <div className="final-container-body">
+          <div className="container-body">
+            <TextareaAutosize
+              minRows={1}
+              maxRows={4}
+              className="chat-input"
+              onChange={change}
+              value={ask}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask questions regarding your products here"
+            />
+            {isLoading ? (
+              <div className="loader">
+                <CircularIndeterminate />
+              </div>
+            ) : (
+              <button className="button" onClick={handleClick}>
+                <BsCursor style={{ color: "white" }} size="30px" />
+              </button>
+            )}
           </div>
         </div>
       </div>
