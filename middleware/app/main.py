@@ -20,7 +20,7 @@ collection_name = "kbDocs_openAI"
 MODEL = "text-embedding-ada-002"
 OPEN_AI_KEY = "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"
 DEFAULT_RESPONSE = "Sorry, I am unable to answer your question. Can you please specify which product the query is for?"
-DEFAULT_THRESHOLD = 0.75
+DEFAULT_THRESHOLD = 0.76
 
 qdrant_client = QdrantClient(
     url="https://a29a4a5f-b731-4ffa-befd-5c3f702c66f3.us-east-1-0.aws.cloud.qdrant.io:6333", 
