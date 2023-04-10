@@ -6,7 +6,8 @@ import openai
 import logging
 from time import time 
 app = FastAPI()
-origins = ["https://elevaite.iopex.ai", "http://localhost", "https://api.iopex.ai"]
+origins = ["https://elevaite.iopex.ai", "http://localhost", "http://localhost:3000", "https://api.iopex.ai",
+           "https://elevaite-cb.iopex.ai", "http://elevaite-cb.iopex.ai"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

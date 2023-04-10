@@ -44,7 +44,7 @@ export default function Home() {
             className="sidebar-button work-bench-button"
           >
             <IoIosArrowBack style={{ color: "white" }} />
-            <a href="http://elevaite.iopex.com.s3-website-us-west-1.amazonaws.com/">
+            <a href="https://elevaite.iopex.com">
               <p>Back to Workbench</p>
             </a>
           </button>
