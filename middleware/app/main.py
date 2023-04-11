@@ -22,7 +22,7 @@ OPEN_AI_KEY = "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"
 DEFAULT_RESPONSE = "Sorry, I don't have the relevant knowledge base to answer this query at this time. I will keep learning as relevant documents \
                     related to this query is added."
 INVALID_REQUEST = "Sorry, the token limit has been breached for this query. Please try splitting the input into smaller chunks."
-DEFAULT_THRESHOLD = 0.76
+DEFAULT_THRESHOLD = 0.77
 
 qdrant_client = QdrantClient(
     url="https://a29a4a5f-b731-4ffa-befd-5c3f702c66f3.us-east-1-0.aws.cloud.qdrant.io:6333", 
