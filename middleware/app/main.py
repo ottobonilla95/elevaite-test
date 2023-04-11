@@ -65,7 +65,7 @@ def get_query_completion(query: str):
         context = "What additional details need to be gathererd from customer to solve the below incident\n"+ query \
         + "\n Provide your response embedded in ol tags HTML format."
         completion = openai.Completion.create(model="text-davinci-003", prompt=context, temperature=0, max_tokens=3000)
-        return {"text":completion.choices[0].text}
+        return {"text":"Please gather these additional details from the customer: \n" + completion.choices[0].text}
 
 def get_semantic_search_results(vectorized_ask):
     return qdrant_client.search(
