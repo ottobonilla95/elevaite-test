@@ -4,6 +4,7 @@ import qdrant_client
 from qdrant_client import QdrantClient
 import openai
 import logging
+import tiktoken
 from time import time 
 
 app = FastAPI()
@@ -18,12 +19,13 @@ app.add_middleware(
 )
 embedding_model = "text-embedding-ada-002"
 collection_name = "kbDocs_openAI"
+encoding = tiktoken.encoding_for_model("text-embedding-ada-002")
 MODEL = "text-embedding-ada-002"
 OPEN_AI_KEY = "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"
 DEFAULT_RESPONSE = "Sorry, I don't have the relevant knowledge base to answer this query at this time. I will keep learning as relevant documents \
                     related to this query is added."
 INVALID_REQUEST = "Sorry, the token limit has been breached for this query. Please try splitting the input into smaller chunks."
-DEFAULT_THRESHOLD = 0.77
+DEFAULT_THRESHOLD = 0.75
 
 qdrant_client = QdrantClient(
     url="https://a29a4a5f-b731-4ffa-befd-5c3f702c66f3.us-east-1-0.aws.cloud.qdrant.io:6333", 
@@ -65,7 +67,8 @@ def get_query_completion(query: str):
     else:
         context = "What additional details need to be gathererd from customer to solve the below incident\n"+ query \
         + "\n Provide your response embedded in ol tags HTML format."
-        completion = openai.Completion.create(model="text-davinci-003", prompt=context, temperature=0, max_tokens=3000)
+        inputTokenSize=len(encoding.encode(context))
+        completion = openai.Completion.create(model="text-davinci-003", prompt=context, temperature=0, max_tokens=3800-inputTokenSize)
         return {"text":"Please gather these additional details from the customer: \n" + completion.choices[0].text}
 
 def get_semantic_search_results(vectorized_ask):
@@ -79,11 +82,12 @@ def get_semantic_search_results(vectorized_ask):
 
 def get_query_completion_result(query: str, semantic_text_results):
     time_start = int(time() * 1e+3)
-    context = "Provide recommendation for the following text"+ query + "Use only the context below to answer \n" \
+    context = "Provide recommendation for the following text"+ query + "\n Use only relevant information from context below to answer \n" \
         + get_context(semantic_text_results) \
         + "\n Provide the answer in HTML format. \nGive the answer in sequence of steps whenever necessary."
     try:
-        completion = openai.Completion.create(model="text-davinci-003", prompt=context, temperature=0, max_tokens=3000)
+        inputTokenSize=len(encoding.encode(context))
+        completion = openai.Completion.create(model="text-davinci-003", prompt=context, temperature=0, max_tokens=3800-inputTokenSize)
     except openai.error.InvalidRequestError:
         return get_invalid_request()
     except:
