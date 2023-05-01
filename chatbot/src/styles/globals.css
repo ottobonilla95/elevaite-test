@@ -364,6 +364,17 @@ textarea {
 .button:hover {
   opacity: 85%;
 }
+.session-button {
+  padding: 5px;
+  height: 46px;
+  width: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 4px;
+  margin-right: 16px;
+  background: #18CD8C;
+}
 
 .feedback-thumbs-button {
   margin: 10px;
