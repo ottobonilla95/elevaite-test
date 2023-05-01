@@ -8,6 +8,7 @@ import { GrDocumentText } from "react-icons/gr";
 
 import Feedback from "./feedback";
 import FeedbackInput from "./feedback_input";
+import HoverRating from "./hover_rating";
 type MessageProps = {
   message: MessageDetails;
 };
@@ -100,7 +101,7 @@ export default function Message(props: MessageProps) {
 
           {props?.message?.from == "system" ? (
             <>
-              <Feedback />
+              <HoverRating />
             </>
           ) : null}
         </div>

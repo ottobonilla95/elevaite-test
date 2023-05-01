@@ -18,6 +18,18 @@ export default function ChatWindow() {
   const fetchAnswer = useRef(() => {});
   const listRef = useRef<HTMLDivElement>(null);
 
+  function closeSession() {
+    console.log("Close Session Clicked");
+    // Uncomment the line below to call the api once ready
+    // clearMessages().then((data) => console.log(data));
+    setMessages(()=>[]);
+  }
+
+  async function clearMessages() {
+    return await axios.post("http://localhost:8000/clear", {
+      params: { allMessages: messages },
+    });
+  }
   function handleClick(event: any) {
     if (ask.trim() != "") {
       setIsLoading(() => true);
@@ -62,7 +74,7 @@ export default function ChatWindow() {
 
   fetchAnswer.current = async () => {
     return await axios
-      .get("https://api.iopex.ai/query", { params: { query: ask } })
+      .get("http://localhost:8000/query", { params: { query: ask } })
       .then((res) => {
         console.log(ask);
         console.log(res);
@@ -181,6 +193,9 @@ export default function ChatWindow() {
               </button>
             )}
           </div>
+          <button className="button session-button" onClick={closeSession}>
+            <img src="/img/session-button.svg" alt="session button" />
+          </button>
         </div>
       </div>
     </>

@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 import SubHeader from "./components/subheader";
 import { IoIosArrowBack } from "react-icons/io";
 
+import axios from "axios";
+
 export type MessageDetails = {
   id: number;
   message: string;
@@ -30,6 +32,7 @@ export default function Home() {
     setCount(() => count + 1);
     setChats(() => [<ChatWindow key={count} />]);
   }
+
 
   function backButtonClick() {}
 
