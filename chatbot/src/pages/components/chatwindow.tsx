@@ -142,7 +142,7 @@ export default function ChatWindow(props: any) {
             setIsLoading(() => false);
             axios
               .get("http://localhost:8000/storeSession", {
-                params: { sessionID: props.chat.id.toString() },
+                params: { sessionID: props?.chat?.id.toString() },
               })
               .then((res) => console.log(res));
           });
@@ -160,7 +160,7 @@ export default function ChatWindow(props: any) {
     () =>
       setCaseId(() => {
         console.log(props);
-        return props.chat.id;
+        return props?.chat?.id;
       }),
     [props]
   );
@@ -203,7 +203,7 @@ export default function ChatWindow(props: any) {
           <div className="grand-parent">
             <div className="parent-container">
               <div ref={listRef} className="parent">
-                {props.chat.chat.map((message: MessageDetails) => (
+                {props?.chat?.chat?.map((message: MessageDetails) => (
                   <>
                     <Message key={message.id} message={message} />
                   </>

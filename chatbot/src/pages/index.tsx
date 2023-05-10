@@ -138,11 +138,11 @@ export default function Home() {
             </div>
             {chats.map((chat) => (
               <>
-                <button onClick={() => changeSession(chat.id)}>
+                <button onClick={() => changeSession(chat?.id)}>
                   <div
                     className="session"
                     style={
-                      chat.id === currentChatId
+                      chat?.id === currentChatId
                         ? { backgroundColor: "#3E3B63" }
                         : { backgroundColor: "transparent" }
                     }
@@ -168,10 +168,10 @@ export default function Home() {
         </div>
 
         {chats
-          .filter((chat) => chat.id === currentChatId)
+          .filter((chat) => chat?.id === currentChatId)
           .map((chat) => (
             <ChatWindow
-              key={chat.id}
+              key={chat?.id}
               chat={chat}
               updateMessages={updateMessages}
             />
