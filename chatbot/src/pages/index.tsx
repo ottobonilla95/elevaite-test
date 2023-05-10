@@ -71,14 +71,14 @@ export default function Home() {
   }
 
   function backButtonClick() {
-    axios.get("https://api.iopex.ai/deleteAllSessions");
+    axios.get("http://localhost:8000/deleteAllSessions");
   }
 
   useEffect(() => {
     async function retrieveSession() {
       try {
         const response = await axios
-          .get("https://api.iopex.ai/loadSession", {
+          .get("http://localhost:8000/loadSession", {
             params: { sessionID: currentChatId.toString() },
           })
           .then((messages) => {
@@ -159,7 +159,7 @@ export default function Home() {
                         fill="white"
                       />
                     </svg>
-                    <p> {chat.title} </p>
+                    <p> {chat?.title} </p>
                   </div>
                 </button>
               </>
