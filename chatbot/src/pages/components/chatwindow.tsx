@@ -8,11 +8,13 @@ import { BsCursor } from "react-icons/bs";
 import Message from "./message";
 import { MessageDetails } from "..";
 import CircularIndeterminate from "./progress_spinner";
+import LinearIndeterminate from "./linear_progress_indicator";
 
-export default function ChatWindow() {
+export default function ChatWindow(props: any) {
   const [ask, setAsk] = useState<string>("");
   const [messages, setMessages] = useState<MessageDetails[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [agentStatus, setAgentStatus] = useState<string>("");
   const [messageIdCount, setMessageIdCount] = useState(0);
   const [caseId, setCaseId] = useState<number | null>(null);
   const fetchAnswer = useRef(() => {});
@@ -22,23 +24,17 @@ export default function ChatWindow() {
     console.log("Close Session Clicked");
     // Uncomment the line below to call the api once ready
     // clearMessages().then((data) => console.log(data));
-    setMessages(()=>[]);
   }
 
-  async function clearMessages() {
-    return await axios.post("http://localhost:8000/clear", {
-      params: { allMessages: messages },
-    });
-  }
   function handleClick(event: any) {
     if (ask.trim() != "") {
       setIsLoading(() => true);
       setMessages(() => [
         ...messages,
         {
-          id: messageIdCount,
+          id: messageIdCount.toString(),
           message: ask,
-          from: "user",
+          from: "human",
           timestamp: getCurrentTimestamp(),
         },
       ]);
@@ -112,15 +108,31 @@ export default function ChatWindow() {
             setMessages(() => [
               ...messages,
               {
+                id: messageIdCount.toString(),
+                message: ask,
+                from: "human",
+                timestamp: getCurrentTimestamp(),
+              },
+              {
+                id: (messageIdCount + 1).toString(),
+                message: answer,
+                from: "ai",
+                urls: urls,
+                timestamp: getCurrentTimestamp(),
+              },
+            ]);
+            props.updateMessages([
+              ...messages,
+              {
                 id: messageIdCount,
                 message: ask,
-                from: "user",
+                from: "human",
                 timestamp: getCurrentTimestamp(),
               },
               {
                 id: messageIdCount + 1,
                 message: answer,
-                from: "system",
+                from: "ai",
                 urls: urls,
                 timestamp: getCurrentTimestamp(),
               },
@@ -128,6 +140,11 @@ export default function ChatWindow() {
             setAsk(() => "");
             setMessageIdCount(() => messageIdCount + 2);
             setIsLoading(() => false);
+            axios
+              .get("http://localhost:8000/storeSession", {
+                params: { sessionID: props.chat.id.toString() },
+              })
+              .then((res) => console.log(res));
           });
         }
       })
@@ -141,19 +158,44 @@ export default function ChatWindow() {
   useEffect(() => scrollToLastMessage(), [messages]);
   useEffect(
     () =>
-      setCaseId(() => Math.floor(Math.random() * (999999 - 100000) + 100000)),
-    []
+      setCaseId(() => {
+        console.log(props);
+        return props.chat.id;
+      }),
+    [props]
   );
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    if (isLoading) {
+      intervalId = setInterval(() => {
+        axios
+          .get("http://127.0.0.1:8000/currentStatus")
+          .then((response) => {
+            if (!response) {
+              throw new Error("Network response was not ok");
+            }
+            setAgentStatus(() => response["data"]["Status"]);
+            console.log(response["data"]);
+            return response;
+          })
+          .catch((error) => {
+            console.log(error);
+          });
+      }, 2000);
+    }
+    return () => clearInterval(intervalId);
+  }, [isLoading]);
   return (
     <>
       <div className="band-flex">
-        <div className="band-top">I am here</div>
-        <div className="band-bottom">i am bottom</div>
+        <div className="band-top"></div>
+        <div className="band-bottom"></div>
       </div>
       <div className="band"></div>
       <div className="chat-container">
         <div className="chat-header">
-          <p> Case ID: #135727 </p>
+          <p> {props.chat.title}</p>
           <img src="/img/chat-header.svg" alt="search functionality" />
         </div>
 
@@ -161,17 +203,16 @@ export default function ChatWindow() {
           <div className="grand-parent">
             <div className="parent-container">
               <div ref={listRef} className="parent">
-                {messages.map((message, idx) => (
+                {props.chat.chat.map((message: MessageDetails) => (
                   <>
-                    <Message key={idx} message={message} />
+                    <Message key={message.id} message={message} />
                   </>
                 ))}
               </div>
             </div>
           </div>
         </div>
-        {isLoading ? <div className="dot-pulse"></div> : null}
-
+        {isLoading ? <LinearIndeterminate agentStatus={agentStatus} /> : null}
         <div className="final-container-body">
           <div className="container-body">
             <TextareaAutosize

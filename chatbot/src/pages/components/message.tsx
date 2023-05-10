@@ -36,10 +36,10 @@ export default function Message(props: MessageProps) {
     <>
       <div
         className={`answer ${
-          props?.message?.from == "user" ? "user-message" : "system-message"
+          props?.message?.from == "human" ? "user-message" : "system-message"
         }`}
       >
-        {props?.message?.from == "user" ? (
+        {props?.message?.from == "human" ? (
           <div className="user-details">
             <div className="icon">
               <FaUserCircle style={{ color: "#5665FB" }} size="40px" />
@@ -67,7 +67,7 @@ export default function Message(props: MessageProps) {
                 __html: sanitzer(props?.message?.message),
               }}
             />
-            {props?.message?.from == "system"  && urls.length>0? (
+            {props?.message?.from == "ai"  && urls.length>0? (
               <div className="url-responses">
                 <>
                   <div onClick={hideOrShow} className="url-flex">
@@ -99,13 +99,13 @@ export default function Message(props: MessageProps) {
             ) : null}
           </div>
 
-          {props?.message?.from == "system" ? (
+          {props?.message?.from == "ai" ? (
             <>
               <HoverRating />
             </>
           ) : null}
         </div>
-        {props?.message?.from == "system" ? (
+        {props?.message?.from == "ai" ? (
         <FeedbackInput/>) : null}
 
       </div>

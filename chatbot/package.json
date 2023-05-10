@@ -27,6 +27,7 @@
     "@emotion/styled": "^11.10.6",
     "@mui/icons-material": "^5.11.16",
     "@mui/material": "^5.11.16",
+    "@types/uuid": "^9.0.1",
     "@uppy/core": "^3.1.2",
     "@uppy/dashboard": "^3.3.2",
     "@uppy/drag-drop": "^3.0.1",
@@ -43,6 +44,7 @@
     "react-loader-spinner": "^5.3.4",
     "react-markdown": "^8.0.6",
     "remark-gfm": "^3.0.1",
-    "tailwindcss": "^3.3.1"
+    "tailwindcss": "^3.3.1",
+    "uuid": "^9.0.0"
   }
 }

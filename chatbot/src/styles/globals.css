@@ -176,6 +176,7 @@ body {
 .session p {
   color: white;
   font-size: 14px;
+  text-align: left;
   margin-left: 10px;
 }
 .session svg {
@@ -586,6 +587,19 @@ a {
 }
 
 /* Message Loading animation */
+.progress{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 40px;
+  width:100%;
+}
+
+.progress p{
+  font-size: 16px;
+  margin-right: 10px;
+  color: #FFFFFF;
+}
 .dot-pulse {
   position: relative;
   left: -9999px;
