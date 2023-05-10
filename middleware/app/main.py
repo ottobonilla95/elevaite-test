@@ -1,11 +1,33 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import qdrant_client
-from qdrant_client import QdrantClient
-import openai
-import logging
+from _global import llm
+from _global import tokenCount
 import tiktoken
-from time import time 
+import os
+from typing import Any, Dict, List, Optional, Union
+from langchain.agents import initialize_agent, load_tools
+from langchain.agents import AgentType
+from langchain.schema import AgentAction, AgentFinish, LLMResult
+from langchain.callbacks.base import CallbackManager, BaseCallbackHandler
+from langchain.agents import Tool
+import openai
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory
+
+from get_tokens_count import get_tokens_count
+from callback import MyCustomCallbackHandler
+from incidentScoringChain import func_incidentScoringChain 
+from functions  import getIssuseContexFromSummary, deletAllSessions, \
+    getIssuseContexFromDetails, UnsupportedProduct, NotenoughContext, finalFormatedOutput \
+, getReleatedChatText, storeSession, loadSession, deleteSession, insert2Memory
+
+import _global
+from _global import currentStatus
+from _global import updateStatus
+
+import logging
+from time import time
+
 
 app = FastAPI()
 origins = ["https://elevaite.iopex.ai", "http://localhost", "http://localhost:3000", "https://api.iopex.ai",
@@ -17,106 +39,168 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-embedding_model = "text-embedding-ada-002"
-collection_name = "kbDocs_openAI"
-encoding = tiktoken.encoding_for_model("text-embedding-ada-002")
-MODEL = "text-embedding-ada-002"
-OPEN_AI_KEY = "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"
-DEFAULT_RESPONSE = "Sorry, I don't have the relevant knowledge base to answer this query at this time. I will keep learning as relevant documents \
-                    related to this query is added."
-INVALID_REQUEST = "Sorry, the token limit has been breached for this query. Please try splitting the input into smaller chunks."
-DEFAULT_THRESHOLD = 0.75
 
-qdrant_client = QdrantClient(
-    url="https://a29a4a5f-b731-4ffa-befd-5c3f702c66f3.us-east-1-0.aws.cloud.qdrant.io:6333", 
-    api_key="bD7Kx0EQ3hPe2FJjzjNpXr7E4mZatk9MAhqwNHi4EBOPdNqKcRW7HA"
+## Global variables
+
+os.environ["OPENAI_API_KEY"] ="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"
+os.environ["QDRANT_URL"] ="https://a29a4a5f-b731-4ffa-befd-5c3f702c66f3.us-east-1-0.aws.cloud.qdrant.io:6333"
+os.environ["QDRANT_API_KEY"] ="bD7Kx0EQ3hPe2FJjzjNpXr7E4mZatk9MAhqwNHi4EBOPdNqKcRW7HA"
+#os.environ["QDRANT_COLLECTION"] ="kbDocs_LLM"
+os.environ["QDRANT_COLLECTION"] ="kbDocs_30Incidents_v2"
+
+totalTokens=0
+scoreDiff=5
+qa_collection_name=os.environ.get("QDRANT_COLLECTION")
+openai.api_key = os.environ["OPENAI_API_KEY"]
+manager = CallbackManager([MyCustomCallbackHandler()])
+MAX_KB_TOKENSIZE=1000
+
+
+llm.callback_manager=manager
+## Tool to get the incident scoring
+tool_incidentScoring = Tool(
+    name="tool_incidentScoring",
+    func=func_incidentScoringChain,
+    description="First Step to find supported product and enough content of incident is there, Useful to Score the incident text for completeness and identify which knowledge arcticel group to use. This tool can never give final answer",
+    verbose=True,
+    callback_manager=manager,
 )
 
-logging.basicConfig(level=logging.INFO,format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+## Tool to get the data from summary knowledge base
 
-logger = logging.getLogger(__file__)
+tool_incidentSummarySearch = Tool(
+      name="tool_incidentSummarySearch",
+      func=getIssuseContexFromSummary,
+      description="If Score is between 6, Useful to get the Knowledge Articles relevant to the incident",
+      verbose=True,
+      callback_manager=manager,
+      return_direct=True,
+  ) 
+
+tool_incidentDetailsSearch = Tool(
+    name="tool_incidentDetailsSearch",
+    func=getIssuseContexFromDetails,
+    #description="If Score greater than 7,Useful to get the Knowledge Articles relevant to the incident",
+    description="Useful to get the Knowledge Articles relevant to the incident if the incident text has good content to guide to solve",
+    verbose=True,
+    callback_manager=manager,
+    return_direct=True,
+) 
+
+tool_UnsupportedProduct = Tool(
+    name="tool_UnsupportedProduct",
+    func=UnsupportedProduct,
+    description="Useful to answer Not Supported Product questions, or if it not Incident text",
+    verbose=True,
+    callback_manager=manager,
+    return_direct=True,
+)
+
+tool_NotenoughContext = Tool(
+    name="tool_NotenoughContext",
+    func=NotenoughContext,
+    description="Useful to answer when the incident context for Supported Product score is less than 6",
+    verbose=True,
+    callback_manager=manager,
+    return_direct=True,
+) 
+
+tool_finalFormatedOutput = Tool(
+    name="tool_finalFormatedOutput",
+    func=finalFormatedOutput,
+    description="Call this to format the final output of the Agent",
+    verbose=True,
+    callback_manager=manager,
+    return_direct=True,
+) 
+
+tool_checkRelatedHistory = Tool(
+    name="tool_checkRelatedHistory",
+    func=getReleatedChatText,
+    description="Need to use this tool if the current input is referring to past convesation / chat history OR  when some Additional Context are provided, some possible examples will be usage of words like above, previous, additional etc", 
+    verbose=True,
+    callback_manager=manager,
+    return_direct=False,
+)
+
+llm.callback_manager=manager
+
+toolList =[  tool_checkRelatedHistory \
+           , tool_incidentScoring \
+#          , tool_incidentSummarySearch\
+           , tool_incidentDetailsSearch\
+           , tool_UnsupportedProduct\
+           , tool_NotenoughContext ]
+          #, tool_finalFormatedOutput]
+
+
+
+Agent_incidentSolver =""
+#memory = ConversationSummaryBufferMemory(llm=llm, memory_key="chat_history", return_messages=True)
+#memory = ConversationBufferMemory( memory_key="chat_history", return_messages=True)
+memory= _global.chatHistory
+
+Agent_incidentSolver = initialize_agent(
+            tools=toolList,
+            llm=llm,
+            agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+            verbose=True,
+            callback_manager=manager,
+        )
+            #memory=memory,
+Agent_incidentSolver.return_intermediate_steps = False
+
+replaceText="Answer the following questions as best you can. You will always use Tools to generate the Answer and not answer yourself."
+tobeReplaced="Answer the following questions as best you can."
+
+orgPrompt=Agent_incidentSolver.agent.llm_chain.prompt.template
+
+Agent_incidentSolver.agent.llm_chain.prompt.template=orgPrompt.replace(tobeReplaced,replaceText ) 
+
 
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
 
 @app.get("/query")
-def get_query_completion(query: str):
-    # convert to vector
-    openai.api_key = OPEN_AI_KEY
-    time_start = int(time() * 1e+3)
-    try:
-        vectorized_ask = openai.Embedding.create( input= query, engine=MODEL)
-    except:
-        return get_default_response()
-    logger.info(f'Vectorized Query - {query} {int(time() * 1e+3) - time_start}ms')
-    # get similar results
-    time_start = int(time() * 1e+3)
-    semantic_text_results = get_semantic_search_results(vectorized_ask)
-    top_similar_results_count = len(semantic_text_results) if semantic_text_results else 0
-    logger.info(f'Semantic results fetched - {top_similar_results_count} chunks in {int(time() * 1e+3) - time_start}ms')
-    
-    for idx, result in enumerate(semantic_text_results):
-        logger.info(f'Result {idx} - Text: {result.payload["Text"]}, Score: {result.score}')
-    
-    if is_above_threshold(semantic_text_results) == True:
-        query_completion = get_query_completion_result(query, semantic_text_results)
-        if query_completion == get_invalid_request():
-            return get_invalid_request()
-        return get_response(query_completion, semantic_text_results)
-    else:
-        context = "What additional details need to be gathererd from customer to solve the below incident\n"+ query \
-        + "\n Provide your response embedded in ol tags HTML format."
-        inputTokenSize=len(encoding.encode(context))
-        completion = openai.Completion.create(model="text-davinci-003", prompt=context, temperature=0, max_tokens=3800-inputTokenSize)
-        return {"text":"Please gather these additional details from the customer: \n" + completion.choices[0].text}
+def get_Agent_incidentSolver(query: str):
+    global memory 
+    memory=insert2Memory({"from":"human", "message" : query}, memory)
+    _global.currentStatus=""
+    _global.tokenCount=0
+    updateStatus("Main")
+    response=Agent_incidentSolver(query)
+    results=finalFormatedOutput(query, response['output'])    
+    print("Total Ticket = " + str(_global.tokenCount))
+    memory=insert2Memory({"from":"ai", "message" : results}, memory)
+    return({"text":results})
 
-def get_semantic_search_results(vectorized_ask):
-    return qdrant_client.search(
-        collection_name=collection_name,
-        query_vector=vectorized_ask["data"][0]["embedding"],
-        limit=3,
-        with_vectors=True,
-        with_payload=True,
-    )
+@app.get("/storeSession")
+def store_memory(sessionID: str):
+    global memory 
+    storeSession(sessionID, memory)
+    return {"Memory": "Stored"}
 
-def get_query_completion_result(query: str, semantic_text_results):
-    time_start = int(time() * 1e+3)
-    context = "Provide recommendation for the following text"+ query + "\n Use only relevant information from context below to answer \n" \
-        + get_context(semantic_text_results) \
-        + "\n Provide the answer in HTML format. \nGive the answer in sequence of steps whenever necessary."
-    try:
-        inputTokenSize=len(encoding.encode(context))
-        completion = openai.Completion.create(model="text-davinci-003", prompt=context, temperature=0, max_tokens=3800-inputTokenSize)
-    except openai.error.InvalidRequestError:
-        return get_invalid_request()
-    except:
-        return get_default_response()
-    logger.info(f'Query Completion Elapsed Time - {int(time() * 1e+3) - time_start}ms')
-    return completion
+@app.get("/loadSession")
+def load_memory(sessionID: str):
+    global memory 
+    memory.clear()
+    memory=loadSession(sessionID)
+    _global.chatHistory=memory
+    return (memory)
 
-def get_context(semantic_results: list):
-    list_of_similar_results = [result.payload['Text'] for result in semantic_results if result.payload]
-    return ' '.join(list_of_similar_results)
+@app.get("/deleteSession")
+def delete_session(sessionID: str):
+    memory.clear()
+    deleteSession(sessionID)
+    return ("Session cleared")
 
-def get_response(query_completion, semantic_results: list):
-    openai.api_key = OPEN_AI_KEY
-    response_dict = {}
-    response_dict["text"] = query_completion.choices[0].text if query_completion and query_completion.choices else ''
-    for idx, result in enumerate(semantic_results):
-        response_key = (f'url_{idx}', f'topic_{idx}')
-        response_val = (result.payload['url'], result.payload['Sub-Topic']) if result.payload else ''
-        response_dict[response_key[0]] = response_val[0]
-        response_dict[response_key[1]] = response_val[1]
-    return response_dict
+@app.get("/deleteAllSessions")
+def delete_session():
+    memory.clear()
+    deletAllSessions()
+    return ("Deleted sessions")
 
-def get_default_response():
-    return {"text" : DEFAULT_RESPONSE}
-def get_invalid_request():
-    return {"text" : INVALID_REQUEST}
-
-
-def is_above_threshold(sementic_text_results):
-    is_above_threshold = False if len(sementic_text_results) <= 0 or sementic_text_results[0].score <= DEFAULT_THRESHOLD else True
-    logger.info(f'Results above threshold - {is_above_threshold}')
-    return is_above_threshold
+@app.get("/currentStatus")
+def current_status():
+    return ({"Status" : _global.currentStatus})
