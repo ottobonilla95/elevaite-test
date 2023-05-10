@@ -1,0 +1,5 @@
+source deps/bin/activate
+export GOOGLE_CLIENT_ID=848292064581-c2ru2o6f2jo6a3mr3pihfi960l49f27u.apps.googleusercontent.com
+export GOOGLE_CLIENT_SECRET=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
+export SECRET_KEY=qxWeYfm5726mdACd9IRlHxucRzm1pLkK_TSx194v
+python3 auth.py
