@@ -12,7 +12,6 @@ from starlette.responses import JSONResponse
 
 # Create the auth app
 auth_app = FastAPI()
-auth_app.config["PREFERRED_URL_SCHEME"] = "https"`
 
 # OAuth settings
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID') or None
@@ -39,7 +38,7 @@ auth_app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 @auth_app.route('/login/google')
 async def login(request: Request):
     redirect_uri = request.url_for('auth')  # This creates the url for our /auth endpoint
-    return await oauth.google.authorize_redirect(request, str(redirect_uri))
+    return await oauth.google.authorize_redirect(request, "https://login.iopex.ai/oauth/google")
 
 @auth_app.route('/oauth/google')
 async def auth(request: Request):
