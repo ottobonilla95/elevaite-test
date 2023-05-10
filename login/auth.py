@@ -60,5 +60,9 @@ def public(request: Request):
         return HTMLResponse(f'<p>Hello {name}!</p><a href=/logout>Logout</a>')
     return HTMLResponse('<a href=/login>Login</a>')
 
+@auth_app.get("/hc")
+def hc(request: Request):
+    return {"status": "ok"}
+
 if __name__ == '__main__':
     uvicorn.run(auth_app, port=7000)
