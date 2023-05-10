@@ -12,6 +12,7 @@ from starlette.responses import JSONResponse
 
 # Create the auth app
 auth_app = FastAPI()
+auth_app.config["PREFERRED_URL_SCHEME"] = "https"`
 
 # OAuth settings
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID') or None
