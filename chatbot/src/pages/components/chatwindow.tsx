@@ -70,7 +70,7 @@ export default function ChatWindow(props: any) {
 
   fetchAnswer.current = async () => {
     return await axios
-      .get("http://localhost:8000/query", { params: { query: ask } })
+      .get("https://api.iopex.ai/query", { params: { query: ask } })
       .then((res) => {
         console.log(ask);
         console.log(res);
@@ -141,7 +141,7 @@ export default function ChatWindow(props: any) {
             setMessageIdCount(() => messageIdCount + 2);
             setIsLoading(() => false);
             axios
-              .get("http://localhost:8000/storeSession", {
+              .get("https://api.iopex.ai/storeSession", {
                 params: { sessionID: props?.chat?.id.toString() },
               })
               .then((res) => console.log(res));
