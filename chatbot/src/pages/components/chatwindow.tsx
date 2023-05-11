@@ -170,7 +170,7 @@ export default function ChatWindow(props: any) {
     if (isLoading) {
       intervalId = setInterval(() => {
         axios
-          .get("http://127.0.0.1:8000/currentStatus")
+          .get("https://api.iopex.ai/currentStatus")
           .then((response) => {
             if (!response) {
               throw new Error("Network response was not ok");
