@@ -1,4 +1,5 @@
 import uvicorn
+import logging
 import os
 from datetime import datetime
 
@@ -9,15 +10,18 @@ from fastapi import Request
 from starlette.config import Config
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
+from starlette.responses import RedirectResponse
+from starlette.responses import HTMLResponse
 
 # Create the auth app
 auth_app = FastAPI()
+logger = logging.getLogger("auth_app")
 
 # OAuth settings
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID') or None
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET') or None
 if GOOGLE_CLIENT_ID is None or GOOGLE_CLIENT_SECRET is None:
-    raise BaseException('Missing env variables')
+    raise BaseException('Missing Google Auth env variables')
 
 # Set up OAuth
 config_data = {'GOOGLE_CLIENT_ID': GOOGLE_CLIENT_ID, 'GOOGLE_CLIENT_SECRET': GOOGLE_CLIENT_SECRET}
@@ -46,11 +50,17 @@ async def auth(request: Request):
         access_token = await oauth.google.authorize_access_token(request)
     except OAuthError:
         return RedirectResponse(url='/')
-    user_data = await oauth.google.parse_id_token(request, access_token)
+    user_data = access_token['userinfo']
+    logger.info(user_data)
     request.session['user'] = dict(user_data)
-    return RedirectResponse(url='/')
+    user = request.session.get('user')
+    name = user.get('name')
+    return HTMLResponse(f'<p>Hello {name}!{str(user)}</p><a href=/logout>Logout</a>')
 
-from starlette.responses import HTMLResponse
+@auth_app.route('/logout')
+async def logout(request: Request):
+    request.session.pop('user', None)
+    return RedirectResponse(url='/')
 
 @auth_app.get('/')
 def public(request: Request):
@@ -58,7 +68,7 @@ def public(request: Request):
     if user:
         name = user.get('name')
         return HTMLResponse(f'<p>Hello {name}!</p><a href=/logout>Logout</a>')
-    return HTMLResponse('<a href=/login>Login</a>')
+    return HTMLResponse('<a href=/login/google>Login</a>')
 
 @auth_app.get("/hc")
 def hc(request: Request):
