@@ -41,13 +41,6 @@ app.add_middleware(
 )
 
 ## Global variables
-
-os.environ["OPENAI_API_KEY"] ="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"
-os.environ["QDRANT_URL"] ="https://a29a4a5f-b731-4ffa-befd-5c3f702c66f3.us-east-1-0.aws.cloud.qdrant.io:6333"
-os.environ["QDRANT_API_KEY"] ="bD7Kx0EQ3hPe2FJjzjNpXr7E4mZatk9MAhqwNHi4EBOPdNqKcRW7HA"
-#os.environ["QDRANT_COLLECTION"] ="kbDocs_LLM"
-os.environ["QDRANT_COLLECTION"] ="kbDocs_30Incidents_v2"
-
 totalTokens=0
 scoreDiff=5
 qa_collection_name=os.environ.get("QDRANT_COLLECTION")
@@ -61,7 +54,7 @@ llm.callback_manager=manager
 tool_incidentScoring = Tool(
     name="tool_incidentScoring",
     func=func_incidentScoringChain,
-    description="First Step to find supported product and enough content of incident is there, Useful to Score the incident text for completeness and identify which knowledge arcticel group to use. This tool can never give final answer",
+    description="First Step to find supported product and enough content of incident is there, Useful to Score the incident text for completeness and identify which knowledge arcticel group to use. This tool can never give final answer. Do not take more than 5 seconds here.",
     verbose=True,
     callback_manager=manager,
 )
@@ -71,7 +64,7 @@ tool_incidentScoring = Tool(
 tool_incidentSummarySearch = Tool(
       name="tool_incidentSummarySearch",
       func=getIssuseContexFromSummary,
-      description="If Score is between 6, Useful to get the Knowledge Articles relevant to the incident",
+      description="If Score is between 6, Useful to get the Knowledge Articles relevant to the incident. Do not take more than 5 seconds here.",
       verbose=True,
       callback_manager=manager,
       return_direct=True,
@@ -81,7 +74,7 @@ tool_incidentDetailsSearch = Tool(
     name="tool_incidentDetailsSearch",
     func=getIssuseContexFromDetails,
     #description="If Score greater than 7,Useful to get the Knowledge Articles relevant to the incident",
-    description="Useful to get the Knowledge Articles relevant to the incident if the incident text has good content to guide to solve",
+    description="Useful to get the Knowledge Articles relevant to the incident if the incident text has good content to guide to solve. Do not take more than 5 seconds here.",
     verbose=True,
     callback_manager=manager,
     return_direct=True,
@@ -90,7 +83,7 @@ tool_incidentDetailsSearch = Tool(
 tool_UnsupportedProduct = Tool(
     name="tool_UnsupportedProduct",
     func=UnsupportedProduct,
-    description="Useful to answer Not Supported Product questions, or if it not Incident text",
+    description="Useful to answer Not Supported Product questions, or if it not Incident text. Do not take more than 5 seconds here.",
     verbose=True,
     callback_manager=manager,
     return_direct=True,
@@ -99,7 +92,7 @@ tool_UnsupportedProduct = Tool(
 tool_NotenoughContext = Tool(
     name="tool_NotenoughContext",
     func=NotenoughContext,
-    description="Useful to answer when the incident context for Supported Product score is less than 6",
+    description="Useful to answer when the incident context for Supported Product score is less than 6. Do not take more than 5 seconds here.",
     verbose=True,
     callback_manager=manager,
     return_direct=True,
@@ -108,7 +101,7 @@ tool_NotenoughContext = Tool(
 tool_finalFormatedOutput = Tool(
     name="tool_finalFormatedOutput",
     func=finalFormatedOutput,
-    description="Call this to format the final output of the Agent",
+    description="Call this to format the final output of the Agent. Do not take more than 5 seconds here.",
     verbose=True,
     callback_manager=manager,
     return_direct=True,
@@ -162,18 +155,56 @@ Agent_incidentSolver.agent.llm_chain.prompt.template=orgPrompt.replace(tobeRepla
 def read_root():
     return {"Hello": "World"}
 
+# @app.get("/query")
+# def get_Agent_incidentSolver(query: str):
+#     global memory 
+#     memory=insert2Memory({"from":"human", "message" : query}, memory)
+#     _global.currentStatus=""
+#     _global.tokenCount=0
+#     updateStatus("Main")
+#     response=Agent_incidentSolver(query)
+#     results=finalFormatedOutput(query, response['output'])    
+#     print("Total Ticket = " + str(_global.tokenCount))
+#     memory=insert2Memory({"from":"ai", "message" : results}, memory)
+#     return({"text":results})
+
+# non agent version 
 @app.get("/query")
 def get_Agent_incidentSolver(query: str):
     global memory 
+    final_result = ""
     memory=insert2Memory({"from":"human", "message" : query}, memory)
     _global.currentStatus=""
     _global.tokenCount=0
     updateStatus("Main")
-    response=Agent_incidentSolver(query)
-    results=finalFormatedOutput(query, response['output'])    
-    print("Total Ticket = " + str(_global.tokenCount))
-    memory=insert2Memory({"from":"ai", "message" : results}, memory)
-    return({"text":results})
+    results = ""
+    print(len(memory))
+    if len(memory) == 1:
+        results = func_incidentScoringChain(query)
+    else:
+        output = getReleatedChatText(query)
+        query_with_memory = f"Here is the past relevant messages for your reference delimited by three backticks: \
+            \
+        ```{output}``` \
+        /n  \
+        Here is the query for you to answer delimited by <>: /n \
+        <{query}> \
+        "
+        print("here is query with memory", query_with_memory)
+        results = func_incidentScoringChain(query_with_memory)
+        query = query_with_memory
+    if "NOT SUPPORTED" in results:
+        final_result="Not supported"
+        memory=insert2Memory({"from":"ai", "message" : final_result}, memory)
+        return({"text":final_result})
+    else:
+        context = getIssuseContexFromDetails(query)
+        final_result = finalFormatedOutput(query, context)
+        print("Here is the final answer", final_result)
+        memory=insert2Memory({"from":"ai", "message" : final_result}, memory)
+        print("Total Ticket = " + str(_global.tokenCount))
+        return({"text":final_result})
+
 
 @app.get("/storeSession")
 def store_memory(sessionID: str):

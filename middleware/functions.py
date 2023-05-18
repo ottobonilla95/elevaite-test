@@ -4,7 +4,7 @@ import json
 from qdrant_client import QdrantClient
 from langchain.vectorstores import Qdrant 
 from typing import Union, Optional 
-from langchain.memory import ConversationBufferMemory
+from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory
 from langchain import PromptTemplate
 from langchain.chains import LLMChain
 from langchain.chat_models import ChatOpenAI
@@ -17,9 +17,12 @@ from callback import MyCustomCallbackHandler
 from langchain.llms import OpenAI
 from langchain.schema import messages_from_dict, messages_to_dict
 from langchain.memory import ChatMessageHistory
+from langchain.embeddings.openai import OpenAIEmbeddings
 import datetime
 from _global import updateStatus
 import uuid
+
+from langchain.chains import RetrievalQA
 
 
 def UnsupportedProduct(query: str): #, filter: dict):
@@ -37,12 +40,10 @@ def finalFormatedOutput(inputString: str, context: Optional[str] = None): #, fil
      prompt =   "For the given Incident text and Knowledge Articles, " \
                +"Use only relevant knowledge articles."\
                +"Dont repate Input Text and just provide output as troubleshooting steps or additional questions to be collected. "\
-               +"Format the final output in a nice Bulleted/Numbered and sub Bulleted/Numbered format for each relevant context. " \
-               +"Dont use any other content other than input provided. " \
                +"If URLs available provide at the end after all steps one after other as Hyperlinks under Heading 'References'" \
-               +"Dont repeate the URLs, remove duplicates" \
+               +"Dont repeate the URLs, remove duplicates\n" \
                +"Provide the answer in HTML format with ol tags.\n"  \
-               +"If Incident is unspported, just respond 'Unsupported Query/Product" \
+               +"If Incident is unspported, just respond 'Unsupported Query/Product\n" \
                +"Incident Text = '" +inputString+"'\n" \
                +"Knowledge Articles = '" + context + "'"
      #returnVal=(prompt)
@@ -142,15 +143,14 @@ def getIssuseContexFromDetails(query: str): #, filter: dict):
                     #, content_payload_key="Text" \
                     #, metadata_payload_key="metadata"
     )
-    results=qdrant.similarity_search_with_score(query, filter=filter, k=4)
+    results=qdrant.similarity_search_with_score(query, k=3)  # filter=filter
     return(processQdrantOutput(results, query))
 
 def getReleatedChatText(input: str): 
      chatHistory = _global.chatHistory
      updateStatus("getReleatedChatText")
      manager = CallbackManager([MyCustomCallbackHandler()])
-     template="""
-From the given list of History messages respond with relevant portions of the ones related  to  the Given Input without the URL, if none just respond NONE. Dont add any other commentary, solution or thoughts to the response. Also dont add NONE if there is related history message
+     template=""" Give all the relevant past messages from the history
 Input :  
 {input_text}
 
@@ -177,6 +177,25 @@ History Messages
          return('')
      else:
          return(results)
+     
+
+# def retrieve_from_kb(query:str):
+#    llm = OpenAI(temperature=0)
+#    MODEL = "text-embedding-ada-002"
+#    client = QdrantClient(
+#     url = os.environ["QDRANT_URL"],
+#     prefer_grpc=True,
+#     api_key = os.environ["QDRANT_API_KEY"]
+#     )
+#    embeddings = OpenAIEmbeddings(model=MODEL)
+#    qdrant = Qdrant(
+#     client=client, collection_name=os.environ.get("QDRANT_COLLECTION"), 
+#     embedding_function=embeddings.embed_query
+# )
+#    retriever = qdrant.as_retriever()
+#    memory = ConversationSummaryBufferMemory(llm=llm, memory_key="chat_history", max_token_limit=2000)
+#    knowledgeBase = RetrievalQA.from_chain_type(llm=llm, chain_type="map_reduce", memory=memory, retriever=retriever)
+#    return (knowledgeBase.run(query))
 
 def storeSession(sessionID, chatHistory: list):
    updateStatus("storeSession")
