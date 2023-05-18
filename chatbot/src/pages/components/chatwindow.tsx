@@ -165,27 +165,27 @@ export default function ChatWindow(props: any) {
     [props]
   );
 
-  // useEffect(() => {
-  //   let intervalId: NodeJS.Timeout;
-  //   if (isLoading) {
-  //     intervalId = setInterval(() => {
-  //       axios
-  //         .get("https://api.iopex.ai/currentStatus")
-  //         .then((response) => {
-  //           if (!response) {
-  //             throw new Error("Network response was not ok");
-  //           }
-  //           setAgentStatus(() => response["data"]["Status"]);
-  //           console.log(response["data"]);
-  //           return response;
-  //         })
-  //         .catch((error) => {
-  //           console.log(error);
-  //         });
-  //     }, 2000);
-  //   }
-  //   return () => clearInterval(intervalId);
-  // }, [isLoading]);
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    if (isLoading) {
+      intervalId = setInterval(() => {
+        axios
+          .get("https://api.iopex.ai/currentStatus")
+          .then((response) => {
+            if (!response) {
+              throw new Error("Network response was not ok");
+            }
+            setAgentStatus(() => response["data"]["Status"]);
+            console.log(response["data"]);
+            return response;
+          })
+          .catch((error) => {
+            console.log(error);
+          });
+      }, 2000);
+    }
+    return () => clearInterval(intervalId);
+  }, [isLoading]);
 
   return (
     <>
