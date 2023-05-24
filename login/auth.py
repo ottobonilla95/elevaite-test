@@ -54,7 +54,7 @@ async def auth(request: Request):
         access_token = await oauth.google.authorize_access_token(request)
     except OAuthError:
         return RedirectResponse(url='/')
-    token = Jwt_User_Claim.jwt_token_from_oauth(oauth_user_data=dict(user_data = access_token['userinfo']))
+    token = Jwt_User_Claim.jwt_token_from_oauth(oauth_user_data=dict(user_data = access_token['userinfo']), key=JWT_SECRET_KEY)
     headers = {'Authorization' : 'Bearer ' + token}
     return RedirectResponse(url='https://elevaite-cb.iopex.ai', headers=headers)
 
