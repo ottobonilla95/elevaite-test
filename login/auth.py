@@ -2,6 +2,7 @@ import uvicorn
 import logging
 import os
 from datetime import datetime
+from typing import Union
 
 from authlib.integrations.starlette_client import OAuth
 from authlib.integrations.starlette_client import OAuthError
@@ -44,19 +45,22 @@ if SECRET_KEY is None or JWT_SECRET_KEY is None:
 auth_app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 @auth_app.route('/login/google')
-async def login(request: Request):
-    redirect_uri = request.url_for('auth')  # This creates the url for our /auth endpoint
-    return await oauth.google.authorize_redirect(request, "https://login.iopex.ai/oauth/google")
+async def login(request: Request, redirect_uri: Union[str, None] = None):
+    redirect_uri_for_google = request.url_for('auth')  # This creates the url for our /auth endpoint
+    target_uri = redirect_uri if redirect_uri else 'https://elevaite-cb.iopex.ai'
+    return await oauth.google.authorize_redirect(request, "https://login.iopex.ai/oauth/google?target_uri=" + target_uri)
 
 @auth_app.route('/oauth/google')
-async def auth(request: Request):
+async def auth(request: Request, target_uri: Union[str, None] = None):
     try:
         access_token = await oauth.google.authorize_access_token(request)
     except OAuthError:
         return RedirectResponse(url='/')
-    token = Jwt_User_Claim.jwt_token_from_oauth(oauth_user_data=dict(user_data = access_token['userinfo']), key=JWT_SECRET_KEY)
+    user_data = dict(access_token['userinfo'])
+    redirect_uri = target_uri if target_uri else 'https://elevaite-cb.iopex.ai'
+    token = Jwt_User_Claim.jwt_token_from_oauth(oauth_user_data=dict(access_token['userinfo']), key=JWT_SECRET_KEY)
     headers = {'Authorization' : 'Bearer ' + token}
-    return RedirectResponse(url='https://elevaite-cb.iopex.ai', headers=headers)
+    return RedirectResponse(url=redirect_uri, headers=headers)
 
 @auth_app.route('/logout')
 async def logout(request: Request):

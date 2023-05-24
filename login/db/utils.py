@@ -7,10 +7,10 @@ import secrets
 import uuid
 
 class Jwt_User_Claim:
-    def __init__(self, name: str, email: str):
+    def __init__(self, name: str, email: str, sub: str):
         self.name = name
         self.email = email
-        self.sub = str(uuid.uuid1())
+        self.sub = sub
 
     def set_expiry_time(self, exp_time_in_secs: int = None):
         exp_time_in_secs = exp_time_in_secs if exp_time_in_secs else 3600
@@ -18,7 +18,7 @@ class Jwt_User_Claim:
     
     @classmethod
     def from_oauth(cls, oauth_user_data):
-        return cls(name=oauth_user_data['name'], email=oauth_user_data['email'])
+        return cls(name=oauth_user_data['name'], email=oauth_user_data['email'], sub=oauth_user_data['sub'])
     
     @staticmethod
     def jwt_token_from_oauth(oauth_user_data, key):
