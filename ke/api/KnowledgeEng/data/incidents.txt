@@ -1,0 +1,1321 @@
+1. 02546150 :
+
+
+
+Incident Subject:  IPSec Tunnel Failover
+
+
+
+Incident Description: We have configure to tunnel between our on premise to cloud. Some time tunnel has been switch one to another and Metric value for live 5 and second is 10. But after switch traffic is not going through second tunnel. How can configure failover or other solution for this issue.
+
+
+
+Additional Context: Customer has a backup-tunnel configured with metric 10 and when the primary Tunnel goes down it fails over to secondary tunnel but traffic does not flow through it. Need some configuration assistance on this scenario.
+
+
+
+Related document: 
+
+site to site Tunnel Failover with Static Route Path-Monitoring
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000POO0CAO&source=gmail-imap&ust=1683570797000000&usg=AOvVaw34GeWo9BcCXdVA2Vtr3fgK
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000POO0CAO&source=gmail-imap&ust=1683570797000000&usg=AOvVaw34GeWo9BcCXdVA2Vtr3fgK
+
+Selecting an IP Address for PBF or Tunnel Monitoring
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClR3CAK&source=gmail-imap&ust=1683570797000000&usg=AOvVaw3y05vhQb9oKtOBaL_NjsoM
+
+How to Configure a Palo Alto Networks Firewall with Dual ISPs and Automatic VPN Failover
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClFiCAK&source=gmail-imap&ust=1683570797000000&usg=AOvVaw0mUv2DtEOcc1jDXx1hO_bC
+
+
+
+2. 02546120 :
+
+
+
+Incident Subject: Config not being pushed to Firewall from Panorama.
+
+
+
+Incident Description: Commit failed to firewall.
+
+
+
+Additional Context: For some users, the configuration changes made on Panorama is not able to push onto the managed devices.
+
+But the configuration should be able to push to managed devices.
+
+Checking for any local changes and also templates and device groups while pushing will help to get to the cause.
+
+
+
+Related document: 
+
+Panorama Configuration Changes
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/best-practices/10-1/best-practices-for-managing-firewalls-with-panorama/configuration-change-management/push-configuration-changes-to-managed-firewalls&source=gmail-imap&ust=1683570797000000&usg=AOvVaw1I63OGrVk1iIRxGE_QcBfy
+
+Unable to push configuration from panorama to firewall, Validation Error
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/kcSArticleDetail?id%3DkA10g000000boO8&source=gmail-imap&ust=1683570797000000&usg=AOvVaw11ylZW7NATQicK8ot59ROP
+
+Panorama commit and push to firewall fails with Error: Missing service value.
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/kCSArticleDetail?id%3DkA10g000000CmK4&source=gmail-imap&ust=1683570797000000&usg=AOvVaw1iR2BzbvQiI3P2IipXfGCu
+
+
+
+
+
+
+
+3. 02544051 
+
+
+
+Incident Subject:  Lost connectivity towards USCAFREPANFW01 and USCAFREPANFW02
+
+
+
+Incident Description: We had lost connectivity towards USCAFREPANFW01;USCAFREPANFW02. We are unable to ping these Palo Alto Firewalls, unable to connect with CLI or GUI.
+
+We needed to to do HA-Failover and when we suspended USCAFREPANFW02 node for HA state, we had lost connection towards both of the nodes.
+
+Panorama was also showing connection status as 'Disconnected' towards both of the nodes.
+
+Incident happened around 2023-04-24 at 1:30 a.m to 2:15 a.m
+
+We would like to have RCA and eventually fix the issue caused by HA failover.
+
+
+
+Additional Context: This scenario has an HA-Pair which is managed by Panorama. When tried to failover from the primary to the secondary Firewall both the Firewalls went down and shows disconnected from Panorama. Although an HA-Failover should be failed over to a secondary Firewall without any issues.
+
+
+
+Related document:
+
+a. Firewall Showing as Disconnected on the Panorama
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClZnCAK&source=gmail-imap&ust=1683570797000000&usg=AOvVaw0R7RrEUBxEszDRLDx5Vm-h
+
+b. Verify Failover
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/pan-os/9-1/pan-os-admin/high-availability/set-up-activepassive-ha/verify-failover&source=gmail-imap&ust=1683570797000000&usg=AOvVaw3Fsf8tAFWML4TYZ0qwe6aU
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/pan-os/9-1/pan-os-admin/high-availability/ha-concepts/ha-timers&source=gmail-imap&ust=1683570797000000&usg=AOvVaw07aiDutqjtkKw_PB7K1Rcy
+
+
+
+
+
+4. 02540676 
+
+
+
+Incident Subject:  Every Panorama LDAP-admin must be able to push only his partial configuration
+
+
+
+Incident Description: Panorama is integrated with LDAP, Panorama admin user (API administrator) logs into Virtual panorama running on 10.2.4 PAN OS to make config changes, they just can't push their config, all config done must be pushed done by all administrators.
+
+
+
+Additional Context: When the customer is trying to push the configuration made by one LDAP user it is not able to push but when pushed by selecting all administrators then the config is getting committed.
+
+
+
+Related document: 
+
+Panorama Config Push
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-web-interface-help/panorama-web-interface/panorama-scheduled-config-push&source=gmail-imap&ust=1683570797000000&usg=AOvVaw2qG6XW0AabXPZIiLtGR10h
+
+Push Selective Configuration Changes
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/panorama/10-2/panorama-admin/administer-panorama/push-selective-configuration-changes-to-managed-devices&source=gmail-imap&ust=1683570797000000&usg=AOvVaw0pRG9lE1UPhkPPOmNo4REW
+
+Administrator-Level Push
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/pan-os/10-2/pan-os-new-features/panorama-features/administrator-level-push&source=gmail-imap&ust=1683570797000000&usg=AOvVaw3uTFAKv31bO6MGJ6Gkrdrl
+
+
+
+
+
+5. 02535619 
+
+
+
+Incident Subject: IPSec VPN site to site is not working
+
+ 
+
+Incident Description: Palo Alto PA-220 
+
+Serial no. 12801132978
+
+IPSec VPN site to site is not working.
+
+
+
+Additional Context: The issue is that IPsec site-to-site vpn is going down for a few days or weeks once. At that cx is trying to reboot the firewall and after reboot everything is coming to normal.
+
+faced an outage due to IPsec down. IPSec VPN site-to-site should not go down frequently.
+
+
+
+
+
+Related document: 
+
+a.How to check Status, Clear, Restore, and Monitor an IPSEC VPN Tunnel
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/articles/en_US/Knowledge/CLI-Commands-to-Status-44-Clea-55917&source=gmail-imap&ust=1683570797000000&usg=AOvVaw3xOMGsvDYH44Yz1Fk_GIz-
+
+
+
+b. Configure IPSec VPN:
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClGkCAK&source=gmail-imap&ust=1683570797000000&usg=AOvVaw3Np0-la4rH5Qkp7dGg-Sti
+
+
+
+c. View the Status of the Tunnels:
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/pan-os/10-0/pan-os-admin/vpns/set-up-site-to-site-vpn/set-up-tunnel-monitoring/view-the-status-of-the-tunnels.html&source=gmail-imap&ust=1683570797000000&usg=AOvVaw2ur1T7x7KxW1nzPbkI1Pr9
+
+
+
+
+
+6. 02537728 
+
+
+
+Incident Subject:  Missing logs on the firewall, problem with the log disks.
+
+
+
+Incident Description: Hi,
+
+We have noticed that logs on our firewall are not displayed soon after upgrade to the newest recommended version from 10.x family. Further investigation showed an issue with one of the log disks in the raid:
+
+
+
+Logging Drives RAID status
+
+--------------------------------------------------------------------------------
+
+Disk Pair Log Failed
+
+Status Disk unmount failure; Logger is in use
+
+Disk id Log1 Present
+
+model : ST2000NX0253
+
+size : 1907729 MB
+
+status : active sync
+
+Disk id Log2 Present
+
+model : ST2000NX0253
+
+size : 1907729 MB
+
+status : failed
+
+
+
+We decided to reboot the device to force raid rebuild but after it completed we see that both disk are now in failed state:
+
+
+
+Logging Drives RAID status
+
+--------------------------------------------------------------------------------
+
+Disk Pair Log Failed
+
+Status Disk unmount failure; Logger is in use
+
+Disk id Log1 Present
+
+model : ST2000NX0253
+
+size : 1907729 MB
+
+status : failed
+
+Disk id Log2 Present
+
+model : ST2000NX0253
+
+size : 1907729 MB
+
+status : failed
+
+
+
+During the raid rebuilding the logs we visible in the monitor but now they are not there again. Please help to resolve the issue.
+
+
+
+Additional Context: after the upgrade to 10.x version logs stopped displaying on FW which was related to one of the disk failure. After the reboot both the disk status failed and unable to observe logs.
+
+
+
+Related document: 
+
+Determine How Much Disk Space is Allocated to Logs
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClgZCAS&source=gmail-imap&ust=1683570797000000&usg=AOvVaw2dNxoFqzqnHvU0Lhq_a2sw
+
+Clear Logs To Reduce Disk Space usage on /opt/panlogs
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClSjCAK&source=gmail-imap&ust=1683570797000000&usg=AOvVaw0mMg0ASXkgkGZVKSONN7tS
+
+c. High Disk Space Usage on / root partition and How To Clear
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClaJCAS&source=gmail-imap&ust=1683570797000000&usg=AOvVaw1ozD15-Q_Cv27CPCBkhhp9
+
+
+
+
+
+7. 02546179 
+
+
+
+Incident Subject:  Traffic is getting marked as different country than it should be.
+
+
+
+Incident Description: We observed traffic till 1:47 am EST with country marked as United Kingdom and the traffic was being allowed via expected policy.
+
+In the same session at 1:48 am EST we could see the traffic is being marked as Russian Federation and because of which the traffic hits the malicious-network-for-blocking_shared policy and getting dropped as per GeoIP blocking.
+
+Traffic after 1:48AM EST keeps getting marked as Russian Federation and denied.
+
+We didn’t observe any audit logs and the tunnel flaps in last 30 days and around issue time .
+
+
+
+Additional Context: The expected traffic is configured in UK Location to allow but for many instances, the expected traffic is not identified in the UK region and getting denied.
+
+
+
+Related document: 
+
+Block Traffic Based Upon Countries
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClbHCAS&source=gmail-imap&ust=1683570797000000&usg=AOvVaw2g3uHC7_ll4l7YkWhUex45
+
+Configure a Security Policy to Use a Region
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClJWCA0&source=gmail-imap&ust=1683570797000000&usg=AOvVaw0wUqGWy3k81L_o77Oprlkj
+
+
+
+
+
+
+
+
+
+8. 02540931 
+
+
+
+Incident Subject:  The end user on an AVD in Azure UKSouth is trying to navigate through a web browser to this location: pkac-e0wvq.us-east-1.aws.confluent.cloud.  It appears that it is getting out of the DC5 Firewall but the return traffic is failing.
+
+
+
+Incident Description: The end user on an AVD in Azure UKSouth is trying to navigate through a web browser to this location: pkac-e0wvq.us-east-1.aws.confluent.cloud.  It appears that it is getting out of the DC5 Firewall but the return traffic is failing.
+
+
+
+Additional Context: Customer is trying to reach the web browser to the location: pkac-e0wvq.us-east-1.aws.confluent.cloud but not receiving any response. The interfaces on a VM Size V5 SKU type are not supported. In Azure documentation, it shows only V4 support and not V5.
+
+
+
+Related document: 
+
+a. Azure Gateway Load Balancer Return Traffic Decapsulation Error
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA14u000000kGAyCAM&source=gmail-imap&ust=1683570797000000&usg=AOvVaw0yYgdDNR9yY5gMtvi987MP
+
+
+
+
+
+9. 02542547 
+
+
+
+Incident Subject:  Firewall reboots both a/p
+
+
+
+Incident Description: Hello,
+
+
+
+I have the issue again where now both the a/p firewalls rebooted at the same time.
+
+2023/04/26 09:21:11 info general general 0 Management server started. Running version 10.1.9
+
+2023/04/26 09:21:11 info dnsprox mgmt-o object- 0 Dnsproxy object:mgmt-obj was enabled.
+
+2023/04/26 09:21:10 info app-clo general 0 Cloud Appid feature is disabled time: 2023-04-26 09:21:11
+
+2023/04/26 09:21:10 info routing routed- 0 FIB HA sync started when local device becomes master.
+
+2023/04/26 09:21:10 info ras rasmgr- 0 RASMGR daemon configuration load phase-2 succeeded.
+
+2023/04/26 09:21:10 info sslmgr sslmgr- 0 SSLMGR daemon configuration load phase-2 succeeded.
+
+2023/04/26 09:21:10 info satd satd-co 0 SATD daemon configuration load phase-2 succeeded.
+
+
+
+Additional Context: Both the FW’s in A/P mode got rebooted and observed Crash cdb script exited with signal of 6; core and some backtraces which leads to Replacement of the device.
+
+
+
+Related document: 
+
+
+
+a. How to Identify and Troubleshoot a Process that Exited or Restarted in PAN-OS
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA14u000000wlGlCAI&source=gmail-imap&ust=1683570797000000&usg=AOvVaw3AJBURwC80yOGPpM-jE5H1
+
+b.  https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClaGCAS&source=gmail-imap&ust=1683570797000000&usg=AOvVaw2_NXc4X7I3fyGpvaqLj5Zt
+
+
+
+
+
+10. 02540939 
+
+
+
+Incident Subject:  Configuration import error
+
+
+
+Incident Description: while migrating to PA, we are getting configuration import error.
+
+
+
+Additional Context: Customer is migrating the configuration from ASA to PA device and while importing they are receiving an error due to some possible configuration differences between vendors.
+
+
+
+Related document: 
+
+ASA migration to PA
+
+https://www.google.com/url?q=https://live.paloaltonetworks.com/t5/general-topics/asa-migration-to-pa/m-p/535547%23M110157&source=gmail-imap&ust=1683570797000000&usg=AOvVaw3uo6rLdwIiwbrsAU5WMT8Q
+
+How to Save an Entire Configuration for Import into Another Palo Alto Networks Device
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClaOCAS&source=gmail-imap&ust=1683570797000000&usg=AOvVaw20muezw1EOaYvlJ60FDruN
+
+
+
+
+
+11. 02540061 
+
+
+
+Incident Subject:  Running config not Synchornizing
+
+
+
+Incident Description: The devices are currently showing "Running config" "Not Synchronized". I have attempted a manual synchronization and still seeing failures. I ran a diff between the running config on both devices and am not seeing any major discrepancies. I have also collected the following data from the ha_agent.log:
+
+
+
+2023-04-24 13:14:26.283 -0500 debug: ha_sysd_config_status_notifier_callback(src/ha_sysd.c:2878): Starting monitor increase holdup on phase2 start
+
+2023-04-24 13:14:26.283 -0500 debug: ha_state_start_increase_monitor_holdup(src/ha_state.c:1217): Starting monitor holdup increase during commit
+
+2023-04-24 13:14:26.285 -0500 debug: cfgagent_flags_callback(pan_cfgagent.c:226): ha_agent: cfg agent received flags from server
+
+2023-04-24 13:14:26.285 -0500 debug: cfgagent_flags_callback(pan_cfgagent.c:230): new flags=0x0
+
+2023-04-24 13:14:26.286 -0500 debug: ha_cfgagent_phase2(src/ha_cfgagent.c:753): start
+
+2023-04-24 13:14:26.286 -0500 debug: ha_cfgagent_phase2_callback(src/ha_cfgagent.c:700): start
+
+2023-04-24 13:14:26.286 -0500 SPECIAL PATHMON: PHASE2 Evaluating lists for swap
+
+2023-04-24 13:14:26.286 -0500 SPECIAL PATHMON: PHASE2 No change detected in high level comparison.
+
+2023-04-24 13:14:26.286 -0500 SPECIAL PATHMON: PHASE2 special path monitoring grouplist was identical. No swap.
+
+2023-04-24 13:14:26.286 -0500 debug: ha_product_copy_cluster_cfg(src_panos/ha_panos_cluster.c:669): No cluster structure found for configuration
+
+2023-04-24 13:14:26.286 -0500 SPECIAL PATHMON: Inside ha_special_pathmon_update_committed_config
+
+2023-04-24 13:14:26.286 -0500 debug: sysd_queue_wr_event_add(sysd_queue.c:915): QUEUE: queue write event already added
+
+2023-04-24 13:14:26.286 -0500 SPECIAL PATHMON: Updated cfg.ha.special.path-monitor.config.committed
+
+2023-04-24 13:14:26.286 -0500 debug: ha_cfgagent_phase2_callback(src/ha_cfgagent.c:730): sending back true for p2done
+
+2023-04-24 13:14:26.286 -0500 debug: sysd_queue_wr_event_add(sysd_queue.c:915): QUEUE: queue write event already added
+
+2023-04-24 13:14:26.287 -0500 SPECIAL PATHMON: Successful modification of cfg.ha.special.path-monitor.config.committed
+
+2023-04-24 13:14:30.121 -0500 Received HA2 MAC address: 08:30:6b:e3:81:08
+
+2023-04-24 13:14:30.122 -0500 Received HA2 MAC address: 08:30:6b:e3:81:08
+
+2023-04-24 13:14:30.123 -0500 Received HA3 MAC address: 08:30:6b:e3:81:08
+
+2023-04-24 13:14:30.123 -0500 Received HA3 MAC address: 08:30:6b:e3:81:08
+
+2023-04-24 13:14:32.788 -0500 debug: ha_state_cfg_md5_set(src/ha_state_cfg.c:485): We were out of sync and now we are out of sync; autocommit no; ha-sync yes; panorama no; cfg-sync-off no; pre-old-insync no; pre-new-insync no
+
+2023-04-24 13:14:32.788 -0500 debug: ha_sysd_mgmt_dosync_trigger(src/ha_sysd.c:808): Sending start sync to mgmtsrvr: False
+
+2023-04-24 13:14:32.789 -0500 debug: ha_peer_send_hello(src/ha_peer.c:5228): Group 1 (HA1-MAIN): Sending hello message
+
+
+
+Hello Msg
+
+---------
+
+flags : 0x0 ()
+
+state : Passive (4)
+
+priority : 200
+
+cookie : 49119
+
+num tlvs : 3
+
+Printing out 3 tlvs
+
+TLV[1]: type 62 (CONFIG_MD5_PRE); len 33; value:
+
+38353630 37343139 65613262 30626162 34386464 66343564
+
+61666464 31306536 00
+
+TLV[2]: type 2 (CONFIG_MD5SUM); len 33; value:
+
+31303638 66343837 64646137 30323930 62393963 63353737
+
+61393930 32633139 00
+
+TLV[3]: type 11 (SYSD_PEER_DOWN); len 4; value:
+
+00000000
+
+
+
+2023-04-24 13:14:32.789 -0500 debug: ha_sysd_mgmt_finsync_notifier_callback(src/ha_sysd.c:2624): Mgmtsrvr sent finsync failure
+
+2023-04-24 13:14:39.589 -0500 debug: ha_sysd_config_status_notifier_callback(src/ha_sysd.c:2870): Ending monitor increase holdup on commit end
+
+2023-04-24 13:14:39.589 -0500 debug: ha_state_stop_increase_monitor_holdup(src/ha_state.c:1239): Ending monitor holdup increase after commit in 60 seconds
+
+2023-04-24 13:14:39.837 -0500 debug: ha_sysd_mgmt_finsync_notifier_callback(src/ha_sysd.c:2624): Mgmtsrvr sent finsync success
+
+2023-04-24 13:14:39.837 -0500 debug: ha_state_cfg_check_insync(src/ha_state_cfg.c:280): group 1: mgmtsrvr insync: NO; insync2: NO
+
+2023-04-24 13:14:39.837 -0500 debug: ha_state_cfg_check_insync(src/ha_state_cfg.c:314): failure for config sync request
+
+2023-04-24 13:14:39.838 -0500 debug: ha_sysd_mgmt_finsync_notifier_callback(src/ha_sysd.c:2624): Mgmtsrvr sent finsync success
+
+2023-04-24 13:14:39.838 -0500 debug: ha_state_cfg_check_insync(src/ha_state_cfg.c:280): group 1: mgmtsrvr insync: NO; insync2: NO
+
+2023-04-24 13:14:39.838 -0500 debug: ha_state_cfg_check_insync(src/ha_state_cfg.c:314): failure for config sync request
+
+
+
+Additional Context: Running configuration is not getting synchronized frequently between HA-FWs although there are no major config differences.
+
+
+
+Related document: 
+
+Synchronization of System Runtime Information
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/pan-os/11-0/pan-os-admin/high-availability/reference-ha-synchronization/synchronization-of-system-runtime-information&source=gmail-imap&ust=1683570797000000&usg=AOvVaw07Gx11xPAXekJDhSyeSCiq
+
+High-Availability - Out of Sync Peers
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA14u0000004OHyCAM&source=gmail-imap&ust=1683570797000000&usg=AOvVaw3cXgZiTs7bu5mRkF2Oi9hu
+
+
+
+
+
+12. 02543931 
+
+
+
+Incident Subject: PANOS 10.2.4 errors out when downloading within GUI.
+
+
+
+Incident Description: PANOS 10.2.4 errors out when downloading within GUI.  Upgrade to 10.2.4 impending, and need to confirm proper upgrade path and process.
+
+
+
+Additional Context: PAN-OS Upgrade to 10.2.4 fails on the web GUI. Proper processes and paths need to be followed while upgrading and can try a manual upgradation of the new versions.
+
+
+
+Related document: 
+
+Upgrade Path to PAN-OS 10.2
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/pan-os/10-2/pan-os-upgrade/upgrade-pan-os/upgrade-the-firewall-pan-os/determine-the-upgrade-path&source=gmail-imap&ust=1683570797000000&usg=AOvVaw0nDUnLV39lvmfkRvHAxWX3
+
+
+
+13. 02543909 
+
+
+
+Incident Subject:  can't use Global protect
+
+
+
+Incident Description: can't use Global protect, it always down
+
+
+
+Additional Context: Customer has a GP configuration and the connection is down and could not connect/use.
+
+
+
+Related document: 
+
+Configure GlobalProtect
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClFbCAK&source=gmail-imap&ust=1683570797000000&usg=AOvVaw1FkaQuQ7-qM6RWCVIyGL2d
+
+
+
+
+
+14.02544927 
+
+
+
+Incident Subject:   GlobalProtect ScriptError when launching
+
+
+
+Incident Description: when user try to launch GP client, they are getting a Script Error. The error as follow
+
+
+
+An error has occured in the script on this page
+
+
+
+Error: Object doesn't support property or meth "includers"
+
+
+
+Additional Context: For multiple users of GP Client before the GP is launched it receives a Script Error.
+
+
+
+Related document: 
+
+Collecting GP Client logs
+
+--------------------------------------------------
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClaLCAS&source=gmail-imap&ust=1683570797000000&usg=AOvVaw3hOKLAEMOjWX1wnA9Fn37i
+
+
+
+
+
+15.02542836 
+
+
+
+Incident Subject:  Root partition on primary panorama is filling up generating chassis alarms and HA failover events.
+
+
+
+Incident Description: Root partition hitting 98% in use, filesystem is "cleaned" automatically and it returns to ~76% but fills up again. Need help determining why.
+
+
+
+Additional Context: Usage seems to reset every hour and the root partition is reaching 98%. The issues are not that the filesystem is being cleaned, it's that / is filling up and causing HA events on the primary panorama.
+
+
+
+Related document: 
+
+Disk Space Usage on / root partition and How To Clear
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClaJCAS&source=gmail-imap&ust=1683570797000000&usg=AOvVaw1ozD15-Q_Cv27CPCBkhhp9
+
+
+
+
+
+16. 02522812
+
+
+
+Incident Subject:  sometimes the firewall is intermittent: 192.168.0.247
+
+
+
+Incident Description: As directed by checkpoint's Engineer Jose I'm goin to open this case to investigate the root cause of other firewall issues:
+
+
+
+Device Name PA-820-1
+
+MGT IP Address 192.168.0.247
+
+MGT Netmask 255.255.255.0
+
+MGT Default Gateway 192.168.0.21
+
+MGT IPv6 Address unknown
+
+MGT IPv6 Link Local Address unknown
+
+MGT IPv6 Default Gateway
+
+MGT MAC Address e8:98:6d:c0:b6:00
+
+Model PA-820
+
+Serial # 012001025403
+
+Software Version 9.1.13-h1
+
+GlobalProtect Agent 5.2.6
+
+Application Version 8687-7932 (03/17/23)
+
+Antivirus Version 4379-4896 (03/04/23)
+
+URL Filtering Version 20230406.20202
+
+GlobalProtect Clientless VPN Version 0
+
+Time Thu Apr 6 10:12:00 2023
+
+Uptime 2 days, 3:54:05
+
+Device Certificate Status None
+
+
+
+This case was analyzed by Jose Jaen on Case 02512456S2 .
+
+
+
+We are in risk because your first firewall was RMA and the other firewall shows issue too.
+
+
+
+Additional Context: After the FW is RMAed still cx has intermittent issues with some FWs.
+
+
+
+Related document: 
+
+How to Configure an RMA Replacement Firewall
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClknCAC&source=gmail-imap&ust=1683570797000000&usg=AOvVaw3MzGPv8ur_HjXukEsn1qd0
+
+
+
+17. 02542520 
+
+
+
+Incident Subject:  Not able to access below link through PA Firewall. https://www.google.com/url?q=https://www.beautiful.ai/-NTthQAOWKnBTPR6sZ_M/3&source=gmail-imap&ust=1683570797000000&usg=AOvVaw13LnR-azpnjK3niu628z5T
+
+
+
+Incident Description: Not able to access below link through PA Firewall.
+
+https://www.google.com/url?q=https://www.beautiful.ai/-NTthQAOWKnBTPR6sZ_M/3&source=gmail-imap&ust=1683570797000000&usg=AOvVaw13LnR-azpnjK3niu628z5T
+
+
+
+Additional Context: Customer can not access the URL as there is no URL category for the link but the FQDN is used in the destination address.
+
+
+
+Related document: 
+
+Custom URL Category
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/pan-os/9-1/pan-os-admin/url-filtering/custom-url-categories&source=gmail-imap&ust=1683570797000000&usg=AOvVaw3Hysr1gBj6r5vP_DCBhjS1
+
+
+
+18. 02545194 
+
+
+
+Incident Subject:  Firewall Upgradation from 10.1.0 to 10.2.3 activity planned on 29th Apr 10 PM IST. Need an Engineer on Standby
+
+
+
+Incident Description: Hi Palo Alto Support team,
+
+
+
+Firewall upgradation activity is scheduled on 29th Apr 10 PM IST.
+
+
+
+We are upgrading the OS version from 10.1.0 to 10.2.3.
+
+
+
+We request you to align an Engineer on Standby. In case if we require any support, we will update in the case and the support person needs to join the call through below lin.
+
+
+
+
+
+Teams Meeting Link: 29th Apr 2023, 10:00 PM IST.
+
+
+
+https://www.google.com/url?q=https://teams.microsoft.com/l/meetup-join/19%253ameeting_MjlmZDg4NmUtNzUxMS00NzNjLWIwMTYtMTI5NzdmNzQ4ZDNl%2540thread.v2/0?context%3D%257b%2522Tid%2522%253a%2522bf262e1a-61c1-49d6-b101-356db608a72a%2522%252c%2522Oid%2522%253a%252216175220-c5d6-420f-a630-209dda993a98%2522%257d&source=gmail-imap&ust=1683570797000000&usg=AOvVaw1Apmlz2uzUGWSWPEuX0y0n  
+
+
+
+Additional Context: Customer needs a proper upgradation process and path and wants to avoid any outages after/while the upgradation process.
+
+
+
+Related document: 
+
+PAN-OS Upgrade Guide.
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-upgrade/upgrade-pan-os&source=gmail-imap&ust=1683570797000000&usg=AOvVaw266h5u4BB-z8XTlgSohiGL
+
+Below are the reference links for recommended upgrade path and supported os.
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/compatibility-matrix/supported-os-releases-by-model/palo-alto-networks-next-gen-firewalls&source=gmail-imap&ust=1683570797000000&usg=AOvVaw2SKtyNRVBJ1An46jgNasdG
+
+c. The below link is a reference on How to Upgrade an HA Firewall Pair.
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-upgrade/upgrade-pan-os/upgrade-the-firewall-pan-os/upgrade-an-ha-firewall-pair&source=gmail-imap&ust=1683570797000000&usg=AOvVaw3HWQL884xXbvSKKHjfk2Sa
+
+
+
+
+
+19. 02519832 
+
+
+
+Incident Subject:  SSL/TLS profile for GP portal
+
+
+
+Incident Description: Team, we are in the process of setting up the GP portal on Prisma for our enterprise users along with a breakglass/backup portal on our on-prem firewalls.
+
+While setting up the backup portal, we received a scan report stating that TLSv1.2(used for min supported TLS version) is a weak/insecure cipher to be used for handshake/auth.
+
+
+
+Even though its a default feature and palo supports 1.3 when set to Max or selected manually under Max supported version for the TLS profile, is there any way to mitigate this vul. or to strengthen the security/ciphers used for the portal handshake?
+
+
+
+Additional Context: Customer Needs the recommendation to disable the following weak ciphers from the  tlsv1.2 version on palo and its impact doing so.:
+
+
+
+<li>TLS_DHE_RSA_WITH_AES_128_CBC_SHA</li>
+
+<li>TLS_DHE_RSA_WITH_AES_256_CB
+
+
+
+Related document: 
+
+disable medium strength SSL ciphers for SSL/TLS Service Profile
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000CmqeCAC&source=gmail-imap&ust=1683570797000000&usg=AOvVaw12n1b5vrI2z2Hdyy6zRuzF
+
+
+
+20.02541248 
+
+
+
+Incident Subject:  Firewall is down and I get an error when I attempt to connect to firewall via Mgt
+
+
+
+Incident Description: ATTENTION
+
+A critical error has been detected, preventing proper boot up of the device. Please contact Palo Alto Networks to resolve this issue at 866-898-9087 or support@paloaltonetworks.com. The system is in maintenance mode. Connect via serial console or ssh to access the recovery tool.
+
+
+
+login as: admin
+
+Pre-authentication banner message from server:
+
+| The system is in maintenance mode. Connect via serial console or with user 'm
+
+> aint' through ssh to access the recovery tool.
+
+|
+
+End of banner message from server
+
+admin@172.20.114.26's password:
+
+login as: admin
+
+Pre-authentication banner message from server:
+
+| The system is in maintenance mode. Connect via serial console or with user 'm
+
+> aint' through ssh to access the recovery tool.
+
+|
+
+End of banner message from server
+
+admin@172.20.114.26's password:
+
+System initializing; please wait... (CTRL-C to bypass)
+
+^CTo reboot the device, please login as superuser and type 'request restart system'
+
+
+
+Cannot connect to management server
+
+admin@LAB-9299>
+
+
+
+Additional Context: FW is not accessible and is in the initializing stage.
+
+A critical error has been detected, preventing proper boot-up of the device.
+
+
+
+Related document: 
+
+a. factory reset the device:
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000CldXCAS&source=gmail-imap&ust=1683570797000000&usg=AOvVaw0Bw8kU4DVLxoiCp6HmFU4J
+
+
+
+21.02545482 
+
+
+
+Incident Subject:  Dataplane is restarting in loop
+
+
+
+Incident Description: We've upgraded Firewall from 10.1.9-h1 to 10.2.0 and after that dataplane started restarting in loop.
+
+We upgraded to 11.0.0 and the problem remained.
+
+After that we downgraded back to 10.1.9-h1 and the problem remained.
+
+
+
+Additional Context: Dataplane is restarting every 10 mins loop after the upgrade and still going on even after being downgraded back.
+
+
+
+
+
+Related document: 
+
+Multiple all_task process crashes with dataplane restarts
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA14u0000001UiJCAU&source=gmail-imap&ust=1683570797000000&usg=AOvVaw3G0OogHuMI9YjRtGtyIVGc
+
+Repeting Data Plane restarts
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA14u000000HCcXCAW&source=gmail-imap&ust=1683570797000000&usg=AOvVaw225jQAt7wZ0q3gyb01Y9Wh
+
+
+
+22.02534090 
+
+
+
+Incident Subject:  need to investigate TCP flood traffic
+
+
+
+Incident Description: need to investigate TCP flood traffic. Join below on priority
+
+
+
+Additional Context:
+
+Packet is dropped intermittently for the specific time.
+
+From the traffic logs, Syn flood has occurred and the threat ID 8501 shows the same.
+
+
+
+Related document: 
+
+ Why does the Threat Logs show source and destination IP addresses as 0.0.0.0 for detected and blocked TCP flood attacks
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000PMRqCAO&source=gmail-imap&ust=1683570797000000&usg=AOvVaw1FcMGst9sHfIid7B4W5wKx
+
+
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000PMRqCAO&source=gmail-imap&ust=1683570797000000&usg=AOvVaw1FcMGst9sHfIid7B4W5wKx
+
+
+
+23.02503955 
+
+
+
+Incident Subject:  High disk root partition
+
+
+
+Incident Description: High disk root partition
+
+
+
+Additional Context: PA-220 has "High disk root partition" which was 97% and needed to clear that in order to utilize the FW smoothly.
+
+
+
+Related document: 
+
+High Disk Space Usage on / root partition and How To Clear
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClaJCAS&source=gmail-imap&ust=1683570797000000&usg=AOvVaw1ozD15-Q_Cv27CPCBkhhp9
+
+
+
+24.02509633 
+
+
+
+Incident Subject:  Failed palo alto firewall
+
+
+
+Incident Description:
+
+The FW PA820 SN:012001073909, recently installed is not booting and no longer responding to any instructions.
+
+After doing a factory reset to the firewall and upload the backup configuration, now firewall is working fine.
+
+Then again the firewall failed, this the third time happened to the same firewall .
+
+Flash: 64 MiB
+
+WARNING: Failed to get lmac fdt node for -100
+
+WARNING: Failed to get lmac fdt node for -101
+
+
+
+Additional Context: Customer is  not able to log in via GUI and CLI and getting error: Critical processes (configd) are down. Factory reset has been done although not able to login to the device.
+
+
+
+Related document: 
+
+
+
+Replacement Firewall
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000ClknCAC&source=gmail-imap&ust=1683570797000000&usg=AOvVaw3MzGPv8ur_HjXukEsn1qd0
+
+
+
+25. 02510122 
+
+
+
+Incident Subject:  We needed to create a new PKI Root server and for now Global Protect is functioning, yet need to know why.
+
+
+
+Incident Description: We needed to create a new PKI Root server and for now Global Protect is functioning, yet need to know why. Our other certificates will expire on April 26th and we need to know what repercussions will occur currently and after the date. We would like to know how Global Protect is able to function with a different Certificate chain.
+
+
+
+Additional Context: users referencing the old PKI environment are unable to access Global Protect. A new certificate is required to allow them into the network.
+
+
+
+Related document: 
+
+GlobalProtect Portals Agent Config Selection Criteria.
+
+
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/pan-os/9-1/pan-os-web-interface-help/globalprotect/network-globalprotect-portals/globalprotect-portals-agent-configuration-tab/globalprotect-portals-agent-config-selection-criteria-tab&source=gmail-imap&ust=1683570797000000&usg=AOvVaw1MPYisDmhYulDf0mwsj9Pe
+
+
+
+
+
+
+
+
+
+
+
+26.02543547
+
+
+
+Incident Subject:  Unable to push the changes to firewall gateway. Commit to Panorama is working but not push to devices for any of our other firewalls.
+
+
+
+Incident Description: Unable to push the changes to firewall gateway. Commit to Panorama is working but not push to devices for any of our other firewalls.
+
+Current Version : Software Version 10.1.9-h1
+
+VM Mode VMware ESXi
+
+
+
+Additional Context: checking the firewalls are under the correct device group.
+
+and to share Unused Addresses and Service Objects with Devices was unchecked.
+
+checking the Share Unused Address and Service Objects with Device then could be able to see the device groups of all firewalls.
+
+previewing changes and validating the commit.
+
+Then the commit and the push to devices is successful and we can see the objects on the firewall and also other configurations.
+
+
+
+Related document: 
+
+     a. Panorama Configuration Changes
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/best-practices/10-1/best-practices-for-managing-firewalls-with-panorama/configuration-change-management/push-configuration-changes-to-managed-firewalls&source=gmail-imap&ust=1683570797000000&usg=AOvVaw1I63OGrVk1iIRxGE_QcBfy
+
+Unable to push configuration from panorama to firewall, Validation Error
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/kcSArticleDetail?id%3DkA10g000000boO8&source=gmail-imap&ust=1683570797000000&usg=AOvVaw11ylZW7NATQicK8ot59ROP
+
+
+
+Panorama Config Push
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-web-interface-help/panorama-web-interface/panorama-scheduled-config-push&source=gmail-imap&ust=1683570797000000&usg=AOvVaw2qG6XW0AabXPZIiLtGR10h
+
+
+
+
+
+27. 02545367 
+
+
+
+Incident Subject: Active device in cluster stoped processing traffic
+
+
+
+Incident Description: Yesterday around 12-1pm ETC time our active device stopped processing traffic properly. Probably after a commit. However when we did a failover manually (the automatic failover didn't work as no link were down according to active device) everything started to work normally. So either there was an issue with the commit process itself or there is something wrong with the hardware. Tech Support reports attached.
+
+
+
+Additional Context: All the traffic toward Internet stopped working suddenly through active FW after a commit change was done. But started working normally after a manual fail-over.
+
+
+
+Related document: 
+
+a. HA Cluster
+
+
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-admin/high-availability/ha-clustering-overview&source=gmail-imap&ust=1683570797000000&usg=AOvVaw0HKlN0ciaxrObDZtQThU20
+
+
+
+28. 02524600 
+
+
+
+Incident Subject: GlobalProtect Clientless VPN: apps not visible after upgrade to 10.2.x
+
+
+
+Incident Description: Following the upgrade from PAN-OS 10.1.x to 10.2.4, and successful authentication to GP Portal, all the Clientless apps are missing.
+
+Tried to:
+
+#1. modify the configuration and Commit
+
+#2. revert to GP Clientless VPN v96-240, delete v97-245, re-download and re-install it
+
+
+
+Checked Traffic, Threat and URL Filtering logs, no issue nor anomaly detected.
+
+In the System Logs getting a "Informational" message:
+
+gpsvc: connection to authd is broken while reading, read unixgram @/tmp/authd_client_GP_socket_1681062596.sock->@/tmp/authd.sock: use of closed network connection time: 2023-04-09 17:55:34.
+
+
+
+Reading the PAN-OS v10.2 RN, noticed a "PAN-195713. Fixed an issue where clientless VPN applications were not displayed in the GlobalProtect portal page". Apparently this was a bug, fixed in current version.
+
+
+
+Additional Context: Since the upgrade to 10.2.4 all users are affected which are running in existing configuration. According to the release notes this issue where clientless VPN applications were not displayed on the GlobalProtect portal page is fixed but still don't observe the expected behavior.
+
+
+
+Related document: 
+
+a. How to collect FiddlerCap captures for a Web Application content-rewrite issues through the Clientless VPN Portal"
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA10g000000PLSiCAO&source=gmail-imap&ust=1683570797000000&usg=AOvVaw04Un_N2J4kojTh-oKN---3
+
+
+
+b. How to properly collect the Fiddler captures for Clientless VPN Application based issues"
+
+https://www.google.com/url?q=https://knowledgebase.paloaltonetworks.com/KCSArticleDetail?id%3DkA14u000000oMb4CAE%26lang%3Den_US%25E2%2580%25A9&source=gmail-imap&ust=1683570797000000&usg=AOvVaw20e7nk5mjAKfGWBbdf1u2Y
+
+
+
+29.02533718 
+
+
+
+Incident Subject: Drive mount error after upgrade to panos 10.2.4
+
+
+
+Incident Description: I see this error on our logging-m200 after reboots; I would like to get this resolved.
+
+Error:
+
+device_name: Roc-LOG-M200
+
+vsys_id: 0
+
+vsys:
+
+eventid: mount-failed
+
+object:
+
+fmt: 0
+
+id: 0
+
+module: general
+
+severity: critical
+
+opaque: mounting the Disk Pair B failed with ret mount: /opt/panlogs/ld2: wrong fs type, bad option, bad superblock on /dev/md2, missing codepage or helper program, or other error.
+
+dg_id: 0
+
+tpl_id: 0
+
+
+
+Additional Context: In the "show system raid detail " command we are getting the below error.
+
+Disk Pair B Unavailable
+
+Status Disk mount failure
+
+ In the raid.log we are getting the below error.
+
+" ERROR: mounting the Disk Pair B failed with ret mount: /opt/panlogs/ld2: wrong fs type, bad option, bad superblock on /dev/md2, missing codepage or helper program, or other error."
+
+login to the root of this log-collector and run the below command
+
+run "e2fsck -n /dev/md2"
+
+run "resize2fs -f /dev/md2" After that we rebooted the log collector. But still, we are getting the same error in the "show system raid detail".
+
+
+
+Related document: 
+
+M-300 Appliance
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/hardware/m-300-m-700-appliances-hardware-reference/install-the-m-300-and-m-700-appliance-overview/install-m-300_m-700-appliance/install-m-300-in-rack&source=gmail-imap&ust=1683570797000000&usg=AOvVaw2JcWyNYl2TY4NlxGMWqp4D
+
+
+
+
+
+30. 02535726 
+
+
+
+Incident Subject: Problems to reach DNS server from MGT Interface
+
+
+
+Incident Description:
+
+We hace an active/passive HA cluster with a pair of 3250 running on PAN-OS 10.1.6-H6,
+
+This traffic goes from MGT interface towards a layer 3 device passing through another layer 3 device and finally arriving to the data-plane to be parsed.
+
+We have an issue when configuring a DNS server 10.240.1.2 under Device > Services on the firewall, it cannot ping or trace that DNS server from the MGT interface 192.168.181.10, it shoud be noted that we have service routes for kerberos en dns services, nonetheless the firewall should reach the DNS server from the MGT interface
+
+Although we have service routes for the server 10.240.1.2 as Kerberos and DNS, the issue only occurs when the server 10.240.1.2 is defined as DNS server. If we change this DNS server for example using 10.240.1.5 instead, the firewall can now ping or trace to 10.240.1.2, but not 10.240.1.5.
+
+This communication issue needs to be fixed because the secondary firewall can't reach the kerberos server from the data-plane thanks to its passive role, and we want to delete the services routes on both firewalls.
+
+
+
+Additional Context: Communication between the DNS server and the firewall using its MGT interface is failing.
+
+
+
+Related document: 
+
+Firewall Requires DNS Resolution
+
+https://www.google.com/url?q=https://docs.paloaltonetworks.com/pan-os/9-1/pan-os-admin/networking/dns/use-case-1-firewall-requires-dns-resolution&source=gmail-imap&ust=1683570797000000&usg=AOvVaw1e3K6Ir3xBvT-kSXCVxvFG
+
+https://www.google.com/url?q=https://live.paloaltonetworks.com/t5/general-topics/dns-server-can-t-access-to-management-interface/td-p/484783&source=gmail-imap&ust=1683570797000000&usg=AOvVaw2OtsZa_cCDDwAj8eMvBzsm
+
+
+
