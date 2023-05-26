@@ -6,7 +6,7 @@ import TextareaAutosize from "@mui/base/TextareaAutosize";
 import { BsCursor } from "react-icons/bs";
 
 import Message from "./message";
-import { MessageDetails } from "..";
+import { MessageDetails } from "../pages";
 import CircularIndeterminate from "./progress_spinner";
 import LinearIndeterminate from "./linear_progress_indicator";
 
@@ -70,7 +70,7 @@ export default function ChatWindow(props: any) {
 
   fetchAnswer.current = async () => {
     return await axios
-      .get("https://api.iopex.ai/query", { params: { query: ask } })
+      .get("http://localhost:8000/query", { params: { query: ask } })
       .then((res) => {
         console.log(ask);
         console.log(res);
@@ -141,7 +141,7 @@ export default function ChatWindow(props: any) {
             setMessageIdCount(() => messageIdCount + 2);
             setIsLoading(() => false);
             axios
-              .get("https://api.iopex.ai/storeSession", {
+              .get("http://localhost:8000/storeSession", {
                 params: { sessionID: props?.chat?.id.toString() },
               })
               .then((res) => console.log(res));
@@ -170,7 +170,7 @@ export default function ChatWindow(props: any) {
     if (isLoading) {
       intervalId = setInterval(() => {
         axios
-          .get("https://api.iopex.ai/currentStatus")
+          .get("http://localhost:8000/currentStatus")
           .then((response) => {
             if (!response) {
               throw new Error("Network response was not ok");

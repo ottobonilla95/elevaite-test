@@ -1,12 +1,13 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
-import TopHeader from "./components/topheader";
+import TopHeader from "../components/topheader";
 // import SideBar from "./components/sidebar";
 import { AiOutlinePlus } from "react-icons/ai";
-import ChatWindow from "./components/chatwindow";
+import ChatWindow from "../components/chatwindow";
 import { useEffect, useRef, useState } from "react";
-import SubHeader from "./components/subheader";
+import SubHeader from "../components/subheader";
 import { IoIosArrowBack } from "react-icons/io";
+import { NextPageContext } from 'next';
 
 import axios from "axios";
 
@@ -24,7 +25,8 @@ type chatSessionDetails = {
   chat: MessageDetails[];
 };
 
-export default function Home() {
+export default function Home({ stars }: { stars: number }) {
+  console.log("star count", stars);
   const [chats, setChats] = useState<chatSessionDetails[]>([
     { id: 0, title: "New Session", chat: [] },
   ]);
@@ -71,14 +73,14 @@ export default function Home() {
   }
 
   function backButtonClick() {
-    axios.get("https://api.iopex.ai/deleteAllSessions");
+    axios.get("http://localhost:8000/deleteAllSessions");
   }
 
   useEffect(() => {
     async function retrieveSession() {
       try {
         const response = await axios
-          .get("https://api.iopex.ai/loadSession", {
+          .get("http://localhost:8000/loadSession", {
             params: { sessionID: currentChatId.toString() },
           })
           .then((messages) => {

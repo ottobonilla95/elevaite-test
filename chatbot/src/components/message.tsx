@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { MessageDetails } from "..";
+import { MessageDetails } from "../pages";
 import DOMPurify from "isomorphic-dompurify";
 import { FaUserCircle } from "react-icons/fa";
 import { FaInfoCircle } from "react-icons/fa";
