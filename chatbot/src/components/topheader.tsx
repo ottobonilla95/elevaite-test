@@ -7,7 +7,7 @@ import { FaSignOutAlt } from "react-icons/fa";
 
 function externalSignOut() {
   let url = new URL("https://elevaite.iopex.ai/");
-  // url.searchParams.set("redirect_uri", "http://localhost:3000/");
+  url.searchParams.set("redirect_uri", "https://elevaite-cb.iopex.ai/");
   window.location.href = url.href;
 }
 

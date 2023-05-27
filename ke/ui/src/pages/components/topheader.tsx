@@ -7,7 +7,7 @@ import { FaSignOutAlt } from "react-icons/fa";
 
 function externalSignOut() {
   let url = new URL("https://elevaite.iopex.ai/");
-  // url.searchParams.set("redirect_uri", "http://localhost:3000/");
+  url.searchParams.set("redirect_uri", "https://elevaite-ke.iopex.ai/");
   window.location.href = url.href;
 }
 
@@ -32,7 +32,7 @@ export default function TopHeader() {
       // }
       setName(()=>decoded.name);
     } else {
-      window.location.href = "https://login.iopex.ai/login/google";
+      window.location.href = "https://login.iopex.ai/ke/login/google";
     }
   }, []);
   return (
