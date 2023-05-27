@@ -25,8 +25,7 @@ type chatSessionDetails = {
   chat: MessageDetails[];
 };
 
-export default function Home({ stars }: { stars: number }) {
-  console.log("star count", stars);
+export default function Home() {
   const [chats, setChats] = useState<chatSessionDetails[]>([
     { id: 0, title: "New Session", chat: [] },
   ]);
@@ -39,7 +38,7 @@ export default function Home({ stars }: { stars: number }) {
     setChats(() => newChats);
   };
 
-  function handleClick() {
+  function newSessionClick() {
     console.log("Clicked");
     setCount(() => count + 1);
     setChatIds(() => [...chatIds, count]);
@@ -74,6 +73,11 @@ export default function Home({ stars }: { stars: number }) {
 
   function backButtonClick() {
     axios.get("https://api.iopex.ai/deleteAllSessions");
+  }
+  function keButtonClick() {
+    let params = new URL(window.location.href).searchParams;
+    const token = params.get("token");
+    window.location.href = "https://elevaite-ke.iopex.ai/?token="+token;
   }
 
   useEffect(() => {
@@ -111,6 +115,7 @@ export default function Home({ stars }: { stars: number }) {
       }
     }
     retrieveSession();
+
   }, [currentChatId]);
 
   return (
@@ -129,7 +134,14 @@ export default function Home({ stars }: { stars: number }) {
               <p>Back to Workbench</p>
             </a>
           </button>
-          <button onClick={handleClick} className="sidebar-button">
+          <button
+            onClick={keButtonClick}
+            className="sidebar-button work-bench-button"
+          >
+            <IoIosArrowBack style={{ color: "white" }} />
+              <p>Knowledge Engineering</p>
+          </button>
+          <button onClick={newSessionClick} className="sidebar-button">
             <AiOutlinePlus />
             <p>New Session</p>
           </button>
