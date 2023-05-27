@@ -32,7 +32,7 @@ export default function TopHeader() {
       // }
       setName(()=>decoded.name);
     } else {
-      window.location.href = "https://login.iopex.ai/ke/login/google";
+      window.location.href = "https://login.iopex.ai/login/google";
     }
   }, []);
   return (
