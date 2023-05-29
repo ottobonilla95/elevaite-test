@@ -5,7 +5,7 @@ dat_content = {
     cfg.summary_key : "N" ,
     cfg.doctype_key : "TS-Guide",
     cfg.docid_key : "documentID",
-    cfg.product_key : "Panorama",
+    cfg.product_key : "None",
     cfg.version_key : "None",
     cfg.topic_key : "None",
     cfg.subtopic_key : "None",
