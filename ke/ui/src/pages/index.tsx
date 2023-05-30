@@ -36,6 +36,11 @@ export default function Home() {
   function handleSearchClick() {}
 
   function backButtonClick() {}
+  function cbButtonClick() {
+    let params = new URL(window.location.href).searchParams;
+    const token = params.get("token");
+    window.location.href = "https://elevaite-cb.iopex.ai/?token="+token;
+  }
 
   return (
     <>
@@ -52,6 +57,13 @@ export default function Home() {
             <a href="https://elevaite.iopex.ai">
               <p>Back to Workbench</p>
             </a>
+          </button>
+          <button
+            onClick={cbButtonClick}
+            className="sidebar-button work-bench-button"
+          >
+            <IoIosArrowBack style={{ color: "white" }} />
+              <p>Chat Bot</p>
           </button>
           {/* <button onClick={handleClick} className="sidebar-button">
             <AiOutlinePlus />
