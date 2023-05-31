@@ -206,9 +206,10 @@ def get_Agent_incidentSolver(query: str):
         res = json.loads(results[9:])
         if res['Score'] < 7 :
             final_result = NotenoughContext(query)
-        context = getIssuseContexFromDetails(query) 
-        final_result = finalFormatedOutput(query, context)
-        print("Here is the final answer", final_result)
+        else:
+            context = getIssuseContexFromDetails(query) 
+            final_result = finalFormatedOutput(query, context)
+        # print("Here is the final answer", final_result)
         memory=insert2Memory({"from":"ai", "message" : final_result}, memory)
         print("Total Ticket = " + str(_global.tokenCount))
         return({"text":final_result})

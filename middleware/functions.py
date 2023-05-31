@@ -32,7 +32,11 @@ def UnsupportedProduct(query: str): #, filter: dict):
 
 def NotenoughContext(query: str): #, filter: dict):
      updateStatus("NotenoughContext")
-     return ("Communicat to user that 'Not enough information to support, provide more context'. And Provide top 4 information that need to be collected from User")
+     prompt = "Communicate to user that 'Not enough information to support, provide more context'. And Provide top 4 information (ordered in html ol tags) that need to be collected from User based on the below query \n " \
+      + query 
+     llm.temperature=0
+     returnVal=llm(prompt)
+     return (returnVal)
 
 
 def finalFormatedOutput(inputString: str, context: Optional[str] = None): #, filter: dict):
