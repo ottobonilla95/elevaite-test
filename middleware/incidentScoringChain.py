@@ -17,7 +17,7 @@ def func_incidentScoringChain (query: str):
         + "1.Classify whether it is Issue, Upgrade, Migration, Query\n"\
         + "2. Identify whether enough information is provided to identify root cause of incident. "\
         + "Score in 1 to 10 scale. Be strict in scoring, if input is just some open ended give low score. \n" \
-        + "3. Identify whether Incident text is even slightly about data or network or client security."\
+        + "3. Identify whether Incident text is even slightly about data or network or client security or about Netskope products."\
         + "if yes Just say 'SUPPORTED'. If not just say 'NOT SUPPORTED', Nothing else." \
         + "4. Don\'t repeat the input incident text\n"\
         + "5. Give output ONLY in JSON Format with \"Classification\" : <val>, \"Score\" : <val>, \"Product\":\"SUPPORTED OR NOT SUPPORTED\", \"Incident\":<input_sentence>\n  Incident Text =\"{input_sentence}\""
@@ -29,6 +29,7 @@ def func_incidentScoringChain (query: str):
 
     incidentScoringChain = LLMChain(llm=llm, prompt=prompt, verbose=True)
     results= incidentScoringChain.run(input_sentence=query)
+    print(results)
     return(results)
 
 

@@ -4,6 +4,7 @@ from _global import llm
 from _global import tokenCount
 import tiktoken
 import os
+import json
 from typing import Any, Dict, List, Optional, Union
 from langchain.agents import initialize_agent, load_tools
 from langchain.agents import AgentType
@@ -192,13 +193,20 @@ def get_Agent_incidentSolver(query: str):
         "
         print("here is query with memory", query_with_memory)
         results = func_incidentScoringChain(query_with_memory)
+        res = json.loads(results[9:])
         query = query_with_memory
+        if res['Score'] < 7 :
+            final_result = NotenoughContext(query)
     if "NOT SUPPORTED" in results:
         final_result="Not supported"
         memory=insert2Memory({"from":"ai", "message" : final_result}, memory)
         return({"text":final_result})
     else:
-        context = getIssuseContexFromDetails(query)
+        results = func_incidentScoringChain(query)
+        res = json.loads(results[9:])
+        if res['Score'] < 7 :
+            final_result = NotenoughContext(query)
+        context = getIssuseContexFromDetails(query) 
         final_result = finalFormatedOutput(query, context)
         print("Here is the final answer", final_result)
         memory=insert2Memory({"from":"ai", "message" : final_result}, memory)
