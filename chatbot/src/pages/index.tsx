@@ -39,21 +39,17 @@ export default function Home() {
   };
 
   function newSessionClick() {
-    console.log("Clicked");
     setCount(() => count + 1);
     setChatIds(() => [...chatIds, count]);
     setChats(() => {
-      console.log(chats);
       return [...chats, { id: count, title: "New Session", chat: [] }];
     });
     setCurrentChatId(() => {
-      console.log(count);
       return count;
     });
   }
 
   function updateMessages(messages: MessageDetails[]) {
-    console.log(messages);
     if (messages.length > 0) {
       setChats(() => [
         ...chats.slice(0, currentChatId),
@@ -72,7 +68,7 @@ export default function Home() {
   }
 
   function backButtonClick() {
-    axios.get("https://api.iopex.ai/deleteAllSessions");
+    axios.get("http://localhost:8000/deleteAllSessions");
   }
   function keButtonClick() {
     let params = new URL(window.location.href).searchParams;
@@ -84,7 +80,7 @@ export default function Home() {
     async function retrieveSession() {
       try {
         const response = await axios
-          .get("https://api.iopex.ai/loadSession", {
+          .get("http://localhost:8000/loadSession", {
             params: { sessionID: currentChatId.toString() },
           })
           .then((messages) => {
@@ -97,11 +93,8 @@ export default function Home() {
               title: title,
               chat: [],
             };
-            console.log(messages.data);
-            console.log(currentChatId);
             if (messages !== null && messages.data !== null) {
               oldSessionMessages.chat = messages?.data;
-              console.log(oldSessionMessages);
               setChats(() => [
                 ...chats.slice(0, currentChatId),
                 oldSessionMessages,

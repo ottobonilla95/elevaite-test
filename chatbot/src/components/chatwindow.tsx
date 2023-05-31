@@ -21,7 +21,6 @@ export default function ChatWindow(props: any) {
   const listRef = useRef<HTMLDivElement>(null);
 
   function closeSession() {
-    console.log("Close Session Clicked");
     // Uncomment the line below to call the api once ready
     // clearMessages().then((data) => console.log(data));
   }
@@ -70,10 +69,8 @@ export default function ChatWindow(props: any) {
 
   fetchAnswer.current = async () => {
     return await axios
-      .get("https://api.iopex.ai/query", { params: { query: ask } })
+      .get("http://localhost:8000/query", { params: { query: ask } })
       .then((res) => {
-        console.log(ask);
-        console.log(res);
 
         let answer = "" + res["data"]["text"];
 
@@ -141,10 +138,9 @@ export default function ChatWindow(props: any) {
             setMessageIdCount(() => messageIdCount + 2);
             setIsLoading(() => false);
             axios
-              .get("https://api.iopex.ai/storeSession", {
+              .get("http://localhost:8000/storeSession", {
                 params: { sessionID: props?.chat?.id.toString() },
-              })
-              .then((res) => console.log(res));
+              });
           });
         }
       })
@@ -159,7 +155,6 @@ export default function ChatWindow(props: any) {
   useEffect(
     () =>
       setCaseId(() => {
-        console.log(props);
         return props?.chat?.id;
       }),
     [props]
@@ -170,13 +165,12 @@ export default function ChatWindow(props: any) {
     if (isLoading) {
       intervalId = setInterval(() => {
         axios
-          .get("https://api.iopex.ai/currentStatus")
+          .get("http://localhost:8000/currentStatus")
           .then((response) => {
             if (!response) {
               throw new Error("Network response was not ok");
             }
             setAgentStatus(() => response["data"]["Status"]);
-            console.log(response["data"]);
             return response;
           })
           .catch((error) => {

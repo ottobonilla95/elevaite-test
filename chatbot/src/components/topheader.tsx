@@ -7,13 +7,12 @@ import { FaSignOutAlt } from "react-icons/fa";
 
 function externalSignOut() {
   let url = new URL("https://elevaite.iopex.ai/");
-  url.searchParams.set("redirect_uri", "https://elevaite-cb.iopex.ai/");
+  // url.searchParams.set("redirect_uri", "http://localhost:3000/");
   window.location.href = url.href;
 }
 
 export default function TopHeader() {
   const { data: session } = useSession();
-  console.log({ session });
   const [name, setName] = useState();
 
   useEffect(() => {

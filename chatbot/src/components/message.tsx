@@ -5,6 +5,7 @@ import { FaUserCircle } from "react-icons/fa";
 import { FaInfoCircle } from "react-icons/fa";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
 import { GrDocumentText } from "react-icons/gr";
+import jwt_decode from "jwt-decode";
 
 import Feedback from "./feedback";
 import FeedbackInput from "./feedback_input";
@@ -16,6 +17,7 @@ type MessageProps = {
 export default function Message(props: MessageProps) {
   const [isFeedBackSent, setIsFeedBackSent] = useState(false);
   const [hideUrl, setHideUrl] = useState(false);
+  const [name, setName] = useState();
   const sanitzer = DOMPurify.sanitize;
 
   DOMPurify.addHook("afterSanitizeAttributes", function (node) {
@@ -29,6 +31,26 @@ export default function Message(props: MessageProps) {
   function hideOrShow() {
     setHideUrl(() => !hideUrl);
   }
+
+  useEffect(() => {
+    let params = new URL(window.location.href).searchParams;
+    const token = params.get("token");
+    if (!!token) {
+      let decoded: any = jwt_decode(token);
+      // let expTime = new Date(decoded.exp * 1000);
+      // let currentTime = new Date().getTime();
+      // if (currentTime < expTime.getTime()){
+      //   console.log(expTime);
+      //   setName(()=>decoded.name)
+      // } else {
+      //   window.location.href = "https://login.iopex.ai/login/google";
+      // }
+      setName(()=>decoded.name);
+    } else {
+      window.location.href = "https://login.iopex.ai/login/google";
+    }
+  }, []);
+
 
   const urls =
     props?.message?.urls != undefined ? Array.from(props?.message?.urls) : [];
@@ -45,7 +67,7 @@ export default function Message(props: MessageProps) {
               <FaUserCircle style={{ color: "#5665FB" }} size="40px" />
             </div>
             <div>
-              <p>Aadhithya Dinesh</p>
+              <p>{name}</p>
               <p className="message-date">{props?.message?.timestamp}</p>
             </div>
           </div>
