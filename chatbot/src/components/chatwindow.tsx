@@ -69,7 +69,7 @@ export default function ChatWindow(props: any) {
 
   fetchAnswer.current = async () => {
     return await axios
-      .get("http://localhost:8000/query", { params: { query: ask } })
+      .get(process.env.NEXT_PUBLIC_BACKEND_URL +"query", { params: { query: ask } })
       .then((res) => {
 
         let answer = "" + res["data"]["text"];
@@ -138,7 +138,7 @@ export default function ChatWindow(props: any) {
             setMessageIdCount(() => messageIdCount + 2);
             setIsLoading(() => false);
             axios
-              .get("http://localhost:8000/storeSession", {
+              .get(process.env.NEXT_PUBLIC_BACKEND_URL+"storeSession", {
                 params: { sessionID: props?.chat?.id.toString() },
               });
           });
@@ -165,7 +165,7 @@ export default function ChatWindow(props: any) {
     if (isLoading) {
       intervalId = setInterval(() => {
         axios
-          .get("http://localhost:8000/currentStatus")
+          .get(process.env.NEXT_PUBLIC_BACKEND_URL+"currentStatus")
           .then((response) => {
             if (!response) {
               throw new Error("Network response was not ok");

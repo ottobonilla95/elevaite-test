@@ -47,7 +47,6 @@ def finalFormatedOutput(inputString: str, context: Optional[str] = None): #, fil
                +"If URLs available provide at the end after all steps one after other as Hyperlinks under Heading 'References'" \
                +"Dont repeate the URLs, remove duplicates\n" \
                +"Provide the answer in HTML format with ol tags.\n"  \
-               +"If Incident is unspported, just respond 'Unsupported Query/Product\n" \
                +"Incident Text = '" +inputString+"'\n" \
                +"Knowledge Articles = '" + context + "'"
      #returnVal=(prompt)
@@ -247,3 +246,6 @@ def insert2Memory(memoryValue: dict, chatHistory: list):
     uuid_value=str(uuid.uuid4())
     chatHistory.append({'id': uuid_value, 'from': messageType, 'message': message, 'timestamp':currentTime})
     return(chatHistory)
+
+
+

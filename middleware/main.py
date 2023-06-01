@@ -5,6 +5,7 @@ from _global import tokenCount
 import tiktoken
 import os
 import json
+import re
 from typing import Any, Dict, List, Optional, Union
 from langchain.agents import initialize_agent, load_tools
 from langchain.agents import AgentType
@@ -174,6 +175,12 @@ def read_root():
 def get_Agent_incidentSolver(query: str):
     global memory 
     final_result = ""
+    # query = re.escape(query)
+    # query = query.replace("\\", "\\\\")
+    # query = query.replace(",", ",")
+    # query = repr(query)
+    # print("Here is res1", res1)    
+    # print("Here is the query", query)
     memory=insert2Memory({"from":"human", "message" : query}, memory)
     _global.currentStatus=""
     _global.tokenCount=0
@@ -187,13 +194,12 @@ def get_Agent_incidentSolver(query: str):
         query_with_memory = f"Here is the past relevant messages for your reference delimited by three backticks: \
             \
         ```{output}``` \
-        /n  \
-        Here is the query for you to answer delimited by <>: /n \
+        \n  \
+        Here is the query for you to answer delimited by <>: \n \
         <{query}> \
         "
         print("here is query with memory", query_with_memory)
-        results = func_incidentScoringChain(query_with_memory)
-        res = json.loads(results[9:])
+        res = json.loads(results)
         query = query_with_memory
         if res['Score'] < 7 :
             final_result = NotenoughContext(query)
@@ -203,13 +209,12 @@ def get_Agent_incidentSolver(query: str):
         return({"text":final_result})
     else:
         results = func_incidentScoringChain(query)
-        res = json.loads(results[9:])
+        res = json.loads(results)
         if res['Score'] < 7 :
             final_result = NotenoughContext(query)
         else:
             context = getIssuseContexFromDetails(query) 
             final_result = finalFormatedOutput(query, context)
-        # print("Here is the final answer", final_result)
         memory=insert2Memory({"from":"ai", "message" : final_result}, memory)
         print("Total Ticket = " + str(_global.tokenCount))
         return({"text":final_result})

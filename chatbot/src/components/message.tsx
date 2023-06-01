@@ -43,11 +43,13 @@ export default function Message(props: MessageProps) {
       //   console.log(expTime);
       //   setName(()=>decoded.name)
       // } else {
-      //   window.location.href = "https://login.iopex.ai/login/google";
+      //   window.location.href = process.env.NEXT_PUBLIC_LOGIN_API;
       // }
       setName(()=>decoded.name);
     } else {
-      window.location.href = "https://login.iopex.ai/login/google";
+      if (!!process.env.NEXT_PUBLIC_LOGIN_API){
+        window.location.href = process.env.NEXT_PUBLIC_LOGIN_API;
+      }
     }
   }, []);
 

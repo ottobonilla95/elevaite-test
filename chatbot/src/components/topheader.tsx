@@ -26,11 +26,14 @@ export default function TopHeader() {
       //   console.log(expTime);
       //   setName(()=>decoded.name)
       // } else {
-      //   window.location.href = "https://login.iopex.ai/login/google";
+      //   window.location.href = process.env.NEXT_PUBLIC_LOGIN_API;
       // }
       setName(()=>decoded.name);
     } else {
-      window.location.href = "https://login.iopex.ai/login/google";
+      console.log(process.env.NEXT_PUBLIC_LOGIN_API);
+      if (!!process.env.NEXT_PUBLIC_LOGIN_API){
+        window.location.href = process.env.NEXT_PUBLIC_LOGIN_API;
+      }
     }
   }, []);
   return (

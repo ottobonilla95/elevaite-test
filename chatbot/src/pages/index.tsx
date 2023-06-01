@@ -68,7 +68,7 @@ export default function Home() {
   }
 
   function backButtonClick() {
-    axios.get("http://localhost:8000/deleteAllSessions");
+    axios.get(process.env.NEXT_PUBLIC_BACKEND_URL +"deleteAllSessions");
   }
   function keButtonClick() {
     let params = new URL(window.location.href).searchParams;
@@ -80,7 +80,7 @@ export default function Home() {
     async function retrieveSession() {
       try {
         const response = await axios
-          .get("http://localhost:8000/loadSession", {
+          .get(process.env.NEXT_PUBLIC_BACKEND_URL+"loadSession", {
             params: { sessionID: currentChatId.toString() },
           })
           .then((messages) => {
