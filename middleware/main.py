@@ -202,45 +202,6 @@ def get_Agent_incidentSolver(query: str):
         memory=insert2Memory({"from":"ai", "message" : final_result}, memory)
         print("Total Ticket = " + str(_global.tokenCount))
         return({"text":final_result})
-    global memory 
-    final_result = ""
-    memory=insert2Memory({"from":"human", "message" : query}, memory)
-    _global.currentStatus=""
-    _global.tokenCount=0
-    updateStatus("Main")
-    results = ""
-    print(len(memory))
-    if len(memory) == 1:
-        results = func_incidentScoringChain(query)
-    else:
-        output = getReleatedChatText(query)
-        query_with_memory = f"Here is the past relevant messages for your reference delimited by three backticks: \
-            \
-        ```{output}``` \
-        \n  \
-        Here is the query for you to answer delimited by <>: \n \
-        <{query}> \
-        "
-        print("here is query with memory", query_with_memory)
-        res = json.loads(results)
-        query = query_with_memory
-        if res['Score'] < 7 :
-            final_result = NotenoughContext(query)
-    if "NOT SUPPORTED" in results:
-        final_result="Not supported"
-        memory=insert2Memory({"from":"ai", "message" : final_result}, memory)
-        return({"text":final_result})
-    else:
-        results = func_incidentScoringChain(query)
-        res = json.loads(results)
-        if res['Score'] < 7 :
-            final_result = NotenoughContext(query)
-        else:
-            context = getIssuseContexFromDetails(query) 
-            final_result = finalFormatedOutput(query, context)
-        memory=insert2Memory({"from":"ai", "message" : final_result}, memory)
-        print("Total Ticket = " + str(_global.tokenCount))
-        return({"text":final_result})
 
 
 @app.get("/storeSession")
