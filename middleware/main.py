@@ -170,6 +170,7 @@ def read_root():
 #     memory=insert2Memory({"from":"ai", "message" : results}, memory)
 #     return({"text":results})
 
+
 # non agent version 
 @app.get("/query")
 def get_Agent_incidentSolver(query: str):
@@ -187,6 +188,22 @@ def get_Agent_incidentSolver(query: str):
             final_result="Not supported"
             memory=insert2Memory({"from":"ai", "message" : final_result}, memory)
             return({"text":final_result})
+        else:
+            res = json.loads(results)
+            if res["Score"] > 7:
+                context = getIssuseContexFromDetails(query) 
+                final_result = finalFormatedOutput(query, context)
+                memory=insert2Memory({"from":"ai", "message" : final_result}, memory)
+                print("Total Ticket = " + str(_global.tokenCount))
+                return({"text":final_result})
+            else:
+                final_result = NotenoughContext(query)
+                print(final_result)
+                memory=insert2Memory({"from":"ai", "message" : final_result}, memory)
+                print("Total Ticket = " + str(_global.tokenCount))
+                return({"text":final_result})
+
+
     else:
         output = getReleatedChatText(query)
         query_with_memory = f"Here is the past relevant messages for your reference delimited by three backticks: \
@@ -202,6 +219,8 @@ def get_Agent_incidentSolver(query: str):
         memory=insert2Memory({"from":"ai", "message" : final_result}, memory)
         print("Total Ticket = " + str(_global.tokenCount))
         return({"text":final_result})
+    
+
 
 
 @app.get("/storeSession")
