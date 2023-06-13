@@ -1,4 +1,4 @@
-FROM python:3.8
+FROM python:3.11
 WORKDIR /elevaite
 COPY ./requirements.txt /elevaite/requirements.txt
 RUN pip install --no-cache-dir --upgrade uvicorn==0.21

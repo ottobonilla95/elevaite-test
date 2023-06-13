@@ -1,5 +1,6 @@
 from _global import llm
-from langchain.callbacks.base import CallbackManager, BaseCallbackHandler
+from langchain.callbacks.base import BaseCallbackHandler
+from langchain.callbacks.manager import AsyncCallbackManager
 from langchain.schema import AgentAction, AgentFinish, LLMResult
 from typing import Union, Optional
 from get_tokens_count import get_tokens_count

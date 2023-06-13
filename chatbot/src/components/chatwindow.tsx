@@ -10,6 +10,9 @@ import { MessageDetails } from "../pages";
 import CircularIndeterminate from "./progress_spinner";
 import LinearIndeterminate from "./linear_progress_indicator";
 
+
+
+
 export default function ChatWindow(props: any) {
   const [ask, setAsk] = useState<string>("");
   const [messages, setMessages] = useState<MessageDetails[]>([]);
@@ -17,12 +20,77 @@ export default function ChatWindow(props: any) {
   const [agentStatus, setAgentStatus] = useState<string>("");
   const [messageIdCount, setMessageIdCount] = useState(0);
   const [caseId, setCaseId] = useState<number | null>(null);
-  const fetchAnswer = useRef(() => {});
+  // const fetchAnswer = useRef(() => {});
   const listRef = useRef<HTMLDivElement>(null);
 
   function closeSession() {
     // Uncomment the line below to call the api once ready
     // clearMessages().then((data) => console.log(data));
+  }
+
+  async function streaming(ask: string){
+    const response = await fetch(process.env.NEXT_PUBLIC_BACKEND_URL +"query?query="+ask+"&sid="+props?.chat?.id.toString())
+    if (!!response.body){
+      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
+      let whole_string = ""
+      setMessages(() => [
+        ...messages,
+        {
+          id: messageIdCount.toString(),
+          message: ask,
+          from: "human",
+          timestamp: getCurrentTimestamp(),
+        },
+      ]);
+      props.updateMessages([
+        ...messages,
+        {
+          id: messageIdCount,
+          message: ask,
+          from: "human",
+          timestamp: getCurrentTimestamp(),
+        }
+      ]);
+      while (true) {
+        const {value, done} = await reader.read();
+        if (done){
+          setMessageIdCount(() => messageIdCount + 2);
+          setIsLoading(()=>false);
+          break;
+        }
+        whole_string = whole_string + value;
+        setMessages(() => [
+          ...messages,
+          {
+            id: messageIdCount.toString(),
+            message: ask,
+            from: "human",
+            timestamp: getCurrentTimestamp(),
+          },
+          {
+            id: (messageIdCount + 1).toString(),
+            message: whole_string,
+            from: "ai",
+            timestamp: getCurrentTimestamp(),
+          },
+        ]);
+        props.updateMessages([
+          ...messages,
+          {
+            id: messageIdCount,
+            message: ask,
+            from: "human",
+            timestamp: getCurrentTimestamp(),
+          },
+          {
+            id: messageIdCount + 1,
+            message: whole_string,
+            from: "ai",
+            timestamp: getCurrentTimestamp(),
+          },
+        ]);
+      }
+    }
   }
 
   function handleClick(event: any) {
@@ -37,10 +105,27 @@ export default function ChatWindow(props: any) {
           timestamp: getCurrentTimestamp(),
         },
       ]);
-      fetchAnswer.current();
+      props.updateMessages([
+        ...messages,
+        {
+          id: messageIdCount,
+          message: ask,
+          from: "human",
+          timestamp: getCurrentTimestamp(),
+        }
+      ]);
+      const evtSource = new EventSource(process.env.NEXT_PUBLIC_BACKEND_URL+"currentStatus");
+      evtSource.onmessage = (e) => {
+        console.log(e.data);
+        setAgentStatus(() => e.data);
+      }
+      streaming(ask);
+      setAsk(() => "");
+      // fetchAnswer.current();
     }
   }
-
+ 
+  
   function scrollToLastMessage() {
     let lastChild = listRef.current!.lastElementChild;
     lastChild?.scrollIntoView({
@@ -67,85 +152,68 @@ export default function ChatWindow(props: any) {
     return date;
   }
 
-  fetchAnswer.current = async () => {
-    return await axios
-      .get(process.env.NEXT_PUBLIC_BACKEND_URL +"query", { params: { query: ask } })
-      .then((res) => {
+  // The code below has been replaced with streaming call
+  // fetchAnswer.current = async () => {
+  //   return await axios
+  //     .get(process.env.NEXT_PUBLIC_BACKEND_URL +"query", { params: { query: ask } })
+  //     .then((res) => {
 
-        let answer = "" + res["data"]["text"];
+  //       let answer = "" + res["data"]["text"];
 
-        if (answer) {
-          flushSync(() => {
-            let urls = new Set<string>();
-            if (res["data"]["url_1"] != undefined) {
-              urls.add(
-                `<li><a target="_blank" href=${res["data"]["url_1"]}> ${res["data"]["topic_1"]}</a></li>`
-              );
-            }
-            if (res["data"]["url_2"] != undefined) {
-              urls.add(
-                `<li><a target="_blank" href=${res["data"]["url_2"]}> ${res["data"]["topic_2"]}</a></li>`
-              );
-            }
-            if (res["data"]["url_3"] != undefined) {
-              urls.add(
-                `<li><a target="_blank" href=${res["data"]["url_3"]}> ${res["data"]["topic_3"]}</a></li>`
-              );
-            }
-            const current = new Date();
-            const date = `${current.getDate()} ${current.toLocaleString(
-              "default",
-              {
-                month: "short",
-              }
-            )}, ${current.getFullYear()} ${current.getHours()}:${
-              current.getMinutes() < 10 ? "0" : ""
-            }${current.getMinutes()}`;
+  //       if (answer) {
+  //         flushSync(() => {
+  //           const current = new Date();
+  //           const date = `${current.getDate()} ${current.toLocaleString(
+  //             "default",
+  //             {
+  //               month: "short",
+  //             }
+  //           )}, ${current.getFullYear()} ${current.getHours()}:${
+  //             current.getMinutes() < 10 ? "0" : ""
+  //           }${current.getMinutes()}`;
 
-            setMessages(() => [
-              ...messages,
-              {
-                id: messageIdCount.toString(),
-                message: ask,
-                from: "human",
-                timestamp: getCurrentTimestamp(),
-              },
-              {
-                id: (messageIdCount + 1).toString(),
-                message: answer,
-                from: "ai",
-                urls: urls,
-                timestamp: getCurrentTimestamp(),
-              },
-            ]);
-            props.updateMessages([
-              ...messages,
-              {
-                id: messageIdCount,
-                message: ask,
-                from: "human",
-                timestamp: getCurrentTimestamp(),
-              },
-              {
-                id: messageIdCount + 1,
-                message: answer,
-                from: "ai",
-                urls: urls,
-                timestamp: getCurrentTimestamp(),
-              },
-            ]);
-            setAsk(() => "");
-            setMessageIdCount(() => messageIdCount + 2);
-            setIsLoading(() => false);
-            axios
-              .get(process.env.NEXT_PUBLIC_BACKEND_URL+"storeSession", {
-                params: { sessionID: props?.chat?.id.toString() },
-              });
-          });
-        }
-      })
-      .catch((error) => console.log("Error occured"));
-  };
+  //           setMessages(() => [
+  //             ...messages,
+  //             {
+  //               id: messageIdCount.toString(),
+  //               message: ask,
+  //               from: "human",
+  //               timestamp: getCurrentTimestamp(),
+  //             },
+  //             {
+  //               id: (messageIdCount + 1).toString(),
+  //               message: answer,
+  //               from: "ai",
+  //               timestamp: getCurrentTimestamp(),
+  //             },
+  //           ]);
+  //           props.updateMessages([
+  //             ...messages,
+  //             {
+  //               id: messageIdCount,
+  //               message: ask,
+  //               from: "human",
+  //               timestamp: getCurrentTimestamp(),
+  //             },
+  //             {
+  //               id: messageIdCount + 1,
+  //               message: answer,
+  //               from: "ai",
+  //               timestamp: getCurrentTimestamp(),
+  //             },
+  //           ]);
+  //           setAsk(() => "");
+  //           setMessageIdCount(() => messageIdCount + 2);
+  //           setIsLoading(() => false);
+  //           axios
+  //             .get(process.env.NEXT_PUBLIC_BACKEND_URL+"storeSession", {
+  //               params: { sessionID: props?.chat?.id.toString() },
+  //             });
+  //         });
+  //       }
+  //     })
+  //     .catch((error) => console.log("Error occured"));
+  // };
 
   const change = (event: any) => {
     setAsk(() => event.target.value);
@@ -159,27 +227,29 @@ export default function ChatWindow(props: any) {
       }),
     [props]
   );
+  
 
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-    if (isLoading) {
-      intervalId = setInterval(() => {
-        axios
-          .get(process.env.NEXT_PUBLIC_BACKEND_URL+"currentStatus")
-          .then((response) => {
-            if (!response) {
-              throw new Error("Network response was not ok");
-            }
-            setAgentStatus(() => response["data"]["Status"]);
-            return response;
-          })
-          .catch((error) => {
-            console.log(error);
-          });
-      }, 2000);
-    }
-    return () => clearInterval(intervalId);
-  }, [isLoading]);
+  // The code below has been replaced with server sent events
+  // useEffect(() => {
+  //   let intervalId: NodeJS.Timeout;
+  //   if (isLoading) {
+  //     intervalId = setInterval(() => {
+  //       axios
+  //         .get(process.env.NEXT_PUBLIC_BACKEND_URL+"currentStatus")
+  //         .then((response) => {
+  //           if (!response) {
+  //             throw new Error("Network response was not ok");
+  //           }
+  //           setAgentStatus(() => response["data"]["Status"]);
+  //           return response;
+  //         })
+  //         .catch((error) => {
+  //           console.log(error);
+  //         });
+  //     }, 2000);
+  //   }
+  //   return () => clearInterval(intervalId);
+  // }, [isLoading]);
 
   return (
     <>
@@ -198,6 +268,7 @@ export default function ChatWindow(props: any) {
           <div className="grand-parent">
             <div className="parent-container">
               <div ref={listRef} className="parent">
+                {/* {msg} */}
                 {props?.chat?.chat?.map((message: MessageDetails) => (
                   <>
                     <Message key={message.id} message={message} />

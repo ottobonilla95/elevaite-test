@@ -1,6 +1,8 @@
 from langchain.embeddings.openai import OpenAIEmbeddings
+from fastapi.responses import StreamingResponse
 import os
 import json
+import openai
 from qdrant_client import QdrantClient
 from langchain.vectorstores import Qdrant 
 from typing import Union, Optional 
@@ -12,7 +14,8 @@ MAX_KB_TOKENSIZE=2500
 scoreDiff=5
 from _global import llm
 import _global
-from langchain.callbacks.base import CallbackManager, BaseCallbackHandler
+from langchain.callbacks.base import BaseCallbackHandler
+from langchain.callbacks.manager import AsyncCallbackManager
 from callback import MyCustomCallbackHandler
 from langchain.llms import OpenAI
 from langchain.schema import messages_from_dict, messages_to_dict
@@ -25,12 +28,15 @@ import uuid
 from langchain.chains import RetrievalQA
 
 
+memory = _global.chatHistory
+
+
 def UnsupportedProduct(query: str): #, filter: dict):
      updateStatus("UnsupportedProduct") 
      return ("The product seems to be something I cannot support. Please verify the incident text provided ")
 
 
-def NotenoughContext(query: str): #, filter: dict):
+def NotenoughContext(sid: str, query: str): #, filter: dict):
      updateStatus("NotenoughContext")
      prompt = "Respond as a support engineer by following the two steps below." \
       "\n 1. Communicate to user that enough information is not provided." \
@@ -38,10 +44,12 @@ def NotenoughContext(query: str): #, filter: dict):
       + query
      llm.temperature=0
      returnVal=llm(prompt)
-     return (returnVal)
+     return streaming_request(sid, prompt)
+
+   #   return (returnVal)
 
 
-def finalFormatedOutput(inputString: str, context: Optional[str] = None): #, filter: dict):
+def finalFormatedOutput(sid:str, inputString: str, context: Optional[str] = None): #, filter: dict):
      updateStatus("finalfinalFormatedOutput")
      prompt =   "For the given Incident text and Knowledge Articles, " \
                +"Use only relevant knowledge articles."\
@@ -53,10 +61,14 @@ def finalFormatedOutput(inputString: str, context: Optional[str] = None): #, fil
                +"Knowledge Articles = '" + context + "'"
      #returnVal=(prompt)
      #+"Dont repeate the URLs and provide them one after another. "\
+
      llm.temperature=0
      llm.max_tokens=2000
      returnVal=llm(prompt)
-     return (returnVal)
+     return streaming_request(sid, prompt)
+
+
+   #   return (returnVal)
 
 
 def processQdrantOutput(results: list, query: str):
@@ -120,7 +132,7 @@ def getIssuseContexFromSummary(query: str): #, filter: dict):
     qdrant = Qdrant(
                       client=qdrant_client\
                     , collection_name=qa_collection_name\
-                    , embedding_function=embeddings.embed_query \
+                    , embeddings=embeddings \
                     #, content_payload_key="Text" \
                     #, metadata_payload_key="metadata"
     )
@@ -145,7 +157,7 @@ def getIssuseContexFromDetails(query: str): #, filter: dict):
     qdrant = Qdrant(
                       client=qdrant_client\
                     , collection_name=qa_collection_name\
-                    , embedding_function=embeddings.embed_query \
+                    , embeddings=embeddings \
                     #, content_payload_key="Text" \
                     #, metadata_payload_key="metadata"
     )
@@ -155,14 +167,16 @@ def getIssuseContexFromDetails(query: str): #, filter: dict):
 def getReleatedChatText(input: str): 
      chatHistory = _global.chatHistory
      updateStatus("getReleatedChatText")
-     manager = CallbackManager([MyCustomCallbackHandler()])
-     template=""" Give all the relevant past messages from the history
-Input :  
+     manager = AsyncCallbackManager([MyCustomCallbackHandler()])
+     template=""" Find and return messages within <past_messages> </past_messages> that are relevant to the input within <input> </input> 
+<input>\n  
 {input_text}
-
-History Messages
------------------
+\n</input>
+\n
+<past_messages> \n
 {past_messages}
+\n
+</past_messages>
 """
     
      prompt = PromptTemplate(
@@ -170,7 +184,7 @@ History Messages
            template=template,
        )
      llm.callback_manager=manager
-     llmgpt=ChatOpenAI(model_name="gpt-3.5-turbo", verbose=True,  temperature=0, callback_manager=manager)
+     llmgpt=ChatOpenAI(model_name="gpt-3.5-turbo", verbose=True,  max_tokens=MAX_KB_TOKENSIZE,  temperature=0, callback_manager=manager)
      llmChain=LLMChain(llm=llmgpt, prompt=prompt, verbose=True, callback_manager=manager)
      past_messages=[]
      results="NONE"
@@ -202,6 +216,26 @@ History Messages
 #    memory = ConversationSummaryBufferMemory(llm=llm, memory_key="chat_history", max_token_limit=2000)
 #    knowledgeBase = RetrievalQA.from_chain_type(llm=llm, chain_type="map_reduce", memory=memory, retriever=retriever)
 #    return (knowledgeBase.run(query))
+
+def streaming_request(sid: str, input: str):
+    memory = _global.chatHistory
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    completion = openai.ChatCompletion.create(
+            model='gpt-3.5-turbo', 
+            messages=[{"role": "user", "content": input}],
+            stream=True)
+    final_result = ""
+    for line in completion:
+            
+            chunk = line['choices'][0].get('delta', {}).get('content', '')
+            if chunk:
+                final_result += chunk
+                yield chunk
+    if len(final_result) > 0:
+      memory = insert2Memory({"from": "ai", "message": final_result}, memory)
+      storeSession(sid, memory)
+    return True
+
 
 def storeSession(sessionID, chatHistory: list):
    updateStatus("storeSession")

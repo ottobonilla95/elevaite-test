@@ -30,7 +30,7 @@ def func_incidentScoringChain (query: str):
         )
 
     incidentScoringChain = LLMChain(llm=llm, prompt=prompt, verbose=True)
-    results= incidentScoringChain.run(input_sentence=query)
+    results= incidentScoringChain.run(input_sentence=query,)
     print(results)
     return(results)
 

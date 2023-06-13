@@ -7,6 +7,7 @@ llm = OpenAI( verbose=True\
             )
 tokenCount=0
 currentStatus=""
+prevStatus = ""
 #chatHistory: ConversationBufferMemory
 chatHistory=[]
 

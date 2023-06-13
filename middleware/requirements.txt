@@ -4,5 +4,8 @@ datasets
 qdrant_client
 panda
 tiktoken
-langchain==0.0.142
+langchain==0.0.191
 fastapi
+uvicorn
+sse-starlette
+python-dotenv
