@@ -163,7 +163,6 @@ async def current_status(request: Request):
         while True:
             if await request.is_disconnected():
                 break
-            print(_global.prevStatus)
             if _global.prevStatus!= _global.currentStatus:
                 _global.prevStatus = _global.currentStatus
                 yield{

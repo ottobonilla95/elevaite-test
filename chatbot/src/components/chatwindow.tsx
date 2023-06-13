@@ -29,6 +29,11 @@ export default function ChatWindow(props: any) {
   }
 
   async function streaming(ask: string){
+    const evtSource = new EventSource(process.env.NEXT_PUBLIC_BACKEND_URL+"currentStatus");
+    evtSource.onmessage = (e) => {
+      console.log(e.data);
+      setAgentStatus(() => e.data);
+    }
     const response = await fetch(process.env.NEXT_PUBLIC_BACKEND_URL +"query?query="+ask+"&sid="+props?.chat?.id.toString())
     if (!!response.body){
       const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
@@ -56,6 +61,7 @@ export default function ChatWindow(props: any) {
         if (done){
           setMessageIdCount(() => messageIdCount + 2);
           setIsLoading(()=>false);
+          evtSource.close()
           break;
         }
         whole_string = whole_string + value;
@@ -114,11 +120,6 @@ export default function ChatWindow(props: any) {
           timestamp: getCurrentTimestamp(),
         }
       ]);
-      const evtSource = new EventSource(process.env.NEXT_PUBLIC_BACKEND_URL+"currentStatus");
-      evtSource.onmessage = (e) => {
-        console.log(e.data);
-        setAgentStatus(() => e.data);
-      }
       streaming(ask);
       setAsk(() => "");
       // fetchAnswer.current();
