@@ -1,18 +1,20 @@
 import datetime
 from langchain.llms import OpenAI
 from langchain.memory import ConversationBufferMemory
+from collections import defaultdict
 
 llm = OpenAI( verbose=True\
              ,temperature=0\
             )
-tokenCount=0
-currentStatus=""
-prevStatus = ""
+tokenCount=defaultdict()
+currentStatus=defaultdict()
+prevStatus = defaultdict()
 #chatHistory: ConversationBufferMemory
 chatHistory=[]
 
 
-def updateStatus(currentState: str):
+def updateStatus(uid: str, sid: str, currentState: str):
   global currentStatus
+  currentStatus[uid] = {sid: ""}
   currentTime=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-  currentStatus=currentTime + "  " + currentState 
+  currentStatus[uid][sid]=currentTime + "  " + currentState 

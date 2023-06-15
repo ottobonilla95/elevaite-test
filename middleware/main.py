@@ -10,6 +10,8 @@ import openai
 from callback import MyCustomCallbackHandler
 from langchain.chat_models import ChatOpenAI
 
+from collections import defaultdict
+
 #file imports
 from incidentScoringChain import func_incidentScoringChain
 from _global import llm
@@ -74,43 +76,44 @@ def read_root():
 
 # non agent version
 @app.get("/query")
-def get_Agent_incidentSolver(query: str, sid:str):
-    global memory
+def get_Agent_incidentSolver(query:str, uid:str, sid:str):
+    memory = loadSession(uid, sid) 
     final_result = ""
     memory = insert2Memory({"from": "human", "message": query}, memory)
-    storeSession(sid, memory)
-    _global.currentStatus = ""
-    _global.tokenCount = 0
-    updateStatus("Main")
+    storeSession(uid, sid, memory)
+    _global.currentStatus[uid][sid] = ""
+    if uid not in _global.tokenCount:
+        _global.tokenCount[uid] = {sid: 0}
+    updateStatus(uid, sid, "Main")
     results = ""
     print(len(memory))
     if len(memory) == 1:
-        results = func_incidentScoringChain(query)
+        results = func_incidentScoringChain(uid, sid, query)
         if "NOT SUPPORTED" in results:
             final_result = 'Not supported'
             memory = insert2Memory({"from": "ai", "message": final_result}, memory)
-            storeSession(sid, memory)
+            storeSession(uid, sid, memory)
             return final_result
         else:
             res = json.loads(results)
             if res["Score"] > 7:
-                context = getIssuseContexFromDetails(query)
+                context = getIssuseContexFromDetails(uid, sid, query)
                 
-                return StreamingResponse(finalFormatedOutput(sid, query, context), media_type="text/event-stream")
+                return StreamingResponse(finalFormatedOutput(uid, sid, query, context), media_type="text/event-stream")
                 # final_result = finalFormatedOutput(query, context)
                 # print(final_result)
                 # memory = insert2Memory({"from": "ai", "message": final_result}, memory)
                 # print("Total Ticket = " + str(_global.tokenCount))
                 # return {"text": final_result}
             else:
-                return StreamingResponse(NotenoughContext(sid, query), media_type="text/event-stream")
+                return StreamingResponse(NotenoughContext(uid, sid, query), media_type="text/event-stream")
                 # print(final_result)
                 # memory = insert2Memory({"from": "ai", "message": final_result}, memory)
                 # print("Total Ticket = " + str(_global.tokenCount))
                 # return {"text": final_result}
 
     else:
-        output = getReleatedChatText(query)
+        output = getReleatedChatText(uid, sid, query)
         query_with_memory = f"Here is the past relevant messages for your reference delimited by three backticks: \
             \
         ```{output}``` \
@@ -119,8 +122,8 @@ def get_Agent_incidentSolver(query: str, sid:str):
         <{query}> \
         "
         query = query_with_memory
-        context = getIssuseContexFromDetails(query)
-        return StreamingResponse(finalFormatedOutput(sid, query, context), media_type="text/event-stream")
+        context = getIssuseContexFromDetails(uid, sid, query)
+        return StreamingResponse(finalFormatedOutput(uid, sid, query, context), media_type="text/event-stream")
         # final_result = finalFormatedOutput(query, context)
         # memory = insert2Memory({"from": "ai", "message": final_result}, memory)
         # print("Total Ticket = " + str(_global.tokenCount))
@@ -128,44 +131,42 @@ def get_Agent_incidentSolver(query: str, sid:str):
 
 
 @app.get("/storeSession")
-def store_memory(sessionID: str):
-    global memory
-    storeSession(sessionID, memory)
+def store_memory(uid: str, sid: str):
+    memory = loadSession(uid, sid)
+    storeSession(uid, sid, memory)
     return {"Memory": "Stored"}
 
 
 @app.get("/loadSession")
-def load_memory(sessionID: str):
-    global memory
-    memory.clear()
-    memory = loadSession(sessionID)
-    _global.chatHistory = memory
+def load_memory(uid:str, sid: str):
+    memory = loadSession(uid, sid)
     return memory
 
-
 @app.get("/deleteSession")
-def delete_session(sessionID: str):
-    memory.clear()
-    deleteSession(sessionID)
+def delete_session(uid: str, sid: str):
+    deleteSession(uid, sid)
     return "Session cleared"
 
 
 @app.get("/deleteAllSessions")
-def delete_session():
-    memory.clear()
-    deletAllSessions()
+def delete_session(uid: str):
+    deletAllSessions(uid)
     return "Deleted sessions"
 
 
 @app.get("/currentStatus")
 async def current_status(request: Request):
     async def status_generator():
+        uid = request.query_params['uid']
+        sid = request.query_params['sid']
         while True:
             if await request.is_disconnected():
                 break
-            if _global.prevStatus!= _global.currentStatus:
-                _global.prevStatus = _global.currentStatus
+            if uid not in _global.prevStatus:
+                _global.prevStatus[uid] = {sid: ""}
+            if _global.prevStatus[uid][sid]!= _global.currentStatus[uid][sid]:
+                _global.prevStatus[uid][sid] = _global.currentStatus[uid][sid]
                 yield{
-                    "data": _global.currentStatus
+                    "data": _global.currentStatus[uid][sid]
                 }
     return EventSourceResponse(status_generator())

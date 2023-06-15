@@ -11,8 +11,8 @@ import os
 llm = OpenAI()
 llm.temperature=0
 
-def func_incidentScoringChain (query: str):
-    updateStatus("func_incidentScoringChain")
+def func_incidentScoringChain (uid:str, sid:str, query: str):
+    updateStatus(uid, sid, "func_incidentScoringChain")
     template= "You are given incident text within the <input_sentence></input_sentence> tags. Do the following based on the incident text:\n"\
         + "1.Classify whether it is Issue, Upgrade, Migration, Query and place your answer in <classification_val>\n"\
         + "2. Identify whether enough information is provided to identify root cause of incident. "\

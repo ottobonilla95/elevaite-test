@@ -7,9 +7,10 @@ import ChatWindow from "../components/chatwindow";
 import { useEffect, useRef, useState } from "react";
 import SubHeader from "../components/subheader";
 import { IoIosArrowBack } from "react-icons/io";
-import { NextPageContext } from 'next';
+import { NextPageContext } from "next";
 
 import axios from "axios";
+import jwt_decode from "jwt-decode";
 
 export type MessageDetails = {
   id: string;
@@ -68,47 +69,64 @@ export default function Home() {
   }
 
   function backButtonClick() {
-    axios.get(process.env.NEXT_PUBLIC_BACKEND_URL +"deleteAllSessions");
+    let params = new URL(window.location.href).searchParams;
+    const token = params.get("token");
+    if (!!token) {
+      let decoded: any = jwt_decode(token);
+      console.log(decoded);
+      axios.get(
+        process.env.NEXT_PUBLIC_BACKEND_URL +
+          "deleteAllSessions?uid=" +
+          decoded.sub
+      );
+    }
   }
   function keButtonClick() {
     let params = new URL(window.location.href).searchParams;
     const token = params.get("token");
-    window.location.href = "https://elevaite-ke.iopex.ai/?token="+token;
+    window.location.href = "https://elevaite-ke.iopex.ai/?token=" + token;
   }
 
   useEffect(() => {
     async function retrieveSession() {
-      try {
-        const response = await axios
-          .get(process.env.NEXT_PUBLIC_BACKEND_URL+"loadSession", {
-            params: { sessionID: currentChatId.toString() },
-          })
-          .then((messages) => {
-            let title = "New Session";
-            if (messages.data.length > 0) {
-              title = messages?.data[0]?.message.substring(0, 25) + "...";
-            }
-            let oldSessionMessages: chatSessionDetails = {
-              id: currentChatId,
-              title: title,
-              chat: [],
-            };
-            if (messages !== null && messages.data !== null) {
-              oldSessionMessages.chat = messages?.data;
-              setChats(() => [
-                ...chats.slice(0, currentChatId),
-                oldSessionMessages,
-                ...chats.slice(currentChatId + 1),
-              ]);
-            }
-            return messages?.data;
-          });
-      } catch (e) {
-        console.log(e);
+      let params = new URL(window.location.href).searchParams;
+      const token = params.get("token");
+      if (!!token) {
+        let decoded: any = jwt_decode(token);
+        console.log(decoded);
+        try {
+          axios
+            .get(process.env.NEXT_PUBLIC_BACKEND_URL + "loadSession", {
+              params: {
+                uid: decoded.sub,
+                sid: currentChatId.toString(),
+              },
+            })
+            .then((messages) => {
+              let title = "New Session";
+              if (messages.data.length > 0) {
+                title = messages?.data[0]?.message.substring(0, 25) + "...";
+              }
+              let oldSessionMessages: chatSessionDetails = {
+                id: currentChatId,
+                title: title,
+                chat: [],
+              };
+              if (messages !== null && messages.data !== null) {
+                oldSessionMessages.chat = messages?.data;
+                setChats(() => [
+                  ...chats.slice(0, currentChatId),
+                  oldSessionMessages,
+                  ...chats.slice(currentChatId + 1),
+                ]);
+              }
+            });
+        } catch (e) {
+          console.log(e);
+        }
       }
     }
     retrieveSession();
-
   }, [currentChatId]);
 
   return (
@@ -132,7 +150,7 @@ export default function Home() {
             className="sidebar-button work-bench-button"
           >
             <IoIosArrowBack style={{ color: "white" }} />
-              <p>Knowledge Engineering</p>
+            <p>Knowledge Engineering</p>
           </button>
           <button onClick={newSessionClick} className="sidebar-button">
             <AiOutlinePlus />
@@ -145,7 +163,7 @@ export default function Home() {
             </div>
             {chats.map((chat) => (
               <>
-                <button onClick={() => changeSession(chat?.id)}>
+                <button key={chat.id} onClick={() => changeSession(chat?.id)}>
                   <div
                     className="session"
                     style={
@@ -175,10 +193,10 @@ export default function Home() {
         </div>
 
         {chats
-          .filter((chat) => chat?.id === currentChatId)
+          .filter((chat) => chat.id === currentChatId)
           .map((chat) => (
             <ChatWindow
-              key={chat?.id}
+              key={chat.id}
               chat={chat}
               updateMessages={updateMessages}
             />

@@ -31,26 +31,26 @@ from langchain.chains import RetrievalQA
 memory = _global.chatHistory
 
 
-def UnsupportedProduct(query: str): #, filter: dict):
-     updateStatus("UnsupportedProduct") 
+def UnsupportedProduct(uid: str, sid: str, query: str): #, filter: dict):
+     updateStatus(uid, sid, "UnsupportedProduct") 
      return ("The product seems to be something I cannot support. Please verify the incident text provided ")
 
 
-def NotenoughContext(sid: str, query: str): #, filter: dict):
-     updateStatus("NotenoughContext")
+def NotenoughContext(uid: str, sid: str, query: str): #, filter: dict):
+     updateStatus(uid, sid, "NotenoughContext")
      prompt = "Respond as a support engineer by following the two steps below." \
       "\n 1. Communicate to user that enough information is not provided." \
       "\n 2. Provide top 4 information (ordered in html ol tags) that need to be collected from User based on the below query \n " \
       + query
      llm.temperature=0
      returnVal=llm(prompt)
-     return streaming_request(sid, prompt)
+     return streaming_request(uid, sid, prompt)
 
    #   return (returnVal)
 
 
-def finalFormatedOutput(sid:str, inputString: str, context: Optional[str] = None): #, filter: dict):
-     updateStatus("finalfinalFormatedOutput")
+def finalFormatedOutput(uid: str, sid:str, inputString: str, context: Optional[str] = None): #, filter: dict):
+     updateStatus(uid, sid, "finalfinalFormatedOutput")
      prompt =   "For the given Incident text and Knowledge Articles, " \
                +"Use only relevant knowledge articles."\
                +"Dont repate Input Text and just provide output as troubleshooting steps or additional questions to be collected. "\
@@ -65,14 +65,14 @@ def finalFormatedOutput(sid:str, inputString: str, context: Optional[str] = None
      llm.temperature=0
      llm.max_tokens=2000
      returnVal=llm(prompt)
-     return streaming_request(sid, prompt)
+     return streaming_request(uid, sid, prompt)
 
 
    #   return (returnVal)
 
 
-def processQdrantOutput(results: list, query: str):
-    updateStatus("processQdrantOutput")
+def processQdrantOutput(uid: str, sid: str, results: list, query: str):
+    updateStatus(uid, sid,"processQdrantOutput")
     finalResults=["Knowledge Articles:\n"]
     tokenSize=0
     prevScore=0
@@ -115,8 +115,8 @@ def processQdrantOutput(results: list, query: str):
     output=(' '.join(finalResults) )
     return(output)
 
-def getIssuseContexFromSummary(query: str): #, filter: dict):
-    updateStatus("getIssuseContexFromSummary")
+def getIssuseContexFromSummary(uid: str, sid: str, query: str): #, filter: dict):
+    updateStatus(uid, sid, "getIssuseContexFromSummary")
     embeddings = OpenAIEmbeddings()
     qa_collection_name=os.environ.get("QDRANT_COLLECTION")
     #if not filter:
@@ -137,10 +137,10 @@ def getIssuseContexFromSummary(query: str): #, filter: dict):
                     #, metadata_payload_key="metadata"
     )
     results=qdrant.similarity_search_with_score(query, filter=filter, k=4)
-    return(processQdrantOutput(results, query))
+    return(processQdrantOutput(uid, sid, results, query))
 
-def getIssuseContexFromDetails(query: str): #, filter: dict):
-    updateStatus("getIssuseContexFromDetails")
+def getIssuseContexFromDetails(uid: str, sid: str, query: str): #, filter: dict):
+    updateStatus(uid, sid, "getIssuseContexFromDetails")
     embeddings = OpenAIEmbeddings()
     qa_collection_name=os.environ.get("QDRANT_COLLECTION")
     print("Collection Name = " + qa_collection_name)
@@ -162,11 +162,11 @@ def getIssuseContexFromDetails(query: str): #, filter: dict):
                     #, metadata_payload_key="metadata"
     )
     results=qdrant.similarity_search_with_score(query, k=3)  # filter=filter
-    return(processQdrantOutput(results, query))
+    return(processQdrantOutput(uid, sid, results, query))
 
-def getReleatedChatText(input: str): 
-     chatHistory = _global.chatHistory
-     updateStatus("getReleatedChatText")
+def getReleatedChatText(uid: str, sid: str, input: str): 
+     chatHistory = loadSession(uid, sid)
+     updateStatus(uid, sid, "getReleatedChatText")
      manager = AsyncCallbackManager([MyCustomCallbackHandler()])
      template=""" Find and return messages within <past_messages> </past_messages> that are relevant to the input within <input> </input> 
 <input>\n  
@@ -217,8 +217,8 @@ def getReleatedChatText(input: str):
 #    knowledgeBase = RetrievalQA.from_chain_type(llm=llm, chain_type="map_reduce", memory=memory, retriever=retriever)
 #    return (knowledgeBase.run(query))
 
-def streaming_request(sid: str, input: str):
-    memory = _global.chatHistory
+def streaming_request(uid: str, sid: str, input: str):
+    memory = loadSession(uid, sid)
     openai.api_key = os.getenv("OPENAI_API_KEY")
     completion = openai.ChatCompletion.create(
             model='gpt-3.5-turbo', 
@@ -226,55 +226,57 @@ def streaming_request(sid: str, input: str):
             stream=True)
     final_result = ""
     for line in completion:
-            
             chunk = line['choices'][0].get('delta', {}).get('content', '')
             if chunk:
                 final_result += chunk
                 yield chunk
     if len(final_result) > 0:
       memory = insert2Memory({"from": "ai", "message": final_result}, memory)
-      storeSession(sid, memory)
+      storeSession(uid, sid, memory)
     return True
 
 
-def storeSession(sessionID, chatHistory: list):
-   updateStatus("storeSession")
-   folderPath="./sessionMemory"
-   fileName=str(sessionID)+".json"
+def storeSession(uid: str, sid:str, chatHistory: list):
+   updateStatus(uid, sid, "storeSession")
+   folderPath="./sessionMemory/"+uid
+   if not (os.path.isdir(folderPath)):
+      os.mkdir(folderPath)
+   fileName=str(sid)+".json"
    with open(os.path.join(folderPath, fileName), 'w') as outfile:
       json.dump(chatHistory, outfile, indent=4)
    return(True)
 
 
-def loadSession(sessionID: str):
-   updateStatus("loadSession")
+def loadSession(uid: str, sid: str):
+   updateStatus(uid, sid, "loadSession")
    ## Logically when loadSession is called, expectation is UI would have called the storeSession first and then call loadSession.
-   folderPath="./sessionMemory"
-   fileName=str(sessionID)+".json"
+   folderPath="./sessionMemory/"+uid
+   fileName=str(sid)+".json"
+   if not (os.path.isdir(folderPath)):
+       os.mkdir(folderPath)
    if not (os.path.isfile(os.path.join(folderPath, fileName))):
       with open(os.path.join(folderPath, fileName), 'w') as outfile:
          json.dump([], outfile, indent=4)
    with open(os.path.join(folderPath, fileName), 'r') as infile:
-      _global.currentStatus=json.load(infile)
-   return(_global.currentStatus)
+      _global.currentStatus[uid][sid]=json.load(infile)
+   return(_global.currentStatus[uid][sid])
 
-def deleteSession(sessionID: str):
-   updateStatus("deleteSession")
+def deleteSession(uid: str, sid: str):
+   updateStatus(uid, sid, "deleteSession")
    ## Logically when loadSession is called, expectation is UI would have called the storeSession first and then call loadSession.
-   folderPath="./sessionMemory"
-   fileName=str(sessionID)+".json"
+   folderPath="./sessionMemory/" + uid
+   fileName=str(sid)+".json"
    if os.path.isfile(os.path.join(folderPath, fileName)):
       os.remove(os.path.join(folderPath, fileName))
-   return(_global.currentStatus)
+   return(_global.currentStatus[uid][sid])
 
 
-def deletAllSessions():
-   updateStatus("deleteAllSessions")
+def deletAllSessions(uid:str):
    ## Logically when loadSession is called, expectation is UI would have called the storeSession first and then call loadSession.
-   folderPath="./sessionMemory"
+   folderPath="./sessionMemory/" + uid
    for f in os.listdir(folderPath):
       os.remove(os.path.join(folderPath, f))
-   return(_global.currentStatus)
+   return "Done"
 
 def insert2Memory(memoryValue: dict, chatHistory: list):
     messageType=memoryValue['from']

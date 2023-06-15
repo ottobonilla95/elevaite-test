@@ -9,79 +9,79 @@ import Message from "./message";
 import { MessageDetails } from "../pages";
 import CircularIndeterminate from "./progress_spinner";
 import LinearIndeterminate from "./linear_progress_indicator";
-
-
-
+import jwt_decode from "jwt-decode";
 
 export default function ChatWindow(props: any) {
   const [ask, setAsk] = useState<string>("");
-  const [messages, setMessages] = useState<MessageDetails[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [agentStatus, setAgentStatus] = useState<string>("");
   const [messageIdCount, setMessageIdCount] = useState(0);
   const [caseId, setCaseId] = useState<number | null>(null);
-  // const fetchAnswer = useRef(() => {});
   const listRef = useRef<HTMLDivElement>(null);
 
   function closeSession() {
-    // Uncomment the line below to call the api once ready
-    // clearMessages().then((data) => console.log(data));
+    props.updateMessages(()=>[]);
+    let params = new URL(window.location.href).searchParams;
+    const token = params.get("token");
+    if (!!token) {
+      let decoded: any = jwt_decode(token);
+      const uid = decoded.sub;
+      axios.get(
+        process.env.NEXT_PUBLIC_BACKEND_URL +
+          "deleteSession?uid=" +
+          uid +
+          "&sid=" +
+          props?.chat?.id.toString()
+      );
+    }
   }
 
-  async function streaming(ask: string){
-    const evtSource = new EventSource(process.env.NEXT_PUBLIC_BACKEND_URL+"currentStatus");
+  async function streaming(uid: string, ask: string) {
+    const evtSource = new EventSource(
+      process.env.NEXT_PUBLIC_BACKEND_URL +
+        "currentStatus?uid=" +
+        uid +
+        "&sid=" +
+        props?.chat?.id.toString()
+    );
     evtSource.onmessage = (e) => {
-      console.log(e.data);
       setAgentStatus(() => e.data);
-    }
-    const response = await fetch(process.env.NEXT_PUBLIC_BACKEND_URL +"query?query="+ask+"&sid="+props?.chat?.id.toString())
-    if (!!response.body){
-      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
-      let whole_string = ""
-      setMessages(() => [
-        ...messages,
-        {
-          id: messageIdCount.toString(),
-          message: ask,
-          from: "human",
-          timestamp: getCurrentTimestamp(),
-        },
-      ]);
+    };
+
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_BACKEND_URL +
+        "query?query=" +
+        ask +
+        "&uid=" +
+        uid +
+        "&sid=" +
+        props?.chat?.id.toString()
+    );
+    if (!!response.body) {
+      const reader = response.body
+        .pipeThrough(new TextDecoderStream())
+        .getReader();
+      let whole_string = "";
       props.updateMessages([
-        ...messages,
+        ...props.chat.chat,
         {
           id: messageIdCount,
           message: ask,
           from: "human",
           timestamp: getCurrentTimestamp(),
-        }
+        },
       ]);
       while (true) {
-        const {value, done} = await reader.read();
-        if (done){
+        const { value, done } = await reader.read();
+        if (done) {
           setMessageIdCount(() => messageIdCount + 2);
-          setIsLoading(()=>false);
-          evtSource.close()
+          setIsLoading(() => false);
+          evtSource.close();
           break;
         }
         whole_string = whole_string + value;
-        setMessages(() => [
-          ...messages,
-          {
-            id: messageIdCount.toString(),
-            message: ask,
-            from: "human",
-            timestamp: getCurrentTimestamp(),
-          },
-          {
-            id: (messageIdCount + 1).toString(),
-            message: whole_string,
-            from: "ai",
-            timestamp: getCurrentTimestamp(),
-          },
-        ]);
         props.updateMessages([
-          ...messages,
+          ...props.chat.chat,
           {
             id: messageIdCount,
             message: ask,
@@ -102,31 +102,25 @@ export default function ChatWindow(props: any) {
   function handleClick(event: any) {
     if (ask.trim() != "") {
       setIsLoading(() => true);
-      setMessages(() => [
-        ...messages,
-        {
-          id: messageIdCount.toString(),
-          message: ask,
-          from: "human",
-          timestamp: getCurrentTimestamp(),
-        },
-      ]);
       props.updateMessages([
-        ...messages,
+        ...props.chat.chat,
         {
           id: messageIdCount,
           message: ask,
           from: "human",
           timestamp: getCurrentTimestamp(),
-        }
+        },
       ]);
-      streaming(ask);
+      let params = new URL(window.location.href).searchParams;
+      const token = params.get("token");
+      if (!!token) {
+        let decoded: any = jwt_decode(token);
+        streaming(decoded.sub.toString(), ask);
+      }
       setAsk(() => "");
-      // fetchAnswer.current();
     }
   }
- 
-  
+
   function scrollToLastMessage() {
     let lastChild = listRef.current!.lastElementChild;
     lastChild?.scrollIntoView({
@@ -220,7 +214,7 @@ export default function ChatWindow(props: any) {
     setAsk(() => event.target.value);
   };
 
-  useEffect(() => scrollToLastMessage(), [messages]);
+  useEffect(() => scrollToLastMessage(), [props.chat.chat]);
   useEffect(
     () =>
       setCaseId(() => {
@@ -228,7 +222,6 @@ export default function ChatWindow(props: any) {
       }),
     [props]
   );
-  
 
   // The code below has been replaced with server sent events
   // useEffect(() => {
@@ -269,7 +262,6 @@ export default function ChatWindow(props: any) {
           <div className="grand-parent">
             <div className="parent-container">
               <div ref={listRef} className="parent">
-                {/* {msg} */}
                 {props?.chat?.chat?.map((message: MessageDetails) => (
                   <>
                     <Message key={message.id} message={message} />
