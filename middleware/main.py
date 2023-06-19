@@ -162,8 +162,7 @@ async def current_status(request: Request):
         while True:
             if await request.is_disconnected():
                 break
-            if uid not in _global.prevStatus:
-                _global.prevStatus[uid] = {sid: ""}
+            _global.prevStatus[uid] = {sid: ""}
             if _global.prevStatus[uid][sid]!= _global.currentStatus[uid][sid]:
                 _global.prevStatus[uid][sid] = _global.currentStatus[uid][sid]
                 yield{
