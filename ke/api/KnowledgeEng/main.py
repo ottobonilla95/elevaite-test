@@ -8,6 +8,7 @@ import chunkbysize as chunksize
 import logging
 from time import time
 import run, json
+import re
 
 app = FastAPI() 
 
@@ -53,7 +54,9 @@ async def webextractjson(request:Request):
     if (content == ""):
         return {"content" : "Error occured, unable to process the input URL"}
     json_data = datacontent.create_data(content, url, title, documentId)
-    json_output = json.dumps(json_data).encode("utf-8").decode()     
+    json_output = json.dumps(json_data)
+    p = re.compile('(?<!\\\\)\'')
+    json_output = p.sub('\"', json_output)
     logger.info(f'Request for URL to parse completed :: - {data} {int(time() * 1e+3) - time_start}ms')
     return {"content":json_output, "documentId":documentId}
 
