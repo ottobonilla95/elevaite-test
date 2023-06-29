@@ -19,6 +19,10 @@ export type MessageDetails = {
   from: string;
   timestamp: string;
 };
+export enum Collections {
+  Netgear = "kbDocs_netgear_faq",
+  Netskope = "kbDocs_netskope_v1",
+}
 
 type chatSessionDetails = {
   id: number;
@@ -33,7 +37,7 @@ export default function Home() {
   const [count, setCount] = useState(1);
   const [chatIds, setChatIds] = useState<number[]>([]);
   const [currentChatId, setCurrentChatId] = useState<number>(0);
-
+  const [collection, setCollection] = useState<string>(Collections.Netskope);
   const removeElement = (index: number) => {
     const newChats = chats.filter((_, i) => i !== index);
     setChats(() => newChats);
@@ -62,6 +66,12 @@ export default function Home() {
         ...chats.slice(currentChatId + 1),
       ]);
     }
+  }
+
+  function updateCollection(collection_name: string){
+    setCollection(()=> collection_name);
+    console.log(collection);
+    // axios.get(process.env.NEXT_PUBLIC_BACKEND_URL+'setTenant?collection_name='+collection_name);
   }
 
   function changeSession(chatId: number) {
@@ -133,7 +143,7 @@ export default function Home() {
     <>
       {/* <Header /> */}
       <TopHeader />
-      <SubHeader />
+      <SubHeader updateCollection={updateCollection}/>
       <div className="app-container">
         <div className="sidebar-container">
           <button
@@ -198,6 +208,7 @@ export default function Home() {
             <ChatWindow
               key={chat.id}
               chat={chat}
+              collection={collection}
               updateMessages={updateMessages}
             />
           ))}

@@ -70,6 +70,32 @@ def finalFormatedOutput(uid: str, sid:str, inputString: str, context: Optional[s
 
    #   return (returnVal)
 
+def faq_answer(uid: str, sid: str, query:str, collection: str):
+    memory = loadSession(uid, sid)
+    embeddings = OpenAIEmbeddings()
+    qa_collection_name=collection
+    print("Collection Name = " + qa_collection_name)
+   
+    qdrant_client = QdrantClient(
+         url    =os.environ.get("QDRANT_URL")
+        ,api_key=os.environ.get("QDRANT_API_KEY")
+    )
+
+    qdrant = Qdrant(
+                      client=qdrant_client\
+                    , collection_name=qa_collection_name\
+                    , embeddings=embeddings \
+                    #, content_payload_key="Text" \
+                    #, metadata_payload_key="metadata"
+    )
+    results=qdrant.similarity_search_with_score(query, k=1)
+    if results[0][1] > 0.80 and 'answer' in results[0][0].metadata:
+         memory = insert2Memory({"from": "ai", "message": results[0][0].metadata['answer']}, memory)
+         storeSession(uid, sid, memory)
+         return (results[0][0].metadata['answer'])
+    else:
+        return None
+    
 
 def processQdrantOutput(uid: str, sid: str, results: list, query: str):
     updateStatus(uid, sid,"processQdrantOutput")
@@ -139,10 +165,10 @@ def getIssuseContexFromSummary(uid: str, sid: str, query: str): #, filter: dict)
     results=qdrant.similarity_search_with_score(query, filter=filter, k=4)
     return(processQdrantOutput(uid, sid, results, query))
 
-def getIssuseContexFromDetails(uid: str, sid: str, query: str): #, filter: dict):
+def getIssuseContexFromDetails(uid: str, sid: str, query: str, collection: str): #, filter: dict):
     updateStatus(uid, sid, "getIssuseContexFromDetails")
     embeddings = OpenAIEmbeddings()
-    qa_collection_name=os.environ.get("QDRANT_COLLECTION")
+    qa_collection_name=collection
     print("Collection Name = " + qa_collection_name)
     #if not filter:
     filter={"Summary" : "N"}
@@ -221,7 +247,7 @@ def streaming_request(uid: str, sid: str, input: str):
     memory = loadSession(uid, sid)
     openai.api_key = os.getenv("OPENAI_API_KEY")
     completion = openai.ChatCompletion.create(
-            model='gpt-3.5-turbo', 
+            model='gpt-3.5-turbo-0613', 
             messages=[{"role": "user", "content": input}],
             stream=True)
     final_result = ""
@@ -235,7 +261,25 @@ def streaming_request(uid: str, sid: str, input: str):
       storeSession(uid, sid, memory)
     return True
 
+def faq_streaming_request(input: str):
+    for chunk in input:
+      yield chunk
+    return True
 
+def generate_email_content(input: str, context: str):
+   prompt = "Respond professionally as a customer support engineer to the query you have received within <email></email> tags. " \
+   +"Follow these steps to decide how you respond: \n"\
+   +"1. If you think you have relevant information within the <context></context> tags to answer the query, give a structured answer in html format with ol tags.\n"\
+   +"2. If you do not have relevant information to answer the query, respond with a set of questions you have regarding the query.\n"\
+   +"Here is your query\n <email>"\
+   + input + "\n </email>"\
+   +"Here is your context \n <context>"\
+   + context + "\n </context>"
+
+   llm.temperature=0
+   returnVal=llm(prompt)
+   return returnVal
+    
 def storeSession(uid: str, sid:str, chatHistory: list):
    updateStatus(uid, sid, "storeSession")
    folderPath="./sessionMemory/"+uid

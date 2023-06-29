@@ -46,6 +46,7 @@ export default function Message(props: MessageProps) {
       //   window.location.href = process.env.NEXT_PUBLIC_LOGIN_API;
       // }
       setName(()=>decoded.name);
+      // console.log(sanitzer(props?.message?.message));
     } else {
       if (!!process.env.NEXT_PUBLIC_LOGIN_API){
         window.location.href = process.env.NEXT_PUBLIC_LOGIN_API;

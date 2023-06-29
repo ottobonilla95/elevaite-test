@@ -11,13 +11,13 @@ import os
 llm = OpenAI()
 llm.temperature=0
 
-def func_incidentScoringChain (uid:str, sid:str, query: str):
+def func_incidentScoringChain (uid:str, sid:str, query: str, tenant: str):
     updateStatus(uid, sid, "func_incidentScoringChain")
     template= "You are given incident text within the <input_sentence></input_sentence> tags. Do the following based on the incident text:\n"\
         + "1.Classify whether it is Issue, Upgrade, Migration, Query and place your answer in <classification_val>\n"\
         + "2. Identify whether enough information is provided to identify root cause of incident. "\
         + "Score the incident text strictly in 1 to 10 scale and place your answer in <val> as an integer. Be strict in your scoring.\n" \
-        + "3. Identify whether Incident text is even slightly about data or network or client security or about Netskope products."\
+        + "3. Identify whether Incident text is about data or network or client security or " + tenant + " related products"\
         + "If yes Just say 'SUPPORTED'. If not just say 'NOT SUPPORTED', Nothing else. Place your answer in <support_val>" \
         + "4. Don\'t repeat the input incident text\n"\
         + "5. Give output ONLY in JSON Format with \"Classification\" : <classification_val>, \"Score\" : <val>, \"Product\":<support_val>" \

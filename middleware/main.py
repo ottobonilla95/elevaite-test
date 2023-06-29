@@ -20,6 +20,9 @@ from functions import (
     getIssuseContexFromDetails,
     NotenoughContext,
     finalFormatedOutput,
+    faq_answer,
+    faq_streaming_request,
+    generate_email_content,
     getReleatedChatText,
     storeSession,
     loadSession,
@@ -36,6 +39,10 @@ from time import time
 from dotenv import load_dotenv
 from langchain import ConversationChain
 
+
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.vectorstores import Qdrant 
+from qdrant_client import QdrantClient
 
 load_dotenv()
 app = FastAPI()
@@ -74,9 +81,10 @@ memory = _global.chatHistory
 def read_root():
     return {"Hello": "World"}
 
+
 # non agent version
 @app.get("/query")
-def get_Agent_incidentSolver(query:str, uid:str, sid:str):
+def get_Agent_incidentSolver(query:str, uid:str, sid:str, collection: str):
     memory = loadSession(uid, sid) 
     final_result = ""
     memory = insert2Memory({"from": "human", "message": query}, memory)
@@ -87,8 +95,17 @@ def get_Agent_incidentSolver(query:str, uid:str, sid:str):
     updateStatus(uid, sid, "Main")
     results = ""
     print(len(memory))
+    final_answer = faq_answer(uid, sid, query, collection)
+    if final_answer:
+        return StreamingResponse(faq_streaming_request(final_answer), media_type="text/event-stream")
+
     if len(memory) == 1:
-        results = func_incidentScoringChain(uid, sid, query)
+        tenant = 'Netskope'
+        if collection == 'kbDocs_netskope_v1':
+            tenant = 'Netskope'
+        else:
+            tenant = 'Netgear'
+        results = func_incidentScoringChain(uid, sid, query, tenant)
         if "NOT SUPPORTED" in results:
             final_result = 'Not supported'
             memory = insert2Memory({"from": "ai", "message": final_result}, memory)
@@ -97,7 +114,7 @@ def get_Agent_incidentSolver(query:str, uid:str, sid:str):
         else:
             res = json.loads(results)
             if res["Score"] > 7:
-                context = getIssuseContexFromDetails(uid, sid, query)
+                context = getIssuseContexFromDetails(uid, sid, query, collection)
                 
                 return StreamingResponse(finalFormatedOutput(uid, sid, query, context), media_type="text/event-stream")
                 # final_result = finalFormatedOutput(query, context)
@@ -122,12 +139,18 @@ def get_Agent_incidentSolver(query:str, uid:str, sid:str):
         <{query}> \
         "
         query = query_with_memory
-        context = getIssuseContexFromDetails(uid, sid, query)
+        context = getIssuseContexFromDetails(uid, sid, query, collection)
         return StreamingResponse(finalFormatedOutput(uid, sid, query, context), media_type="text/event-stream")
         # final_result = finalFormatedOutput(query, context)
         # memory = insert2Memory({"from": "ai", "message": final_result}, memory)
         # print("Total Ticket = " + str(_global.tokenCount))
         # return {"text": final_result}
+
+
+@app.get("/email")
+def send_email(query: str):
+     context = getIssuseContexFromDetails('123123123', '123123123', query, 'kbDocs_netgear_faq')
+     return {"text":generate_email_content(query, context)}
 
 
 @app.get("/storeSession")

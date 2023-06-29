@@ -47,7 +47,7 @@ export default function ChatWindow(props: any) {
     evtSource.onmessage = (e) => {
       setAgentStatus(() => e.data);
     };
-
+    console.log(props.collection);
     const response = await fetch(
       process.env.NEXT_PUBLIC_BACKEND_URL +
         "query?query=" +
@@ -55,7 +55,8 @@ export default function ChatWindow(props: any) {
         "&uid=" +
         uid +
         "&sid=" +
-        props?.chat?.id.toString()
+        props?.chat?.id.toString() +
+        "&collection=" + props.collection
     );
     if (!!response.body) {
       const reader = response.body
@@ -79,7 +80,8 @@ export default function ChatWindow(props: any) {
           evtSource.close();
           break;
         }
-        whole_string = whole_string + value;
+        whole_string += value;
+        console.log(whole_string);
         props.updateMessages([
           ...props.chat.chat,
           {
@@ -101,6 +103,7 @@ export default function ChatWindow(props: any) {
 
   function handleClick(event: any) {
     if (ask.trim() != "") {
+      console.log(props.collection);
       setIsLoading(() => true);
       props.updateMessages([
         ...props.chat.chat,
@@ -218,6 +221,7 @@ export default function ChatWindow(props: any) {
   useEffect(
     () =>
       setCaseId(() => {
+        console.log(props.collection);
         return props?.chat?.id;
       }),
     [props]
