@@ -2,17 +2,15 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sse_starlette.sse import EventSourceResponse
-import asyncio
 import os
 import json
 from langchain.callbacks.manager import AsyncCallbackManager
 import openai
 from callback import MyCustomCallbackHandler
-from langchain.chat_models import ChatOpenAI
 
 from collections import defaultdict
 
-#file imports
+# file imports
 from incidentScoringChain import func_incidentScoringChain
 from _global import llm
 from functions import (
@@ -23,6 +21,7 @@ from functions import (
     faq_answer,
     faq_streaming_request,
     generate_email_content,
+    streaming_request_upgraded,
     getReleatedChatText,
     storeSession,
     loadSession,
@@ -31,18 +30,9 @@ from functions import (
 )
 
 import _global
-from _global import currentStatus
 from _global import updateStatus
-import logging
-from time import time
 
 from dotenv import load_dotenv
-from langchain import ConversationChain
-
-
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores import Qdrant 
-from qdrant_client import QdrantClient
 
 load_dotenv()
 app = FastAPI()
@@ -72,20 +62,40 @@ openai.api_key = os.environ["OPENAI_API_KEY"]
 manager = AsyncCallbackManager([MyCustomCallbackHandler()])
 MAX_KB_TOKENSIZE = 1000
 
+from langchain.memory import ConversationSummaryBufferMemory
+from langchain.llms import OpenAI
+
+from _global import llm
 
 llm.callback_manager = manager
 
-memory = _global.chatHistory
+memory = defaultdict()
+
 
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
 
+@app.get("/agent-assist")
+@app.get("/in-warranty")
+def get_Agent_incidentSolver(query: str, uid: str, sid: str, collection: str):
+    if uid not in _global.tokenCount:
+        _global.tokenCount[uid] = {sid: 0}
+    updateStatus(uid, sid, "Main")
+    chat_session_memory = loadSession(uid, sid)
+    chat_session_memory = insert2Memory({"from": "human", "message": query}, chat_session_memory)
+    storeSession(uid, sid, chat_session_memory)
+    # streaming_request_upgraded(uid, sid, query, collection)
+    return StreamingResponse(
+        streaming_request_upgraded(uid, sid, query, collection),
+        media_type="text/event-stream",
+    )
+
 
 # non agent version
-@app.get("/query")
-def get_Agent_incidentSolver(query:str, uid:str, sid:str, collection: str):
-    memory = loadSession(uid, sid) 
+@app.get("/out-of-warranty")
+def get_Agent_incidentSolver(query: str, uid: str, sid: str, collection: str):
+    memory = loadSession(uid, sid)
     final_result = ""
     memory = insert2Memory({"from": "human", "message": query}, memory)
     storeSession(uid, sid, memory)
@@ -97,17 +107,19 @@ def get_Agent_incidentSolver(query:str, uid:str, sid:str, collection: str):
     print(len(memory))
     final_answer = faq_answer(uid, sid, query, collection)
     if final_answer:
-        return StreamingResponse(faq_streaming_request(final_answer), media_type="text/event-stream")
+        return StreamingResponse(
+            faq_streaming_request(final_answer), media_type="text/event-stream"
+        )
 
     if len(memory) == 1:
-        tenant = 'Netskope'
-        if collection == 'kbDocs_netskope_v1':
-            tenant = 'Netskope'
+        tenant = "Netskope"
+        if collection == "kbDocs_netskope_v1":
+            tenant = "Netskope"
         else:
-            tenant = 'Netgear'
+            tenant = "Netgear"
         results = func_incidentScoringChain(uid, sid, query, tenant)
         if "NOT SUPPORTED" in results:
-            final_result = 'Not supported'
+            final_result = "Not supported"
             memory = insert2Memory({"from": "ai", "message": final_result}, memory)
             storeSession(uid, sid, memory)
             return final_result
@@ -115,15 +127,20 @@ def get_Agent_incidentSolver(query:str, uid:str, sid:str, collection: str):
             res = json.loads(results)
             if res["Score"] > 7:
                 context = getIssuseContexFromDetails(uid, sid, query, collection)
-                
-                return StreamingResponse(finalFormatedOutput(uid, sid, query, context), media_type="text/event-stream")
+
+                return StreamingResponse(
+                    finalFormatedOutput(uid, sid, query, context),
+                    media_type="text/event-stream",
+                )
                 # final_result = finalFormatedOutput(query, context)
                 # print(final_result)
                 # memory = insert2Memory({"from": "ai", "message": final_result}, memory)
                 # print("Total Ticket = " + str(_global.tokenCount))
                 # return {"text": final_result}
             else:
-                return StreamingResponse(NotenoughContext(uid, sid, query), media_type="text/event-stream")
+                return StreamingResponse(
+                    NotenoughContext(uid, sid, query), media_type="text/event-stream"
+                )
                 # print(final_result)
                 # memory = insert2Memory({"from": "ai", "message": final_result}, memory)
                 # print("Total Ticket = " + str(_global.tokenCount))
@@ -140,7 +157,10 @@ def get_Agent_incidentSolver(query:str, uid:str, sid:str, collection: str):
         "
         query = query_with_memory
         context = getIssuseContexFromDetails(uid, sid, query, collection)
-        return StreamingResponse(finalFormatedOutput(uid, sid, query, context), media_type="text/event-stream")
+        return StreamingResponse(
+            finalFormatedOutput(uid, sid, query, context),
+            media_type="text/event-stream",
+        )
         # final_result = finalFormatedOutput(query, context)
         # memory = insert2Memory({"from": "ai", "message": final_result}, memory)
         # print("Total Ticket = " + str(_global.tokenCount))
@@ -149,8 +169,11 @@ def get_Agent_incidentSolver(query:str, uid:str, sid:str, collection: str):
 
 @app.get("/email")
 def send_email(query: str):
-     context = getIssuseContexFromDetails('123123123', '123123123', query, 'kbDocs_netgear_faq')
-     return {"text":generate_email_content(query, context)}
+    context = getIssuseContexFromDetails(
+        "123123123", "123123123", query, "kbDocs_netgear_faq"
+    )
+    result = generate_email_content(query, context)
+    return {"text": result}
 
 
 @app.get("/storeSession")
@@ -161,9 +184,10 @@ def store_memory(uid: str, sid: str):
 
 
 @app.get("/loadSession")
-def load_memory(uid:str, sid: str):
+def load_memory(uid: str, sid: str):
     memory = loadSession(uid, sid)
     return memory
+
 
 @app.get("/deleteSession")
 def delete_session(uid: str, sid: str):
@@ -180,19 +204,18 @@ def delete_session(uid: str):
 @app.get("/currentStatus")
 async def current_status(request: Request):
     async def status_generator():
-        uid = request.query_params['uid']
-        sid = request.query_params['sid']
+        uid = request.query_params["uid"]
+        sid = request.query_params["sid"]
         while True:
             if await request.is_disconnected():
                 break
             if uid not in _global.prevStatus:
                 _global.prevStatus[uid] = {sid: ""}
             if sid not in _global.prevStatus[uid]:
-                 _global.prevStatus[uid] = {sid: ""}
-            if _global.prevStatus[uid][sid]!= _global.currentStatus[uid][sid]:
-                print( _global.prevStatus[uid][sid])
+                _global.prevStatus[uid] = {sid: ""}
+            if _global.prevStatus[uid][sid] != _global.currentStatus[uid][sid]:
+                print(_global.prevStatus[uid][sid])
                 _global.prevStatus[uid][sid] = _global.currentStatus[uid][sid]
-                yield{
-                    "data": _global.currentStatus[uid][sid]
-                }
+                yield {"data": _global.currentStatus[uid][sid]}
+
     return EventSourceResponse(status_generator())

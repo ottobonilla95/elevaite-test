@@ -6,16 +6,17 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
-import axios from "axios";
 
 export enum Collections {
   Netgear = "kbDocs_netgear_faq",
   Netskope = "kbDocs_netskope_v1",
 }
 
+
+
 export default function SubHeader(props: any) {
   const [tenant, setTenant] = React.useState<string>(Collections.Netgear);
-  const handleChange = (event: SelectChangeEvent) => {
+  const handleTenantChange = (event: SelectChangeEvent) => {
     props.updateCollection(event.target.value as string);
     setTenant(() => event.target.value as string);
   };
@@ -40,7 +41,7 @@ export default function SubHeader(props: any) {
               id="demo-simple-select"
               value={tenant}
               label="Tenant"
-              onChange={handleChange}
+              onChange={handleTenantChange}
             >
               <MenuItem value={Collections.Netgear}>Netgear</MenuItem>
               <MenuItem value={Collections.Netskope}>Netskope</MenuItem>

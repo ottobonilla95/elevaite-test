@@ -889,6 +889,11 @@ a {
   width: 100%;
 }
 
+.query-radio-button{
+  width:100%;
+  margin-left: 25px;
+}
+
 .frame-1000004668 {
   align-items: flex-start;
   gap: 10px;

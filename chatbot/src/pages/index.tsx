@@ -11,6 +11,8 @@ import { NextPageContext } from "next";
 
 import axios from "axios";
 import jwt_decode from "jwt-decode";
+import { Collections} from "../components/subheader";
+
 
 export type MessageDetails = {
   id: string;
@@ -19,10 +21,6 @@ export type MessageDetails = {
   from: string;
   timestamp: string;
 };
-export enum Collections {
-  Netgear = "kbDocs_netgear_faq",
-  Netskope = "kbDocs_netskope_v1",
-}
 
 type chatSessionDetails = {
   id: number;
@@ -37,7 +35,7 @@ export default function Home() {
   const [count, setCount] = useState(1);
   const [chatIds, setChatIds] = useState<number[]>([]);
   const [currentChatId, setCurrentChatId] = useState<number>(0);
-  const [collection, setCollection] = useState<string>(Collections.Netskope);
+  const [collection, setCollection] = useState<string>(Collections.Netgear);
   const removeElement = (index: number) => {
     const newChats = chats.filter((_, i) => i !== index);
     setChats(() => newChats);
@@ -60,7 +58,7 @@ export default function Home() {
         ...chats.slice(0, currentChatId),
         {
           id: currentChatId,
-          title: messages[0].message.substring(0, 25) + "...",
+          title: messages[0].message.substring(0, 35) + "...",
           chat: messages,
         },
         ...chats.slice(currentChatId + 1),
@@ -73,7 +71,7 @@ export default function Home() {
     console.log(collection);
     // axios.get(process.env.NEXT_PUBLIC_BACKEND_URL+'setTenant?collection_name='+collection_name);
   }
-
+ 
   function changeSession(chatId: number) {
     setCurrentChatId(() => chatId);
   }
@@ -115,7 +113,7 @@ export default function Home() {
             .then((messages) => {
               let title = "New Session";
               if (messages.data.length > 0) {
-                title = messages?.data[0]?.message.substring(0, 25) + "...";
+                title = messages?.data[0]?.message.substring(0, 35) + "...";
               }
               let oldSessionMessages: chatSessionDetails = {
                 id: currentChatId,

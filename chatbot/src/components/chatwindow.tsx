@@ -10,17 +10,22 @@ import { MessageDetails } from "../pages";
 import CircularIndeterminate from "./progress_spinner";
 import LinearIndeterminate from "./linear_progress_indicator";
 import jwt_decode from "jwt-decode";
+import RowRadioButtonsGroup from "./radiobutton";
+import { ChatbotV } from "./radiobutton";
 
 export default function ChatWindow(props: any) {
   const [ask, setAsk] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [agentStatus, setAgentStatus] = useState<string>("");
+  const [chatbotV, setChatbotV] = useState<string>(ChatbotV.InWarranty);
   const [messageIdCount, setMessageIdCount] = useState(0);
+  const [isChatbotSelectionDisabled, setIsChatbotSelectionDisabled] =
+    useState(false);
   const [caseId, setCaseId] = useState<number | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   function closeSession() {
-    props.updateMessages(()=>[]);
+    props.updateMessages(() => []);
     let params = new URL(window.location.href).searchParams;
     const token = params.get("token");
     if (!!token) {
@@ -34,6 +39,10 @@ export default function ChatWindow(props: any) {
           props?.chat?.id.toString()
       );
     }
+  }
+
+  function setChatbotType(chatbotType: string) {
+    setChatbotV(() => chatbotType);
   }
 
   async function streaming(uid: string, ask: string) {
@@ -50,13 +59,15 @@ export default function ChatWindow(props: any) {
     console.log(props.collection);
     const response = await fetch(
       process.env.NEXT_PUBLIC_BACKEND_URL +
-        "query?query=" +
+        chatbotV +
+        "?query=" +
         ask +
         "&uid=" +
         uid +
         "&sid=" +
         props?.chat?.id.toString() +
-        "&collection=" + props.collection
+        "&collection=" +
+        props.collection
     );
     if (!!response.body) {
       const reader = response.body
@@ -218,6 +229,11 @@ export default function ChatWindow(props: any) {
   };
 
   useEffect(() => scrollToLastMessage(), [props.chat.chat]);
+  useEffect(() => {
+    if (props?.chat?.title != 'New Session'){
+      setIsChatbotSelectionDisabled(()=> true);
+    }
+  }, [props]);
   useEffect(
     () =>
       setCaseId(() => {
@@ -259,7 +275,11 @@ export default function ChatWindow(props: any) {
       <div className="chat-container">
         <div className="chat-header">
           <p> {props?.chat?.title}</p>
-          <img src="/img/chat-header.svg" alt="search functionality" />
+          {/* <img src="/img/chat-header.svg" alt="search functionality" /> */}
+          <RowRadioButtonsGroup
+            isDisabled={isChatbotSelectionDisabled}
+            setChatbotType={setChatbotType}
+          />
         </div>
 
         <div className="final-container">
