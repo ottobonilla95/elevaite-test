@@ -7,7 +7,8 @@ class EmailConversationParser:
     def get_email_conversations(self, email_content):
         self.email_content = email_content
         email_content_without_header = self.get_email_content_without_header()
-        email_content_without_footers = self.remove_footers(email_content_without_header)
+        email_content_without_special_chars = self.remove_reply_special_chars(email_content_without_header)
+        email_content_without_footers = self.remove_footers(email_content_without_special_chars)
         email_content_paragraphs_list = self.get_paragraphs(email_content_without_footers)
         all_email_conversations = self.get_emails(email_content_paragraphs_list)
         # Remove signatures
@@ -15,6 +16,18 @@ class EmailConversationParser:
         all_email_conversations_without_header = [self.remove_conversation_header(conversation) for conversation in all_email_conversations]
 
         return all_email_conversations_without_header
+
+    def remove_reply_special_chars(self, email_content_without_header):
+        conv_lines = email_content_without_header.split("\n")
+        conv_without_special_chars = []
+        email_regex_rules = RegexRules()
+        for line in conv_lines:
+            if(re.match(email_regex_rules.email_reply_special_chars, line.strip())):
+                repline = re.sub(email_regex_rules.email_reply_special_chars, "", line.strip())
+                conv_without_special_chars.append(repline)
+            else:
+                conv_without_special_chars.append(line)
+        return "\n".join(conv_without_special_chars)
 
     def remove_conversation_header(self, conversation):
         conv_lines = conversation.split("\n")
@@ -38,11 +51,13 @@ class EmailConversationParser:
         message_id = None
         subject = None
         _from = None
+        _email_format = None
         # Remove email header from the most recent email conversation
         for line in most_recent_email_content.split("\n"):
             if(":" in line):
                 [key, value] = [line.split(":")[0], ":".join(line.split(":")[1:])]
                 if(key == "MessageId"):
+                    _email_format = "exchange"
                     message_id = value.strip()
                 elif(key == "Subject"):
                     subject = value.strip()
@@ -50,8 +65,12 @@ class EmailConversationParser:
                     _from = value.strip()
                 else:
                     pass
-            elif(re.match(RegexRules().email_message_id, line.strip())):
-                pass
+            elif(_email_format is None and re.match(RegexRules().email_message_id, line.strip())):
+                _email_format = "generic"
+                # sometimes the actual content gets appended in the same line with message id. 
+                remaining_line_text = re.sub(RegexRules().email_message_id, "", line.strip())
+                if (remaining_line_text.strip()):
+                    most_recent_email_without_header.append(remaining_line_text)
             else:
                 if(re.match(RegexRules().email_seperator_regex, line.strip().lower())):
                     break;
@@ -137,15 +156,15 @@ class EmailConversationParser:
 
     def get_emails(self, list_paragraphs):
         list_emails = []
-        list_email_indices = self.get_email_separator(list_paragraphs)
-        list_email_indices = [
-            0] + self.get_email_separator(list_paragraphs) + [len(list_paragraphs) - 1]
+        list_email_indices = [0] + self.get_email_separator(list_paragraphs)
         if(list_email_indices[0] == list_email_indices[1]):
             list_email_indices = list_email_indices[1:]
         for list_index, index in enumerate(list_email_indices):
             if(list_index < len(list_email_indices) - 1):
                 list_emails.append(
                     "\n\n".join(list_paragraphs[index : list_email_indices[list_index + 1]]))
+            else:
+                list_emails.append("\n\n" + list_paragraphs[-1])
         return(list_emails)
 
     def check_to_from(self, list_first_words):
