@@ -69,7 +69,7 @@ class RegexRules:
 
         self.list_email_separator_first_words = ["From", "Sent", "To", "Cc", "BCc", "Subject"]
 
-        self.email_reply_special_chars = "^>\s*"
+        self.email_reply_special_chars = "^[>*]\s*"
 
         self.email_conversation_header_regex = "^(?:From:|To:|Cc:|Subject:|Sent:)"
 
