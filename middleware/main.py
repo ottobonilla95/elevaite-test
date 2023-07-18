@@ -7,8 +7,10 @@ import json
 from langchain.callbacks.manager import AsyncCallbackManager
 import openai
 from callback import MyCustomCallbackHandler
+from email_parser import EmailConversationParser
 
 from collections import defaultdict
+from email_parser import EmailConversationParser
 
 # file imports
 from incidentScoringChain import func_incidentScoringChain
@@ -167,14 +169,40 @@ def get_Agent_incidentSolver(query: str, uid: str, sid: str, collection: str):
         # return {"text": final_result}
 
 
-@app.get("/email")
-def send_email(query: str):
-    context = getIssuseContexFromDetails(
-        "123123123", "123123123", query, "kbDocs_netgear_faq"
-    )
-    result = generate_email_content(query, context)
-    return {"text": result}
+# @app.get("/email")
+# def send_email(query: str):
+#     context = getIssuseContexFromDetails(
+#         "123123123", "123123123", query, "kbDocs_netgear_faq"
+#     )
+#     result = generate_email_content(query, context)
+#     return {"text": result}
 
+@app.post('/email')
+async def email_request(request:Request):
+    print("inside request")
+    data = await request.json()    
+    email_query = data['email_query']
+    print("EMAIL QUERY TO DEBUG-------------------------\n",email_query)
+    email_conversation_list = EmailConversationParser().get_email_conversations(email_query)
+    print("Here is the list", email_conversation_list)
+    idx_split = email_query.find("<iopexelevaite@gmail.com> wrote")
+    print(idx_split)
+    latest_message = past_messages = ""
+    if idx_split !=-1:
+        latest_message = str(email_query[:idx_split])
+        past_messages = "<email_history>\n" + str(email_query[idx_split:]) + "\n</email_history>"
+    else:
+        latest_message= str(email_query)
+    # email_conversation_list = EmailConversationParser().get_email_conversations(email_query)
+    # print("Here is the list", email_conversation_list)
+    
+    context = getIssuseContexFromDetails(
+        "123123123", "123123123", latest_message+past_messages, "kbDocs_netgear_faq"
+    )
+    print("This is context", context)
+    output_data = generate_email_content(latest_message, past_messages, context)
+    print(output_data)
+    return {"text": output_data}
 
 @app.get("/storeSession")
 def store_memory(uid: str, sid: str):

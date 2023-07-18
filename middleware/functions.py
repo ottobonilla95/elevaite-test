@@ -23,6 +23,7 @@ from _global import updateStatus
 import uuid
 import pickle
 from collections import defaultdict
+from email_parser import EmailConversationParser
 
 
 memory = _global.chatHistory
@@ -96,7 +97,7 @@ def faq_answer(uid: str, sid: str, query: str, collection: str):
         # , metadata_payload_key="metadata"
     )
     results = qdrant.similarity_search_with_score(query, k=1)
-    if results[0][1] > 0.80 and "answer" in results[0][0].metadata:
+    if results[0][1] > 0.75 and "answer" in results[0][0].metadata:
         memory = insert2Memory(
             {"from": "ai", "message": results[0][0].metadata["answer"]}, memory
         )
@@ -113,6 +114,7 @@ def processQdrantOutput(uid: str, sid: str, results: list):
     prevScore = 0
     kbCnt = 1
     prevContent = ""
+    knowledgeText = ""
     prevURL = ""
     for i in range(len(results)):
         currentScore = results[i][1]
@@ -150,14 +152,14 @@ def processQdrantOutput(uid: str, sid: str, results: list):
                 prevScore = currentScore
             else:
                 break
-    knowledgeText = (
-        knowledgeText
-        + "Relevance Score = "
-        + str(prevScore)
-        + "'"
-        + "\nURL : "
-        + prevURL
-    )
+    # knowledgeText = (
+    #     knowledgeText
+    #     + "Relevance Score = "
+    #     + str(prevScore)
+    #     + "'"
+    #     + "\nURL : "
+    #     + prevURL
+    # )
 
     finalResults.append(knowledgeText)
     output = " ".join(finalResults)
@@ -210,7 +212,8 @@ def getIssuseContexFromDetails(
         # , metadata_payload_key="metadata"
     )
     results = qdrant.similarity_search_with_score(query, k=3)  # filter=filter
-    if results[0][1] < 0.75:
+    print("This is the score here",results[0][1])
+    if results[0][1] < 0.70:
         return None
     return processQdrantOutput(uid, sid, results)
 
@@ -286,7 +289,7 @@ def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection:
     if collection == "kbDocs_netskope_v1":
         template = """You are the Netskope customer support agent assisting an end user. \n
     Use the chat history, the human input, and the context in <context></context> tags to respond. \n
-    Respond with an answer ONLY if the query is related to Netskope and if you have the relevant context within the <context></context> tags. If you have no relevant context, please respond saying you cannot support the query.\n
+    Respond with an answer ONLY if the query is related to Netskope and if you have the relevant context within the <context></context> tags. If you have no relevant context, please apologize and respond by saying you will assign the ticket to our customer support agent.\n
     If you have the relevant context within <context></context> tags, please provide your response in HTML format with clear steps inside <ol> tags. \n
     Chat History: {chat_history} \n
     Human: {human_input} \n
@@ -294,7 +297,7 @@ def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection:
     else:
         template = """You are the Netgear customer support agent assisting an end user. \n
     Use the chat history, the human input, and the context in <context></context> tags to respond. \n
-    Respond with an answer ONLY if the query is related to Netgear and if you have the relevant context within the <context></context> tags. If you have no relevant context, please respond saying you cannot support the query.\n
+    Respond with an answer ONLY if the query is related to Netgear and if you have the relevant context within the <context></context> tags. If you have no relevant context, please apologize and respond by saying you will assign the ticket to OUR internal customer support agent.\n
     If you have the relevant context within <context></context> tags, please provide your response in HTML format with clear steps inside <ol> tags. \n
     Chat History: {chat_history} \n
     Human: {human_input} \n
@@ -379,23 +382,51 @@ def faq_streaming_request(input: str):
     return True
 
 
-def generate_email_content(input: str, context: str):
+def generate_email_content(latest_message: str, past_messages: str, context: str):
     prompt = (
-        "Respond professionally as a customer support engineer to the query you have received within <email></email> tags. DO NOT add email signature and DO NOT add [YOUR NAME] in your response."
-        + "Follow these steps to decide how you respond: \n"
-        + "1. If you think you have relevant information within the <context></context> tags to answer the query, give a structured answer in html format with ol tags.\n"
-        + "2. If you do not have relevant information to answer the query, respond with a set of questions you have regarding the query.\n"
-        + "Here is your query\n <email>"
-        + input
-        + "\n </email>"
-        + "Here is your context \n <context>"
+        "You are a Customer Support Agent. Respond to the Human using the details given in <context></context> tags and <email_history></email_history> tags, generate a response to the EMAIL you have received from a customer. Please provide your response in a well formatted html. Add ol tags if you have a stepwise answer. DO NOT add email signature and DO NOT add [YOUR NAME] in your response."
+        + "\nIf you do not have relevant information to answer the query, respond with a set of questions you have regarding the query.\n"
+        +"Look into the <email_history></email_history> to see if the answer you are generating is not repeated."
+        + "\nIf the user requests to connect to a customer support engineer, please say that you've assigned the ticket to Paul Jeyasingh and that he will respond to the email."
+        + "Human:" + latest_message
+        + "\nPast Messages:" + past_messages
+        + "\nHere is your context \n <context>"
         + context
         + "\n </context>"
+        + "Customer Support Agent:"
     )
 
     llm.temperature = 0
     llm.max_tokens = 2500
-    returnVal = llm(prompt)
+    print(prompt)
+    returnVal = ""
+
+
+    try:
+        returnVal = llm(prompt)
+    except:
+        llm.max_tokens = 1500
+        summary_prompt = (
+            "Summarize the below text in less than 1500 tokens\n" +
+            "Input:" + past_messages +
+            "\nSummary:"
+        )
+        summarized_past_messages = llm(summary_prompt)
+        prompt = (
+            "You are a Customer Support Agent. Respond to the Human using the details given in <context></context> tags and <email_history></email_history> tags, generate a response to the EMAIL you have received from a customer. Please provide your response in a well formatted html. Add ol tags if you have a stepwise answer. DO NOT add email signature and DO NOT add [YOUR NAME] in your response."
+            + "\nIf you do not have relevant information to answer the query, respond with a set of questions you have regarding the query.\n"
+            +"Look into the <email_history></email_history> to see if the answer you are generating is not repeated."
+            + "\nIf the user requests to connect to a customer support engineer, please say that you've assigned the ticket to Paul Jeyasingh and that he will respond to the email."
+            + "Human:" + latest_message
+            + "\nPast Messages:" + summarized_past_messages
+            + "\nHere is your context \n <context>"
+            + context
+            + "\n </context>"
+            + "Customer Support Agent:"
+        )
+        returnVal = llm(prompt)
+        return returnVal
+    
     return returnVal
 
 
