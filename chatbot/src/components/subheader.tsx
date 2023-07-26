@@ -44,7 +44,7 @@ export default function SubHeader(props: any) {
               onChange={handleTenantChange}
             >
               <MenuItem value={Collections.Netgear}>Netgear</MenuItem>
-              {/* <MenuItem value={Collections.Netskope}>Netskope</MenuItem> */}
+              <MenuItem value={Collections.Netskope}>Netskope</MenuItem>
             </Select>
           </FormControl>
         </Box>
