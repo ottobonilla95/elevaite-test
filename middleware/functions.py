@@ -24,8 +24,8 @@ import uuid
 import pickle
 from collections import defaultdict
 from email_parser import EmailConversationParser
-
-
+import collections_config
+import prompts_config 
 memory = _global.chatHistory
 
 
@@ -83,7 +83,7 @@ def finalFormatedOutput(
 def faq_answer(uid: str, sid: str, query: str, collection: str):
     memory = loadSession(uid, sid)
     embeddings = OpenAIEmbeddings()
-    qa_collection_name = collection
+    qa_collection_name = collections_config.collections_config[collection]
     print("Collection Name = " + qa_collection_name)
 
     qdrant_client = QdrantClient(
@@ -121,7 +121,7 @@ def processQdrantOutput(uid: str, sid: str, results: list):
         currentURL = results[i][0].metadata["source"]
         print(str(currentScore) + " : " + currentURL)
         if currentScore > 0.7:
-            tokenSize = tokenSize + results[i][0].metadata["tokenSize"]
+            tokenSize = tokenSize + results[i][0].metadata["tokenSize"] #tokenSize
             if tokenSize < MAX_KB_TOKENSIZE and (
                 prevScore == 0
                 or (prevScore - currentScore) / prevScore * 100 <= scoreDiff
@@ -194,7 +194,7 @@ def getIssuseContexFromDetails(
 ):  # , filter: dict):
     updateStatus(uid, sid, "getIssuseContexFromDetails")
     embeddings = OpenAIEmbeddings()
-    qa_collection_name = collection
+    qa_collection_name = collections_config.collections_config[collection]
     print("Collection Name = " + qa_collection_name)
     # if not filter:
     filter = {"Summary": "N"}
@@ -285,23 +285,7 @@ def getReleatedChatText(uid: str, sid: str, input: str):
 
 # memory = defaultdict()
 def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection: str):
-    template = ""
-    if collection == "kbDocs_netskope_v1":
-        template = """You are the Netskope customer support agent assisting an end user. \n
-    Use the chat history, the human input, and the context in <context></context> tags to respond. \n
-    Respond with an answer ONLY if the query is related to Netskope and if you have the relevant context within the <context></context> tags. If you have no relevant context, please apologize and respond by saying you will assign the ticket to our customer support agent.\n
-    If you have the relevant context within <context></context> tags, please provide your response in HTML format with clear steps inside <ol> tags. \n
-    Chat History: {chat_history} \n
-    Human: {human_input} \n
-    Support Agent:"""
-    else:
-        template = """You are the Netgear customer support agent assisting an end user. \n
-    Use the chat history, the human input, and the context in <context></context> tags to respond. \n
-    Respond with an answer ONLY if the query is related to Netgear and if you have the relevant context within the <context></context> tags. If you have no relevant context, please apologize and respond by saying you will assign the ticket to OUR internal customer support agent.\n
-    If you have the relevant context within <context></context> tags, please provide your response in HTML format with clear steps inside <ol> tags. \n
-    Chat History: {chat_history} \n
-    Human: {human_input} \n
-    Support Agent:"""
+    template = prompts_config.prompts_config[collection]
     chat = ChatOpenAI(temperature=0)
     chat_session_memory = loadSession(uid, sid)
     if os.path.getsize('all_chat_memory.pkl') > 0:
@@ -384,7 +368,7 @@ def faq_streaming_request(input: str):
 
 def generate_email_content(latest_message: str, past_messages: str, context: str):
     prompt = (
-        "You are a Customer Support Agent. Respond to the Human using the details given in <context></context> tags and <email_history></email_history> tags, generate a response to the EMAIL you have received from a customer. Please provide your response in a well formatted html. Add ol tags if you have a stepwise answer. DO NOT add email signature and DO NOT add [YOUR NAME] in your response."
+        "You are a Customer Support Agent. Respond to the Human using the details given in <context></context> tags and <email_history></email_history> tags, generate a response to the EMAIL you have received from a customer. Please provide your response in a well formatted html. Add ol tags if you have a stepwise answer. DO NOT add email signature and DO NOT add [YOUR NAME] in your response. DO NOT send the relevance score as part of your response."
         + "\nIf you do not have relevant information to answer the query, respond with a set of questions you have regarding the query.\n"
         +"Look into the <email_history></email_history> to see if the answer you are generating is not repeated."
         + "\nIf the user requests to connect to a customer support engineer, please say that you've assigned the ticket to Paul Jeyasingh and that he will respond to the email."
@@ -413,7 +397,7 @@ def generate_email_content(latest_message: str, past_messages: str, context: str
         )
         summarized_past_messages = llm(summary_prompt)
         prompt = (
-            "You are a Customer Support Agent. Respond to the Human using the details given in <context></context> tags and <email_history></email_history> tags, generate a response to the EMAIL you have received from a customer. Please provide your response in a well formatted html. Add ol tags if you have a stepwise answer. DO NOT add email signature and DO NOT add [YOUR NAME] in your response."
+            "You are a Customer Support Agent. Respond to the Human using the details given in <context></context> tags and <email_history></email_history> tags, generate a response to the EMAIL you have received from a customer. Please provide your response in a well formatted html. Add ol tags if you have a stepwise answer. DO NOT add email signature and DO NOT add [YOUR NAME] in your response. DO NOT send the relevance score as part of your response."
             + "\nIf you do not have relevant information to answer the query, respond with a set of questions you have regarding the query.\n"
             +"Look into the <email_history></email_history> to see if the answer you are generating is not repeated."
             + "\nIf the user requests to connect to a customer support engineer, please say that you've assigned the ticket to Paul Jeyasingh and that he will respond to the email."

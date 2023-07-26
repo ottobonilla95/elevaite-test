@@ -8,8 +8,10 @@ import FormControl from "@mui/material/FormControl";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 
 export enum Collections {
-  Netgear = "kbDocs_netgear_faq",
-  Netskope = "kbDocs_netskope_v1",
+  Netgear = "netgear",
+  Netskope = "netskope",
+  PAN = "pan",
+  Cisco = "cisco"
 }
 
 
@@ -45,6 +47,8 @@ export default function SubHeader(props: any) {
             >
               <MenuItem value={Collections.Netgear}>Netgear</MenuItem>
               <MenuItem value={Collections.Netskope}>Netskope</MenuItem>
+              <MenuItem value={Collections.PAN}>Palo Alto Networks</MenuItem>
+              <MenuItem value={Collections.Cisco}>Cisco</MenuItem>
             </Select>
           </FormControl>
         </Box>
