@@ -188,7 +188,6 @@ def getIssuseContexFromSummary(uid: str, sid: str, query: str):  # , filter: dic
     results = qdrant.similarity_search_with_score(query, filter=filter, k=4)
     return processQdrantOutput(uid, sid, results)
 
-
 def getIssuseContexFromDetails(
     uid: str, sid: str, query: str, collection: str
 ):  # , filter: dict):
@@ -309,14 +308,14 @@ def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection:
     with open('all_chat_memory.pkl', 'wb') as f:
         pickle.dump(memory, f, pickle.HIGHEST_PROTOCOL)
         
-    input = str(memory[uid][sid]) + human_input
+    whole_input = ""
     recent_history = loadSession(uid, sid)
     if len(recent_history) > 3:
-        input = '\n'.join(str(msg['from']+ ":" + msg['message']) for msg in recent_history[-3:])
+        whole_input = " ".join(str(msg['from']+ ":" + msg['message']) for msg in recent_history[-3:])
     else:
-        input = '\n'.join(str(msg['from']+ ":" + msg['message']) for msg in recent_history)
-    print("This is the whole input", input)
-    context = getIssuseContexFromDetails(uid, sid, input, collection)
+        whole_input = " ".join(str(msg['from']+ ":" + msg['message']) for msg in recent_history)
+    print("This is the whole input", whole_input)
+    context = getIssuseContexFromDetails(uid, sid, whole_input, collection)
     if context is not None:
         input = (
             human_input
