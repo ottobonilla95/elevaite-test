@@ -29,10 +29,52 @@ import prompts_config
 memory = _global.chatHistory
 
 
-def UnsupportedProduct(uid: str, sid: str, query: str):  # , filter: dict):
-    updateStatus(uid, sid, "UnsupportedProduct")
-    return "The product seems to be something I cannot support. Please verify the incident text provided "
+################################## FAQ Short-circuit ###############################
+# Get an answer directly from the vector db without going to an LLM
+def faq_answer(uid: str, sid: str, query: str, collection: str):
+    memory = loadSession(uid, sid)
+    embeddings = OpenAIEmbeddings()
+    qa_collection_name = collections_config.collections_config[collection]
+    # print("Collection Name = " + qa_collection_name)
 
+    qdrant_client = QdrantClient(
+        url=os.environ.get("QDRANT_URL"), api_key=os.environ.get("QDRANT_API_KEY")
+    )
+
+    qdrant = Qdrant(
+        client=qdrant_client,
+        collection_name=qa_collection_name,
+        embeddings=embeddings  # , content_payload_key="Text" \
+        # , metadata_payload_key="metadata"
+    )
+    results = qdrant.similarity_search_with_score(query, k=1)
+    if results[0][1] > 0.75 and "answer" in results[0][0].metadata:
+        memory = insert2Memory(
+            {"from": "ai", "message": results[0][0].metadata["answer"]}, memory
+        )
+        storeSession(uid, sid, memory)
+        return results[0][0].metadata["answer"]
+    else:
+        return None
+
+def streaming_request(uid: str, sid: str, input: str):
+    memory = loadSession(uid, sid)
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    completion = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo-0613",
+        messages=[{"role": "user", "content": input}],
+        stream=True,
+    )
+    final_result = ""
+    for line in completion:
+        chunk = line["choices"][0].get("delta", {}).get("content", "")
+        if chunk:
+            final_result += chunk
+            yield chunk
+    if len(final_result) > 0:
+        memory = insert2Memory({"from": "ai", "message": final_result}, memory)
+        storeSession(uid, sid, memory)
+    return True
 
 def NotenoughContext(uid: str, sid: str, query: str):  # , filter: dict):
     updateStatus(uid, sid, "NotenoughContext")
@@ -48,7 +90,6 @@ def NotenoughContext(uid: str, sid: str, query: str):  # , filter: dict):
 
 
 #   return (returnVal)
-
 
 def finalFormatedOutput(
     uid: str, sid: str, inputString: str, context: Optional[str] = None
@@ -75,16 +116,16 @@ def finalFormatedOutput(
     llm.max_tokens = 2000
     returnVal = llm(prompt)
     return streaming_request(uid, sid, prompt)
-
-
 #   return (returnVal)
 
-
-def faq_answer(uid: str, sid: str, query: str, collection: str):
-    memory = loadSession(uid, sid)
+def getIssuseContexFromSummary(uid: str, sid: str, query: str):  # , filter: dict):
+    updateStatus(uid, sid, "getIssuseContexFromSummary")
     embeddings = OpenAIEmbeddings()
-    qa_collection_name = collections_config.collections_config[collection]
-    print("Collection Name = " + qa_collection_name)
+    qa_collection_name = os.environ.get("QDRANT_COLLECTION")
+    # if not filter:
+    filter = {"Summary": "Y"}
+    # else:
+    # filter.update({"DocumentType" : "Summary"})
 
     qdrant_client = QdrantClient(
         url=os.environ.get("QDRANT_URL"), api_key=os.environ.get("QDRANT_API_KEY")
@@ -96,17 +137,60 @@ def faq_answer(uid: str, sid: str, query: str, collection: str):
         embeddings=embeddings  # , content_payload_key="Text" \
         # , metadata_payload_key="metadata"
     )
-    results = qdrant.similarity_search_with_score(query, k=1)
-    if results[0][1] > 0.75 and "answer" in results[0][0].metadata:
-        memory = insert2Memory(
-            {"from": "ai", "message": results[0][0].metadata["answer"]}, memory
-        )
-        storeSession(uid, sid, memory)
-        return results[0][0].metadata["answer"]
+    results = qdrant.similarity_search_with_score(query, filter=filter, k=4)
+    return processQdrantOutput(uid, sid, results)
+
+def getReleatedChatText(uid: str, sid: str, input: str):
+    chatHistory = loadSession(uid, sid)
+    updateStatus(uid, sid, "getReleatedChatText")
+    manager = AsyncCallbackManager([MyCustomCallbackHandler()])
+    template = """ Find and return messages within <past_messages> </past_messages> that are relevant to the input within <input> </input> 
+<input>\n  
+{input_text}
+\n</input>
+\n
+<past_messages> \n
+{past_messages}
+\n
+</past_messages>
+"""
+
+    prompt = PromptTemplate(
+        input_variables=["input_text", "past_messages"],
+        template=template,
+    )
+    llm.callback_manager = manager
+    llmgpt = ChatOpenAI(
+        model_name="gpt-3.5-turbo",
+        verbose=True,
+        max_tokens=MAX_KB_TOKENSIZE,
+        temperature=0,
+        callback_manager=manager,
+    )
+    llmChain = LLMChain(
+        llm=llmgpt, prompt=prompt, verbose=True, callback_manager=manager
+    )
+    past_messages = []
+    results = "NONE"
+    if chatHistory:
+        for items in chatHistory:
+            past_messages.append(items["from"] + " : " + items["message"])
+        results = llmChain.predict(input_text=input, past_messages=past_messages)
+        results = results.replace("\n", "")
+    if "NONE" in results.upper():
+        return ""
     else:
-        return None
+        return results
+    
+# Stream the response from vector db (short circuited response) to maintain the same user experience
+def faq_streaming_request(input: str):
+    for chunk in input:
+        yield chunk
+    return True
+################################## END ###############################
 
-
+################################## RAG powered QnA using Langchain Memory ###############################
+# Process the output recieved from vector db to create the context for the LLM
 def processQdrantOutput(uid: str, sid: str, results: list):
     updateStatus(uid, sid, "processQdrantOutput")
     finalResults = ["Knowledge Articles:\n"]
@@ -152,43 +236,11 @@ def processQdrantOutput(uid: str, sid: str, results: list):
                 prevScore = currentScore
             else:
                 break
-    # knowledgeText = (
-    #     knowledgeText
-    #     + "Relevance Score = "
-    #     + str(prevScore)
-    #     + "'"
-    #     + "\nURL : "
-    #     + prevURL
-    # )
-
     finalResults.append(knowledgeText)
     output = " ".join(finalResults)
     return output
 
-
-def getIssuseContexFromSummary(uid: str, sid: str, query: str):  # , filter: dict):
-    updateStatus(uid, sid, "getIssuseContexFromSummary")
-    embeddings = OpenAIEmbeddings()
-    qa_collection_name = os.environ.get("QDRANT_COLLECTION")
-    # if not filter:
-    filter = {"Summary": "Y"}
-    # else:
-    # filter.update({"DocumentType" : "Summary"})
-
-    qdrant_client = QdrantClient(
-        url=os.environ.get("QDRANT_URL"), api_key=os.environ.get("QDRANT_API_KEY")
-    )
-
-    qdrant = Qdrant(
-        client=qdrant_client,
-        collection_name=qa_collection_name,
-        embeddings=embeddings  # , content_payload_key="Text" \
-        # , metadata_payload_key="metadata"
-    )
-    results = qdrant.similarity_search_with_score(query, filter=filter, k=4)
-    return processQdrantOutput(uid, sid, results)
-
-
+# Get the chunks relevant to a query
 def getIssuseContexFromDetails(
     uid: str, sid: str, query: str, collection: str
 ):  # , filter: dict):
@@ -217,73 +269,7 @@ def getIssuseContexFromDetails(
         return None
     return processQdrantOutput(uid, sid, results)
 
-
-def getReleatedChatText(uid: str, sid: str, input: str):
-    chatHistory = loadSession(uid, sid)
-    updateStatus(uid, sid, "getReleatedChatText")
-    manager = AsyncCallbackManager([MyCustomCallbackHandler()])
-    template = """ Find and return messages within <past_messages> </past_messages> that are relevant to the input within <input> </input> 
-<input>\n  
-{input_text}
-\n</input>
-\n
-<past_messages> \n
-{past_messages}
-\n
-</past_messages>
-"""
-
-    prompt = PromptTemplate(
-        input_variables=["input_text", "past_messages"],
-        template=template,
-    )
-    llm.callback_manager = manager
-    llmgpt = ChatOpenAI(
-        model_name="gpt-3.5-turbo",
-        verbose=True,
-        max_tokens=MAX_KB_TOKENSIZE,
-        temperature=0,
-        callback_manager=manager,
-    )
-    llmChain = LLMChain(
-        llm=llmgpt, prompt=prompt, verbose=True, callback_manager=manager
-    )
-    past_messages = []
-    results = "NONE"
-    if chatHistory:
-        for items in chatHistory:
-            past_messages.append(items["from"] + " : " + items["message"])
-        results = llmChain.predict(input_text=input, past_messages=past_messages)
-        results = results.replace("\n", "")
-    if "NONE" in results.upper():
-        return ""
-    else:
-        return results
-
-
-# def retrieve_from_kb(query:str):
-#    llm = OpenAI(temperature=0)
-#    MODEL = "text-embedding-ada-002"
-#    client = QdrantClient(
-#     url = os.environ["QDRANT_URL"],
-#     prefer_grpc=True,
-#     api_key = os.environ["QDRANT_API_KEY"]
-#     )
-#    embeddings = OpenAIEmbeddings(model=MODEL)
-#    qdrant = Qdrant(
-#     client=client, collection_name=os.environ.get("QDRANT_COLLECTION"),
-#     embedding_function=embeddings.embed_query
-# )
-#    retriever = qdrant.as_retriever()
-#    memory = ConversationSummaryBufferMemory(llm=llm, memory_key="chat_history", max_token_limit=2000)
-#    knowledgeBase = RetrievalQA.from_chain_type(llm=llm, chain_type="map_reduce", memory=memory, retriever=retriever)
-#    return (knowledgeBase.run(query))
-
-
-
-
-
-# memory = defaultdict()
+# Stream the response being generated based on RAG
 def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection: str):
     template = prompts_config.prompts_config[collection]
     chat = ChatOpenAI(temperature=0)
@@ -310,6 +296,12 @@ def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection:
         pickle.dump(memory, f, pickle.HIGHEST_PROTOCOL)
         
     input = str(memory[uid][sid]) + human_input
+    recent_history = loadSession(uid, sid)
+    if len(recent_history) > 3:
+        input = '\n'.join(str(msg['from']+ ":" + msg['message']) for msg in recent_history[-3:])
+    else:
+        input = '\n'.join(str(msg['from']+ ":" + msg['message']) for msg in recent_history)
+    print("This is the whole input", input)
     context = getIssuseContexFromDetails(uid, sid, input, collection)
     if context is not None:
         input = (
@@ -328,9 +320,9 @@ def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection:
     result = llm_chain.predict(human_input=input)
     with open('all_chat_memory.pkl', 'wb') as f:
         pickle.dump(memory, f, pickle.HIGHEST_PROTOCOL)
-    print(memory[uid][sid])
+    # print(memory[uid][sid])
 
-    print(result)
+    # print(result)
     chat_session_memory = insert2Memory({"from": "ai", "message": result}, chat_session_memory)
     storeSession(uid, sid, chat_session_memory)
     final_result = ""
@@ -338,34 +330,11 @@ def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection:
         final_result += word
         yield word
     return True
+################################## END ###############################
 
 
-def streaming_request(uid: str, sid: str, input: str):
-    memory = loadSession(uid, sid)
-    openai.api_key = os.getenv("OPENAI_API_KEY")
-    completion = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo-0613",
-        messages=[{"role": "user", "content": input}],
-        stream=True,
-    )
-    final_result = ""
-    for line in completion:
-        chunk = line["choices"][0].get("delta", {}).get("content", "")
-        if chunk:
-            final_result += chunk
-            yield chunk
-    if len(final_result) > 0:
-        memory = insert2Memory({"from": "ai", "message": final_result}, memory)
-        storeSession(uid, sid, memory)
-    return True
 
-
-def faq_streaming_request(input: str):
-    for chunk in input:
-        yield chunk
-    return True
-
-
+################################## e-mail generation ###############################
 def generate_email_content(latest_message: str, past_messages: str, context: str):
     prompt = (
         "You are a Customer Support Agent. Respond to the Human using the details given in <context></context> tags and <email_history></email_history> tags, generate a response to the EMAIL you have received from a customer. Please provide your response in a well formatted html. Add ol tags if you have a stepwise answer. DO NOT add email signature and DO NOT add [YOUR NAME] in your response. DO NOT send the relevance score as part of your response."
@@ -382,7 +351,7 @@ def generate_email_content(latest_message: str, past_messages: str, context: str
 
     llm.temperature = 0
     llm.max_tokens = 2500
-    print(prompt)
+    # print(prompt)
     returnVal = ""
 
 
@@ -412,8 +381,9 @@ def generate_email_content(latest_message: str, past_messages: str, context: str
         return returnVal
     
     return returnVal
+################################## END ###############################
 
-
+################################## Session house keeping ###############################
 def storeSession(uid: str, sid: str, chatHistory: list):
     updateStatus(uid, sid, "storeSession")
     folderPath = "./sessionMemory/" + uid
@@ -480,3 +450,7 @@ def insert2Memory(memoryValue: dict, chatHistory: list):
         }
     )
     return chatHistory
+
+################################## END ###############################
+
+
