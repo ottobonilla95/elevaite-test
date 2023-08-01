@@ -394,6 +394,19 @@ def storeSession(uid: str, sid: str, chatHistory: list):
         json.dump(chatHistory, outfile, indent=4)
     return True
 
+#storeSession with Tenant ID - 08/01/23
+def storeSession(uid: str, tid: str, sid: str, chatHistory: list):
+    updateStatus(uid, sid, "storeSession")
+    folderPath = ".db/sessionMemory/" + uid + "/" + tid 
+
+    #if Folder with uid/tid does not exist , create one
+    if not (os.path.isdir(folderPath)):
+        os.makedirs(folderPath)
+
+    fileName = str(sid) + ".json"
+    with open(os.path.join(folderPath, fileName), "w") as outfile:
+        json.dump(chatHistory, outfile, indent=4)
+    return True
 
 def loadSession(uid: str, sid: str):
     updateStatus(uid, sid, "loadSession")
@@ -410,6 +423,23 @@ def loadSession(uid: str, sid: str):
         _global.currentStatus[uid][sid] = json.load(infile)
     return _global.currentStatus[uid][sid]
 
+#loadSession with Tenant ID - 08/01/23
+def loadSession(uid: str, tid: str, sid: str):
+    updateStatus(uid, sid, "loadSession")
+    ## Logically when loadSession is called, expectation is UI would have called the storeSession first and then call loadSession.
+    print(os.getcwd())
+    folderPath = ".db/sessionMemory/" + uid + "/" + tid
+    fileName = str(sid) + ".json"
+    #if Folder with uid/tid does not exist, create one
+    if not (os.path.isdir(folderPath)):
+        os.makedirs(folderPath)
+
+    if not (os.path.isfile(os.path.join(folderPath, fileName))):
+        with open(os.path.join(folderPath, fileName), "w") as outfile:
+            json.dump([], outfile, indent=4)
+    with open(os.path.join(folderPath, fileName), "r") as infile:
+        _global.currentStatus[uid][sid] = json.load(infile)
+    return _global.currentStatus[uid][sid]
 
 def deleteSession(uid: str, sid: str):
     updateStatus(uid, sid, "deleteSession")
@@ -435,6 +465,62 @@ def deletAllSessions(uid: str):
         pickle.dump(memory, f, pickle.HIGHEST_PROTOCOL)
     f.close()
     return "Done"
+
+#Function to extract the session details for getAllSessions() & getAllSessionsbyTenant()
+def processSessionDetails(tid,sid, file_path):
+
+    with open(file_path, "r") as file:
+        data = json.load(file)
+    
+        sessionDetails ={
+            "tenant_id": tid,
+            "session_id" : sid,
+            "title": " ".join(data[0]["message"].split()[:5]),
+            "timestamp": data[0]["timestamp"]
+        }
+    return sessionDetails
+
+#Get list of sessions (title) of a user 
+def getAllSession(uid: str):
+    
+    tid = ""
+    sid = ""
+    sessionDetails=[]
+    folderPath ="./db/sessionMemory/" + uid 
+    
+    #New User - no existing sessions available - return an empty json
+    if not(os.path.isdir(folderPath)):
+        return json.dumps(sessionDetails)
+    
+    #User exists
+    for dir in os.scandir(folderPath):
+        tid = str(dir.name)
+        for filename in os.listdir(dir):
+            if filename.endswith(".json"):
+                filePath = folderPath + "/" + tid + "/" + filename
+                sid = filename.rsplit(".json", 1)[0]
+                sessionDetails.append(processSessionDetails(tid,sid,filePath))
+                
+                
+    return json.dumps(sessionDetails)
+
+#Get list of sessions (title) of a user WRT tenant 
+def getAllSessionbyTenant(uid: str,tid: str):
+    
+    sid=""
+    sessionDetails=[]
+    folderPath = "./db/sessionMemory/" + uid + "/" + tid
+
+    if not(os.path.isdir(folderPath)):
+        return json.dumps(sessionDetails)
+
+    for filename in os.listdir(folderPath):
+        if filename.endswith(".json"):
+            filePath = folderPath + "/" + filename
+            sid = filename.rsplit(".json",1)[0]
+            sessionDetails.append(processSessionDetails(tid,sid,filePath))
+
+    return json.dumps(sessionDetails)
 
 
 def insert2Memory(memoryValue: dict, chatHistory: list):
