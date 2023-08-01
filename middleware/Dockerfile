@@ -10,4 +10,4 @@ ENV QDRANT_URL="https://a29a4a5f-b731-4ffa-befd-5c3f702c66f3.us-east-1-0.aws.clo
 ENV QDRANT_API_KEY="bD7Kx0EQ3hPe2FJjzjNpXr7E4mZatk9MAhqwNHi4EBOPdNqKcRW7HA"
 ENV QDRANT_COLLECTION="kbDocs_netskope_v1"
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]

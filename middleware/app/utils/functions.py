@@ -13,19 +13,19 @@ from langchain.chat_models import ChatOpenAI
 
 MAX_KB_TOKENSIZE = 2500
 scoreDiff = 5
-from _global import llm
-import _global
+from ._global import llm
+import app.utils._global as _global
 from langchain.callbacks.manager import AsyncCallbackManager
-from callback import MyCustomCallbackHandler
+from .callback import MyCustomCallbackHandler
 from langchain.embeddings.openai import OpenAIEmbeddings
 import datetime
-from _global import updateStatus
+from ._global import updateStatus
 import uuid
 import pickle
 from collections import defaultdict
-from email_parser import EmailConversationParser
-import collections_config
-import prompts_config 
+from .email_util.email_parser import EmailConversationParser
+import app.configs.collections_config as collections_config
+import app.configs.prompts_config as prompts_config
 memory = _global.chatHistory
 
 
@@ -274,8 +274,8 @@ def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection:
     template = prompts_config.prompts_config[collection]
     chat = ChatOpenAI(temperature=0)
     chat_session_memory = loadSession(uid, sid)
-    if os.path.getsize('all_chat_memory.pkl') > 0:
-        with open('all_chat_memory.pkl', 'rb') as f:
+    if os.path.getsize('./db/all_chat_memory.pkl') > 0:
+        with open('./db/all_chat_memory.pkl', 'rb') as f:
                 memory = pickle.load(f)
         f.close()
     else:
@@ -292,7 +292,7 @@ def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection:
                 llm=chat, max_token_limit=1500, memory_key="chat_history"
             )
         }
-    with open('all_chat_memory.pkl', 'wb') as f:
+    with open('./db/all_chat_memory.pkl', 'wb') as f:
         pickle.dump(memory, f, pickle.HIGHEST_PROTOCOL)
         
     input = str(memory[uid][sid]) + human_input
@@ -318,7 +318,7 @@ def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection:
     )
     llm_chain = LLMChain(llm=chat, prompt=prompt, memory=memory[uid][sid])
     result = llm_chain.predict(human_input=input)
-    with open('all_chat_memory.pkl', 'wb') as f:
+    with open('./db/all_chat_memory.pkl', 'wb') as f:
         pickle.dump(memory, f, pickle.HIGHEST_PROTOCOL)
     # print(memory[uid][sid])
 
@@ -386,7 +386,7 @@ def generate_email_content(latest_message: str, past_messages: str, context: str
 ################################## Session house keeping ###############################
 def storeSession(uid: str, sid: str, chatHistory: list):
     updateStatus(uid, sid, "storeSession")
-    folderPath = "./sessionMemory/" + uid
+    folderPath = "./db/sessionMemory/" + uid
     if not (os.path.isdir(folderPath)):
         os.mkdir(folderPath)
     fileName = str(sid) + ".json"
@@ -398,7 +398,8 @@ def storeSession(uid: str, sid: str, chatHistory: list):
 def loadSession(uid: str, sid: str):
     updateStatus(uid, sid, "loadSession")
     ## Logically when loadSession is called, expectation is UI would have called the storeSession first and then call loadSession.
-    folderPath = "./sessionMemory/" + uid
+    print(os.getcwd())
+    folderPath = "./db/sessionMemory/" + uid
     fileName = str(sid) + ".json"
     if not (os.path.isdir(folderPath)):
         os.mkdir(folderPath)
@@ -413,7 +414,7 @@ def loadSession(uid: str, sid: str):
 def deleteSession(uid: str, sid: str):
     updateStatus(uid, sid, "deleteSession")
     ## Logically when loadSession is called, expectation is UI would have called the storeSession first and then call loadSession.
-    folderPath = "./sessionMemory/" + uid
+    folderPath = "./db/sessionMemory/" + uid
     fileName = str(sid) + ".json"
     if os.path.isfile(os.path.join(folderPath, fileName)):
         os.remove(os.path.join(folderPath, fileName))
@@ -422,15 +423,15 @@ def deleteSession(uid: str, sid: str):
 
 def deletAllSessions(uid: str):
     ## Logically when loadSession is called, expectation is UI would have called the storeSession first and then call loadSession.
-    folderPath = "./sessionMemory/" + uid
+    folderPath = "./db/sessionMemory/" + uid
     for f in os.listdir(folderPath):
         os.remove(os.path.join(folderPath, f))
     memory = defaultdict()
-    if os.path.getsize('all_chat_memory.pkl') > 0:
-        with open('all_chat_memory.pkl', 'rb') as f:
+    if os.path.getsize('./db/all_chat_memory.pkl') > 0:
+        with open('./db/all_chat_memory.pkl', 'rb') as f:
                 memory = pickle.load(f)
     memory[uid] = {}
-    with open('all_chat_memory.pkl', 'wb') as f:
+    with open('./db/all_chat_memory.pkl', 'wb') as f:
         pickle.dump(memory, f, pickle.HIGHEST_PROTOCOL)
     f.close()
     return "Done"

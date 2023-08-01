@@ -6,16 +6,16 @@ import os
 import json
 from langchain.callbacks.manager import AsyncCallbackManager
 import openai
-from callback import MyCustomCallbackHandler
-from email_parser import EmailConversationParser
+from .utils.callback import MyCustomCallbackHandler
+from .utils.email_util.email_parser import EmailConversationParser
 
 from collections import defaultdict
-from email_parser import EmailConversationParser
+from .utils.email_util.email_parser import EmailConversationParser
 
 # file imports
-from incidentScoringChain import func_incidentScoringChain
-from _global import llm
-from functions import (
+from .utils.incidentScoringChain import func_incidentScoringChain
+from .utils._global import llm
+from .utils.functions import (
     deletAllSessions,
     getIssuseContexFromDetails,
     NotenoughContext,
@@ -31,8 +31,8 @@ from functions import (
     insert2Memory,
 )
 
-import _global
-from _global import updateStatus
+import app.utils._global as _global
+from .utils._global import updateStatus
 
 from dotenv import load_dotenv
 
@@ -64,10 +64,6 @@ openai.api_key = os.environ["OPENAI_API_KEY"]
 manager = AsyncCallbackManager([MyCustomCallbackHandler()])
 MAX_KB_TOKENSIZE = 1000
 
-from langchain.memory import ConversationSummaryBufferMemory
-from langchain.llms import OpenAI
-
-from _global import llm
 
 llm.callback_manager = manager
 
@@ -169,26 +165,65 @@ def get_Agent_incidentSolver(query: str, uid: str, sid: str, collection: str):
         # return {"text": final_result}
 
 
+# @app.get("/email")
+# def send_email(query: str):
+#     context = getIssuseContexFromDetails(
+#         "123123123", "123123123", query, "kbDocs_netgear_faq"
+#     )
+#     result = generate_email_content(query, context)
+#     return {"text": result}
+
+@app.post('/email')
+async def email_request(request:Request):
+    print("inside request")
+    data = await request.json()    
+    email_query = data['email_query']
+    print("EMAIL QUERY TO DEBUG-------------------------\n",email_query)
+    email_conversation_list = EmailConversationParser().get_email_conversations(email_query)
+    print("Here is the list", email_conversation_list)
+    idx_split = email_query.find("<iopexelevaite@gmail.com> wrote")
+    print(idx_split)
+    latest_message = past_messages = ""
+    if idx_split !=-1:
+        latest_message = str(email_query[:idx_split])
+        past_messages = "<email_history>\n" + str(email_query[idx_split:]) + "\n</email_history>"
+    else:
+        latest_message= str(email_query)
+    # email_conversation_list = EmailConversationParser().get_email_conversations(email_query)
+    # print("Here is the list", email_conversation_list)
+    
+    context = getIssuseContexFromDetails(
+        "123123123", "123123123", latest_message+past_messages, "kbDocs_netgear_faq"
+    )
+    print("This is context", context)
+    output_data = generate_email_content(latest_message, past_messages, context)
+    print(output_data)
+    return {"text": output_data}
+
 @app.get("/storeSession")
 def store_memory(uid: str, sid: str):
     memory = loadSession(uid, sid)
     storeSession(uid, sid, memory)
     return {"Memory": "Stored"}
 
+
 @app.get("/loadSession")
 def load_memory(uid: str, sid: str):
     memory = loadSession(uid, sid)
     return memory
+
 
 @app.get("/deleteSession")
 def delete_session(uid: str, sid: str):
     deleteSession(uid, sid)
     return "Session cleared"
 
+
 @app.get("/deleteAllSessions")
 def delete_session(uid: str):
     deletAllSessions(uid)
     return "Deleted sessions"
+
 
 @app.get("/currentStatus")
 async def current_status(request: Request):
@@ -208,28 +243,3 @@ async def current_status(request: Request):
                 yield {"data": _global.currentStatus[uid][sid]}
 
     return EventSourceResponse(status_generator())
-
-# POST ENDPOINTS
-@app.post('/email')
-async def email_request(request:Request):
-    print("inside request")
-    data = await request.json()    
-    email_query = data['email_query']
-    print("EMAIL QUERY TO DEBUG-------------------------\n",email_query)
-    email_conversation_list = EmailConversationParser().get_email_conversations(email_query)
-    print("Here is the list", email_conversation_list)
-    idx_split = email_query.find("<iopexelevaite@gmail.com> wrote")
-    print(idx_split)
-    latest_message = past_messages = ""
-    if idx_split !=-1:
-        latest_message = str(email_query[:idx_split])
-        past_messages = "<email_history>\n" + str(email_query[idx_split:]) + "\n</email_history>"
-    else:
-        latest_message= str(email_query)
-    context = getIssuseContexFromDetails(
-        "123123123", "123123123", latest_message+past_messages, "netgear"
-    )
-    print("This is context", context)
-    output_data = generate_email_content(latest_message, past_messages, context)
-    print(output_data)
-    return {"text": output_data}
