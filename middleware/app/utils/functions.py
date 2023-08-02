@@ -397,7 +397,7 @@ def storeSession(uid: str, sid: str, chatHistory: list):
     return True
 
 #storeSession with Tenant ID - 08/01/23
-def storeSession(uid: str, tid: str, sid: str, chatHistory: list):
+def storeSession_with_tenant(uid: str, tid: str, sid: str, chatHistory: list):
     updateStatus(uid, sid, "storeSession")
     folderPath = ".db/sessionMemory/" + uid + "/" + tid 
 
