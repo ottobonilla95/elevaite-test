@@ -11,6 +11,7 @@ from langchain.memory import ConversationSummaryBufferMemory
 from langchain import PromptTemplate
 from langchain.chains import LLMChain
 from langchain.chat_models import ChatOpenAI
+import re
 
 MAX_KB_TOKENSIZE = 2500
 scoreDiff = 5
@@ -425,7 +426,7 @@ def loadSession(uid: str, sid: str):
     return _global.currentStatus[uid][sid]
 
 #loadSession with Tenant ID - 08/01/23
-def loadSession(uid: str, tid: str, sid: str):
+def loadSession_with_tenant(uid: str, tid: str, sid: str):
     updateStatus(uid, sid, "loadSession")
     ## Logically when loadSession is called, expectation is UI would have called the storeSession first and then call loadSession.
     print(os.getcwd())
