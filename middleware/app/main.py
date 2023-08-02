@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from sse_starlette.sse import EventSourceResponse
 import os
+from dotenv import load_dotenv
 import json
 from langchain.callbacks.manager import AsyncCallbackManager
 import openai
@@ -18,12 +19,12 @@ from .utils._global import llm
 from .utils.functions import (
     deletAllSessions,
     getIssuseContexFromDetails,
+    generate_one_shot_response,
     NotenoughContext,
     finalFormatedOutput,
     faq_answer,
     faq_streaming_request,
     generate_email_content,
-    generate_one_shot_response,
     streaming_request_upgraded,
     getReleatedChatText,
     storeSession,
@@ -246,13 +247,15 @@ async def current_status(request: Request):
     return EventSourceResponse(status_generator())
 
 
+
 # Cisco endpoint
 @app.post("/query")
 async def send_response_with_chunks(request: Request):
     try: 
+        load_dotenv()
         data = await request.json()  
         auth_token = request.headers["x-api-key"]
-        if auth_token != os.environ.get("CISCO_API_KEY"):
+        if auth_token != os.getenv("CISCO_API_KEY"):
             raise Exception("Authentication Error")
         print(data)
         query = data["query"]
