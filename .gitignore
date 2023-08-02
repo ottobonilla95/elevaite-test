@@ -2,3 +2,5 @@ middleware/deps
 middleware/__pycache__
 **/node_modules
 **/deps
+__pycache__/
+*.py[cod]
