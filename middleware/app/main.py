@@ -262,8 +262,14 @@ async def send_response_with_chunks(request: Request):
         result = await generate_one_shot_response(query)    
         return(result)
     except Exception as error:
-        res = {"error": str(error), "success": False}
-        response = JSONResponse(
-            status_code=401, content=res, media_type="application/json"
-        )
+        res = {"error": "Authentication Error", "success": False}
+        if str(error) == "'x-api-key'":
+            response = JSONResponse(
+                status_code=401, content=res, media_type="application/json"
+            )
+        else:
+            res = {"error": str(error), "success": False}
+            response = JSONResponse(
+                status_code=500, content=res, media_type="application/json"
+            )
         return response

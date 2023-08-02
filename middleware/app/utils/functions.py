@@ -12,6 +12,7 @@ from langchain import PromptTemplate
 from langchain.chains import LLMChain
 from langchain.chat_models import ChatOpenAI
 import re
+from dotenv import load_dotenv
 
 MAX_KB_TOKENSIZE = 2500
 scoreDiff = 5
@@ -546,25 +547,32 @@ def insert2Memory(memoryValue: dict, chatHistory: list):
 
 
 def get_context_for_query(query: str, collection: str):
-    embeddings = OpenAIEmbeddings()
+    MODEL = "text-embedding-ada-002"
     qa_collection_name = collections_config.collections_config[collection]
 
     qdrant_client = QdrantClient(
         url=os.environ.get("QDRANT_URL"), api_key=os.environ.get("QDRANT_API_KEY")
     )
-    qdrant = Qdrant(
-        client=qdrant_client, collection_name=qa_collection_name, embeddings=embeddings
-    )
-    results = qdrant.similarity_search_with_score(query, k=3)  # filter=filter
+    vectorized_query = openai.Embedding.create( input= query, engine=MODEL)
+    
+    results = qdrant_client.search(
+    collection_name=qa_collection_name,
+    query_vector=vectorized_query["data"][0]["embedding"],
+    limit=3,
+    with_vectors=False,
+    with_payload=True,
+)
+    # results = qdrant.similarity_search_with_score(query, k=3)  # filter=filter
     chunks = []
     context = ""
     for result in results:
         chunk = {}
-        res = re.sub("  ", " ", result[0].page_content)
+        res = re.sub("  ", " ", result.payload['page_content'])
         chunk["text"] = res
         print(result)
-        chunk["score"] = result[1]
-        chunk["file_name"] = result[0].metadata["source"]
+        chunk["score"] = result.score
+        chunk["id"] = result.id
+        chunk["reference"] = result.payload['metadata']['source']
         chunks.append(chunk)
         context += str(res)
     return {"context": context, "chunks": chunks}
