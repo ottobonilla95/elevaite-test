@@ -1,5 +1,6 @@
 from langchain.embeddings.openai import OpenAIEmbeddings
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi import Response
 import os
 import json
 import openai
@@ -539,3 +540,69 @@ def insert2Memory(memoryValue: dict, chatHistory: list):
     return chatHistory
 
 ################################## END ###############################
+
+############################################# Cisco endpoint #############################################
+
+
+def get_context_for_query(query: str, collection: str):
+    embeddings = OpenAIEmbeddings()
+    qa_collection_name = collections_config.collections_config[collection]
+
+    qdrant_client = QdrantClient(
+        url=os.environ.get("QDRANT_URL"), api_key=os.environ.get("QDRANT_API_KEY")
+    )
+    qdrant = Qdrant(
+        client=qdrant_client, collection_name=qa_collection_name, embeddings=embeddings
+    )
+    results = qdrant.similarity_search_with_score(query, k=3)  # filter=filter
+    chunks = []
+    context = ""
+    for result in results:
+        chunk = {}
+        res = re.sub("  ", " ", result[0].page_content)
+        chunk["text"] = res
+        print(result)
+        chunk["score"] = result[1]
+        chunk["file_name"] = result[0].metadata["source"]
+        chunks.append(chunk)
+        context += str(res)
+    return {"context": context, "chunks": chunks}
+
+
+async def generate_one_shot_response(query: str):
+    response = {}
+    collection = "cisco"
+    prompt_tenant = "cisco_poc_1"
+    try:
+        query_check = query.replace(" ", "")
+        if len(query_check) == 0:
+            raise ValueError("Invalid input query!")
+        res = get_context_for_query(query, collection)
+        context = res["context"]
+        template = prompts_config.prompts_config[prompt_tenant]
+        if context is not None:
+            input = (
+                query
+                + "\n Here is the context below: \n <context> \n"
+                + context
+                + "\n </context>"
+            )
+        else:
+            input = query + "<context> No relevant context found. </context>"
+        prompt = PromptTemplate(input_variables=["human_input"], template=template)
+        chat = ChatOpenAI(temperature=0)
+        llm_chain = LLMChain(llm=chat, prompt=prompt)
+        result = await llm_chain.apredict(human_input=input)
+
+        # Create the response object
+        response = {"answer": result, "chunks": res["chunks"], "success": True}
+        response = json.dumps(response)
+    except Exception as error:
+        print(error)
+        res = {"error": str(error), "success": False}
+        response = JSONResponse(
+            status_code=422, content=res, media_type="application/json"
+        )
+        return response
+
+    return Response(response, status_code=200, media_type="application/json")

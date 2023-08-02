@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from sse_starlette.sse import EventSourceResponse
 import os
 import json
@@ -23,6 +23,7 @@ from .utils.functions import (
     faq_answer,
     faq_streaming_request,
     generate_email_content,
+    generate_one_shot_response,
     streaming_request_upgraded,
     getReleatedChatText,
     storeSession,
@@ -243,3 +244,23 @@ async def current_status(request: Request):
                 yield {"data": _global.currentStatus[uid][sid]}
 
     return EventSourceResponse(status_generator())
+
+
+# Cisco endpoint
+@app.post("/query")
+async def send_response_with_chunks(request: Request):
+    try: 
+        data = await request.json()  
+        auth_token = request.headers["x-api-key"]
+        if auth_token != os.environ.get("CISCO_API_KEY"):
+            raise Exception("Authentication Error")
+        print(data)
+        query = data["query"]
+        result = await generate_one_shot_response(query)    
+        return(result)
+    except Exception as error:
+        res = {"error": str(error), "success": False}
+        response = JSONResponse(
+            status_code=401, content=res, media_type="application/json"
+        )
+        return response
