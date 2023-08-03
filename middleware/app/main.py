@@ -255,7 +255,7 @@ async def send_response_with_chunks(request: Request):
         load_dotenv()
         data = await request.json()  
         auth_token = request.headers["x-api-key"]
-        if auth_token != os.getenv("CISCO_API_KEY"):
+        if auth_token == None or auth_token != os.getenv("CISCO_API_KEY"):
             raise Exception("Authentication Error")
         print(data)
         query = data["query"]
@@ -263,7 +263,8 @@ async def send_response_with_chunks(request: Request):
         return(result)
     except Exception as error:
         res = {"error": "Authentication Error", "success": False}
-        if str(error) == "'x-api-key'":
+        print(error)
+        if str(error) == "'x-api-key'" or str(error) == "Authentication Error":
             response = JSONResponse(
                 status_code=401, content=res, media_type="application/json"
             )

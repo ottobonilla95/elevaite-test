@@ -554,7 +554,7 @@ def get_context_for_query(query: str, collection: str):
         url=os.environ.get("QDRANT_URL"), api_key=os.environ.get("QDRANT_API_KEY")
     )
     vectorized_query = openai.Embedding.create( input= query, engine=MODEL)
-    
+
     results = qdrant_client.search(
     collection_name=qa_collection_name,
     query_vector=vectorized_query["data"][0]["embedding"],
@@ -610,7 +610,7 @@ async def generate_one_shot_response(query: str):
         print(error)
         res = {"error": str(error), "success": False}
         response = JSONResponse(
-            status_code=422, content=res, media_type="application/json"
+            status_code=403, content=res, media_type="application/json"
         )
         return response
 
