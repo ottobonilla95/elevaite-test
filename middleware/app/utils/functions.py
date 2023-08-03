@@ -610,7 +610,7 @@ async def generate_one_shot_response(query: str):
         print(error)
         res = {"error": str(error), "success": False}
         response = JSONResponse(
-            status_code=403, content=res, media_type="application/json"
+            status_code=422, content=res, media_type="application/json"
         )
         return response
 

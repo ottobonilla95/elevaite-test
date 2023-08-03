@@ -281,7 +281,7 @@ async def send_response_with_chunks(request: Request):
         elif str(error) == "Invalid request body. Expecting query key.":
             res = {"error": str(error), "success": False}
             response = JSONResponse(
-                status_code=403, content=res, media_type="application/json"
+                status_code=422, content=res, media_type="application/json"
             )
         else:
             res = {"error": str(error), "success": False}
