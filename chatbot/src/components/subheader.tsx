@@ -45,10 +45,11 @@ export default function SubHeader(props: any) {
               label="Tenant"
               onChange={handleTenantChange}
             >
-              <MenuItem value={Collections.Netgear}>Network Devices Provider</MenuItem>
+              {/* <MenuItem value={Collections.Netgear}>Network Devices Provider</MenuItem>
               <MenuItem value={Collections.Netskope}>Edge Security Provider</MenuItem>
               <MenuItem value={Collections.PAN}>Hardware Firewall Provider</MenuItem>
-              <MenuItem value={Collections.Cisco}>Collaboration Provider</MenuItem>
+              <MenuItem value={Collections.Cisco}>Collaboration Provider</MenuItem> */}
+              <MenuItem value={Collections.Netgear}>Netgear</MenuItem>
             </Select>
           </FormControl>
         </Box>

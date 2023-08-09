@@ -12,34 +12,29 @@ import LinearIndeterminate from "./linear_progress_indicator";
 import jwt_decode from "jwt-decode";
 import RowRadioButtonsGroup from "./radiobutton";
 import { ChatbotV } from "./radiobutton";
+import TransitionsModal from "./modal";
 
 export default function ChatWindow(props: any) {
   const [ask, setAsk] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [agentStatus, setAgentStatus] = useState<string>("");
   const [chatbotV, setChatbotV] = useState<string>(ChatbotV.InWarranty);
+  const [uid, setUid] = useState("");
   const [messageIdCount, setMessageIdCount] = useState(0);
   const [isChatbotSelectionDisabled, setIsChatbotSelectionDisabled] =
     useState(false);
   const [caseId, setCaseId] = useState<number | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  function closeSession() {
-    props.updateMessages(() => []);
+  useEffect(() => {
     let params = new URL(window.location.href).searchParams;
     const token = params.get("token");
     if (!!token) {
       let decoded: any = jwt_decode(token);
       const uid = decoded.sub;
-      axios.get(
-        process.env.NEXT_PUBLIC_BACKEND_URL +
-          "deleteSession?uid=" +
-          uid +
-          "&sid=" +
-          props?.chat?.id.toString()
-      );
+      setUid(()=> uid);
     }
-  }
+  }, []);
 
   function setChatbotType(chatbotType: string) {
     setChatbotV(() => chatbotType);
@@ -160,78 +155,31 @@ export default function ChatWindow(props: any) {
     }${current.getMinutes()}`;
     return date;
   }
-
-  // The code below has been replaced with streaming call
-  // fetchAnswer.current = async () => {
-  //   return await axios
-  //     .get(process.env.NEXT_PUBLIC_BACKEND_URL +"query", { params: { query: ask } })
-  //     .then((res) => {
-
-  //       let answer = "" + res["data"]["text"];
-
-  //       if (answer) {
-  //         flushSync(() => {
-  //           const current = new Date();
-  //           const date = `${current.getDate()} ${current.toLocaleString(
-  //             "default",
-  //             {
-  //               month: "short",
-  //             }
-  //           )}, ${current.getFullYear()} ${current.getHours()}:${
-  //             current.getMinutes() < 10 ? "0" : ""
-  //           }${current.getMinutes()}`;
-
-  //           setMessages(() => [
-  //             ...messages,
-  //             {
-  //               id: messageIdCount.toString(),
-  //               message: ask,
-  //               from: "human",
-  //               timestamp: getCurrentTimestamp(),
-  //             },
-  //             {
-  //               id: (messageIdCount + 1).toString(),
-  //               message: answer,
-  //               from: "ai",
-  //               timestamp: getCurrentTimestamp(),
-  //             },
-  //           ]);
-  //           props.updateMessages([
-  //             ...messages,
-  //             {
-  //               id: messageIdCount,
-  //               message: ask,
-  //               from: "human",
-  //               timestamp: getCurrentTimestamp(),
-  //             },
-  //             {
-  //               id: messageIdCount + 1,
-  //               message: answer,
-  //               from: "ai",
-  //               timestamp: getCurrentTimestamp(),
-  //             },
-  //           ]);
-  //           setAsk(() => "");
-  //           setMessageIdCount(() => messageIdCount + 2);
-  //           setIsLoading(() => false);
-  //           axios
-  //             .get(process.env.NEXT_PUBLIC_BACKEND_URL+"storeSession", {
-  //               params: { sessionID: props?.chat?.id.toString() },
-  //             });
-  //         });
-  //       }
-  //     })
-  //     .catch((error) => console.log("Error occured"));
-  // };
-
   const change = (event: any) => {
     setAsk(() => event.target.value);
   };
 
+  function clearMessages(){
+    let params = new URL(window.location.href).searchParams;
+    const token = params.get("token");
+    if (!!token) {
+      let decoded: any = jwt_decode(token);
+      const uid = decoded.sub;
+      axios.get(
+        process.env.NEXT_PUBLIC_BACKEND_URL +
+          "deleteSession?uid=" +
+          uid +
+          "&sid=" +
+          props?.chat?.id.toString()
+      );
+    }
+    props.clearMessages();
+  }
+
   useEffect(() => scrollToLastMessage(), [props.chat.chat]);
   useEffect(() => {
-    if (props?.chat?.title != 'New Session'){
-      setIsChatbotSelectionDisabled(()=> true);
+    if (props?.chat?.title != "New Session") {
+      setIsChatbotSelectionDisabled(() => true);
     }
   }, [props]);
   useEffect(
@@ -242,28 +190,6 @@ export default function ChatWindow(props: any) {
       }),
     [props]
   );
-
-  // The code below has been replaced with server sent events
-  // useEffect(() => {
-  //   let intervalId: NodeJS.Timeout;
-  //   if (isLoading) {
-  //     intervalId = setInterval(() => {
-  //       axios
-  //         .get(process.env.NEXT_PUBLIC_BACKEND_URL+"currentStatus")
-  //         .then((response) => {
-  //           if (!response) {
-  //             throw new Error("Network response was not ok");
-  //           }
-  //           setAgentStatus(() => response["data"]["Status"]);
-  //           return response;
-  //         })
-  //         .catch((error) => {
-  //           console.log(error);
-  //         });
-  //     }, 2000);
-  //   }
-  //   return () => clearInterval(intervalId);
-  // }, [isLoading]);
 
   return (
     <>
@@ -309,7 +235,7 @@ export default function ChatWindow(props: any) {
             />
             {isLoading ? (
               <div className="loader">
-                <CircularIndeterminate />
+                <CircularIndeterminate size={30}/>
               </div>
             ) : (
               <button className="button" onClick={handleClick}>
@@ -317,9 +243,7 @@ export default function ChatWindow(props: any) {
               </button>
             )}
           </div>
-          <button className="button session-button" onClick={closeSession}>
-            <img src="/img/session-button.svg" alt="session button" />
-          </button>
+          <TransitionsModal uid={uid} sid={props?.chat?.id.toString()} clearMessages={clearMessages} />
         </div>
       </div>
     </>

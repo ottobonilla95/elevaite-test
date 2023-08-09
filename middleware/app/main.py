@@ -27,6 +27,7 @@ from .utils.functions import (
     generate_email_content,
     streaming_request_upgraded,
     getReleatedChatText,
+    extract_chat_session_summary,
     storeSession,
     loadSession,
     deleteSession,
@@ -94,10 +95,25 @@ def get_Agent_incidentSolver(query: str, uid: str, sid: str, collection: str):
         media_type="text/event-stream",
     )
 
+@app.get("/upsell")
+def agent_upsell(query: str, uid: str, sid: str, collection: str):
+    if uid not in _global.tokenCount:
+        _global.tokenCount[uid] = {sid: 0}
+    updateStatus(uid, sid, "Main")
+    chat_session_memory = loadSession(uid, sid)
+    chat_session_memory = insert2Memory(
+        {"from": "human", "message": query}, chat_session_memory
+    )
+    storeSession(uid, sid, chat_session_memory)
+    # streaming_request_upgraded(uid, sid, query, collection)
+    return StreamingResponse(
+        streaming_request_upgraded(uid, sid, query, collection, True),
+        media_type="text/event-stream",
+    )
 
 # non agent version
 @app.get("/out-of-warranty")
-def get_Agent_incidentSolver(query: str, uid: str, sid: str, collection: str):
+def get_Agent_incidentSolver_out_of_warranty(query: str, uid: str, sid: str, collection: str):
     memory = loadSession(uid, sid)
     final_result = ""
     memory = insert2Memory({"from": "human", "message": query}, memory)
@@ -170,13 +186,10 @@ def get_Agent_incidentSolver(query: str, uid: str, sid: str, collection: str):
         # return {"text": final_result}
 
 
-# @app.get("/email")
-# def send_email(query: str):
-#     context = getIssuseContexFromDetails(
-#         "123123123", "123123123", query, "kbDocs_netgear_faq"
-#     )
-#     result = generate_email_content(query, context)
-#     return {"text": result}
+@app.get("/summarization")
+async def summarize(uid: str, sid: str):
+    res = await extract_chat_session_summary(uid, sid)
+    return res
 
 
 @app.post("/email")

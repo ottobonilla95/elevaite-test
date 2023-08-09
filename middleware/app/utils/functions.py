@@ -10,6 +10,7 @@ from typing import Union, Optional
 from langchain.memory import ConversationSummaryBufferMemory
 from langchain import PromptTemplate
 from langchain.chains import LLMChain
+from langchain.chains.summarize import load_summarize_chain
 from langchain.chat_models import ChatOpenAI
 import re
 from dotenv import load_dotenv
@@ -245,14 +246,13 @@ def processQdrantOutput(uid: str, sid: str, results: list):
 
 # Get the chunks relevant to a query
 def getIssuseContexFromDetails(
-    uid: str, sid: str, query: str, collection: str
+    uid: str, sid: str, query: str, collection: str, isUpsell: bool = False
 ):  # , filter: dict):
     updateStatus(uid, sid, "getIssuseContexFromDetails")
     embeddings = OpenAIEmbeddings()
     qa_collection_name = collections_config.collections_config[collection]
     print("Collection Name = " + qa_collection_name)
     # if not filter:
-    filter = {"Summary": "N"}
     # else:
     # filter.update({"DocumentType" : "Details"})
 
@@ -266,15 +266,26 @@ def getIssuseContexFromDetails(
         embeddings=embeddings  # , content_payload_key="Text" \
         # , metadata_payload_key="metadata"
     )
-    results = qdrant.similarity_search_with_score(query, k=3)  # filter=filter
-    print("This is the score here",results[0][1])
-    if results[0][1] < 0.70:
-        return None
-    return processQdrantOutput(uid, sid, results)
+    if isUpsell:
+        filter = {"DocumentType": "Upsell"}
+        results = qdrant.similarity_search_with_score(query, filter=filter, k=1)
+        print('Here are upsell results', results)
+        return processQdrantOutput(uid, sid, results)
+    else:
+        results = qdrant.similarity_search_with_score(query, k=3)  # filter=filter
+        print("This is the score here",results[0][1])
+        if results[0][1] < 0.70:
+            return None
+        return processQdrantOutput(uid, sid, results)
 
 # Stream the response being generated based on RAG
-def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection: str):
-    template = prompts_config.prompts_config[collection]
+def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection: str, isUpsell: bool = False):
+    template = ''
+    print('This is upsell', isUpsell)
+    if isUpsell:
+        template = prompts_config.prompts_config['netgear_upsell']
+    else:
+        template = prompts_config.prompts_config[collection]
     chat = ChatOpenAI(temperature=0)
     chat_session_memory = loadSession(uid, sid)
     if os.path.getsize('./db/all_chat_memory.pkl') > 0:
@@ -305,7 +316,10 @@ def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection:
     else:
         input = '\n'.join(str(msg['from']+ ":" + msg['message']) for msg in recent_history)
     print("This is the whole input", input)
-    context = getIssuseContexFromDetails(uid, sid, input, collection)
+    if isUpsell:
+        context = getIssuseContexFromDetails(uid, sid, input, collection, True)
+    else:
+        context = getIssuseContexFromDetails(uid, sid, input, collection)
     if context is not None:
         input = (
             human_input
@@ -541,6 +555,29 @@ def insert2Memory(memoryValue: dict, chatHistory: list):
     )
     return chatHistory
 
+async def extract_chat_session_summary(uid: str, sid: str):
+    messages = loadSession(uid, sid)
+    prompts = ['netgear_extract_title_prompt', 'netgear_extract_problem_prompt', 'netgear_extract_solution_prompt']
+    title = await llm_generate_response(prompts[0], messages)
+    problem = await llm_generate_response(prompts[1], messages)
+    solution = await llm_generate_response(prompts[2], messages, token_size=250)
+    res = {
+        "title":title,
+        "problem": problem,
+        "solution": solution
+    }
+    print(res)
+    return res
+
+async def llm_generate_response(prompt_tenant: str, messages, token_size = 1000):
+    template = prompts_config.prompts_config[prompt_tenant]
+    prompt = PromptTemplate(input_variables=["messages"], template=template)
+    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k" )
+    llm.max_tokens = token_size
+    llm_chain = LLMChain(llm=llm, prompt=prompt)
+    res = await llm_chain.apredict(messages=messages)
+    return res 
+    
 ################################## END ###############################
 
 ############################################# Cisco endpoint #############################################

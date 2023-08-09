@@ -9,6 +9,7 @@ export enum ChatbotV {
   InWarranty = "in-warranty",
   OutofWarranty = "out-of-warranty",
   AgentAssist = "agent-assist",
+  Upsell = "upsell"
 }
 
 export default function RowRadioButtonsGroup(props: any) {
@@ -40,6 +41,7 @@ export default function RowRadioButtonsGroup(props: any) {
           <MenuItem value={ChatbotV.InWarranty}>In Warranty</MenuItem>
           <MenuItem value={ChatbotV.OutofWarranty}>Out of Warranty</MenuItem>
           <MenuItem value={ChatbotV.AgentAssist}>Agent Assist</MenuItem>
+          <MenuItem value={ChatbotV.Upsell}>Upsell</MenuItem>
         </Select>
       </FormControl>
     </Box>
