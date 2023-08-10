@@ -1,0 +1,12 @@
+## Install the necesssay stuff (well some of these are not needed but installed)
+openai 
+datasets
+qdrant_client
+panda
+tiktoken
+langchain==0.0.191
+fastapi
+uvicorn
+sse-starlette
+python-dotenv
+bs4
