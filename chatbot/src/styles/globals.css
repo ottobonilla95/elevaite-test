@@ -338,6 +338,10 @@ body {
 .summary-modal .css-sws92j-JoyTextarea-textarea {
   overflow: scroll !important; /* need to refactor this*/
 }
+
+.css-1qmqn4r{
+  overflow: scroll !important; /* need to refactor this*/
+}
 .summary-modal-button-group {
   display: flex;
   width: 100%;
