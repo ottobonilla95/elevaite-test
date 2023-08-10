@@ -216,7 +216,7 @@ async def email_request(request: Request):
     # print("Here is the list", email_conversation_list)
 
     context = getIssuseContexFromDetails(
-        "123123123", "123123123", latest_message + past_messages, "kbDocs_netgear_faq"
+        "123123123", "123123123", latest_message + past_messages, "netgear"
     )
     print("This is context", context)
     output_data = generate_email_content(latest_message, past_messages, context)
