@@ -55,29 +55,29 @@ def readmessage(params):
             N = 1
             #for i in range(messages, messages-N, -1):
             for i in messages[0].split():
-                print("inside for loop")
                 # fetch the email message by ID
                 res, msg = imap_server.fetch(i, "(RFC822)")
                 for response in msg:
                     if isinstance(response, tuple):
                         # parse a bytes email into a message object
+                        logger.info("New Email Received")
                         msg = email.message_from_bytes(response[1])                        
                         msg_id, encoding = decode_header(msg["Message-ID"])[0]
                         if isinstance(msg_id, bytes):
                             # if it's a bytes, decode to str
                             msg_id = msg_id.decode(encoding)
-                        print(msg_id)
+                            #logger.info(msg_id)
                         # decode the email subject
                         subject, encoding = decode_header(msg["Subject"])[0]
                         if isinstance(subject, bytes):
                             # if it's a bytes, decode to str
                             subject = subject.decode(encoding)
+                            logger.info("Subject: %s", subject)
                         # decode email sender
                         From, encoding = decode_header(msg.get("From"))[0]
                         if isinstance(From, bytes):
                             From = From.decode(encoding)
-                        print("Subject:", subject)
-                        print("From:", From)
+                        #logger.info("From:", From)
                         # if the email message is multipart
                         if msg.is_multipart():
                             # iterate over email parts
@@ -95,9 +95,12 @@ def readmessage(params):
                                     pass
                                 if content_type == "text/plain" and "attachment" not in content_disposition:
                                     # print text/plain emails and skip attachments
-                                    print(body)
+                                    #logger.info(body)
+                                    logger.info("Sent query to elevaite for processing")
                                     query_result = elevaitequery(str(body))
+                                    logger.info("Query processed by elevaite")
                                     send_email(cfg.EMAIL_TO_LISTEN, From, subject, query_result, msg_id, msg)
+                                    logger.info("Email response sent")
                                 # elif "attachment" in content_disposition:
                                 #     # download attachment
                                 #     filename = part.get_filename()
@@ -118,8 +121,11 @@ def readmessage(params):
                             body = msg.get_payload(decode=True).decode()
                             if content_type == "text/plain":
                                 # print only text email parts
+                                logger.info("Sent query to elevaite for processing")
                                 query_result = elevaitequery(str(body))
+                                logger.info("Query processed by elevaite")
                                 send_email(cfg.EMAIL_TO_LISTEN, From, subject, query_result, msg_id, msg)
+                                logger.info("Email response sent")
                         # if content_type == "text/html":
                         #     # if it's HTML, create a new HTML file and open it in browser
                         #     folder_name = clean(subject)
