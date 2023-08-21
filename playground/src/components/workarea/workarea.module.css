@@ -1,0 +1,12 @@
+.workareaContainer {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    margin-top: 25px;
+}
+
+.workareaElement { 
+    display: flex;
+    flex-direction: column;
+
+}
