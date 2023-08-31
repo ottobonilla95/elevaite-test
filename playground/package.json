@@ -25,6 +25,7 @@
     "@mui/joy": "^5.0.0-beta.2",
     "@mui/material": "^5.14.5",
     "@mui/styled-engine-sc": "^5.12.0",
+    "axios": "^1.4.0",
     "styled-components": "^5.3.11"
   }
 }

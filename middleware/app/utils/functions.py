@@ -586,7 +586,7 @@ async def llm_generate_response(prompt_tenant: str, messages, token_size = 1000)
 def get_context_for_query(query: str, collection: str):
     MODEL = "text-embedding-ada-002"
     qa_collection_name = collections_config.collections_config[collection]
-
+    print(qa_collection_name)
     qdrant_client = QdrantClient(
         url=os.environ.get("QDRANT_URL"), api_key=os.environ.get("QDRANT_API_KEY")
     )
@@ -615,17 +615,20 @@ def get_context_for_query(query: str, collection: str):
     return {"context": context, "chunks": chunks}
 
 
-async def generate_one_shot_response(query: str):
+async def generate_one_shot_response(query: str, prompt:str = None, collection: str = "cisco", prompt_tenant: str = "cisco_poc_1"):
     response = {}
-    collection = "cisco"
-    prompt_tenant = "cisco_poc_1"
+    template = ""
     try:
         query_check = query.replace(" ", "")
         if len(query_check) == 0:
             raise ValueError("Invalid input query!")
         res = get_context_for_query(query, collection)
+        print(res)
         context = res["context"]
-        template = prompts_config.prompts_config[prompt_tenant]
+        if prompt is None:
+            template = prompts_config.prompts_config[prompt_tenant]
+        else:
+            template = prompt
         if context is not None:
             input = (
                 query

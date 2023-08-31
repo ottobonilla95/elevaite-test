@@ -33,6 +33,7 @@ from .utils.functions import (
     deleteSession,
     insert2Memory,
 )
+from .utils.playground import retrieve_prompt
 
 import app.utils._global as _global
 from .utils._global import updateStatus
@@ -47,6 +48,7 @@ origins = [
     "https://elevaite.iopex.ai",
     "http://localhost",
     "http://localhost:3000",
+    "http://localhost:3001",
     "https://api.iopex.ai",
     "https://elevaite-cb.iopex.ai",
     "http://elevaite-cb.iopex.ai",
@@ -95,6 +97,7 @@ def get_Agent_incidentSolver(query: str, uid: str, sid: str, collection: str):
         media_type="text/event-stream",
     )
 
+
 @app.get("/upsell")
 def agent_upsell(query: str, uid: str, sid: str, collection: str):
     if uid not in _global.tokenCount:
@@ -111,9 +114,12 @@ def agent_upsell(query: str, uid: str, sid: str, collection: str):
         media_type="text/event-stream",
     )
 
+
 # non agent version
 @app.get("/out-of-warranty")
-def get_Agent_incidentSolver_out_of_warranty(query: str, uid: str, sid: str, collection: str):
+def get_Agent_incidentSolver_out_of_warranty(
+    query: str, uid: str, sid: str, collection: str
+):
     memory = loadSession(uid, sid)
     final_result = ""
     memory = insert2Memory({"from": "human", "message": query}, memory)
@@ -268,6 +274,24 @@ async def current_status(request: Request):
 
     return EventSourceResponse(status_generator())
 
+# playground endpoints
+@app.get("/playground/prompt")
+async def get_prompt(llm: str, db: str, tenant: str):
+    prompt = retrieve_prompt(llm, db, tenant)
+    print("Here is the prompt", prompt)
+    res = {"prompt":str(prompt)}
+    response = JSONResponse(status_code=200, content=res, media_type="application/json")
+    return response
+
+@app.post("/playground/query")
+async def send_response(request: Request):
+    data = await request.json()
+    print(data)
+    query = data["query"]
+    prompt = data["prompt"]
+    collection =  str(data["tenant"]).lower()
+    res = await generate_one_shot_response(query, prompt, collection)
+    return res
 
 # Cisco endpoint
 @app.post("/query")

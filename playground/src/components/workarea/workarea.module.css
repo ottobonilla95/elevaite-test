@@ -1,12 +1,12 @@
 .workareaContainer {
     display: flex;
     width: 100%;
-    justify-content: center;
-    margin-top: 25px;
 }
 
-.workareaElement { 
+.workareaSubContainer {
     display: flex;
     flex-direction: column;
-
+    /* align-items: center; */
+    padding: 15px;
+    width: 100%;
 }

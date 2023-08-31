@@ -8,27 +8,28 @@ import FormControl from "@mui/material/FormControl";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 
 const ConfigItem = (props:any) => {
-  const [age, setAge] = useState('');
-
   const handleChange = (event: SelectChangeEvent) => {
-    setAge(event.target.value as string);
+    props.setValue(event.target.value as string);
   };
   return (
     <div>
       <div className={styles.configItem}>
-        <Box sx={{ minWidth: 200 }}>
+        <Box sx={{ minWidth: 120 }}>
           <FormControl fullWidth>
             <InputLabel id="demo-simple-select-label">{props.type}</InputLabel>
             <Select
               labelId="demo-simple-select-label"
               id="demo-simple-select"
-              value={age}
-              label="Age"
+              value={props.value}
+              label={props.type}
               onChange={handleChange}
             >
-              <MenuItem value={props.options.optionA}>{props.options.optionA}</MenuItem>
+              {props.options.map((option:any)=>
+                <MenuItem value={option}>{option}</MenuItem>
+              )}
+              {/* <MenuItem value={props.options.optionA}>{props.options.optionA}</MenuItem>
               <MenuItem value={props.options.optionB}>{props.options.optionB}</MenuItem>
-              <MenuItem value={props.options.optionC}>{props.options.optionC}</MenuItem>
+              <MenuItem value={props.options.optionC}>{props.options.optionC}</MenuItem> */}
             </Select>
           </FormControl>
         </Box>
