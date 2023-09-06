@@ -107,6 +107,53 @@ export default function ChatWindow(props: any) {
     }
   }
 
+  async function nonStreaming(uid:string, ask: string){
+    const evtSource = new EventSource(
+      process.env.NEXT_PUBLIC_BACKEND_URL +
+        "currentStatus?uid=" +
+        uid +
+        "&sid=" +
+        props?.chat?.id.toString()
+    );
+    evtSource.onmessage = (e) => {
+      setAgentStatus(() => e.data);
+    };
+    console.log(props.collection);
+    axios.get(
+      process.env.NEXT_PUBLIC_BACKEND_URL +
+        chatbotV +
+        "?query=" +
+        ask +
+        "&uid=" +
+        uid +
+        "&sid=" +
+        props?.chat?.id.toString() +
+        "&collection=" +
+        props.collection
+    ).then((data)=>{
+      console.log(data);
+      setMessageIdCount(() => messageIdCount + 2);
+      props.updateMessages([
+        ...props.chat.chat,
+        {
+          id: messageIdCount,
+          message: ask,
+          from: "human",
+          timestamp: getCurrentTimestamp(),
+        },
+        {
+          id: messageIdCount + 1,
+          message: data.data['text'],
+          urls: data.data['refs'],
+          from: "ai",
+          timestamp: getCurrentTimestamp(),
+        },
+      ]);
+      setIsLoading(() => false);
+      evtSource.close();
+    })
+
+  }
   function handleClick(event: any) {
     if (ask.trim() != "") {
       console.log(props.collection);
@@ -124,7 +171,11 @@ export default function ChatWindow(props: any) {
       const token = params.get("token");
       if (!!token) {
         let decoded: any = jwt_decode(token);
-        streaming(decoded.sub.toString(), ask);
+        if (props.collection === 'cisco_clo'){
+          nonStreaming(decoded.sub.toString(), ask);
+        } else {
+          streaming(decoded.sub.toString(), ask);
+        }
       }
       setAsk(() => "");
     }

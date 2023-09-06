@@ -91,11 +91,15 @@ def get_Agent_incidentSolver(query: str, uid: str, sid: str, collection: str):
         {"from": "human", "message": query}, chat_session_memory
     )
     storeSession(uid, sid, chat_session_memory)
-    # streaming_request_upgraded(uid, sid, query, collection)
-    return StreamingResponse(
-        streaming_request_upgraded(uid, sid, query, collection),
-        media_type="text/event-stream",
-    )
+    if collection.lower() == "cisco_clo":
+        result, refs = streaming_request_upgraded(uid, sid, query, collection, isUpsell=False, withRefs=True)
+        data = {"text": result, "refs": refs}
+        return JSONResponse(content=data)
+    else:
+        return StreamingResponse(
+            streaming_request_upgraded(uid, sid, query, collection),
+            media_type="text/event-stream",
+        )
 
 
 @app.get("/upsell")
@@ -274,14 +278,16 @@ async def current_status(request: Request):
 
     return EventSourceResponse(status_generator())
 
+
 # playground endpoints
 @app.get("/playground/prompt")
 async def get_prompt(llm: str, db: str, tenant: str):
     prompt = retrieve_prompt(llm, db, tenant)
     print("Here is the prompt", prompt)
-    res = {"prompt":str(prompt)}
+    res = {"prompt": str(prompt)}
     response = JSONResponse(status_code=200, content=res, media_type="application/json")
     return response
+
 
 @app.post("/playground/query")
 async def send_response(request: Request):
@@ -289,9 +295,10 @@ async def send_response(request: Request):
     print(data)
     query = data["query"]
     prompt = data["prompt"]
-    collection =  str(data["tenant"]).lower()
+    collection = str(data["tenant"]).lower()
     res = await generate_one_shot_response(query, prompt, collection)
     return res
+
 
 # Cisco endpoint
 @app.post("/query")

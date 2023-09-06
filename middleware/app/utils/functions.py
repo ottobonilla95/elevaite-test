@@ -279,7 +279,7 @@ def getIssuseContexFromDetails(
         return processQdrantOutput(uid, sid, results)
 
 # Stream the response being generated based on RAG
-def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection: str, isUpsell: bool = False):
+def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection: str, isUpsell: bool = False, withRefs: bool = False):
     template = ''
     print('This is upsell', isUpsell)
     if isUpsell:
@@ -320,6 +320,14 @@ def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection:
         context = getIssuseContexFromDetails(uid, sid, input, collection, True)
     else:
         context = getIssuseContexFromDetails(uid, sid, input, collection)
+    
+    refs = set()
+    if withRefs:
+        data = get_context_for_query(input, collection)
+        chunks = data['chunks']
+        for chunk in chunks:
+            refs.add(chunk['reference'])
+
     if context is not None:
         input = (
             human_input
@@ -343,10 +351,11 @@ def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection:
     chat_session_memory = insert2Memory({"from": "ai", "message": result}, chat_session_memory)
     storeSession(uid, sid, chat_session_memory)
     final_result = ""
-    for word in result:
-        final_result += word
-        yield word
-    return True
+    if withRefs:
+        list_refs = list(refs)
+        return result, list_refs
+    else:
+        return faq_streaming_request(result)
 ################################## END ###############################
 
 
@@ -596,6 +605,7 @@ def get_context_for_query(query: str, collection: str):
     collection_name=qa_collection_name,
     query_vector=vectorized_query["data"][0]["embedding"],
     limit=3,
+    score_threshold=0.75,
     with_vectors=False,
     with_payload=True,
 )
