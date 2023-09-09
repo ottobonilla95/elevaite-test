@@ -264,9 +264,7 @@ export default function ChatWindow(props: any) {
             <div className="parent-container">
               <div ref={listRef} className="parent">
                 {props?.chat?.chat?.map((message: MessageDetails) => (
-                  <>
                     <Message key={message.id} message={message} />
-                  </>
                 ))}
               </div>
             </div>

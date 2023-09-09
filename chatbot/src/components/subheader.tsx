@@ -18,7 +18,7 @@ export enum Collections {
 
 
 export default function SubHeader(props: any) {
-  const [tenant, setTenant] = React.useState<string>(Collections.Netgear);
+  const [tenant, setTenant] = React.useState<string>(Collections.Cisco_CLO);
   const handleTenantChange = (event: SelectChangeEvent) => {
     props.updateCollection(event.target.value as string);
     setTenant(() => event.target.value as string);

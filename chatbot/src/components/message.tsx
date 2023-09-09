@@ -17,6 +17,7 @@ type MessageProps = {
 export default function Message(props: MessageProps) {
   const [isFeedBackSent, setIsFeedBackSent] = useState(false);
   const [hideUrl, setHideUrl] = useState(false);
+  const [urls, setUrls] = useState<any>();
   const [name, setName] = useState();
   const sanitzer = DOMPurify.sanitize;
 
@@ -52,11 +53,10 @@ export default function Message(props: MessageProps) {
         window.location.href = process.env.NEXT_PUBLIC_LOGIN_API;
       }
     }
-  }, []);
+    const urlList = props?.message?.urls != undefined ? Array.from(props?.message?.urls) : []
+    setUrls(()=>urlList);
+  }, [props]);
 
-
-  const urls =
-    props?.message?.urls != undefined ? Array.from(props?.message?.urls) : [];
   return (
     <>
       <div
@@ -92,7 +92,7 @@ export default function Message(props: MessageProps) {
                 __html: sanitzer(props?.message?.message),
               }}
             />
-            {props?.message?.from == "ai"  && urls.length>0? (
+            {props?.message?.from == "ai"  && !!urls? (
               <div className="url-responses">
                 <>
                   <div onClick={hideOrShow} className="url-flex">
@@ -105,7 +105,7 @@ export default function Message(props: MessageProps) {
                   </div>
                 </>
                 {hideUrl
-                  ? urls.map((url) => (
+                  ? urls.map((url:any) => (
                       <>
                         <div className="url-image">
                           <GrDocumentText

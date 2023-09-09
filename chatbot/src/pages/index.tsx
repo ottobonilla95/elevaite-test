@@ -36,7 +36,7 @@ export default function Home() {
   const [chatIds, setChatIds] = useState<number[]>([]);
   const [uid, setUid] = useState("");
   const [currentChatId, setCurrentChatId] = useState<number>(0);
-  const [collection, setCollection] = useState<string>(Collections.Netgear);
+  const [collection, setCollection] = useState<string>(Collections.Cisco_CLO);
   const removeElement = (index: number) => {
     const newChats = chats.filter((_, i) => i !== index);
     setChats(() => newChats);
