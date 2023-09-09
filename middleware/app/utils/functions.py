@@ -274,7 +274,7 @@ def getIssuseContexFromDetails(
     else:
         results = qdrant.similarity_search_with_score(query, k=3)  # filter=filter
         print("This is the score here",results[0][1])
-        if results[0][1] < 0.70:
+        if results[0][1] < 0.77:
             return None
         return processQdrantOutput(uid, sid, results)
 
@@ -605,7 +605,7 @@ def get_context_for_query(query: str, collection: str):
     collection_name=qa_collection_name,
     query_vector=vectorized_query["data"][0]["embedding"],
     limit=3,
-    score_threshold=0.75,
+    score_threshold=0.77,
     with_vectors=False,
     with_payload=True,
 )
