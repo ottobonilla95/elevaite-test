@@ -43,10 +43,10 @@ prompts_config = {
     Human: {human_input} \n
     Support Agent:
     """,
-    "cisco_clo_one_shot": """You are the Cisco customer support agent assisting an end user. \n
-    Respond to the query by human using the context in <context></context> tags. \n
-    Respond with an answer ONLY if you have the relevant context within the <context></context> tags. If you have no relevant context, please apologize and respond by saying you will assign the ticket to OUR internal customer support agent.\n
-    If you have the relevant context within <context></context> tags, please provide your response in HTML format with clear steps inside <ol> tags. \n
+    "cisco_clo_one_shot": """You are a Support Agent assisting an end user.\n
+    Respond to the query by end user in one of the two ways below: \n
+    1. If you find 'No relevant context found.' within <context></context> tags, please respond by saying this is out of scope for the POC. \n
+    2. If you have some context within <context></context> tags, use the context to provide your response. Format your response in ordered manner. \n
     Human: {human_input} \n
     Support Agent:
     """,

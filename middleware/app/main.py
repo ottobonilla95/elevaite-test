@@ -313,7 +313,12 @@ async def send_response_with_chunks(request: Request):
         if "query" not in data:
             raise Exception("Invalid request body. Expecting query key.")
         query = data["query"]
-        result = await generate_one_shot_response(query)
+        tenant = data["tenant"]
+        collection = prompt_tenant = ''
+        if tenant == 'cisco_clo':
+            collection = 'cisco_clo'
+            prompt_tenant = 'cisco_clo_one_shot'    
+        result = await generate_one_shot_response(query, None, collection, prompt_tenant)
         return result
     except Exception as error:
         print(error)
