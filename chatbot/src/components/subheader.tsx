@@ -27,7 +27,7 @@ export default function SubHeader(props: any) {
   return (
     <div className="subheader">
       <div className="frame-1000004668 frame">
-        <div className="workbench">CHATBOT</div>
+        <div className="workbench">Gen-AI Bot</div>
       </div>
       <div style={{ marginTop: 5 }}>
         <Box sx={{ minWidth: 120 }}>
