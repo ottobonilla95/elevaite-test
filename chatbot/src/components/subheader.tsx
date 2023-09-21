@@ -8,14 +8,17 @@ import FormControl from "@mui/material/FormControl";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 
 export enum Collections {
-  Netgear = "kbDocs_netgear_faq",
-  Netskope = "kbDocs_netskope_v1",
+  Netgear = "netgear",
+  Netskope = "netskope",
+  PAN = "pan",
+  Cisco = "cisco",
+  Cisco_CLO = "cisco_clo"
 }
 
 
 
 export default function SubHeader(props: any) {
-  const [tenant, setTenant] = React.useState<string>(Collections.Netgear);
+  const [tenant, setTenant] = React.useState<string>(Collections.Cisco_CLO);
   const handleTenantChange = (event: SelectChangeEvent) => {
     props.updateCollection(event.target.value as string);
     setTenant(() => event.target.value as string);
@@ -24,7 +27,7 @@ export default function SubHeader(props: any) {
   return (
     <div className="subheader">
       <div className="frame-1000004668 frame">
-        <div className="workbench">CHATBOT</div>
+        <div className="workbench">Gen-AI Bot</div>
       </div>
       <div style={{ marginTop: 5 }}>
         <Box sx={{ minWidth: 120 }}>
@@ -43,8 +46,12 @@ export default function SubHeader(props: any) {
               label="Tenant"
               onChange={handleTenantChange}
             >
-              <MenuItem value={Collections.Netgear}>Netgear</MenuItem>
-              {/* <MenuItem value={Collections.Netskope}>Netskope</MenuItem> */}
+              <MenuItem value={Collections.Netgear}>Network Devices Provider</MenuItem>
+              <MenuItem value={Collections.Netskope}>Edge Security Provider</MenuItem>
+              <MenuItem value={Collections.PAN}>Hardware Firewall Provider</MenuItem>
+              <MenuItem value={Collections.Cisco}>Collaboration Provider</MenuItem>
+              <MenuItem value={Collections.Cisco_CLO}>CLO</MenuItem>
+              {/* <MenuItem value={Collections.Netgear}>Netgear</MenuItem> */}
             </Select>
           </FormControl>
         </Box>

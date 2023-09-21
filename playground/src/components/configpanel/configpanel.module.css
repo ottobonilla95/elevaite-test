@@ -1,0 +1,22 @@
+.configPanel{
+    min-width: 150px;
+    width: 15%;
+    padding-top:20px;
+    height: 100vh;
+    display: flex;
+    border: 1px solid #76818E;
+    border-radius: 4px;
+    box-shadow: 5px 5px #76818E;
+    flex-direction: column;
+    align-items: center;
+
+}
+
+.workareaButton {
+    width: 100px;
+    height: 40px;
+    margin-top: 5px;
+    color: white;
+    background: #2f2c53;
+    border-radius: 4px;
+}

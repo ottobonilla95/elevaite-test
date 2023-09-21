@@ -113,7 +113,7 @@ body {
 
   text-align: left;
 }
-.logout-button{
+.logout-button {
   height: 40px;
   width: 40px;
   display: flex;
@@ -316,6 +316,66 @@ body {
   align-items: center;
 }
 
+.summary-modal {
+  display: flex;
+  flex-direction: column;
+  width: auto;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  border-radius: 5px;
+  overflow-y: scroll;
+}
+.summary-loading {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.summary-modal .css-sws92j-JoyTextarea-textarea {
+  overflow: scroll !important; /* need to refactor this*/
+}
+
+.css-1qmqn4r{
+  overflow: scroll !important; /* need to refactor this*/
+}
+.summary-modal-button-group {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+}
+.summary-modal-button {
+  width: 100px;
+  height: 40px;
+  background: #f46f22;
+  color: white;
+  margin: 10px;
+  border-radius: 5px;
+}
+.cancel {
+  background: #8683a3;
+}
+
+.summary-element {
+  width: 100%;
+  margin-top: 5px;
+  overflow-y: scroll;
+}
+
+.summary-element-solution .MuiTextarea-root > textarea {
+  overflow: scroll !important;
+}
+.summary-element .MuiTextarea-root {
+  background: #8683a3;
+  color: white;
+  overflow-y: scroll;
+}
+
 .final-container-body {
   display: flex;
   justify-content: center;
@@ -383,7 +443,7 @@ textarea {
   align-items: center;
   border-radius: 4px;
   margin-right: 16px;
-  background: #18CD8C;
+  background: #18cd8c;
 }
 
 .feedback-thumbs-button {
@@ -555,14 +615,13 @@ textarea {
   background: rgba(65, 65, 95, 0.3);
 }
 
-.feedback-input-container  text-area {
+.feedback-input-container text-area {
   overflow-y: scroll;
 }
 
 .feedback-container p {
   color: #ffffff;
   font-size: 13px;
-
 }
 .feedback-button {
   width: 60px;
@@ -596,18 +655,18 @@ a {
 }
 
 /* Message Loading animation */
-.progress{
+.progress {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 40px;
-  width:100%;
+  width: 100%;
 }
 
-.progress p{
+.progress p {
   font-size: 16px;
   margin-right: 10px;
-  color: #FFFFFF;
+  color: #ffffff;
 }
 .dot-pulse {
   position: relative;
@@ -889,8 +948,8 @@ a {
   width: 100%;
 }
 
-.query-radio-button{
-  width:100%;
+.query-radio-button {
+  width: 100%;
   margin-left: 25px;
 }
 

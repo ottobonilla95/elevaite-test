@@ -1,14 +1,14 @@
-from _global import llm
+from ._global import llm
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.callbacks.manager import AsyncCallbackManager
 from langchain.schema import AgentAction, AgentFinish, LLMResult
 from typing import Union, Optional
-from get_tokens_count import get_tokens_count
+from .get_tokens_count import get_tokens_count
 from typing import Dict, List, Any
 
-from _global import tokenCount
-import _global
-from _global import updateStatus
+from ._global import tokenCount
+import app.utils._global as _global
+from ._global import updateStatus
 import re
 
 ## This is callback proc added to get some logging. Pure cut and paste from the  langchain documentation.
