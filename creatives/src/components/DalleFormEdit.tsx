@@ -48,6 +48,7 @@ const DalleFormEdit: React.FC<DalleFormProps> = ({ folderName, template, size, o
     setIsSeasonalDDOpen(!isSeasonalDDOpen);
   };
 
+  const handleSelectedImgCount = () => {}
   const RegionalOptions = ['North America', 'South America', 'Europe', 'Asia', 'Africa', 'Australia'];
   const [isRegionalDDOpen, setIsRegionalDDOpen] = useState(false);
   const toggleRegionalDD = () => {
@@ -494,7 +495,7 @@ const DalleFormEdit: React.FC<DalleFormProps> = ({ folderName, template, size, o
             ) : loading === 1 ? (
               <h2 style={{ color: 'black', textAlign: 'center' }}>Generating images for "A {selectedColor} toned picture of {message}. The Content Type is {selectedContentType}. This picture should be targetted to an audience with an age range between {ta} and toward {selectedGenderValue} genders. The theme of this picture is {theme}"</h2>
             ) : loading === 2 && result !== null ? (
-              <GeneratedImages2 data={result.data} />
+              <GeneratedImages2 data={result.data} onSelectedImagesCountChange={handleSelectedImgCount} />
             ) : (
               <h2 style={{ color: 'black' }}>Error while calling API</h2>
             )
