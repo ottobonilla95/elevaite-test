@@ -1099,9 +1099,24 @@ input[type="password"] {
   
   color: white;
   text-decoration: underline;
-  cursor: pointer; /* Optionally add a pointer cursor to indicate it's clickable */
+  cursor: pointer; 
 }
 
 .red-text {
   color: red;
+}
+.text-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.main-text {
+  font-size: 16px; 
+}
+
+.subtext {
+  color: grey;
+  font-size: 12px; 
+  text-align: left;
+  margin-left: 5px;
 }
