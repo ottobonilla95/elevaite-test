@@ -34,8 +34,9 @@ export default function Home() {
   ]);
   const [count, setCount] = useState(1);
   const [chatIds, setChatIds] = useState<number[]>([]);
+  const [uid, setUid] = useState("");
   const [currentChatId, setCurrentChatId] = useState<number>(0);
-  const [collection, setCollection] = useState<string>(Collections.Netgear);
+  const [collection, setCollection] = useState<string>(Collections.Cisco_CLO);
   const removeElement = (index: number) => {
     const newChats = chats.filter((_, i) => i !== index);
     setChats(() => newChats);
@@ -66,6 +67,44 @@ export default function Home() {
     }
   }
 
+  function clearMessages(messages: MessageDetails[]){
+    setChats(() => [
+      ...chats.slice(0, currentChatId),
+      {
+        id: currentChatId,
+        title: "New Session",
+        chat: messages,
+      },
+      ...chats.slice(currentChatId + 1),
+    ]);
+    axios
+    .get(process.env.NEXT_PUBLIC_BACKEND_URL + "loadSession", {
+      params: {
+        uid: uid,
+        sid: currentChatId.toString(),
+      }
+    })
+    .then((messages) => {
+      let title = "New Session";
+      if (messages.data.length > 0) {
+        title = messages?.data[0]?.message.substring(0, 35) + "...";
+      }
+      let oldSessionMessages: chatSessionDetails = {
+        id: currentChatId,
+        title: title,
+        chat: [],
+      };
+      if (messages !== null && messages.data !== null) {
+        oldSessionMessages.chat = messages?.data;
+        setChats(() => [
+          ...chats.slice(0, currentChatId),
+          oldSessionMessages,
+          ...chats.slice(currentChatId + 1),
+        ]);
+      }
+    });
+
+  }
   function updateCollection(collection_name: string){
     setCollection(()=> collection_name);
     console.log(collection);
@@ -95,6 +134,15 @@ export default function Home() {
     window.location.href = "https://elevaite-ke.iopex.ai/?token=" + token;
   }
 
+  useEffect(() => {
+    let params = new URL(window.location.href).searchParams;
+    const token = params.get("token");
+    if (!!token) {
+      let decoded: any = jwt_decode(token);
+      const uid = decoded.sub;
+      setUid(()=> uid);
+    }
+  }, []);
   useEffect(() => {
     async function retrieveSession() {
       let params = new URL(window.location.href).searchParams;
@@ -208,6 +256,7 @@ export default function Home() {
               chat={chat}
               collection={collection}
               updateMessages={updateMessages}
+              clearMessages={clearMessages}
             />
           ))}
       </div>

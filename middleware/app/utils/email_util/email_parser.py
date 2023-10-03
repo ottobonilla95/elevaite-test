@@ -1,7 +1,5 @@
 import re
-from regex_rules import RegexRules
-import sys
-
+from .regex_rules import RegexRules
 class EmailConversationParser:
     
     def get_email_conversations(self, email_content):
@@ -114,20 +112,12 @@ class EmailConversationParser:
         We do not accept any liability for the content of this email or for the
         consequences of any actions taken on the basis of the information
         provided.
-
         Please consider the environment before printing this email.
         named in the message header. Unless otherwise indicated, it contains
         information that is confidential, privileged and/or exempt from
         disclosure under applicable law. If you have received this message in
         error, please notify the sender of the error and delete the message.
         For more information about how we handle your personal information, please see our privacy policy.
-
-        DISCLAIMER : The content of this email is confidential and intended for the
-        recipient specified in message only. It is strictly forbidden to share any
-        part of this message with any third party, without a written consent of the
-        sender. If you received this message by mistake, please reply to this
-        message and follow with its deletion, so that we can ensure such a mistake
-        does not occur in the future.
         """
 
         list_paragraphs = [paragraph.strip() for paragraph in str(string_email).split("\n\n") if not all(char == " " for char in paragraph)]
@@ -139,12 +129,14 @@ class EmailConversationParser:
             bool_is_footer = False
             for line_email in list_lines_email:
                 for line_footer in list_lines_footer:
+                    # print(line_email, "\n", line_footer, "\n", cosine(line_email, line_footer))
                     cosine_distance = cosine(line_email.lower(), line_footer.lower())
                     if(cosine_distance > cosine_distance_threshold):
                         bool_is_footer = True
-
+                        # print(paragraph, "\n", line_email, "\n", line_footer, cosine_distance)
             if(not bool_is_footer):
                 list_final_paragraphs.append(paragraph)
+            # print("---------------------------------------------------")
 
         if(len(list_final_paragraphs) == 0):
             list_final_paragraphs = list_paragraphs
@@ -163,7 +155,7 @@ class EmailConversationParser:
     def get_emails(self, list_paragraphs):
         list_emails = []
         list_email_indices = [0] + self.get_email_separator(list_paragraphs)
-        if(list_email_indices[0] == list_email_indices[1]):
+        if(len(list_email_indices) > 1 and list_email_indices[0] == list_email_indices[1]):
             list_email_indices = list_email_indices[1:]
         for list_index, index in enumerate(list_email_indices):
             if(list_index < len(list_email_indices) - 1):
@@ -260,4 +252,3 @@ class EmailConversationParser:
             "email": "\n\n".join(list_paragraphs),
             "name": name
         })
-

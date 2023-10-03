@@ -1,0 +1,42 @@
+.workareaElement { 
+    display: flex;
+    width: 100%;
+    margin-top: 5px;
+    flex-direction: column;
+}
+
+.workareaChunkElements {
+    display: flex;
+    margin-top: 10px;
+    align-items: center;
+    justify-content: center;
+}
+.workareaTextField{
+    display: flex;
+    width: 100%;
+}
+
+.workeareaChunk{
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+}
+.workareaChunkElement{
+    display:flex;
+    flex-direction: column;
+    font-size: 12px;
+    max-width: 250px;
+    overflow: scroll;
+    width:100%;
+}
+.workareaButton {
+    width: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 40px;
+    margin-top: 5px;
+    color: white;
+    background: #2f2c53;
+    border-radius: 4px;
+}

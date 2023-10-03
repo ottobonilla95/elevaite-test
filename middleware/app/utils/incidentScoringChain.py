@@ -4,7 +4,7 @@ from langchain.chains import LLMChain
 from langchain.agents import Tool
 from langchain import PromptTemplate
 from langchain.llms import OpenAI
-from _global import updateStatus
+from. _global import updateStatus
 import json
 import os
 
