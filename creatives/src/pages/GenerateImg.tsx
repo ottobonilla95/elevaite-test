@@ -36,21 +36,28 @@ export default function GenerateImg() {
         loading, 
         page
     } = query;
-
-
+    const stringifiedQuery = {
+        gender: gender?.toString() || '',
+        seasonal: seasonal?.toString() || '',
+        regional: regional?.toString() || '',
+        occasion: occasion?.toString() || '',
+        contentType: contentType?.toString() || '',
+        color: color?.toString() || '',
+        size: size?.toString() || '',
+    };
 
     const [ta, setTa] = useState(targetAudience);
     const [message, setMessage] = useState(description);
     const [noi, setNoi] = useState(imageCount);
     const [load, setLoad] = useState(loading);
     const [result, setResult] = useState<ApiResponse | null>();
-    const [selectedContentType, setContentType] = useState<string | null>(contentType);
-    const [selectedGenderValue, setSelectedGenderValue] = useState<string | null>(gender);
-    const [selectedSeasonalValue, setSelectedSeasonalValue] = useState<string | null>(seasonal);
-    const [selectedRegionalValue, setSelectedRegionalValue] = useState<string | null>(regional);
-    const [selectedOccasionValue, setSelectedOccasionValue] = useState<string | null>(occasion);
-    const [selectedColor, setColor] = useState<string | null>(color);
-    const [selectedSizeValue, setSelectedSizeValue] = useState<string | null>(size);
+    const [selectedContentType, setContentType] = useState<string | null>(stringifiedQuery.contentType);
+    const [selectedGenderValue, setSelectedGenderValue] = useState<string | null>(stringifiedQuery.gender);
+    const [selectedSeasonalValue, setSelectedSeasonalValue] = useState<string | null>(stringifiedQuery.seasonal);
+    const [selectedRegionalValue, setSelectedRegionalValue] = useState<string | null>(stringifiedQuery.regional);
+    const [selectedOccasionValue, setSelectedOccasionValue] = useState<string | null>(stringifiedQuery.occasion);
+    const [selectedColor, setColor] = useState<string | null>(stringifiedQuery.color);
+    const [selectedSizeValue, setSelectedSizeValue] = useState<string | null>(stringifiedQuery.size);
     const [callApi, setCallApi] = useState(true);
 
     const[selectedImagesCount, setSelectedImagesCount] = useState(0);
@@ -282,7 +289,7 @@ export default function GenerateImg() {
                                 <Loading />
                             </div>
                         ) : load === '2' && result !== null ? (
-                            <GeneratedImages2 data={result.data}  onSelectedImagesCountChange={handleSelectedImagesCountChange}/>
+                            <GeneratedImages2 data={result?.data || []}  onSelectedImagesCountChange={handleSelectedImagesCountChange}/>
                         ) : (
                             <h2 style={{ color: 'black' }}>Error while calling API</h2>
                         )

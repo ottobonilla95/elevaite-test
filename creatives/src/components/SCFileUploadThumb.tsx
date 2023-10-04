@@ -1,22 +1,23 @@
 import React, { useRef, useState } from 'react';
 import { FaCloudUploadAlt, FaRegTrashAlt } from 'react-icons/fa';
-import axios from 'axios';
+
 
 interface SCFileUploadProps {
-  onFileUpload: (url: string) => void; // Function to pass the URL to the parent component
+  fileType: string,
+  onFileUpload: (url: string) => void; 
 }
 
-const SCFileUploadThumb: React.FC<SCFileUploadProps> = ({ onFileUpload }) => {
+const SCFileUploadThumb: React.FC<SCFileUploadProps> = ({ fileType, onFileUpload }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploadSuccess, setUploadSuccess] = useState<boolean | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null); // Added state for thumbnail URL
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null); 
 
   const handleUploadClick = () => {
     setErrorMessage(null);
-    setUploadSuccess(null); // Set to null to indicate uploading is in progress
+    setUploadSuccess(null); 
     inputRef.current?.click();
   };
 
@@ -26,29 +27,53 @@ const SCFileUploadThumb: React.FC<SCFileUploadProps> = ({ onFileUpload }) => {
 
       if (selectedFile) {
         const fileReader = new FileReader();
-
         fileReader.onload = (e) => {
           const thumbnail = e.target?.result as string;
-          setThumbnailUrl(thumbnail); // Set the thumbnail URL in state
+          setThumbnailUrl(thumbnail); 
         };
 
         fileReader.readAsDataURL(selectedFile);
-        const img = new Image();
-        img.src = URL.createObjectURL(selectedFile);
-        onFileUpload(img.src);
+        
+        const formData = new FormData();
+        formData.append('file', selectedFile);
 
-        // Continue with your file upload logic here
-        // For example, send the file to the server and get the URL
+        if( fileType === 'product') {
+          fetch(`/api/upload?fileLocation=product`, {
+            method: 'POST',
+            body: formData,
+          })
+          .then(response => {
+            if(response.ok) {
+              //console.log(response.json());
+              return response.json();
+            } else {
+              throw new Error('Failed to upload the file');
+            }
+          });
+          
+        }
+        if( fileType === 'brand') {
+          fetch(`/api/upload?fileLocation=brand`, {
+            method: 'POST',
+            body: formData,
+          })
+          .then(response => {
+            if(response.ok) {
+              return response.json();
+            } else {
+              throw new Error('Failed to upload the file');
+            }
+          });
+          
+        } 
         try {
-          // const response = await axios.post('http://localhost:3000/api/uploadFile', selectedFile);
-          // const fileUrl = response.data.fileUrl;
-          // setFileUrl(fileUrl);
+          
           setUploadedFileName(selectedFile.name);
           setUploadSuccess(true);
           if(fileUrl){
             onFileUpload(fileUrl);
           }
-          // Pass the file URL to the parent component
+          
         } catch (error) {
           setUploadSuccess(false);
           setErrorMessage("Error while trying to upload file");
@@ -58,11 +83,9 @@ const SCFileUploadThumb: React.FC<SCFileUploadProps> = ({ onFileUpload }) => {
   };
 
   const handleDeleteClick = () => {
-    // Add logic to delete the uploaded file if needed.
-    // You may want to clear the state and notify the parent component.
     setFileUrl(null);
     setUploadedFileName(null);
-    setThumbnailUrl(null); // Clear the thumbnail URL
+    setThumbnailUrl(null); 
   };
 
   return (

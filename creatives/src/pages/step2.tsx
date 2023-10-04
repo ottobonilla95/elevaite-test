@@ -226,7 +226,7 @@ export default function Home() {
 
   return (
     <main>
-      <Header />
+      {/*<Header />*/}
       <div className="app-container">
         <div className ="sidebar-container">
           <div className="banner-header">
@@ -463,7 +463,7 @@ export default function Home() {
                 ) : loading === 1 ? (
                   <h2 style={{ color: 'white', textAlign: 'center' }}>Generating images for "A {selectedColor} toned picture of {message}. The Content Type is {selectedContentType}. This picture should be targetted to an audience with an age range between {ta} and toward {selectedGenderValue} genders. The theme of this picture is {theme}"</h2>
                 ) : loading === 2 && result !== null ? (
-                  <GeneratedImages2 data={result.data} />
+                  <p>div</p>
                 ) : (
                   <h2 style={{ color: 'white' }}>Error while calling API</h2>
                 )

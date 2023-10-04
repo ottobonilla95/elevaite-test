@@ -7,7 +7,7 @@ import SessionDalleForm from '@/components/sessionDalleForm';
 
 import { FaCloudUploadAlt, FaArrowRight } from 'react-icons/fa';
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+
 import Router from 'next/router';
 
 

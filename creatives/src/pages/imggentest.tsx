@@ -19,7 +19,7 @@ const jsonData = {
 function App() {
   return (
     <div>
-      <GeneratedImages2 data={jsonData.data} />
+     
     </div>
   );
 }
