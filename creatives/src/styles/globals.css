@@ -2041,3 +2041,39 @@ input[type="password"] {
   padding: 20px; /* Add some padding */
   background-color: #e0e0e0;
 }
+
+.cb-row-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  border: 1px solid black;
+  border-radius: 3px;
+  padding: 20px;
+  margin-bottom: 5px;
+}
+
+.cb-row-bottom-rectangle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 200px;
+  height: 30px;
+  background-color: #9d542a;
+  border: 1px solid black;
+  color: #fff;
+  text-align: center;
+  line-height: 30px;
+}
+.cb-row-top-rectangle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 30px;
+  border: 1px solid black;
+  background-color: #9d542a;
+  color: white;
+  text-align: center;
+  line-height: 30px;
+  font-weight: bold;
+}

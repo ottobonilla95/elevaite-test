@@ -12,13 +12,14 @@ export default function ShoppingCart() {
   //console.log("Component rendered");
   const router = useRouter();
   const { query } = router;
-  const { url, count } = query;
+  const { url, count, cbID } = query;
   const uList = url as string[];
   const stringifiedQuery = {
     count: count?.toString() || '',
     url: url?.toString() || ''
 };
 
+ 
   const selectedImageCount = parseInt(stringifiedQuery.count, 10) || 0;
   const {data:session} = useSession();
   const userName = session?.user?.email?.split("@")[0];
@@ -30,26 +31,30 @@ export default function ShoppingCart() {
   const [bFileUrl, setBFileUrl] = useState<string | null>(null);
 
   const handleProductFileUpload = (url: string) => {
-    // This function will receive the URL from SCFileUpload component
-    setPFileUrl(url);
+    // for now, we are storing the file name - update to s3 url
+    console.log(pFileUrl);
+    setPFileUrl("/public/product/" + url);
   };
 
   const handleBrandFileUpload = (url: string) => {
-    setBFileUrl(url);
+    console.log(bFileUrl);
+    setBFileUrl("/public/brand/" + url);
   };
 
   const handleAssignClick = async () => {
     console.log("calling api...");
+    console.log("inside api - ", pFileUrl, " " , bFileUrl);
     try {
-      const res = await axios.get('http://localhost:3000/api/createCreativeBrief', {
+      const res = await axios.get('/api/updateCreativeBrief', {
         params: {
+          id: cbID as string,
           offeringMsg: offeringMsg,
-          cta: cta,
-          ea: ea,
-          userName: userName,
-          pFileUrl: pFileUrl,
-          bFileUrl: bFileUrl,
-          urlList: uList.join(',')
+          cta: cta as string,
+          ea: ea as string,
+          pFileUrl: pFileUrl as string,
+          bFileUrl: bFileUrl as string,
+          selectedUrlList: uList.join(',') as string,
+          userName: userName as string,
         }
       });
   
@@ -92,7 +97,9 @@ export default function ShoppingCart() {
   return (
     <div>
       <Header selectedImageCount={selectedImageCount} selectedImages={urlList} />
+      
       <div className="app-container">
+      
         <div className="chat-container2">
           <div className="header-banner">
             <div className="header-heading">CREATIVE BRIEF</div>

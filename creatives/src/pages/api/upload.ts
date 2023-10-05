@@ -18,7 +18,7 @@ const readFile = (
     const fileLocation  = req.query.fileLocation as string;
     options.uploadDir = path.join(process.cwd(), 'public',fileLocation);
     options.filename = (name, ext, path, form) => {
-      return Date.now().toString() + "_" + path.originalFilename;
+      return Date.now()+ "_" + path.originalFilename;
     };
   }
   options.maxFileSize = 4000 * 1024 * 1024;

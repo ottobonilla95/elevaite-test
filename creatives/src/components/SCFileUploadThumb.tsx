@@ -69,10 +69,9 @@ const SCFileUploadThumb: React.FC<SCFileUploadProps> = ({ fileType, onFileUpload
         try {
           
           setUploadedFileName(selectedFile.name);
+          onFileUpload(Date.now()+"_"+selectedFile.name);
           setUploadSuccess(true);
-          if(fileUrl){
-            onFileUpload(fileUrl);
-          }
+          
           
         } catch (error) {
           setUploadSuccess(false);
