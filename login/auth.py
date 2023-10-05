@@ -50,7 +50,7 @@ auth_app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 async def login(request: Request):
     referer = request.headers.get("Referer")
     logging.warning(f"Referer {referer}")
-    if referer == "elevaite-ads.iopex.ai":
+    if "elevaite-ads.iopex.ai" in referer:
         return await oauth.google.authorize_redirect(request, "https://login.iopex.ai/creatives/oauth/google")
     else:
         return await oauth.google.authorize_redirect(request, "https://login.iopex.ai/oauth/google")
