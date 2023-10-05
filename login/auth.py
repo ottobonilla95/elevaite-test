@@ -13,9 +13,11 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
 from starlette.responses import RedirectResponse
 from starlette.responses import HTMLResponse
+from starlette.datastructures import State
 
 import jwt
 from db.utils import Jwt_User_Claim
+import base64
 
 # Create the auth app
 auth_app = FastAPI()
@@ -45,22 +47,43 @@ if SECRET_KEY is None or JWT_SECRET_KEY is None:
 auth_app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 @auth_app.route('/login/google')
-async def login(request: Request, redirect_uri: Union[str, None] = None):
-    redirect_uri_for_google = request.url_for('auth')  # This creates the url for our /auth endpoint
-    target_uri = redirect_uri if redirect_uri else 'https://elevaite-cb.iopex.ai'
-    return await oauth.google.authorize_redirect(request, "https://login.iopex.ai/oauth/google?target_uri=" + target_uri)
+async def login(request: Request):
+    referer = request.headers.get("Referer")
+    logging.warning(f"Referer {referer}")
+    if "elevaite-ads.iopex.ai" in referer:
+        return await oauth.google.authorize_redirect(request, "https://login.iopex.ai/creatives/oauth/google")
+    else:
+        return await oauth.google.authorize_redirect(request, "https://login.iopex.ai/oauth/google")
 
 @auth_app.route('/oauth/google')
-async def auth(request: Request, target_uri: Union[str, None] = None):
+async def auth(request: Request):
     try:
         access_token = await oauth.google.authorize_access_token(request)
-    except OAuthError:
+    except OAuthError as e:
+        logging.error(f"Error: {e}")
         return RedirectResponse(url='/')
     user_data = dict(access_token['userinfo'])
-    redirect_uri = target_uri if target_uri else 'https://elevaite-cb.iopex.ai'
+    referer = request.headers.get('Referer')
+    logging.warning(f"Referer {referer}")
     token = Jwt_User_Claim.jwt_token_from_oauth(oauth_user_data=dict(access_token['userinfo']), key=JWT_SECRET_KEY)
-    headers = {'Authorization' : 'Bearer ' + token}
-    return RedirectResponse(url=redirect_uri, headers=headers)
+    redirect_uri = referer + '?token=' + token if 'iopex.ai' in referer else 'https://elevaite-cb.iopex.ai/' + '?token=' + token 
+    logging.warning(f"Redirect URI {redirect_uri}")
+    return RedirectResponse(url=redirect_uri)
+
+@auth_app.route('/creatives/oauth/google')
+async def auth(request: Request):
+    try:
+        access_token = await oauth.google.authorize_access_token(request)
+    except OAuthError as e:
+        logging.error(f"Error: {e}")
+        return RedirectResponse(url='/')
+    user_data = dict(access_token['userinfo'])
+    referer = request.headers.get('Referer')
+    logging.warning(f"Referer {referer}")
+    token = Jwt_User_Claim.jwt_token_from_oauth(oauth_user_data=dict(access_token['userinfo']), key=JWT_SECRET_KEY)
+    redirect_uri = 'https://elevaite-ads.iopex.ai/homepage' + '?token=' + token 
+    logging.warning(f"Redirect URI {redirect_uri}")
+    return RedirectResponse(url=redirect_uri)
 
 @auth_app.route('/logout')
 async def logout(request: Request):
