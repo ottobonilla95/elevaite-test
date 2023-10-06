@@ -266,7 +266,7 @@ export default function Home() {
                     </svg>
                     <div className="text-container">
                       <p className="main-text">{chat?.title}</p>
-                      <p
+                     {/*} <p
                         className="sub-text"
                         style={{
                           color: 'grey',
@@ -277,7 +277,7 @@ export default function Home() {
                         }}
                       >
                         {chat?.createdOn}
-                      </p>
+                      </p>*/}
 
                     </div>
 

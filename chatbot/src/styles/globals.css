@@ -1116,6 +1116,7 @@ input[type="password"] {
 .main-text {
   font-size: 16px;
   height: 10px;
+  height: 100%;
 }
 
 .subtext {
