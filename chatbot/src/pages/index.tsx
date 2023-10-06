@@ -26,11 +26,16 @@ type chatSessionDetails = {
   id: number;
   title: string;
   chat: MessageDetails[];
+  createdOn: string;
 };
 
 export default function Home() {
+  const current = new Date();
+  const initialTimestamp = `${current.getDate()} ${current.toLocaleString("default", {
+    month: "short",
+  })}, ${current.getHours()}:${current.getMinutes() < 10 ? "0" : ""}${current.getMinutes()}`;
   const [chats, setChats] = useState<chatSessionDetails[]>([
-    { id: 0, title: "New Session", chat: [] },
+    { id: 0, title: "New Session", chat: [] , createdOn: initialTimestamp }, //time of creation
   ]);
   const [count, setCount] = useState(1);
   const [chatIds, setChatIds] = useState<number[]>([]);
@@ -42,6 +47,15 @@ export default function Home() {
     setChats(() => newChats);
   };
 
+  function getCurrentTimestamp() {
+    const current = new Date();
+    const date = `${current.getDate()} ${current.toLocaleString("default", {
+      month: "short",
+    })}, ${current.getHours()}:${current.getMinutes() < 10 ? "0" : ""}${current.getMinutes()}`;
+    return date;
+  }
+
+
   function newSessionClick() {
     //console.log("new session clicked");
     setCount(() => count + 1);
@@ -49,7 +63,7 @@ export default function Home() {
     setChatIds(() => [...chatIds, count]);
     //console.log("ChatIDs: ", chatIds);
     setChats(() => {
-      return [...chats, { id: count, title: "New Session", chat: [] }];
+      return [...chats, { id: count, title: "New Session", chat: [] , createdOn: getCurrentTimestamp()}];//time of creation
     });
     console.log("Before reverse - Chats Array: ", chats);
     //setChats(() => [...chats].reverse());
@@ -67,6 +81,7 @@ export default function Home() {
           id: currentChatId,
           title: messages[0].message.substring(0, 35) + "...",
           chat: messages,
+          createdOn: initialTimestamp
         },
         ...chats.slice(currentChatId + 1),
       ]);
@@ -80,6 +95,7 @@ export default function Home() {
         id: currentChatId,
         title: "New Session",
         chat: messages,
+        createdOn: getCurrentTimestamp()
       },
       ...chats.slice(currentChatId + 1),
     ]);
@@ -98,7 +114,8 @@ export default function Home() {
         let oldSessionMessages: chatSessionDetails = {
           id: currentChatId,
           title: title,
-          chat: [],
+          chat: [], 
+          createdOn: getCurrentTimestamp()//time of creation
         };
         if (messages !== null && messages.data !== null) {
           oldSessionMessages.chat = messages?.data;
@@ -173,6 +190,7 @@ export default function Home() {
                 id: currentChatId,
                 title: title,
                 chat: [],
+                createdOn: getCurrentTimestamp()
               };
               if (messages !== null && messages.data !== null) {
                 oldSessionMessages.chat = messages?.data;
@@ -248,13 +266,19 @@ export default function Home() {
                     </svg>
                     <div className="text-container">
                       <p className="main-text">{chat?.title}</p>
-                      <div className="subtext">
-                        {chat.chat.map((message, index) => (
-                          <div key={index}>
-                            <span style={{ color: "grey" }}>{message.timestamp}</span>
-                          </div>
-                        ))}
-                      </div>
+                      <p
+                        className="sub-text"
+                        style={{
+                          color: 'grey',
+                          fontSize: '12px',
+                          alignItems: 'right',
+                          textAlign: 'right',
+                          marginRight: '10px'
+                        }}
+                      >
+                        {chat?.createdOn}
+                      </p>
+
                     </div>
 
                   </div>
