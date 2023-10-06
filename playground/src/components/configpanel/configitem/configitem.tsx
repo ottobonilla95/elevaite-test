@@ -24,8 +24,8 @@ const ConfigItem = (props:any) => {
               label={props.type}
               onChange={handleChange}
             >
-              {props.options.map((option:any)=>
-                <MenuItem value={option}>{option}</MenuItem>
+              {props.options.map((option:any, index)=>
+                <MenuItem key=index value={option}>{option}</MenuItem>
               )}
               {/* <MenuItem value={props.options.optionA}>{props.options.optionA}</MenuItem>
               <MenuItem value={props.options.optionB}>{props.options.optionB}</MenuItem>
