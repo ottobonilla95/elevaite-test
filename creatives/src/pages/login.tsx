@@ -1,12 +1,14 @@
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
+import { useRouter } from 'next/router';
 
 const Login = () => {
   const [showLoginFields, setShowLoginFields] = useState(false);
-
+  const router = useRouter();
   // Google Handler Function
   async function handleGoogleSignIn() {
-    signIn('google', { callbackUrl: "http://localhost:3000" });
+    router.push('https://login.iopex.ai/login/google');
+    
   }
 
   
