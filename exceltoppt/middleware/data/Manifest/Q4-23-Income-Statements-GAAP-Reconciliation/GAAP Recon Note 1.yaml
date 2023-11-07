@@ -1,0 +1,26 @@
+YAML File:
+
+```
+Fiscal Year: FY 2023
+Fiscal Months: 
+  - October 29, 2022
+  - January 28, 2023
+  - April 29, 2023
+  - July 29, 2023
+Reporting Standards: 
+  - GAAP
+Metrics: 
+  - GAAP net income
+  - (a) Share-based compensation expense
+  - (b) Amortization of acquisition-related intangible assets
+  - (c) Other acquisition-related/divestiture costs
+  - (d) Russia-Ukraine war costs
+  - (e) Supplier component remediation charge (adjustment)
+  - (f) Significant asset impairments and restructurings
+  - (g) Gains and losses on equity investments
+  - Total adjustments to GAAP income before provision for income taxes
+  - (h) Income tax effect
+  - (i) Significant tax matters
+  - Total adjustments to GAAP provision for income taxes
+  - Non-GAAP net income
+```

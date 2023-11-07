@@ -1,0 +1,336 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+.frame-2 {
+  align-items: center;
+  display: flex;
+  height: 50px;
+  justify-content: space-between;
+  padding: 17px 8px;
+  position: relative;
+  width: 100%;
+  background-color: black;
+}
+
+.frame-3 {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  margin-bottom: -7px;
+  margin-top: -7px;
+  position: relative;
+  width: fit-content;
+}
+
+.line-1 {
+  height: 30px;
+}
+
+.xlsxicon {
+  height: 10px;
+}
+
+.mainmenu-button-list {
+  list-style: none;
+  display: flex;
+  gap: 10px; /* Adjust the gap as needed */
+}
+
+.mainmenu-button-list li {
+  margin: 0;
+  padding: 0;
+}
+
+.mainmenu-button-list button {
+  background-color: black; 
+  color: #fff; 
+  border: none;
+  border-radius: 4px;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-size: 14px;
+  height: 40px;
+}
+
+.mainmenu-button-list button:hover {
+  background-color: #f46f22; 
+}
+
+.mainmenu-button-list button.selected {
+  background-color: #f46f22; 
+  color: #fff; 
+}
+
+.app-container {
+  width: 100%;
+  height: 100vh;
+  background-color: #fff0e6;
+}
+
+.upload-container-main {
+  border: 1px solid lightgrey;
+  height: 82vh;
+  background-color: white;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin: 30px 30px 30px 30px;
+}
+
+.manifest-header {
+  height: 50px;
+  background-color: #92e771; /* Parrot Green */
+  color: black;
+  font-weight: bold;
+  padding-left: 20px;
+  padding-top: 10px;
+  width: calc(100% - 60px);
+  margin-left: 30px;
+}
+
+.progress-bar-container {
+  width: calc(100% - 60px); /* 100% width minus 30px on each side */
+  height: 50px;
+  margin-bottom: 30px;
+  margin-left: 30px;
+  margin-top: 20px;
+}
+
+.upload-container {
+  width: calc(100% - 60px); /* 100% width minus 30px on each side */
+  height: calc(100% - 150px);
+  margin-bottom: 30px;
+  border: 1px solid lightgrey;
+  border-radius: 2px;
+  margin-left: 30px;
+}
+
+.upload-widget {
+  width: calc(100% - 600px);
+  height: 200px;
+  margin-top: 50px;
+  margin-left: 300px;
+  background-color: black;
+  border-radius: 6px;
+}
+
+.upload-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upload-icon {
+  margin-bottom: 16px; 
+}
+
+.upload-text {
+  color: lightgreen;
+  font-size: 16px; 
+  margin-top: 50px;
+  transition: color 0.3s;
+}
+
+.upload-text:hover {
+  color: rgb(55, 0, 128); 
+}
+
+.upload-sub-text {
+  color: white;
+  font-size: 12px; 
+}
+
+.fileNametext {
+  color: black;
+  font-size: 14px;
+  margin-top: 10px; 
+  margin-left: 50px;
+}
+
+.sheetCounttext {
+  color: grey;
+  font-size: 14px;
+  margin-top: 10px; 
+  margin-left: 10px;
+}
+
+.file-list-container {
+  width: calc(100% - 600px);
+  height: 80px;
+  margin-left: 300px;
+  margin-top: 30px;
+  background-color: rgb(245, 243, 243);
+  border-radius: 6px;
+  padding: 1px;
+}
+
+.uploadContainer2 {
+  display: flex;
+  width: calc(100% - 600px);
+  align-items: right;
+  color: white;
+  justify-content: flex-end;
+  padding-bottom: 10px;
+  padding-top: 10px;
+  margin-top: 10px;
+  margin-left: 300px;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column; 
+  align-items: center; 
+  color: white;
+  padding-bottom: 10px;
+  padding-top: 10px;
+  margin-top: 10px;
+  margin-left: 50px; 
+}
+.sidebar-divider{
+  border-top: 1px solid rgb(229, 226, 226);;
+  width: calc(100% - 30px);
+  margin-left: 10px;
+  margin-top: 10px;
+}
+
+.action-button {
+  max-width: 100px;
+  height: 28px;
+  width: 85%;
+  border-radius: 4px;
+  background-color: #f46f22;
+  color: white;
+  
+}
+
+.action-button-align-right{
+  background-color: #f46f22;
+  color: white;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: center;
+  max-width: 100px;
+  width: 80%;
+  height: 30px; 
+}
+
+.action-button2 {
+  max-width: 100px;
+  height: 28px;
+  width: 85%;
+  border-radius: 4px;
+  background-color: white;
+  color: black;
+  
+}
+.space-padding{
+  margin: 5px 5px 5px 5px;
+}
+.action-button-align-right2{
+  background-color: white;
+  color: black;
+  border-radius: 3px;
+  border:1px solid rgb(229, 226, 226);
+  cursor: pointer;
+  text-align: center;
+  max-width: 100px;
+  width: 80%;
+  height: 30px;
+}
+
+
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #f46f22; 
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 2s linear infinite;
+  
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.manifest-container {
+  width: calc(100% - 60px); /* 100% width minus 30px on each side */
+  height: calc(100% - 200px);
+  margin-bottom: 30px;
+  border: 1px solid lightgrey;
+  border-radius: 2px;
+  margin-left: 30px;
+  display: flex;
+  flex-direction: row;
+}
+
+.manifest-container > div {
+  flex: 1;
+  padding: 15px;
+  border-right: 1px solid lightgrey;
+  box-sizing: border-box;
+  overflow: hidden;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.manifest-container > div:last-child {
+  border-right: none;
+  font-size: 18px;
+}
+
+.manifest-header-container {
+  width: 100%;
+  height: 50px;
+  text-align: left;
+  padding: 10px;
+  color: black;
+  font-size: 30px;
+  margin-bottom: 10px;
+}
+
+.sheet-names-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet-name {
+  margin-top: 10px;
+  cursor: pointer;
+  padding: 8px 0;
+  font-size: 16px;
+  border-bottom: 1px solid #ccc;
+  transition: background-color 0.2s;
+}
+
+.sheet-name:hover {
+  background-color: #f0f0f0;
+}
+
+.sheet-name.active {
+  background-color: #007bff; /* Change to your preferred active sheet color */
+  color: #fff; /* Change text color for active sheet */
+}
