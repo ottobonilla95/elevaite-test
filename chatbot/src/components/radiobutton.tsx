@@ -24,13 +24,13 @@ export default function RowRadioButtonsGroup(props: any) {
         disabled={props.isDisabled}
         fullWidth
       >
-        <InputLabel
+        {/* <InputLabel
           style={{ color: props.isDisabled ? "black": "white", fontSize: "15px" }}
           id="demo-simple-select-label"
         >
           Chatbot Type
-        </InputLabel>
-        <Select
+        </InputLabel> */}
+        {/* <Select
           style={{ color: "white", fontSize: "15px", padding: 0 }}
           labelId="demo-simple-select-label"
           id="demo-simple-select"
@@ -42,7 +42,7 @@ export default function RowRadioButtonsGroup(props: any) {
           <MenuItem value={ChatbotV.OutofWarranty}>Out of Warranty</MenuItem>
           <MenuItem value={ChatbotV.AgentAssist}>Agent Assist</MenuItem>
           <MenuItem value={ChatbotV.Upsell}>Upsell</MenuItem>
-        </Select>
+        </Select> */}
       </FormControl>
     </Box>
   );

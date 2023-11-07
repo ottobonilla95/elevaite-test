@@ -12,7 +12,8 @@ export enum Collections {
   Netskope = "netskope",
   PAN = "pan",
   Cisco = "cisco",
-  Cisco_CLO = "cisco_clo"
+  Cisco_CLO = "cisco_clo",
+  Arlo = 'arlo'
 }
 
 
@@ -51,7 +52,7 @@ export default function SubHeader(props: any) {
               <MenuItem value={Collections.PAN}>Hardware Firewall Provider</MenuItem>
               <MenuItem value={Collections.Cisco}>Collaboration Provider</MenuItem>
               <MenuItem value={Collections.Cisco_CLO}>CLO</MenuItem>
-              {/* <MenuItem value={Collections.Netgear}>Netgear</MenuItem> */}
+              <MenuItem value={Collections.Arlo}>Arlo</MenuItem>
             </Select>
           </FormControl>
         </Box>

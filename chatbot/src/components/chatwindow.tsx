@@ -131,14 +131,14 @@ export default function ChatWindow(props: any) {
         "&collection=" +
         props.collection
     ).then((data)=>{
-      console.log(data);
+      console.log(data.data['refs']);
       setMessageIdCount(() => messageIdCount + 2);
       props.updateMessages([
         ...props.chat.chat,
         {
           id: messageIdCount,
           message: ask,
-          from: "human",
+          from: "human", 
           timestamp: getCurrentTimestamp(),
         },
         {

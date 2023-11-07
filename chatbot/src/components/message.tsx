@@ -54,6 +54,7 @@ export default function Message(props: MessageProps) {
       }
     }
     const urlList = props?.message?.urls != undefined ? Array.from(props?.message?.urls) : []
+    console.log(props.message.urls);
     setUrls(()=>urlList);
   }, [props]);
 
