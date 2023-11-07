@@ -58,7 +58,8 @@ def faq_answer(uid: str, sid: str, query: str, collection: str):
         )
         storeSession(uid, sid, memory)
         return results[0][0].metadata["answer"]
-    else:
+    else:{"abstract": "Request will be received if the customer whats to extend the Trade-In RMA and below are the process steps", "category": "RMA Requests", "source": "KC-1304 - Trade-in RMA Extensions Process", "sourceDocID": "KC-1304", "tags": "extension_request_form,rma,trade-in_rma_extensions_process,extension_request,rts,trade_in_extension,mip_extension,rmr", "title": "Trade-in RMA Extensions Process", "tokenSize": 115}, "page_content": "product ordered on the Trade in order can be requested for credit, like a standard sales order. The Returns Tool should be used, as this is not a Trade in RMA scenario. If the customer is looking for an RMA with Credit for the &quot;trade in&quot; product associated to the new Trade in Sales order, this is not allowed. Trade in products are not eligible for credit RMAs. 3. Trade in Program Type returns are always eligible for the POWR Tool. If the tool is not working, there may be an IT issue"}, vector=None), Record(id=10, payload={"metadata": {"abstract": "Article includes instructions to book : RMA without Credit (RMA - $0)", "category": "RMA Transactional Support", "source": "KC-1313 - Booking an RMA without Credit (RMA - $0)", "sourceDocID": "KC-1313", "tags": "rma,rma_processing,order_type,line_type,line_items,order_entry_returns_moac,rma_requests,logistics_returns,rts,rmr", "title": "Booking an RMA without Credit (RMA - $0)", "tokenSize": 32}, "page_content": "Booking an RMA without Credit (RMA - $0)\nArticle includes instructions to book : RMA without Credit (RMA - $0)"}
+
         return None
 
 def streaming_request(uid: str, sid: str, input: str):
@@ -102,7 +103,7 @@ def finalFormatedOutput(
     prompt = (
         "For the given Incident text and Knowledge Articles, "
         + "Use only relevant knowledge articles."
-        + "Dont repate Input Text and just provide output as troubleshooting steps or additional questions to be collected. "
+        + "Dont repeat Input Text and just provide output as troubleshooting steps or additional questions to be collected. "
         + "If URLs available provide at the end after all steps one after other as Hyperlinks under Heading 'References'"
         + "Dont repeate the URLs, remove duplicates\n"
         + "Provide the answer in HTML format with ol tags.\n"

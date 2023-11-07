@@ -14,6 +14,7 @@ export enum Collections {
   Cisco = "cisco",
   Cisco_CLO = "cisco_clo",
   Arlo = 'arlo'
+  juniper_vsrx = "juniper_vsrx"
 }
 
 
