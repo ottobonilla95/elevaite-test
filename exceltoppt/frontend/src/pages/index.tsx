@@ -135,7 +135,7 @@ export default function Home() {
           ) : null}
           <div className="uploadContainer2">
 
-            <button className="action-button-align-right2 action-button2">Cancel</button>
+            <button className="action-button-align-right2 action-button2" onClick={handleCanclebutton}>Cancel</button>
             <div className="space-padding"></div>
             <button className="action-button-align-right action-button" onClick={handleSubmitbutton}>Submit</button>
 

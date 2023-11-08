@@ -88,17 +88,17 @@ async def getYamlContent(file_name: str, yaml_file: str):
     
 
 @app.get('/generatePPT/')
-async def generate_powerpoint(request: Request):
+async def generate_powerpoint(excel_file: str ,manifest_file: str, folder_name: str):
     try:
-        data = await request.json()
-        excel_file_path = data.get('excel_file_path')
-        manifest_file_path = data.get('manifest_file_path')
-        selected_sheet = data.get('selected_sheet')
+        
+        excel_file_path = os.path.join("data", "Excel", excel_file)
+        manifest_file_path = os.path.join("data", "Manifest", folder_name, manifest_file)
+        selected_sheet = manifest_file.split(".")[0]
 
         summary = await generate_summary(excel_file_path, selected_sheet)
         if(summary["status"] == 200):
-            result = await generate_cisco_presentation(excel_file_path, manifest_file_path, summary["summary"], selected_sheet)
-            if(result["status"] == 200):
-                return JSONResponse(content = result, status_code=200)
+
+            result = generate_cisco_presentation(excel_file_path, manifest_file_path, summary["summary"], selected_sheet)
+            return JSONResponse(content = result, status_code=200)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)

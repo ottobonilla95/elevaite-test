@@ -198,6 +198,18 @@ body {
   margin-left: 300px;
 }
 
+.button-container {
+  width: calc(100% - 60px); 
+  margin-bottom: 10px;
+  margin-left: 30px;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+  
+
+
+
 .loadingContainer {
   display: flex;
   flex-direction: column; 
@@ -279,7 +291,7 @@ body {
 .manifest-container {
   width: calc(100% - 60px); /* 100% width minus 30px on each side */
   height: calc(100% - 200px);
-  margin-bottom: 30px;
+  margin-bottom: 10px;
   border: 1px solid lightgrey;
   border-radius: 2px;
   margin-left: 30px;
@@ -309,9 +321,18 @@ body {
   padding: 10px;
   color: black;
   font-size: 30px;
+  margin-bottom: 5px;
+}
+.manifest-subheader-container {
+  width: 100%;
+  height: 30px;
+  text-align: left;
+  padding: 5px;
+  color: black;
+  font-size: 20px;
+  font-style: italic;
   margin-bottom: 10px;
 }
-
 .sheet-names-container {
   display: flex;
   flex-direction: column;
@@ -320,10 +341,22 @@ body {
 .sheet-name {
   margin-top: 10px;
   cursor: pointer;
-  padding: 8px 0;
+  padding: 10px 10px 10px 10px;
   font-size: 16px;
-  border-bottom: 1px solid #ccc;
+  border: 1px solid #ccc;
+  border-radius: 3px;
   transition: background-color 0.2s;
+  height: 80px;
+}
+.sheet-name .edit-button {
+  background-color: black;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-left: 370px;
+  
 }
 
 .sheet-name:hover {
@@ -331,6 +364,15 @@ body {
 }
 
 .sheet-name.active {
-  background-color: #007bff; /* Change to your preferred active sheet color */
-  color: #fff; /* Change text color for active sheet */
+  background-color: rgb(219, 214, 214); /* Change to your preferred active sheet color */
+  color: black; /* Change text color for active sheet */
+}
+
+.tag {
+  background-color: grey;
+  border: 1px solid black;
+  border-radius: 5px;
+  padding: 5px 5px 5px 5px;
+  width: 50px;
+  font-size: 10px;
 }

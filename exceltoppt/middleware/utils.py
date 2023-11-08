@@ -19,8 +19,8 @@ from langchain.llms import OpenAI
 from langchain.embeddings.openai import OpenAIEmbeddings
 
 current_woring_dir = os.path.dirname(os.path.realpath(__file__))
-openai.api_key = ""
-os.environ["OPENAI_API_KEY"] = ""
+openai.api_key = "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"
+os.environ["OPENAI_API_KEY"] = "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"
 manifest_file_path = None
 metrics = None
 fiscal_year = None
@@ -226,6 +226,7 @@ def Excel_to_dataframe(excel_file_path, manifest_file_path, selected_sheet):
                     for key, value in m.items():
                         metric = key
                         m_row = get_metric_row(df, metric)
+                       
                         
                         if m_row is not None:
                             value = df.iat[m_row, col]
@@ -234,8 +235,13 @@ def Excel_to_dataframe(excel_file_path, manifest_file_path, selected_sheet):
                             #row_index.append(metric)
                         sub_metric = getcolumns(m)
                         for sm in sub_metric:
+                            
                             sm_row = get_metric_row(df, sm)
-                            val = df.iat[sm_row, col]
+                            
+                            if sm_row is None:
+                                val = df.iat[0, col]
+                            else:
+                                val = df.iat[sm_row, col]
                             column_values.append(val)
                             row_index.append((metric.split('(')[0] if '(' in metric else metric) + " - " + (sm.split('(')[0] if '(' in sm else sm))
                             #row_index.append(metric + " - " + sm)
@@ -615,3 +621,14 @@ def generate_cisco_presentation(excel_file_path, manifest_file_path, summary, se
     prs.save(ppt_path)
     return ppt_path
 
+excel_file_path = os.path.join("data/Excel", "cisco.xlsx")
+manifest_file_path = os.path.join("data/Manifest/cisco", "Income Statements.yaml")
+summary = """(1) The historic financial statements provide a detailed view of the company's income statements for fiscal year 2023, broken down on a quarterly basis.
+(2) The document includes specific sections covering different types of revenue (product vs. service), costs of sales, gross margin, operating expenses, operating income, and net income.
+(3) The income statement presents separate figures for GAAP and non-GAAP measures, indicating the company's attempt to provide clear and broad financial information.
+(4) The total revenue for the fiscal year 2023 stood at $56,998 million, while the total cost of sales equates to $21,245 million in GAAP and $20,210 million in non-GAAP reports.
+(5) In FY 2023, the net income on GAAP measures was $12,613 million while in non-GAAP it was $15,979 million showing the company's profitability in that fiscal year."""
+
+selected_sheet = "Income Statements"
+
+print(generate_cisco_presentation(excel_file_path, manifest_file_path, summary, selected_sheet))
