@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 
 export default function Home() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string>("");
   const [sheetCount, setSheetCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -30,15 +30,8 @@ export default function Home() {
     try {
       console.log("Generating Manifest..");
       setIsLoading(true);
-      const response = await axios.post('http://localhost:8000/generateManifest/', {
-        file_name: selectedFileName?.split('.')[0],
-        file_path: `/data/Excel/${selectedFileName}`,
-        save_dir: 'data/Manifest',
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const q_params = "file_name=" + encodeURIComponent(selectedFileName?.split(".")[0]) + "&file_path=" + "data/Excel/" +encodeURIComponent(selectedFileName) + "&save_dir=" + "data/Manifest";
+      const response = await axios.get(`http://localhost:8000/generateManifest/?${q_params}`);
 
       if (response.status === 200) {
         console.log("Manifest Generated..");
@@ -57,6 +50,7 @@ export default function Home() {
       });
       }
     } catch (error) {
+      setIsLoading(false);
       console.error('Error generating manifest:', error);
     }
 
