@@ -93,7 +93,7 @@ body {
 
 .upload-container-main {
   border: 1px solid lightgrey;
-  height: 82vh;
+  height: 85vh;
   background-color: white;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   margin: 30px 30px 30px 30px;
@@ -116,29 +116,71 @@ body {
   font-weight: bold;
   padding-left: 20px;
   padding-top: 10px;
+  margin-top: 30px;
   width: 100%;
 }
 .progress-bar-container {
-  width: calc(100% - 60px); /* 100% width minus 30px on each side */
+  width: calc(100% - 700px); /* 100% width minus 30px on each side */
   height: 50px;
-  margin-bottom: 30px;
-  margin-left: 30px;
-  margin-top: 20px;
+  margin: 25px auto 30px auto; /* top, right, bottom, left */
+  
+}
+.smallText {
+  font-size: 12px;
+  margin-top: 5px;
+}
+.upload-cloud-icon {
+  color: grey;
+  width: 40px;
+  height: 40px;
 }
 
 .upload-container {
-  width: calc(100% - 60px); /* 100% width minus 30px on each side */
-  height: calc(100% - 150px);
+  width: calc(100% - 80px); /* 100% width minus 30px on each side */
+  height: calc(100% - 180px);
   margin-bottom: 30px;
   border: 1px solid lightgrey;
   border-radius: 2px;
   margin-left: 30px;
 }
 
+.upload-header-container {
+  width: calc(100% - 40px);
+  margin-left: 20px;
+  padding: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  height: 20px;
+}
+
+.upload-subheader-container {
+  width: calc(100% - 40px);
+  margin-left: 20px;
+  margin-top: 10px;
+  padding: 10px;
+  font-size: 12px;
+  font-weight: 200;
+  height: 20px;
+  color: #424448;
+}
+
+.button-template {
+  width: 300px;
+  height: 40px;
+  border-radius: 8px;
+  background-color: #D9F27E;
+  color: black;
+  padding: 6px, 14px, 6px, 14px;
+  margin-top: 40px;
+  margin-left: 500px;
+  margin-bottom: 30px;
+  font-weight: bold;
+}
+
 .upload-widget {
   width: calc(100% - 600px);
   height: 200px;
-  margin-top: 50px;
+  margin-top: 60px;
   margin-left: 300px;
   background-color: black;
   border-radius: 6px;
@@ -151,18 +193,18 @@ body {
 }
 
 .upload-icon {
-  margin-bottom: 16px; 
+  margin-top: 50px; 
 }
 
 .upload-text {
-  color: lightgreen;
+  color: #D9F27E;
   font-size: 16px; 
-  margin-top: 50px;
+  margin-top: 10px;
   transition: color 0.3s;
 }
 
 .upload-text:hover {
-  color: rgb(55, 0, 128); 
+  color: #6941C6; 
 }
 
 .upload-sub-text {
@@ -173,8 +215,11 @@ body {
 .fileNametext {
   color: black;
   font-size: 14px;
-  margin-top: 10px; 
-  margin-left: 50px;
+  margin-top: 8px; 
+  margin-left: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sheetCounttext {
@@ -182,6 +227,30 @@ body {
   font-size: 14px;
   margin-top: 10px; 
   margin-left: 10px;
+}
+
+.breadcrumb-container {
+  font-size: 14px;
+  color: grey;
+  margin-left: 20px;
+  margin-top: 10px;
+}
+
+.breadcrumb-container a {
+  color: black;
+  text-decoration: none;
+}
+
+.breadcrumb-container a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb-container .separator {
+  margin: 0 5px; /* Adjust spacing between items */
+}
+
+.breadcrumb-container .current-page {
+  color: #f46f22;
 }
 
 .file-list-container {
@@ -192,7 +261,23 @@ body {
   background-color: rgb(245, 243, 243);
   border-radius: 6px;
   padding: 1px;
+  
 }
+.info-container {
+  display: flex;
+  justify-content: space-between;
+}
+.fileSizetext {
+  color: grey;
+  font-size: 14px;
+  margin-top: 10px;
+  margin-right: 10px; /* Added margin-right for right alignment */
+}
+
+.icon-container {
+  margin-left: 10px; 
+}
+
 
 .uploadContainer2 {
   display: flex;
@@ -261,11 +346,17 @@ body {
   margin-left: 10px;
   margin-top: 10px;
 }
+.sidebar-divider2{
+  border-top: 1px solid rgb(229, 226, 226);;
+  width: calc(100% - 600px);
+  margin-left:300px;
+  margin-top: 10px;
+}
 
 .action-button {
-  max-width: 100px;
-  height: 28px;
-  width: 85%;
+  max-width: 80px;
+  height: 40px;
+  width: 80px;
   border-radius: 4px;
   background-color: #f46f22;
   color: white;
@@ -275,21 +366,24 @@ body {
 .action-button-align-right{
   background-color: #f46f22;
   color: white;
-  border-radius: 3px;
+  border-radius: 8px;
   cursor: pointer;
   text-align: center;
-  max-width: 100px;
-  width: 80%;
-  height: 30px; 
+  max-width: 80px;
+  width: 80px;
+  height: 34px; 
 }
 
 .action-button2 {
-  max-width: 100px;
-  height: 28px;
-  width: 85%;
-  border-radius: 4px;
   background-color: white;
   color: black;
+  border: 1px solid #D0D5DD;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  max-width: 80px;
+  width: 80px;
+  height: 34px; 
   
 }
 .space-padding{
@@ -337,7 +431,7 @@ body {
 
 .manifest-container {
   width: calc(100% - 60px); /* 100% width minus 30px on each side */
-  height: calc(100% - 200px);
+  height: calc(100% - 250px);
   margin-bottom: 10px;
   border: 1px solid lightgrey;
   border-radius: 2px;
@@ -370,16 +464,19 @@ body {
   font-size: 30px;
   margin-bottom: 5px;
 }
+
 .manifest-subheader-container {
   width: 100%;
   height: 30px;
   text-align: left;
   padding: 5px;
-  color: black;
-  font-size: 20px;
+  color: #3D3D3D;
+  font-size: 16px;
   font-style: italic;
   margin-bottom: 10px;
+  margin-left: 5px;
 }
+
 .sheet-names-container {
   display: flex;
   flex-direction: column;
@@ -388,22 +485,48 @@ body {
 .sheet-name {
   margin-top: 10px;
   cursor: pointer;
-  padding: 10px 10px 10px 10px;
+  padding: 10px;
   font-size: 16px;
   border: 1px solid #ccc;
   border-radius: 3px;
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
   height: 80px;
 }
-.sheet-name .edit-button {
+
+.circle {
+  width: 30px;
+  height: 30px;
+  background-color: #888; /* Grey color for the circle */
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.badge {
+  position: relative;
+  background-color: #f2eed9;
+  padding: 5px;
+  border-radius: 15px; /* Adjust as needed for oval shape */
+}
+.sheet-info {
+  display: flex;
+  flex-grow: 1;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sheet-name-text {
+  font-weight: bold;
+}
+
+.edit-button {
   background-color: black;
   color: white;
   border: none;
   padding: 5px 10px;
   border-radius: 3px;
   cursor: pointer;
-  margin-left: 370px;
-  
 }
 
 .sheet-name:hover {
@@ -411,9 +534,10 @@ body {
 }
 
 .sheet-name.active {
-  background-color: rgb(219, 214, 214); /* Change to your preferred active sheet color */
-  color: black; /* Change text color for active sheet */
+  background-color: rgb(242, 241, 241);
+  color: black;
 }
+
 
 .tag {
   background-color: grey;
@@ -449,4 +573,57 @@ body {
   box-sizing: border-box;
   font-size: 16px;
   margin-bottom: 10px;
+}
+
+.step-item{
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 190px;
+ 
+}
+
+.step-item:not(:first-child)::before {
+  content: '';
+  background-color: grey; 
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  right: 50%;
+  top: 33.33%; 
+  transform: translateY(-50%);
+}
+
+
+.step {
+  width: 1.5rem; /* Adjusted size */
+  height: 1.5rem; /* Adjusted size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  position: relative;
+  background-color: white;
+  border: 2px solid grey;
+  border-radius: 9999px;
+  font-weight: 16px;
+  top: 2px;
+}
+
+.chatbot-container {
+  width: calc(100% - 40px);
+  margin-left: 20px;
+  height: calc(100% - 10px);
+  background-color: white;
+  border: 1px solid grey;
+  border-radius: 3px;
+}
+
+.chatbot-header {
+  width: 100%;
+  background-color: black;
+  color: white;
+  padding: 10px;
 }

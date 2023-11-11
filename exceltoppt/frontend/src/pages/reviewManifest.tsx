@@ -54,7 +54,7 @@ export default function Home() {
   const handleSubmitbutton = async (fileName: string | string[] | undefined, activeSheet: string | null) => {
     if (fileName !== undefined && activeSheet !== null) {
       let encodedExcelFile: string;
-  
+
       if (Array.isArray(fileName)) {
         // If fileName is an array, take the first element (you can modify this based on your requirement)
         encodedExcelFile = encodeURIComponent(fileName[0]);
@@ -62,15 +62,15 @@ export default function Home() {
         // If fileName is a string, directly encode it
         encodedExcelFile = encodeURIComponent(fileName);
       }
-  
+
       const encodedManifestFile = encodeURIComponent(activeSheet);
       const q_params = "excel_file=" + encodedExcelFile + ".xlsx&manifest_file=" + encodedManifestFile + "&folder_name=" + encodedExcelFile;
-  
+
       try {
-        console.log("generating ppt..");
+       /* console.log("generating ppt..");
         setIsLoading(true);
         const response = await axios.get(`http://localhost:8000/generatePPT/?${q_params}`);
-  
+
         if (response.status === 200) {
           console.log("ppt generated successfully");
           setIsLoading(false);
@@ -83,14 +83,25 @@ export default function Home() {
               sheet_name: activeSheet
             }
           });
-        }
-      } catch (error) {
+          
+        }*/
+        router.push({
+          pathname: '/uploadPPT',
+          query: {
+            excel_file_name : fileName + ".xlsx",
+            manifest_file_name: activeSheet,
+            folder_name: fileName 
+
+          }
+        });
+      }
+      catch (error) {
         setIsLoading(false);
         console.log("Error generating Manifest Content: " + error);
       }
     }
   };
-  
+
 
 
   const handleCanclebutton = () => {
@@ -102,6 +113,12 @@ export default function Home() {
 
       {isLoading ? (
         <div className="upload-container-main">
+          <div className="breadcrumb-container">
+            <a>Ingest</a>
+            <span className="separator"></span>
+            {'>'}
+            <span className="current-page"> AI DeckBuilder</span>
+          </div>
           <div className="manifest-header2">Generating Presentation</div>
           <div className="loadingContainer2">
 
@@ -110,8 +127,14 @@ export default function Home() {
         </div>
       ) : (
         <div className="upload-container-main">
+          <div className="breadcrumb-container">
+            <a>Ingest</a>
+            <span className="separator"></span>
+            {'>'}
+            <span className="current-page"> AI DeckBuilder</span>
+          </div>
           <div className="progress-bar-container">
-            {/* Step progress bar goes here */}
+            <Progressbar current={2} />
           </div>
           <div className="manifest-header">Manifest Preview</div>
           <div className="manifest-container">
@@ -123,7 +146,7 @@ export default function Home() {
                 Manifest List
               </div>
               <div className="manifest-subheader-container">
-                File: {fileName}
+                File: {fileName}.xlsx
               </div>
 
               <div className="sheet-names-container">
@@ -133,18 +156,21 @@ export default function Home() {
                     className={`sheet-name ${activeSheet === sheetName ? 'active' : ''}`}
                     onClick={() => handleSheetClick(sheetName)}
                   >
-
-                    {sheetName}
-                    <button className="edit-button">Edit</button>
-
-
+                    <div className="circle"></div>
+                    
+                    <div className="sheet-info">
+                      <div className="sheet-name-text">{sheetName}</div>
+                      <div className="badge">Sheet {index + 1}</div>
+                      <button className="edit-button">Edit</button>
+                    </div>
                   </div>
                 ))}
               </div>
+
             </div>
           </div>
           <div className="button-container">
-            <button className="action-button-align-right2 action-button2" onClick={handleCanclebutton}>Cancel</button>
+            <button className="action-button2" onClick={handleCanclebutton}>Cancel</button>
             <div className="space-padding"></div>
             <button className="action-button-align-right action-button" onClick={() => handleSubmitbutton(fileName, activeSheet)}>Submit</button>
           </div>

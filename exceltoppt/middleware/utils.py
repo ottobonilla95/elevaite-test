@@ -11,6 +11,8 @@ import yaml
 import streamlit as st
 from pptx.dml.color import RGBColor
 import numpy as np
+import aiofiles
+import asyncio
 
 from langchain.document_loaders import CSVLoader
 from langchain.indexes import VectorstoreIndexCreator
@@ -19,8 +21,8 @@ from langchain.llms import OpenAI
 from langchain.embeddings.openai import OpenAIEmbeddings
 
 current_woring_dir = os.path.dirname(os.path.realpath(__file__))
-openai.api_key = "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"
-os.environ["OPENAI_API_KEY"] = "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"
+openai.api_key = ""
+os.environ["OPENAI_API_KEY"] = ""
 manifest_file_path = None
 metrics = None
 fiscal_year = None
@@ -39,82 +41,97 @@ def ask_questions(query, chain):
     response = chain({"question": query})
     return response['result']
 
+def convert_bytes_to_human_readable(size_in_bytes):
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if size_in_bytes < 1024.0:
+            return f"{size_in_bytes:.2f} {unit}"
+        size_in_bytes /= 1024.0
+
+
 async def ask_openai(context: str, call_for: str):
 
-    prompt = ""
+    try:
+        prompt = ""
 
-    if(call_for == "generate_manifest"):
-        income_statements_prompt_template = """
-        From the Excel file in text format, identify the fiscal year, fiscal month, reporting standards, all the metrics and sub metrics and provide only YAML file in the following format:
+        if(call_for == "generate_manifest"):
+            income_statements_prompt_template = """
+            From the Excel file in text format, identify the fiscal year, fiscal month, reporting standards, all the metrics and sub metrics and provide only YAML file in the following format:
 
-        Fiscal Year: 
-        Fiscal Months:
-            - [dates]
-            - [dates]
-        Reporting Standards: 
-        - GAAP
-        ....
-        Metrics: 
-        - [metrics]
-            - [sub metrics]
-        .....
-        """
-        #prompt = income_statements_prompt_template + f"\n\nExcel text: {context}"
-        prompt = "Genenrate a manifest from the excel sheet in text format: " +f"\n\nExcel text: {context}"
+            Fiscal Year: 
+            Fiscal Months:
+                - [dates]
+                - [dates]
+            Reporting Standards: 
+            - GAAP
+            ....
+            Metrics: 
+            - [metrics]
+                - [sub metrics]
+            .....
+            """
+            #prompt = income_statements_prompt_template + f"\n\nExcel text: {context}"
+            prompt = "Genenrate a manifest from the excel sheet in text format: " +f"\n\nExcel text: {context}"
 
-    elif(call_for == "get_summary"):
-        summary_prompt_template = """
-        For the Excel sheet in text given below, which provides details about historic financial statements, Please provide a 5-point summary. In your response, give each point as a separate sentence, and label them as (1), (2), (3), (4), and (5)"""
-        prompt = summary_prompt_template + f"\n\nExcel text: {context}"
-    
-    completion = openai.ChatCompletion.create(
-            model = "gpt-4",
-            messages = [
-                {"role":"system", "content":"You are a helpful assistant."},
-                {"role":"user","content":prompt}
-            ]
-        )
-    
-    if(call_for == "generate_manifest"):
-        yaml_pattern = r'```yaml(.*?)```'
-        match = re.search(yaml_pattern, str(completion.choices[0].message.content), re.DOTALL)
-
-        if match:
-            yaml_content = match.group(1).strip()
-            return yaml_content
-        else:
-            return str(completion.choices[0].message.content)
+        elif(call_for == "get_summary"):
+            summary_prompt_template = """
+            For the Excel sheet in text given below, which provides details about historic financial statements, Please provide a 5-point summary. In your response, give each point as a separate sentence, and label them as (1), (2), (3), (4), and (5). All the financial numbers must be in $ / dollars"""
+            prompt = summary_prompt_template + f"\n\nExcel text: {context}"
         
-    if(call_for == "get_summary"):
-        return str(completion.choices[0].message.content)
+        completion = openai.ChatCompletion.create(
+                model = "gpt-4",
+                messages = [
+                    {"role":"system", "content":"You are a helpful assistant."},
+                    {"role":"user","content":prompt}
+                ]
+            )
+        
+        if(call_for == "generate_manifest"):
+            yaml_pattern = r'```yaml(.*?)```'
+            match = re.search(yaml_pattern, str(completion.choices[0].message.content), re.DOTALL)
+
+            if match:
+                yaml_content = match.group(1).strip()
+                return yaml_content
+            else:
+                return str(completion.choices[0].message.content)
+            
+        if(call_for == "get_summary"):
+            return str(completion.choices[0].message.content)
+    except Exception as e:
+        return str(e)
 
 def excel_to_text(file_path: str, worksheet_name: str):
-    workbook = openpyxl.load_workbook(file_path, data_only=True)
-    worksheet_text_mapping = {}
 
-    #get excel text from the provided worksheet
-    if(worksheet_name is not None):
-        worksheet = workbook[worksheet_name]
-        text_content = ""
-        for row in worksheet.iter_rows(values_only=True):
-            row_text = " ".join(str(cell) if cell is not None else "" for cell in row)
-            text_content += row_text + "\n"
-        worksheet_text_mapping[worksheet_name] = text_content
-    else:
+    try:
+        workbook = openpyxl.load_workbook(file_path, data_only=True)
+        worksheet_text_mapping = {}
 
-    #get excel text from all worksheets
-        for sheet_name in workbook.sheetnames:
-        
-            worksheet = workbook[sheet_name]
+        #get excel text from the provided worksheet
+        if(worksheet_name is not None):
+            worksheet = workbook[worksheet_name]
             text_content = ""
-
             for row in worksheet.iter_rows(values_only=True):
                 row_text = " ".join(str(cell) if cell is not None else "" for cell in row)
                 text_content += row_text + "\n"
+            worksheet_text_mapping[worksheet_name] = text_content
+        else:
 
-            worksheet_text_mapping[sheet_name] = text_content
+        #get excel text from all worksheets
+            for sheet_name in workbook.sheetnames:
+            
+                worksheet = workbook[sheet_name]
+                text_content = ""
 
-    return worksheet_text_mapping
+                for row in worksheet.iter_rows(values_only=True):
+                    row_text = " ".join(str(cell) if cell is not None else "" for cell in row)
+                    text_content += row_text + "\n"
+
+                worksheet_text_mapping[sheet_name] = text_content
+
+        return worksheet_text_mapping
+    except Exception as e:
+        
+        return str(e)
 
 def listFilesInDirectory(directory_path: str):
     try:
@@ -126,7 +143,6 @@ def listFilesInDirectory(directory_path: str):
         return files_list
     except Exception as e:
         return str(e)
-    
 
 async def generate_manifest(file_name: str, file_path: str, save_dir: str):
 
@@ -185,6 +201,28 @@ def get_common_row_and_column_2(df, keyword1, keyword2):
             common_col = col
             break
     return common_row, common_col
+
+def Excel_to_Dataframe_auto(uploaded_file, sheet_name, csv_file):
+    # Load the Excel file
+    wb = openpyxl.load_workbook(uploaded_file, data_only=True)
+    ws = wb[sheet_name]
+
+    # Convert the worksheet to a list of lists
+    data = []
+    for row in ws.iter_rows(values_only=True):
+        data.append(row)
+
+    # Remove empty rows
+    data = [row for row in data if any(row)]
+
+    # Create a DataFrame from the cleaned data
+    header = data[0]  # Assuming the first row is the header row
+    data = data[1:]  # Remove the header row
+    df = pd.DataFrame(data, columns=header)
+
+    # Save the DataFrame to a CSV file
+    df.to_csv(csv_file, index=False)
+    return df
 
 def Excel_to_dataframe(excel_file_path, manifest_file_path, selected_sheet):
     
@@ -487,6 +525,21 @@ def add_excel_contents (prs, metrics, rs, fiscal_months, sub_metrics, df):
     font.name = 'Arial'
     font.color.rgb = RGBColor(255, 255, 255)
     font.size = Pt(20)  
+
+    sub_text = "(in millions dollars, except per-share amounts)"
+    left = Inches(0)
+    top = Inches(1.5)  
+    width = Inches(10)
+    height = Inches(0.5) 
+    text_box = slide.shapes.add_textbox(left, top, width, height)
+    text_frame = text_box.text_frame
+    p = text_frame.add_paragraph()
+    p.text = sub_text
+    p.alignment = PP_ALIGN.CENTER
+    font = p.runs[0].font
+    font.name = 'Arial'
+    font.color.rgb = RGBColor(255, 255, 255)
+    font.size = Pt(12)  
    
 
     mleft = Inches(1)
@@ -565,11 +618,16 @@ def add_excel_contents (prs, metrics, rs, fiscal_months, sub_metrics, df):
 
 async def generate_summary(filePath: str, sheet_name: str):
 
-    worksheet_text_mapping = excel_to_text(filePath, sheet_name)
+    try:
+       
+        worksheet_text_mapping = excel_to_text(filePath, sheet_name)
+        
 
-    response = await ask_openai(worksheet_text_mapping[sheet_name], "get_summary")
+        response = await ask_openai(worksheet_text_mapping[sheet_name], "get_summary")
 
-    return {"summary": response, "status": 200}
+        return {"summary": response, "status": 200}
+    except Exception as e:
+        return str(e)
 
 def generate_cisco_presentation(excel_file_path, manifest_file_path, summary, selected_sheet):
     
@@ -615,20 +673,61 @@ def generate_cisco_presentation(excel_file_path, manifest_file_path, summary, se
                     sub_metric = getcolumns(m)
                     add_excel_contents(prs, metric, rs, fiscal_months, sub_metric, df)
             
-
+    '''folderName = excel_file_path.split("/")[-1].split(".")[0]
+    os.makedirs(os.path.join(current_woring_dir, "data/PowerPoints", folderName), exist_ok=True)
     #saving presentation
+    ppt_name = str(selected_sheet).replace(" ", "") + "_presentation.pptx"'''
     ppt_path = os.path.join("data/PowerPoints", "cisco_presentation.pptx")
     prs.save(ppt_path)
     return ppt_path
 
-excel_file_path = os.path.join("data/Excel", "cisco.xlsx")
-manifest_file_path = os.path.join("data/Manifest/cisco", "Income Statements.yaml")
-summary = """(1) The historic financial statements provide a detailed view of the company's income statements for fiscal year 2023, broken down on a quarterly basis.
-(2) The document includes specific sections covering different types of revenue (product vs. service), costs of sales, gross margin, operating expenses, operating income, and net income.
-(3) The income statement presents separate figures for GAAP and non-GAAP measures, indicating the company's attempt to provide clear and broad financial information.
-(4) The total revenue for the fiscal year 2023 stood at $56,998 million, while the total cost of sales equates to $21,245 million in GAAP and $20,210 million in non-GAAP reports.
-(5) In FY 2023, the net income on GAAP measures was $12,613 million while in non-GAAP it was $15,979 million showing the company's profitability in that fiscal year."""
+def generate_presentation(excel_file_path, manifest_file_path, summary, selected_sheet):
+    
 
-selected_sheet = "Income Statements"
+    #create table of contents list
+    contents = ["Summary", "Company Overview", "Financial Overview", "Miscellaneous", "Conclusion"]
 
-print(generate_cisco_presentation(excel_file_path, manifest_file_path, summary, selected_sheet))
+    prs = Presentation()
+
+    #title slide
+    add_title_slide_cisco_finance(prs, "CISCO: Company Financial Overview", "FY 2023")
+
+    #table of contents
+    add_toc_slide(prs, contents)
+
+    #summary slide
+    add_summary(prs, summary)
+
+    folderName = excel_file_path.split("/")[-1].split(".")[0]
+    os.makedirs(os.path.join("data/PowerPoints", folderName), exist_ok=True)
+    #saving presentation
+    ppt_name = str(selected_sheet).replace(" ", "") + "_presentation.pptx"
+    ppt_path = os.path.join("data/PowerPoints", folderName, ppt_name)
+    prs.save(ppt_path)
+    return ppt_path
+
+def ask_questions(query, chain):
+
+    response = chain({"question": query})
+    return response['result']
+
+async def ask_csv_agent(excel_file_path, manifest_file_path, selected_sheet, question):
+
+    try:
+        df = Excel_to_dataframe(excel_file_path, manifest_file_path, selected_sheet)
+        df.to_csv(csv_file_path, index = True)
+        loader = CSVLoader(file_path=csv_file_path)
+        document = loader.load()
+        embeddings = OpenAIEmbeddings()
+        index_creator = VectorstoreIndexCreator()
+        docsearch = index_creator.from_loaders([loader])
+        chain = RetrievalQA.from_chain_type(llm=OpenAI(), chain_type="stuff", retriever=docsearch.vectorstore.as_retriever(), input_key="question")
+        response = ask_questions(question, chain)
+
+        return {"response": response, "status": 200}
+    except Exception as e:
+        return str(e)
+
+#print(asyncio.run(generate_summary("data/Excel/cisco.xlsx","Income Statements")))
+
+print(convert_bytes_to_human_readable(27957))

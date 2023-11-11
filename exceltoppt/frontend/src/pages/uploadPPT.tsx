@@ -15,48 +15,60 @@ export default function Home() {
   const [fileSize, setFileSize] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [manifest, setManifest] = useState(false);
+  
 
   const router = useRouter();
+  const { excel_file_name, manifest_file_name, folder_name } = router.query;
 
   const handleFileInputChange = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    console.log("upload");
   };
 
   const handleCanclebutton = () => {
-    setSelectedFileName("");
-    setSheetCount(0);
+    router.push('/');
   };
 
-  const handleSubmitbutton = async () => {
-    try {
-      console.log("Generating Manifest..");
-      setManifest(true);
-      const q_params = "file_name=" + encodeURIComponent(selectedFileName?.split(".")[0]) + "&file_path=" + "data/Excel/" + encodeURIComponent(selectedFileName) + "&save_dir=" + "data/Manifest";
-      const response = await axios.get(`http://localhost:8000/generateManifest/?${q_params}`);
+  const handleSubmitbutton = async (fileName: string | string[] | undefined, activeSheet: string | null) => {
+    console.log("button")
+    if (fileName !== undefined && activeSheet !== null) {
+      let encodedExcelFile: string;
 
-      if (response.status === 200) {
-        console.log("Manifest Generated..");
-
-        const sheetNames = Array.isArray(response.data.sheet_names)
-          ? response.data.sheet_names
-          : [response.data.sheet_names];
-        console.log(typeof sheetNames);
-        setManifest(false);
-        router.push({
-          pathname: '/reviewManifest',
-          query: {
-            fileName: selectedFileName?.split('.')[0],
-            sheetNames: sheetNames
-          }
-        });
+      if (Array.isArray(fileName)) {
+        // If fileName is an array, take the first element (you can modify this based on your requirement)
+        encodedExcelFile = encodeURIComponent(fileName[0]);
+      } else {
+        // If fileName is a string, directly encode it
+        encodedExcelFile = encodeURIComponent(fileName);
       }
-    } catch (error) {
-      setIsLoading(false);
-      console.error('Error generating manifest:', error);
-    }
 
+      const encodedManifestFile = encodeURIComponent(activeSheet);
+      const q_params = "excel_file=" + encodedExcelFile + "&manifest_file=" + encodedManifestFile + "&folder_name=" + encodedExcelFile.split(".")[0];
+      console.log(q_params);
+      try {
+        console.log("generating ppt..");
+        setManifest(true);
+        const response = await axios.get(`http://localhost:8000/generatePPT/?${q_params}`);
+
+        if (response.status === 200) {
+          console.log("ppt generated successfully");
+          setManifest(false);
+          console.log(response);
+          router.push({
+            pathname: '/viewPPT',
+            query: {
+              ppt_file: response.data,
+              excel_file: fileName ,
+              sheet_name: activeSheet
+            }
+          });
+          
+        }
+    }
+      catch (error) {
+        setIsLoading(false);
+        console.log("Error generating Manifest Content: " + error);
+      }
+    }
   };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,7 +116,7 @@ export default function Home() {
           {'>'}
           <span className="current-page"> AI DeckBuilder</span>
         </div>
-        <div className="manifest-header2">Generating Manifest...</div>
+        <div className="manifest-header2">Generating Presentation...</div>
         <div className="loadingContainer2">
 
           <div className="spinner2"></div>
@@ -119,20 +131,25 @@ export default function Home() {
           <span className="current-page"> AI DeckBuilder</span>
         </div>
         <div className="progress-bar-container">
-          <Progressbar current={1} />
+          <Progressbar current={3} />
         </div>
         <div className="upload-container">
           <div className="upload-header-container">
-            Upload
+            Upload PPT Template
           </div>
+          <div className="upload-subheader-container">
+          Select between uploading your own slide template or utilizing our generic template for quick, professional presentation.
+          </div>
+          <button className = "button-template" onClick={() => handleSubmitbutton(excel_file_name, manifest_file_name as string)}>Use Generic Template</button>
+          <div className="sidebar-divider2"></div>
           <div className="upload-widget">
             <div className="upload-icon">
               <FaCloudUploadAlt className="upload-cloud-icon" />
             </div>
             <p className="upload-text" onClick={handleFileInputChange}>
-              Click to upload Excel File
+              Click to upload PPT File
             </p>
-            <p className="upload-sub-text">or drag and drop your .xlsx file</p>
+            <p className="upload-sub-text">or drag and drop your .pptx file</p>
           </div>
           <input
             type="file"
@@ -168,7 +185,7 @@ export default function Home() {
 
             <button className="action-button2" onClick={handleCanclebutton}>Cancel</button>
             <div className="space-padding"></div>
-            <button className="action-button-align-right action-button" onClick={handleSubmitbutton}>Submit</button>
+            <button className="action-button-align-right action-button">Submit</button>
 
           </div>
 

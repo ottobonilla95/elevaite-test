@@ -15,15 +15,18 @@ export default function Home() {
   const [question, setQuestion] = useState("");
   const [submittedQuestions, setSubmittedQuestions] = useState("");
   const [answer, setAnswer] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleQuestionSubmit = () => {
     setSubmittedQuestions(question);
+    setIsLoading(true);
     handleSubmit(question, excel_file, sheet_name);
   };
 
   const handleSubmit = async (question: string, excel_file: string | string[] | undefined, sheet_name: string | string[] | undefined) => {
     try {
       // Ensure that excel_file and sheet_name are strings before using them
+      
       const validExcelFile = excel_file ? (Array.isArray(excel_file) ? excel_file[0] : excel_file) : '';
       const validSheetName = sheet_name ? (Array.isArray(sheet_name) ? sheet_name[0] : sheet_name) : '';
   
@@ -34,6 +37,7 @@ export default function Home() {
   
       if (response.status === 200) {
         setAnswer(response.data.result);
+        setIsLoading(false);
       }
   
     } catch (error) {
@@ -93,40 +97,58 @@ export default function Home() {
     <div className="app-container">
       <Header />
       <div className="upload-container-main">
-        <div className="progress-bar-container">
-          {/* Step progress bar goes here */}
+      <div className="breadcrumb-container">
+          <a>Ingest</a>
+          <span className="separator"></span>
+          {'>'}
+          <span className="current-page"> AI DeckBuilder</span>
         </div>
+      <div className="progress-bar-container">
+          <Progressbar current={4}/>
+      </div>
         <div className="button-container3">
           <div className="space-padding"></div>
-          <button className="action-button-align-right action-button" onClick={handleDownload}>Download</button>
+          
         </div>
         <div className="manifest-header">PPT Preview</div>
         <div className="manifest-container">
           <div>
-            {ppt_file}
             
+            <button className="action-button-align-right action-button" onClick={handleDownload}>Download</button>
             {/* show ppt here */}
           </div>
           <div>
-          <div className="manifest-header-container">
-              Query Excel File
-            </div>
-          <div className="question-container">
-            <div className="question-input-container">
-              <input
-                type="text"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder="Type your question"
-              />
-              <div className="button-container2">
-                <div className="space-padding"></div>
-                <button className="action-button-align-right action-button" onClick={handleQuestionSubmit}>Submit</button>
+            <div className="chatbot-container">
+              <div className="chatbot-header">
+                ChatBot
               </div>
-              {answer}
+              <div className="question-container">
+                <div className = "question-input-container">
+                  <input
+                    type = "text"
+                    value = {question}
+                    onChange = {(e) => setQuestion(e.target.value)}
+                    placeholder="Type your question"
+                  />
+                  <div className="button-container2">
+                    <div className="space-padding">
+                      <button className="action-button-align-right action-button" onClick ={handleQuestionSubmit}>Submit</button>
+                    </div>
+                  </div>
+                  {isLoading ? (
+                    <div className="loadingContainer">
+                    <div className="spinner"></div>
+                  </div>
+                  ): (
+                    <div>
+                    {answer}
+                    </div>
+                  )}
+                  
+                </div>
+              </div>  
             </div>
-
-          </div>
+          
           </div>
           
         </div>
