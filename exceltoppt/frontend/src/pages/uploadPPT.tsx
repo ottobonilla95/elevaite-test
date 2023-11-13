@@ -65,7 +65,7 @@ export default function Home() {
         }
     }
       catch (error) {
-        setIsLoading(false);
+        setManifest(false);
         console.log("Error generating Manifest Content: " + error);
       }
     }
@@ -123,7 +123,7 @@ export default function Home() {
         </div>
       </div>
       ):(
-        <div className="upload-container-main">
+        <div className="upload-container-main2">
         <div className="breadcrumb-container">
           <a>Ingest</a>
           <span className="separator"></span>

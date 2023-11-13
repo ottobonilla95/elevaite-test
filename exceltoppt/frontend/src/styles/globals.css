@@ -87,13 +87,20 @@ body {
 
 .app-container {
   width: 100%;
-  height: 100vh;
+  height: 110vh;
   background-color: #fff0e6;
 }
 
 .upload-container-main {
   border: 1px solid lightgrey;
   height: 85vh;
+  background-color: white;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin: 30px 30px 30px 30px;
+}
+.upload-container-main2 {
+  border: 1px solid lightgrey;
+  height: 95vh;
   background-color: white;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   margin: 30px 30px 30px 30px;
@@ -180,7 +187,7 @@ body {
 .upload-widget {
   width: calc(100% - 600px);
   height: 200px;
-  margin-top: 60px;
+  margin-top: 20px;
   margin-left: 300px;
   background-color: black;
   border-radius: 6px;

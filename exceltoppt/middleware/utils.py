@@ -364,8 +364,18 @@ def add_toc_slide(prs, contents):
     left_box = slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(4.5), Inches(5.5))
     right_box = slide.shapes.add_textbox(Inches(5.5), Inches(1.5), Inches(4.5), Inches(5.5))
 
-    add_contents_to_column(prs, left_box, contents[:5])
-    add_contents_to_column(prs, right_box, contents[5:], start_number=len(contents[:5]) + 1)
+    if contents:
+        total_items = len(contents)
+        mid_point = total_items // 2
+
+        add_contents_to_column(prs, left_box, contents[:mid_point])
+
+        if total_items % 2 == 0:
+            add_contents_to_column(prs, right_box, contents[mid_point:], start_number=mid_point + 1)
+        else:
+            add_contents_to_column(prs, right_box, contents[mid_point + 1:], start_number=mid_point + 2)   
+    '''add_contents_to_column(prs, left_box, contents[:5])
+    add_contents_to_column(prs, right_box, contents[5:], start_number=len(contents[:5]) + 1)'''
     add_footer(prs, slide, "© Cisco and/or its affiliates. All rights reserved. Cisco Confidential")
 
 def add_summary(prs, summary):
@@ -631,80 +641,127 @@ async def generate_summary(filePath: str, sheet_name: str):
 
 def generate_cisco_presentation(excel_file_path, manifest_file_path, summary, selected_sheet):
     
-    #Extract YAML details
-    with open(manifest_file_path, 'r') as yaml_file:
-        data = yaml.safe_load(yaml_file)
-    metrics = data['Metrics']
-    fiscal_year = data['Fiscal Year']
-    fiscal_months = data['Fiscal Months']
-    reporting_standards = data['Reporting Standards']
+    try:
 
-    #Convert Excel to Datafeme/csv
-    df = Excel_to_dataframe(excel_file_path, manifest_file_path, selected_sheet)
+        try:
+            #Extract YAML details
+            with open(manifest_file_path, 'r') as yaml_file:
+                data = yaml.safe_load(yaml_file)
+            metrics = data['Metrics']
+            fiscal_year = data['Fiscal Year']
+            fiscal_months = data['Fiscal Months']
+            reporting_standards = data['Reporting Standards']
+        except Exception as e:
+            print ("Error while processing Manifest File: " + str(e))
 
-    #create table of contents list
-    contents = ["Summary"]
+        try:
+            #Convert Excel to Datafeme/csv
+            df = Excel_to_dataframe(excel_file_path, manifest_file_path, selected_sheet)
+        except Exception as e:
+            print("Error while converting Excel to Datafeme/csv: " + str(e))
 
-    for content in metrics:
-        if isinstance(content, dict):
-            for key, value in content.items():
-                contents.append(key.split('(')[0] if '(' in key else key)
+        try:
+            #create table of contents list
+            contents = ["Summary"]
+
+            for content in metrics:
+                if isinstance(content, dict):
+                    for key, value in content.items():
+                        contents.append(key.split('(')[0] if '(' in key else key)
 
 
-    contents.append("Miscellaneous")
+            contents.append("Miscellaneous")
+        except Exception as e:
+            print("Error while creating table of contents: " + str(e))
+            contents = ["Summary", "Miscellaneous"]
+    
 
-    prs = Presentation()
 
-    #title slide
-    add_title_slide_cisco_finance(prs, "CISCO: Company Financial Overview", fiscal_year)
+        prs = Presentation()
+        try:
+            #title slide
+            add_title_slide_cisco_finance(prs, "CISCO: Company Financial Overview", fiscal_year)
+        except Exception as e:
+            print("Error while creating title slide: " + str(e))
 
-    #table of contents
-    add_toc_slide(prs, contents)
+        try:
+            #table of contents
+            add_toc_slide(prs, contents)
+        except Exception as e:
+            print("Error while creating table of contents slide: " + str(e))
 
-    #summary slide
-    add_summary(prs, summary)
+        try:
+            #summary slide
+            add_summary(prs, summary)
+        except Exception as e:
+            print("Error while creating summary slide: " + str(e))
 
-    #excel content slides
-    for m in metrics:
-        for rs in reporting_standards:
-            if isinstance(m, dict):
-                for key, value in m.items():
-                    metric = key.split('(')[0] if '(' in key else key
-                    sub_metric = getcolumns(m)
-                    add_excel_contents(prs, metric, rs, fiscal_months, sub_metric, df)
-            
-    '''folderName = excel_file_path.split("/")[-1].split(".")[0]
-    os.makedirs(os.path.join(current_woring_dir, "data/PowerPoints", folderName), exist_ok=True)
-    #saving presentation
-    ppt_name = str(selected_sheet).replace(" ", "") + "_presentation.pptx"'''
-    ppt_path = os.path.join("data/PowerPoints", "cisco_presentation.pptx")
-    prs.save(ppt_path)
-    return ppt_path
+        try:
+            #excel content slides
+            for m in metrics:
+                for rs in reporting_standards:
+                    if isinstance(m, dict):
+                        for key, value in m.items():
+                            metric = key.split('(')[0] if '(' in key else key
+                            sub_metric = getcolumns(m)
+                            add_excel_contents(prs, metric, rs, fiscal_months, sub_metric, df)
+        except Exception as e:
+            print("Error while added excel contents: " + str(e))
+                
+        '''folderName = excel_file_path.split("/")[-1].split(".")[0]
+        os.makedirs(os.path.join(current_woring_dir, "data/PowerPoints", folderName), exist_ok=True)
+        #saving presentation
+        ppt_name = str(selected_sheet).replace(" ", "") + "_presentation.pptx"'''
+        ppt_path = os.path.join("data/PowerPoints", "cisco_presentation.pptx")
+        prs.save(ppt_path)
+        return ppt_path
+    except Exception as e:
+        return("Error while generating PowerPoints: " + str(e))
 
 def generate_presentation(excel_file_path, manifest_file_path, summary, selected_sheet):
     
+    try:
+        #create table of contents list
+        contents = ["Summary", "Company Overview", "Financial Overview", "Miscellaneous", "Conclusion"]
 
-    #create table of contents list
-    contents = ["Summary", "Company Overview", "Financial Overview", "Miscellaneous", "Conclusion"]
+        prs = Presentation()
+        try:
+            #title slide
+            add_title_slide_cisco_finance(prs, "CISCO: Company Financial Overview", "FY 2023")
+        except Exception as e:
+            print("Error while adding title slide: " + str(e))
 
-    prs = Presentation()
+        try:
+            #table of contents
+            add_toc_slide(prs, contents)
+        except Exception as e:
+            print("Error while adding table of content slide: " + str(e))
 
-    #title slide
-    add_title_slide_cisco_finance(prs, "CISCO: Company Financial Overview", "FY 2023")
+        try:
+            #summary slide
+            add_summary(prs, summary)
+        except Exception as e:
+            print("Error while adding summary slide: " + str(e))
 
-    #table of contents
-    add_toc_slide(prs, contents)
+        try:
+            folderName = excel_file_path.split("/")[-1].split(".")[0]
 
-    #summary slide
-    add_summary(prs, summary)
-
-    folderName = excel_file_path.split("/")[-1].split(".")[0]
-    os.makedirs(os.path.join("data/PowerPoints", folderName), exist_ok=True)
-    #saving presentation
-    ppt_name = str(selected_sheet).replace(" ", "") + "_presentation.pptx"
-    ppt_path = os.path.join("data/PowerPoints", folderName, ppt_name)
-    prs.save(ppt_path)
-    return ppt_path
+            os.makedirs(os.path.join("data/PowerPoints", folderName), exist_ok=True)
+            #saving presentation
+            ppt_name = str(selected_sheet).replace(" ", "") + "_presentation.pptx"
+            ppt_path = os.path.join("data/PowerPoints", folderName, ppt_name)
+            prs.save(ppt_path)
+            return ppt_path
+        except Exception as e:
+            folderName = "Excel_Sheets"
+            os.makedirs(os.path.join("data/PowerPoints", folderName), exist_ok=True)
+            #saving presentation
+            ppt_name = str(selected_sheet).replace(" ", "") + "_presentation.pptx"
+            ppt_path = os.path.join("data/PowerPoints", folderName, ppt_name)
+            prs.save(ppt_path)
+            return ppt_path
+    except Exception as e:
+        return("Error while generating PowerPoints: " + str(e)) 
 
 def ask_questions(query, chain):
 
@@ -728,6 +785,3 @@ async def ask_csv_agent(excel_file_path, manifest_file_path, selected_sheet, que
     except Exception as e:
         return str(e)
 
-#print(asyncio.run(generate_summary("data/Excel/cisco.xlsx","Income Statements")))
-
-print(convert_bytes_to_human_readable(27957))
