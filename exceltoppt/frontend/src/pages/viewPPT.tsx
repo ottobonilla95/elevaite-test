@@ -7,7 +7,7 @@ import Progressbar from '@/components/progressbar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useRouter } from 'next/router';
 
-// ... (previous imports)
+
 
 export default function Home() {
   const router = useRouter();
@@ -57,7 +57,7 @@ export default function Home() {
         responseType: 'blob', 
       });
   
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+     /* const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
   
@@ -78,8 +78,12 @@ export default function Home() {
         window.URL.revokeObjectURL(url);
       } else {
         console.error('Error: link.parentNode is null');
-      }
+      }*/
 
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(response.data);
+      link.download = validPptFile.split('/').pop() || 'download.pptx';
+      link.click();
     } catch (error) {
       console.error('Error getting Manifest Content:', error);
     }

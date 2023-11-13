@@ -5,12 +5,15 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
+from io import BytesIO
+from reportlab.pdfgen import canvas
 import logging
 import openpyxl
 import yaml
 import uvicorn
 import io 
 import os
+
 
 from utils import generate_manifest
 from utils import generate_summary
@@ -22,7 +25,6 @@ from utils import Excel_to_Dataframe_auto
 from utils import ask_questions
 from utils import convert_bytes_to_human_readable
 
-
 from langchain.document_loaders import CSVLoader
 from langchain.indexes import VectorstoreIndexCreator
 from langchain.chains import RetrievalQA
@@ -32,7 +34,9 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 current_woring_dir = os.path.dirname(os.path.realpath(__file__))
 csv_file_path = os.path.join(current_woring_dir, "data/Output", "output.csv")
 
+
 app = FastAPI()
+
 origins = [
     
     "http://localhost:3000"
@@ -150,9 +154,15 @@ async def download_ppt(ppt_path: str):
             content = file.read()
         filename = ppt_path.split("/")[-1]
         
-        return StreamingResponse(io.BytesIO(content), media_type='application/vnd.openxmlformats-officedocument.presentationml.presentation', headers={"Content-Disposition": f"attachment; filename={filename}"})
+        return StreamingResponse(
+            io.BytesIO(content), 
+            media_type='application/vnd.openxmlformats-officedocument.presentationml.presentation', 
+            headers={"Content-Disposition": f"attachment; filename={filename}"})
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="File not found")
+
+
+
 
 @app.get("/getppturl")
 async def getppturl(ppt_path: str):
