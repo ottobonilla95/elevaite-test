@@ -5,14 +5,10 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
-from io import BytesIO
-from reportlab.pdfgen import canvas
-import logging
 import openpyxl
-import yaml
-import uvicorn
 import io 
 import os
+from fastapi.responses import FileResponse
 
 
 from utils import generate_manifest
@@ -24,6 +20,8 @@ from utils import Excel_to_dataframe
 from utils import Excel_to_Dataframe_auto
 from utils import ask_questions
 from utils import convert_bytes_to_human_readable
+from utils import upload_file
+
 
 from langchain.document_loaders import CSVLoader
 from langchain.indexes import VectorstoreIndexCreator
@@ -60,37 +58,17 @@ def read_item(item_id: int):
     return {"item_id": item_id}
 
 @app.post("/upload/")
-async def upload_file(file: UploadFile = File(...)):
+async def uploadFile(file: UploadFile = File(...)):
     try:
-        # Ensure the "data/Excel" folder exists
-        os.makedirs("data/Excel", exist_ok=True)
-        clean_file_name = file.filename.replace(" ", "");
-        # Save the uploaded file to the "data/Excel" folder
-        with open(f"data/Excel/{file.filename}", "wb") as f:
-            f.write(file.file.read())
-        file.file.seek(0, 2)  
-        size = file.file.tell()  
-        file.file.seek(0) 
-        size = convert_bytes_to_human_readable(size)
-        
-        # Open the uploaded Excel file using openpyxl
-        excel_file = openpyxl.load_workbook(f"data/Excel/{file.filename}")
-        file_path = "data/Excel/{file.filename}"
-
-        # Get the list of sheet names in the Excel file
-        sheet_names = excel_file.sheetnames
-
-        return JSONResponse(content={"message": "File uploaded successfully", "sheet_names": sheet_names, "file_path" : file_path, "file_size" : size}, status_code=200)
+        response = await upload_file(file)
+        return JSONResponse(content=response, status_code=200)
     except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        print("File Upload Failed: " + str(e))
     
+
 @app.get("/generateManifest/")
 async def generateManifest(file_name: str, file_path: str, save_dir: str):
     try:
-        '''data = await request.json()
-        file_name = data.get('file_name')
-        file_path = data.get('file_path')
-        save_dir = data.get('save_dir')'''
 
         result = await generate_manifest(file_name, file_path, save_dir)
         if(result["status"] == 200):
@@ -122,6 +100,7 @@ async def askCsvAgent(excel_file: str, manifest_file: str, question: str):
         manifest_file_path = os.path.join("data", "Manifest", excel_file.split(".")[0], manifest_file)
         selected_sheet = manifest_file.split(".")[0]
         if excel_file == "cisco.xlsx":
+            print("inside cisco")
             df = Excel_to_dataframe(excel_file_path, manifest_file_path, selected_sheet)
             df.to_csv(csv_file_path, index = True)
             loader = CSVLoader(file_path=csv_file_path)
@@ -145,8 +124,10 @@ async def askCsvAgent(excel_file: str, manifest_file: str, question: str):
             return JSONResponse(content = response, status_code=200)
         
     except Exception as e:
+        print("askCsvAgent error: " +str(e))
         return JSONResponse(content={"error": str(e)}, status_code=500)
-    
+
+
 @app.get("/downloadppt")
 async def download_ppt(ppt_path: str):
     try:
@@ -161,8 +142,15 @@ async def download_ppt(ppt_path: str):
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="File not found")
 
-
-
+@app.get("/downloadPPT/")
+async def download_presentation(ppt_path: str):
+    try:
+        if ppt_path:
+            return FileResponse(ppt_path, media_type='application/vnd.openxmlformats-officedocument.presentationml.presentation')
+        else: 
+            return JSONResponse(content={"error": str(e)}, status_code=500)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 @app.get("/getppturl")
 async def getppturl(ppt_path: str):
@@ -206,4 +194,12 @@ async def generate_powerpoint(excel_file: str ,manifest_file: str, folder_name: 
         return JSONResponse(content={"error": str(e)}, status_code=500)
     
 
+@app.post("/convert")
+async def convert_pptx_to_pdf(pptx_path: str):
+    pdf_bytes = convert_pptx_to_pdf(pptx_path)
 
+    file_name = (pptx_path.split('/')[-1]).split('.')[0]
+    pdf_path = os.path.join("data/pdfs", file_name, ".pdf")
+    with open(pdf_path, "wb") as pdf_file:
+        pdf_file.write(pdf_bytes.read())
+    return "Sucess"

@@ -2,27 +2,41 @@ import openai
 import re
 import os
 import openpyxl
+import yaml
+
+from openai import OpenAI
+
+import pandas as pd
+import streamlit as st
+import numpy as np
+from dotenv import load_dotenv
 from pptx import Presentation
 from pptx.util import Inches
 from pptx.util import Pt
 from pptx.enum.text import PP_ALIGN
-import pandas as pd
-import yaml
-import streamlit as st
 from pptx.dml.color import RGBColor
-import numpy as np
-import aiofiles
-import asyncio
+from io import BytesIO
+import aspose.slides as slides
 
+from fastapi import UploadFile, File
 from langchain.document_loaders import CSVLoader
 from langchain.indexes import VectorstoreIndexCreator
 from langchain.chains import RetrievalQA
 from langchain.llms import OpenAI
 from langchain.embeddings.openai import OpenAIEmbeddings
 
+from functions import api_openai
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+
+
+#Load Environment Variables
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 current_woring_dir = os.path.dirname(os.path.realpath(__file__))
-openai.api_key = ""
-os.environ["OPENAI_API_KEY"] = ""
+
+
 manifest_file_path = None
 metrics = None
 fiscal_year = None
@@ -36,17 +50,49 @@ cisco_toc_bg = os.path.join("data/Templates", "cisco_toc.png")
 cisco_bg_metrics = os.path.join("data/Templates", "cisco_bg_metrics.png")
 
 
-def ask_questions(query, chain):
+async def upload_file(file: UploadFile = File(...)):
+    try:
 
-    response = chain({"question": query})
-    return response['result']
+        #Get File Type
+        file_type = file.content_type
+
+        #Get File Size
+        file.file.seek(0,2)
+        size = file.file.tell()
+        file.file.seek(0)
+        file_size = convert_bytes_to_human_readable(size)
+
+        #Get File Name
+        file_name = file.filename
+
+        #Save Excel file to local drive
+        os.makedirs("data/Excel", exist_ok=True)
+        with open(f"data/Excel/{file.filename}", "wb") as f:
+            f.write(file.file.read())
+
+        #Excel/Workbook - get list of sheets
+        sheets = []
+        if file_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" or file_type == "application/vnd.ms-excel":
+            file_path = f"data/Excel/{file.filename}"
+            workbook = openpyxl.load_workbook(file_path, read_only=True)
+            sheets = workbook.sheetnames
+            
+        return {"response": "Success", "file_size": file_size, "file_name": file_name, "file_type" : file_type, "sheet": sheets}
+    except Exception as e:
+        return {"response": "Error", "error_message": e}
+
+def ask_questions(query, chain):
+    try:
+        response = chain({"question": query})
+        return response['result']
+    except Exception as e:
+        return str(e)
 
 def convert_bytes_to_human_readable(size_in_bytes):
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
         if size_in_bytes < 1024.0:
             return f"{size_in_bytes:.2f} {unit}"
         size_in_bytes /= 1024.0
-
 
 async def ask_openai(context: str, call_for: str):
 
@@ -76,27 +122,23 @@ async def ask_openai(context: str, call_for: str):
             summary_prompt_template = """
             For the Excel sheet in text given below, which provides details about historic financial statements, Please provide a 5-point summary. In your response, give each point as a separate sentence, and label them as (1), (2), (3), (4), and (5). All the financial numbers must be in $ / dollars"""
             prompt = summary_prompt_template + f"\n\nExcel text: {context}"
-        
-        completion = openai.ChatCompletion.create(
-                model = "gpt-4",
-                messages = [
-                    {"role":"system", "content":"You are a helpful assistant."},
-                    {"role":"user","content":prompt}
-                ]
-            )
-        
+         
+        response = api_openai(prompt)
         if(call_for == "generate_manifest"):
             yaml_pattern = r'```yaml(.*?)```'
-            match = re.search(yaml_pattern, str(completion.choices[0].message.content), re.DOTALL)
+            #match = re.search(yaml_pattern, str(completion.choices[0].message.content), re.DOTALL)
+            match = re.search(yaml_pattern, str(response), re.DOTALL)
 
             if match:
                 yaml_content = match.group(1).strip()
                 return yaml_content
             else:
-                return str(completion.choices[0].message.content)
+               # return str(completion.choices[0].message.content)
+               return str(response)
             
         if(call_for == "get_summary"):
-            return str(completion.choices[0].message.content)
+            #return str(completion.choices[0].message.content)
+            return str(response)
     except Exception as e:
         return str(e)
 
@@ -683,6 +725,7 @@ def generate_cisco_presentation(excel_file_path, manifest_file_path, summary, se
             add_title_slide_cisco_finance(prs, "CISCO: Company Financial Overview", fiscal_year)
         except Exception as e:
             print("Error while creating title slide: " + str(e))
+            add_title_slide_cisco_finance(prs, "CISCO: Company Financial Overview", "FY2023")
 
         try:
             #table of contents
@@ -694,7 +737,13 @@ def generate_cisco_presentation(excel_file_path, manifest_file_path, summary, se
             #summary slide
             add_summary(prs, summary)
         except Exception as e:
-            print("Error while creating summary slide: " + str(e))
+            print("Error while creating summary slide: " + str(e) + "summary: " + str(summary))
+            summary="""(1) line 1
+            (2) line 2
+            (3) line 3
+            (4) line 4
+            (5) line 5"""
+            add_summary(prs, summary)
 
         try:
             #excel content slides
@@ -713,7 +762,9 @@ def generate_cisco_presentation(excel_file_path, manifest_file_path, summary, se
         #saving presentation
         ppt_name = str(selected_sheet).replace(" ", "") + "_presentation.pptx"'''
         ppt_path = os.path.join("data/PowerPoints", "cisco_presentation.pptx")
+        pdf_path = os.path.join("data/pdfs", "cisco_presentation.pdf")
         prs.save(ppt_path)
+        
         return ppt_path
     except Exception as e:
         return("Error while generating PowerPoints: " + str(e))
@@ -757,8 +808,10 @@ def generate_presentation(excel_file_path, manifest_file_path, summary, selected
             os.makedirs(os.path.join("data/PowerPoints", folderName), exist_ok=True)
             #saving presentation
             ppt_name = str(selected_sheet).replace(" ", "") + "_presentation.pptx"
+            pdf_name = str(selected_sheet).replace(" ", "") + "_presentation.pdf"
             ppt_path = os.path.join("data/PowerPoints", folderName, ppt_name)
             prs.save(ppt_path)
+            prs.save(pdf_name)
             return ppt_path
     except Exception as e:
         return("Error while generating PowerPoints: " + str(e)) 
@@ -784,4 +837,11 @@ async def ask_csv_agent(excel_file_path, manifest_file_path, selected_sheet, que
         return {"response": response, "status": 200}
     except Exception as e:
         return str(e)
+
+
+
+
+
+
+
 
