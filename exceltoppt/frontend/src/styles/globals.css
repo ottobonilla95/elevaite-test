@@ -30,7 +30,6 @@ body {
   display: flex;
   height: 50px;
   justify-content: space-between;
-  padding: 17px 20px;
   position: relative;
   width: 100%;
   background-color: black;
@@ -707,6 +706,13 @@ body {
 .button .text-wrapper {
   margin-top: -1px;
   position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.title-wrapper {
+  margin-top: -1px;
+  position: absolute;
   white-space: nowrap;
   width: fit-content;
 }
@@ -2355,7 +2361,7 @@ body {
   display: inline-flex;
   flex: 0 0 auto;
   flex-direction: column;
-  height: 1024px;
+  height: 100vh;
   position: relative;
 }
 
@@ -2558,6 +2564,20 @@ body {
   width: fit-content;
 }
 
+.workshop .title-wrapper {
+  color: #ffffff;
+  font-family: "Inter", Helvetica;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 24px;
+  margin-top: 10px;
+  margin-left: 5px;
+  position: relative;
+  white-space: nowrap;
+  width: fit-content;
+}
+
 .workshop .frame-3 {
   align-items: center;
   display: inline-flex;
@@ -2640,9 +2660,9 @@ body {
   flex-direction: column;
   flex-grow: 1;
   gap: 16px;
-  padding: 80px 32px;
+  padding: 120px 32px;
   position: relative;
-  width: 1360px;
+  width: 100%;
 }
 
 .workshop .overlap-group-wrapper {
@@ -3000,7 +3020,7 @@ body {
   width: 16px;
 }
 
-.workshop .copyright-wrapper {
+.workshop .copyright-wrapper{
   align-items: center;
   background-color: #f37d37;
   display: flex;
@@ -3011,7 +3031,18 @@ body {
   padding: 21px 276px;
   position: absolute;
   top: 971px;
-  width: 1322px;
+  width: 100%;
+}
+
+.copyright-wr {
+  align-items: center;
+  background-color: #f37d37;
+  display: flex;
+  height: 37px;
+  justify-content: center;
+  padding: 21px 276px;
+  position: relative;
+  width: 100%;
 }
 
 .workshop .copyright {

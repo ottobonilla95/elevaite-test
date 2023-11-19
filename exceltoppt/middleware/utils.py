@@ -3,6 +3,7 @@ import re
 import os
 import openpyxl
 import yaml
+import uuid
 
 from openai import OpenAI
 
@@ -101,22 +102,34 @@ async def ask_openai(context: str, call_for: str):
 
         if(call_for == "generate_manifest"):
             income_statements_prompt_template = """
-            From the Excel file in text format, identify the fiscal year, fiscal month, reporting standards, all the metrics and sub metrics and provide only YAML file in the following format:
-
-            Fiscal Year: 
-            Fiscal Months:
-                - [dates]
-                - [dates]
+            Identify all the dimensions like reporting standards, fiscal year, fiscal quarter, revenue, cost of sales, expenses, income products, service , business entity and all the metric amounts and and provide the result in the YAML file with the respective dimenstions and metrics in the following format given for one quarter and repeat for all quarters if the data is available in the context:
             Reporting Standards: 
-            - GAAP
-            ....
-            Metrics: 
-            - [metrics]
-                - [sub metrics]
-            .....
+             - GAAP
+             - Non-GAAP
+               - Fiscal Year: 
+                - Fiscal Quarter:
+                   - Quarter 1 (August)
+                       - Revenue: 
+                         - Product
+                            - Metrics Amount
+                         - Service
+                            - Metrics Amount
+                       - Cost of Sales
+                         - Product
+                            - Metrics Amount
+                         - Service  
+                            - Metrics Amount
+                       - Gross Margins
+                         - Metrics Amount
+                       - Operating Income    
+                         - Metrics Amount    
+                       - Net Income    
+                         - Metrics Amount 
+                       - Net Income    
+                         - Metrics Amount 
             """
-            #prompt = income_statements_prompt_template + f"\n\nExcel text: {context}"
-            prompt = "Genenrate a manifest from the excel sheet in text format: " +f"\n\nExcel text: {context}"
+            prompt = income_statements_prompt_template + " from the context below" + f"\n\n{context}"
+            #prompt = "Genenrate a manifest from the excel sheet in text format: " +f"\n\nExcel text: {context}"
 
         elif(call_for == "get_summary"):
             summary_prompt_template = """
@@ -266,8 +279,19 @@ def Excel_to_Dataframe_auto(uploaded_file, sheet_name, csv_file):
     df.to_csv(csv_file, index=False)
     return df
 
+def excel_to_csv(excel_file_path, selected_sheet):
+    df = pd.read_excel(excel_file_path, sheet_name=selected_sheet, header=None)
+    df = df.fillna(0)
+    rid = uuid.uuid4()
+    folderName = excel_file_path.split("/")[-1].split(".")[0]
+    csv_file_name = selected_sheet + "_" + rid + ".csv" 
+    os.makedirs(os.path.join("data/Manifest", folderName), exist_ok=True)
+    rel_file_path = "data/Manifest" + folderName + csv_file_name
+    df[selected_sheet].to_csv(rel_file_path)
+    print("excel_to_csv " + rel_file_path)
+    return csv_file_name
+
 def Excel_to_dataframe(excel_file_path, manifest_file_path, selected_sheet):
-    
     
     #load excel file into df
     df = pd.read_excel(excel_file_path, sheet_name=selected_sheet, header=None)
