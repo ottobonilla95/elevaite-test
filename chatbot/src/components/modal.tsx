@@ -65,8 +65,11 @@ export default function TransitionsModal(props: any) {
 
   return (
     <div>
-      <button className="button session-button" onClick={handleOpen}>
+      {/* <button className="button session-button" onClick={handleOpen}>
         <img src="/img/session-button.svg" alt="session button" />
+      </button> */}
+      <button className="button session-button" onClick={handleOpen}>
+        <img src="/img/Frame 2095584750.svg" alt="session button" />
       </button>
       <Modal
         aria-labelledby="transition-modal-title"

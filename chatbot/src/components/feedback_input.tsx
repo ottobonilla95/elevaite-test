@@ -29,7 +29,7 @@ export default function FeedbackInput() {
     <>
       <div className="feedback-container">
         {isFeedbackInputReceived ? (
-          <p style={{ color: "white", marginLeft: "10px", fontSize: "14px" }}>
+          <p style={{ color: "#282828", marginLeft: "10px", fontSize: "14px" }}>
             Thank you for your feedback!
           </p>
         ) : (

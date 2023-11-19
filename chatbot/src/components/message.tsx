@@ -46,16 +46,17 @@ export default function Message(props: MessageProps) {
       // } else {
       //   window.location.href = process.env.NEXT_PUBLIC_LOGIN_API;
       // }
-      setName(()=>decoded.name);
+      setName(() => decoded.name);
       // console.log(sanitzer(props?.message?.message));
     } else {
-      if (!!process.env.NEXT_PUBLIC_LOGIN_API){
+      if (!!process.env.NEXT_PUBLIC_LOGIN_API) {
         window.location.href = process.env.NEXT_PUBLIC_LOGIN_API;
       }
     }
-    const urlList = props?.message?.urls != undefined ? Array.from(props?.message?.urls) : []
+    const urlList =
+      props?.message?.urls != undefined ? Array.from(props?.message?.urls) : [];
     console.log(props.message.urls);
-    setUrls(()=>urlList);
+    setUrls(() => urlList);
   }, [props]);
 
   return (
@@ -93,7 +94,7 @@ export default function Message(props: MessageProps) {
                 __html: sanitzer(props?.message?.message),
               }}
             />
-            {props?.message?.from == "ai"  && !!urls? (
+            {props?.message?.from == "ai" && !!urls ? (
               <div className="url-responses">
                 <>
                   <div onClick={hideOrShow} className="url-flex">
@@ -106,7 +107,7 @@ export default function Message(props: MessageProps) {
                   </div>
                 </>
                 {hideUrl
-                  ? urls.map((url:any) => (
+                  ? urls.map((url: any) => (
                       <>
                         <div className="url-image">
                           <GrDocumentText
@@ -127,13 +128,12 @@ export default function Message(props: MessageProps) {
 
           {props?.message?.from == "ai" ? (
             <>
-              <HoverRating />
+              {/* <HoverRating /> */}
+              <Feedback />
             </>
           ) : null}
         </div>
-        {props?.message?.from == "ai" ? (
-        <FeedbackInput/>) : null}
-
+        {props?.message?.from == "ai" ? <FeedbackInput /> : null}
       </div>
     </>
   );

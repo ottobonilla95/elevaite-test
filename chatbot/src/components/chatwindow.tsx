@@ -280,7 +280,7 @@ export default function ChatWindow(props: any) {
               onChange={change}
               value={ask}
               onKeyDown={handleKeyDown}
-              placeholder="Ask questions regarding your products here"
+              placeholder="Ask questions here"
             />
             {isLoading ? (
               <div className="loader">

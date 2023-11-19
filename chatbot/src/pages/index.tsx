@@ -2,7 +2,7 @@
 
 import TopHeader from "../components/topheader";
 // import SideBar from "./components/sidebar";
-import { AiOutlinePlus } from "react-icons/ai";
+import { AiOutlinePlus, AiOutlineMinus } from "react-icons/ai";
 import ChatWindow from "../components/chatwindow";
 import { useEffect, useRef, useState } from "react";
 import SubHeader from "../components/subheader";
@@ -12,7 +12,6 @@ import { NextPageContext } from "next";
 import axios from "axios";
 import jwt_decode from "jwt-decode";
 import { Collections } from "../components/subheader";
-
 
 export type MessageDetails = {
   id: string;
@@ -31,11 +30,16 @@ type chatSessionDetails = {
 
 export default function Home() {
   const current = new Date();
-  const initialTimestamp = `${current.getDate()} ${current.toLocaleString("default", {
-    month: "short",
-  })}, ${current.getHours()}:${current.getMinutes() < 10 ? "0" : ""}${current.getMinutes()}`;
+  const initialTimestamp = `${current.getDate()} ${current.toLocaleString(
+    "default",
+    {
+      month: "short",
+    }
+  )}, ${current.getHours()}:${
+    current.getMinutes() < 10 ? "0" : ""
+  }${current.getMinutes()}`;
   const [chats, setChats] = useState<chatSessionDetails[]>([
-    { id: 0, title: "New Session", chat: [] , createdOn: initialTimestamp }, //time of creation
+    { id: 0, title: "New Session", chat: [], createdOn: initialTimestamp }, //time of creation
   ]);
   const [count, setCount] = useState(1);
   const [chatIds, setChatIds] = useState<number[]>([]);
@@ -51,10 +55,11 @@ export default function Home() {
     const current = new Date();
     const date = `${current.getDate()} ${current.toLocaleString("default", {
       month: "short",
-    })}, ${current.getHours()}:${current.getMinutes() < 10 ? "0" : ""}${current.getMinutes()}`;
+    })}, ${current.getHours()}:${
+      current.getMinutes() < 10 ? "0" : ""
+    }${current.getMinutes()}`;
     return date;
   }
-
 
   function newSessionClick() {
     //console.log("new session clicked");
@@ -63,7 +68,15 @@ export default function Home() {
     setChatIds(() => [...chatIds, count]);
     //console.log("ChatIDs: ", chatIds);
     setChats(() => {
-      return [...chats, { id: count, title: "New Session", chat: [] , createdOn: getCurrentTimestamp()}];//time of creation
+      return [
+        ...chats,
+        {
+          id: count,
+          title: "New Session",
+          chat: [],
+          createdOn: getCurrentTimestamp(),
+        },
+      ]; //time of creation
     });
     console.log("Before reverse - Chats Array: ", chats);
     //setChats(() => [...chats].reverse());
@@ -79,9 +92,9 @@ export default function Home() {
         ...chats.slice(0, currentChatId),
         {
           id: currentChatId,
-          title: messages[0].message.substring(0, 35) + "...",
+          title: messages[0].message.substring(0, 15) + "...",
           chat: messages,
-          createdOn: initialTimestamp
+          createdOn: initialTimestamp,
         },
         ...chats.slice(currentChatId + 1),
       ]);
@@ -95,7 +108,7 @@ export default function Home() {
         id: currentChatId,
         title: "New Session",
         chat: messages,
-        createdOn: getCurrentTimestamp()
+        createdOn: getCurrentTimestamp(),
       },
       ...chats.slice(currentChatId + 1),
     ]);
@@ -104,18 +117,18 @@ export default function Home() {
         params: {
           uid: uid,
           sid: currentChatId.toString(),
-        }
+        },
       })
       .then((messages) => {
         let title = "New Session";
         if (messages.data.length > 0) {
-          title = messages?.data[0]?.message.substring(0, 35) + "...";
+          title = messages?.data[0]?.message.substring(0, 15) + "...";
         }
         let oldSessionMessages: chatSessionDetails = {
           id: currentChatId,
           title: title,
-          chat: [], 
-          createdOn: getCurrentTimestamp()//time of creation
+          chat: [],
+          createdOn: getCurrentTimestamp(), //time of creation
         };
         if (messages !== null && messages.data !== null) {
           oldSessionMessages.chat = messages?.data;
@@ -126,7 +139,6 @@ export default function Home() {
           ]);
         }
       });
-
   }
   function updateCollection(collection_name: string) {
     setCollection(() => collection_name);
@@ -146,11 +158,13 @@ export default function Home() {
       console.log(decoded);
       axios.get(
         process.env.NEXT_PUBLIC_BACKEND_URL +
-        "deleteAllSessions?uid=" +
-        decoded.sub
+          "deleteAllSessions?uid=" +
+          decoded.sub
       );
+      window.location.reload();
     }
   }
+  
   function keButtonClick() {
     let params = new URL(window.location.href).searchParams;
     const token = params.get("token");
@@ -184,13 +198,13 @@ export default function Home() {
             .then((messages) => {
               let title = "New Session";
               if (messages.data.length > 0) {
-                title = messages?.data[0]?.message.substring(0, 35) + "...";
+                title = messages?.data[0]?.message.substring(0, 15) + "...";
               }
               let oldSessionMessages: chatSessionDetails = {
                 id: currentChatId,
                 title: title,
                 chat: [],
-                createdOn: getCurrentTimestamp()
+                createdOn: getCurrentTimestamp(),
               };
               if (messages !== null && messages.data !== null) {
                 oldSessionMessages.chat = messages?.data;
@@ -216,22 +230,17 @@ export default function Home() {
       <SubHeader updateCollection={updateCollection} />
       <div className="app-container">
         <div className="sidebar-container">
-          <button
-            onClick={backButtonClick}
-            className="sidebar-button work-bench-button"
-          >
-            <IoIosArrowBack style={{ color: "white" }} />
-            <a href="https://elevaite.iopex.ai">
-              <p>Back to Workbench</p>
-            </a>
+          <button onClick={backButtonClick} className="sidebar-button">
+            <AiOutlineMinus />
+            <p>Clear All</p>
           </button>
-          <button
+          {/* <button
             onClick={keButtonClick}
             className="sidebar-button work-bench-button"
           >
             <IoIosArrowBack style={{ color: "white" }} />
             <p>Knowledge Engineering</p>
-          </button>
+          </button> */}
           <button onClick={newSessionClick} className="sidebar-button">
             <AiOutlinePlus />
             <p>New Session</p>
@@ -241,32 +250,35 @@ export default function Home() {
             <div className="session-header">
               <p>CURRENT SESSIONS</p>
             </div>
-            {chats.slice().reverse().map((chat) => (
-              <>
-                <button key={chat.id} onClick={() => changeSession(chat?.id)}>
-                  <div
-                    className="session"
-                    style={
-                      chat?.id === currentChatId
-                        ? { backgroundColor: "#3E3B63" }
-                        : { backgroundColor: "transparent" }
-                    }
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 20 20"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
+            {chats
+              .slice()
+              .reverse()
+              .map((chat) => (
+                <>
+                  <button key={chat.id} onClick={() => changeSession(chat?.id)}>
+                    <div
+                      className="session"
+                      style={
+                        chat?.id === currentChatId
+                          ? { backgroundColor: "#f1f1f1" }
+                          : { backgroundColor: "transparent" }
+                      }
                     >
-                      <path
-                        d="M18 0H2C0.9 0 0 0.9 0 2V20L4 16H18C19.1 16 20 15.1 20 14V2C20 0.9 19.1 0 18 0ZM18 14H4L2 16V2H18V14Z"
-                        fill="white"
-                      />
-                    </svg>
-                    <div className="text-container">
-                      <p className="main-text">{chat?.title}</p>
-                     {/*} <p
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M18 0H2C0.9 0 0 0.9 0 2V20L4 16H18C19.1 16 20 15.1 20 14V2C20 0.9 19.1 0 18 0ZM18 14H4L2 16V2H18V14Z"
+                          fill="#8c959f"
+                        />
+                      </svg>
+                      <div className="text-container">
+                        <p className="main-text">{chat?.title}</p>
+                        {/*} <p
                         className="sub-text"
                         style={{
                           color: 'grey',
@@ -278,15 +290,11 @@ export default function Home() {
                       >
                         {chat?.createdOn}
                       </p>*/}
-
+                      </div>
                     </div>
-
-                  </div>
-                </button>
-
-
-              </>
-            ))}
+                  </button>
+                </>
+              ))}
           </div>
         </div>
 
