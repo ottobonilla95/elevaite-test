@@ -143,8 +143,8 @@ body {
 }
 
 .sidebar-container {
-  max-width: 312px;
-  width: 18%;
+  max-width: 280px;
+  width: 15%;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -152,7 +152,9 @@ body {
   position: relative;
   z-index: 3;
   /* background: linear-gradient(to bottom,#FFFFFF,#DFDFDF); */
-  background-color: #2f2c53;
+  background-color: #ffffff;
+  border: 1px solid #7f7f7f;
+  
 }
 
 .current-sessions {
@@ -163,12 +165,12 @@ body {
   justify-content: flex-start;
 }
 .session-header {
-  color: white;
+  color: #8c959f;
   font-weight: 200;
   font-size: 16px;
   width: 100%;
   text-align: left;
-  border-bottom: 1px solid white;
+  border-bottom: 1px solid #7f7f7f;
 }
 .session-header p {
   width: 200px;
@@ -183,7 +185,7 @@ body {
   width: 100%;
 }
 .session p {
-  color: white;
+  color: #8c959f;
   font-size: 14px;
   text-align: left;
   margin-left: 10px;
@@ -193,23 +195,24 @@ body {
 }
 .sidebar-button {
   max-width: 200px;
-  width: 80%;
+  width: 85%;
   margin-top: 20px;
   margin-left: 10px;
   padding-left: 10px;
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  color: #f46f22;
-  border: 1px solid #f46f22;
+  color: #818792;
+  border-radius: 4px;
+  border: 1px solid #7f7f7f;
   height: 40px;
 }
 
 .sidebar-button:hover {
-  box-shadow: 1px 1px 1px 1px#58567C;
+  box-shadow: 1px 1px 1px 1px #818792;
 }
 .sidebar-button p {
-  color: #f46f22;
+  color: #818792;
   margin-left: 15px;
   font-size: 12px;
 }
@@ -245,6 +248,7 @@ body {
   display: flex;
   width: 100%;
   justify-content: center;
+  box-shadow: 0px 0px 2px 0px rgb(52, 53, 65, 0.8);
 }
 
 .parent-container {
@@ -262,13 +266,14 @@ body {
   border-radius: 4px 4px 0 0;
   width: 100%;
   height: 60px;
-  border-bottom: 1px solid white;
-  background-color: #2f2c53;
+  border-bottom: 1px solid #a5a5a5;
+  box-shadow: 0px 0px 2px 0px rgb(52, 53, 65, 0.8);
+  background-color: white;
 }
 .chat-header p {
   font-size: 15px;
   margin-left: 10px;
-  color: white;
+  color: #505050;
 }
 .header-container {
   width: 100%;
@@ -284,20 +289,22 @@ body {
   width: 100%;
 }
 .band-top {
-  background: #f46f22;
+  background: linear-gradient(.25turn, 
+    rgb(46,44,83), 70%, 
+    rgb(244,111,34)
+  );
   width: 100%;
   height: 30%;
 }
 .band-bottom {
-  background: #58567c;
+  background: #f1f1f1;
   width: 100%;
   height: 70%;
 }
 .grand-parent {
   max-height: 55vh;
   min-height: 55vh;
-  box-shadow: 5px 5px 5px 5px rgb(52, 53, 65, 0.2);
-  background-color: #2f2c53;
+  background-color: white;
   z-index: 3;
   flex: 1 1 auto;
   position: relative;
@@ -309,7 +316,6 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 1080px;
   min-height: 55vh;
   position: relative;
   justify-content: flex-end;
@@ -382,8 +388,8 @@ body {
   align-items: center;
   width: 100%;
   border-radius: 0 0 4px 4px;
-  background-color: #3e3b64;
-  /* max-width: 1110px; */
+  background-color: #ebeff4;
+  box-shadow: 0px 0px 2px 0px rgb(52, 53, 65, 0.8);
 }
 .container-body {
   display: flex;
@@ -399,8 +405,7 @@ body {
   align-items: flex-end;
   padding: 2px;
   margin: 15px;
-  background-color: #58567c;
-  box-shadow: 15px 5px 5px 5px rgb(52, 53, 65, 0.2);
+  background-color: #ebeff4;
 }
 .chat-input {
   flex: 2 1 auto;
@@ -408,7 +413,7 @@ body {
   margin-right: 5px;
   background: transparent;
   overflow-y: scroll;
-  color: #ffffff;
+  color: #505050;
 }
 .chat-input::-webkit-scrollbar {
   display: none;
@@ -443,7 +448,7 @@ textarea {
   align-items: center;
   border-radius: 4px;
   margin-right: 16px;
-  background: #18cd8c;
+  background: #ebeff4;
 }
 
 .feedback-thumbs-button {
@@ -475,12 +480,12 @@ textarea {
   flex-direction: column;
   padding: 10px;
   margin: 2px;
-  box-shadow: 2px 2px 2px 2px rgb(52, 53, 65, 0.2);
+  border-bottom: 1px solid rgb(52, 53, 65, 0.2);
 }
 
 .user-details {
   display: flex;
-  color: #ffffff;
+  color: #282828;
   font-size: 14px;
 }
 
@@ -493,10 +498,10 @@ textarea {
   font-size: 12px;
 }
 .user-message {
-  background-color: #3e3b64;
+  background-color: white;
 }
 .system-message {
-  background-color: #2f2c53;
+  background-color: white;
 }
 
 .message-container {
@@ -508,7 +513,7 @@ textarea {
 
 .response {
   margin: 10px;
-  color: #ffffff;
+  color: #282828;
   font-size: 13px;
   max-width: 85%;
 }
@@ -516,7 +521,7 @@ textarea {
 .url-responses {
   margin-top: 10px;
   padding: 5px;
-  background-color: #37355a;
+  border: 1px solid #37355a;
   border-radius: 8px;
 }
 .url-flex {
@@ -556,7 +561,7 @@ textarea {
 
 .feedback {
   display: flex;
-  width: 200px;
+  width: 80px;
   margin: 2px 0 10px 0;
   flex-direction: row;
   justify-content: center;
@@ -564,16 +569,16 @@ textarea {
 }
 
 #like > svg:hover {
-  stroke: #f46f22;
+  stroke: black;
 }
 .like-clicked > svg {
-  fill: #f46f22;
+  fill: rgb(167, 164, 196);
 }
 #dislike > svg:hover {
-  stroke: #f46f22;
+  stroke: black;
 }
 .dislike-clicked > svg {
-  fill: #f46f22;
+  fill: rgb(167, 164, 196);
 }
 #send > svg:hover {
   stroke: #f46f22;
@@ -597,7 +602,7 @@ textarea {
 .feedback-container {
   height: 76px;
   width: 100%;
-  background-color: #8683a3;
+  background-color: #ebeff4;
   display: flex;
   padding: 10px;
   border-radius: 8px;
@@ -609,7 +614,7 @@ textarea {
   padding: 3px;
   border: 1px solid #e7e7e7;
   height: 32px;
-  color: #ffffff;
+  color: #505050;
   align-items: center;
   border-radius: 4px;
   background: rgba(65, 65, 95, 0.3);
@@ -620,7 +625,7 @@ textarea {
 }
 
 .feedback-container p {
-  color: #ffffff;
+  color: #4e4e4e;
   font-size: 13px;
 }
 .feedback-button {
@@ -666,7 +671,7 @@ a {
 .progress p {
   font-size: 16px;
   margin-right: 10px;
-  color: #ffffff;
+  color: black;
 }
 .dot-pulse {
   position: relative;
@@ -771,7 +776,7 @@ a {
   padding: 17px 8px;
   position: relative;
   width: 100%;
-  background-color: #514f72;
+  background-color: #f1f1f1;
 }
 
 .frame-3 {
@@ -795,7 +800,7 @@ a {
 }
 
 .product-support {
-  color: #a7a4c4;
+  color: #444444;
   font-family: var(--font-family-poppins);
   font-size: var(--font-size-l);
   font-weight: 400;
@@ -909,7 +914,7 @@ a {
 }
 
 .name {
-  color: #ffffff;
+  color: #444444;
   font-family: var(--font-family-inter);
   font-size: var(--font-size-m);
   font-weight: 600;
@@ -1002,126 +1007,4 @@ a {
   position: relative;
   width: fit-content;
 }
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background-color: #514f72;
-  
-}
-.login-box {
-  background-color: #514f72;
-  border: 2px solid #f46f22;
-  border-radius: 3px;
-  padding: 20px;
-  width: 500px;
-  
-  text-align: center;
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-}
-.login-box h2 {
-  margin-bottom: 20px;
-  color: #f46f22;
-}
 
-.icon-container{
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-.input-field {
-  display: flex;
-  margin-bottom: 20px;
-  margin-top:20px;
-  justify-content: space-between;
-  text-align: left;
-}
-
-.input-field label {
-  flex: 1;
-  margin-right: 10px;
-  display: block;
-  font-weight: bold;
-}
-
-input[type="text"],
-input[type="password"] {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
-}
-
-.login-button {
-  background-color: #f46f22;
-  border: 1px solid black;
-  color: white;
-  
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: bold;
-  margin-bottom: 10px;
-  width: 100px;
-  height: 40px;
-}
-
-.login-button:hover {
-  background-color: #ff8c3e;
-}
-.google-sign-in-button {
-  margin-top: 10px;
-  margin-bottom: 10px;
-  align-items: center;
-  justify-content: center;
-  color: black;
-  border: none;
-  padding: 10px 20px;
-  border: 1px solid black;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: bold;
-  background-color: white;
-}
-
-.google-sign-in-button img {
-  width: 20px;
-  height: 20px;
-  margin-right: 10px;
-}
-
-.divider{
-  border-top: 1px solid grey;
-}
-.link-button {
-  
-  color: white;
-  text-decoration: underline;
-  cursor: pointer; 
-}
-
-.red-text {
-  color: red;
-}
-.text-container {
-  display: flex;
-  flex-direction: column;
-  align-items: left; 
-  text-align: left; 
-  width: 100%;
-}
-
-.main-text {
-  font-size: 16px;
-  height: 10px;
-  height: 100%;
-}
-
-.subtext {
-  color: blue;
-  font-size: 10px;
-  align-items: right;
-  text-align: right;
-}

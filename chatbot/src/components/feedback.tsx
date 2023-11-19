@@ -49,21 +49,14 @@ export default function Feedback() {
             onClick={() => handleFeedback(true)}
             className={isLikeClicked ? "feedback-thumbs-button like-clicked":"feedback-thumbs-button" }
           >
-            <FiThumbsUp style={{color:"#A7A4C4"}} size="20px" />
+            <FiThumbsUp style={{color:"black"}} size="20px" />
           </button>
           <button
             id="dislike"
             onClick={() => handleFeedback(false)}
             className={isDisLikeClicked ? "feedback-thumbs-button dislike-clicked":"feedback-thumbs-button" }
           >
-            <FiThumbsDown style={{color:"#A7A4C4"}} size="20px" />
-          </button>
-          <button
-            id="send"
-            onClick={() => handleFeedback(false)}
-            className="feedback-thumbs-button"
-          >
-          <TbFileExport style={{color:"#A7A4C4"}} size="20px" />
+            <FiThumbsDown style={{color:"black"}} size="20px" />
           </button>
         </div>
       </div>

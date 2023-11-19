@@ -34,12 +34,6 @@ export default function SubHeader(props: any) {
       <div style={{ marginTop: 5 }}>
         <Box sx={{ minWidth: 120 }}>
           <FormControl style={{ color: "white" }} fullWidth>
-            <InputLabel
-              style={{ color: "white" }}
-              id="demo-simple-select-label"
-            >
-              Tenant
-            </InputLabel>
             <Select
               style={{ color: "white" }}
               labelId="demo-simple-select-label"
