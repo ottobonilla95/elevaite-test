@@ -79,7 +79,8 @@ export default function Home() {
            router.push({
             pathname: '/viewPPT',
             query: {
-              ppt_file: response.data,
+              ppt_file: response.data.export_url,
+              summary: response.data.summary,
               excel_file: fileName ,
               sheet_name: activeSheet
             }

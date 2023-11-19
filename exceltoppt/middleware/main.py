@@ -175,20 +175,16 @@ async def generate_powerpoint(excel_file: str ,manifest_file: str, folder_name: 
         manifest_file_path = os.path.join("data", "Manifest", folder_name, manifest_file)
         selected_sheet = manifest_file.split(".")[0]
        
-
         summary = await generate_summary(excel_file_path, selected_sheet)
         if(summary["status"] == 200):
-            if folder_name == "cisco":
-                sumy = summary["summary"]
-                print("calling generate ppt function")
-                result = generate_cisco_presentation(excel_file_path, manifest_file_path, sumy, selected_sheet)
-                return JSONResponse(content = result, status_code=200)
-            else:
-                print("inside else")
-                sumy = summary["summary"]
-                result = generate_presentation(excel_file_path, manifest_file_path, sumy, selected_sheet)
-                return JSONResponse(content = result, status_code=200)  
-        return JSONResponse(content = summary, status_code=200)
+            print("Generating Presentation ...")
+            sumy = summary["summary"]
+            result = generate_presentation(excel_file_path, manifest_file_path, sumy, selected_sheet)
+            response = {"export_url" : result, "summary": sumy}
+            return JSONResponse(content = response, status_code=200)
+        else:
+            print('Unable to create presentation ...')
+        return JSONResponse(content = "No Summary", status_code=200)
     except Exception as e:
         print("Error from generate ppt: " + str(e))
         return JSONResponse(content={"error": str(e)}, status_code=500)

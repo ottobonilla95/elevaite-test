@@ -15,7 +15,7 @@ import { TypeAComment } from "@/components/TypeAComment";
 
 export default function Home() {
   const router = useRouter();
-  const { ppt_file, excel_file, sheet_name } = router.query;
+  const { ppt_file, summary, excel_file, sheet_name } = router.query;
   const [question, setQuestion] = useState("");
   const [submittedQuestions, setSubmittedQuestions] = useState("");
   const [answer, setAnswer] = useState("");
@@ -49,6 +49,10 @@ export default function Home() {
     }
   };
 
+  const showSummary = () => {
+    const doc_summary: any = summary ? summary : "";
+    return doc_summary;
+  }
 
   const handleDownload = async() => {
 
@@ -117,7 +121,8 @@ export default function Home() {
   };*/
   useEffect(() => {
     const data = {
-      ppt_file: ppt_file
+      ppt_file: ppt_file,
+      summary: summary
     };
 
     const q_param = "";
@@ -145,7 +150,9 @@ export default function Home() {
           <div>
 
             <button className="action-button-align-right action-button" onClick={handleDownload}>Download</button>
-            {/* show ppt here */}
+            <div>
+              <div>{showSummary()}</div>
+            </div>
           </div>
           <div>
             {/*<div className="chatbot-container">
