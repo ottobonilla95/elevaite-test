@@ -135,7 +135,7 @@ async def ask(query_and_context: Request):
         query = req_info["query"]
         context = req_info["context"]
         answer = await ask_your_doc(query, context)
-        return JSONResponse(answer)
+        return JSONResponse(content=answer, status_code=200)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500) 
 
