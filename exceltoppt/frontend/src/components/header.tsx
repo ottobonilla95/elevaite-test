@@ -8,8 +8,8 @@ function Header() {
   };
 
   return (
-    <div className="frame-2">
-      <div className="frame-3">
+    <div className="ppt-frame-2">
+      <div className="ppt-frame-3">
         <img
           className="frame-1000004664"
           src="img/frame-1000004664.svg"
