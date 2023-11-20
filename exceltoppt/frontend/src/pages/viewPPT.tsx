@@ -36,11 +36,13 @@ export default function Home() {
 
       const q_params = "excel_file=" + encodeURIComponent(validExcelFile) + ".xlsx&manifest_file=" + encodeURIComponent(validSheetName) + "&question=" + encodeURIComponent(question);
 
-      const response = await axios.get(`http://localhost:8000/askcsvagent/?${q_params}`);
+      //const response = await axios.get(`http://localhost:8000/askcsvagent/?${q_params}`);
+      const response = await axios.post(`http://localhost:8000/ask/`, {"query" : question, "context": summary});
       console.log(response);
+      console.log(response.data)
 
       if (response.status === 200) {
-        setAnswer(response.data.result);
+        setAnswer(response.data);
         setIsLoading(false);
       }
 
@@ -51,8 +53,9 @@ export default function Home() {
 
   const showSummary = () => {
     const doc_summary: any = summary ? summary : "";
-    return doc_summary;
+    return doc_summary.replace(/\n/g, "<br />")
   }
+  
 
   const handleDownload = async() => {
 
@@ -151,7 +154,7 @@ export default function Home() {
 
             <button className="action-button-align-right action-button" onClick={handleDownload}>Download</button>
             <div>
-              <div>{showSummary()}</div>
+              <div><p dangerouslySetInnerHTML={{__html: showSummary()}} /></div>
             </div>
           </div>
           <div>
@@ -193,8 +196,8 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            {answer}
             <div className="rectangle">
+            <div>{answer}</div>
               <div className="box">
                 <div className="group">
                   <img className="avatars" alt="Avatars" src="/img/avatars.png" />

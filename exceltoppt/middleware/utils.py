@@ -95,11 +95,51 @@ def convert_bytes_to_human_readable(size_in_bytes):
             return f"{size_in_bytes:.2f} {unit}"
         size_in_bytes /= 1024.0
 
+async def ask_your_doc(query: str, context: str):
+    try:
+        prompt = ""
+        document_user_instructions = """
+            Look at only my quesry and the context given below to provide the most relevant answer. If you are not sure or the relevant content is not available in the context 
+            please mention that the document does not have the requested information to provide the appropriate answer.
+            """
+        prompt = document_user_instructions + " \n" + "query is given below \n " + query + "\n" + "context : " + context 
+        response = api_openai(prompt)
+        print(response)
+        return str(response)
+    except Exception as e:
+        return str(e)
+        
 async def ask_openai(context: str, call_for: str):
 
     try:
         prompt = ""
-
+        income_statements_prompt_template = """
+            Identify all the dimensions like reporting standards, fiscal year, fiscal quarter, revenue, cost of sales, expenses, income products, service , business entity and all the metric amounts and and provide the result in the YAML file with the respective dimenstions and metrics in the following format given for one quarter and repeat for all quarters if the data is available in the context:
+            Reporting Standards: 
+             - GAAP
+             - Non-GAAP
+               - Fiscal Year: 
+                - Fiscal Quarter:
+                   - Quarter 1 (August)
+                       - Revenue: 
+                         - Product
+                            - Metrics Amount
+                         - Service
+                            - Metrics Amount
+                       - Cost of Sales
+                         - Product
+                            - Metrics Amount
+                         - Service  
+                            - Metrics Amount
+                       - Gross Margins
+                         - Metrics Amount
+                       - Operating Income    
+                         - Metrics Amount    
+                       - Net Income    
+                         - Metrics Amount 
+                       - Net Income    
+                         - Metrics Amount 
+            """
         if(call_for == "generate_manifest"):
             income_statements_prompt_template = """
             Identify all the dimensions like reporting standards, fiscal year, fiscal quarter, revenue, cost of sales, expenses, income products, service , business entity and all the metric amounts and and provide the result in the YAML file with the respective dimenstions and metrics in the following format given for one quarter and repeat for all quarters if the data is available in the context:

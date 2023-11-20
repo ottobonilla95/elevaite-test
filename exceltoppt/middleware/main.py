@@ -19,6 +19,7 @@ from utils import ask_csv_agent
 from utils import Excel_to_dataframe
 from utils import Excel_to_Dataframe_auto
 from utils import ask_questions
+from utils import ask_your_doc
 from utils import convert_bytes_to_human_readable
 from utils import upload_file
 
@@ -126,6 +127,17 @@ async def askCsvAgent(excel_file: str, manifest_file: str, question: str):
     except Exception as e:
         print("askCsvAgent error: " +str(e))
         return JSONResponse(content={"error": str(e)}, status_code=500)
+
+@app.post("/ask")
+async def ask(query_and_context: Request):
+    try:
+        req_info = await query_and_context.json()
+        query = req_info["query"]
+        context = req_info["context"]
+        answer = await ask_your_doc(query, context)
+        return JSONResponse(answer)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500) 
 
 
 @app.get("/downloadppt")
