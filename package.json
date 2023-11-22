@@ -1,10 +1,22 @@
 {
-  "workspaces": [
-    "nextapps/chatbot",
-    "nextapps/exceltoppt/frontend",
-    "packages/ui"
-  ],
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "clean": "turbo clean",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
   "devDependencies": {
-    "turbo": "^1.10.16"
-  }
+    "eslint": "^8.48.0",
+    "prettier": "^3.0.3",
+    "prettier-plugin-tailwindcss": "^0.5.3",
+    "tsconfig": "*",
+    "turbo": "latest"
+  },
+  "packageManager": "npm@10.2.4",
+  "workspaces": [
+    "nextapps/*",
+    "packages/*"
+  ]
 }
