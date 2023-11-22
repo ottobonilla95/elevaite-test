@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @next/next/no-img-element */
 import React, { useEffect } from "react";
 import Box from "@mui/material/Box";
@@ -13,11 +12,9 @@ export enum Collections {
   PAN = "pan",
   Cisco = "cisco",
   Cisco_CLO = "cisco_clo",
-  Arlo = 'arlo'
-  juniper_vsrx = "juniper_vsrx"
+  Arlo = "arlo",
+  juniper_vsrx = "juniper_vsrx",
 }
-
-
 
 export default function SubHeader(props: any) {
   const [tenant, setTenant] = React.useState<string>(Collections.Cisco_CLO);
