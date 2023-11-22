@@ -4,3 +4,4 @@ middleware/__pycache__
 **/deps
 __pycache__/
 *.py[cod]
+.vscode
