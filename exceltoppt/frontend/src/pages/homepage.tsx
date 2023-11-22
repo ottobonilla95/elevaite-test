@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Header from '@/components/header';
+import TopHeader from '@/components/topheader';
 import Progressbar from '@/components/progressbar';
 import { FaCloudUploadAlt } from 'react-icons/fa';
 import { FileText } from 'react-feather';
@@ -98,7 +99,7 @@ export default function Home() {
 
   return (
     <div className="app-container">
-      <Header />
+      <TopHeader />
       {manifest ? (
         <div className="upload-container-main">
           <div className="breadcrumb-container">

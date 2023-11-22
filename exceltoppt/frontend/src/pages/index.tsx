@@ -15,7 +15,8 @@ export default function Home() {
 
     const router = useRouter();
     const handleAIDeckBuilder = () =>{
-      window.open("https://elevaite-test.iopex.ai/homepage", "_blank");
+      //window.open("https://elevaite-test.iopex.ai/homepage", "_blank");
+      window.open("http://localhost:3000/homepage", "_blank");
 
     }
     const handleChatbot = () =>{

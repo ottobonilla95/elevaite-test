@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Header from '@/components/header';
+import TopHeader from '@/components/topheader';
 import Progressbar from '@/components/progressbar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons';
@@ -133,7 +134,7 @@ export default function Home() {
 
   return (
     <div className="app-container">
-      <Header />
+      <TopHeader />
       <div className="upload-container-main">
         <div className="breadcrumb-container">
           <a>Ingest</a>
@@ -142,7 +143,7 @@ export default function Home() {
           <span className="current-page"> AI DeckBuilder</span>
         </div>
         <div className="progress-bar-container">
-          <Progressbar current={4} />
+          <Progressbar current={3} />
         </div>
         <div className="button-container3">
           <div className="space-padding"></div>
