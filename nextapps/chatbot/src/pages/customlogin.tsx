@@ -1,20 +1,21 @@
-import { useState } from 'react';
-import axios from 'axios';
-import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/router';
+import { useState } from "react";
+import axios from "axios";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/router";
+import Image from "next/image";
 
 const CustomLogin = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showSignUp, setShowSignUp] = useState(false);
-  const [name, setName] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [nameError, setNameError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [confirmPasswordError, setConfirmPasswordError] = useState('');
-  const [authorizationError, setAuthorizationError] = useState('');
+  const [nameError, setNameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [authorizationError, setAuthorizationError] = useState("");
 
   const router = useRouter();
 
@@ -25,33 +26,28 @@ const CustomLogin = () => {
 
   // Custom Login Validation API- have to update the URL
   const handleCustomLogin = async () => {
-
-    try{
-      const response = await axios.get('http://localhost:3000/api/authUser', {
+    try {
+      const response = await axios.get("http://localhost:3000/api/authUser", {
         params: {
           userName: email,
-          password: password
+          password: password,
         },
       });
-      setAuthorizationError('');
-
+      setAuthorizationError("");
     } catch (error) {
       console.log("Error: " + error);
       setAuthorizationError("Username and Password is incorrect");
-      
     }
-    
   };
 
   //not used
   const handleSignUpClick = () => {
     // Toggle the showSignUp state to display the sign-up form
-    setNameError('');
-    setEmailError('');
-    setPasswordError('');
-    setConfirmPasswordError('');
+    setNameError("");
+    setEmailError("");
+    setPasswordError("");
+    setConfirmPasswordError("");
     setShowSignUp(!showSignUp);
-
   };
 
   //not used - incomplete
@@ -60,31 +56,31 @@ const CustomLogin = () => {
     let isValid = true;
 
     if (!name.trim()) {
-      setNameError('Name is required');
+      setNameError("Name is required");
       isValid = false;
     } else {
-      setNameError('');
+      setNameError("");
     }
 
     if (!email.trim()) {
-      setEmailError('Email is required');
+      setEmailError("Email is required");
       isValid = false;
     } else {
-      setEmailError('');
+      setEmailError("");
     }
 
     if (!password.trim()) {
-      setPasswordError('Password is required');
+      setPasswordError("Password is required");
       isValid = false;
     } else {
-      setPasswordError('');
+      setPasswordError("");
     }
 
     if (password !== confirmPassword) {
-      setConfirmPasswordError('Passwords do not match');
+      setConfirmPasswordError("Passwords do not match");
       isValid = false;
     } else {
-      setConfirmPasswordError('');
+      setConfirmPasswordError("");
     }
 
     if (isValid) {
@@ -94,28 +90,23 @@ const CustomLogin = () => {
         email,
         password,
       };
-      console.log('User data:', user);
+      console.log("User data:", user);
 
       // Clear the form
-      setName('');
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
+      setName("");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
     }
+  };
 
-  }
-  
   return (
     <div className="login-container">
       <div className="login-box">
         <div className="icon-container">
-          <img
-            className="frame-1000004664"
-            src="img/frame-1000004664.svg"
-            alt="Frame 1000004664"
-          />
+          <Image className="frame-1000004664" src="img/frame-1000004664.svg" alt="Frame 1000004664" />
         </div>
-        {!showSignUp ? ( 
+        {!showSignUp ? (
           <>
             <div className="input-field">
               <input
@@ -151,29 +142,26 @@ const CustomLogin = () => {
           */}
             <hr className="divider"></hr>
             <button className="google-sign-in-button" onClick={handleGoogleSignIn}>
-              <span style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ display: "flex", alignItems: "center" }}>
                 <span>Sign in with Google</span>
-                <img src="img/google.svg" alt="Google Logo" style={{ marginLeft: '10px' }} />
+                <Image src="img/google.svg" alt="Google Logo" style={{ marginLeft: "10px" }} />
               </span>
             </button>
-            
           </>
         ) : (
           // Show sign-up form
           <>
             <div className="input-field">
-              
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  placeholder="Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              
-                {nameError && <div className="error-message red-text">{nameError}</div>}
-              
+              <input
+                type="text"
+                id="name"
+                name="name"
+                placeholder="Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+
+              {nameError && <div className="error-message red-text">{nameError}</div>}
             </div>
             <div className="input-field">
               <input
@@ -211,8 +199,8 @@ const CustomLogin = () => {
             <button className="login-button" onClick={handleCustomSignUp}>
               Sign up
             </button>
-            <p style={{ padding: '10px 0', alignItems: 'center', color: 'white' }}>
-              Already have an account?{' '}
+            <p style={{ padding: "10px 0", alignItems: "center", color: "white" }}>
+              Already have an account?{" "}
               <span className="link-button" onClick={handleSignUpClick}>
                 Login
               </span>
@@ -220,9 +208,9 @@ const CustomLogin = () => {
             {authorizationError && <div className="error-message red-text">{authorizationError}</div>}
             <hr className="divider"></hr>
             <button className="google-sign-in-button" onClick={handleGoogleSignIn}>
-              <span style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ display: "flex", alignItems: "center" }}>
                 <span>Sign in with Google</span>
-                <img src="img/google.svg" alt="Google Logo" style={{ marginLeft: '10px' }} />
+                <Image src="img/google.svg" alt="Google Logo" style={{ marginLeft: "10px" }} />
               </span>
             </button>
           </>

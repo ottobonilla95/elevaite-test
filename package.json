@@ -2,7 +2,7 @@
   "workspaces": [
     "nextapps/chatbot",
     "nextapps/exceltoppt/frontend",
-    "packages/*"
+    "packages/ui"
   ],
   "devDependencies": {
     "turbo": "^1.10.16"
