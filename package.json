@@ -1,10 +1,23 @@
 {
-  "dependencies": {
-    "@emotion/react": "^11.11.1",
-    "@emotion/styled": "^11.11.0",
-    "@mui/icons-material": "^5.14.16",
-    "@mui/material": "^5.14.16",
-    "pip": "^0.0.1",
-    "react-step-progress-bar": "^1.0.3"
-  }
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "clean": "turbo clean",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "eslint": "^8.48.0",
+    "prettier": "^3.0.3",
+    "prettier-plugin-tailwindcss": "^0.5.3",
+    "tsconfig": "*",
+    "turbo": "latest"
+  },
+  "packageManager": "npm@10.2.4",
+  "workspaces": [
+    "nextapps/*",
+    "nextapps/exceltoppt/*",
+    "packages/*"
+  ]
 }
