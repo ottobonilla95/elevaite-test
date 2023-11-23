@@ -1,2 +1,1 @@
-export * from "./Card";
-export * from "./CardHolder";
+export * from "./WorkshopCard";
