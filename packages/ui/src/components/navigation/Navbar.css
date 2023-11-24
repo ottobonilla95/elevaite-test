@@ -1,21 +1,12 @@
-.layoutL2 {
-  display: flex;
-  flex-direction: column;
-  margin-left: var(--sidebar-width);
-}
-
 .navbarHolder {
   display: flex;
   width: 100%;
-  height: var(--navbar-height);
+  height: 80px;
   padding: 10px 32px;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  /* float: inline-start; */
-  position: sticky;
-  top: 0;
-  z-index: 20;
+  background: #282828;
 }
 
 .searchAndUser {
@@ -25,9 +16,6 @@
 }
 
 .searchAndInfo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 .help {
@@ -38,12 +26,12 @@
   align-items: center;
   gap: 8px;
   border-radius: 10px;
-  border: 1px solid;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .line {
   width: 1px;
   height: 24px;
-  /* opacity: 0.12; */
-  /* background: #fff; */
+  opacity: 0.12;
+  background: #fff;
 }

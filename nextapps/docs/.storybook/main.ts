@@ -17,6 +17,7 @@ const config: StorybookConfig = {
     getAbsolutePath("@storybook/addon-onboarding"),
     getAbsolutePath("@storybook/addon-interactions"),
     "@storybook/addon-styling-webpack",
+    "@storybook/addon-themes",
   ],
   framework: {
     name: getAbsolutePath("@storybook/nextjs"),
