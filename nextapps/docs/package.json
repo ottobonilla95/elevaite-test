@@ -18,6 +18,7 @@
     "@storybook/addon-links": "^7.5.3",
     "@storybook/addon-onboarding": "^1.0.8",
     "@storybook/addon-styling-webpack": "^0.0.5",
+    "@storybook/addon-themes": "^7.5.3",
     "@storybook/blocks": "^7.5.3",
     "@storybook/cli": "^7.5.3",
     "@storybook/nextjs": "^7.5.3",
@@ -32,7 +33,9 @@
     "eslint-plugin-storybook": "^0.6.15",
     "postcss": "^8",
     "storybook": "^7.5.3",
+    "tailwind-config": "*",
     "tailwindcss": "^3.3.0",
+    "tsconfig": "*",
     "typescript": "^5"
   }
 }
