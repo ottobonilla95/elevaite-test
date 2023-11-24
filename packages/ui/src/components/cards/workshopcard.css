@@ -97,5 +97,9 @@
   font-size: 14px;
   font-style: normal;
   font-weight: 600;
-  /* line-height: 20px; */
+  line-height: 20px;
+}
+
+.cardBtn:hover {
+  background: #444;
 }
