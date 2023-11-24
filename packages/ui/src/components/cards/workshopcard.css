@@ -1,44 +1,58 @@
 @import url("https://fonts.googleapis.com/css?family=Inter&display=swap");
-.card {
+
+.cardHolder {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1 0 0;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: #282828;
+  border-top: 1px solid #e75f33;
+  font-family: Inter;
+}
+.card {
   display: flex;
   padding: 24px;
   flex-direction: column;
   align-items: flex-start;
-  gap: 16px;
-  flex: 1 0 0;
-  width: 264px;
-  height: 130px;
+  gap: 20px;
+  align-self: stretch;
+  border-radius: 12px;
+  border: 1px solid #424242;
+  background: #282828;
+  width: 373px;
+  /* height: 156px; */
 }
 
 .cardHeader {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  align-self: stretch;
 }
 
 .cardHeaderText {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  align-items: center;
+  gap: 16px;
 }
 
 .cardTitle {
   color: #fff;
-  font-family: Inter;
-  font-size: 16px;
+  font-size: 18px;
   font-style: normal;
   font-weight: 600;
   line-height: 28px; /* 175% */
 }
 
 .cardSubtitle {
-  color: #fff;
-  font-family: Inter;
+  display: flex;
+  padding: 4px 12px;
+  align-items: center;
+  gap: 6px;
+  border-radius: 80px;
+  background: #4e332a;
+  color: #e75f33;
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
@@ -47,20 +61,41 @@
 
 .cardIcon {
   display: flex;
-  width: 40px;
-  height: 40px;
-  padding: 3.75px;
+  width: 32px;
+  height: 32px;
+  padding: 3px;
   justify-content: center;
   align-items: center;
 }
 
 .cardDescription {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   align-self: stretch;
-  color: #fff;
+  overflow: hidden;
+  color: #c3c3c3;
+  text-overflow: ellipsis;
   font-family: Inter;
   font-size: 14px;
   font-style: normal;
   font-weight: 400;
   line-height: 160%; /* 22.4px */
-  opacity: 0.72;
+}
+
+.cardBtn {
+  display: flex;
+  height: 40px;
+  padding: 14px 24px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #282828;
+  color: #fff;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 600;
+  /* line-height: 20px; */
 }
