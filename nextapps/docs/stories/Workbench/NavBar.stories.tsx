@@ -3,10 +3,10 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { NavBar } from "@elevaite/ui";
 
 const meta = {
-  title: "Workshop/NavBar",
+  title: "Workbench/NavBar",
   component: NavBar,
   parameters: {
-    layout: "centered",
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
   argTypes: {
@@ -17,8 +17,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Workshop: Story = {
+export const Workbench: Story = {
   args: {
-    breadcrumbItems: [{ label: "Workshop", link: "/workshop" }],
+    breadcrumbItems: [{ label: "Workbench", link: "/Workbench" }],
+    user: { icon: "..." },
   },
 };
