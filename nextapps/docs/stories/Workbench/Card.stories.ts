@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
 import { WorkshopCard } from "@elevaite/ui";
-import slackImage from "./assets/slack.svg";
+import slackImage from "../assets/slack.svg";
 
 const meta = {
-  title: "Workshop/Card",
+  title: "Workbench/Card",
   component: WorkshopCard,
   parameters: {
     layout: "centered",
