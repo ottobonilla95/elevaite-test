@@ -1,7 +1,7 @@
 import * as React from "react";
-import "./workshopcard.css";
+import "./WorkbenchCard.css";
 
-interface WorkshopCardProps {
+interface WorkbenchCardProps {
   icon: string;
   iconAlt: string;
   title: string;
@@ -11,7 +11,7 @@ interface WorkshopCardProps {
   height?: number;
 }
 
-export function WorkshopCard({ icon, title, subtitle, description, ...props }: WorkshopCardProps) {
+export function WorkbenchCard({ icon, title, subtitle, description, ...props }: WorkbenchCardProps) {
   return (
     <div className="cardHolder">
       <div className="card">
@@ -39,4 +39,4 @@ export function WorkshopCard({ icon, title, subtitle, description, ...props }: W
   );
 }
 
-export default WorkshopCard;
+export default WorkbenchCard;

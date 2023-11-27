@@ -1,3 +1,11 @@
+.layoutL2 {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+  width: calc(100vw - 80px);
+}
+
 .navbarHolder {
   display: flex;
   width: 100%;
@@ -16,6 +24,9 @@
 }
 
 .searchAndInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .help {
@@ -27,6 +38,10 @@
   gap: 8px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.help:hover {
+  background: #363636;
 }
 
 .line {

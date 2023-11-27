@@ -1,60 +1,44 @@
-"use client";
-import React, { useContext } from "react";
+import React, { ComponentType, SVGProps } from "react";
 import "./Sidebar.css";
-import { usePathname } from "next/navigation";
-import Link from "next/link";
-import { ColorContext } from "../../ColorContext";
 
 interface SidebarProps {
   sidebarIcons: SidebarIconProps[];
-  Logo: React.ReactNode;
+  Logo: ComponentType<SVGProps<SVGSVGElement>>;
   children?: React.ReactNode;
 }
 
 export function Sidebar({ Logo, ...props }: SidebarProps) {
-  const colors = useContext(ColorContext);
   return (
-    <>
-      <div className="sidebarContainer" style={{ borderRightColor: colors.borderColor, background: colors.primary }}>
-        <Link href={"/"} className="logoContainer">
-          <div className="logo">{Logo}</div>
-        </Link>
+    <div className="layout">
+      <div className="sidebarContainer">
+        <div className="logoContainer">
+          <Logo className="sidebarLogo" width={56} height={56} color="#E75F33" />
+        </div>
         <div className="sidebarNav">
           {props.sidebarIcons.map((icon, index) => (
-            <SidebarIcon Icon={icon.Icon} linkLocation={icon.linkLocation} key={icon.linkLocation} />
+            <React.Fragment>
+              <button className={"sidebarNavBtn" + (icon.selected ? " slc" : "")}>
+                <icon.Icon color={icon.selected ? "#E75F33" : "#fff"} />
+              </button>
+            </React.Fragment>
           ))}
         </div>
       </div>
       {props.children}
-    </>
+    </div>
   );
 }
 
-export interface SidebarIconProps {
-  Icon: React.ReactNode;
-  linkLocation: string;
+export default Sidebar;
+
+interface SidebarIconProps {
+  Icon: ComponentType<SVGProps<SVGSVGElement>>;
+  linkLocations: string;
+  selected: boolean;
 }
 
 function SidebarIcon({ Icon, ...props }: SidebarIconProps) {
-  const pathname = usePathname();
-  const [hover, setHover] = React.useState(false);
-  const colors = useContext(ColorContext);
+  function onClick() {}
 
-  return (
-    <React.Fragment>
-      <button
-        className={"sidebarNavBtn" + (pathname.startsWith(props.linkLocation) ? "_slc" : "")}
-        style={{
-          color: pathname.startsWith(props.linkLocation) ? colors.highlight : colors.icon,
-          background: pathname.startsWith(props.linkLocation) || hover ? colors.secondary : colors.primary,
-          borderColor: pathname.startsWith(props.linkLocation) ? colors.iconBorder : colors.primary,
-        }}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-      >
-        {" "}
-        <Link href={props.linkLocation}>{Icon}</Link>
-      </button>
-    </React.Fragment>
-  );
+  return <div></div>;
 }
