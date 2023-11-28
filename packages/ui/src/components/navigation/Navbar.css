@@ -3,7 +3,8 @@
   flex-direction: column;
   align-items: flex-start;
   align-self: stretch;
-  width: calc(100vw - 80px);
+  width: 100vw;
+  padding-left: 81px;
 }
 
 .navbarHolder {
@@ -15,6 +16,10 @@
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   background: #282828;
+  float: inline-start;
+  position: sticky;
+  top: 0;
+  left: 81px;
 }
 
 .searchAndUser {
