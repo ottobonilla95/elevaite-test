@@ -59,8 +59,16 @@
   background: #444;
 }
 
-.sidebarNavBtn + .slc {
+.sidebarNavBtn_slc {
+  display: flex;
+  padding: 12px;
+  align-items: flex-start;
+  gap: 10px;
   border-radius: 10px;
   background: #444;
   opacity: 1;
+  color: #e75f33;
 }
+/* .slc > svg {
+  color: #e75f33;
+} */

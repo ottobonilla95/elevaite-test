@@ -15,12 +15,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={inter.className}>
         <Sidebar
-          Logo={ElevaiteIcons.Logo}
+          Logo={<ElevaiteIcons.Logo />}
           sidebarIcons={[
-            { Icon: ElevaiteIcons.Datasets, linkLocations: "", selected: false },
-            { Icon: ElevaiteIcons.WorkersQueues, linkLocations: "", selected: false },
-            { Icon: ElevaiteIcons.Models, linkLocations: "", selected: false },
-            { Icon: ElevaiteIcons.Workbench, linkLocations: "", selected: true },
+            { Icon: <ElevaiteIcons.WorkersQueues />, linkLocation: "/workers_queues" },
+            { Icon: <ElevaiteIcons.Models />, linkLocation: "/models" },
+            { Icon: <ElevaiteIcons.Datasets />, linkLocation: "/datasets" },
+            { Icon: <ElevaiteIcons.Workbench />, linkLocation: "/workbench" },
           ]}
         >
           <NavBar breadcrumbItems={[{ label: "WorkBench" }]} user={{ icon: "" }}>
