@@ -1,22 +1,42 @@
 "use client";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./Navbar.css";
 import { Breadcrumbs, BreadcrumbItem } from "./Breadcrumbs";
 import Searchbar from "../search/Searchbar";
+import { useRouter, usePathname } from "next/navigation";
 
 interface NavBarProps {
-  breadcrumbItems: BreadcrumbItem[];
+  breadcrumbLabels: { [key: string]: { label: string; link: string } };
   user: { icon: string };
   children?: React.ReactNode;
 }
 
 export function NavBar({ ...props }: NavBarProps) {
   const [btnPressed, setBtnpressed] = useState(false);
+  const [breadcrumbItems, setBreadcrumbItems] = useState<BreadcrumbItem[]>([]);
+  const pathname = usePathname();
+  useEffect(() => {
+    console.log(pathToBreadcrumbs(pathname));
+    setBreadcrumbItems(pathToBreadcrumbs(pathname));
+  }, [pathname]);
+
+  function pathToBreadcrumbs(path: string): BreadcrumbItem[] {
+    return path
+      .split("/")
+      .filter((str) => str != "")
+      .map((str) => {
+        return {
+          label: props.breadcrumbLabels[str] ? props.breadcrumbLabels[str].label : str,
+          link: props.breadcrumbLabels[str]?.link,
+        };
+      });
+  }
+
   return (
     <div className="layoutL2">
       <div className="navbarHolder">
-        <Breadcrumbs items={props.breadcrumbItems} />
+        <Breadcrumbs items={breadcrumbItems} />
         <div className="searchAndUser">
           <Searchbar />
           <button
