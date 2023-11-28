@@ -1,9 +1,11 @@
-import React, { ComponentType, SVGProps } from "react";
+"use client";
+import React, { ComponentType, SVGProps, useEffect } from "react";
 import "./Sidebar.css";
+import { useRouter, usePathname } from "next/navigation";
 
 interface SidebarProps {
   sidebarIcons: SidebarIconProps[];
-  Logo: ComponentType<SVGProps<SVGSVGElement>>;
+  Logo: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -12,15 +14,11 @@ export function Sidebar({ Logo, ...props }: SidebarProps) {
     <div className="layout">
       <div className="sidebarContainer">
         <div className="logoContainer">
-          <Logo className="sidebarLogo" width={56} height={56} color="#E75F33" />
+          <div className="logo">{Logo}</div>
         </div>
         <div className="sidebarNav">
           {props.sidebarIcons.map((icon, index) => (
-            <React.Fragment>
-              <button className={"sidebarNavBtn" + (icon.selected ? " slc" : "")}>
-                <icon.Icon color={icon.selected ? "#E75F33" : "#fff"} />
-              </button>
-            </React.Fragment>
+            <SidebarIcon Icon={icon.Icon} linkLocation={icon.linkLocation} />
           ))}
         </div>
       </div>
@@ -32,13 +30,24 @@ export function Sidebar({ Logo, ...props }: SidebarProps) {
 export default Sidebar;
 
 interface SidebarIconProps {
-  Icon: ComponentType<SVGProps<SVGSVGElement>>;
-  linkLocations: string;
-  selected: boolean;
+  Icon: React.ReactNode;
+  linkLocation: string;
 }
 
 function SidebarIcon({ Icon, ...props }: SidebarIconProps) {
-  function onClick() {}
+  const { push } = useRouter();
+  const pathname = usePathname();
 
-  return <div></div>;
+  return (
+    <React.Fragment key={props.linkLocation}>
+      <button
+        className={"sidebarNavBtn" + (pathname.startsWith(props.linkLocation) ? "_slc" : "")}
+        onClick={() => {
+          push(props.linkLocation);
+        }}
+      >
+        {Icon}
+      </button>
+    </React.Fragment>
+  );
 }
