@@ -1,7 +1,8 @@
 "use client";
-import React, { ComponentType, SVGProps, useEffect } from "react";
+import React, { useContext } from "react";
 import "./Sidebar.css";
 import { useRouter, usePathname } from "next/navigation";
+import { ColorContext } from "../../ColorContext";
 
 interface SidebarProps {
   sidebarIcons: SidebarIconProps[];
@@ -10,9 +11,10 @@ interface SidebarProps {
 }
 
 export function Sidebar({ Logo, ...props }: SidebarProps) {
+  const colors = useContext(ColorContext);
   return (
     <div className="layout">
-      <div className="sidebarContainer">
+      <div className="sidebarContainer" style={{ borderRightColor: colors.borderColor, background: colors.primary }}>
         <div className="logoContainer">
           <div className="logo">{Logo}</div>
         </div>
@@ -37,6 +39,8 @@ interface SidebarIconProps {
 function SidebarIcon({ Icon, ...props }: SidebarIconProps) {
   const { push } = useRouter();
   const pathname = usePathname();
+  const [hover, setHover] = React.useState(false);
+  const colors = useContext(ColorContext);
 
   return (
     <React.Fragment key={props.linkLocation}>
@@ -45,6 +49,14 @@ function SidebarIcon({ Icon, ...props }: SidebarIconProps) {
         onClick={() => {
           push(props.linkLocation);
         }}
+        style={{
+          color: pathname.startsWith(props.linkLocation) ? colors.highlight : colors.icon,
+          background: pathname.startsWith(props.linkLocation) || hover ? colors.secondary : colors.primary,
+          borderColor: pathname.startsWith(props.linkLocation) ? colors.iconBorder : colors.primary,
+        }}
+        onMouseEnter={() => setHover(true)}
+        onFocus={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
       >
         {Icon}
       </button>
