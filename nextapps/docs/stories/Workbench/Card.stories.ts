@@ -1,22 +1,20 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
-import { WorkshopCard } from "@elevaite/ui";
+import { WorkbenchCard, WorkbenchCardProps } from "@elevaite/ui";
 import slackImage from "../assets/slack.svg";
 
 const meta = {
   title: "Workbench/Card",
-  component: WorkshopCard,
+  component: WorkbenchCard,
   parameters: {
     layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    description: { control: "text" },
-  },
-} satisfies Meta<typeof WorkshopCard>;
+  argTypes: {},
+} satisfies Meta<WorkbenchCardProps>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<WorkbenchCardProps>;
 
 export const Slack: Story = {
   args: {
