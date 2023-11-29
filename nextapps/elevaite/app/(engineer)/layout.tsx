@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "./layout.css";
-import { ElevaiteIcons, SidebarIconProps } from "@elevaite/ui";
-import AppLayout from "../ui/AppLayout";
-import { EngineerTheme } from "../ui/themes";
+import "../ui/globals.css";
+import { ElevaiteIcons, NavBar, Sidebar } from "@elevaite/ui";
+import { Providers } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,26 +28,27 @@ const breadcrumbLabels: { [key: string]: { label: string; link: string } } = {
     label: "Workbench",
     link: "/workbench",
   },
-  home: {
-    label: "Applications",
-    link: "/",
-  },
 };
-
-const sidebarIcons: SidebarIconProps[] = [
-  // { Icon: <ElevaiteIcons.Datasets />, linkLocation: "/datasets" },
-  // { Icon: <ElevaiteIcons.WorkersQueues />, linkLocation: "/workers_queues" },
-  // { Icon: <ElevaiteIcons.Models />, linkLocation: "/models" },
-  { Icon: <ElevaiteIcons.Workbench />, linkLocation: "/workbench" },
-];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AppLayout breadcrumbLabels={breadcrumbLabels} sidebarIcons={sidebarIcons} theme={EngineerTheme}>
-          {children}
-        </AppLayout>
+        <Providers>
+          <Sidebar
+            Logo={<ElevaiteIcons.Logo />}
+            sidebarIcons={[
+              { Icon: <ElevaiteIcons.Datasets />, linkLocation: "/datasets" },
+              { Icon: <ElevaiteIcons.WorkersQueues />, linkLocation: "/workers_queues" },
+              { Icon: <ElevaiteIcons.Models />, linkLocation: "/models" },
+              { Icon: <ElevaiteIcons.Workbench />, linkLocation: "/workbench" },
+            ]}
+          >
+            <NavBar breadcrumbLabels={breadcrumbLabels} user={{ icon: "" }}>
+              {children}
+            </NavBar>
+          </Sidebar>
+        </Providers>
       </body>
     </html>
   );

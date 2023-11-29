@@ -16,7 +16,7 @@
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  background: #282828;
+  background: #a71d1d;
   float: inline-start;
   position: sticky;
   top: 0;
@@ -44,11 +44,7 @@
   align-items: center;
   gap: 8px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.help:hover {
-  background: #363636;
+  border: 1px solid;
 }
 
 .line {
