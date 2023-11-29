@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import "./Navbar.css";
 import { Breadcrumbs, BreadcrumbItem } from "./Breadcrumbs";
 import Searchbar from "../search/Searchbar";
 import { useRouter, usePathname } from "next/navigation";
+import { ColorContext } from "../../ColorContext";
 
 interface NavBarProps {
   breadcrumbLabels: { [key: string]: { label: string; link: string } };
@@ -15,11 +16,13 @@ interface NavBarProps {
 export function NavBar({ ...props }: NavBarProps) {
   const [btnPressed, setBtnpressed] = useState(false);
   const [breadcrumbItems, setBreadcrumbItems] = useState<BreadcrumbItem[]>([]);
+  const [hover, setHover] = React.useState(false);
   const pathname = usePathname();
   useEffect(() => {
     console.log(pathToBreadcrumbs(pathname));
     setBreadcrumbItems(pathToBreadcrumbs(pathname));
   }, [pathname]);
+  const colors = useContext(ColorContext);
 
   function pathToBreadcrumbs(path: string): BreadcrumbItem[] {
     return path
@@ -35,7 +38,7 @@ export function NavBar({ ...props }: NavBarProps) {
 
   return (
     <div className="layoutL2">
-      <div className="navbarHolder">
+      <div className="navbarHolder" style={{ borderBottomColor: colors.borderColor, background: colors.primary }}>
         <Breadcrumbs items={breadcrumbItems} />
         <div className="searchAndUser">
           <Searchbar />
@@ -44,7 +47,10 @@ export function NavBar({ ...props }: NavBarProps) {
             onClick={() => {
               setBtnpressed(!btnPressed);
             }}
-            style={{ background: btnPressed ? "#363636" : "" }}
+            style={{ background: btnPressed || hover ? colors.hoverColor : "", borderColor: colors.borderColor }}
+            onMouseEnter={() => setHover(true)}
+            onFocus={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
           >
             <svg
               width="20"
@@ -52,7 +58,7 @@ export function NavBar({ ...props }: NavBarProps) {
               viewBox="0 0 20 20"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              style={{ stroke: btnPressed ? "#E75F33" : "#939393" }}
+              style={{ stroke: btnPressed ? colors.highlight : colors.icon }}
             >
               <g clipPath="url(#clip0_910_5173)">
                 <path

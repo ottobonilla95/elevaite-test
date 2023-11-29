@@ -1,6 +1,6 @@
 "use client";
 import { WorkbenchCard } from "@elevaite/ui";
-import { ingestionMethods } from "../../dummydata";
+import { ingestionMethods } from "../../../dummydata";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import "./page.css";
 
