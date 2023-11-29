@@ -5,23 +5,22 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
-import openpyxl
 import io 
 import os
 from fastapi.responses import FileResponse
 
-
+from utils import upload_file
 from utils import generate_manifest
 from utils import generate_summary
 from utils import generate_cisco_presentation
 from utils import generate_presentation
-from utils import ask_csv_agent
 from utils import Excel_to_dataframe
 from utils import Excel_to_Dataframe_auto
 from utils import ask_questions
 from utils import ask_your_doc
-from utils import convert_bytes_to_human_readable
-from utils import upload_file
+from utils import generate_csv_for_excel
+from utils import ask_csv_agent
+
 
 
 from langchain.document_loaders import CSVLoader
@@ -62,7 +61,10 @@ def read_item(item_id: int):
 async def uploadFile(file: UploadFile = File(...)):
     try:
         response = await upload_file(file)
-        return JSONResponse(content=response, status_code=200)
+        if response['response'] == 'Success':
+            res = generate_csv_for_excel(response['file_path'])
+            if res['response'] == 'Success':
+                return JSONResponse(content=response, status_code=200)
     except Exception as e:
         print("File Upload Failed: " + str(e))
     
@@ -202,7 +204,7 @@ async def generate_powerpoint(excel_file: str ,manifest_file: str, folder_name: 
         return JSONResponse(content={"error": str(e)}, status_code=500)
     
 
-@app.post("/convert")
+@app.post("/convert/")
 async def convert_pptx_to_pdf(pptx_path: str):
     pdf_bytes = convert_pptx_to_pdf(pptx_path)
 
@@ -211,3 +213,18 @@ async def convert_pptx_to_pdf(pptx_path: str):
     with open(pdf_path, "wb") as pdf_file:
         pdf_file.write(pdf_bytes.read())
     return "Sucess"
+
+@app.get('/askagent/')
+async def chat_with_csv_agent(workbook_name: str, sheet_name: str, question: str):
+    print("Request reached")
+    csv_folder = os.path.join("data/Output", workbook_name)
+    if os.path.exists(csv_folder):
+        if ".yaml" in  sheet_name:
+            csv_sheet_name = sheet_name.split(".")[0] + ".csv"
+            sheet_path = os.path.join(csv_folder, csv_sheet_name)
+            res = ask_csv_agent(sheet_path, question)
+            if res['response'] == 'Success':
+                return JSONResponse(content = res['answer'], status_code=200)
+    else:
+        return JSONResponse(content = "Error while trying to retreive answer. Please contact your admin.", status_code=200)
+

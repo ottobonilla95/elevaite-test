@@ -4,6 +4,7 @@ import os
 import openpyxl
 import yaml
 import uuid
+import re
 
 from openai import OpenAI
 
@@ -26,10 +27,14 @@ from langchain.chains import RetrievalQA
 from langchain.llms import OpenAI
 from langchain.embeddings.openai import OpenAIEmbeddings
 
+from langchain.agents.agent_types import AgentType
+from langchain.chat_models import ChatOpenAI
+from langchain.llms import OpenAI
+from langchain_experimental.agents.agent_toolkits import create_csv_agent
+
 from functions import api_openai
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-
 
 #Load Environment Variables
 load_dotenv()
@@ -70,17 +75,24 @@ async def upload_file(file: UploadFile = File(...)):
         os.makedirs("data/Excel", exist_ok=True)
         with open(f"data/Excel/{file.filename}", "wb") as f:
             f.write(file.file.read())
-
+        file_path = f"data/Excel/{file.filename}"
         #Excel/Workbook - get list of sheets
         sheets = []
+        sheets_count = 0
         if file_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" or file_type == "application/vnd.ms-excel":
             file_path = f"data/Excel/{file.filename}"
             workbook = openpyxl.load_workbook(file_path, read_only=True)
             sheets = workbook.sheetnames
-            
-        return {"response": "Success", "file_size": file_size, "file_name": file_name, "file_type" : file_type, "sheet": sheets}
+            sheets_count = len(sheets)
+        return {"response": "Success", "file_size": file_size, "file_path": file_path, "file_name": file_name, "file_type" : file_type, "sheet": sheets, "sheets_count": sheets_count}
     except Exception as e:
         return {"response": "Error", "error_message": e}
+
+def convert_bytes_to_human_readable(size_in_bytes):
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if size_in_bytes < 1024.0:
+            return f"{size_in_bytes:.2f} {unit}"
+        size_in_bytes /= 1024.0
 
 def ask_questions(query, chain):
     try:
@@ -89,17 +101,11 @@ def ask_questions(query, chain):
     except Exception as e:
         return str(e)
 
-def convert_bytes_to_human_readable(size_in_bytes):
-    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-        if size_in_bytes < 1024.0:
-            return f"{size_in_bytes:.2f} {unit}"
-        size_in_bytes /= 1024.0
-
 async def ask_your_doc(query: str, context: str):
     try:
         prompt = ""
         document_user_instructions = """
-            Look at only my quesry and the context given below to provide the most relevant answer. If you are not sure or the relevant content is not available in the context 
+            Look at only my query and the context given below to provide the most relevant answer. If you are not sure or the relevant content is not available in the context 
             please mention that the document does not have the requested information to provide the appropriate answer.
             """
         prompt = document_user_instructions + " \n" + "query is given below \n " + query + "\n" + "context : " + context 
@@ -885,24 +891,159 @@ def ask_questions(query, chain):
     response = chain({"question": query})
     return response['result']
 
-async def ask_csv_agent(excel_file_path, manifest_file_path, selected_sheet, question):
+def find_numeric_cells(sheet):
+    
+    # Initialize variables to store the first and last row numbers and column numbers
+    first_row = None
+    last_row = None
+    first_col = None
+    last_col = None
 
+    # Iterate through rows and columns in the sheet
+    for row_index, row in enumerate(sheet.iter_rows(values_only=True), start=1):
+        for col_index, cell_value in enumerate(row, start=1):
+            # Check if the cell value is numeric
+            if isinstance(cell_value, (int, float)):
+                # Update first_row if not set
+                if first_row is None:
+                    first_row = row_index
+
+                # Update last_row continuously
+                last_row = row_index
+
+                # Update first_col if not set
+                if first_col is None:
+                    first_col = col_index
+
+                # Update last_col continuously
+                if last_col is None:
+                    last_col = col_index
+                if last_col < col_index:
+                    last_col = col_index
+
+    return first_row, first_col, last_row, last_col
+
+def create_dataframe_csv(start_row, start_col, end_row, end_col, row_header, col_header, workbook_name, sheet):
+    
+    
+    rows_data = []
+
+    # Iterate through rows and columns in the specified range and populate the list
+    for row_index in range(start_row, end_row + 1):
+        row_data = {}
+        for col_index in range(start_col, end_col + 1):
+            cell_value = sheet.cell(row=row_index, column=col_index).value
+            row_data[f'Column {col_index}'] = cell_value
+
+        rows_data.append(row_data)
+
+    # Create DataFrame from the list of dictionaries
+    df = pd.DataFrame(rows_data)
+    df.index = row_header
+    df.columns = col_header
+    
+    csv_file_dir = os.path.join(os.getcwd(), "data", "Output")
+    os.makedirs(csv_file_dir, exist_ok=True)
+    csv_file = sheet.title + ".csv"
+    csv_file_path = os.path.join(csv_file_dir, csv_file)
+    mode = 'w'
+    df.to_csv(csv_file_path, mode = mode)
+    return df
+
+def get_index(start_row, end_row, start_column, end_column, sheet):
+    
+    row_headers = []
+    col_headers = []
+
+    for row_index in range(start_row, end_row + 1):
+        header = ""
+        for col_index in range(0, start_column):
+            try:
+                cell_value = sheet.cell(row=row_index, column=col_index).value
+                if header == "" and cell_value is not None:
+                    header = re.sub(r'[^a-zA-Z0-9]', '', str(cell_value))
+                elif header != "" and cell_value is not None:
+                    header+="_"+re.sub(r'[^a-zA-Z0-9]', '', str(cell_value))
+            except Exception as e:
+                #print("Error:", str(e))
+                print(".")
+        
+        row_headers.append(header)
+    for col_index in range(start_column, end_column+1):
+        header = ""
+        for row_index in range(0, start_row):
+            try:
+                cell_value = sheet.cell(row=row_index, column=col_index).value
+                
+                if header == "" and cell_value is not None:
+                    header = re.sub(r'[^a-zA-Z0-9]', '', str(cell_value))
+                elif header != "" and cell_value is not None:
+                    header += "_"+re.sub(r'[^a-zA-Z0-9]', '', str(cell_value))
+            except Exception as e:
+                #print("Error:", str(e))
+                print(".")
+        col_headers.append(header)
+
+    return row_headers, col_headers
+
+def create_dataframe_2(start_row, start_col, end_row, end_col, row_headers, col_headers,workbook_name,sheet):
+    row_data = {}
+    
+    j = 0
+    # Iterate through rows and columns in the specified range and populate the list
+    for row_index in range(start_row, end_row + 1):
+        i = 0
+        for col_index in range(start_col, end_col + 1):
+            cell_value = sheet.cell(row=row_index, column=col_index).value
+            header = row_headers[j] + "_" + col_headers[i]
+            row_data[header] = cell_value
+            i += 1
+        j += 1
+        
+            
+    # Create an empty DataFrame
+    #df = pd.DataFrame(row_data, index=False)
+    df = pd.DataFrame([row_data])
+   
+    
+    csv_file_dir = os.path.join(os.getcwd(), "data", "Output", workbook_name.split(".")[0])
+    os.makedirs(csv_file_dir, exist_ok=True)
+    csv_file = sheet.title + ".csv"
+    csv_file_path = os.path.join(csv_file_dir, csv_file)
+    mode = 'w'
+    df.to_csv(csv_file_path, mode = mode)
+    return csv_file_path
+
+def ask_csv_agent(sheet_list, question):
     try:
-        df = Excel_to_dataframe(excel_file_path, manifest_file_path, selected_sheet)
-        df.to_csv(csv_file_path, index = True)
-        loader = CSVLoader(file_path=csv_file_path)
-        document = loader.load()
-        embeddings = OpenAIEmbeddings()
-        index_creator = VectorstoreIndexCreator()
-        docsearch = index_creator.from_loaders([loader])
-        chain = RetrievalQA.from_chain_type(llm=OpenAI(), chain_type="stuff", retriever=docsearch.vectorstore.as_retriever(), input_key="question")
-        response = ask_questions(question, chain)
+        agent = create_csv_agent(
+            ChatOpenAI(temperature=0, model="gpt-4-1106-preview"),
+            [sheet_list],
+            verbose=False,
+            agent_type=AgentType.OPENAI_FUNCTIONS
+        )
+        answer = agent.run(question)
 
-        return {"response": response, "status": 200}
-    except Exception as e:
+        return {"response" : "Success", "answer" : answer}
+    except  Exception as e:
         return str(e)
+    
+
+def generate_csv_for_excel(workbook_path):
 
 
+    workbook = openpyxl.load_workbook(workbook_path, data_only=True)
+    workbook_name = workbook_path.split('/')[-1]
+    sheets = workbook.sheetnames
+    csv_sheets = []
+    for sheet_name in sheets:
+        sheet = workbook[sheet_name] 
+        
+        first_row, first_col, last_row, last_col = find_numeric_cells(sheet)
+        row_headers, col_headers = get_index(first_row, last_row, first_col, last_col, sheet)
+        csv_sheet = create_dataframe_2(first_row, first_col, last_row, last_col, row_headers, col_headers, workbook_name, sheet)
+        csv_sheets.append(csv_sheet)
+    return {"response" : "Success", "sheet_list" : csv_sheets}
 
 
 

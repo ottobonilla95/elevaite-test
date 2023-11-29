@@ -7,6 +7,7 @@ import TopHeader from '@/components/topheader';
 import Progressbar from '@/components/progressbar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons';
+import ChatWindow from '@/components/chatwindow';
 import { useRouter } from 'next/router';
 import { Avatar } from '@/components/Avatar';
 import { IconShare } from '@/icons/IconShare';
@@ -17,6 +18,7 @@ import { TypeAComment } from "@/components/TypeAComment";
 export default function Home() {
   const router = useRouter();
   const { ppt_file, summary, excel_file, sheet_name } = router.query;
+  console.log(excel_file, sheet_name);
   const [question, setQuestion] = useState("");
   const [submittedQuestions, setSubmittedQuestions] = useState("");
   const [answer, setAnswer] = useState("");
@@ -133,9 +135,9 @@ export default function Home() {
   }, [ppt_file]);
 
   return (
-    <div className="app-container">
+    <div className="app-container2">
       <TopHeader />
-      <div className="upload-container-main">
+      <div className="upload-container-main2">
         <div className="breadcrumb-container">
           <a>Ingest</a>
           <span className="separator"></span>
@@ -150,7 +152,7 @@ export default function Home() {
 
         </div>
         <div className="manifest-header">PPT Preview</div>
-        <div className="manifest-container">
+        <div className="pptpreview-container">
           <div>
 
             <button className="action-button-align-right action-button" onClick={handleDownload}>Download</button>
@@ -159,61 +161,9 @@ export default function Home() {
             </div>
           </div>
           <div>
-            {/*<div className="chatbot-container">
-              <div className="chatbot-header">
-                ChatBot
-              </div>
-              <div className="question-container">
-                <div className = "question-input-container">
-                  <input
-                    type = "text"
-                    value = {question}
-                    onChange = {(e) => setQuestion(e.target.value)}
-                    placeholder="Type your question"
-                  />
-                  <div className="button-container2">
-                    <div className="space-padding">
-                      <button className="action-button-align-right action-button" onClick ={handleQuestionSubmit}>Submit</button>
-                    </div>
-                  </div>
-                  {isLoading ? (
-                    <div className="loadingContainer">
-                    <div className="spinner"></div>
-                  </div>
-                  ): (
-                    <div>
-                    {answer}
-                    </div>
-                  )}
-                  
-                </div>
-              </div>  
-                  </div>*/}
-
-            <div className="chat-header-frame">
-              <div className="frame-wrapper">
-                <div className="div-wrapper">
-                  <div className="text-wrapper">ChatBot</div>
-                </div>
-              </div>
-            </div>
-            <div className="rectangle">
-            <div>{answer}</div>
-              <div className="box">
-                <div className="group">
-                  <img className="avatars" alt="Avatars" src="/img/avatars.png" />
-                  <input 
-                    type="text" 
-                    value = {question}
-                    onChange = {(e) => setQuestion(e.target.value)}
-                    className="comment-input" placeholder="Type your question..." />
-                  <div className="send-box">
-                  <FontAwesomeIcon icon={faPaperPlane} onClick ={handleQuestionSubmit} style={{cursor: "pointer"}} />
-                  </div>
-                  
-                </div>
-              </div>
-            </div>
+            
+            <ChatWindow workbook_name={excel_file} sheet_name={sheet_name}/>
+            
           </div>
 
         </div>
