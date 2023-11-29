@@ -19,5 +19,8 @@
     "nextapps/*",
     "nextapps/exceltoppt/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "react-tabs": "^6.0.2"
+  }
 }
