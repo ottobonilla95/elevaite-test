@@ -1,2 +1,3 @@
 export * from "./components";
-export { ColorContext, EngineerTheme, AppDrawerTheme } from "./ColorContext";
+export { ColorContext } from "./ColorContext";
+export type { ColorScheme } from "./ColorContext";

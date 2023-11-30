@@ -23,6 +23,56 @@ export default function Page() {
               iconAlt={method.iconAlt}
               subtitle={method.subtitle}
               title={method.title}
+              btnLabel="Open"
+              withHighlight
+            />
+          ))}
+        </div>
+      </TabPanel>
+      <TabPanel>
+        <div className="grid sm:max-lg:grid-cols-1 lg:max-2xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4 p-8 w-fit">
+          {ingestionMethods.map((method) => (
+            <WorkbenchCard
+              key={method.iconAlt}
+              description={method.description}
+              icon={method.icon}
+              iconAlt={method.iconAlt}
+              subtitle={method.subtitle}
+              title={method.title}
+              btnLabel="Open"
+              withHighlight
+            />
+          ))}
+        </div>
+      </TabPanel>
+      <TabPanel>
+        <div className="grid sm:max-lg:grid-cols-1 lg:max-2xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4 p-8 w-fit">
+          {ingestionMethods.map((method) => (
+            <WorkbenchCard
+              key={method.iconAlt}
+              description={method.description}
+              icon={method.icon}
+              iconAlt={method.iconAlt}
+              subtitle={method.subtitle}
+              title={method.title}
+              btnLabel="Open"
+              withHighlight
+            />
+          ))}
+        </div>
+      </TabPanel>
+      <TabPanel>
+        <div className="grid sm:max-lg:grid-cols-1 lg:max-2xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4 p-8 w-fit">
+          {ingestionMethods.map((method) => (
+            <WorkbenchCard
+              key={method.iconAlt}
+              description={method.description}
+              icon={method.icon}
+              iconAlt={method.iconAlt}
+              subtitle={method.subtitle}
+              title={method.title}
+              btnLabel="Open"
+              withHighlight
             />
           ))}
         </div>

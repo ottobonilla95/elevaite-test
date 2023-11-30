@@ -16,7 +16,7 @@
   top: 0;
   left: 0;
   overflow: auto;
-  z-index: 100;
+  z-index: 110;
 }
 
 .logoContainer {
@@ -67,6 +67,7 @@
   align-items: flex-start;
   gap: 10px;
   border-radius: 10px;
+  border: 1px solid;
 }
 /* .slc > svg {
   color: #e75f33;
