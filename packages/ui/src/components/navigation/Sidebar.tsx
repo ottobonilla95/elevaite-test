@@ -1,7 +1,8 @@
 "use client";
 import React, { useContext } from "react";
 import "./Sidebar.css";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { ColorContext } from "../../ColorContext";
 
 interface SidebarProps {
@@ -20,7 +21,7 @@ export function Sidebar({ Logo, ...props }: SidebarProps) {
         </div>
         <div className="sidebarNav">
           {props.sidebarIcons.map((icon, index) => (
-            <SidebarIcon Icon={icon.Icon} linkLocation={icon.linkLocation} />
+            <SidebarIcon Icon={icon.Icon} linkLocation={icon.linkLocation} key={icon.linkLocation} />
           ))}
         </div>
       </div>
@@ -29,36 +30,33 @@ export function Sidebar({ Logo, ...props }: SidebarProps) {
   );
 }
 
-export default Sidebar;
-
-interface SidebarIconProps {
+export interface SidebarIconProps {
   Icon: React.ReactNode;
   linkLocation: string;
 }
 
 function SidebarIcon({ Icon, ...props }: SidebarIconProps) {
-  const { push } = useRouter();
   const pathname = usePathname();
   const [hover, setHover] = React.useState(false);
   const colors = useContext(ColorContext);
 
   return (
-    <React.Fragment key={props.linkLocation}>
+    <React.Fragment>
       <button
         className={"sidebarNavBtn" + (pathname.startsWith(props.linkLocation) ? "_slc" : "")}
-        onClick={() => {
-          push(props.linkLocation);
-        }}
+        // onClick={() => {
+        //   push(props.linkLocation);
+        // }}
         style={{
           color: pathname.startsWith(props.linkLocation) ? colors.highlight : colors.icon,
           background: pathname.startsWith(props.linkLocation) || hover ? colors.secondary : colors.primary,
           borderColor: pathname.startsWith(props.linkLocation) ? colors.iconBorder : colors.primary,
         }}
         onMouseEnter={() => setHover(true)}
-        onFocus={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
       >
-        {Icon}
+        {" "}
+        <Link href={props.linkLocation}>{Icon}</Link>
       </button>
     </React.Fragment>
   );

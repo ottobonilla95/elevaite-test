@@ -11,6 +11,8 @@ export interface WorkbenchCardProps {
   description: string;
   width?: number;
   height?: number;
+  btnLabel: string;
+  withHighlight?: boolean;
 }
 
 export function WorkbenchCard({ icon, title, subtitle, description, ...props }: WorkbenchCardProps) {
@@ -18,8 +20,8 @@ export function WorkbenchCard({ icon, title, subtitle, description, ...props }: 
   const [hover, setHover] = React.useState(false);
 
   return (
-    <div className="cardHolder" style={{ borderTopColor: colors?.highlight }}>
-      <div className="card" style={{ background: colors?.primary, borderColor: colors?.secondary }}>
+    <div className="cardHolder" style={{ borderTop: props.withHighlight ? "1px solid " + colors.highlight : "" }}>
+      <div className="card" style={{ background: colors?.primary, borderColor: colors?.borderColor }}>
         <div className="cardHeader">
           <div className="cardHeaderText">
             <img className="cardIcon" src={icon} width={40} height={40} alt={props.iconAlt} />
@@ -39,14 +41,31 @@ export function WorkbenchCard({ icon, title, subtitle, description, ...props }: 
         </div>
         <button
           className="cardBtn"
-          style={{ color: colors?.text, background: hover ? colors.hoverColor : colors.primary }}
+          style={{
+            color: colors?.text,
+            background: hover ? colors.hoverColor : colors.primary,
+            borderColor: colors.borderColor,
+          }}
           onMouseEnter={() => setHover(true)}
           onFocus={() => setHover(true)}
           onMouseLeave={() => setHover(false)}
         >
-          Open
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M6 12L10 8L6 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          {props.btnLabel}
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{ color: colors.text }}
+          >
+            <path
+              d="M6 12L10 8L6 4"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </button>
       </div>

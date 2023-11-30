@@ -4,7 +4,7 @@ import React, { useContext, useEffect, useState } from "react";
 import "./Navbar.css";
 import { Breadcrumbs, BreadcrumbItem } from "./Breadcrumbs";
 import Searchbar from "../search/Searchbar";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { ColorContext } from "../../ColorContext";
 
 interface NavBarProps {
@@ -19,9 +19,8 @@ export function NavBar({ ...props }: NavBarProps) {
   const [hover, setHover] = React.useState(false);
   const pathname = usePathname();
   useEffect(() => {
-    console.log(pathToBreadcrumbs(pathname));
     setBreadcrumbItems(pathToBreadcrumbs(pathname));
-  }, [pathname]);
+  }, []);
   const colors = useContext(ColorContext);
 
   function pathToBreadcrumbs(path: string): BreadcrumbItem[] {
