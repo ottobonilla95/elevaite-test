@@ -3,7 +3,7 @@ import { SVGProps } from "react";
 
 function Background(props: SVGProps<SVGSVGElement>) {
   return (
-    <div style={{ position: "fixed", right: 0, top: "calc(50vh - 417px)", zIndex: -10 }}>
+    <div style={{ position: "fixed", right: 0, top: "calc(50vh - 417px)" }}>
       <Phi {...props} />
     </div>
   );
