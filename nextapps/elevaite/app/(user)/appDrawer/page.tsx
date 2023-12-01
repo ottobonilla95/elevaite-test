@@ -48,33 +48,6 @@ export default function Page() {
             title={ingestionMethods[0].title}
             btnLabel="Description"
           />
-          <Card
-            key={ingestionMethods[0].iconAlt}
-            description={ingestionMethods[0].description}
-            icon={ingestionMethods[0].icon}
-            iconAlt={ingestionMethods[0].iconAlt}
-            subtitle={ingestionMethods[0].subtitle}
-            title={ingestionMethods[0].title}
-            btnLabel="Description"
-          />
-          <Card
-            key={ingestionMethods[0].iconAlt}
-            description={ingestionMethods[0].description}
-            icon={ingestionMethods[0].icon}
-            iconAlt={ingestionMethods[0].iconAlt}
-            subtitle={ingestionMethods[0].subtitle}
-            title={ingestionMethods[0].title}
-            btnLabel="Description"
-          />
-          <Card
-            key={ingestionMethods[0].iconAlt}
-            description={ingestionMethods[0].description}
-            icon={ingestionMethods[0].icon}
-            iconAlt={ingestionMethods[0].iconAlt}
-            subtitle={ingestionMethods[0].subtitle}
-            title={ingestionMethods[0].title}
-            btnLabel="Description"
-          />
         </CardHolder>
         <CardHolder title="ElevAIte for Support">
           <Card
@@ -104,6 +77,17 @@ export default function Page() {
             title={ingestionMethods[0].title}
             btnLabel="Description"
           />
+          <Card
+            key={ingestionMethods[0].iconAlt}
+            description={ingestionMethods[0].description}
+            icon={ingestionMethods[0].icon}
+            iconAlt={ingestionMethods[0].iconAlt}
+            subtitle={ingestionMethods[0].subtitle}
+            title={ingestionMethods[0].title}
+            btnLabel="Description"
+          />
+        </CardHolder>
+        <CardHolder title="ElevAIte for Support">
           <Card
             key={ingestionMethods[0].iconAlt}
             description={ingestionMethods[0].description}

@@ -22,10 +22,10 @@ export function CardHolder(props: CardHolderProps) {
           {hidden ? <ChevronRight color={colors.text} /> : <ChevronBottom color={colors.text} />}
           {props.title}
         </button>
-        <div className="cardHolderTitleIcons">
+        {/* <div className="cardHolderTitleIcons">
           <Clipboard color={colors.icon} />
           <Burger color={colors.icon} />
-        </div>
+        </div> */}
       </div>
       <div className="cardHolderContent" style={{ display: hidden ? "none" : "grid" }}>
         {props.children}
