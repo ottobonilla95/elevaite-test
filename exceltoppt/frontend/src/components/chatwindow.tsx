@@ -61,7 +61,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ workbook_name, sheet_name }) =>
                 </div>
             </div>
             <div className="message-container">
-                {messages.map((message, index) => (
+                {messages.slice(0).reverse().map((message, index) => (
                     <div
                         key={index}
                         className="message"

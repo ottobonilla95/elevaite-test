@@ -135,7 +135,7 @@ export default function Home() {
   }, [ppt_file]);
 
   return (
-    <div className="app-container2">
+    <div className="app-container">
       <TopHeader />
       <div className="upload-container-main2">
         <div className="breadcrumb-container">

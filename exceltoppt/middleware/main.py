@@ -13,7 +13,8 @@ from utils import upload_file
 from utils import generate_manifest
 from utils import generate_summary
 from utils import generate_cisco_presentation
-from utils import generate_presentation
+#from utils import generate_presentation
+from Presentation import generate_presentation
 from utils import Excel_to_dataframe
 from utils import Excel_to_Dataframe_auto
 from utils import ask_questions
@@ -199,6 +200,20 @@ async def generate_powerpoint(excel_file: str ,manifest_file: str, folder_name: 
         else:
             print('Unable to create presentation ...')
         return JSONResponse(content = "No Summary", status_code=200)
+    except Exception as e:
+        print("Error from generate ppt: " + str(e))
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+@app.get('/genPPT/')
+async def generatePPT(type: str, excel_file: str, sheet_name: str):
+    try:
+        
+        excel_file_path = os.path.join("data", "Excel", str(excel_file))
+
+        result = await generate_presentation(str(type), excel_file_path, str(sheet_name))
+        if result["status"] == 200:
+            response = {"export_url": result["ppt_path"], "summary": result["summary"]}
+            return JSONResponse(content = response, status_code=200)
     except Exception as e:
         print("Error from generate ppt: " + str(e))
         return JSONResponse(content={"error": str(e)}, status_code=500)

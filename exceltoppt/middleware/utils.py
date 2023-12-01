@@ -1019,7 +1019,7 @@ def ask_csv_agent(sheet_list, question):
         agent = create_csv_agent(
             ChatOpenAI(temperature=0, model="gpt-4-1106-preview"),
             [sheet_list],
-            verbose=False,
+            verbose=True,
             agent_type=AgentType.OPENAI_FUNCTIONS
         )
         answer = agent.run(question)

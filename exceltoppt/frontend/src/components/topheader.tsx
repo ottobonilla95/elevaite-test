@@ -12,8 +12,10 @@ function externalSignOut() {
 }
 
 export default function TopHeader() {
-  const { data: session } = useSession();
-  const [name, setName] = useState("Sucharitha Rumesh");
+  const{data:session} = useSession();
+  let name = session?.user?.name
+  console.log("session details: ", session);
+  //const [name, setName] = useState("Sucharitha Rumesh");
 
  {/*} useEffect(() => {
     let params = new URL(window.location.href).searchParams;

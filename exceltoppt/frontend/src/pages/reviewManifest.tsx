@@ -66,13 +66,15 @@ export default function Home() {
       }
 
       const encodedManifestFile = encodeURIComponent(activeSheet);
-      const q_params = "excel_file=" + encodedExcelFile + ".xlsx&manifest_file=" + encodedManifestFile + "&folder_name=" + encodedExcelFile;
-
+      const encodedSheetName = encodeURIComponent(activeSheet.split('.')[0]);
+      //const q_params = "excel_file=" + encodedExcelFile + ".xlsx&manifest_file=" + encodedManifestFile + "&folder_name=" + encodedExcelFile;
+      const q_params = "type=financial&excel_file=" + encodedExcelFile + ".xlsx&sheet_name=" + encodedSheetName 
       try {
          console.log("generating ppt..");
          setIsLoading(true);
-         const response = await axios.get(`http://localhost:8000/generatePPT/?${q_params}`);
- 
+         //const response = await axios.get(`http://localhost:8000/generatePPT/?${q_params}`);
+         const response = await axios.get(`http://localhost:8000/genPPT/?${q_params}`);
+        
          if (response.status === 200) {
            console.log("ppt generated successfully");
            setIsLoading(false);
