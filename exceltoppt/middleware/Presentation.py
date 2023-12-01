@@ -6,6 +6,11 @@ from pptx.util import Inches
 from pptx.util import Pt
 from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
+import pandas as pd
+from difflib import get_close_matches
+from utils import load_json
+from utils import extract_metrics_and_dimensions
+
 
 import re
 import os
@@ -282,7 +287,136 @@ def add_summary(prs, summary, title):
     
     #add_footer(prs, slide, "© All rights reserved. Confidential data")
 
+def get_closest_column(df, col_name):
+
+    existing_columns = df.columns.tolist()
     
+    closest_match = get_close_matches(col_name, existing_columns, n=1, cutoff=0.6)
+
+    if closest_match:
+        return df[closest_match[0]].to_numpy() 
+    else:
+        return None
+
+
+
+  
+
+def add_contents (prs, title, data):
+    
+    slide_layout = prs.slide_layouts[1]
+    slide = prs.slides.add_slide(slide_layout)
+
+    slide_width = prs.slide_width
+    background_color = RGBColor(255, 255, 255)
+    prs.slides[0].background.fill.solid()
+    prs.slides[0].background.fill.fore_color.rgb = background_color
+
+    # Add a background picture
+    left = top = Inches(0)
+    width = Inches(10)
+    height = Inches(7.5)
+    pic = slide.shapes.add_picture(blank_bg, left, top, width, height)
+
+    #logo
+    image_width = Inches(1)  
+    image_height = Inches(0.5)  
+    imgleft = slide_width - image_width  
+    imgtop = Inches(0.05)
+    pic = slide.shapes.add_picture(iopex_logo, imgleft, imgtop, width=image_width, height=image_height)
+
+    # Title for the slide
+    title_text = title + " Metrics"
+    title_left = Inches(0)  
+    title_top = Inches(0)
+    title_width = Inches(10)
+    title_height = Inches(0.5)
+    text_box = slide.shapes.add_textbox(left=title_left, top=title_top, width=title_width, height=title_height)
+    text_frame = text_box.text_frame
+    p = text_frame.add_paragraph()
+    p.text = title_text
+    p.alignment = PP_ALIGN.LEFT
+    font = p.runs[0].font
+    font.color.rgb = RGBColor(87, 87, 87)
+    font.size = Pt(24)
+    font.bold = True
+
+    sub_text = "Amounts in USD"
+    left = Inches(0)
+    top = Inches(1.5)  
+    width = Inches(10)
+    height = Inches(0.5) 
+    text_box = slide.shapes.add_textbox(left, top, width, height)
+    text_frame = text_box.text_frame
+    p = text_frame.add_paragraph()
+    p.text = sub_text
+    p.alignment = PP_ALIGN.CENTER
+    font = p.runs[0].font
+    font.name = 'Arial'
+    font.color.rgb = RGBColor(255, 255, 255)
+    font.size = Pt(12)
+
+    mleft = Inches(1)
+    mtop = Inches(1)
+    mwidth = Inches(4.5)
+    mheight = Inches(5.5)
+    try:
+      i = 0
+      
+      for key, value in data.items():
+        
+        txBox = slide.shapes.add_textbox(mleft, mtop, mwidth, mheight)
+        tf = txBox.text_frame
+        p = tf.add_paragraph()
+        dimension_text = str(key)
+        value_text = str(value)
+
+        # Add the dimension text
+        q_run = p.add_run()
+        q_run.text = dimension_text +" : "
+        q_run.font.bold = True
+        q_run.font.color.rgb = RGBColor(244, 111, 3)
+        
+        # Add the dimension value
+        month_run = p.add_run()
+        month_run.text = "$" + value_text
+        month_run.font.color.rgb = RGBColor(0,0,0)
+
+        tf.word_wrap = True
+
+        mtop += Inches(1)
+
+    except Exception as e:
+        print("error: %s" % e)
+
+
+def add_meterics_data(csv_file_path, config_file, prs):
+    
+    try:
+        print("getting dataframe from csv file..")
+        df = pd.read_csv(csv_file_path)
+        pd.set_option('display.float_format', lambda x: '%.4f' % x)
+    except Exception as e:
+        err = "Error while creating dataframe from csv: " +str(e)
+        return err
+    
+    try:
+        print("getting metrics and dimensions from config file")
+        json_data = load_json(config_file)
+        metrics, dimensions = extract_metrics_and_dimensions(json_data)
+        for metric in metrics:
+            title = metric
+            data = {}
+            for dimension in dimensions:
+                col_header = re.sub(r'[^a-zA-Z0-9]', '', str(metric)) + "_" + re.sub(r'[^a-zA-Z0-9]', '', str(dimension))
+                col_data = get_closest_column(df, col_header)
+                data[dimension] = col_data[0]
+            #print("title: ", title)
+            add_contents(prs, title, data)
+
+    except Exception as e:
+        err = "Error while generating column header from metric and dimension: " + str(e)
+        return err
 async def generate_presentation(type, excel_file_path, sheet_name):
     
     #initialize varaibles
@@ -322,6 +456,18 @@ async def generate_presentation(type, excel_file_path, sheet_name):
     except Exception as e:
         err = "Error while generating summary from excel: " + str(e)
         print(err)
+      
+    #add metric content
+    try:
+        excel_file_folder = excel_file_path.split("/")[-1].split(".")[0]
+        path = "data/Manifest/" + excel_file_folder +"/" + sheet_name+".json"
+        if(os.path.exists(path)):
+            config_file_path = os.path.join("data/Manifest", excel_file_folder, sheet_name+".json")
+            csv_file_path = os.path.join("data/Output", excel_file_folder, sheet_name+".csv")
+            add_meterics_data(csv_file_path, config_file_path, prs)
+    except Exception as e:
+        err = "Error while adding metric content to presentation: " + str(e)
+        print(err)
 
     try:
 
@@ -336,5 +482,6 @@ async def generate_presentation(type, excel_file_path, sheet_name):
     
     except Exception as e:
       err = "Error while saving presentation: " + str(e)
+
 
 
