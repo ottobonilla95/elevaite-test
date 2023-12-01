@@ -22,7 +22,7 @@ export const AppDrawerTheme: ColorScheme = {
   text: "#0F172A",
   secondaryText: "#c3c3c3",
   icon: "#64748B",
-  hoverColor: "#444",
+  hoverColor: "#f5f5f5",
   borderColor: "#CBD5E1",
   iconBorder: "#64748B",
   background: "#F9FAFB",

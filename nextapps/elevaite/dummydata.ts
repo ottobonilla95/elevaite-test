@@ -1,4 +1,4 @@
-import { WorkbenchCardProps } from "@elevaite/ui";
+import { CardProps } from "@elevaite/ui";
 import slackIcon from "./public/ingestIcons/slack.svg";
 import onedriveIcon from "./public/ingestIcons/oneDrive.svg";
 import mongoDBIcon from "./public/ingestIcons/mongoDB.svg";
@@ -7,7 +7,7 @@ import teamsIcon from "./public/ingestIcons/teams.svg";
 const dummyDesc =
   "Mauris in quam ut neque scelerisque ultrices at eget nisl. Praesent a risus in orci porttitor commodo. Aenean condimentum luctus consequat. Sed volutpat metus quis libero molestie";
 
-export const ingestionMethods: WorkbenchCardProps[] = [
+export const ingestionMethods: CardProps[] = [
   { icon: slackIcon.src, description: dummyDesc, iconAlt: "Slack", title: "Slack Ingest", subtitle: "By Elevaite" },
   {
     icon: onedriveIcon.src,
