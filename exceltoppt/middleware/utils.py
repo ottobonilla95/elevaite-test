@@ -952,6 +952,42 @@ def find_numeric_cells(manifest_file, sheet):
 
     return first_row, first_col, last_row, last_col
 
+def find_numeric_cells2(sheet):
+    
+    # Initialize variables to store the first and last row numbers and column numbers
+    first_row = None
+    last_row = None
+    first_col = None
+    last_col = None
+
+    # Iterate through rows and columns in the sheet
+    for row_index, row in enumerate(sheet.iter_rows(values_only=True), start=1):
+        for col_index, cell_value in enumerate(row, start=1):
+
+            
+            # Check if the cell value is numeric
+            if isinstance(cell_value, (int, float)):
+                
+                # Update first_row if not set
+                if first_row is None:
+                    print("first row cell value: ", cell_value)
+                    first_row = row_index
+
+                # Update last_row continuously
+                last_row = row_index
+
+                # Update first_col if not set
+                if first_col is None:
+                    first_col = col_index
+
+                # Update last_col continuously
+                if last_col is None:
+                    last_col = col_index
+                if last_col < col_index:
+                    last_col = col_index
+
+    return first_row, first_col, last_row, last_col
+
 def create_dataframe_csv(start_row, start_col, end_row, end_col, row_header, col_header, workbook_name, sheet):
     
     
@@ -1068,10 +1104,12 @@ def generate_csv_for_excel(workbook_path):
     csv_sheets = []
     for sheet_name in sheets:
         sheet = workbook[sheet_name] 
-        manifest_path = os.path.join("data/Manifest", workbook_name.split(".")[0], sheet_name+".json")
-        
-        first_row, first_col, last_row, last_col = find_numeric_cells(manifest_path, sheet)
+        if os.path.exists(os.path.join("data/Manifest", workbook_name.split(".")[0], sheet_name+".json")):
+            manifest_path = os.path.join("data/Manifest", workbook_name.split(".")[0], sheet_name+".json")
+            first_row, first_col, last_row, last_col = find_numeric_cells(manifest_path, sheet)
+        else:
+            first_row, first_col, last_row, last_col = find_numeric_cells2(sheet)
         row_headers, col_headers = get_index(first_row, last_row, first_col, last_col, sheet)
         csv_sheet = create_dataframe_2(first_row, first_col, last_row, last_col, row_headers, col_headers, workbook_name, sheet)
         csv_sheets.append(csv_sheet)
-    return {"response" : "Success", "sheet_list" : csv_sheets}
+        return {"response" : "Success", "sheet_list" : csv_sheets}

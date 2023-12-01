@@ -63,6 +63,7 @@ async def uploadFile(file: UploadFile = File(...)):
     try:
         response = await upload_file(file)
         if response['response'] == 'Success':
+            print("File uploaded successfully")
             res = generate_csv_for_excel(response['file_path'])
             if res['response'] == 'Success':
                 return JSONResponse(content=response, status_code=200)
@@ -234,7 +235,7 @@ async def chat_with_csv_agent(workbook_name: str, sheet_name: str, question: str
     print("Request reached")
     csv_folder = os.path.join("data/Output", workbook_name)
     if os.path.exists(csv_folder):
-        if ".json" in  sheet_name:
+        if ".json" in  sheet_name :
             csv_sheet_name = sheet_name.split(".")[0] + ".csv"
            
             sheet_path = os.path.join(csv_folder, csv_sheet_name)
