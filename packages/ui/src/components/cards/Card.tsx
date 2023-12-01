@@ -1,9 +1,9 @@
 "use client";
 import * as React from "react";
 import { ColorContext } from "../../ColorContext";
-import "./WorkbenchCard.css";
+import "./Card.css";
 
-export interface WorkbenchCardProps {
+export interface CardProps {
   icon: string;
   iconAlt: string;
   title: string;
@@ -15,12 +15,12 @@ export interface WorkbenchCardProps {
   withHighlight?: boolean;
 }
 
-export function WorkbenchCard({ icon, title, subtitle, description, ...props }: WorkbenchCardProps) {
+export function Card({ icon, title, subtitle, description, ...props }: CardProps) {
   const colors = React.useContext(ColorContext);
   const [hover, setHover] = React.useState(false);
 
   return (
-    <div className="cardHolder" style={{ borderTop: props.withHighlight ? "1px solid " + colors.highlight : "" }}>
+    <div className="cardContainer" style={{ borderTop: props.withHighlight ? "1px solid " + colors.highlight : "" }}>
       <div className="card" style={{ background: colors?.primary, borderColor: colors?.borderColor }}>
         <div className="cardHeader">
           <div className="cardHeaderText">
@@ -73,4 +73,4 @@ export function WorkbenchCard({ icon, title, subtitle, description, ...props }: 
   );
 }
 
-export default WorkbenchCard;
+export default Card;

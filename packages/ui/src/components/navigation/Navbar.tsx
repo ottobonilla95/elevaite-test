@@ -75,7 +75,7 @@ export function NavBar({ ...props }: NavBarProps) {
               </defs>
             </svg>
           </button>
-          <line className="line" />
+          <line className="line" style={{ background: colors.borderColor }} />
         </div>
       </div>
       {props.children}
