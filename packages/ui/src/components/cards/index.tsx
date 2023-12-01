@@ -1,1 +1,2 @@
-export * from "./WorkbenchCard";
+export * from "./Card";
+export * from "./CardHolder";
