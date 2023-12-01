@@ -50,6 +50,6 @@
 .line {
   width: 1px;
   height: 24px;
-  opacity: 0.12;
-  background: #fff;
+  /* opacity: 0.12; */
+  /* background: #fff; */
 }
