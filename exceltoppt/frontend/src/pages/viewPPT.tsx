@@ -42,7 +42,7 @@ export default function Home() {
       //const response = await axios.get(`http://localhost:8000/askcsvagent/?${q_params}`);
       const response = await axios.post(`http://localhost:8000/ask/`, {"query" : question, "context": summary});
       console.log(response);
-      console.log(response.data)
+      console.log(response.data);
 
       if (response.status === 200) {
         setAnswer(response.data);

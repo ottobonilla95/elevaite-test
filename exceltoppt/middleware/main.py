@@ -234,9 +234,11 @@ async def chat_with_csv_agent(workbook_name: str, sheet_name: str, question: str
     print("Request reached")
     csv_folder = os.path.join("data/Output", workbook_name)
     if os.path.exists(csv_folder):
-        if ".yaml" in  sheet_name:
+        if ".json" in  sheet_name:
             csv_sheet_name = sheet_name.split(".")[0] + ".csv"
+           
             sheet_path = os.path.join(csv_folder, csv_sheet_name)
+            print("csv sheet path: " + sheet_path)
             res = ask_csv_agent(sheet_path, question)
             if res['response'] == 'Success':
                 return JSONResponse(content = res['answer'], status_code=200)

@@ -5,6 +5,7 @@ import openpyxl
 import yaml
 import uuid
 import re
+import json
 
 from openai import OpenAI
 
@@ -891,7 +892,27 @@ def ask_questions(query, chain):
     response = chain({"question": query})
     return response['result']
 
-def find_numeric_cells(sheet):
+def load_yaml(file_path):
+    with open(file_path, 'r') as file:
+        data = yaml.safe_load(file)
+    return data
+
+def extract_metrics_and_dimensions(yaml_data):
+    metrics = yaml_data.get('Metrics', [])
+    dimensions = yaml_data.get('Dimensions', [])
+    return metrics, dimensions
+
+def load_json(file_path):
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    return data
+
+def extract_metrics_and_dimensions(json_data):
+    metrics = json_data.get('Metrics', [])
+    dimensions = json_data.get('Dimensions', [])
+    return metrics, dimensions
+
+def find_numeric_cells(manifest_file, sheet):
     
     # Initialize variables to store the first and last row numbers and column numbers
     first_row = None
@@ -899,13 +920,21 @@ def find_numeric_cells(sheet):
     first_col = None
     last_col = None
 
+    json_data = load_json(manifest_file)
+    metrics, dimensions = extract_metrics_and_dimensions(json_data)
+    print(type(dimensions))
+
     # Iterate through rows and columns in the sheet
     for row_index, row in enumerate(sheet.iter_rows(values_only=True), start=1):
         for col_index, cell_value in enumerate(row, start=1):
+
+            
             # Check if the cell value is numeric
-            if isinstance(cell_value, (int, float)):
+            if isinstance(cell_value, (int, float)) and str(cell_value) not in dimensions:
+                
                 # Update first_row if not set
                 if first_row is None:
+                    print("first row cell value: ", cell_value)
                     first_row = row_index
 
                 # Update last_row continuously
@@ -1016,6 +1045,7 @@ def create_dataframe_2(start_row, start_col, end_row, end_col, row_headers, col_
 
 def ask_csv_agent(sheet_list, question):
     try:
+        
         agent = create_csv_agent(
             ChatOpenAI(temperature=0, model="gpt-4-1106-preview"),
             [sheet_list],
@@ -1038,15 +1068,10 @@ def generate_csv_for_excel(workbook_path):
     csv_sheets = []
     for sheet_name in sheets:
         sheet = workbook[sheet_name] 
+        manifest_path = os.path.join("data/Manifest", workbook_name.split(".")[0], sheet_name+".json")
         
-        first_row, first_col, last_row, last_col = find_numeric_cells(sheet)
+        first_row, first_col, last_row, last_col = find_numeric_cells(manifest_path, sheet)
         row_headers, col_headers = get_index(first_row, last_row, first_col, last_col, sheet)
         csv_sheet = create_dataframe_2(first_row, first_col, last_row, last_col, row_headers, col_headers, workbook_name, sheet)
         csv_sheets.append(csv_sheet)
     return {"response" : "Success", "sheet_list" : csv_sheets}
-
-
-
-
-
-
