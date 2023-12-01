@@ -299,9 +299,6 @@ def get_closest_column(df, col_name):
         return None
 
 
-
-  
-
 def add_contents (prs, title, data):
     
     slide_layout = prs.slide_layouts[1]
@@ -343,7 +340,7 @@ def add_contents (prs, title, data):
 
     sub_text = "Amounts in USD"
     left = Inches(0)
-    top = Inches(1.5)  
+    top = Inches(0.35)  
     width = Inches(10)
     height = Inches(0.5) 
     text_box = slide.shapes.add_textbox(left, top, width, height)
@@ -353,7 +350,7 @@ def add_contents (prs, title, data):
     p.alignment = PP_ALIGN.CENTER
     font = p.runs[0].font
     font.name = 'Arial'
-    font.color.rgb = RGBColor(255, 255, 255)
+    font.color.rgb = RGBColor(87, 87, 87)
     font.size = Pt(12)
 
     mleft = Inches(1)
