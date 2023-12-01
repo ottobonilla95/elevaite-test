@@ -66,11 +66,12 @@ export default function Home() {
       console.log("downloading ppt..");
       const validPptFile = ppt_file ? (Array.isArray(ppt_file) ? ppt_file[0] : ppt_file) : '';
       const q_params = "ppt_path=" +encodeURIComponent(validPptFile);
+      const file_name = validPptFile.split("/").pop()!;
+      console.log(file_name);
       
       const response = await axios.get(`http://localhost:8000/downloadPPT/?${q_params}`, {
         responseType: 'blob', 
       });
-  
      const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -78,9 +79,10 @@ export default function Home() {
       // Extract filename from Content-Disposition header
       const contentDisposition = response.headers['content-disposition'];
       const filenameMatch = contentDisposition && contentDisposition.match(/filename="(.+)"/);
-      const filename = filenameMatch ? filenameMatch[1] : 'downloaded.pptx';
+      //const filename = filenameMatch ? filenameMatch[1] : 'downloaded.pptx';
+      
   
-      link.setAttribute('download', filename);
+      link.setAttribute('download', file_name);
       document.body.appendChild(link);
       link.click();
   
