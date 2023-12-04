@@ -1,32 +1,33 @@
 "use client";
-import { Card, CardHolder, ColorContext } from "@elevaite/ui";
+import { Card, CardHolder, ColorContext, SearchResults, Searchbar } from "@elevaite/ui";
 import { ingestionMethods } from "../../../dummydata";
 import "./page.css";
-import { useContext } from "react";
-import Searchbar from "@elevaite/ui/src/components/search/Searchbar";
+import { useContext, useState } from "react";
 
 export default function Page() {
   const colors = useContext(ColorContext);
+  const [results, setResults] = useState<{ key: string; link: string; label: string }[]>([]);
+
+  function handleSearchInput(term: string) {
+    const promise: Promise<{ key: string; link: string; label: string }[]> = new Promise((resolve, reject) => {
+      const refs: { key: string; link: string; label: string }[] = [
+        { key: "supportBot", label: "Support Bot", link: "#supportBot" },
+        { key: "deckBuilder", label: "AI Deck Builder", link: "#deckBuilder" },
+        { key: "insights", label: "Insights", link: "#insights" },
+        { key: "campaignBuilder", label: "Campaign Builder", link: "#campaignBuilder" },
+      ];
+      resolve(refs.filter((ref) => ref.label.toLowerCase().includes(term.toLowerCase())));
+    });
+    promise.then((res) => setResults(res));
+  }
+
   return (
-    // <div className="grid sm:max-lg:grid-cols-1 lg:max-2xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4 p-8 w-fit z-10">
-    //   {ingestionMethods.map((method) => (
-    //     <Card
-    //       key={method.iconAlt}
-    //       description={method.description}
-    //       icon={method.icon}
-    //       iconAlt={method.iconAlt}
-    //       subtitle={method.subtitle}
-    //       title={method.title}
-    //       btnLabel="Description"
-    //     />
-    //   ))}
-    // </div>
-    <div className="pageContent">
-      <header className="welcomeAndSearch">
+    <>
+      <header className="welcomeAndSearch" style={{ background: colors.primary }}>
         <span className="welcome" style={{ color: colors.text }}>
           Welcome to ElevAIte <span style={{ fontWeight: 700 }}>{"Mary"}</span> !
         </span>
-        <Searchbar />
+        <Searchbar handleInput={handleSearchInput} results={results} width="280px" />
       </header>
       <div className="cardHolders">
         <CardHolder title="ElevAIte for Support">
@@ -99,6 +100,6 @@ export default function Page() {
           />
         </CardHolder>
       </div>
-    </div>
+    </>
   );
 }
