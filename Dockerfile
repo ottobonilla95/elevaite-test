@@ -28,7 +28,6 @@ RUN \
  
 # Build the project
 COPY --from=builder /app/out/full/ .
-COPY turbo.json turbo.json
 RUN npx --yes turbo run build --filter=elevaite...
  
 FROM base AS runner
