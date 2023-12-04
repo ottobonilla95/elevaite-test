@@ -6,35 +6,38 @@ import "./SearchResults.css";
 
 interface SearchResultsProps {
   results: { key: string; link: string; label: string }[];
-  handleResultClick: (targetId?: string) => void;
-  isJump?: boolean;
 }
 
-export function SearchResults({ results, handleResultClick, ...props }: SearchResultsProps) {
+export function SearchResults({ results }: SearchResultsProps) {
   const [hover, setHover] = useState("");
   const colors = useContext(ColorContext);
 
   return (
     <>
-      <div className="searchResultContainer" style={{ borderColor: colors.borderColor, background: colors.background }}>
-        {results.map((res) => (
-          <Link
-            href={res.link}
-            className="searchResult"
-            key={res.key}
-            style={{
-              color: hover === res.key ? colors.primary : colors.text,
-              background: hover === res.key ? colors.highlight : "",
-            }}
-            onMouseEnter={() => setHover(res.key)}
-            onMouseLeave={() => setHover("")}
-            onClick={() => handleResultClick(res.key)}
-            replace={props.isJump}
-          >
-            {res.label}
-          </Link>
-        ))}
-      </div>
+      {results?.length > 0 ? (
+        <div
+          className="searchResultContainer"
+          style={{ borderColor: colors.borderColor, background: colors.background }}
+        >
+          {results.map((res) => (
+            <Link
+              href={res.link}
+              className="searchResult"
+              key={res.key}
+              style={{
+                color: hover === res.key ? colors.primary : colors.text,
+                background: hover === res.key ? colors.highlight : "",
+              }}
+              onMouseEnter={() => setHover(res.key)}
+              onMouseLeave={() => setHover("")}
+            >
+              {res.label}
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <></>
+      )}{" "}
     </>
   );
 }

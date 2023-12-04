@@ -16,8 +16,7 @@
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  background: #a71d1d;
-  float: inline-start;
+  /* float: inline-start; */
   position: sticky;
   top: 0;
   left: 81px;
