@@ -1,8 +1,16 @@
-import { useContext } from "react";
+"use client";
+import { useContext, useState } from "react";
 import "./Searchbar.css";
 import { ColorContext } from "../../ColorContext";
 
 function Searchbar() {
+  const [input, setInput] = useState("");
+
+  const handleChange = (value: string) => {
+    setInput(value);
+    console.log(value);
+  };
+
   const colors = useContext(ColorContext);
   return (
     <div className="searchbarContainer">
@@ -23,7 +31,12 @@ function Searchbar() {
             strokeLinejoin="round"
           />
         </svg>
-        <input placeholder="Find answers" style={{ background: colors.background, color: colors.text }} />
+        <input
+          type="search"
+          onChange={(e) => handleChange(e.target.value)}
+          placeholder="Find answers"
+          style={{ background: colors.background, color: colors.text }}
+        />
         {/* <label className="searchHotKeyHint">
           {navigator.platform.toUpperCase().indexOf("MAC") >= 0 ? "⌘" : "Ctrl"}+F
         </label> */}
