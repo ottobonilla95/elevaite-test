@@ -1,1 +1,2 @@
-export * as Searchbar from "./Searchbar";
+export * from "./Searchbar";
+export { SearchResults } from "./SearchResults";

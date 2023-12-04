@@ -1,9 +1,8 @@
 "use client";
-import Link from "next/link";
 import React, { useContext, useEffect, useState } from "react";
 import "./Navbar.css";
 import { Breadcrumbs, BreadcrumbItem } from "./Breadcrumbs";
-import Searchbar from "../search/Searchbar";
+import { Searchbar } from "../search/Searchbar";
 import { usePathname } from "next/navigation";
 import { ColorContext } from "../../ColorContext";
 
@@ -11,6 +10,8 @@ interface NavBarProps {
   breadcrumbLabels: { [key: string]: { label: string; link: string } };
   user: { icon: string };
   children?: React.ReactNode;
+  handleSearchInput: (term: string) => void;
+  searchResults: { key: string; link: string; label: string }[];
 }
 
 export function NavBar({ ...props }: NavBarProps) {
@@ -40,7 +41,7 @@ export function NavBar({ ...props }: NavBarProps) {
       <div className="navbarHolder" style={{ borderBottomColor: colors.borderColor, background: colors.primary }}>
         <Breadcrumbs items={breadcrumbItems} />
         <div className="searchAndUser">
-          <Searchbar />
+          <Searchbar handleInput={props.handleSearchInput} results={props.searchResults} />
           <button
             className="help"
             onClick={() => {
