@@ -8,13 +8,21 @@ const dummyDesc =
   "Mauris in quam ut neque scelerisque ultrices at eget nisl. Praesent a risus in orci porttitor commodo. Aenean condimentum luctus consequat. Sed volutpat metus quis libero molestie";
 
 export const ingestionMethods: CardProps[] = [
-  { icon: slackIcon.src, description: dummyDesc, iconAlt: "Slack", title: "Slack Ingest", subtitle: "By Elevaite" },
+  {
+    icon: slackIcon.src,
+    description: dummyDesc,
+    iconAlt: "Slack",
+    title: "Slack Ingest",
+    subtitle: "By Elevaite",
+    btnLabel: "Open",
+  },
   {
     icon: onedriveIcon.src,
     description: dummyDesc,
     iconAlt: "Onedrive",
     title: "One Drive Ingest",
     subtitle: "By Elevaite",
+    btnLabel: "Open",
   },
   {
     icon: mongoDBIcon.src,
@@ -22,6 +30,7 @@ export const ingestionMethods: CardProps[] = [
     iconAlt: "MongoDB",
     title: "MongoDB Ingest",
     subtitle: "By Elevaite",
+    btnLabel: "Open",
   },
   {
     icon: teamsIcon.src,
@@ -29,14 +38,23 @@ export const ingestionMethods: CardProps[] = [
     iconAlt: "Microsoft Teams",
     title: "Microsoft Teams Ingest",
     subtitle: "By Elevaite",
+    btnLabel: "Open",
   },
-  { icon: slackIcon.src, description: dummyDesc, iconAlt: "Slack", title: "Slack Ingest", subtitle: "By Elevaite" },
+  {
+    icon: slackIcon.src,
+    description: dummyDesc,
+    iconAlt: "Slack",
+    title: "Slack Ingest",
+    subtitle: "By Elevaite",
+    btnLabel: "Open",
+  },
   {
     icon: onedriveIcon.src,
     description: dummyDesc,
     iconAlt: "Onedrive",
     title: "One Drive Ingest",
     subtitle: "By Elevaite",
+    btnLabel: "Open",
   },
   {
     icon: mongoDBIcon.src,
@@ -44,6 +62,7 @@ export const ingestionMethods: CardProps[] = [
     iconAlt: "MongoDB",
     title: "MongoDB Ingest",
     subtitle: "By Elevaite",
+    btnLabel: "Open",
   },
   {
     icon: teamsIcon.src,
@@ -51,5 +70,6 @@ export const ingestionMethods: CardProps[] = [
     iconAlt: "Microsoft Teams",
     title: "Microsoft Teams Ingest",
     subtitle: "By Elevaite",
+    btnLabel: "Open",
   },
 ];
