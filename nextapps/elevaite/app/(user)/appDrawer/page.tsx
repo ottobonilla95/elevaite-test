@@ -29,7 +29,7 @@ export default function Page() {
     <>
       <header className="welcomeAndSearch" style={{ background: colors.primary }}>
         <span className="welcome" style={{ color: colors.text }}>
-          Welcome to ElevAIte <span style={{ fontWeight: 700 }}>{"Mary"}</span> !
+          Welcome to elevAIte<span style={{ fontWeight: 700 }}></span>!
         </span>
         <Searchbar handleInput={handleSearchInput} results={results} width="280px" isJump={true} />
       </header>

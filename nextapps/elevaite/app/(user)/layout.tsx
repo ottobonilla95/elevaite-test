@@ -15,21 +15,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const breadcrumbLabels: { [key: string]: { label: string; link: string } } = {
-    workers_queues: {
-      label: "Workers & Queues",
-      link: "/workers_queues",
-    },
-    models: {
-      label: "Models",
-      link: "/models",
-    },
-    datasets: {
-      label: "Datasets",
-      link: "/datasets",
-    },
     appDrawer: {
       label: "App Drawer",
       link: "/appDrawer",
+    },
+    home: {
+      label: "Applications",
+      link: "/",
     },
   };
 

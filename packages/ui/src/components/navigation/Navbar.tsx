@@ -25,6 +25,7 @@ export function NavBar({ ...props }: NavBarProps) {
   const colors = useContext(ColorContext);
 
   function pathToBreadcrumbs(path: string): BreadcrumbItem[] {
+    if (pathname === "/") return [props.breadcrumbLabels["home"]];
     return path
       .split("/")
       .filter((str) => str != "")
