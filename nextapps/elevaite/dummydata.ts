@@ -71,37 +71,65 @@ export const ingestionMethods: CardProps[] = [
   },
 ];
 
-export const applications: { [key: string]: CardProps } = {
+const appLinks = {
   supportBot: {
-    icon: ApplicationIcons.applications.supportBot.src,
-    description: "Please feel free to ask me anything. I'll do my best to provide helpful answers.",
-    iconAlt: ApplicationIcons.applications.supportBot.alt,
-    title: "Support Bot",
-    subtitle: "By Elevaite",
-    btnLabel: "Documentation",
+    development: "http://localhost:3002",
+    production: "https://elevaite-cb.iopex.ai/",
   },
-  deckBuilder: {
-    icon: ApplicationIcons.applications.deckBuilder.src,
-    description: "Convert your spreadsheets to presentations and ask questions",
-    iconAlt: ApplicationIcons.applications.deckBuilder.alt,
-    title: "AI Deck Builder",
-    subtitle: "By Elevaite",
-    btnLabel: "Documentation",
+  excletoppt: {
+    development: "http://localhost:3003",
+    production: "https://elevaite-apps.iopex.ai/askdocs ",
   },
   insights: {
-    icon: ApplicationIcons.applications.insights.src,
-    description: "Your BI Application to make informed decisions. Data to Insights.",
-    iconAlt: ApplicationIcons.applications.insights.alt,
-    title: "ElevAIte Insights",
-    subtitle: "By Elevaite",
-    btnLabel: "Documentation",
-  },
-  campaignBuilder: {
-    icon: ApplicationIcons.applications.campaignBuilder.src,
-    description: "Analyze attributes of past campaign metrics to build successful future campaigns.",
-    iconAlt: ApplicationIcons.applications.campaignBuilder.alt,
-    title: "AI Campaign Builder",
-    subtitle: "By Elevaite",
-    btnLabel: "Documentation",
+    development: "http://localhost:3004",
+    production: "https://arlo.opexwise.ai/",
   },
 };
+
+export const applications = [
+  {
+    title: "elevAIte for Support",
+    key: "support",
+    cards: [
+      {
+        icon: ApplicationIcons.applications.supportBot.src,
+        description: "Please feel free to ask me anything. I'll do my best to provide helpful answers.",
+        iconAlt: ApplicationIcons.applications.supportBot.alt,
+        title: "Support Bot",
+        link: appLinks.supportBot[process.env.NODE_ENV],
+      },
+    ],
+  },
+  {
+    title: "elevAIte for Finance",
+    key: "finance",
+    cards: [
+      {
+        icon: ApplicationIcons.applications.deckBuilder.src,
+        description: "Convert your spreadsheets to presentations and ask questions",
+        iconAlt: ApplicationIcons.applications.deckBuilder.alt,
+        title: "AI Deck Builder",
+        link: appLinks.excletoppt[process.env.NODE_ENV],
+      },
+    ],
+  },
+  {
+    title: "elevAIte for Revenue",
+    key: "revenue",
+    cards: [
+      {
+        icon: ApplicationIcons.applications.insights.src,
+        description: "Your BI Application to make informed decisions. Data to Insights.",
+        iconAlt: ApplicationIcons.applications.insights.alt,
+        title: "elevAIte Insights",
+        link: appLinks.insights[process.env.NODE_ENV],
+      },
+      {
+        icon: ApplicationIcons.applications.campaignBuilder.src,
+        description: "Analyze attributes of past campaign metrics to build successful future campaigns.",
+        iconAlt: ApplicationIcons.applications.campaignBuilder.alt,
+        title: "AI Campaign Builder",
+      },
+    ],
+  },
+];
