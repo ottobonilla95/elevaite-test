@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const breadcrumbLabels: { [key: string]: { label: string; link: string } } = {
     appDrawer: {
-      label: "App Drawer",
+      label: "Applications",
       link: "/appDrawer",
     },
     home: {
@@ -26,10 +26,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   const sidebarIcons: SidebarIconProps[] = [
-    { Icon: <ElevaiteIcons.Datasets />, linkLocation: "/datasets" },
-    { Icon: <ElevaiteIcons.WorkersQueues />, linkLocation: "/workers_queues" },
-    { Icon: <ElevaiteIcons.Models />, linkLocation: "/models" },
-    { Icon: <ElevaiteIcons.Workbench />, linkLocation: "/appDrawer" },
+    // { Icon: <ElevaiteIcons.Datasets />, linkLocation: "/datasets" },
+    // { Icon: <ElevaiteIcons.WorkersQueues />, linkLocation: "/workers_queues" },
+    // { Icon: <ElevaiteIcons.Models />, linkLocation: "/models" },
+    { Icon: <ElevaiteIcons.Workbench />, linkLocation: "/workbench" },
   ];
 
   return (

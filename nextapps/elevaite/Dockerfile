@@ -53,8 +53,8 @@ COPY --from=installer --chown=nextjs:nodejs /app/nextapps/elevaite/public ./next
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 3101
 
-ENV PORT 3000
+ENV PORT 3101
  
 CMD node nextapps/elevaite/server.js

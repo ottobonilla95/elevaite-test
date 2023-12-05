@@ -29,12 +29,16 @@ const breadcrumbLabels: { [key: string]: { label: string; link: string } } = {
     label: "Workbench",
     link: "/workbench",
   },
+  home: {
+    label: "Applications",
+    link: "/",
+  },
 };
 
 const sidebarIcons: SidebarIconProps[] = [
-  { Icon: <ElevaiteIcons.Datasets />, linkLocation: "/datasets" },
-  { Icon: <ElevaiteIcons.WorkersQueues />, linkLocation: "/workers_queues" },
-  { Icon: <ElevaiteIcons.Models />, linkLocation: "/models" },
+  // { Icon: <ElevaiteIcons.Datasets />, linkLocation: "/datasets" },
+  // { Icon: <ElevaiteIcons.WorkersQueues />, linkLocation: "/workers_queues" },
+  // { Icon: <ElevaiteIcons.Models />, linkLocation: "/models" },
   { Icon: <ElevaiteIcons.Workbench />, linkLocation: "/workbench" },
 ];
 

@@ -16,9 +16,9 @@ export function Sidebar({ Logo, ...props }: SidebarProps) {
   return (
     <>
       <div className="sidebarContainer" style={{ borderRightColor: colors.borderColor, background: colors.primary }}>
-        <div className="logoContainer">
+        <Link href={"/"} className="logoContainer">
           <div className="logo">{Logo}</div>
-        </div>
+        </Link>
         <div className="sidebarNav">
           {props.sidebarIcons.map((icon, index) => (
             <SidebarIcon Icon={icon.Icon} linkLocation={icon.linkLocation} key={icon.linkLocation} />
@@ -44,9 +44,6 @@ function SidebarIcon({ Icon, ...props }: SidebarIconProps) {
     <React.Fragment>
       <button
         className={"sidebarNavBtn" + (pathname.startsWith(props.linkLocation) ? "_slc" : "")}
-        // onClick={() => {
-        //   push(props.linkLocation);
-        // }}
         style={{
           color: pathname.startsWith(props.linkLocation) ? colors.highlight : colors.icon,
           background: pathname.startsWith(props.linkLocation) || hover ? colors.secondary : colors.primary,
