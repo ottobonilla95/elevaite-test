@@ -13,15 +13,33 @@ export interface CardProps {
   height?: number;
   btnLabel: string;
   withHighlight?: boolean;
+  id?: string;
 }
 
 export function Card({ icon, title, subtitle, description, ...props }: CardProps) {
   const colors = React.useContext(ColorContext);
   const [hover, setHover] = React.useState(false);
+  const [focus, setFocus] = React.useState(false);
 
   return (
-    <div className="cardContainer" style={{ borderTop: props.withHighlight ? "1px solid " + colors.highlight : "" }}>
-      <div className="card" style={{ background: colors?.primary, borderColor: colors?.borderColor }}>
+    <div
+      className="cardContainer"
+      style={{
+        borderTop: props.withHighlight ? "1px solid " + colors.highlight : "",
+        // border: focus ? "2px solid " + colors.highlight : "",
+      }}
+      id={props.id}
+      onFocus={() => setFocus(true)}
+      onBlur={() => setFocus(false)}
+    >
+      <div
+        className="card"
+        style={{
+          background: colors?.primary,
+          borderColor: focus ? colors.highlight : colors?.borderColor,
+          borderWidth: focus ? "2px" : "1px",
+        }}
+      >
         <div className="cardHeader">
           <div className="cardHeaderText">
             <img className="cardIcon" src={icon} width={40} height={40} alt={props.iconAlt} />
@@ -31,7 +49,7 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
           </div>
           <div className="cardSubtitle" style={{ color: colors?.highlight, background: colors?.tertiary }}>
             <svg width="5" height="4" viewBox="0 0 5 4" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="2.33325" cy="2" r="2" fill="#E75F33" />
+              <circle cx="2.33325" cy="2" r="2" fill="currentColor" />
             </svg>
             {subtitle}
           </div>
@@ -41,6 +59,7 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
         </div>
         <button
           className="cardBtn"
+          id={props.id ? props.id + "Btn" : ""}
           style={{
             color: colors?.text,
             background: hover ? colors.hoverColor : colors.primary,
@@ -48,6 +67,7 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
           }}
           onMouseEnter={() => setHover(true)}
           onFocus={() => setHover(true)}
+          onBlur={() => setHover(false)}
           onMouseLeave={() => setHover(false)}
         >
           {props.btnLabel}
