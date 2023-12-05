@@ -14,7 +14,7 @@ interface SidebarProps {
 export function Sidebar({ Logo, ...props }: SidebarProps) {
   const colors = useContext(ColorContext);
   return (
-    <div className="layout">
+    <>
       <div className="sidebarContainer" style={{ borderRightColor: colors.borderColor, background: colors.primary }}>
         <div className="logoContainer">
           <div className="logo">{Logo}</div>
@@ -26,7 +26,7 @@ export function Sidebar({ Logo, ...props }: SidebarProps) {
         </div>
       </div>
       {props.children}
-    </div>
+    </>
   );
 }
 

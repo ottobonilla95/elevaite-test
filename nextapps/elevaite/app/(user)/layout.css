@@ -3,6 +3,10 @@
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 249, 250, 251;
   --background-end-rgb: 249, 250, 251;
+  --welcome-header-height: 40px;
+  --layout-header-height: calc(var(--navbar-height) + var(--welcome-header-height));
+  --layout-scroll-padding-top: calc(var(--layout-header-height) + 200px);
+  scroll-padding-top: var(--layout-scroll-padding-top);
 }
 
 body {

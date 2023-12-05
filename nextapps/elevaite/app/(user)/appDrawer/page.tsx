@@ -1,12 +1,16 @@
 "use client";
-import { Card, CardHolder, ColorContext, SearchResults, Searchbar } from "@elevaite/ui";
-import { ingestionMethods } from "../../../dummydata";
+import { Card, CardHolder, ColorContext, Searchbar } from "@elevaite/ui";
+import { applications } from "../../../dummydata";
 import "./page.css";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 export default function Page() {
   const colors = useContext(ColorContext);
   const [results, setResults] = useState<{ key: string; link: string; label: string }[]>([]);
+
+  useEffect(() => {
+    handleSearchInput("");
+  }, []);
 
   function handleSearchInput(term: string) {
     const promise: Promise<{ key: string; link: string; label: string }[]> = new Promise((resolve, reject) => {
@@ -27,77 +31,18 @@ export default function Page() {
         <span className="welcome" style={{ color: colors.text }}>
           Welcome to ElevAIte <span style={{ fontWeight: 700 }}>{"Mary"}</span> !
         </span>
-        <Searchbar handleInput={handleSearchInput} results={results} width="280px" />
+        <Searchbar handleInput={handleSearchInput} results={results} width="280px" isJump={true} />
       </header>
       <div className="cardHolders">
         <CardHolder title="ElevAIte for Support">
-          <Card
-            key={ingestionMethods[0].iconAlt}
-            description={ingestionMethods[0].description}
-            icon={ingestionMethods[0].icon}
-            iconAlt={ingestionMethods[0].iconAlt}
-            subtitle={ingestionMethods[0].subtitle}
-            title={ingestionMethods[0].title}
-            btnLabel="Description"
-          />
-          <Card
-            key={ingestionMethods[0].iconAlt}
-            description={ingestionMethods[0].description}
-            icon={ingestionMethods[0].icon}
-            iconAlt={ingestionMethods[0].iconAlt}
-            subtitle={ingestionMethods[0].subtitle}
-            title={ingestionMethods[0].title}
-            btnLabel="Description"
-          />
+          <Card key={applications.supportBot.iconAlt} {...applications.supportBot} id="supportBot" />
         </CardHolder>
-        <CardHolder title="ElevAIte for Support">
-          <Card
-            key={ingestionMethods[0].iconAlt}
-            description={ingestionMethods[0].description}
-            icon={ingestionMethods[0].icon}
-            iconAlt={ingestionMethods[0].iconAlt}
-            subtitle={ingestionMethods[0].subtitle}
-            title={ingestionMethods[0].title}
-            btnLabel="Description"
-          />
-          <Card
-            key={ingestionMethods[0].iconAlt}
-            description={ingestionMethods[0].description}
-            icon={ingestionMethods[0].icon}
-            iconAlt={ingestionMethods[0].iconAlt}
-            subtitle={ingestionMethods[0].subtitle}
-            title={ingestionMethods[0].title}
-            btnLabel="Description"
-          />
-          <Card
-            key={ingestionMethods[0].iconAlt}
-            description={ingestionMethods[0].description}
-            icon={ingestionMethods[0].icon}
-            iconAlt={ingestionMethods[0].iconAlt}
-            subtitle={ingestionMethods[0].subtitle}
-            title={ingestionMethods[0].title}
-            btnLabel="Description"
-          />
-          <Card
-            key={ingestionMethods[0].iconAlt}
-            description={ingestionMethods[0].description}
-            icon={ingestionMethods[0].icon}
-            iconAlt={ingestionMethods[0].iconAlt}
-            subtitle={ingestionMethods[0].subtitle}
-            title={ingestionMethods[0].title}
-            btnLabel="Description"
-          />
+        <CardHolder title="ElevAIte for Finance">
+          <Card key={applications.deckBuilder.iconAlt} {...applications.deckBuilder} id="deckBuilder" />
         </CardHolder>
-        <CardHolder title="ElevAIte for Support">
-          <Card
-            key={ingestionMethods[0].iconAlt}
-            description={ingestionMethods[0].description}
-            icon={ingestionMethods[0].icon}
-            iconAlt={ingestionMethods[0].iconAlt}
-            subtitle={ingestionMethods[0].subtitle}
-            title={ingestionMethods[0].title}
-            btnLabel="Description"
-          />
+        <CardHolder title="ElevAIte for Revenue">
+          <Card key={applications.insights.iconAlt} {...applications.insights} id="insights" />
+          <Card key={applications.campaignBuilder.iconAlt} {...applications.campaignBuilder} id="campaignBuilder" />
         </CardHolder>
       </div>
     </>
