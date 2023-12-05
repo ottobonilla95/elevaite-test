@@ -8,6 +8,7 @@ interface SearchBarProps {
   handleInput: (term: string) => void;
   results: { key: string; link: string; label: string }[];
   width?: string;
+  isJump?: boolean;
 }
 
 export function Searchbar({ handleInput, ...props }: SearchBarProps) {
@@ -19,10 +20,26 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps) {
     handleInput(value);
   };
 
+  const handleResultClick = (targetId?: string) => {
+    console.log(props.isJump);
+    console.log(targetId);
+
+    if (props.isJump && targetId !== undefined) {
+      const element = document.getElementById(targetId + "Btn");
+      element?.focus();
+    }
+    setShowResults(false);
+  };
+
   const colors = useContext(ColorContext);
   return (
     <>
-      <div className="searchbarContainer" style={{ width: props.width }}>
+      <div
+        className="searchbarContainer"
+        style={{ width: props.width }}
+        onFocus={() => setShowResults(true)}
+        // onBlur={() => setShowResults(false)}
+      >
         <div className="searchbar" style={{ borderColor: colors.borderColor, background: colors.background }}>
           <svg
             width="20"
@@ -45,14 +62,12 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps) {
             onChange={(e) => handleChange(e.target.value)}
             placeholder="Find answers"
             style={{ background: colors.background, color: colors.text }}
-            onFocus={() => setShowResults(true)}
-            onBlur={() => setShowResults(false)}
           />
           {/* <label className="searchHotKeyHint">
             {navigator.platform.toUpperCase().indexOf("MAC") >= 0 ? "⌘" : "Ctrl"}+F
           </label> */}
         </div>
-        {showResults ? <SearchResults results={props.results} /> : <></>}
+        {showResults ? <SearchResults results={props.results} handleResultClick={handleResultClick} /> : <></>}
       </div>
     </>
   );
