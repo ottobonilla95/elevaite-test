@@ -12,7 +12,7 @@ export const ApplicationIcons = {
     slack: { src: slackIcon.src, alt: "Slack" },
     oneDrive: { src: onedriveIcon.src, alt: "Onedrive" },
     mongoDB: { src: mongoDBIcon.src, alt: "MongoDB" },
-    teams: { src: teamsIcon, alt: "Teams" },
+    teams: { src: teamsIcon.src, alt: "Teams" },
   },
   applications: {
     supportBot: { src: supportBot.src, alt: "Support Bot" },

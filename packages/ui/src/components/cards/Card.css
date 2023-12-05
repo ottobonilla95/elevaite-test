@@ -19,6 +19,7 @@
   border-radius: 12px;
   background: #f242f5;
   width: 100%;
+  min-height: 150px;
 }
 
 .cardHeader {
