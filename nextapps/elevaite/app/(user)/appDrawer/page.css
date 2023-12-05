@@ -4,7 +4,6 @@
   align-items: center;
   gap: 32px;
   align-self: stretch;
-  position: relative;
   padding: 32px;
   overflow: auto;
 }
@@ -14,9 +13,9 @@
   justify-content: space-between;
   align-items: center;
   align-self: stretch;
-  height: 40px;
+  height: var(--welcome-header-height);
   position: sticky;
-  top: 80px;
+  top: var(--navbar-height);
   z-index: 100;
   flex-direction: row;
   width: 100%;
