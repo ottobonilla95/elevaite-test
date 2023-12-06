@@ -1082,6 +1082,7 @@ def create_dataframe_2(start_row, start_col, end_row, end_col, row_headers, col_
 def ask_csv_agent(sheet_list, question):
     try:
         
+        print("calling csv agent..")
         agent = create_csv_agent(
             ChatOpenAI(temperature=0, model="gpt-4-1106-preview"),
             [sheet_list],
@@ -1092,7 +1093,7 @@ def ask_csv_agent(sheet_list, question):
 
         return {"response" : "Success", "answer" : answer}
     except  Exception as e:
-        return str(e)
+        return "Error while talking to csv agent: " + str(e)
     
 
 def generate_csv_for_excel(workbook_path):
