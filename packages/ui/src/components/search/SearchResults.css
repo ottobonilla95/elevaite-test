@@ -1,13 +1,12 @@
 .searchResultContainer {
   position: fixed;
-  top: 140px;
   display: flex;
   width: inherit;
   height: fit-content;
   /* padding: 10px 0; */
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  /* gap: 4px; */
   border-radius: 8px;
   border: 1px solid;
   background: #f1f5f9;
@@ -29,11 +28,11 @@
 }
 
 .searchResult:first-of-type {
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
+  border-top-left-radius: 7px;
+  border-top-right-radius: 7px;
 }
 
 .searchResult:last-of-type {
-  border-bottom-left-radius: 10px;
-  border-bottom-right-radius: 10px;
+  border-bottom-left-radius: 7px;
+  border-bottom-right-radius: 7px;
 }

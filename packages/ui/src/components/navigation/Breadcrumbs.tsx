@@ -1,7 +1,7 @@
 import "./Breadcrumbs.css";
 import React, { useContext } from "react";
 import Link from "next/link";
-import { ColorContext } from "../../ColorContext";
+import { ColorContext } from "../../contexts";
 
 interface BreadcrumbsProps {
   items: BreadcrumbItem[];

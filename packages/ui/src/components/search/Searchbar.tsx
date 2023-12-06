@@ -1,22 +1,21 @@
 "use client";
 import { useContext, useState } from "react";
 import "./Searchbar.css";
-import { ColorContext } from "../../ColorContext";
+import { ColorContext } from "../../contexts";
 import { SearchResults } from "./SearchResults";
 
 interface SearchBarProps {
   handleInput: (term: string) => void;
   results: { key: string; link: string; label: string }[];
+  resultsTopOffset: string;
   width?: string;
   isJump?: boolean;
 }
 
 export function Searchbar({ handleInput, ...props }: SearchBarProps) {
-  const [input, setInput] = useState("");
   const [showResults, setShowResults] = useState(false);
 
   const handleChange = (value: string) => {
-    setInput(value);
     handleInput(value);
   };
 
@@ -40,7 +39,11 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps) {
         className="searchbarContainer"
         style={{ width: props.width }}
         onFocus={() => setShowResults(true)}
-        // onBlur={() => setShowResults(false)}
+        onBlur={() =>
+          setTimeout(() => {
+            setShowResults(false);
+          }, 100)
+        }
       >
         <div className="searchbar" style={{ borderColor: colors.borderColor, background: colors.background }}>
           <svg
@@ -70,7 +73,12 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps) {
           </label> */}
         </div>
         {showResults ? (
-          <SearchResults results={props.results} handleResultClick={handleResultClick} isJump={props.isJump} />
+          <SearchResults
+            results={props.results}
+            handleResultClick={handleResultClick}
+            isJump={props.isJump}
+            topOffset={props.resultsTopOffset}
+          />
         ) : (
           <></>
         )}
