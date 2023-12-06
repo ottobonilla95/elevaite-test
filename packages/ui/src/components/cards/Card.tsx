@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { ColorContext } from "../../ColorContext";
+import { ColorContext } from "../../contexts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import "./Card.css";
@@ -41,7 +41,10 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
     //   prefetch={false}
     //   style={{ pointerEvents: props.link ? "auto" : "none", width: "100%" }}
     // >
-    <div
+    <a
+      href={props.link}
+      target="_blank"
+      rel="noopener noreferrer"
       className="cardContainer"
       style={{
         borderTop: props.withHighlight ? "1px solid " + colors.highlight : "",
@@ -50,8 +53,8 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
       id={props.id}
       onFocus={() => setFocus(true)}
       onBlur={() => setFocus(false)}
-      tabIndex={props.link ? 0 : -1}
-      onClick={(e) => handleClick(e)}
+      // tabIndex={props.link ? 0 : -1}
+      // onClick={(e) => handleClick(e)}
       onMouseEnter={() => setCardHover(true)}
       onMouseLeave={() => setCardHover(false)}
     >
@@ -120,7 +123,7 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
           <></>
         )}
       </div>
-    </div>
+    </a>
     // </Link>
   );
 }

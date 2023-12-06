@@ -1,21 +1,26 @@
 "use client";
 import { useContext, useState } from "react";
-import { ColorContext } from "../../ColorContext";
+import { ColorContext } from "../../contexts";
 import Link from "next/link";
 import "./SearchResults.css";
 
 interface SearchResultsProps {
   results: { key: string; link: string; label: string }[];
   handleResultClick: (targetId?: string) => void;
+  topOffset: string;
+  isJump?: boolean;
 }
 
-export function SearchResults({ results, handleResultClick, ...props }: SearchResultsProps) {
+export function SearchResults({ results, handleResultClick, topOffset, ...props }: SearchResultsProps) {
   const [hover, setHover] = useState("");
   const colors = useContext(ColorContext);
 
   return (
     <>
-      <div className="searchResultContainer" style={{ borderColor: colors.borderColor, background: colors.background }}>
+      <div
+        className="searchResultContainer"
+        style={{ borderColor: colors.borderColor, background: colors.background, top: topOffset }}
+      >
         {results.map((res) => (
           <Link
             href={res.link}

@@ -3,7 +3,7 @@ import React, { useContext } from "react";
 import "./Sidebar.css";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { ColorContext } from "../../ColorContext";
+import { ColorContext } from "../../contexts";
 
 interface SidebarProps {
   sidebarIcons: SidebarIconProps[];

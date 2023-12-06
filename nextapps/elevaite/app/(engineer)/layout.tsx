@@ -4,6 +4,7 @@ import "./layout.css";
 import { ElevaiteIcons, SidebarIconProps } from "@elevaite/ui";
 import AppLayout from "../ui/AppLayout";
 import { EngineerTheme } from "../ui/themes";
+import { engineerSearchHelper } from "../lib/searchHelpers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -42,11 +43,18 @@ const sidebarIcons: SidebarIconProps[] = [
   { Icon: <ElevaiteIcons.Workbench />, linkLocation: "/workbench" },
 ];
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  let results = engineerSearchHelper("");
+
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AppLayout breadcrumbLabels={breadcrumbLabels} sidebarIcons={sidebarIcons} theme={EngineerTheme}>
+        <AppLayout
+          breadcrumbLabels={breadcrumbLabels}
+          sidebarIcons={sidebarIcons}
+          theme={EngineerTheme}
+          layout="engineer"
+        >
           {children}
         </AppLayout>
       </body>

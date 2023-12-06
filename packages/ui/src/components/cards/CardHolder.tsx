@@ -1,6 +1,6 @@
 "use client";
 import React, { SVGProps, useContext, useState } from "react";
-import { ColorContext } from "../../ColorContext";
+import { ColorContext } from "../../contexts";
 import "./CardHolder.css";
 
 export interface CardHolderProps {

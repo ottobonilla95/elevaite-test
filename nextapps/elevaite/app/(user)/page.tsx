@@ -12,7 +12,7 @@ export default async function Page() {
 
   return (
     <>
-      <UserHeader applications={applications} />
+      {/* <UserHeader applications={applications} /> */}
       <div className="cardHolders">
         {applications.map((app) => (
           <CardHolder title={app.title} key={app.key}>
