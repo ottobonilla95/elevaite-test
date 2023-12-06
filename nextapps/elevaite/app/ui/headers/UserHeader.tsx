@@ -1,10 +1,14 @@
 "use client";
-import { ColorContext, Searchbar } from "@elevaite/ui";
+import { CardProps, ColorContext, Searchbar } from "@elevaite/ui";
 import { useContext, useEffect, useState } from "react";
-import { applications } from "../../../dummydata";
+import { getApplications } from "../../../dummydata";
 import "./UserHeader.css";
 
-function UserHeader() {
+interface UserHeaderProps {
+  applications: { title: string; key: string; cards: CardProps[] }[];
+}
+
+function UserHeader({ applications, ...props }: UserHeaderProps) {
   const colors = useContext(ColorContext);
   const [results, setResults] = useState<{ key: string; link: string; label: string }[]>([]);
 
@@ -17,7 +21,7 @@ function UserHeader() {
       const refs: { key: string; link: string; label: string }[] = [];
       applications.forEach((app) => {
         app.cards.forEach((card) => {
-          refs.push({ key: card.id, label: card.title, link: "#" + card.id });
+          refs.push({ key: card.id || card.iconAlt, label: card.title, link: "#" + card.id });
         });
       });
       resolve(refs.filter((ref) => ref.label.toLowerCase().includes(term.toLowerCase())));

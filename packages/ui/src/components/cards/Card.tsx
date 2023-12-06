@@ -25,6 +25,7 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
   const [cardHover, setCardHover] = React.useState(false);
   const [focus, setFocus] = React.useState(false);
   const router = useRouter();
+  React.useEffect(() => console.log("LINK: " + props.link, []));
 
   const handleClick = (e: React.MouseEvent) => {
     console.log(props.link);
