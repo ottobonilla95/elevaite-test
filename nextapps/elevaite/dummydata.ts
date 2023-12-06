@@ -77,12 +77,12 @@ const appLinks = {
     production: "https://elevaite-cb.iopex.ai/",
   },
   excletoppt: {
-    development: "http://localhost:3003",
+    development: "http://localhost:3003/homepage",
     production: "https://elevaite-apps.iopex.ai/askdocs ",
   },
   insights: {
-    development: "http://localhost:3004",
-    production: "https://arlo.opexwise.ai/",
+    development: "https://arlo.opexwise.ai",
+    production: "https://arlo.opexwise.ai",
   },
 };
 
