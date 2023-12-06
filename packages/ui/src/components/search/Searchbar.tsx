@@ -21,12 +21,14 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps) {
   };
 
   const handleResultClick = (targetId?: string) => {
-    console.log(props.isJump);
-    console.log(targetId);
-
     if (props.isJump && targetId !== undefined) {
-      const element = document.getElementById(targetId + "Btn");
-      element?.focus();
+      const card = document.getElementById(targetId);
+      if (card) {
+        card.focus();
+      } else {
+        const cardBtn = document.getElementById(targetId + "Btn");
+        cardBtn && cardBtn.focus();
+      }
     }
     setShowResults(false);
   };
@@ -67,7 +69,11 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps) {
             {navigator.platform.toUpperCase().indexOf("MAC") >= 0 ? "⌘" : "Ctrl"}+F
           </label> */}
         </div>
-        {showResults ? <SearchResults results={props.results} handleResultClick={handleResultClick} /> : <></>}
+        {showResults ? (
+          <SearchResults results={props.results} handleResultClick={handleResultClick} isJump={props.isJump} />
+        ) : (
+          <></>
+        )}
       </div>
     </>
   );

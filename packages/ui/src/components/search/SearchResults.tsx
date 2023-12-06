@@ -7,6 +7,7 @@ import "./SearchResults.css";
 interface SearchResultsProps {
   results: { key: string; link: string; label: string }[];
   handleResultClick: (targetId?: string) => void;
+  isJump?: boolean;
 }
 
 export function SearchResults({ results, handleResultClick, ...props }: SearchResultsProps) {
@@ -28,6 +29,7 @@ export function SearchResults({ results, handleResultClick, ...props }: SearchRe
             onMouseEnter={() => setHover(res.key)}
             onMouseLeave={() => setHover("")}
             onClick={() => handleResultClick(res.key)}
+            replace={props.isJump}
           >
             {res.label}
           </Link>
