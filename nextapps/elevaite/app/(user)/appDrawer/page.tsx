@@ -1,3 +1,4 @@
+"use client";
 import { Card, CardHolder } from "@elevaite/ui";
 import { applications } from "../../../dummydata";
 import "./page.css";
@@ -11,7 +12,7 @@ export default function Page() {
         {applications.map((app) => (
           <CardHolder title={app.title} key={app.key}>
             {app.cards.map((card) => (
-              <Card key={card.iconAlt} {...card} />
+              <Card key={card.id} {...card} />
             ))}
           </CardHolder>
         ))}

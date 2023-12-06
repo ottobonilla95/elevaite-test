@@ -7,7 +7,7 @@
   gap: 10px;
   flex: 1 0 0;
   border-radius: 12px;
-  font-family: Inter;
+  width: 100%;
 }
 .card {
   display: flex;
