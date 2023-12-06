@@ -1,14 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  async rewrites() {
-    return [
-      {
-        destination: "/appDrawer",
-        source: "/",
-      },
-    ];
-  },
+  transpilePackages: ["@elevaite/ui"],
+  // async rewrites() {
+  //   return [
+  //     {
+  //       destination: "/appDrawer",
+  //       source: "/",
+  //     },
+  //   ];
+  // },
 };
 
 module.exports = nextConfig;

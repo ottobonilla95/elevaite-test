@@ -1,12 +1,18 @@
 import { Card, CardHolder } from "@elevaite/ui";
-import { applications } from "../../../dummydata";
+import { getApplications } from "../../dummydata";
 import "./page.css";
-import UserHeader from "../../ui/headers/UserHeader";
+import UserHeader from "../ui/headers/UserHeader";
 
-export default function Page() {
+export default async function Page() {
+  async function fetchApplications() {
+    "use server";
+    return getApplications(process.env.NODE_ENV);
+  }
+  const applications = await fetchApplications();
+
   return (
     <>
-      <UserHeader />
+      <UserHeader applications={applications} />
       <div className="cardHolders">
         {applications.map((app) => (
           <CardHolder title={app.title} key={app.key}>
