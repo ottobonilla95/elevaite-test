@@ -113,19 +113,26 @@ async def ask_openai(context: str, call_for: str):
             #return str(completion.choices[0].message.content)
             return {"status" : 200, "summary" : str(response)}
     except Exception as e:
-        return str(e)
+        return "Error from ask_open ai:" + str(e)
     
 def excel_to_text(file_path: str, worksheet_name: str):
 
     try:
         print("opening worksheet...")
+        print("filepath: " , file_path, " worksheet_name: " , worksheet_name)
         
         workbook = openpyxl.load_workbook(file_path, data_only=True)
         worksheet_text_mapping = {}
-
+        print("workbook loaded")
         #get excel text from the provided worksheet
         if(worksheet_name is not None):
-            worksheet = workbook[worksheet_name]
+            print("worksheet provided")
+            try:
+              worksheet = workbook.get_sheet_by_name(worksheet_name)
+            except Exception as e:
+                print(str(e))
+                worksheet = workbook[worksheet_name]
+            print("loaded worksheet..")
             text_content = ""
             for row in worksheet.iter_rows(values_only=True):
                 row_text = " ".join(str(cell) if cell is not None else "" for cell in row)
@@ -135,7 +142,7 @@ def excel_to_text(file_path: str, worksheet_name: str):
 
         #get excel text from all worksheets
             for sheet_name in workbook.sheetnames:
-            
+                print("worksheet provided loading all worksheets..")
                 worksheet = workbook[sheet_name]
                 text_content = ""
 
@@ -148,7 +155,7 @@ def excel_to_text(file_path: str, worksheet_name: str):
         return worksheet_text_mapping
     except Exception as e:
         
-        return str(e)
+        return "Error from excel_to_text : " +str(e)
     
 async def generate_summary(filePath: str, sheet_name: str):
 
@@ -156,6 +163,7 @@ async def generate_summary(filePath: str, sheet_name: str):
       
 
       worksheet_text_mapping = excel_to_text(filePath, sheet_name)
+      print(worksheet_text_mapping[sheet_name])
     except Exception as e:
         err = "Error while converting excel file to text: " + str(e)
         return {"response" : err, "summary": "", "status": 400}
