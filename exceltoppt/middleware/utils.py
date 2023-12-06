@@ -1093,7 +1093,7 @@ def ask_csv_agent(sheet_list, question):
 
         return {"response" : "Success", "answer" : answer}
     except  Exception as e:
-        return "Error while talking to csv agent: " + str(e)
+        return {"response" : "Error", "answer" : "Error while talking to csv agent: " + str(e)}
     
 
 def generate_csv_for_excel(workbook_path):

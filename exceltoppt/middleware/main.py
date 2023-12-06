@@ -241,8 +241,12 @@ async def chat_with_csv_agent(workbook_name: str, sheet_name: str, question: str
             sheet_path = os.path.join(csv_folder, csv_sheet_name)
             print("csv sheet path: " + sheet_path)
             res = ask_csv_agent(sheet_path, question)
-            if res['response'] == 'Success':
+            print(res)
+            print(res["response"])
+            if res["response"] == "Success":
                 return JSONResponse(content = res['answer'], status_code=200)
+            else:
+                return JSONResponse(content = res['answer'], status_code=400)
     else:
         return JSONResponse(content = "Error while trying to retreive answer. Please contact your admin.", status_code=200)
 
