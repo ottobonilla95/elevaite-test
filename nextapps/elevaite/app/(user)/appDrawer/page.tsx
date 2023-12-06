@@ -1,4 +1,3 @@
-"use client";
 import { Card, CardHolder } from "@elevaite/ui";
 import { applications } from "../../../dummydata";
 import "./page.css";
