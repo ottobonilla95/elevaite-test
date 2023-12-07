@@ -33,6 +33,7 @@ export function SearchResults({ results, handleResultClick, topOffset, ...props 
             onMouseEnter={() => setHover(res.key)}
             onMouseLeave={() => setHover("")}
             onClick={() => handleResultClick(res.key)}
+            replace={props.isJump}
           >
             {res.label}
           </Link>

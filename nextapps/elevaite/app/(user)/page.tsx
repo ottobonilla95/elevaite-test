@@ -17,7 +17,7 @@ export default async function Page() {
         {applications.map((app) => (
           <CardHolder title={app.title} key={app.key}>
             {app.cards.map((card) => (
-              <Card key={card.iconAlt} {...card} />
+              <Card key={card.id} {...card} />
             ))}
           </CardHolder>
         ))}

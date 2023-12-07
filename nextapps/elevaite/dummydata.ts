@@ -86,50 +86,56 @@ const appLinks = {
   },
 };
 
-export const applications = [
-  {
-    title: "elevAIte for Support",
-    key: "support",
-    cards: [
-      {
-        icon: ApplicationIcons.applications.supportBot.src,
-        description: "Please feel free to ask me anything. I'll do my best to provide helpful answers.",
-        iconAlt: ApplicationIcons.applications.supportBot.alt,
-        title: "Support Bot",
-        link: appLinks.supportBot[process.env.NODE_ENV],
-      },
-    ],
-  },
-  {
-    title: "elevAIte for Finance",
-    key: "finance",
-    cards: [
-      {
-        icon: ApplicationIcons.applications.deckBuilder.src,
-        description: "Convert your spreadsheets to presentations and ask questions",
-        iconAlt: ApplicationIcons.applications.deckBuilder.alt,
-        title: "AI Deck Builder",
-        link: appLinks.excletoppt[process.env.NODE_ENV],
-      },
-    ],
-  },
-  {
-    title: "elevAIte for Revenue",
-    key: "revenue",
-    cards: [
-      {
-        icon: ApplicationIcons.applications.insights.src,
-        description: "Your BI Application to make informed decisions. Data to Insights.",
-        iconAlt: ApplicationIcons.applications.insights.alt,
-        title: "elevAIte Insights",
-        link: appLinks.insights[process.env.NODE_ENV],
-      },
-      {
-        icon: ApplicationIcons.applications.campaignBuilder.src,
-        description: "Analyze attributes of past campaign metrics to build successful future campaigns.",
-        iconAlt: ApplicationIcons.applications.campaignBuilder.alt,
-        title: "AI Campaign Builder",
-      },
-    ],
-  },
-];
+export function getApplications(env: string): { title: string; key: string; cards: CardProps[] }[] {
+  return [
+    {
+      title: "elevAIte for Support",
+      key: "support",
+      cards: [
+        {
+          icon: ApplicationIcons.applications.supportBot.src,
+          description: "Please feel free to ask me anything. I'll do my best to provide helpful answers.",
+          iconAlt: ApplicationIcons.applications.supportBot.alt,
+          title: "Support Bot",
+          link: appLinks.supportBot[env],
+          id: "supportBot",
+        },
+      ],
+    },
+    {
+      title: "elevAIte for Finance",
+      key: "finance",
+      cards: [
+        {
+          icon: ApplicationIcons.applications.deckBuilder.src,
+          description: "Convert your spreadsheets to presentations and ask questions",
+          iconAlt: ApplicationIcons.applications.deckBuilder.alt,
+          title: "AI Deck Builder",
+          link: appLinks.excletoppt[env],
+          id: "deckBuilder",
+        },
+      ],
+    },
+    {
+      title: "elevAIte for Revenue",
+      key: "revenue",
+      cards: [
+        {
+          icon: ApplicationIcons.applications.insights.src,
+          description: "Your BI Application to make informed decisions. Data to Insights.",
+          iconAlt: ApplicationIcons.applications.insights.alt,
+          title: "elevAIte Insights",
+          link: appLinks.insights[env],
+          id: "insights",
+        },
+        {
+          icon: ApplicationIcons.applications.campaignBuilder.src,
+          description: "Analyze attributes of past campaign metrics to build successful future campaigns.",
+          iconAlt: ApplicationIcons.applications.campaignBuilder.alt,
+          title: "AI Campaign Builder",
+          id: "campaignBuilder",
+        },
+      ],
+    },
+  ];
+}
