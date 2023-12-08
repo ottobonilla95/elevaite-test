@@ -1,11 +1,12 @@
 {
-  "name": "tailwind-config",
+  "name": "@repo/tailwind-config",
   "version": "0.0.0",
   "private": true,
-  "main": "index.ts",
-  "types": "index.ts",
+  "exports": {
+    ".": "./tailwind.config.ts"
+  },
   "devDependencies": {
-    "tailwindcss": "^3.2.4",
-    "postcss": "^8.4.6"
+    "@repo/typescript-config": "*",
+    "tailwindcss": "^3.3.5"
   }
 }

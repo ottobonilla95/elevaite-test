@@ -14,9 +14,8 @@
 
 .logoContainer {
   display: flex;
-  width: 80px;
-  height: 80px;
-  padding: 24px;
+  width: var(--sidebar-width);
+  height: var(--sidebar-width);
   justify-content: center;
   align-items: center;
   gap: 10px;

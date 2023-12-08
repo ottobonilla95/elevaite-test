@@ -5,7 +5,7 @@ interface LoadingProps {
   color?: string;
 }
 
-export function Loading({ color, ...props }: LoadingProps) {
+export function Loading({ color }: LoadingProps): JSX.Element {
   return (
     <div className="dot-pulse">
       <style data-jsx>{`

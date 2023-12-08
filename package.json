@@ -4,25 +4,26 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
+    "type-check": "turbo type-check",
     "clean": "turbo clean",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.2",
-    "eslint": "^8.48.0",
-    "postcss": "^8.4.6",
-    "prettier": "^3.0.3",
-    "prettier-plugin-tailwindcss": "^0.5.3",
-    "tsconfig": "*",
-    "turbo": "^1.11.0"
+    "@repo/typescript-config": "*",
+    "eslint": "^8.54.0",
+    "prettier": "^3.1.0",
+    "prettier-plugin-tailwindcss": "^0.5.7",
+    "turbo": "latest"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "packageManager": "npm@10.2.4",
   "workspaces": [
-    "nextapps/*",
-    "nextapps/exceltoppt/*",
+    "apps/*",
     "packages/*"
   ],
   "dependencies": {
-    "react-tabs": "^6.0.2"
+    "next": "^14.0.4"
   }
 }

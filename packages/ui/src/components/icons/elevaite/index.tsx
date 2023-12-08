@@ -1,13 +1,13 @@
 import Workbench from "./Workbench";
 import Datasets from "./datasets";
-import Logo from "./logo";
+import ElevaiteLogo from "./logo";
 import Models from "./models";
-import WorkersQueues from "./workers-queues";
+import WorkersQueues from "./WorkersQueues";
 
 export const ElevaiteIcons = {
-  Logo: Logo,
-  Datasets: Datasets,
-  WorkersQueues: WorkersQueues,
-  Models: Models,
-  Workbench: Workbench,
+  Logo: ElevaiteLogo,
+  Datasets,
+  WorkersQueues,
+  Models,
+  Workbench,
 };

@@ -1,27 +1,32 @@
 "use client";
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import "./Sidebar.css";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ColorContext } from "../../contexts";
+import ElevaiteLogo from "../icons/elevaite/logo";
 
 interface SidebarProps {
-  sidebarIcons: SidebarIconProps[];
-  Logo: React.ReactNode;
+  sidebarIcons: {
+    linkLocation: string;
+    Icon: React.ReactNode;
+  }[];
   children?: React.ReactNode;
 }
 
-export function Sidebar({ Logo, ...props }: SidebarProps) {
+export function Sidebar({ ...props }: SidebarProps): JSX.Element {
   const colors = useContext(ColorContext);
   return (
     <>
       <div className="sidebarContainer" style={{ borderRightColor: colors.borderColor, background: colors.primary }}>
-        <Link href={"/"} className="logoContainer">
-          <div className="logo">{Logo}</div>
+        <Link className="logoContainer" href="/">
+          <ElevaiteLogo />
         </Link>
         <div className="sidebarNav">
-          {props.sidebarIcons.map((icon, index) => (
-            <SidebarIcon Icon={icon.Icon} linkLocation={icon.linkLocation} key={icon.linkLocation} />
+          {props.sidebarIcons.map((icon) => (
+            <SidebarIcon linkLocation={icon.linkLocation} key={icon.linkLocation}>
+              {icon.Icon}
+            </SidebarIcon>
           ))}
         </div>
       </div>
@@ -31,30 +36,32 @@ export function Sidebar({ Logo, ...props }: SidebarProps) {
 }
 
 export interface SidebarIconProps {
-  Icon: React.ReactNode;
   linkLocation: string;
+  children?: React.ReactNode;
 }
 
-function SidebarIcon({ Icon, ...props }: SidebarIconProps) {
+function SidebarIcon({ children, ...props }: SidebarIconProps): JSX.Element {
   const pathname = usePathname();
-  const [hover, setHover] = React.useState(false);
+  const [hover, setHover] = useState(false);
   const colors = useContext(ColorContext);
 
   return (
-    <React.Fragment>
-      <button
-        className={"sidebarNavBtn" + (pathname.startsWith(props.linkLocation) ? "_slc" : "")}
-        style={{
-          color: pathname.startsWith(props.linkLocation) ? colors.highlight : colors.icon,
-          background: pathname.startsWith(props.linkLocation) || hover ? colors.secondary : colors.primary,
-          borderColor: pathname.startsWith(props.linkLocation) ? colors.iconBorder : colors.primary,
-        }}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-      >
-        {" "}
-        <Link href={props.linkLocation}>{Icon}</Link>
-      </button>
-    </React.Fragment>
+    <a
+      className={`sidebarNavBtn${pathname.startsWith(props.linkLocation) ? "_slc" : ""}`}
+      href={props.linkLocation}
+      onMouseEnter={() => {
+        setHover(true);
+      }}
+      onMouseLeave={() => {
+        setHover(false);
+      }}
+      style={{
+        color: pathname.startsWith(props.linkLocation) ? colors.highlight : colors.icon,
+        background: pathname.startsWith(props.linkLocation) || hover ? colors.secondary : colors.primary,
+        borderColor: pathname.startsWith(props.linkLocation) ? colors.iconBorder : colors.primary,
+      }}
+    >
+      {children}
+    </a>
   );
 }
