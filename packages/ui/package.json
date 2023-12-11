@@ -7,7 +7,7 @@
   "exports": {
     "./styles.css": "./dist/index.css",
     "./card": "./src/card.tsx",
-    "./components": "./src/index.tsx"
+    "./components": "./src/index.ts"
   },
   "license": "MIT",
   "scripts": {
