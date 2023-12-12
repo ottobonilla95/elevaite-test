@@ -1,11 +1,11 @@
 "use client";
 import type { JSX, SVGProps } from "react";
-import React from "react";
-import { useTypewriter } from "../hooks/useTypewriter";
+import { Typewriter } from "../components";
+import { SignUpForm } from "../components/authentication";
 
 export function LoginPage(): JSX.Element {
   return (
-    <>
+    <div className="ui-w-screen ui-h-screen">
       <div className="ui-flex ui-items-center ui-justify-center ui-bg-[#161616] ui-w-1/2 ui-h-full ui-float-left">
         <div className="ui-flex ui-flex-col ui-items-start ui-gap-10 ui-w-fit">
           <span className="ui-text-[#F7F7F7] ui-font-bold ui-font-source_sans ui-text-3xl">Sign in to ElevAIte</span>
@@ -22,23 +22,14 @@ export function LoginPage(): JSX.Element {
                 </span>
               </div>
             </div>
-            {/* <div className="ui-flex ui-flex-col ui-items-start ui-p-5 ui-bg-[#282828] ui-rounded-lg">
-              <div className="ui-flex ui-items-center ui-gap-3">
-                <div className="ui-flex ui-items-center ui-justify-center ui-w-[60px] ui-h-[60px]  ui-flex-shrink-0">
-                  <Trouble />
-                </div>
-                <span className="ui-font-inter ui-animate-typing ui-overflow-hidden ui-whitespace-nowrap">
-                  Out of the box domain specific models and apps to build on...
-                </span>
-              </div>
-            </div> */}
             <div className="ui-flex ui-flex-col ui-items-start ui-p-5 ui-bg-[#282828] ui-rounded-lg ui-w-full">
               <div className="ui-flex ui-items-center ui-gap-3">
                 <div className="ui-flex ui-items-center ui-justify-center ui-w-[60px] ui-h-[60px]  ui-flex-shrink-0">
                   <Trouble />
                 </div>
                 <Typewriter
-                  speed={75}
+                  speed={50}
+                  stallCycles={4}
                   texts={[
                     "Iterate, build and deploy your enterprise models faster...",
                     "Out of the box domain specific models and apps to build on...",
@@ -50,8 +41,10 @@ export function LoginPage(): JSX.Element {
           </div>
         </div>
       </div>
-      <div className="ui-bg-[#282828] ui-h-full ui-w-1/2 ui-float-right">TEST 2</div>
-    </>
+      <div className="ui-flex ui-items-center ui-justify-center ui-bg-[#282828] ui-h-full ui-w-1/2 ui-float-right">
+        <SignUpForm />
+      </div>
+    </div>
   );
 }
 
@@ -79,10 +72,4 @@ function Trouble(props: SVGProps<SVGSVGElement>): JSX.Element {
       />
     </svg>
   );
-}
-
-function Typewriter({ texts, speed }: { texts: string[]; speed: number }): JSX.Element {
-  const displayText: string = useTypewriter(texts, speed);
-
-  return <span className="ui-font-inter ui-line-clamp-2 ui-w-96">{displayText}</span>;
 }
