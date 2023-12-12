@@ -44,11 +44,19 @@ module.exports = {
     "unicorn/filename-case": [
       "error",
       {
-        "cases": {
-          "camelCase": true,
-          "pascalCase": true
-        }
-      }
-    ]
+        cases: {
+          camelCase: true,
+          pascalCase: true,
+        },
+      },
+    ],
+    "@typescript-eslint/no-misused-promises": [
+      2,
+      {
+        checksVoidReturn: {
+          attributes: false,
+        },
+      },
+    ],
   },
 };

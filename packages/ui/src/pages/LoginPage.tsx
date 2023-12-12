@@ -1,33 +1,64 @@
 "use client";
 import type { JSX, SVGProps } from "react";
 import { Typewriter } from "../components";
-import { SignUpForm } from "../components/authentication";
+import { LogInForm, SignUpForm } from "../components/authentication";
 
-export function LoginPage(): JSX.Element {
+interface LoginPageProps {
+  signUp: boolean;
+  mode: 1 | 2;
+}
+
+export function LoginPage({ signUp, mode }: LoginPageProps): JSX.Element {
   return (
     <div className="ui-w-screen ui-h-screen">
       <div className="ui-flex ui-items-center ui-justify-center ui-bg-[#161616] ui-w-1/2 ui-h-full ui-float-left">
-        <div className="ui-flex ui-flex-col ui-items-start ui-gap-10 ui-w-fit">
-          <span className="ui-text-[#F7F7F7] ui-font-bold ui-font-source_sans ui-text-3xl">Sign in to ElevAIte</span>
-          <div className="ui-flex ui-flex-col ui-items-start ui-gap-5">
-            <div className="ui-flex ui-flex-col ui-items-start ui-p-5 ui-bg-[#282828] ui-rounded-lg ui-w-full">
-              <div className="ui-flex ui-items-center ui-gap-3">
-                <div className="ui-flex ui-items-center ui-justify-center ui-w-[60px] ui-h-[60px]  ui-flex-shrink-0">
-                  <Inbox />
+        {mode === 1 ? (
+          <div className="ui-flex ui-flex-col ui-items-start ui-gap-10 ui-w-fit">
+            <span className="ui-text-[#F7F7F7] ui-font-bold ui-font-source_sans ui-text-3xl">Sign in to ElevAIte</span>
+            <div className="ui-flex ui-flex-col ui-items-start ui-gap-5">
+              <div className="ui-flex ui-flex-col ui-items-start ui-p-5 ui-bg-[#282828] ui-rounded-lg ui-w-full">
+                <div className="ui-flex ui-items-center ui-gap-3">
+                  <div className="ui-flex ui-items-center ui-justify-center ui-w-[60px] ui-h-[60px]  ui-flex-shrink-0">
+                    <Inbox />
+                  </div>
+                  <span className="ui-font-inter ui-w-96">
+                    Reliable & Secure Enterprise AI For the Future.
+                    <br />
+                    Agile, Precise & Scalable.
+                  </span>
                 </div>
-                <span className="ui-font-inter ui-w-96">
-                  Reliable & Secure Enterprise AI For the Future.
-                  <br />
-                  Agile, Precise & Scalable.
-                </span>
+              </div>
+              <div className="ui-flex ui-flex-col ui-items-start ui-p-5 ui-bg-[#282828] ui-rounded-lg ui-w-full">
+                <div className="ui-flex ui-items-center ui-gap-3">
+                  <div className="ui-flex ui-items-center ui-justify-center ui-w-[60px] ui-h-[60px]  ui-flex-shrink-0">
+                    <Trouble />
+                  </div>
+                  <Typewriter
+                    className="ui-font-inter ui-line-clamp-2 ui-w-96"
+                    speed={50}
+                    stallCycles={4}
+                    texts={[
+                      "Iterate, build and deploy your enterprise models faster...",
+                      "Out of the box domain specific models and apps to build on...",
+                      "Connect your models to your enterprise apps...",
+                    ]}
+                  />
+                </div>
               </div>
             </div>
-            <div className="ui-flex ui-flex-col ui-items-start ui-p-5 ui-bg-[#282828] ui-rounded-lg ui-w-full">
-              <div className="ui-flex ui-items-center ui-gap-3">
+          </div>
+        ) : (
+          <div className="ui-flex ui-items-start ui-bg-[#161616] ui-w-1/2 ui-h-full ui-float-left">
+            <div className="ui-p-10">
+              <span className="ui-text-[#F7F7F7] ui-font-bold ui-font-source_sans ui-text-3xl">
+                Sign in to ElevAIte
+              </span>
+              <div className="ui-flex ui-flex-row ui-items-center">
                 <div className="ui-flex ui-items-center ui-justify-center ui-w-[60px] ui-h-[60px]  ui-flex-shrink-0">
                   <Trouble />
                 </div>
                 <Typewriter
+                  className="ui-font-inter ui-line-clamp-2"
                   speed={50}
                   stallCycles={4}
                   texts={[
@@ -39,10 +70,10 @@ export function LoginPage(): JSX.Element {
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
       <div className="ui-flex ui-items-center ui-justify-center ui-bg-[#282828] ui-h-full ui-w-1/2 ui-float-right">
-        <SignUpForm />
+        {signUp ? <SignUpForm /> : <LogInForm />}
       </div>
     </div>
   );

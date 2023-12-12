@@ -4,12 +4,14 @@ export function Typewriter({
   texts,
   speed,
   stallCycles,
+  className,
 }: {
   texts: string[];
   speed?: number;
   stallCycles?: number;
+  className: string;
 }): JSX.Element {
   const displayText: string = useTypewriter(texts, speed, stallCycles);
 
-  return <span className="ui-font-inter ui-line-clamp-2 ui-w-96">{displayText}</span>;
+  return <span className={className}>{displayText}</span>;
 }

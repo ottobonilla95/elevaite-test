@@ -16,12 +16,15 @@ export function LogInForm(): JSX.Element {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: yupResolver(formSchema) });
+    reset,
+  } = useForm<FormValues>({ resolver: yupResolver(formSchema), mode: "onSubmit", reValidateMode: "onChange" });
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     // eslint-disable-next-line no-console -- Temporary
     console.log(JSON.stringify(data));
+    reset();
   };
+
   return (
     <div className="ui-flex ui-flex-col ui-gap-[29px] ui-items-start ui-w-3/5">
       <div className="ui-flex ui-flex-col ui-items-start ui-gap-5 ui-w-full">
@@ -51,7 +54,7 @@ export function LogInForm(): JSX.Element {
           />
           <p>{errors.password?.message}</p>
           {/* Submit */}
-          <button className="ui-py-3 ui-px-10 ui-bg-orange-500" type="submit">
+          <button className="ui-py-3 ui-px-10 ui-bg-orange-500 ui-rounded-lg" type="submit">
             Next
           </button>
         </form>
