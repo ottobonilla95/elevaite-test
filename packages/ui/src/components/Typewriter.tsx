@@ -1,3 +1,4 @@
+"use client";
 import { useTypewriter } from "../hooks/useTypewriter";
 
 export function Typewriter({

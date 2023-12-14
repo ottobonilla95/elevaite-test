@@ -1,20 +1,25 @@
+"use client";
 import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
 import Link from "next/link";
-import * as yup from "yup";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import React from "react";
 import { GoogleIcon } from "../icons/Google";
 
-const formSchema = yup
-  .object()
-  .shape({
-    fullName: yup.string().required("Full Name is required"),
-    email: yup.string().email().required("Email is required"),
-    password: yup.string().required("Password is required"),
-    passwordConfirmation: yup.string().oneOf([yup.ref("password")], "Passwords must match"),
+const formSchema = z
+  .object({
+    fullName: z.string().min(1, "Full Name is required"),
+    email: z.string().email({ message: "Must be a valid Email" }).min(1, "Email is required"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    passwordConfirmation: z.string().min(1, "Password confirmation is required"),
   })
-  .required();
-type FormValues = yup.InferType<typeof formSchema>;
+  .required()
+  .refine((data) => data.password === data.passwordConfirmation, {
+    path: ["passwordConfirmation"],
+    message: "Password don't match",
+  });
+type FormValues = z.infer<typeof formSchema>;
 
 export function SignUpForm(): JSX.Element {
   const {
@@ -22,7 +27,7 @@ export function SignUpForm(): JSX.Element {
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<FormValues>({ resolver: yupResolver(formSchema), mode: "onSubmit", reValidateMode: "onChange" });
+  } = useForm<FormValues>({ resolver: zodResolver(formSchema), mode: "onSubmit", reValidateMode: "onChange" });
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     // eslint-disable-next-line no-console -- Temporary
