@@ -6,7 +6,9 @@
     "plugins": [{ "name": "next" }],
     "baseUrl": ".",
     "paths": {
-      "@/components/*": ["components/*"],
+      "@/app/components/*": ["app/ui/components/*"],
+      "@/app/lib": ["app/lib/*"],
+      "@/app/icons/*": ["app/ui/icons/*"],
       "@/*": ["*"]
     }
   }

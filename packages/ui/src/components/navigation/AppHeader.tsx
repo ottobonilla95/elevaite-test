@@ -3,24 +3,22 @@ import React from "react";
 import { HeaderButton } from "./HeaderButton";
 
 interface AppHeaderProps {
-  children?: React.ReactNode[];
+  buttons: { label: string; link: string; key: string }[];
+  children: React.ReactNode;
 }
 
-export function AppHeader({ children }: AppHeaderProps): JSX.Element {
+export function AppHeader({ buttons, children }: AppHeaderProps): JSX.Element {
   return (
     <>
-      <header className="ui-flex ui-w-full ui-py-4 ui-px-10 ui-bg-black ui-h-14 ui-items-center">
+      <header className="ui-flex ui-w-full ui-py-4 ui-px-10 ui-bg-black ui-h-14 ui-items-center ui-sticky">
         <div className="ui-flex ui-items-center ui-gap-6">
           <div className="ui-flex ui-items-center ui-gap-3">
-            <ApplicationsLogo className="ui-h-[20px]" />
+            <ApplicationsLogo className="ui-h-[20px] ui-text-white" />
             <line className="ui-h-8 ui-w-px ui-bg-[#A7A4C4]" />
           </div>
-          <HeaderButton label="Dashboard" link="/dashboard" />
-          <HeaderButton label="Knowledge Base" link="/knowledge" />
-          <HeaderButton label="Functions" link="/functions" />
-          <HeaderButton label="Apps" link="/apps" />
-          <HeaderButton label="Users" link="/users" />
-          <HeaderButton label="Configurations" link="/config" />
+          {buttons.map((button) => (
+            <HeaderButton key={button.key} label={button.label} link={button.link} />
+          ))}
         </div>
       </header>
       {children}

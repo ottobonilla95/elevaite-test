@@ -2,7 +2,14 @@
   "name": "exceltoppt_old",
   "version": "0.1.0",
   "private": true,
-  "scripts": {},
+  "scripts": {
+    "dev": "next dev -p 3013",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\exceltoppt_old\\Dockerfile\" -t exceltoppt_old:latest \".\""
+  },
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",

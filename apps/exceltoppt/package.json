@@ -14,25 +14,26 @@
     "@repo/ui": "*",
     "bcrypt": "^5.1.1",
     "next": "14.0.3",
+    "next-auth": "^5.0.0-beta.4",
     "react": "^18",
     "react-dom": "^18",
+    "react-dropzone": "^14.2.3",
     "react-icons": "^4.12.0",
     "react-tabs": "^6.0.2",
-    "next-auth": "^5.0.0-beta.4",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^14.0.3",
+    "@repo/eslint-config": "*",
+    "@repo/tailwind-config": "*",
+    "@repo/typescript-config": "*",
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^20.10.0",
     "@types/react": "^18.2.38",
     "@types/react-dom": "^18.2.17",
     "autoprefixer": "^10.4.16",
-    "@repo/eslint-config": "*",
     "postcss": "^8.4.31",
-    "@repo/tailwind-config": "*",
     "tailwindcss": "^3.3.5",
-    "@repo/typescript-config": "*",
     "typescript": "^5.3.2"
   }
 }
