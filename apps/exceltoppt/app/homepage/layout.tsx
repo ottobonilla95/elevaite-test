@@ -8,9 +8,9 @@ const headerButtons: { label: string; link: string; key: string }[] = [
   { key: "knowledge", label: "Knowledge Base", link: "/kb" },
   { key: "functions", label: "Functions", link: "/functions" },
 
-  { key: "apps", label: "Apps", link: "/apps" },
-  { key: "dashboard", label: "Dashboard", link: "/dashboard" },
-  { key: "dashboard", label: "Dashboard", link: "/dashboard" },
+  { key: "apps", label: "Apps", link: "/homepage" },
+  { key: "users", label: "Users", link: "/users" },
+  { key: "configurations", label: "Configurations", link: "/configurations" },
 ];
 export const metadata: Metadata = {
   title: "Create Next App",

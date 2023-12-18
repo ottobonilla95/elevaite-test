@@ -3,6 +3,7 @@ import { uploadToServer } from "@/app/lib/actions";
 import UploadWidget from "../ui/components/UploadWidget";
 import { SVGProps, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import UploadHeader from "@/app/components/UploadHeader";
 
 interface UploadedFile {
   name: string;
@@ -10,6 +11,13 @@ interface UploadedFile {
   fileSize: string;
   key: string;
 }
+
+const steps = [
+  { label: "Upload Excel", link: "/homepage", activated: true },
+  { label: "Review Manifest List", link: "/homepage/manifest", activated: false },
+  { label: "Choose/Upload PPT Template", link: "/homepage/upload", activated: false },
+  { label: "View PPT", link: "/homepage/review", activated: false },
+];
 
 function Homepage() {
   const [dragActive, setDragActive] = useState<boolean>(false);
@@ -74,14 +82,15 @@ function Homepage() {
 
   return (
     <>
-      <div className="flex p-4 flex-col items-center gap-5 justify-center">
-        <span className="flex py-5 px-6 items-start self-stretch border-b border-solid border-[#E5E5E5] bg-[#D9F27E] font-semibold">
-          Excel Upload
-        </span>
-        <div className="flex flex-col w-3/5 h-full gap-5 pt-12 justify-center">
-          <UploadWidget handleFileSelect={handleFileSelect} />
-          <div className="rest h-[calc(100vh/2)] overflow-auto flex flex-col gap-3">
-            <div className="cards w-full flex flex-col gap-3">
+      <UploadHeader steps={steps} />
+      <div className="flex p-4 flex-col items-center justify-center bg-[#F7F6F1] overflow-hidden">
+        <div className="flex flex-col gap-5 items-center justify-center border border-solid border-[#E5E5E5] rounded-xl bg-white pb-12 w-full">
+          <span className="flex py-5 px-6 items-start self-stretch border-b border-solid border-[#E5E5E5] bg-[#D9F27E] font-semibold rounded-t-xl">
+            Excel Upload
+          </span>
+          <div className="flex flex-col w-3/5 h-full gap-5 pt-12 justify-center">
+            <UploadWidget handleFileSelect={handleFileSelect} />
+            <div className="cards w-full flex flex-col gap-3 h-[calc(100vh-683px)] overflow-auto">
               {files.map((file) => (
                 <FileCard file={file} onXClose={(key) => setFiles(files.filter((file) => file.key !== key))} />
               ))}
