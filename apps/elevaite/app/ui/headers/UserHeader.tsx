@@ -1,5 +1,6 @@
 "use client";
-import { ColorContext, Searchbar } from "@repo/ui/components";
+import { ColorContext } from "@repo/ui/contexts";
+import { Searchbar } from "@repo/ui/components";
 import { useContext, useState } from "react";
 import "./UserHeader.css";
 import { userSearchHelper } from "../../lib/searchHelpers";

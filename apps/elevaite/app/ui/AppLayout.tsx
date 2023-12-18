@@ -1,6 +1,6 @@
 "use client";
-import type { ColorScheme } from "@repo/ui/components";
-import { ColorContext, NavBar, Sidebar } from "@repo/ui/components";
+import { ColorContext, type ColorScheme } from "@repo/ui/contexts";
+import { NavBar, Sidebar } from "@repo/ui/components";
 import { useState } from "react";
 import { engineerSearchHelper, userSearchHelper } from "../lib/searchHelpers";
 

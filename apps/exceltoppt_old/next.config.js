@@ -1,12 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
   output: "standalone",
-  transpilePackages: ["@repo/ui"],
-  // async rewrites() {
+  // async redirects() {
   //   return [
   //     {
-  //       destination: "/appDrawer",
   //       source: "/",
+  //       destination: "/homepage",
+  //       permanent: true,
   //     },
   //   ];
   // },

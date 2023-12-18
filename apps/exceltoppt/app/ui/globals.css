@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: rgba(23, 23, 23, 1);
+  --background-start-rgb: rgba(247, 246, 241, 1);
+  --background-end-rgb: rgba(247, 246, 241, 1);
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
+}

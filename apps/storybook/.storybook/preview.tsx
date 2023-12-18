@@ -1,9 +1,10 @@
 import React from "react";
 import type { Preview } from "@storybook/react";
 import { withThemeByClassName } from "@storybook/addon-themes";
-import { ColorContext, ColorScheme } from "@repo/ui/components";
+import { ColorContext, ColorScheme } from "@repo/ui/contexts";
 import "../app/globals.css";
 import "tailwindcss/tailwind.css";
+import "@repo/ui/styles.css";
 
 export const AppDrawerTheme: ColorScheme = {
   primary: "#FFFFFF",
