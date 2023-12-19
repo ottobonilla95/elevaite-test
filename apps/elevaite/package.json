@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\elevaite\\Dockerfile\" -t withtailwind:latest \".\""
+    "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\elevaite\\Dockerfile\" -t elevaite:latest \".\""
   },
   "dependencies": {
     "@repo/ui": "*",

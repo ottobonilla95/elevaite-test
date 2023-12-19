@@ -1,4 +1,4 @@
-import type { ColorScheme } from "@repo/ui/components";
+import type { ColorScheme } from "@repo/ui/contexts";
 
 export const EngineerTheme: ColorScheme = {
   primary: "#282828",
