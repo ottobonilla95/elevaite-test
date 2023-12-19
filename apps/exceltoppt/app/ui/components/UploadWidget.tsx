@@ -1,16 +1,17 @@
 "use client";
-import { useRef } from "react";
+import type { JSX } from "react";
 import { useDropzone } from "react-dropzone";
 import { UploadCloud02 } from "../icons";
 
 interface UploadWidgetProps {
-  handleFileSelect: (acceptedFiles: File[]) => Promise<void>;
+  handleFileSelect: (acceptedFiles: File[]) => void;
 }
 
-function UploadWidget({ handleFileSelect }: UploadWidgetProps) {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+export function UploadWidget({ handleFileSelect }: UploadWidgetProps): JSX.Element {
   const { getRootProps, getInputProps } = useDropzone({
-    onDrop: (acceptedFiles) => handleFileSelect(acceptedFiles),
+    onDrop: (acceptedFiles) => {
+      handleFileSelect(acceptedFiles);
+    },
     accept: {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
       "application/vnd.ms-excel": [".xls"],
@@ -18,19 +19,14 @@ function UploadWidget({ handleFileSelect }: UploadWidgetProps) {
     },
   });
 
-  const handleFileInputChange = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
   return (
     <div
       className="upload-widget flex flex-col items-center justify-center bg-black rounded-md gap-4 h-[250px] cursor-pointer"
       {...getRootProps()}
     >
-      <input type="file" accept=".xlsx" {...getInputProps()} />
+      <input accept=".xlsx" type="file" {...getInputProps()} />
       <div className="upload-icon m-px rounded-full bg-[#F6F8FA] p-3">
-        <UploadCloud02 className="upload-cloud-icon text-[#666D80] " onClick={() => {}} />
+        <UploadCloud02 className="upload-cloud-icon text-[#666D80] " />
       </div>
       <div className="flex flex-col items-center">
         <p className="upload-text text-[#D9F27E] hover:text-[#6941C6]  transition-colors">Click to upload Excel File</p>
@@ -39,5 +35,3 @@ function UploadWidget({ handleFileSelect }: UploadWidgetProps) {
     </div>
   );
 }
-
-export default UploadWidget;

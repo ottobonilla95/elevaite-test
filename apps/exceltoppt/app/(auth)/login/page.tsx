@@ -1,6 +1,6 @@
-import { authenticate } from "@/app/lib/actions";
 import { AuthFluff, LogInForm } from "@repo/ui/components";
 import type { JSX } from "react";
+import { authenticate } from "../../lib/actions";
 
 function Login(): JSX.Element {
   return (

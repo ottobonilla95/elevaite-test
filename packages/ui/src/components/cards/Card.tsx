@@ -54,7 +54,7 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
       >
         <div className="cardHeader">
           <div className="cardHeaderText">
-            <img className="cardIcon" src={icon} width={40} height={40} alt={props.iconAlt} />
+            <img alt={props.iconAlt} className="cardIcon" height={40} src={icon} width={40} />
             <div className="cardTitle" style={{ color: colors.text }}>
               {title}
             </div>

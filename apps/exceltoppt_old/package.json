@@ -6,7 +6,6 @@
     "dev": "next dev -p 3013",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
     "type-check": "tsc --noEmit",
     "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\exceltoppt_old\\Dockerfile\" -t exceltoppt_old:latest \".\""
   },

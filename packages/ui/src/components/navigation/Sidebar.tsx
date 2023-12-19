@@ -24,7 +24,7 @@ export function Sidebar({ ...props }: SidebarProps): JSX.Element {
         </Link>
         <div className="sidebarNav">
           {props.sidebarIcons.map((icon) => (
-            <SidebarIcon linkLocation={icon.linkLocation} key={icon.linkLocation}>
+            <SidebarIcon key={icon.linkLocation} linkLocation={icon.linkLocation}>
               {icon.Icon}
             </SidebarIcon>
           ))}

@@ -1,13 +1,9 @@
-/*
-We're constantly improving the code you see. 
-Please share your feedback here: https://form.asana.com/?k=uvp-HPgd3_hyoXRBw1IcNg&d=1152665201300829
-*/
-
+import type { JSX } from "react";
 import React from "react";
 
-export const UploadCloud02 = ({ className, onClick }) => {
+export function UploadCloud02({ className }: { className: string }): JSX.Element {
   return (
-    <div onClick={onClick}>
+    <div>
       <svg
         className={`upload-cloud-02 ${className}`}
         fill="none"
@@ -33,4 +29,4 @@ export const UploadCloud02 = ({ className, onClick }) => {
       </svg>
     </div>
   );
-};
+}

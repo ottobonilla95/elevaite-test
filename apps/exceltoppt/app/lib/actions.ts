@@ -1,6 +1,6 @@
 "use server";
 import { AuthError } from "next-auth";
-import { signIn } from "@/auth";
+import { signIn } from "../../auth";
 
 export async function authenticate(
   prevState: string | undefined,
@@ -9,7 +9,6 @@ export async function authenticate(
   try {
     await signIn("credentials", formData);
   } catch (error) {
-    console.log(error);
     if (error instanceof AuthError) {
       switch (error.type) {
         case "CredentialsSignin":
@@ -31,6 +30,8 @@ export async function uploadToServer(
     body: formData,
   });
   if (!response.ok) throw new Error("Failed to upload");
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- TODO: Check the validity of the data
   const data = await response.json();
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- to be fixed with the above
   return data;
 }

@@ -15,11 +15,11 @@ interface SearchBarProps {
 export function Searchbar({ handleInput, ...props }: SearchBarProps): JSX.Element {
   const [showResults, setShowResults] = useState(false);
 
-  const handleChange = (value: string) => {
+  const handleChange = (value: string): void => {
     handleInput(value);
   };
 
-  const handleResultClick = (targetId?: string) => {
+  const handleResultClick = (targetId?: string): void => {
     if (props.isJump && targetId !== undefined) {
       const card = document.getElementById(targetId);
       if (card) {
@@ -82,9 +82,7 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps): JSX.Elemen
           results={props.results}
           topOffset={props.resultsTopOffset}
         />
-      ) : (
-        <></>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -1,12 +1,11 @@
-import { usePathname } from "next/navigation";
-import { SVGProps } from "react";
+import type { SVGProps, JSX } from "react";
 
 interface UploadHeaderProps {
   steps: { label: string; link: string; activated: boolean }[];
 }
 
-function UploadHeader({ steps }: UploadHeaderProps) {
-  const pathname = usePathname();
+export function UploadHeader({ steps }: UploadHeaderProps): JSX.Element {
+  // const pathname = usePathname();
   return (
     <div className="flex h-[80px] px-8 py-2.5 justify-between items-center flex-shrink-0 self-stretch border-b border-solid border-[#E5E5E5] bg-white">
       <div className="flex items-center gap-4">
@@ -34,58 +33,60 @@ function UploadHeader({ steps }: UploadHeaderProps) {
   );
 }
 
-export default UploadHeader;
+function ArrowLeft(props: SVGProps<SVGSVGElement>): JSX.Element {
+  return (
+    <svg fill="none" height={20} width={20} xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path
+        d="M16.667 10H3.333m0 0 5 5m-5-5 5-5"
+        stroke="#171717"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+      />
+    </svg>
+  );
+}
 
-const ArrowLeft = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={20} height={20} fill="none" {...props}>
-    <path
-      stroke="#171717"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M16.667 10H3.333m0 0 5 5m-5-5 5-5"
-    />
-  </svg>
-);
-
-function SubHeading({ parts }: { parts: string[] }) {
-  console.log(parts.length);
-
+function SubHeading({ parts }: { parts: string[] }): JSX.Element {
   return (
     <div className="flex items-start gap-2 text-xs font-semibold">
       {parts.map((part, index, array) => (
         <>
-          <span>{part}</span> {index === array.length - 1 ? null : <span>{"/"}</span>}
+          <span>{part}</span> {index === array.length - 1 ? null : <span>/</span>}
         </>
       ))}
     </div>
   );
 }
 
-const ActivatedFlow = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} fill="none" {...props}>
-    <g clipPath="url(#a)">
-      <circle cx={8} cy={8} r={7.5} fill="#fff" stroke="#000" />
-      <circle cx={8} cy={8} r={2} fill="#000" />
-    </g>
-    <defs>
-      <clipPath id="a">
-        <path fill="#fff" d="M0 0h16v16H0z" />
-      </clipPath>
-    </defs>
-  </svg>
-);
+function ActivatedFlow(props: SVGProps<SVGSVGElement>): JSX.Element {
+  return (
+    <svg fill="none" height={16} width={16} xmlns="http://www.w3.org/2000/svg" {...props}>
+      <g clipPath="url(#a)">
+        <circle cx={8} cy={8} fill="#fff" r={7.5} stroke="#000" />
+        <circle cx={8} cy={8} fill="#000" r={2} />
+      </g>
+      <defs>
+        <clipPath id="a">
+          <path d="M0 0h16v16H0z" fill="#fff" />
+        </clipPath>
+      </defs>
+    </svg>
+  );
+}
 
-const InactiveFlow = (props: SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} fill="none" {...props}>
-    <g clipPath="url(#a)">
-      <circle cx={8} cy={8} r={7.5} fill="#fff" stroke="#DFE1E7" />
-      <circle cx={8} cy={8} r={2} fill="#DFE1E7" />
-    </g>
-    <defs>
-      <clipPath id="a">
-        <path fill="#fff" d="M0 0h16v16H0z" />
-      </clipPath>
-    </defs>
-  </svg>
-);
+function InactiveFlow(props: SVGProps<SVGSVGElement>): JSX.Element {
+  return (
+    <svg fill="none" height={16} width={16} xmlns="http://www.w3.org/2000/svg" {...props}>
+      <g clipPath="url(#a)">
+        <circle cx={8} cy={8} fill="#fff" r={7.5} stroke="#DFE1E7" />
+        <circle cx={8} cy={8} fill="#DFE1E7" r={2} />
+      </g>
+      <defs>
+        <clipPath id="a">
+          <path d="M0 0h16v16H0z" fill="#fff" />
+        </clipPath>
+      </defs>
+    </svg>
+  );
+}

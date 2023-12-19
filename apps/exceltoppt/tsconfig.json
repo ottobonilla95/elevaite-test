@@ -3,13 +3,6 @@
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"],
   "compilerOptions": {
-    "plugins": [{ "name": "next" }],
-    "baseUrl": ".",
-    "paths": {
-      "@/app/components/*": ["app/ui/components/*"],
-      "@/app/lib": ["app/lib/*"],
-      "@/app/icons/*": ["app/ui/icons/*"],
-      "@/*": ["*"]
-    }
+    "plugins": [{ "name": "next" }]
   }
 }
