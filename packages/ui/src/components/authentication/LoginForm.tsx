@@ -14,14 +14,15 @@ const formSchema = z
   .required();
 type FormValues = z.infer<typeof formSchema>;
 
-export function LogInForm({
-  authenticate,
-}: {
+interface LoginFormProps {
   authenticate: (
     prevstate: string,
     formData: FormValues
   ) => Promise<"Invalid credentials." | "Something went wrong." | undefined>;
-}): JSX.Element {
+  authenticateGoogle: () => Promise<"Invalid credentials." | "Something went wrong." | undefined>;
+}
+
+export function LogInForm({ authenticate, authenticateGoogle }: LoginFormProps): JSX.Element {
   const {
     register,
     handleSubmit,
@@ -41,8 +42,12 @@ export function LogInForm({
     }
   };
 
+  async function handleGoogleClick(): Promise<void> {
+    await authenticateGoogle();
+  }
+
   return (
-    <div className="ui-flex ui-flex-col ui-gap-[29px] ui-items-start ui-w-3/5">
+    <div className="ui-flex ui-flex-col ui-gap-[29px] ui-items-start ui-w-3/5 ui-text-white">
       <div className="ui-flex ui-flex-col ui-items-start ui-gap-5 ui-w-full">
         <form
           className="ui-flex ui-flex-col ui-items-start ui-gap-3 ui-font-inter ui-w-full"
@@ -83,6 +88,12 @@ export function LogInForm({
       </div>
       <button
         className="ui-flex ui-flex-row ui-items-center ui-justify-center ui-gap-3 ui-py-3 ui-px-10 ui-bg-[#161616] ui-w-full ui-rounded-lg"
+        onClick={() => {
+          handleGoogleClick().catch((e) => {
+            // eslint-disable-next-line no-console -- Temporary until better logging
+            console.log(e);
+          });
+        }}
         type="submit"
       >
         <GoogleIcon />

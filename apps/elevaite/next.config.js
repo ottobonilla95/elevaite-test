@@ -2,11 +2,26 @@
 const nextConfig = {
   output: "standalone",
   transpilePackages: ["@repo/ui"],
+  async redirects() {
+    return [
+      {
+        destination: "/homepage",
+        source: "/",
+        permanent: false,
+      },
+    ];
+  },
+  experimental: {
+    serverActions: {
+      allowedOrigins: ["elevaite.com"],
+    },
+  },
   // async rewrites() {
   //   return [
   //     {
-  //       destination: "/appDrawer",
-  //       source: "/",
+  //       destination: "https://login.iopex.ai/login/google",
+  //       source: "/login/google",
+  //       basePath: false,
   //     },
   //   ];
   // },

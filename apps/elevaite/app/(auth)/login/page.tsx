@@ -1,15 +1,15 @@
 import { AuthFluff, LogInForm } from "@repo/ui/components";
 import type { JSX } from "react";
-import { authenticate } from "../../lib/actions";
+import { authenticate, authenticateGoogle } from "../../lib/actions";
 
 function Login(): JSX.Element {
   return (
     <div className="ui-w-screen ui-h-screen">
-      <div className="ui-flex ui-items-center ui-justify-center ui-bg-[#161616] ui-w-1/2 ui-h-full ui-float-left">
+      <div className="ui-flex ui-items-center ui-justify-center ui-bg-[#161616] ui-w-1/2 ui-h-full ui-float-left text-white">
         <AuthFluff mode={1} />
       </div>
       <div className="ui-flex ui-items-center ui-justify-center ui-bg-[#282828] ui-h-full ui-w-1/2 ui-float-right">
-        <LogInForm authenticate={authenticate} />
+        <LogInForm authenticate={authenticate} authenticateGoogle={authenticateGoogle} />
       </div>
     </div>
   );

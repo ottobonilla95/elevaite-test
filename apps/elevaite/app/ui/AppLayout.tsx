@@ -2,7 +2,9 @@
 import { ColorContext, type ColorScheme } from "@repo/ui/contexts";
 import { NavBar, Sidebar } from "@repo/ui/components";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { engineerSearchHelper, userSearchHelper } from "../lib/searchHelpers";
+import { logOut } from "../lib/actions";
 
 interface AppLayoutProps {
   sidebarIcons: {
@@ -25,6 +27,7 @@ function AppLayout({
   ...props
 }: AppLayoutProps): JSX.Element {
   const [results, setResults] = useState<{ key: string; link: string; label: string }[]>(getResults(""));
+  const { data: session } = useSession();
 
   function getResults(term: string): { key: string; link: string; label: string }[] {
     switch (props.layout) {
@@ -51,8 +54,9 @@ function AppLayout({
         <NavBar
           breadcrumbLabels={breadcrumbLabels}
           handleSearchInput={handleSearchInput}
+          logOut={logOut}
           searchResults={results}
-          user={{ icon: "" }}
+          user={{ icon: session?.user?.image || "" }}
         >
           {children}
           {Background}

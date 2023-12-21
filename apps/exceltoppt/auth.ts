@@ -1,47 +1,44 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { z } from "zod";
 import { authConfig } from "./auth.config";
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-}
+const getDomainWithoutSubdomain = (url: string | URL) => {
+  const urlParts = new URL(url).hostname.split(".");
 
-const users: User[] = [{ email: "johnsmith@gmail.com", id: "1", name: "John Smith", password: "123456" }];
+  return urlParts
+    .slice(0)
+    .slice(-(urlParts.length === 4 ? 3 : 2))
+    .join(".");
+};
 
-function getUser(email: string): User | null {
-  try {
-    const user = users.filter((_user) => _user.email === email);
-    return user[0] ?? null;
-  } catch (error) {
-    // eslint-disable-next-line no-console -- TODO: Add a better server side logger
-    console.error("Failed to fetch user:", error);
-    throw new Error("Failed to fetch user.");
-  }
-}
+const NEXTAUTH_URL = process.env.NEXTAUTH_URL;
+if (!NEXTAUTH_URL) throw new Error("NEXTAUTH_URL does not exist in the env");
+
+const useSecureCookies = NEXTAUTH_URL.startsWith("https://");
+const cookiePrefix = useSecureCookies ? "__Secure-" : "";
+const hostName = getDomainWithoutSubdomain(NEXTAUTH_URL);
+
+const cookies = {
+  sessionToken: {
+    name: `${cookiePrefix}authjs.session-token`,
+    options: {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      secure: useSecureCookies,
+      domain: hostName === "localhost" ? hostName : `.${hostName}`, // add a . in front so that subdomains are included
+    },
+  },
+};
 
 export const { auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  cookies,
+  useSecureCookies,
   providers: [
     Credentials({
       // eslint-disable-next-line @typescript-eslint/require-await -- Will be async soon, needs async signature
-      async authorize(credentials) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Might be necessary, straight from the docs
-        if (credentials) return null;
-        const parsedCredentials = z
-          .object({ email: z.string().email(), password: z.string().min(6) })
-          .safeParse(credentials);
-        if (parsedCredentials.success) {
-          const { email, password } = parsedCredentials.data;
-          const user = getUser(email);
-          if (!user) return null;
-          const passwordsMatch = password === user.password;
-
-          if (passwordsMatch) return user;
-        }
+      async authorize() {
         return null;
       },
     }),
