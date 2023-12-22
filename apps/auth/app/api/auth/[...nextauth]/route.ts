@@ -7,7 +7,6 @@ export { POST };
 // Showcasing advanced initialization in Route Handlers
 export async function GET(request: NextRequest): Promise<Response> {
   // Do something with request
-  //@ts-expect-error -- types are identical
   const response = await AuthGET(request);
   // Do something with response
   return response;

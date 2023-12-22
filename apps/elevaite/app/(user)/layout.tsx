@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./layout.css";
 import { ElevaiteIcons } from "@repo/ui/components";
+import { SessionProvider } from "next-auth/react";
 import AppLayout from "../ui/AppLayout";
 import { AppDrawerTheme } from "../ui/themes";
-import Background from "./background";
 import { auth } from "../../auth";
-import { SessionProvider } from "next-auth/react";
+import Background from "./background";
 
 const inter = Inter({ subsets: ["latin"] });
 

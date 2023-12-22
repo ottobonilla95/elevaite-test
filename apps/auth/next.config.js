@@ -2,18 +2,9 @@
 const nextConfig = {
   output: "standalone",
   transpilePackages: ["@repo/ui"],
-  async redirects() {
-    return [
-      {
-        destination: "/homepage",
-        source: "/",
-        permanent: false,
-      },
-    ];
-  },
   experimental: {
     serverActions: {
-      allowedOrigins: ["elevaite.com"],
+      allowedOrigins: ["auth.elevaite.com"],
     },
   },
 };
