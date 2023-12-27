@@ -12,7 +12,9 @@ const getDomainWithoutSubdomain = (url: string | URL) => {
 };
 
 const NEXTAUTH_URL = process.env.NEXTAUTH_URL;
-if (!NEXTAUTH_URL) throw new Error("NEXTAUTH_URL does not exist in the env");
+if (!NEXTAUTH_URL) {
+  throw new Error("NEXTAUTH_URL does not exist in the env");
+}
 
 const useSecureCookies = NEXTAUTH_URL.startsWith("https://");
 const cookiePrefix = useSecureCookies ? "__Secure-" : "";
@@ -31,7 +33,7 @@ const cookies = {
   },
 };
 
-export const { auth, signIn, signOut } = NextAuth({
+export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   cookies,
   useSecureCookies,

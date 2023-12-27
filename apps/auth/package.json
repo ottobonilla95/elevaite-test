@@ -1,23 +1,22 @@
 {
-  "name": "elevaite",
+  "name": "auth",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev": "next dev -p 3005",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\elevaite\\Dockerfile\" -t elevaite:latest \".\""
+    "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\auth\\Dockerfile\" -t auth:latest \".\""
   },
   "dependencies": {
+    "@fusionauth/typescript-client": "^1.48.0",
     "@repo/ui": "*",
     "next": "^14.0.3",
     "next-auth": "^5.0.0-beta.4",
     "react": "^18",
     "react-dom": "^18",
-    "react-icons": "^4.12.0",
-    "react-tabs": "^6.0.2",
     "zod": "^3.22.4"
   },
   "devDependencies": {

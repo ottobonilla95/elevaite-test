@@ -17,8 +17,10 @@ export function AuthFluff({ mode }: AuthFluffProps): JSX.Element {
                 <div className="ui-flex ui-items-center ui-justify-center ui-w-[60px] ui-h-[60px]  ui-flex-shrink-0">
                   <Inbox />
                 </div>
-                <span className="ui-font-inter ui-w-96">
-                  Reliable & Secure Enterprise AI For the Future.
+                <span className="ui-font-inter ui-w-96 ui-text-[#F7F7F7]">
+                  Reliable & Secure Enterprise
+                  <Typewriter className="ui-font-inter" speed={250} stallCycles={4} texts={[" Gen"]} /> AI For the
+                  Future.
                   <br />
                   Agile, Precise & Scalable.
                 </span>
@@ -30,7 +32,7 @@ export function AuthFluff({ mode }: AuthFluffProps): JSX.Element {
                   <Trouble />
                 </div>
                 <Typewriter
-                  className="ui-font-inter ui-line-clamp-2 ui-w-96"
+                  className="ui-font-inter ui-line-clamp-2 ui-w-96 ui-text-[#F7F7F7]"
                   speed={50}
                   stallCycles={4}
                   texts={[

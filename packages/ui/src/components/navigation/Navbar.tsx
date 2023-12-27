@@ -2,6 +2,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import "./Navbar.css";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import { Searchbar } from "../search/Searchbar";
 import { ColorContext } from "../../contexts";
 import type { BreadcrumbItem } from "./Breadcrumbs";
@@ -9,11 +10,12 @@ import { Breadcrumbs } from "./Breadcrumbs";
 
 interface NavBarProps {
   breadcrumbLabels: Record<string, { label: string; link: string }>;
-  user: { icon: string };
+  user?: { icon?: string };
 
   children?: React.ReactNode;
   handleSearchInput: (term: string) => void;
   searchResults: { key: string; link: string; label: string }[];
+  logOut: () => Promise<"Invalid credentials." | "Something went wrong." | undefined>;
 }
 
 export function NavBar({ ...props }: NavBarProps): JSX.Element {
@@ -28,15 +30,22 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
         .split("/")
         .filter((str) => str !== "")
         .map((str) => {
+          const breadcrumb: { label: string; link: string } | undefined = props.breadcrumbLabels[str];
           return {
-            label: props.breadcrumbLabels[str].label || str,
-            link: props.breadcrumbLabels[str].link,
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Could be undefined
+            label: breadcrumb ? breadcrumb.label : str,
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Could be undefined
+            link: breadcrumb ? breadcrumb.link : "",
           };
         });
     }
     setBreadcrumbItems(pathToBreadcrumbs(pathname));
   }, [pathname, props.breadcrumbLabels]);
   const colors = useContext(ColorContext);
+
+  async function handleLogout(): Promise<void> {
+    await props.logOut();
+  }
 
   return (
     <div className="layoutL2">
@@ -92,6 +101,17 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
             </svg>
           </button>
           <line className="line" style={{ background: colors.borderColor }} />
+          <button
+            onClick={() => {
+              handleLogout().catch((e) => {
+                // eslint-disable-next-line no-console -- Temporary until better logging
+                console.log(e);
+              });
+            }}
+            type="button"
+          >
+            {props.user?.icon ? <img alt="User Image" src={props.user.icon} width={16} height={16} /> : "Logout"}
+          </button>
         </div>
       </div>
       {props.children}

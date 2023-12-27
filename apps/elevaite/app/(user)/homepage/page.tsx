@@ -1,6 +1,6 @@
 import type { CardProps } from "@repo/ui/components";
 import { Card, CardHolder } from "@repo/ui/components";
-import { getApplications } from "../../dummydata";
+import { getApplications } from "../../../dummydata";
 import "./page.css";
 
 export default function Page(): JSX.Element {

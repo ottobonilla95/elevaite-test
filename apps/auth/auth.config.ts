@@ -1,19 +1,16 @@
-import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import { authConfig } from "./auth.config";
+import type { NextAuthConfig } from "next-auth";
 
-const getDomainWithoutSubdomain = (url: string | URL) => {
+function getDomainWithoutSubdomain(url: string | URL): string {
   const urlParts = new URL(url).hostname.split(".");
 
   return urlParts
     .slice(0)
     .slice(-(urlParts.length === 4 ? 3 : 2))
     .join(".");
-};
+}
 
 const NEXTAUTH_URL = process.env.NEXTAUTH_URL;
 if (!NEXTAUTH_URL) throw new Error("NEXTAUTH_URL does not exist in the env");
-
 const useSecureCookies = NEXTAUTH_URL.startsWith("https://");
 const cookiePrefix = useSecureCookies ? "__Secure-" : "";
 const hostName = getDomainWithoutSubdomain(NEXTAUTH_URL);
@@ -30,17 +27,23 @@ const cookies = {
     },
   },
 };
-
-export const { auth, signIn, signOut } = NextAuth({
-  ...authConfig,
+export const authConfig = {
   cookies,
-  useSecureCookies,
-  providers: [
-    Credentials({
-      // eslint-disable-next-line @typescript-eslint/require-await -- Will be async soon, needs async signature
-      async authorize() {
-        return null;
-      },
-    }),
-  ],
-});
+  pages: {
+    signIn: "/login",
+  },
+  callbacks: {
+    authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = Boolean(auth?.user);
+      const isOnDashboard = nextUrl.pathname.startsWith("/homepage");
+      if (isOnDashboard) {
+        if (isLoggedIn) return true;
+        return false; // Redirect unauthenticated users to login page
+      } else if (isLoggedIn) {
+        return Response.redirect(new URL("/homepage", nextUrl));
+      }
+      return true;
+    },
+  },
+  providers: [],
+} satisfies NextAuthConfig;
