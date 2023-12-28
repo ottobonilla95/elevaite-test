@@ -2,10 +2,18 @@
 const nextConfig = {
   output: "standalone",
   transpilePackages: ["@repo/ui"],
-  experimental: {
-    serverActions: {
-      allowedOrigins: ["auth.elevaite.com"],
-    },
+  // experimental: {
+  //   serverActions: {
+  //     allowedOrigins: ["auth.elevaite.com"],
+  //   },
+  // },
+  async rewrites() {
+    return [
+      {
+        destination: "/login",
+        source: "/",
+      },
+    ];
   },
 };
 

@@ -6,7 +6,6 @@ import { SessionProvider } from "next-auth/react";
 import AppLayout from "../ui/AppLayout";
 import { AppDrawerTheme } from "../ui/themes";
 import { auth } from "../../auth";
-import Background from "./background";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -57,7 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={`${inter.className} min-h-screen bg-[${AppDrawerTheme.secondary}] -z-50`}>
         <SessionProvider session={session}>
           <AppLayout
-            Background={<Background />}
+            // Background={<Background />}
             breadcrumbLabels={breadcrumbLabels}
             layout="user"
             sidebarIcons={sidebarIcons}

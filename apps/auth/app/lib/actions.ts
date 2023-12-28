@@ -40,7 +40,7 @@ export async function authenticateGoogle(): Promise<"Invalid credentials." | "So
 export async function logOut(): Promise<"Invalid credentials." | "Something went wrong." | undefined> {
   try {
     // auth()
-    await signOut({ redirectTo: "/" });
+    await signOut({ redirectTo: "/login" });
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {

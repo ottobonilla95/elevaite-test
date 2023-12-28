@@ -1,7 +1,7 @@
-import { signOut } from "../../../auth";
+import { logOut } from "../../lib/actions";
 
 async function Signout() {
-  await signOut({ redirectTo: "/login" });
+  await logOut();
   return <></>;
 }
 

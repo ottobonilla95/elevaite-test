@@ -12,7 +12,8 @@
     "FUSIONAUTH_API_KEY",
     "FUSIONAUTH_TENTANT_ID",
     "FUSIONAUTH_APPLICATION_ID",
-    "NEXTAUTH_URL"
+    "NEXTAUTH_URL",
+    "NEXT_PUBLIC_BACKEND_URL"
   ],
   "pipeline": {
     "build": {

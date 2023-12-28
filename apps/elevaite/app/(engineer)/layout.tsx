@@ -4,6 +4,8 @@ import "./layout.css";
 import { ElevaiteIcons } from "@repo/ui/components";
 import AppLayout from "../ui/AppLayout";
 import { EngineerTheme } from "../ui/themes";
+import { auth } from "../../auth";
+import { SessionProvider } from "next-auth/react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -45,18 +47,30 @@ const sidebarIcons: {
   { Icon: <ElevaiteIcons.Workbench />, linkLocation: "/workbench" },
 ];
 
-export default function RootLayout({ children }: { children: React.ReactNode }): JSX.Element {
+export default async function RootLayout({ children }: { children: React.ReactNode }): Promise<JSX.Element> {
+  const session = await auth();
+  if (session?.user) {
+    // @ts-expect-error TODO: Look into https://react.dev/reference/react/experimental_taintObjectReference
+    // filter out sensitive data before passing to client.
+    session.user = {
+      name: session.user.name,
+      email: session.user.email,
+      image: session.user.image,
+    };
+  }
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AppLayout
-          breadcrumbLabels={breadcrumbLabels}
-          layout="engineer"
-          sidebarIcons={sidebarIcons}
-          theme={EngineerTheme}
-        >
-          {children}
-        </AppLayout>
+        <SessionProvider session={session}>
+          <AppLayout
+            breadcrumbLabels={breadcrumbLabels}
+            layout="engineer"
+            sidebarIcons={sidebarIcons}
+            theme={EngineerTheme}
+          >
+            {children}
+          </AppLayout>
+        </SessionProvider>
       </body>
     </html>
   );
