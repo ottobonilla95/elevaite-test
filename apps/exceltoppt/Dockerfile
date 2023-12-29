@@ -7,7 +7,7 @@ RUN apk update
 WORKDIR /app
 RUN npm install -g turbo
 COPY . .
-RUN turbo prune elevaite --docker
+RUN turbo prune exceltoppt --docker
  
 # Add lockfile and package.json's of isolated subworkspace
 FROM base AS installer
@@ -24,7 +24,7 @@ RUN npm ci
 # Build the project
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
-RUN npx --yes turbo run build --filter=elevaite...
+RUN npx --yes turbo run build --filter=exceltoppt...
  
 FROM base AS runner
 WORKDIR /app
@@ -37,14 +37,14 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 USER nextjs
  
-COPY --from=installer /app/apps/elevaite/next.config.js .
-COPY --from=installer /app/apps/elevaite/package.json .
+COPY --from=installer /app/apps/exceltoppt/next.config.js .
+COPY --from=installer /app/apps/exceltoppt/package.json .
  
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=installer --chown=nextjs:nodejs /app/apps/elevaite/.next/standalone ./
-COPY --from=installer --chown=nextjs:nodejs /app/apps/elevaite/.next/static ./apps/elevaite/.next/static
-COPY --from=installer --chown=nextjs:nodejs /app/apps/elevaite/public ./apps/elevaite/public
+COPY --from=installer --chown=nextjs:nodejs /app/apps/exceltoppt/.next/standalone ./
+COPY --from=installer --chown=nextjs:nodejs /app/apps/exceltoppt/.next/static ./apps/exceltoppt/.next/static
+COPY --from=installer --chown=nextjs:nodejs /app/apps/exceltoppt/public ./apps/exceltoppt/public
 
 USER nextjs
 
