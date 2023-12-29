@@ -18,5 +18,9 @@ export const metadata: Metadata = {
 };
 
 export default function HomepageLayout({ children }: { children: React.ReactNode }): JSX.Element {
-  return <AppHeader buttons={headerButtons}>{children}</AppHeader>;
+  return (
+    <div className=" w-screen h-screen">
+      <AppHeader buttons={headerButtons}>{children}</AppHeader>
+    </div>
+  );
 }

@@ -1,11 +1,22 @@
 import type { SVGProps, JSX } from "react";
+import type { Stages } from "../../lib/interfaces";
 
 interface UploadHeaderProps {
-  steps: { label: string; link: string; activated: boolean }[];
+  steps: { label: string; link: string; stage: Stages; key: string }[];
+  currentStep: Stages;
 }
 
-export function UploadHeader({ steps }: UploadHeaderProps): JSX.Element {
+export function UploadHeader({ steps, currentStep }: UploadHeaderProps): JSX.Element {
   // const pathname = usePathname();
+  function getFlow(stage: Stages): JSX.Element {
+    if (stage < currentStep) return <CompletedFlow className="z-10" />;
+    if (stage === currentStep)
+      return (
+        <ActivatedFlow className="w-4 h-4 flex flex-1 items-center justify-center overflow-visible rounded-full z-10" />
+      );
+    return <InactiveFlow className="z-10" />;
+  }
+
   return (
     <div className="flex h-[80px] px-8 py-2.5 justify-between items-center flex-shrink-0 self-stretch border-b border-solid border-[#E5E5E5] bg-white">
       <div className="flex items-center gap-4">
@@ -19,13 +30,11 @@ export function UploadHeader({ steps }: UploadHeaderProps): JSX.Element {
       <div className="flex items-start gap-16 relative">
         <line className="w-[614px] h-1 absolute right-[29.5px] top-1.5 -z-0 bg-[#ECEFF3]" />
         {steps.map((step) => (
-          <div className="flex flex-col items-center gap-2" key={step.link}>
-            {step.activated ? (
-              <ActivatedFlow className="w-4 h-4 flex flex-1 items-center justify-center overflow-visible rounded-full z-10" />
-            ) : (
-              <InactiveFlow className="z-10" />
-            )}
-            <p className={`font-medium ${step.activated ? "text-black" : "text-[#A4ACB9]"} text-sm`}>{step.label}</p>
+          <div className="flex flex-col items-center gap-2" key={step.key}>
+            {getFlow(step.stage)}
+            <p className={`font-medium ${step.stage <= currentStep ? "text-black" : "text-[#A4ACB9]"} text-sm`}>
+              {step.label}
+            </p>
           </div>
         ))}
       </div>
@@ -51,9 +60,9 @@ function SubHeading({ parts }: { parts: string[] }): JSX.Element {
   return (
     <div className="flex items-start gap-2 text-xs font-semibold">
       {parts.map((part, index, array) => (
-        <>
+        <div key={`_${part}`}>
           <span>{part}</span> {index === array.length - 1 ? null : <span>/</span>}
-        </>
+        </div>
       ))}
     </div>
   );
@@ -87,6 +96,21 @@ function InactiveFlow(props: SVGProps<SVGSVGElement>): JSX.Element {
           <path d="M0 0h16v16H0z" fill="#fff" />
         </clipPath>
       </defs>
+    </svg>
+  );
+}
+
+function CompletedFlow(props: SVGProps<SVGSVGElement>): JSX.Element {
+  return (
+    <svg fill="none" height={16} width={17} xmlns="http://www.w3.org/2000/svg" {...props}>
+      <circle cx={8.5} cy={8} fill="#000" r={7.5} stroke="#000" />
+      <path
+        d="M11.833 5.5 7.25 10.083 5.167 8"
+        stroke="#fff"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
     </svg>
   );
 }
