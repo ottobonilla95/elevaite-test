@@ -10,7 +10,7 @@ import { Breadcrumbs } from "./Breadcrumbs";
 
 interface NavBarProps {
   breadcrumbLabels: Record<string, { label: string; link: string }>;
-  user?: { icon?: string };
+  user?: { icon?: string; fullName?: string };
 
   children?: React.ReactNode;
   handleSearchInput: (term: string) => void;
@@ -101,6 +101,7 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
             </svg>
           </button>
           <line className="line" style={{ background: colors.borderColor }} />
+          {props.user?.fullName}
           <button
             onClick={() => {
               handleLogout().catch((e) => {
@@ -110,7 +111,7 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
             }}
             type="button"
           >
-            {props.user?.icon ? <img alt="User Image" src={props.user.icon} width={16} height={16} /> : "Logout"}
+            {props.user?.icon ? <Image alt="User Image" height={40} src={props.user.icon} width={40} /> : "Logout"}
           </button>
         </div>
       </div>

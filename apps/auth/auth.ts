@@ -3,7 +3,6 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import Google from "next-auth/providers/google";
-import FusionAuth from "next-auth/providers/fusionauth";
 import type { LoginRequest } from "@fusionauth/typescript-client";
 import { FusionAuthClient } from "@fusionauth/typescript-client";
 import { authConfig } from "./auth.config";
@@ -55,8 +54,12 @@ export const authOptions: NextAuthConfig = {
             const res = await fusionClient.login(loginRequest);
             const _user = res.response.user;
             if (!_user?.id) return null;
+            // eslint-disable-next-line no-console -- temporary
+            console.log(_user);
             return { id: _user.id, email: _user.email, image: _user.imageUrl, name: _user.fullName } satisfies User;
           } catch (error) {
+            // eslint-disable-next-line no-console -- temporary
+            console.error(error);
             return null;
           }
 
@@ -79,13 +82,6 @@ export const authOptions: NextAuthConfig = {
           response_type: "code",
         },
       },
-    }),
-    FusionAuth({
-      clientId: process.env.FUSIONAUTH_CLIENT_ID,
-      clientSecret: process.env.FUSIONAUTH_CLIENT_SECRET,
-      issuer: fusionAuthUrl,
-      tenantId: "44c58f43-77f5-264b-a717-e9a8f970f582",
-      wellKnown: `${fusionAuthUrl}/.well-known/openid-configuration/${"44c58f43-77f5-264b-a717-e9a8f970f582"}`,
     }),
   ],
 };

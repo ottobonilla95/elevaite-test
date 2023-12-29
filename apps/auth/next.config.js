@@ -7,14 +7,14 @@ const nextConfig = {
   //     allowedOrigins: ["auth.elevaite.com"],
   //   },
   // },
-  async rewrites() {
-    return [
-      {
-        destination: "/login",
-        source: "/",
-      },
-    ];
-  },
+  // async rewrites() {
+  //   return [
+  //     {
+  //       destination: "/login",
+  //       source: "/",
+  //     },
+  //   ];
+  // },
 };
 
 module.exports = nextConfig;

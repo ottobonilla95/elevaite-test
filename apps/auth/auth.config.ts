@@ -10,7 +10,9 @@ function getDomainWithoutSubdomain(url: string | URL): string {
 }
 
 const NEXTAUTH_URL = process.env.NEXTAUTH_URL;
+const ELEVAITE_HOMEPAGE = process.env.ELEVAITE_HOMEPAGE;
 if (!NEXTAUTH_URL) throw new Error("NEXTAUTH_URL does not exist in the env");
+if (!ELEVAITE_HOMEPAGE) throw new Error("ELEVAITE_HOMEPAGE does not exist in the env");
 const useSecureCookies = NEXTAUTH_URL.startsWith("https://");
 const cookiePrefix = useSecureCookies ? "__Secure-" : "";
 const hostName = getDomainWithoutSubdomain(NEXTAUTH_URL);
@@ -28,23 +30,15 @@ const cookies = {
   },
 };
 export const authConfig = {
+  session: { strategy: "jwt", maxAge: 3600 },
   cookies,
   pages: {
     signIn: "/login",
   },
   callbacks: {
-    authorized({ auth, request: { nextUrl: _nextUrl } }) {
+    authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = Boolean(auth?.user);
-      // const isOnDashboard = nextUrl.pathname.startsWith("/homepage");
-      // if (isOnDashboard) {
-      //   if (isLoggedIn) return true;
-      //   return false; // Redirect unauthenticated users to login page
-      // } else if (isLoggedIn) {
-      //   return Response.redirect(new URL("/homepage", nextUrl));
-      // }
-      // return true;
-
-      if (isLoggedIn) return true;
+      if (isLoggedIn) return Response.redirect(new URL(ELEVAITE_HOMEPAGE, nextUrl));
       return false; // Redirect unauthenticated users to login page
     },
   },

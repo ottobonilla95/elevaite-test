@@ -2,20 +2,30 @@
 const nextConfig = {
   output: "standalone",
   transpilePackages: ["@repo/ui"],
-  async redirects() {
-    return [
+  // async redirects() {
+  //   return [
+  //     {
+  //       destination: "/homepage",
+  //       source: "/",
+  //       permanent: false,
+  //     },
+  //   ];
+  // },
+  images: {
+    remotePatterns: [
       {
-        destination: "/homepage",
-        source: "/",
-        permanent: false,
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        port: "",
+        pathname: "/a/**",
       },
-    ];
+    ],
   },
-  experimental: {
-    serverActions: {
-      allowedOrigins: ["elevaite.com"],
-    },
-  },
+  // experimental: {
+  //   serverActions: {
+  //     allowedOrigins: ["elevaite.com"],
+  //   },
+  // },
 };
 
 module.exports = nextConfig;
