@@ -3,6 +3,7 @@ import type { NextAuthConfig } from "next-auth";
 export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
+      if (process.env.NODE_ENV === "development") return true;
       const isLoggedIn = Boolean(auth?.user);
       const isOnDashboard = nextUrl.pathname.startsWith("/homepage");
       if (isOnDashboard) {

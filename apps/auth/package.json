@@ -13,14 +13,14 @@
   "dependencies": {
     "@fusionauth/typescript-client": "^1.48.0",
     "@repo/ui": "*",
-    "next": "^14.0.3",
+    "next": "^14.0.4",
     "next-auth": "^5.0.0-beta.4",
     "react": "^18",
     "react-dom": "^18",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "^14.0.3",
+    "@next/eslint-plugin-next": "^14.0.4",
     "@repo/eslint-config": "*",
     "@repo/tailwind-config": "*",
     "@repo/typescript-config": "*",

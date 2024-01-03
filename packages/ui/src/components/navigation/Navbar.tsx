@@ -15,7 +15,7 @@ interface NavBarProps {
   children?: React.ReactNode;
   handleSearchInput: (term: string) => void;
   searchResults: { key: string; link: string; label: string }[];
-  logOut: () => Promise<"Invalid credentials." | "Something went wrong." | undefined>;
+  logOut: () => void;
 }
 
 export function NavBar({ ...props }: NavBarProps): JSX.Element {
@@ -43,8 +43,8 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
   }, [pathname, props.breadcrumbLabels]);
   const colors = useContext(ColorContext);
 
-  async function handleLogout(): Promise<void> {
-    await props.logOut();
+  function handleLogout(): void {
+    props.logOut();
   }
 
   return (
@@ -102,15 +102,7 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
           </button>
           <line className="line" style={{ background: colors.borderColor }} />
           {props.user?.fullName}
-          <button
-            onClick={() => {
-              handleLogout().catch((e) => {
-                // eslint-disable-next-line no-console -- Temporary until better logging
-                console.log(e);
-              });
-            }}
-            type="button"
-          >
+          <button onClick={handleLogout} type="button">
             {props.user?.icon ? <Image alt="User Image" height={40} src={props.user.icon} width={40} /> : "Logout"}
           </button>
         </div>
