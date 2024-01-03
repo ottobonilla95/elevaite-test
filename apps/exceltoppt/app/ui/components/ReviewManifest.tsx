@@ -3,14 +3,14 @@ import { useEffect, useState } from "react";
 import type { SVGProps, JSX } from "react";
 import { highlight, languages } from "prismjs";
 import "prismjs/components/prism-yaml";
-import { Tab, TabList, TabPanel, Tabs } from "react-tabs";
 import Editor from "react-simple-code-editor";
 import { Source_Code_Pro as SourceCodePro } from "next/font/google";
 import type XLSX from "xlsx";
 import { read } from "xlsx";
+import { Tab } from "@headlessui/react";
 import { getYamlContent } from "../../lib/actions";
 import "prismjs/themes/prism.css";
-import { ExcelWorkSheetRenderer, OutTable } from "./ExcelRender";
+import { ExcelWorkSheetRenderer, OutTable, StringOrUndefined } from "./ExcelRender";
 
 const sourceCodePro = SourceCodePro({ subsets: ["latin"] });
 
@@ -20,13 +20,14 @@ interface Manifest {
 }
 
 interface ReviewManifestProps {
-  goToNextStage: () => void;
+  onSubmit: () => void;
+  onCancel: () => void;
   sheetNames: string[];
   fileName: string;
   originalFile?: File;
 }
 
-function ReviewManifest({ goToNextStage, sheetNames, fileName, originalFile }: ReviewManifestProps): JSX.Element {
+function ReviewManifest({ onSubmit, onCancel, sheetNames, fileName, originalFile }: ReviewManifestProps): JSX.Element {
   const [loadedManifest, setLoadedManifest] = useState<Manifest | undefined>(undefined);
 
   async function handleViewClick(sheetName: string, selected: boolean): Promise<void> {
@@ -38,12 +39,12 @@ function ReviewManifest({ goToNextStage, sheetNames, fileName, originalFile }: R
   }
 
   function handleSubmit(): void {
-    goToNextStage();
+    onSubmit();
   }
 
   return (
     <div className="flex flex-grow p-2 justify-center items-start gap-2 self-stretch bg-white rounded-b-xl">
-      <div className="flex w-1/2 flex-col items-start flex-grow self-stretch rounded-lg border border-solid border-[#E5E5E5]">
+      <div className="flex w-2/3 flex-col items-start flex-grow self-stretch rounded-lg border border-solid border-[#E5E5E5]">
         <div className="flex p-4 justify-between items-start self-stretch">
           <span className="font text-[#171717] text-sm font-semibold">File Viewer</span>
         </div>
@@ -56,11 +57,11 @@ function ReviewManifest({ goToNextStage, sheetNames, fileName, originalFile }: R
           </span>
         )}
       </div>
-      <div className="flex w-1/2 flex-col items-start flex-grow self-stretch rounded-lg border border-solid border-[#E5E5E5]">
+      <div className="flex w-1/3 flex-col items-start flex-grow self-stretch rounded-lg border border-solid border-[#E5E5E5]">
         <div className="flex p-4 flex-col items-start gap-2 self-stretch">
           <span className="text text-[#171717] font-semibold text-sm">Manifest List</span>
           <span className="text text-[#171717] opacity-75 text-sm">
-            In euismod consequat orci, ut sollicitudin mauris ultricies nec.
+            Generated manifest files from your spreadsheet, select to view and edit.
           </span>
         </div>
         <div className="flex px-2 pb-4 flex-col items-start gap-2 flex-grow self-stretch border-b border-solid border-[#E5E5E5] bg-white">
@@ -77,12 +78,17 @@ function ReviewManifest({ goToNextStage, sheetNames, fileName, originalFile }: R
         <div className="flex p-2 items-start gap-2 self-stretch">
           <button
             className="flex h-12 flex-grow px-6 py-3 items-center justify-center rounded-lg border border-solid border-[#E5E5E5] text-sm font-semibold"
+            onClick={onCancel}
             type="button"
           >
             Cancel
           </button>
-          <div className="flex h-12 flex-grow px-6 py-3 items-center justify-center rounded-lg bg-[#F46F22]">
-            <button className="text-white" onClick={handleSubmit} type="button">
+          <div className="flex h-12 flex-grow items-center justify-center rounded-lg bg-[#F46F22]">
+            <button
+              className="flex flex-grow h-12 w-full items-center justify-center px-6 py-3 text-white"
+              onClick={handleSubmit}
+              type="button"
+            >
               Submit
             </button>
           </div>
@@ -97,17 +103,12 @@ export default ReviewManifest;
 function FileViewer({ manifest, originalFile }: { manifest: Manifest; originalFile: File }): JSX.Element {
   const [code, setCode] = useState(manifest.content);
   const [worksheet, setWorksheet] = useState<XLSX.WorkSheet>();
-  const [tableData, setTableData] = useState<string[][]>([]);
+  const [tableData, setTableData] = useState<StringOrUndefined[][]>([]);
   const [tableCols, setTableCols] = useState<{ name: string; key: number }[]>([]);
-  const tabClassNameBase =
-    "flex flex-grow justify-center px-2 items-center h-12 font-semibold text-ellipsis text-[#171717] text-sm cursor-pointer";
-  const tabClassName = `${tabClassNameBase} opacity-50`;
-  const tabClassNameSelected = ` opacity-100 border-b-2 border-solid border-[#F46F22]`;
 
   /* Fetch and update the state once */
   useEffect(() => {
     (async () => {
-      /* Download from https://sheetjs.com/pres.numbers */
       const ab = await originalFile.arrayBuffer();
 
       /* parse */
@@ -115,7 +116,6 @@ function FileViewer({ manifest, originalFile }: { manifest: Manifest; originalFi
       const _sheetName = manifest.name.split(".")[0];
       if (!wb.SheetNames.includes(_sheetName))
         throw new Error("Something went wrong", { cause: "Sheet name not found" });
-      /* generate array of presidents from the worksheet */
       const ws = wb.Sheets[_sheetName]; // get the worksheet
       setWorksheet(ws);
       const { rows: _data, cols: _cols } = ExcelWorkSheetRenderer(ws);
@@ -126,52 +126,54 @@ function FileViewer({ manifest, originalFile }: { manifest: Manifest; originalFi
   }, [manifest.name, originalFile]);
 
   return (
-    <Tabs className="flex flex-col w-[calc(50vw-28px)] h-[calc(100vh-356px)]">
-      <TabList className="flex flex-row justify-evenly self-stretch gap-2">
-        <Tab className={tabClassName} default selectedClassName={tabClassNameSelected}>
-          Manifest
-        </Tab>
-        <Tab className={tabClassName} selectedClassName={tabClassNameSelected}>
-          Original File
-        </Tab>
-      </TabList>
-      <TabPanel className={` ${sourceCodePro.className} flex  max-h-full`}>
-        <Editor
-          highlight={(_code) => highlight(_code, languages.yaml, "yaml")}
-          onValueChange={(_code) => {
-            setCode(_code);
-          }}
-          style={{
-            padding: "32px",
-            overflowY: "scroll",
-            width: "100%",
-            background: "#FAFAFA",
-            // height: "396px",
-            // height: "calc(100vh - 356px)",
-            maxHeight: "100%",
-            fontSize: "14px",
-            fontStyle: "normal",
-            fontWeight: "500",
-            opacity: "0.72",
-            color: "var(--3-Black, #171717)",
-          }}
-          value={code}
-        />
-      </TabPanel>
-      <TabPanel className={` ${sourceCodePro.className} flex max-h-full`}>
-        {worksheet ? (
-          <OutTable
-            className=" max-h-full bg-[#FAFAFA] overflow-scroll"
-            columns={tableCols}
-            data={tableData}
-            tableClassName="table-auto"
-            withZeroColumn
+    <div className="flex flex-col w-[calc(66vw-33px)] h-[calc(100vh-356px)]">
+      <Tab.Group>
+        <Tab.List className="flex flex-row items-start self-stretch gap-2 border-b border-solid border-[#E5E5E5]">
+          <Tab className="flex w-64 justify-center px-2 items-center h-12 font-semibold text-ellipsis text-[#171717] text-sm cursor-pointer opacity-50 ui-selected:opacity-100 ui-selected:border-b-2 ui-selected:border-solid ui-selected:border-[#F46F22]">
+            Manifest
+          </Tab>
+          <Tab className="flex w-64 justify-center px-2 items-center h-12 font-semibold text-ellipsis text-[#171717] text-sm cursor-pointer opacity-50 ui-selected:opacity-100 ui-selected:border-b-2 ui-selected:border-solid ui-selected:border-[#F46F22]">
+            Original File
+          </Tab>
+        </Tab.List>
+        <Tab.Panel className={` ${sourceCodePro.className} flex flex-grow h-full max-h-full bg-[#FAFAFA]`}>
+          <Editor
+            className="h-[calc(100vh-356px)]"
+            highlight={(_code) => highlight(_code, languages.yaml, "yaml")}
+            onValueChange={(_code) => {
+              setCode(_code);
+            }}
+            padding={32}
+            style={{
+              overflowY: "scroll",
+              width: "100%",
+              background: "#FAFAFA",
+              // height: "100%",
+              maxHeight: "100%",
+              fontSize: "14px",
+              fontStyle: "normal",
+              fontWeight: "500",
+              opacity: "0.72",
+              color: "var(--3-Black, #171717)",
+            }}
+            value={code}
           />
-        ) : (
-          "Something went wrong"
-        )}
-      </TabPanel>
-    </Tabs>
+        </Tab.Panel>
+        <Tab.Panel className={` ${sourceCodePro.className} flex max-h-full`}>
+          {worksheet ? (
+            <OutTable
+              className="max-h-full bg-[#FAFAFA] overflow-scroll"
+              columns={tableCols}
+              data={tableData}
+              tableClassName="table-auto"
+              withZeroColumn
+            />
+          ) : (
+            "Something went wrong"
+          )}
+        </Tab.Panel>
+      </Tab.Group>
+    </div>
   );
 }
 

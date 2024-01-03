@@ -4,6 +4,7 @@ import { UploadHeader } from "../ui/components/UploadHeader";
 import UploadExcel from "../ui/components/UploadExcel";
 import ReviewManifest from "../ui/components/ReviewManifest";
 import { Stages } from "../lib/interfaces";
+import UploadTemplate from "../ui/components/UploadTemplate";
 
 function Homepage(): JSX.Element {
   const [stage, setStage] = useState<Stages>(Stages.Upload);
@@ -38,6 +39,14 @@ function Homepage(): JSX.Element {
   async function goToTemplate(): Promise<void> {
     setStage(Stages.Template);
   }
+  // eslint-disable-next-line @typescript-eslint/require-await -- Might need it later
+  async function goToPPT(): Promise<void> {
+    setStage(Stages.Review);
+  }
+
+  function reset(): void {
+    setStage(Stages.Upload);
+  }
 
   function contentSwitch(): JSX.Element {
     switch (stage) {
@@ -45,7 +54,7 @@ function Homepage(): JSX.Element {
         return (
           <>
             <CardHeader title="Upload Excel" />
-            <UploadExcel goToNextStage={goToManifest} />
+            <UploadExcel onSubmit={goToManifest} />
           </>
         );
       case Stages.Manifest:
@@ -54,13 +63,20 @@ function Homepage(): JSX.Element {
             <CardHeader title="Review Manifest" />
             <ReviewManifest
               fileName={filename}
-              goToNextStage={goToTemplate}
+              onCancel={reset}
+              onSubmit={goToTemplate}
               originalFile={file}
               sheetNames={sheetNames}
             />
           </div>
         );
       case Stages.Template:
+        return (
+          <>
+            <CardHeader title="Upload PPTX Template" />
+            <UploadTemplate onSubmit={goToPPT} />
+          </>
+        );
       case Stages.Review:
       default:
         return <>{null}</>;
