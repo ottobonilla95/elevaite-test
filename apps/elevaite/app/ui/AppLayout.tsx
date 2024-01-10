@@ -1,10 +1,12 @@
 "use client";
-import { ColorContext, type ColorScheme } from "@repo/ui/contexts";
+import { ColorContext, ColorContextProvider, type ColorScheme } from "@repo/ui/contexts";
 import { NavBar, Sidebar } from "@repo/ui/components";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useSession } from "next-auth/react";
 import { engineerSearchHelper, userSearchHelper } from "../lib/searchHelpers";
 import { logOut } from "../lib/actions";
+import "./AppLayout.scss";
+
 
 interface AppLayoutProps {
   sidebarIcons: {
@@ -21,13 +23,15 @@ interface AppLayoutProps {
 function AppLayout({
   sidebarIcons,
   theme,
-  Background,
   children,
   breadcrumbLabels,
   ...props
 }: AppLayoutProps): JSX.Element {
   const [results, setResults] = useState<{ key: string; link: string; label: string }[]>(getResults(""));
   const { data: session } = useSession();
+
+  const colors = useContext(ColorContext);
+
 
   function getResults(term: string): { key: string; link: string; label: string }[] {
     switch (props.layout) {
@@ -48,21 +52,26 @@ function AppLayout({
   function handleSearchInput(term: string): void {
     setResults(getResults(term));
   }
+  
+
   return (
-    <ColorContext.Provider value={theme}>
-      <Sidebar sidebarIcons={sidebarIcons}>
+    <ColorContextProvider 
+      theme={theme}
+    >
+      <div className="elevaite-main-container" style={colors.getCSSVariablesColorsInjectionStyle()}>
         <NavBar
           breadcrumbLabels={breadcrumbLabels}
           handleSearchInput={handleSearchInput}
           logOut={logOut}
           searchResults={results}
           user={{ icon: session?.user?.image || "" }}
-        >
+        />
+        <Sidebar sidebarIcons={sidebarIcons} />
+        <div className="children-container">
           {children}
-          {Background}
-        </NavBar>
-      </Sidebar>
-    </ColorContext.Provider>
+        </div>
+      </div>
+    </ColorContextProvider>
   );
 }
 

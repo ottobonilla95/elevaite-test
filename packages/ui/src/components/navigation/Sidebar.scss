@@ -1,16 +1,27 @@
-.sidebarContainer {
+
+
+
+.sidebar-container {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - var(--navbar-height));
   flex-direction: column;
   align-items: flex-start;
   border-right: 1px solid;
   position: fixed;
-  top: 0;
+  top: var(--navbar-height);
   left: 0;
   overflow: hidden;
   z-index: 110;
   width: var(--sidebar-width);
+
+  // align-self: flex-start;
+  // height: auto;
+  // flex-grow: 1;
+  // flex-shrink: 0;
 }
+
+
+
 
 .logoContainer {
   display: flex;

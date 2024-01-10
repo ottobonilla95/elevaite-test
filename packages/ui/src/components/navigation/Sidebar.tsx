@@ -1,6 +1,6 @@
 "use client";
 import React, { useContext, useState } from "react";
-import "./Sidebar.css";
+import "./Sidebar.scss";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ColorContext } from "../../contexts";
@@ -11,27 +11,23 @@ interface SidebarProps {
     linkLocation: string;
     Icon: React.ReactNode;
   }[];
-  children?: React.ReactNode;
 }
 
 export function Sidebar({ ...props }: SidebarProps): JSX.Element {
   const colors = useContext(ColorContext);
   return (
-    <>
-      <div className="sidebarContainer" style={{ borderRightColor: colors.borderColor, background: colors.primary }}>
-        <Link className="logoContainer" href="/">
-          <ElevaiteLogo />
-        </Link>
-        <div className="sidebarNav">
-          {props.sidebarIcons.map((icon) => (
-            <SidebarIcon key={icon.linkLocation} linkLocation={icon.linkLocation}>
-              {icon.Icon}
-            </SidebarIcon>
-          ))}
-        </div>
+    <div className="sidebar-container" style={{ borderRightColor: colors.borderColor, background: colors.primary }}>
+      <Link className="logoContainer" href="/">
+        <ElevaiteLogo />
+      </Link>
+      <div className="sidebarNav">
+        {props.sidebarIcons.map((icon) => (
+          <SidebarIcon key={icon.linkLocation} linkLocation={icon.linkLocation}>
+            {icon.Icon}
+          </SidebarIcon>
+        ))}
       </div>
-      {props.children}
-    </>
+    </div>
   );
 }
 

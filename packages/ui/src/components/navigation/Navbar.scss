@@ -1,7 +1,14 @@
-.layoutL2 {
+
+
+
+.navbar-container {
   display: flex;
   flex-direction: column;
-  margin-left: var(--sidebar-width);
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 100;
+
 }
 
 .navbarHolder {

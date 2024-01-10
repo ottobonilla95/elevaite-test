@@ -56,7 +56,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={`${inter.className} min-h-screen bg-[${AppDrawerTheme.secondary}] -z-50`}>
         <SessionProvider session={session}>
           <AppLayout
-            // Background={<Background />}
             breadcrumbLabels={breadcrumbLabels}
             layout="user"
             sidebarIcons={sidebarIcons}

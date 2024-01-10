@@ -1,6 +1,6 @@
 "use client";
 import React, { useContext, useEffect, useState } from "react";
-import "./Navbar.css";
+import "./Navbar.scss";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { Searchbar } from "../search/Searchbar";
@@ -48,7 +48,7 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
   }
 
   return (
-    <div className="layoutL2">
+    <div className="navbar-container">
       <div className="navbarHolder" style={{ borderBottomColor: colors.borderColor, background: colors.primary }}>
         <Breadcrumbs items={breadcrumbItems} />
         <div className="searchAndUser">
@@ -61,18 +61,10 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
           />
           <button
             className="help"
-            onClick={() => {
-              setBtnPressed(!btnPressed);
-            }}
-            onFocus={() => {
-              setHover(true);
-            }}
-            onMouseEnter={() => {
-              setHover(true);
-            }}
-            onMouseLeave={() => {
-              setHover(false);
-            }}
+            onClick={() => { setBtnPressed(!btnPressed); }}
+            onFocus={() => { setHover(true); }}
+            onMouseEnter={() => { setHover(true); }}
+            onMouseLeave={() => { setHover(false); }}
             style={{ background: btnPressed || hover ? colors.hoverColor : "", borderColor: colors.borderColor }}
             type="button"
           >
