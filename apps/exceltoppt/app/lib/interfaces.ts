@@ -6,6 +6,30 @@ export interface GenerateManifestResponse {
   status: 200;
 }
 export type GetYamlContentResponse = GetYamlContentSuccess | BaseErrorResponse;
+export type GenPPTResponse = GenPPTSuccess | BaseErrorResponse;
+
+export interface ChatMessageInterface {
+  content: string | EmbeddedMessage;
+  sender: "user" | "system";
+  timestamp: string;
+  btn?: {
+    link: string;
+    label: string;
+  };
+  isLoading?: boolean;
+  uuid: string;
+}
+
+export interface EmbeddedMessage {
+  before?: string | EmbeddedMessage;
+  embed?: string;
+  after?: string | EmbeddedMessage;
+}
+
+export interface Manifest {
+  name: string;
+  content: string;
+}
 
 interface UploadErrorResponse {
   response: "Error";
@@ -33,4 +57,9 @@ export enum Stages {
   Manifest,
   Template,
   Review,
+}
+
+interface GenPPTSuccess {
+  export_url: string;
+  summary: string;
 }

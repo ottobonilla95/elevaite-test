@@ -1,26 +1,12 @@
 "use server";
 
-import { isGenerateManifestResponse, isGetYamlContentResponse, isUploadResponse } from "./discriminators";
-import type { GenerateManifestResponse, GetYamlContentResponse, UploadResponse } from "./interfaces";
-
-// export async function authenticate(
-//   prevState: string | undefined,
-//   formData: Record<"email" | "password", string>
-// ): Promise<"Invalid credentials." | "Something went wrong." | undefined> {
-//   try {
-//     await signIn("credentials", formData);
-//   } catch (error) {
-//     if (error instanceof AuthError) {
-//       switch (error.type) {
-//         case "CredentialsSignin":
-//           return "Invalid credentials.";
-//         default:
-//           return "Something went wrong.";
-//       }
-//     }
-//     throw error;
-//   }
-// }
+import {
+  isGenPPTResponse,
+  isGenerateManifestResponse,
+  isGetYamlContentResponse,
+  isUploadResponse,
+} from "./discriminators";
+import type { GenPPTResponse, GenerateManifestResponse, GetYamlContentResponse, UploadResponse } from "./interfaces";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -83,4 +69,62 @@ export async function getYamlContent({
   if (isGetYamlContentResponse(_data)) return _data;
 
   throw new Error("Data malformed", { cause: _data });
+}
+
+export async function generatePPT(fileName: string, activeSheet: string): Promise<GenPPTResponse> {
+  const encodedExcelFile: string = encodeURIComponent(`${fileName}.xlsx`);
+  const encodedSheetName = activeSheet.split(".")[0];
+  const url = new URL(`${BACKEND_URL}/genPPT/`);
+  url.searchParams.append("type", "financial");
+  url.searchParams.append("excel_file", encodedExcelFile);
+  url.searchParams.append("sheet_name", encodedSheetName);
+  let _data: unknown;
+
+  try {
+    const response = await fetch(url.toString());
+    _data = await response.json();
+
+    if (!response.ok) {
+      throw new Error("Something went wrong", { cause: _data });
+    }
+  } catch (error) {
+    throw new Error("Error generating Presentation", { cause: error });
+  }
+  if (isGenPPTResponse(_data)) return _data;
+  throw new Error("Data malformed", { cause: _data });
+}
+
+export async function ask(query: string, context: string): Promise<string> {
+  const url = new URL(`${BACKEND_URL}/ask/`);
+  const formData = new FormData();
+  formData.append(query, query);
+  formData.append(context, context);
+  let _data: unknown;
+  try {
+    const response = await fetch(url.toString(), { body: JSON.stringify({ query, context }), method: "POST" });
+    _data = await response.text();
+
+    if (!response.ok) {
+      throw new Error("Something went wrong", { cause: _data });
+    }
+  } catch (error) {
+    throw new Error("Error generating Response", { cause: error });
+  }
+  if (typeof _data === "string") return _data;
+  throw new Error("Data malformed", { cause: _data });
+}
+
+export async function downloadPPT(pptPath: string): Promise<Blob> {
+  const validPptFile = pptPath ? pptPath : "";
+  const url = new URL(`${BACKEND_URL}/downloadPPT/`);
+  url.searchParams.append("ppt_path", validPptFile);
+  let _data: Blob;
+  try {
+    const response = await fetch(url.toString(), { method: "GET" });
+    if (response.ok) _data = await response.blob();
+    else throw new Error("Something went wrong", { cause: response });
+  } catch (error) {
+    throw new Error("Something went wrong", { cause: error });
+  }
+  return _data;
 }

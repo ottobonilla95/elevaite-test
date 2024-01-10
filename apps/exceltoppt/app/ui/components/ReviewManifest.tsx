@@ -10,17 +10,14 @@ import { read } from "xlsx";
 import { Tab } from "@headlessui/react";
 import { getYamlContent } from "../../lib/actions";
 import "prismjs/themes/prism.css";
-import { ExcelWorkSheetRenderer, OutTable, StringOrUndefined } from "./ExcelRender";
+import type { Manifest } from "../../lib/interfaces";
+import type { StringOrUndefined } from "./ExcelRender";
+import { ExcelWorkSheetRenderer, OutTable } from "./ExcelRender";
 
 const sourceCodePro = SourceCodePro({ subsets: ["latin"] });
 
-interface Manifest {
-  name: string;
-  content: string;
-}
-
 interface ReviewManifestProps {
-  onSubmit: () => void;
+  onSubmit: (_selectedSheet: string) => void;
   onCancel: () => void;
   sheetNames: string[];
   fileName: string;
@@ -29,17 +26,21 @@ interface ReviewManifestProps {
 
 function ReviewManifest({ onSubmit, onCancel, sheetNames, fileName, originalFile }: ReviewManifestProps): JSX.Element {
   const [loadedManifest, setLoadedManifest] = useState<Manifest | undefined>(undefined);
+  const [selectedSheet, setSelectedSheet] = useState<string | undefined>(undefined);
 
   async function handleViewClick(sheetName: string, selected: boolean): Promise<void> {
-    if (selected) setLoadedManifest(undefined);
-    else {
+    if (selected) {
+      setLoadedManifest(undefined);
+      setSelectedSheet(undefined);
+    } else {
+      setSelectedSheet(sheetName);
       const content = await getYamlContent({ fileName, sheetName });
       if (typeof content === "string") setLoadedManifest({ content, name: sheetName });
     }
   }
 
   function handleSubmit(): void {
-    onSubmit();
+    if (selectedSheet) onSubmit(selectedSheet);
   }
 
   return (
@@ -83,9 +84,16 @@ function ReviewManifest({ onSubmit, onCancel, sheetNames, fileName, originalFile
           >
             Cancel
           </button>
-          <div className="flex h-12 flex-grow items-center justify-center rounded-lg bg-[#F46F22]">
+          <div
+            className={`flex h-12 flex-grow items-center justify-center rounded-lg ${
+              !selectedSheet ? "bg-[#F7F6F1]" : "bg-[#F46F22]"
+            }`}
+          >
             <button
-              className="flex flex-grow h-12 w-full items-center justify-center px-6 py-3 text-white"
+              className={`flex flex-grow h-12 w-full items-center justify-center px-6 py-3 ${
+                !selectedSheet ? "text-[#171717]" : "text-white"
+              }`}
+              disabled={!selectedSheet}
               onClick={handleSubmit}
               type="button"
             >
@@ -137,27 +145,26 @@ function FileViewer({ manifest, originalFile }: { manifest: Manifest; originalFi
           </Tab>
         </Tab.List>
         <Tab.Panel className={` ${sourceCodePro.className} flex flex-grow h-full max-h-full bg-[#FAFAFA]`}>
-          <Editor
-            className="h-[calc(100vh-356px)]"
-            highlight={(_code) => highlight(_code, languages.yaml, "yaml")}
-            onValueChange={(_code) => {
-              setCode(_code);
-            }}
-            padding={32}
-            style={{
-              overflowY: "scroll",
-              width: "100%",
-              background: "#FAFAFA",
-              // height: "100%",
-              maxHeight: "100%",
-              fontSize: "14px",
-              fontStyle: "normal",
-              fontWeight: "500",
-              opacity: "0.72",
-              color: "var(--3-Black, #171717)",
-            }}
-            value={code}
-          />
+          <div className="h-[calc(100vh-376px)] w-full overflow-y-scroll">
+            <Editor
+              // className="h-full"
+              highlight={(_code) => highlight(_code, languages.yaml, "yaml")}
+              onValueChange={(_code) => {
+                setCode(_code);
+              }}
+              padding={32}
+              style={{
+                // overflowY: "scroll",
+                background: "#FAFAFA",
+                fontSize: "14px",
+                fontStyle: "normal",
+                fontWeight: "500",
+                opacity: "0.72",
+                color: "var(--3-Black, #171717)",
+              }}
+              value={code}
+            />
+          </div>
         </Tab.Panel>
         <Tab.Panel className={` ${sourceCodePro.className} flex max-h-full`}>
           {worksheet ? (
