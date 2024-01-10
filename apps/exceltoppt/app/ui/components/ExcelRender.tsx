@@ -37,9 +37,9 @@ export function OutTable({
             ))}
           </tr>
           {data.map((r, i) => (
-            <tr key={i}>
+            <tr key={`row${i + 1}`}>
               {!withoutRowNum && (
-                <td className={tableHeaderRowClass} key={i}>
+                <td className={tableHeaderRowClass} key={`rowHeader${i + 1}`}>
                   {renderRowNum ? renderRowNum(r, i) : i}
                 </td>
               )}
