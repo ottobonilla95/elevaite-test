@@ -1,0 +1,17 @@
+
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+
+  border-left: 1px solid var(--ev-colors-text);
+  padding-left: 10px;
+
+  
+
+  & .breadcrumbItem {
+    color: var(--ev-colors-text);
+    font-size: 16px;
+    font-weight: 500;
+  }
+}

@@ -3,15 +3,17 @@ import React, { useContext, useEffect, useState } from "react";
 import "./Navbar.scss";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { Searchbar } from "../search/Searchbar";
 import { ColorContext } from "../../contexts";
+import SVGNavbarLogo from "../icons/elevaite/svgNavbarLogo";
 import type { BreadcrumbItem } from "./Breadcrumbs";
 import { Breadcrumbs } from "./Breadcrumbs";
+
 
 interface NavBarProps {
   breadcrumbLabels: Record<string, { label: string; link: string }>;
   user?: { icon?: string; fullName?: string };
-
   children?: React.ReactNode;
   handleSearchInput: (term: string) => void;
   searchResults: { key: string; link: string; label: string }[];
@@ -22,7 +24,10 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
   const [btnPressed, setBtnPressed] = useState(false);
   const [breadcrumbItems, setBreadcrumbItems] = useState<BreadcrumbItem[]>([]);
   const [hover, setHover] = useState(false);
-  const pathname = usePathname();
+  const pathname = usePathname();  
+  const colors = useContext(ColorContext);
+
+
   useEffect(() => {
     function pathToBreadcrumbs(path: string): BreadcrumbItem[] {
       if (pathname === "/") return [props.breadcrumbLabels.home];
@@ -41,23 +46,29 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
     }
     setBreadcrumbItems(pathToBreadcrumbs(pathname));
   }, [pathname, props.breadcrumbLabels]);
-  const colors = useContext(ColorContext);
+
 
   function handleLogout(): void {
     props.logOut();
   }
+  
+
 
   return (
     <div className="navbar-container">
-      <div className="navbarHolder" style={{ borderBottomColor: colors.borderColor, background: colors.primary }}>
-        <Breadcrumbs items={breadcrumbItems} />
-        <div className="searchAndUser">
+      <div className="navbar-holder">
+        <div className="navbar-left">
+          <Link href="/">
+            <SVGNavbarLogo />
+          </Link>
+          <Breadcrumbs items={breadcrumbItems} />
+        </div>
+        <div className="navbar-right">
           <Searchbar
             handleInput={props.handleSearchInput}
             isJump
             results={props.searchResults}
             resultsTopOffset="70px"
-            width="280px"
           />
           <button
             className="help"
@@ -92,7 +103,7 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
               </defs>
             </svg>
           </button>
-          <line className="line" style={{ background: colors.borderColor }} />
+          <div className="line" style={{ background: colors.borderColor }} />
           {props.user?.fullName}
           <button onClick={handleLogout} type="button">
             {props.user?.icon ? <Image alt="User Image" height={40} src={props.user.icon} width={40} /> : "Logout"}

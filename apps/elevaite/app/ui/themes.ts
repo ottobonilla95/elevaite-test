@@ -1,6 +1,7 @@
 import type { ColorScheme } from "@repo/ui/contexts";
 
 export const EngineerTheme: ColorScheme = {
+  type: "dark",
   primary: "#282828",
   secondary: "#424242",
   tertiary: "#4e332a",
@@ -12,9 +13,12 @@ export const EngineerTheme: ColorScheme = {
   borderColor: "#FFFFFF1F",
   iconBorder: "#282828",
   background: "#161616",
+  navbarLogo: "#FFFFFF",
+  navbarBackground: "#282828",
 };
 
 export const AppDrawerTheme: ColorScheme = {
+  type: "light",
   primary: "#FFFFFF",
   secondary: "#F1F5F9",
   tertiary: "#E75F3333",
@@ -26,4 +30,6 @@ export const AppDrawerTheme: ColorScheme = {
   borderColor: "#CBD5E1",
   iconBorder: "#64748B",
   background: "#F9FAFB",
+  navbarLogo: "#0F172A",
+  navbarBackground: "#CBD5E1",
 };

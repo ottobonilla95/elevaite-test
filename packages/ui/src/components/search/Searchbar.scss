@@ -1,0 +1,36 @@
+
+
+.searchbar-container {
+  flex-grow: 1;
+
+  & .searchbar {
+    display: flex;
+    height: 32px;
+    padding: 0 16px;
+    align-items: center;
+    gap: 8px;
+    border-radius: 10px;
+    border: 1px solid var(--ev-colors-borderColor);
+    background-color: var(--ev-colors-background);
+    min-width: 400px;
+
+    & input {
+      flex: 1 0 auto;
+      outline: none;
+    }
+
+    & svg { flex-shrink: 0; }
+
+    & .hotkey-hint {
+      flex-shrink: 0;
+      opacity: 0.5;
+    }
+
+    & input:focus + .hotkey-hint {
+      display: none;
+    }
+  }
+
+
+}
+

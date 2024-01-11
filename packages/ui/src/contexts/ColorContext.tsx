@@ -4,6 +4,7 @@ import { createContext, useContext } from "react";
 // STRUCTURE 
 
 export interface ColorScheme {
+  type?: "dark" | "light";
   primary?: string;
   secondary?: string;
   tertiary?: string;
@@ -15,6 +16,8 @@ export interface ColorScheme {
   hoverColor?: string;
   borderColor?: string;
   background?: string;  
+  navbarLogo?: string,
+  navbarBackground?: string,
 }
 
 export interface ColorContextStructure extends ColorScheme {

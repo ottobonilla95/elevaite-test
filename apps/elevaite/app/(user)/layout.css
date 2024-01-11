@@ -7,6 +7,7 @@
   --layout-header-height: calc(var(--navbar-height) + var(--welcome-header-height));
   --layout-scroll-padding-top: calc(var(--layout-header-height) + 200px);
   scroll-padding-top: var(--layout-scroll-padding-top);
+  min-height: 100vh;
 }
 
 body {

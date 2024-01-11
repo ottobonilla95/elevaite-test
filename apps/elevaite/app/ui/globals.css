@@ -4,7 +4,7 @@
 @import url("https://fonts.googleapis.com/css?family=Inter&display=swap");
 
 :root {
-  --sidebar-width: 81px;
+  --sidebar-width: 48px;
   --navbar-height: 52px;
   font-family: Inter;
 }

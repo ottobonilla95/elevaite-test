@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./layout.css";
 import { ElevaiteIcons } from "@repo/ui/components";
+import { ColorContextProvider } from "@repo/ui/contexts";
+import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
+import { Inter } from "next/font/google";
+import { auth } from "../../auth";
 import AppLayout from "../ui/AppLayout";
 import { EngineerTheme } from "../ui/themes";
-import { auth } from "../../auth";
+import "./layout.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -62,14 +63,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <body className={inter.className}>
         <SessionProvider session={session}>
-          <AppLayout
-            breadcrumbLabels={breadcrumbLabels}
-            layout="engineer"
-            sidebarIcons={sidebarIcons}
-            theme={EngineerTheme}
-          >
-            {children}
-          </AppLayout>
+          <ColorContextProvider theme={EngineerTheme}>
+            <AppLayout
+              breadcrumbLabels={breadcrumbLabels}
+              layout="engineer"
+              sidebarIcons={sidebarIcons}
+            >
+              {children}
+            </AppLayout>
+          </ColorContextProvider>
         </SessionProvider>
       </body>
     </html>

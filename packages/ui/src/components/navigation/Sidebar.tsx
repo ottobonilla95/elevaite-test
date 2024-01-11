@@ -1,10 +1,9 @@
 "use client";
-import React, { useContext, useState } from "react";
+import React, { useContext } from "react";
 import "./Sidebar.scss";
 import { usePathname } from "next/navigation";
-import Link from "next/link";
 import { ColorContext } from "../../contexts";
-import ElevaiteLogo from "../icons/elevaite/logo";
+import SVGSidebarBackground from "../icons/elevaite/svgSidebarBackground";
 
 interface SidebarProps {
   sidebarIcons: {
@@ -14,15 +13,17 @@ interface SidebarProps {
 }
 
 export function Sidebar({ ...props }: SidebarProps): JSX.Element {
-  const colors = useContext(ColorContext);
+  const theme = useContext(ColorContext);
   return (
-    <div className="sidebar-container" style={{ borderRightColor: colors.borderColor, background: colors.primary }}>
-      <Link className="logoContainer" href="/">
-        <ElevaiteLogo />
-      </Link>
-      <div className="sidebarNav">
+    <div className={[
+      "sidebar-container",
+      theme.type
+      ].join(" ")}
+    >
+      <div className="sidebar-nav">
+        <SVGSidebarBackground className="sidebar-backdrop"/>
         {props.sidebarIcons.map((icon) => (
-          <SidebarIcon key={icon.linkLocation} linkLocation={icon.linkLocation}>
+          <SidebarIcon key={icon.linkLocation} linkLocation={icon.linkLocation} themeType={theme.type}>
             {icon.Icon}
           </SidebarIcon>
         ))}
@@ -34,28 +35,20 @@ export function Sidebar({ ...props }: SidebarProps): JSX.Element {
 export interface SidebarIconProps {
   linkLocation: string;
   children?: React.ReactNode;
+  themeType?: "dark" | "light";
 }
 
 function SidebarIcon({ children, ...props }: SidebarIconProps): JSX.Element {
   const pathname = usePathname();
-  const [hover, setHover] = useState(false);
-  const colors = useContext(ColorContext);
 
   return (
     <a
-      className={`sidebarNavBtn${pathname.startsWith(props.linkLocation) ? "_slc" : ""}`}
+      className={[
+        "sidebar-nav-button",
+        props.themeType,
+        pathname.startsWith(props.linkLocation) ? "active" : undefined,
+      ].filter(Boolean).join(" ")}
       href={props.linkLocation}
-      onMouseEnter={() => {
-        setHover(true);
-      }}
-      onMouseLeave={() => {
-        setHover(false);
-      }}
-      style={{
-        color: pathname.startsWith(props.linkLocation) ? colors.highlight : colors.icon,
-        background: pathname.startsWith(props.linkLocation) || hover ? colors.secondary : colors.primary,
-        borderColor: pathname.startsWith(props.linkLocation) ? colors.iconBorder : colors.primary,
-      }}
     >
       {children}
     </a>

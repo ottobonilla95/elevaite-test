@@ -1,7 +1,6 @@
-import "./Breadcrumbs.css";
-import React, { useContext } from "react";
 import Link from "next/link";
-import { ColorContext } from "../../contexts";
+import React from "react";
+import "./Breadcrumbs.scss";
 
 interface BreadcrumbsProps {
   items: BreadcrumbItem[];
@@ -13,10 +12,9 @@ export interface BreadcrumbItem {
 }
 
 export function Breadcrumbs({ ...props }: BreadcrumbsProps): JSX.Element {
-  const colors = useContext(ColorContext);
   return (
     <div className="breadcrumbs">
-      <svg
+      {/* <svg
         color={colors.text}
         fill="none"
         height="20"
@@ -30,11 +28,11 @@ export function Breadcrumbs({ ...props }: BreadcrumbsProps): JSX.Element {
           fill="currentColor"
           fillRule="evenodd"
         />
-      </svg>
+      </svg> */}
       {props.items.map((item, index) => (
         <React.Fragment key={item.label}>
           {item.link ? (
-            <Link className="breadcrumbItem" href={item.link} style={{ color: colors.text }}>
+            <Link className="breadcrumbItem" href={item.link}>
               <span>{item.label}</span>
             </Link>
           ) : (

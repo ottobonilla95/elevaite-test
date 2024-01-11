@@ -1,10 +1,10 @@
 "use client";
-import { ColorContext, ColorContextProvider, type ColorScheme } from "@repo/ui/contexts";
 import { NavBar, Sidebar } from "@repo/ui/components";
-import { useContext, useState } from "react";
+import { ColorContext } from "@repo/ui/contexts";
 import { useSession } from "next-auth/react";
-import { engineerSearchHelper, userSearchHelper } from "../lib/searchHelpers";
+import { useContext, useState } from "react";
 import { logOut } from "../lib/actions";
+import { engineerSearchHelper, userSearchHelper } from "../lib/searchHelpers";
 import "./AppLayout.scss";
 
 
@@ -13,7 +13,6 @@ interface AppLayoutProps {
     linkLocation: string;
     Icon: React.ReactNode;
   }[];
-  theme: ColorScheme;
   layout: "user" | "engineer";
   Background?: React.ReactNode;
   children: React.ReactNode;
@@ -22,7 +21,6 @@ interface AppLayoutProps {
 
 function AppLayout({
   sidebarIcons,
-  theme,
   children,
   breadcrumbLabels,
   ...props
@@ -55,23 +53,19 @@ function AppLayout({
   
 
   return (
-    <ColorContextProvider 
-      theme={theme}
-    >
-      <div className="elevaite-main-container" style={colors.getCSSVariablesColorsInjectionStyle()}>
-        <NavBar
-          breadcrumbLabels={breadcrumbLabels}
-          handleSearchInput={handleSearchInput}
-          logOut={logOut}
-          searchResults={results}
-          user={{ icon: session?.user?.image || "" }}
-        />
-        <Sidebar sidebarIcons={sidebarIcons} />
-        <div className="children-container">
-          {children}
-        </div>
+    <div className="elevaite-main-container" style={colors.getCSSVariablesColorsInjectionStyle()}>
+      <NavBar
+        breadcrumbLabels={breadcrumbLabels}
+        handleSearchInput={handleSearchInput}
+        logOut={logOut}
+        searchResults={results}
+        user={{ icon: session?.user?.image || "" }}
+      />
+      <Sidebar sidebarIcons={sidebarIcons} />
+      <div className="children-container">
+        {children}
       </div>
-    </ColorContextProvider>
+    </div>
   );
 }
 

@@ -4,32 +4,35 @@
 .navbar-container {
   display: flex;
   flex-direction: column;
-  position: fixed;
+  justify-content: center;
+  height: var(--navbar-height);
   width: 100%;
+  position: fixed;
   top: 0;
   z-index: 100;
+  background-color: var(--ev-colors-navbarBackground);
+  border-bottom: 1px solid var(--ev-colors-borderColor);
+  color: var(--ev-colors-secondaryText);
+
+  & .navbar-holder {
+    display: flex;
+    padding: 10px 32px;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  & .navbar-left, & .navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  & .navbar-right {
+    flex-grow: 0.25;
+  }
 
 }
 
-.navbarHolder {
-  display: flex;
-  width: 100%;
-  height: var(--navbar-height);
-  padding: 10px 32px;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  /* float: inline-start; */
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
 
-.searchAndUser {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
 
 .searchAndInfo {
   display: flex;
@@ -39,8 +42,8 @@
 
 .help {
   display: flex;
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   justify-content: center;
   align-items: center;
   gap: 8px;

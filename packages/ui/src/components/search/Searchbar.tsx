@@ -1,25 +1,39 @@
 "use client";
-import { useContext, useState } from "react";
-import "./Searchbar.css";
+import { useContext, useEffect, useRef, useState } from "react";
 import { ColorContext } from "../../contexts";
+import SVGMagnifyingGlass from "../icons/elevaite/svgMagnifyingGlass";
 import { SearchResults } from "./SearchResults";
+import "./Searchbar.scss";
 
 interface SearchBarProps {
   handleInput: (term: string) => void;
   results: { key: string; link: string; label: string }[];
   resultsTopOffset: string;
-  width?: string;
   isJump?: boolean;
 }
 
 export function Searchbar({ handleInput, ...props }: SearchBarProps): JSX.Element {
   const [showResults, setShowResults] = useState(false);
+  const inputRef = useRef<HTMLInputElement|null>(null);
+  const colors = useContext(ColorContext);
 
-  const handleChange = (value: string): void => {
+
+  useEffect(() => {
+    window.addEventListener("keydown", (e) => {
+      if (e.repeat) return;
+      if ((e.ctrlKey || e.metaKey) && e.code === 'KeyF') {        
+        e.preventDefault();
+        if (inputRef.current) inputRef.current.focus();
+      }      
+    })
+  }, []);
+
+
+  function handleChange (value: string): void {
     handleInput(value);
   };
 
-  const handleResultClick = (targetId?: string): void => {
+  function handleResultClick (targetId?: string): void {
     if (props.isJump && targetId !== undefined) {
       const card = document.getElementById(targetId);
       if (card) {
@@ -32,10 +46,9 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps): JSX.Elemen
     setShowResults(false);
   };
 
-  const colors = useContext(ColorContext);
+
   return (
-    <div
-      className="searchbarContainer"
+    <div className="searchbar-container"
       onBlur={() =>
         setTimeout(() => {
           setShowResults(false);
@@ -44,36 +57,19 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps): JSX.Elemen
       onFocus={() => {
         setShowResults(true);
       }}
-      style={{ width: props.width }}
     >
-      <div className="searchbar" style={{ borderColor: colors.borderColor, background: colors.background }}>
-        <svg
-          fill="none"
-          height="20"
-          style={{ color: colors.icon }}
-          viewBox="0 0 20 20"
-          width="20"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M17.5 17.5L13.875 13.875M15.8333 9.16667C15.8333 12.8486 12.8486 15.8333 9.16667 15.8333C5.48477 15.8333 2.5 12.8486 2.5 9.16667C2.5 5.48477 5.48477 2.5 9.16667 2.5C12.8486 2.5 15.8333 5.48477 15.8333 9.16667Z"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-          />
-        </svg>
+      <div className="searchbar">
+        <SVGMagnifyingGlass />
         <input
-          onChange={(e) => {
-            handleChange(e.target.value);
-          }}
+          onChange={(e) => { handleChange(e.target.value); }}
           placeholder="Find answers"
+          ref={inputRef}
           style={{ background: colors.background, color: colors.text }}
           type="search"
         />
-        {/* <label className="searchHotKeyHint">
-            {navigator.platform.toUpperCase().indexOf("MAC") >= 0 ? "⌘" : "Ctrl"}+F
-          </label> */}
+        <span className="hotkey-hint">
+          {navigator.platform.toUpperCase().includes("MAC") || navigator.platform === "iPhone" ? "⌘" : "Ctrl"}+F
+        </span>
       </div>
       {showResults ? (
         <SearchResults
