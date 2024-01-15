@@ -2,7 +2,7 @@
 import { Card } from "@repo/ui/components";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import { ingestionMethods } from "../../../dummydata";
-import "./page.css";
+import "./page.scss";
 
 export default function Page(): JSX.Element {
   return (
@@ -14,7 +14,7 @@ export default function Page(): JSX.Element {
         <Tab>DEPLOY</Tab>
       </TabList>
       <TabPanel>
-        <div className="grid sm:max-lg:grid-cols-1 lg:max-2xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4 p-8 w-fit">
+        <div className="tab-panel-contents ingest">
           {ingestionMethods.map((method) => (
             <Card
               btnLabel="Open"
@@ -24,7 +24,6 @@ export default function Page(): JSX.Element {
               key={method.iconAlt}
               subtitle={method.subtitle}
               title={method.title}
-              withHighlight
             />
           ))}
         </div>
@@ -40,7 +39,6 @@ export default function Page(): JSX.Element {
               key={method.iconAlt}
               subtitle={method.subtitle}
               title={method.title}
-              withHighlight
             />
           ))}
         </div>
@@ -56,7 +54,6 @@ export default function Page(): JSX.Element {
               key={method.iconAlt}
               subtitle={method.subtitle}
               title={method.title}
-              withHighlight
             />
           ))}
         </div>
@@ -72,7 +69,6 @@ export default function Page(): JSX.Element {
               key={method.iconAlt}
               subtitle={method.subtitle}
               title={method.title}
-              withHighlight
             />
           ))}
         </div>

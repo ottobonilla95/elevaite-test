@@ -6,10 +6,7 @@
     grid-template-rows: var(--navbar-height) 1fr;
     grid-template-columns: var(--sidebar-width) 1fr;
     position: relative;
-
-    & :first-child {
-        grid-column: 1 / span 2;
-    }
+    min-height: 100vh;
 
     & .sidebar-wrapper {
         display: flex;

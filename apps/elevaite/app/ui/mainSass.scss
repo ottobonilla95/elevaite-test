@@ -1,0 +1,80 @@
+
+
+
+
+@mixin buttonClick ($backgroundColor: null, $hoverFocus: false) {    
+    filter: brightness(1);
+    transition: filter 0.2s ease-in-out, background-color 0.2s ease-in-out;
+    
+    &:hover:not(:disabled) {
+        @if $backgroundColor {
+            background-color: $backgroundColor;
+        }
+        @else {
+            filter: brightness(0.9);
+        }
+    }
+    
+    &:active:not(:disabled) {
+        @if $backgroundColor {
+            background-color: $backgroundColor;
+            filter: brightness(0.75);
+        }
+        @else {
+            filter: brightness(0.75);
+        }
+        transition: unset;
+    }
+
+    &:focus {
+        box-shadow: none;
+        outline: none;
+        @if $hoverFocus {            
+            @if $backgroundColor {
+                background-color: $backgroundColor;
+            }
+            @else {
+                filter: brightness(0.9);
+            }
+        }
+    }
+    &:disabled {
+        opacity: 0.5;
+    }
+}
+
+
+
+
+
+
+
+
+
+@mixin gridTemplateColumnsCount($minSize: 250px, $maxSize: 1fr) {
+    @media (min-width: 640px) {
+        grid-template-columns: repeat(1, minmax($minSize, $maxSize));
+    }
+
+    @media (min-width: 1024px) {
+        grid-template-columns: repeat(2, minmax($minSize, $maxSize));
+    }
+
+    @media (min-width: 1536px) {
+        grid-template-columns: repeat(3, minmax($minSize, $maxSize));
+    }
+
+    @media (min-width: 2000px) {
+        grid-template-columns: repeat(4, minmax($minSize, $maxSize));
+    }
+}
+
+
+
+
+
+
+
+
+
+

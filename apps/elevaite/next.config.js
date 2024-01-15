@@ -26,6 +26,10 @@ const nextConfig = {
   //     allowedOrigins: ["elevaite.com"],
   //   },
   // },
+  sassOptions: {
+    includePaths: ["./app/ui"],
+    prependData: `@import "mainSass.scss";`
+  }
 };
 
 module.exports = nextConfig;

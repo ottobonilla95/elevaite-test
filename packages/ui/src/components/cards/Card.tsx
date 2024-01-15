@@ -1,7 +1,7 @@
 "use client";
-import * as React from "react";
-import { ColorContext } from "../../contexts";
-import "./Card.css";
+import SVGChevron from "../icons/elevaite/svgChevron";
+import SVGDot from "../icons/elevaite/svgDot";
+import "./Card.scss";
 
 export interface CardProps {
   icon: string;
@@ -11,108 +11,51 @@ export interface CardProps {
   description: string;
   width?: number;
   height?: number;
+  miscLabel?: string;
   btnLabel?: string;
-  withHighlight?: boolean;
   id?: string;
   link?: string;
+  altBackground?: boolean;
 }
 
 export function Card({ icon, title, subtitle, description, ...props }: CardProps): JSX.Element {
-  const colors = React.useContext(ColorContext);
-  const [btnHover, setBtnHover] = React.useState(false);
-  const [cardHover, setCardHover] = React.useState(false);
-  const [focus, setFocus] = React.useState(false);
 
   return (
     <div
-      className="cardContainer"
+      className={[
+        "card-container",
+        props.link ? "with-link" : undefined,
+        props.altBackground ? "alt-background" : undefined,
+      ].filter(Boolean).join(" ")}
       id={props.id}
-      onBlur={() => {
-        setFocus(false);
-      }}
-      onFocus={() => {
-        setFocus(true);
-      }}
-      onMouseEnter={() => {
-        setCardHover(true);
-      }}
-      onMouseLeave={() => {
-        setCardHover(false);
-      }}
-      style={{
-        borderTop: props.withHighlight ? `1px solid ${colors.highlight}` : "",
-        cursor: props.link && cardHover ? "pointer" : "auto",
-      }}
     >
-      <div
-        className="card"
-        style={{
-          background: colors.primary,
-          borderColor: focus ? colors.highlight : colors.borderColor,
-          borderWidth: focus ? "2px" : "1px",
-        }}
-      >
-        <div className="cardHeader">
-          <div className="cardHeaderText">
-            <img alt={props.iconAlt} className="cardIcon" height={40} src={icon} width={40} />
-            <div className="cardTitle" style={{ color: colors.text }}>
-              {title}
-            </div>
+      <div className="card">
+        <div className="card-header">
+          <div className="card-header-title">
+            <img alt={props.iconAlt} className="card-header-icon" src={icon} />
+            <div className="card-header-label">{title}</div>
           </div>
-          {subtitle ? (
-            <div className="cardSubtitle" style={{ color: colors.highlight, background: colors.tertiary }}>
-              <svg fill="none" height="4" viewBox="0 0 5 4" width="5" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="2.33325" cy="2" fill="currentColor" r="2" />
-              </svg>
+          {subtitle ? 
+            <div className="card-header-subtitle">
+              <SVGDot />
               {subtitle}
             </div>
-          ) : null}
+          : null}
         </div>
-        <div className="cardDescription" style={{ color: colors.text }}>
-          {description}
-        </div>
-        {props.btnLabel ? (
+        <div className="card-description">{description}</div>
+        {props.miscLabel ? 
+          <span className="card-misc-label">{props.miscLabel}</span>
+        : null}
+        {props.btnLabel ? 
           <button
-            className="cardBtn"
-            id={props.id ? `${props.id}Btn` : ""}
-            onBlur={() => {
-              setBtnHover(false);
-            }}
-            onFocus={() => {
-              setBtnHover(true);
-            }}
-            onMouseEnter={() => {
-              setBtnHover(true);
-            }}
-            onMouseLeave={() => {
-              setBtnHover(false);
-            }}
-            style={{
-              color: colors.text,
-              background: btnHover ? colors.hoverColor : colors.primary,
-              borderColor: colors.borderColor,
-            }}
+            className="card-button"
+            id={props.id ? `${props.id}Btn` : ""} /* <- What's this for? */
             type="button"
           >
             {props.btnLabel}
-            <svg
-              fill="none"
-              height="16"
-              style={{ color: colors.text }}
-              viewBox="0 0 16 16"
-              width="16"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M6 12L10 8L6 4"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.5"
-              />
-            </svg>
+            <SVGChevron type="right" />
           </button>
-        ) : null}
+        : null}
       </div>
     </div>
   );
