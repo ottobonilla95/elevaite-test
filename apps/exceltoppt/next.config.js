@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  transpilePackages: ["@repo/ui"],
+  transpilePackages: ["@repo/ui", "@repo/sass-config"],
   async redirects() {
     return [
       {
@@ -19,6 +19,10 @@ const nextConfig = {
   //     },
   //   ];
   // },
+  sassOptions: {
+    includePaths: ["./app/ui"],
+    prependData: `@import "@repo/sass-config/mainSass.scss";`,
+  },
 };
 
 module.exports = nextConfig;
