@@ -94,14 +94,14 @@ export async function generatePPT(fileName: string, activeSheet: string): Promis
   throw new Error("Data malformed", { cause: _data });
 }
 
-export async function ask(query: string, context: string): Promise<string> {
-  const url = new URL(`${BACKEND_URL}/ask/`);
-  const formData = new FormData();
-  formData.append(query, query);
-  formData.append(context, context);
+export async function ask(query: string, workbookName: string, sheetName: string): Promise<string> {
+  const url = new URL(`${BACKEND_URL}/askagent/`);
+  url.searchParams.append("question", query);
+  url.searchParams.append("workbook_name", workbookName);
+  url.searchParams.append("sheet_name", sheetName);
   let _data: unknown;
   try {
-    const response = await fetch(url.toString(), { body: JSON.stringify({ query, context }), method: "POST" });
+    const response = await fetch(url.toString(), { method: "GET" });
     _data = await response.text();
 
     if (!response.ok) {

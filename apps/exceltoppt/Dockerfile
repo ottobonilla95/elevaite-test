@@ -52,4 +52,4 @@ EXPOSE 3101
 
 ENV PORT 3101
  
-CMD node apps/elevaite/server.js
+CMD node apps/exceltoppt/server.js

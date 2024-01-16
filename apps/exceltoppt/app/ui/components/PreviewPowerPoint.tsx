@@ -15,9 +15,11 @@ const sourceCodePro = SourceCodePro({ subsets: ["latin"] });
 interface PreviewPowerPointProps {
   summary: string;
   location: string;
+  workbookName: string;
+  sheetName?: string;
 }
 
-function PreviewPowerPoint({ location, summary }: PreviewPowerPointProps): JSX.Element {
+function PreviewPowerPoint({ location, summary, sheetName, workbookName }: PreviewPowerPointProps): JSX.Element {
   const [chatMessages, setChatMessages] = useState<ChatMessageInterface[]>([getInitialMessage()]);
   const [userMessage, setUserMessage] = useState<string>("");
   const [isResponseLoading, setIsResponseLoading] = useState(false);
@@ -34,7 +36,7 @@ function PreviewPowerPoint({ location, summary }: PreviewPowerPointProps): JSX.E
   }
 
   async function handleSubmit(): Promise<void> {
-    if (userMessage) {
+    if (userMessage && sheetName) {
       setUserMessage("");
       const _userMsg: ChatMessageInterface = {
         content: userMessage,
@@ -44,7 +46,7 @@ function PreviewPowerPoint({ location, summary }: PreviewPowerPointProps): JSX.E
       };
       chatMessages.push(_userMsg);
       setIsResponseLoading(true);
-      const res = await ask(userMessage, summary);
+      const res = await ask(userMessage, workbookName, sheetName);
       if (res) {
         const botMsg: ChatMessageInterface = {
           isLoading: false,

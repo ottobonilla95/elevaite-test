@@ -15,7 +15,6 @@ function Homepage(): JSX.Element {
   const [file, setFile] = useState<File>();
   const [filename, setFilename] = useState<string>("");
   const [sheetNames, setSheetNames] = useState<string[]>([]);
-  // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars -- Will be needed later
   const [selectedSheet, setSelectedSheet] = useState<string>();
   const [summary, setSummary] = useState<string>("");
   const [location, setLocation] = useState<string>("");
@@ -99,7 +98,9 @@ function Homepage(): JSX.Element {
           </div>
         );
       case Stages.Review:
-        return <PreviewPowerPoint location={location} summary={summary} />;
+        return (
+          <PreviewPowerPoint location={location} sheetName={selectedSheet} summary={summary} workbookName={filename} />
+        );
       default:
         return <>{null}</>;
     }
