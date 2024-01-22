@@ -129,9 +129,11 @@ function FileViewer({ manifest, originalFile }: { manifest: Manifest; originalFi
       const { rows: _data, cols: _cols } = ExcelWorkSheetRenderer(ws);
       setTableData(_data);
       setTableCols(_cols);
+      //TODO: We should probably notify the user for unsaved changes
+      setCode(manifest.content);
       // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression, no-console -- TEMPORARY
     })().catch((e) => console.error(e));
-  }, [manifest.name, originalFile]);
+  }, [manifest, originalFile]);
 
   return (
     <div className="flex flex-col w-[calc(66vw-33px)] h-[calc(100vh-356px)]">

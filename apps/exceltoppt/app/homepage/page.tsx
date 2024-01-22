@@ -4,11 +4,11 @@ import { Loading } from "@repo/ui/components";
 import { UploadHeader } from "../ui/components/UploadHeader";
 import UploadExcel from "../ui/components/UploadExcel";
 import ReviewManifest from "../ui/components/ReviewManifest";
-import type { GenPPTResponse } from "../lib/interfaces";
+import type { GenPPTResponse, UploadedFile } from "../lib/interfaces";
 import { Stages } from "../lib/interfaces";
 // import UploadTemplate from "../ui/components/UploadTemplate";
 import PreviewPowerPoint from "../ui/components/PreviewPowerPoint";
-import { generatePPT } from "../lib/actions";
+import { generateManifest, generatePPT } from "../lib/actions";
 
 function Homepage(): JSX.Element {
   const [stage, setStage] = useState<Stages>(Stages.Upload);
@@ -37,11 +37,26 @@ function Homepage(): JSX.Element {
     { label: "View PPT", link: "/homepage/review", stage: Stages.Review, key: "review" },
   ];
 
-  function goToManifest(_filename: string, _sheetNames: string[], _file: File): void {
-    setStage(Stages.Manifest);
-    setFile(_file);
-    setFilename(_filename);
-    setSheetNames(_sheetNames);
+  async function goToManifest(_serverFiles: UploadedFile[], _files: File[]): Promise<void> {
+    try {
+      //TODO: This is a temporary bodge as the server currently handles single files.
+      const selectedFile = _serverFiles[0];
+      setIsLoading(true);
+      const data = await generateManifest({
+        fileName: encodeURIComponent(selectedFile.name.split(".")[0]),
+        filePath: encodeURIComponent(selectedFile.name),
+      });
+      const _sheetNames = Array.isArray(data.sheet_names) ? data.sheet_names : [data.sheet_names];
+      setIsLoading(false);
+      setFile(_files[0]);
+      setFilename(selectedFile.name.split(".")[0]);
+      setSheetNames(_sheetNames);
+      setStage(Stages.Manifest);
+    } catch (error) {
+      setIsLoading(false);
+      // eslint-disable-next-line no-console -- Implement better logging
+      console.error("Error generating manifest:", error);
+    }
   }
   // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars, no-unused-vars -- Might need it later
   async function goToTemplate(): Promise<void> {

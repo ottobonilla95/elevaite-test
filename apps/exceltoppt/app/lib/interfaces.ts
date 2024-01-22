@@ -63,3 +63,13 @@ interface GenPPTSuccess {
   export_url: string;
   summary: string;
 }
+
+export interface UploadedFile {
+  name: string;
+  sheetCount: number;
+  sheets: string[];
+  fileSize: string;
+  key: string;
+  filePath: string;
+  fileType: string;
+}

@@ -3,27 +3,16 @@ import type { SVGProps, JSX } from "react";
 import { useState } from "react";
 import Image from "next/image";
 import type { StaticImport } from "next/dist/shared/lib/get-img-props";
-import { generateManifest, uploadToServer } from "../../lib/actions";
+import { uploadToServer } from "../../lib/actions";
 import ExcelSVG from "../icons/vscode-icons_file-type-excel.svg";
+import type { UploadedFile } from "../../lib/interfaces";
 import { UploadWidget } from "./UploadWidget";
 
-interface UploadedFile {
-  name: string;
-  sheetCount: number;
-  sheets: string[];
-  fileSize: string;
-  key: string;
-  filePath: string;
-  fileType: string;
-}
-
 interface UploadExcelProps {
-  onSubmit: (filename: string, sheetNames: string[], originalFiles: File) => void;
+  onSubmit: (_serverFiles: UploadedFile[], _files: File[]) => Promise<void>;
 }
 
 function UploadExcel({ onSubmit }: UploadExcelProps): JSX.Element {
-  // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars -- To be developed
-  const [dragActive, setDragActive] = useState<boolean>(false);
   const [serverFiles, setServerFiles] = useState<UploadedFile[]>([]);
   const [originalFiles, setOriginalFiles] = useState<File[]>([]);
   // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars -- To be developed
@@ -66,22 +55,7 @@ function UploadExcel({ onSubmit }: UploadExcelProps): JSX.Element {
   };
 
   const handleSubmitbutton = async (): Promise<void> => {
-    try {
-      setManifest(true);
-      //TODO: This is a temporary bodge as the server currently handles single files.
-      const selectedFile = serverFiles[0];
-      const data = await generateManifest({
-        fileName: encodeURIComponent(selectedFile.name.split(".")[0]),
-        filePath: encodeURIComponent(selectedFile.name),
-      });
-      const sheetNames = Array.isArray(data.sheet_names) ? data.sheet_names : [data.sheet_names];
-      setManifest(false);
-      onSubmit(selectedFile.name.split(".")[0], sheetNames, originalFiles[0]);
-    } catch (error) {
-      setIsLoading(false);
-      // eslint-disable-next-line no-console -- Implement better logging
-      console.error("Error generating manifest:", error);
-    }
+    await onSubmit(serverFiles, originalFiles);
   };
   return (
     <div className="flex flex-col w-3/5 h-full gap-5 pt-12 pb-12 justify-center">
