@@ -43,8 +43,8 @@ function Homepage(): JSX.Element {
       const selectedFile = _serverFiles[0];
       setIsLoading(true);
       const data = await generateManifest({
-        fileName: encodeURIComponent(selectedFile.name.split(".")[0]),
-        filePath: encodeURIComponent(selectedFile.name),
+        fileName: selectedFile.name.split(".")[0],
+        filePath: selectedFile.name,
       });
       const _sheetNames = Array.isArray(data.sheet_names) ? data.sheet_names : [data.sheet_names];
       setIsLoading(false);

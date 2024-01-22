@@ -29,8 +29,8 @@ export async function generateManifest({
   filePath: string;
 }): Promise<GenerateManifestResponse> {
   const url = new URL(`${BACKEND_URL}/generateManifest/`);
-  url.searchParams.append("file_name", encodeURIComponent(fileName));
-  url.searchParams.append("file_path", `data/Excel/${encodeURIComponent(filePath)}`);
+  url.searchParams.append("file_name", fileName);
+  url.searchParams.append("file_path", `data/Excel/${filePath}`);
   url.searchParams.append("save_dir", "data/Manifest");
   let _data: unknown;
   try {
