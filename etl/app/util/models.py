@@ -71,21 +71,24 @@ class ApplicationFormDTO(BaseModel):
     bottomFields: list[ApplicationFormFieldDTO]
 
 
+class IngestApplicationDTO(BaseApplicationDTO):
+    applicationType: ApplicationType
+
+
 class IngestApplication(BaseApplicationDTO):
     instances: list[ApplicationInstanceDTO]
     form: ApplicationFormDTO
     pipelines: list[ApplicationPipelineDTO]
-
     applicationType: ApplicationType
 
-    def toDto(self) -> BaseApplicationDTO:
-        return BaseApplicationDTO(
+    def toDto(self) -> IngestApplicationDTO:
+        return IngestApplicationDTO(
             applicationType=self.applicationType,
             id=self.id,
             title=self.title,
             icon=self.icon,
             description=self.description,
-            version=self.description,
+            version=self.version,
             creator=self.creator,
         )
 

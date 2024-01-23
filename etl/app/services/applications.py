@@ -1,22 +1,23 @@
 from datetime import datetime
+from pprint import pprint
 import uuid
 
-from ..util.BaseApplication import BaseApplicationDTO
 from ..util.models import (
     ApplicationFormDTO,
     ApplicationInstanceDTO,
     ApplicationPipelineDTO,
     CreateApplicationInstanceDTO,
+    IngestApplicationDTO,
     InstanceStatus,
 )
 from ..util.mockData import applications_list
 
 
-def getApplicationList() -> list[BaseApplicationDTO]:
+def getApplicationList() -> list[IngestApplicationDTO]:
     return map(lambda x: x.toDto(), applications_list)
 
 
-def getApplicationById(application_id: str) -> BaseApplicationDTO:
+def getApplicationById(application_id: str) -> IngestApplicationDTO:
     return list(filter(lambda x: x.id == application_id, applications_list))[0].toDto()
 
 

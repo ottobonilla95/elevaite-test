@@ -6,23 +6,23 @@ from app.util.models import (
     ApplicationInstanceDTO,
     ApplicationPipelineDTO,
     CreateApplicationInstanceDTO,
+    IngestApplicationDTO,
     S3IngestFormDataDTO,
 )
 from app.services import applications as service
 from app.util.websockets import ConnectionManager
-from app.util.BaseApplication import BaseApplicationDTO
 
 router = APIRouter(prefix="/application", tags=["applications"])
 manager = ConnectionManager()
 
 
 @router.get("/")
-def getApplicationList() -> list[BaseApplicationDTO]:
+def getApplicationList() -> list[IngestApplicationDTO]:
     return service.getApplicationList()
 
 
 @router.get("/{application_id}")
-def getApplicationById(application_id: str) -> BaseApplicationDTO:
+def getApplicationById(application_id: str) -> IngestApplicationDTO:
     return service.getApplicationById(application_id)
 
 

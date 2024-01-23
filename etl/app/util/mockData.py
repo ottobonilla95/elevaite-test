@@ -1,4 +1,9 @@
-from .models import ApplicationFormDTO, ApplicationFormFieldDTO, IngestApplication
+from .models import (
+    ApplicationFormDTO,
+    ApplicationFormFieldDTO,
+    ApplicationType,
+    IngestApplication,
+)
 
 
 applications_list: list[IngestApplication] = [
@@ -6,7 +11,7 @@ applications_list: list[IngestApplication] = [
         id="1",
         title="S3 Ingest",
         creator="elevAIte",
-        applicationType="ingest",
+        applicationType=ApplicationType.INGEST,
         description="Ingest data from an S3 bucket",
         version="1.0",
         icon="",
@@ -37,7 +42,7 @@ applications_list: list[IngestApplication] = [
         id="2",
         title="Preprocess #1",
         creator="elevAIte",
-        applicationType="preprocess",
+        applicationType=ApplicationType.PREPROCESS,
         description="Preprocess ingested data",
         version="1.0",
         icon="",
