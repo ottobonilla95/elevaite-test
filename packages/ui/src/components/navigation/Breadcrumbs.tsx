@@ -38,7 +38,7 @@ export function Breadcrumbs({ ...props }: BreadcrumbsProps): JSX.Element {
           ) : (
             <span>{item.label}</span>
           )}
-          {index === props.items.length - 1 ? undefined : <span>{" / "}</span>}
+          {index === props.items.length - 1 ? undefined : <div className="separator">|</div>}
         </React.Fragment>
       ))}
     </div>

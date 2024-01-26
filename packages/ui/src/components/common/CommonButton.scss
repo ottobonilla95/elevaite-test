@@ -1,0 +1,22 @@
+
+
+
+.common-button {
+
+    &.not-overriden {
+        padding: 5px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+        user-select: none;
+    }
+
+    &.no-background {
+        @include buttonClick($transparent: true);
+    }    
+    &:not(.no-background) {
+        @include buttonClick();
+    }
+
+}

@@ -37,6 +37,7 @@ module.exports = {
   // add rules configurations here
   rules: {
     "import/no-default-export": "off",
+    "react/jsx-sort-props": [-1, {}],
     "unicorn/filename-case": [
       "error",
       {

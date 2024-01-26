@@ -1,8 +1,7 @@
 "use client";
 import { NavBar, Sidebar } from "@repo/ui/components";
-import { ColorContext } from "@repo/ui/contexts";
 import { useSession } from "next-auth/react";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { logOut } from "../lib/actions";
 import { engineerSearchHelper, userSearchHelper } from "../lib/searchHelpers";
 import "./AppLayout.scss";
@@ -28,8 +27,6 @@ function AppLayout({
   const [results, setResults] = useState<{ key: string; link: string; label: string }[]>(getResults(""));
   const { data: session } = useSession();
 
-  const colors = useContext(ColorContext);
-
 
   function getResults(term: string): { key: string; link: string; label: string }[] {
     switch (props.layout) {
@@ -53,7 +50,7 @@ function AppLayout({
   
 
   return (
-    <div className="elevaite-main-container" style={colors.getCSSVariablesColorsInjectionStyle()}>
+    <div className="elevaite-main-container" id="elevaite-main-container">
       <NavBar
         breadcrumbLabels={breadcrumbLabels}
         handleSearchInput={handleSearchInput}

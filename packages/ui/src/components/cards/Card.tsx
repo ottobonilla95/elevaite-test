@@ -1,11 +1,12 @@
 "use client";
+import { usePathname, useRouter } from "next/navigation";
 import SVGChevron from "../icons/elevaite/svgChevron";
 import SVGDot from "../icons/elevaite/svgDot";
 import "./Card.scss";
 
 export interface CardProps {
   icon: string;
-  iconAlt: string;
+  iconAlt?: string;
   title: string;
   subtitle?: string;
   description: string;
@@ -13,12 +14,23 @@ export interface CardProps {
   height?: number;
   miscLabel?: string;
   btnLabel?: string;
+  url?: string;
   id?: string;
   link?: string;
   altBackground?: boolean;
 }
 
 export function Card({ icon, title, subtitle, description, ...props }: CardProps): JSX.Element {
+  
+  const router = useRouter();
+  const pathname = usePathname();
+
+  function addIdParameter(): string {
+    if (!props.id) return "";
+    const parameters = new URLSearchParams();
+    parameters.set("id", props.id);
+    return `?${parameters.toString()}`;
+  }
 
   return (
     <div
@@ -32,7 +44,9 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
       <div className="card">
         <div className="card-header">
           <div className="card-header-title">
-            <img alt={props.iconAlt} className="card-header-icon" src={icon} />
+            {!icon ? null :
+              <img src={icon} alt={props.iconAlt ? props.iconAlt : "logo"} className="card-header-icon" />
+            }
             <div className="card-header-label">{title}</div>
           </div>
           {subtitle ? 
@@ -49,7 +63,9 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
         {props.btnLabel ? 
           <button
             className="card-button"
+            disabled={!props.url}
             id={props.id ? `${props.id}Btn` : ""} /* <- What's this for? */
+            onClick={() => { if (props.url) router.push(pathname + props.url + addIdParameter())}}
             type="button"
           >
             {props.btnLabel}

@@ -1,10 +1,18 @@
-@mixin buttonClick($backgroundColor: null, $hoverFocus: false) {
+
+
+@mixin buttonClick($backgroundColor: null, $hoverFocus: false, $transparent: false) {
   filter: brightness(1);
+  @if $transparent {
+    background-color: transparent;
+  }
   transition:
     filter 0.2s ease-in-out,
     background-color 0.2s ease-in-out;
 
   &:hover:not(:disabled) {
+    @if $transparent {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
     @if $backgroundColor {
       background-color: $backgroundColor;
     } @else {
@@ -15,10 +23,11 @@
   &:active:not(:disabled) {
     @if $backgroundColor {
       background-color: $backgroundColor;
-      filter: brightness(0.75);
-    } @else {
-      filter: brightness(0.75);
     }
+    @if $transparent {
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+    filter: brightness(0.75);
     transition: unset;
   }
 
@@ -37,6 +46,42 @@
     opacity: 0.5;
   }
 }
+
+
+
+@mixin skeleton($backgroundColor: var(--ev-colors-primary), $width: 100%, $height: 1.5em) {
+  height: $height;
+  &::after {
+    content: "";
+    position: absolute;
+    top: 25%;
+    height: 50%;
+    width: $width;
+    background-color: $backgroundColor;
+    border-radius: 8px;
+  }
+}
+
+
+// Animations
+
+@mixin rotate() {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+
+// Specific Cases
+
 
 @mixin gridTemplateColumnsCount($minSize: 250px, $maxSize: 1fr) {
   @media (min-width: 640px) {

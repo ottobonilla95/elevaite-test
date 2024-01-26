@@ -1,0 +1,97 @@
+"use client";
+import { useEffect, useState } from "react";
+import "./CommonSelect.scss";
+import SVGChevron from "../icons/elevaite/svgChevron";
+import { CommonButton } from "./CommonButton";
+
+
+export interface CommonSelectOption {
+    label: string;
+    value: string;
+    icon?: React.ReactElement;
+}
+
+
+export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> {
+    theme?: "light" | "dark";
+    options: CommonSelectOption[];
+    defaultValue?: string;
+    anchor?: "left" | "right";
+    onSelectedValueChange: (value: string) => void;
+}
+
+
+export function CommonSelect({theme, options, defaultValue, onSelectedValueChange, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
+    const [selectedOption, setSelectedOption] = useState<CommonSelectOption>();
+    const [isOpen, setIsOpen] = useState(false);
+
+
+    useEffect(() => {
+        if (defaultValue) {
+            const defaultOption = options.find((item) => { return item.value === defaultValue;})
+            if (defaultOption) setSelectedOption(defaultOption);
+            else setSelectedOption(options[0]);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- I only want to run this once at the start, not every time props change.
+    }, []);
+
+
+    function handleClick(option: CommonSelectOption): void {
+        if (option !== selectedOption) {
+            setSelectedOption(option);
+            onSelectedValueChange(option.value);
+        }
+        setIsOpen(false);
+    }
+
+    function handleDoubleClick(): void {
+        if (options.length === 2 && selectedOption?.value === options[0].value) handleClick(options[1]);
+        else if (options.length === 2 && selectedOption?.value === options[1].value) handleClick(options[0]);
+        else setIsOpen((currentValue) => !currentValue);
+    }
+
+    //TODO: Add OnClickOutside
+
+
+    return (
+        <div
+            {...props}
+            className={[
+                "common-select",
+                props.className,
+                theme,
+            ].filter(Boolean).join(" ")}
+        >
+            <CommonButton 
+                className="common-select-display"
+                onClick={() => { setIsOpen((currentValue) => !currentValue); }}
+                onDoubleClick={handleDoubleClick}
+                noBackground
+            >
+                {selectedOption?.label ? selectedOption.label : "No selected option"}
+                <SVGChevron/>
+            </CommonButton>
+
+            <div className={[
+                "common-select-options-container",
+                props.anchor ? `anchor-${props.anchor}` : undefined,
+                isOpen ? "open" : undefined,
+            ].filter(Boolean).join(" ")}>
+                <div className="common-select-options-accordion">
+                    <div className="common-select-options-contents">
+                        {options.map((option) => 
+                            <CommonButton
+                                className="common-select-option"
+                                key={option.value}
+                                onClick={() => { handleClick(option); } }
+                                noBackground
+                            >
+                                {option.label}
+                            </CommonButton>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

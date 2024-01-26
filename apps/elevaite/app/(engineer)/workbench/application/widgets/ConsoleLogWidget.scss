@@ -1,0 +1,48 @@
+
+
+
+.console-log-widget-container {
+    flex-grow: 1;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: var(--ev-colors-backgroundHighContrast);
+
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    min-height: 150px;
+    max-height: 600px;
+
+
+    & .widget-label {
+        color: var(--ev-colors-success);
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+
+    & .log-scroller {
+        overflow: auto;
+        margin-right: -20px;
+        padding: 0 20px;
+        scrollbar-width: thin;
+
+        & .log-contents {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+    }
+
+}
+
+
+.console-log-container {
+    font-size: 14px;
+    font-weight: 400;
+    & .time {
+        color: var(--ev-colors-secondaryText);
+        margin-right: 10px;
+    }
+}

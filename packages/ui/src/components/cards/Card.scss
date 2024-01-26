@@ -34,6 +34,7 @@
     padding: 24px;
     border-radius: 12px;
     min-height: 150px;
+    height: 100%;
 
     & .card-header {
       display: flex;
@@ -78,6 +79,7 @@
     }
 
     & .card-description {
+      flex-grow: 1;
       display: -webkit-box;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 2;

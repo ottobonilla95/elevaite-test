@@ -12,6 +12,7 @@ export const ingestionMethods: CardProps[] = [
     title: "Slack Ingest",
     subtitle: "By Elevaite",
     btnLabel: "Open",
+    id: "SlackIngest001",
   },
   {
     icon: ApplicationIcons.workbench.oneDrive.src,
@@ -20,6 +21,7 @@ export const ingestionMethods: CardProps[] = [
     title: "One Drive Ingest",
     subtitle: "By Elevaite",
     btnLabel: "Open",
+    id: "OneDrive001",
   },
   {
     icon: ApplicationIcons.workbench.mongoDB.src,
@@ -28,6 +30,7 @@ export const ingestionMethods: CardProps[] = [
     title: "MongoDB Ingest",
     subtitle: "By Elevaite",
     btnLabel: "Open",
+    id: "MongoDB001",
   },
   {
     icon: ApplicationIcons.workbench.teams.src,
@@ -36,6 +39,7 @@ export const ingestionMethods: CardProps[] = [
     title: "Microsoft Teams Ingest",
     subtitle: "By Elevaite",
     btnLabel: "Open",
+    id: "Teams-001",
   },
   {
     icon: ApplicationIcons.workbench.slack.src,
@@ -44,6 +48,7 @@ export const ingestionMethods: CardProps[] = [
     title: "Slack Ingest",
     subtitle: "By Elevaite",
     btnLabel: "Open",
+    id: "Slack-001",
   },
   {
     icon: ApplicationIcons.workbench.oneDrive.src,
@@ -52,6 +57,7 @@ export const ingestionMethods: CardProps[] = [
     title: "One Drive Ingest",
     subtitle: "By Elevaite",
     btnLabel: "Open",
+    id: "OneDrive-002",
   },
   {
     icon: ApplicationIcons.workbench.mongoDB.src,
@@ -60,6 +66,7 @@ export const ingestionMethods: CardProps[] = [
     title: "MongoDB Ingest",
     subtitle: "By Elevaite",
     btnLabel: "Open",
+    id: "MongoDB-002",
   },
   {
     icon: ApplicationIcons.workbench.teams.src,
@@ -68,6 +75,7 @@ export const ingestionMethods: CardProps[] = [
     title: "Microsoft Teams Ingest",
     subtitle: "By Elevaite",
     btnLabel: "Open",
+    id: "Teams-002",
   },
 ];
 

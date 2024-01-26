@@ -1,0 +1,32 @@
+
+
+
+
+.ingest-container {
+    min-height: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    grid-template-rows: minmax(80px, 1fr) 9fr;
+    grid-template-areas: 
+    "details details"
+    "instances widgets";
+    gap: 20px;
+    padding: 20px;
+
+    color: var(--ev-colors-text);
+
+
+
+
+    & .details-container {
+        grid-area: details;
+    }
+
+    & .instances-container {
+        grid-area: instances;
+    }
+
+    & .widgets-container {
+        grid-area: widgets;
+    }
+}

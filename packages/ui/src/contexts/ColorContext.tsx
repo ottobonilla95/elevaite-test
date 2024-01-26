@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect } from "react";
 
 // STRUCTURE 
 
@@ -15,9 +15,12 @@ export interface ColorScheme {
   iconBorder?: string;
   hoverColor?: string;
   borderColor?: string;
-  background?: string;  
+  background?: string;
+  backgroundHighContrast?: string;
   navbarLogo?: string,
   navbarBackground?: string,
+  success?: string,
+  danger?: string,
 }
 
 export interface ColorContextStructure extends ColorScheme {
@@ -42,6 +45,18 @@ function formatThemeToCSSVariables(theme: ColorScheme): React.CSSProperties {
   } as React.CSSProperties
 }
 
+function setThemePropertiesToBody(theme: ColorScheme): void {
+  (Object.keys(theme) as (keyof typeof theme)[]).forEach((themeKey) => {
+    const propertyValue = theme[themeKey];
+    if (propertyValue) {
+      document.body.style.setProperty(
+        `--ev-colors-${themeKey}`,
+        propertyValue
+      )
+    }
+  });
+}
+
 
 
 
@@ -53,6 +68,10 @@ interface ColorContextProviderProps {
 }
 
 export function ColorContextProvider(props: ColorContextProviderProps): React.ReactElement {
+
+  useEffect(() => {
+    setThemePropertiesToBody(props.theme);
+  }, [props.theme]);
 
   function getCSSVariablesColorsInjectionStyle(): React.CSSProperties {
     return formatThemeToCSSVariables(props.theme);

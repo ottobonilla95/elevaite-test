@@ -1,0 +1,119 @@
+
+
+
+.app-instances-container {    
+    background-color: var(--ev-colors-primary);
+    padding: 16px;
+    border-radius: 8px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 100%;
+
+
+    & .app-flow-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+
+        & .flow-title {
+            font-size: 14px;
+        }
+
+        & .flow-type {
+            font-size: 14px;
+            font-weight: 600;
+
+            & button {                
+                padding-left: 10px;
+                padding-right: 10px;
+                white-space: nowrap;
+                color: var(--ev-colors-secondaryText);
+                &:hover {                    
+                    color: var(--ev-colors-highlight);
+                }
+            }
+            & > button {
+                color: var(--ev-colors-highlight);
+                border: 1px solid var(--ev-colors-borderColor);
+                min-width: 150px;
+            }
+        }
+    }
+
+
+
+    & .app-instances-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+
+        & .app-instances-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        & .app-instances-type {
+            font-size: 12px;
+        }
+
+        & .add-instance {
+            margin-left: auto;
+            height: 24px;
+            width: 24px;
+            border-radius: 8px;
+            background-color: var(--ev-colors-highlight);
+            color: var(--ev-colors-primary);
+        }
+    }
+
+
+    & .app-instances-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 20px;
+    }
+
+}
+
+
+
+.app-instance {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 16px;
+    padding: 0 5px;
+    border-radius: 4px;
+    font-size: 14px;
+
+    &.hidden {
+        display: none;
+    }
+    &.selected {
+        background-color: var(--ev-colors-borderColor);
+    }
+
+
+    & .app-instance-icon {
+        &.starting { color: var(--ev-colors-secondaryText) }
+        &.ongoing { color: var(--ev-colors-highlight) }
+        &.completed { color: var(--ev-colors-success) }
+        &.failed { color: var(--ev-colors-danger) }
+    }
+
+    & .app-instance-label {
+        flex-grow: 1;
+        text-align: start;
+        word-break: break-word;
+    }
+
+    & .app-instance-elapsed-time {
+        flex-shrink: 0;
+        text-align: end;
+        font-variant-numeric: tabular-nums;
+    }
+}

@@ -24,7 +24,7 @@ function UserHeader(): JSX.Element {
       <span className="welcome" style={{ color: colors.text }}>
         Welcome to elevAIte<span style={{ fontWeight: 700 }}> Mary </span>!
       </span>
-      <Searchbar handleInput={handleSearchInput} isJump results={results} resultsTopOffset="80px" width="280px" />
+      <Searchbar handleInput={handleSearchInput} isJump results={results} resultsTopOffset="80px" />
     </header>
   );
 }

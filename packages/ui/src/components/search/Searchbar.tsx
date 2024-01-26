@@ -47,6 +47,13 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps): JSX.Elemen
   };
 
 
+  function getHotkeyHint(): string {
+    if (!global.navigator.platform) return "";
+    if (global.navigator.platform.toUpperCase().includes("MAC") || global.navigator.platform === "iPhone") return "⌘+F";
+    return "Ctrl+F";
+  }
+
+
   return (
     <div className="searchbar-container"
       onBlur={() =>
@@ -68,7 +75,7 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps): JSX.Elemen
           type="search"
         />
         <span className="hotkey-hint">
-          {navigator.platform.toUpperCase().includes("MAC") || navigator.platform === "iPhone" ? "⌘" : "Ctrl"}+F
+          {getHotkeyHint()}
         </span>
       </div>
       {showResults ? (

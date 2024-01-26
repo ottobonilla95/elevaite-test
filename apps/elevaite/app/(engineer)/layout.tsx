@@ -32,6 +32,10 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
     label: "Workbench",
     link: "/workbench",
   },
+  application: {
+    label: "Application",
+    link: "/application",
+  },
   home: {
     label: "Applications",
     link: "/",
