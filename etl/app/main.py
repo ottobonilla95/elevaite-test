@@ -1,12 +1,29 @@
+from contextlib import asynccontextmanager
+import logging
+from dotenv import load_dotenv
 from fastapi import FastAPI
+import pika
 import uvicorn
 from app.routers.applications import router as applications_router
 
 from app.util.flowTest import HelloFlow
 from app.util.argoTest import create_test_workflow
+from app.util.RedisSingleton import RedisSingleton
+from app.util.RabbitMQSingleton import RabbitMQSingleton
 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    load_dotenv()
+    logging.info("Initializing...")
+    rabbit = RabbitMQSingleton()
+    rabbit.channel.queue_declare(queue="s3_ingest")
+    redis = RedisSingleton()
+    yield
+    # Add here code that runs when the service shuts down
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.include_router(applications_router)
 

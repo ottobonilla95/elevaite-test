@@ -5,7 +5,7 @@ from app.util.models import (
     ApplicationFormDTO,
     ApplicationInstanceDTO,
     ApplicationPipelineDTO,
-    CreateApplicationInstanceDTO,
+    IngestApplicationChartDataDTO,
     IngestApplicationDTO,
     S3IngestFormDataDTO,
 )
@@ -41,6 +41,15 @@ def getApplicationInstanceById(
     application_id: str, instance_id: str
 ) -> ApplicationInstanceDTO:
     return service.getApplicationInstanceById(
+        application_id=application_id, instance_id=instance_id
+    )
+
+
+@router.get("/{application_id}/instance/{instance_id}/chart")
+def getApplicationInstanceChart(
+    application_id: str, instance_id: str
+) -> IngestApplicationChartDataDTO:
+    return service.getApplicationInstanceChart(
         application_id=application_id, instance_id=instance_id
     )
 

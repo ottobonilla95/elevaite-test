@@ -45,11 +45,11 @@ class ApplicationFormFieldDTO(BaseModel):
 
 
 class IngestApplicationChartDataDTO(BaseModel):
-    partsCompleted: int = 0
+    totalItems: int = 0
+    ingestedItems: int = 0
     avgSize: int = 0
-    contextualTotal: int = 0
-    totalChunks: int = 0
-    percentage: int = 0
+    totalSize: int = 0
+    ingestedSize: int = 0
 
 
 class ApplicationInstanceDTO(BaseModel):
@@ -60,10 +60,6 @@ class ApplicationInstanceDTO(BaseModel):
     status: InstanceStatus
     datasetId: Union[str, None]
     initialChartData: IngestApplicationChartDataDTO
-
-
-class CreateApplicationInstanceDTO(BaseModel):
-    creator: str
 
 
 class ApplicationFormDTO(BaseModel):
@@ -99,7 +95,7 @@ class BaseDatasetInformationForm(BaseModel):
     project: str
     version: str | None
     parent: str | None
-    outputURO: str | None
+    outputURI: str | None
 
 
 class S3IngestFormDataDTO(BaseDatasetInformationForm):
@@ -108,3 +104,8 @@ class S3IngestFormDataDTO(BaseDatasetInformationForm):
     url: str
     useEC2: bool
     roleARN: str
+
+
+class CreateApplicationInstanceDTO(BaseModel):
+    creator: str
+    formData: S3IngestFormDataDTO
