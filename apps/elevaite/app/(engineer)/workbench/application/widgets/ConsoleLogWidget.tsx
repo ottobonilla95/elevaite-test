@@ -1,39 +1,78 @@
 import dayjs from "dayjs";
 import "./ConsoleLogWidget.scss";
+import { AppInstanceObject, AppInstanceStatus } from "../../../../lib/interfaces";
+import { useEffect, useState } from "react";
 
 
 const commonLabels = {
     consoleLog: "Console Log",
 }
 
+const standardizedMessages = {
+    instanceStart: "Instance processing started.",
+    instanceComplete: "Instance processing completed.",
+    instanceFail: "Instance processing failed.",
+}
 
-const test = [
-    {
-        date: dayjs().subtract(1, "h").toISOString(),
-        description: "Console.ExampleFormatters.Json.Startup[0] Application started. Press Ctrl+C to shut down.Application started. Press Ctrl+C to shut down.Application started. Press Ctrl+C to shut down."
-    },
-    {
-        date: dayjs().subtract(2, "h").toISOString(),
-        description: "Console.ExampleFormatters.Json.Startup[0] Application started.Press Ctrl+C to shut down.Application started."
-    },
-    {
-        date: dayjs().subtract(3, "h").toISOString(),
-        description: "Press Ctrl+C to shut down.Application started. Press Ctrl+C to shut down.Application started. Press Ctrl+C to shut down."
-    },
-]
 
 
 interface ConsoleLogWidgetProps {
-
+    instance?: AppInstanceObject;
 }
 
 export function ConsoleLogWidget(props: ConsoleLogWidgetProps): JSX.Element {
+    const [entries, setEntries] = useState<{date: string, description: string}[]>([]);
+
+    useEffect(() => {
+        setEntries([]);
+        setStandardLogEntries();
+        // Get other entries?
+        sortLogEntries();
+    }, [props.instance]);
+
+
+    function setStandardLogEntries() {
+        if (!props.instance) return;
+        if (props.instance.startTime) {
+            setEntries(current => {
+                if (!props.instance) return current;
+                return [...current,
+                    {
+                        date: props.instance.startTime,
+                        description: standardizedMessages.instanceStart,
+                    }
+                ]
+            });
+        }
+        if (props.instance.endTime) {
+            setEntries(current => {
+                if (!props.instance?.endTime) return current;
+                return [...current, 
+                    {
+                        date: props.instance.endTime,
+                        description: props.instance!.status === AppInstanceStatus.FAILED ? standardizedMessages.instanceFail : standardizedMessages.instanceComplete,
+                    }
+                ]
+            });
+        }
+    }
+
+    function sortLogEntries(): void {
+        setEntries(current => {
+            return current.sort((a, b) => { return dayjs(b.date).valueOf() - dayjs(a.date).valueOf() });
+        })
+    };
+
+
+
     return (
         <div className="console-log-widget-container">
             <div className="widget-label">{commonLabels.consoleLog}</div>
             <div className="log-scroller">
                 <div className="log-contents">
-                    {test.map((log) => <ConsoleLogEntry log={log} key={log.date} /> )}
+                    {entries.map(entry => 
+                        <ConsoleLogEntry {...entry} key={entry.date + entry.description} />
+                    )}
                 </div>
             </div>
         </div>
@@ -41,11 +80,11 @@ export function ConsoleLogWidget(props: ConsoleLogWidgetProps): JSX.Element {
 }
 
 
-function ConsoleLogEntry({log}: {log: {date: string, description: string}}): JSX.Element {
+function ConsoleLogEntry({date, description}: {date: string, description: string}): JSX.Element {
     return (
         <div className="console-log-container">
-            <span className="time">{dayjs(log.date).format("YYYY-MM-DD hh:mm:ss")}</span>
-            <span>{log.description}</span>
+            <span className="time">{dayjs(date).format("YYYY-MM-DD hh:mm:ss")}</span>
+            <span>{description}</span>
         </div>
     );
 }

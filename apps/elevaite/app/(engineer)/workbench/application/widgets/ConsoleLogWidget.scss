@@ -44,5 +44,6 @@
     & .time {
         color: var(--ev-colors-secondaryText);
         margin-right: 10px;
+        font-variant-numeric: tabular-nums;
     }
 }

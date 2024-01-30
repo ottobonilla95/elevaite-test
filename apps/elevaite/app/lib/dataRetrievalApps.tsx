@@ -4,7 +4,7 @@ import { AppInstanceFieldTypes, AppInstanceFormStructure, S3IngestFormDTO } from
 
 
 export const S3DataRetrievalAppInstanceFormInitializer: S3IngestFormDTO = {
-    creator: "test user", // TODO: Apply proper value here
+    creator: "",
     name: "",
     project: "",
     version: "",

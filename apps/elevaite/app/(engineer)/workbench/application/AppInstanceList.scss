@@ -75,6 +75,26 @@
         flex-direction: column;
         gap: 8px;
         margin-top: 20px;
+
+        & .loading-container {
+            min-height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            & > svg {
+                height: 40px;
+                width: 40px;
+                @include rotate();
+            }
+        }
+
+        & .list-message {
+            display: flex;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--ev-colors-secondaryText);
+        }
     }
 
 }

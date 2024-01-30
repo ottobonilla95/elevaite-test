@@ -1,4 +1,4 @@
-import type { AppInstanceObject, ApplicationObject } from "./interfaces";
+import type { AppInstanceObject, ApplicationObject, ChartDataObject } from "./interfaces";
 
 
 function isObject(item: unknown): item is object {
@@ -16,6 +16,15 @@ export function isGetApplicationListReponse(data: unknown): data is ApplicationO
 
 export function isGetApplicationResponse(data: unknown): data is ApplicationObject {
     return isApplicationObject(data);
+}
+
+export function isGetInstanceChartDataResponse(data: unknown): data is ChartDataObject {
+    return isObject(data) &&
+    "totalItems" in data &&
+    "ingestedItems" in data &&
+    "avgSize" in data &&
+    "totalSize" in data &&
+    "ingestedSize" in data;
 }
 
 export function isGetInstanceListResponse(data: unknown): data is AppInstanceObject[] {

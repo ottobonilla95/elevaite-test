@@ -35,6 +35,18 @@
     }
 
 
+    & .error-container {
+        position: absolute;
+        top: 80px; bottom: 0; left: 0; right: 0;
+        border-radius: 0 0 8px 8px;
+        background-color: rgba(255, 255, 255, 0.2);
+        z-index: 30;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 20px;
+    }
+
     & .details-header {
         display: flex;
         justify-content: space-between;
@@ -59,11 +71,12 @@
         min-height: 0;
         padding: 0 5px;
         overflow: auto;
-        scrollbar-width: thin;
+        
+        @include scrollbar();
     }
 
     
-    & .details-content {            
+    & .details-content {
         display: flex;
         flex-direction: column;
         gap: 20px;

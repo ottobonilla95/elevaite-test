@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AppInstanceFieldStructure, AppInstanceFieldTypes, AppInstanceFormStructure, Initializers } from "../../../../lib/interfaces";
 import "./AddInstanceDetails.scss";
 import { createApplicationInstance } from "../../../../lib/actions";
+import { useSession } from "next-auth/react";
 
 
 
@@ -29,6 +30,8 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
     const [formData, setFormData] = useState(props.addInstanceStructure?.initializer);
     const [isConfirmDisabled, setIsConfirmDisabled] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
+    const session = useSession();
 
 
     useEffect(() => {
@@ -66,6 +69,18 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
         });
      }
 
+     function handleErrorMessageClick() {
+        setErrorMessage("");
+     }
+
+
+     function setUser(data: Initializers): Initializers {
+        if (session?.data?.user?.name) {
+            data.creator = session.data.user.name;
+        } else data.creator = "Unknown User";
+        return data;
+     }
+
 
     function handleClose(): void {
         props.onClose();
@@ -74,16 +89,24 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
 
     async function handleConfirm(): Promise<void> {
         if (!props.applicationId || !props.addInstanceStructure || !formData) return;
-        // Check all data first.
+
+        // Attach user
+        setUser(formData);
+
+        // Check all required data.
         if (getIsRequiredFieldEmptyInList(formData, props.addInstanceStructure.fields)) return;
 
+        // Commit to server
         try {
             console.log("Form data passed:", formData);
+            setIsProcessing(true);
             await createApplicationInstance(props.applicationId, formData);
+            setIsProcessing(false);
             props.onClose(true);
         } catch (error) {
             console.log("Error:", error);
-            props.onClose();
+            setIsProcessing(false);
+            setErrorMessage("An error was encountered. Please try again.")
         }
 
     }
@@ -140,6 +163,11 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
             {!isProcessing ? null : 
                 <div className="processing">
                     <ElevaiteIcons.SVGSpinner/>
+                </div>
+            }
+            {!errorMessage ? null : 
+                <div className="error-container" onClick={handleErrorMessageClick}>
+                    <span>{errorMessage}</span>
                 </div>
             }
             <div className="details-header">

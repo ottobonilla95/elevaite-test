@@ -4,51 +4,15 @@ import "./AppInstanceList.scss";
 import type { CommonSelectOption} from "@repo/ui/components";
 import { CommonButton, CommonSelect, ElevaiteIcons } from "@repo/ui/components";
 import { useElapsedTime } from "@repo/ui/hooks";
-import { AppInstanceFormStructure, AppInstanceObject, AppInstanceStatus, ApplicationType } from "../../../lib/interfaces";
+import { AppInstanceObject, AppInstanceStatus, ApplicationType } from "../../../lib/interfaces";
+import { useSession } from "next-auth/react";
+import { getApplicationInstanceList } from "../../../lib/actions";
+import dayjs from "dayjs";
 
-
-// Check for instances of "me" when you attach the proper functions.
-const TEST: AppInstanceObject[] = [
-    {
-        creator: "me",
-        datasetId: "testd1",
-        id: "test1",
-        startTime: new Date(1705791414101).toISOString(),
-        status: AppInstanceStatus.RUNNING,
-    },
-    {
-        creator: "notMe",
-        datasetId: "testd2",
-        id: "test2",
-        startTime: new Date(1705791414101).toISOString(),
-        status: AppInstanceStatus.RUNNING,
-    },
-    {
-        creator: "me",
-        datasetId: "testd3",
-        id: "test3",
-        startTime: new Date(1705791414101).toISOString(),
-        endTime: new Date(1705791428101).toISOString(),
-        status: AppInstanceStatus.COMPLETED,
-    },
-    {
-        creator: "me",
-        datasetId: "testd4",
-        id: "test4",
-        startTime: new Date(1705791414101).toISOString(),
-        status: AppInstanceStatus.STARTING,
-    },
-    {
-        creator: "me",
-        datasetId: "testd5",
-        id: "test5",
-        startTime: new Date(1705791414101).toISOString(),
-        status: AppInstanceStatus.FAILED,
-    },
-];
 
 
 interface AppInstanceListProps {
+    applicationId: string | null;
     applicationType?: ApplicationType;
     onSelectedInstanceChange: (instance: AppInstanceObject|undefined) => void;
     onSelectedFlowChange?: (flow: string) => void;
@@ -56,8 +20,13 @@ interface AppInstanceListProps {
 }
 
 export default function AppInstanceList(props: AppInstanceListProps): JSX.Element {
+    const session = useSession();
     const [isAllInstances, setIsAllInstances] = useState<boolean>(false);
     const [selectedInstance, setSelectedInstance] = useState<AppInstanceObject>();
+    const [isLoading, setIsLoading] = useState(true);
+    const [allInstances, setAllInstances] = useState<AppInstanceObject[]>();
+    const [visibleInstances, setVisibleInstances] = useState<AppInstanceObject[]>([]);
+
 
     const instanceViewOptions: CommonSelectOption[] = [
         {label: "My Instances", value: "my"},
@@ -71,15 +40,49 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
         {label: "Forums", value: "forums"},
     ];
 
+
+    useEffect(() => {
+        void (async () => {
+            try {
+                if (!props.applicationId) return;
+                const data = await getApplicationInstanceList(props.applicationId);
+                setAllInstances(data);
+                setIsLoading(false);
+            } catch (error) {
+                setIsLoading(false);
+                console.error('Error fetching instances list:', error);
+            }
+        })();
+    }, [props.applicationId]);
+
+    useEffect(() => {
+        if (!allInstances) return;
+        sortInstances(allInstances);
+        assignVisibleInstances();
+    }, [allInstances]);
+
+
     useEffect(() => {
         props.onSelectedInstanceChange(selectedInstance);
     // This rule is starting to grate on my nerves.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- I don't want this to run when the props change, only when the selected instance changes.
     }, [selectedInstance]);
 
+
+    function sortInstances(instances: AppInstanceObject[]): void {
+        const sortingOrder = [AppInstanceStatus.STARTING, AppInstanceStatus.RUNNING, AppInstanceStatus.FAILED, AppInstanceStatus.COMPLETED];
+        instances.sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf() );
+        instances.sort((a, b) => sortingOrder.indexOf(a.status) - sortingOrder.indexOf(b.status));
+    }
+
+    function assignVisibleInstances(): void {
+        setVisibleInstances(allInstances ?? []);
+    }
+
+
     function handleAllInstanceViewChange(value: string): void {
         setIsAllInstances(value === "all");
-        if (value === "all" && selectedInstance?.creator !== "me") setSelectedInstance(undefined);
+        if (value === "all" && selectedInstance?.creator !== "Test User") setSelectedInstance(undefined);
     }
 
     function handleFlowChange(value: string): void {
@@ -125,12 +128,17 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
             </div>
 
             <div className="app-instances-list">
-                {TEST.map((instance) => 
+                {isLoading ?
+                    <div className="loading-container"><ElevaiteIcons.SVGSpinner/></div>
+                    :
+                    visibleInstances.length === 0 ? 
+                        <div className="list-message">There are no active instances.</div>
+                    : visibleInstances.map((instance) => 
                     <AppInstance
                         key={instance.id}
                         {...instance}
                         isSelected={selectedInstance?.id === instance.id}
-                        isVisible={isAllInstances || instance.creator === "me"}
+                        isVisible={isAllInstances || instance.creator === (session?.data?.user?.name ?? "Test User")}
                         onClick={handleInstanceClick}
                     />
                 )}

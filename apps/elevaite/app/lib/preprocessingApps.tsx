@@ -5,7 +5,7 @@ import { AppInstanceFieldTypes, AppInstanceFormStructure, S3IngestFormDTO, S3Pre
 
 
 export const S3PreprocessFormInitializer: S3PreprocessFormDTO = {
-    creator: "test user", // TODO: Apply proper value here
+    creator: "",
     pipelineName: "",
     datasetId: "",
     datasetName: "",

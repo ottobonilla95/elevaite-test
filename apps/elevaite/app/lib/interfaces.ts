@@ -46,13 +46,32 @@ export interface AppInstanceObject {
     startTime: string,
     endTime?: string,
     status: AppInstanceStatus,
-    initialChartData?: {
-      partsCompleted: number,
-      avgSize: number,
-      contextualTotal: number,
-      totalChunks: number,
-      percentage: number,
-    }
+    chartData?: ChartDataObject,
+}
+
+export interface ChartDataObject {
+    totalItems: number,
+    ingestedItems: number,
+    avgSize: number,
+    totalSize: number,
+    ingestedSize: number,
+}
+
+export interface PipelineObject {
+    id: string;
+    entry: string; // What's that?
+    label: string; // Documents, Threads, Forums, etc
+    steps: PipelineStep[];
+}
+
+export interface PipelineStep {
+    id: string;
+    dependsOn: string[];
+    stepOrder: number;
+    stepLabel: string;
+    label: string;
+    value: string;
+    status: AppInstanceStatus;
 }
 
 
@@ -69,7 +88,7 @@ export type AppInstanceFieldStructure =
     {
         label: string;
         type: AppInstanceFieldTypes.GROUP;
-        fields: AppInstanceFieldStructure[]
+        fields: AppInstanceFieldStructure[];
     }
 
 

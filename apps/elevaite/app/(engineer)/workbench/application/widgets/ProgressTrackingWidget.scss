@@ -1,0 +1,99 @@
+
+
+
+
+
+.progress-tracking-widget-container {
+    flex-grow: 1;
+
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.progress-bit-container {
+    flex-shrink: 0;
+    flex-grow: 1;
+    min-height: 125px;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: var(--ev-colors-backgroundHighContrast);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 10px;
+
+    &.loading-bar-version {
+        flex-shrink: 1;
+        flex-grow: 1.5;
+    }
+
+
+
+    & .loading-bar-container {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+
+        & .loading-bar-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            & .bit-value {
+                font-size: 16px;
+                font-weight: 600;
+            }
+            & .bit-units {
+                font-size: 12px;
+                font-weight: 400;
+                color: var(--ev-colors-secondaryText);
+            }
+        }
+
+        & .loading-bar {
+            flex-grow: 1;
+            position: relative;
+            height: 16px;
+            border-radius: 4px;
+            background-color: var(--ev-colors-primary);
+
+            & .fill-bar{
+                position: absolute;
+                top: 0; bottom: 0; left: 0;
+                background-color: var(--ev-colors-highlight);
+                border-radius: 4px;
+            }
+        }
+    }
+    
+
+
+
+    & .bit-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--ev-colors-secondaryText);
+        text-transform: uppercase;
+    }
+
+    & .bit-content {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+
+        & .bit-value {
+            flex-grow: 1;
+            font-size: 32px;
+            font-weight: 600;
+            text-align: end;
+        }
+        & .bit-units {
+            flex-shrink: 0;
+            font-size: 20px;
+            font-weight: 300;
+            color: var(--ev-colors-highlight);
+        }
+    }
+}

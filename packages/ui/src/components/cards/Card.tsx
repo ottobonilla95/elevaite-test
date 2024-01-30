@@ -3,6 +3,7 @@ import { usePathname, useRouter } from "next/navigation";
 import SVGChevron from "../icons/elevaite/svgChevron";
 import SVGDot from "../icons/elevaite/svgDot";
 import "./Card.scss";
+import { ElevaiteIcons, Logos } from "..";
 
 export interface CardProps {
   icon: string;
@@ -44,7 +45,10 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
       <div className="card">
         <div className="card-header">
           <div className="card-header-title">
-            {!icon ? null :
+            {!icon ? //TODO: Remove testing icons
+                props.id === "1" ? <Logos.Aws/> :
+                props.id === "2" ? <Logos.Preprocess/>
+              : null :
               <img src={icon} alt={props.iconAlt ? props.iconAlt : "logo"} className="card-header-icon" />
             }
             <div className="card-header-label">{title}</div>

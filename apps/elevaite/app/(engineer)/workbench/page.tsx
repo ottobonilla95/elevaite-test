@@ -33,7 +33,6 @@ export default function Page(): JSX.Element {
   }, []);
 
   useEffect(() => {
-    console.log("App list", applicationList);
     if (applicationList) {
       setDataRetrievalList(applicationList.filter((app) => { return app.applicationType === ApplicationType.INGEST; }));
       setPreProcessingList(applicationList.filter((app) => { return app.applicationType === ApplicationType.PREPROCESS; }));

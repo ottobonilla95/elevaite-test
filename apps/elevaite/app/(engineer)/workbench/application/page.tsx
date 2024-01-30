@@ -8,7 +8,7 @@ import ApplicationDetails from "./ApplicationDetails";
 import WidgetDocker from "./WidgetDocker";
 import "./page.scss";
 import { AddInstanceForm } from "./addInstance/AddInstanceDetails";
-import { getApplicationById, getApplicationInstanceList } from "../../../lib/actions";
+import { getApplicationById, getApplicationInstanceList, getApplicationPipelines } from "../../../lib/actions";
 import { S3DataRetrievalAppInstanceForm } from "../../../lib/dataRetrievalApps";
 import { S3PreprocessingAppInstanceForm } from "../../../lib/preprocessingApps";
 
@@ -34,7 +34,6 @@ export default function Page(): JSX.Element {
         if (!id) return;
         setIsDetailsLoading(true);
         const data = await getApplicationById(id);
-        console.log("Application:", data);
         setApplicationDetails(data);
         setIsDetailsLoading(false);
       } catch (error) {
@@ -48,15 +47,24 @@ export default function Page(): JSX.Element {
         if (!id) return;
         setIsListLoading(true)
         const data = await getApplicationInstanceList(id);
-        console.log("App instances:", data);
         setAppInstanceList(data);
         setIsListLoading(false);
       } catch (error) {
         setIsListLoading(false);
         setHasError(true);
-        console.error('Error fetching application list', error);
+        console.error('Error fetching application instance list', error);
       }
     })();
+    // void (async () => {
+    //   try {
+    //     if (!id) return;
+    //     const pipelines = await getApplicationPipelines(id);
+    //     console.log("Pipelines:", pipelines);
+    //   } catch (error) {
+    //     setHasError(true);
+    //     console.error('Error fetching application pipelines', error);
+    //   }
+    // })();
   }, [id]);
 
 
@@ -101,6 +109,7 @@ export default function Page(): JSX.Element {
 
       <div className="instances-container">
         <AppInstanceList
+          applicationId={id}
           applicationType={applicationDetails?.applicationType}
           onAddInstanceClick={() => {setIsAddInstanceModalOpen(true)}}
           onSelectedInstanceChange={handleSelectedInstanceChange}
@@ -110,6 +119,7 @@ export default function Page(): JSX.Element {
 
       <div className="widgets-container">
         <WidgetDocker
+          applicationId={id}
           applicationType={applicationDetails?.applicationType}
           selectedInstance={selectedInstance}
           selectedFlow={selectedFlow}
