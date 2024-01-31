@@ -1,9 +1,11 @@
+from datetime import datetime
 import json
 import logging
 import os
 from pprint import pprint
 import sys
 from dotenv import load_dotenv
+from elasticsearch import Elasticsearch
 import pika
 import boto3
 import lakefs
@@ -29,6 +31,7 @@ class S3IngestData:
     useEC2: bool
     roleARN: str
     datasetID: str
+    applicationID: str
 
     def __init__(
         self,
@@ -44,6 +47,7 @@ class S3IngestData:
         useEC2: bool,
         roleARN: str,
         datasetID: str,
+        applicationID: str,
     ) -> None:
         self.creator = creator
         self.name = name
@@ -57,15 +61,23 @@ class S3IngestData:
         self.useEC2 = useEC2
         self.roleARN = roleARN
         self.datasetID = datasetID
+        self.applicationID = applicationID
 
 
 def main():
     load_dotenv()
+    RABBITMQ_USER = os.getenv("RABBITMQ_USER")
+    RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
+    RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
+    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(
-            host=os.getenv("RABBITMQ_HOST"),
+            host=RABBITMQ_HOST,
+            port=5672,
             heartbeat=600,
             blocked_connection_timeout=300,
+            credentials=credentials,
+            virtual_host="elevaite_dev",
         )
     )
     channel = connection.channel()
@@ -77,7 +89,9 @@ def main():
 
         print(f" [x] Received {_data}")
 
-        _formData = S3IngestData(**_data["dto"], datasetID=_data["id"])
+        _formData = S3IngestData(
+            **_data["dto"], datasetID=_data["id"], applicationID=_data["application_id"]
+        )
         s3_lakefs_cp_stream(formData=_formData)
         print("Done importing data")
 
@@ -154,6 +168,9 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
     S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY")
     REDIS_HOST = os.getenv("REDIS_HOST")
     REDIS_PORT = os.getenv("REDIS_PORT")
+    ELASTIC_PASSWORD = os.getenv("ELASTIC_PASSWORD")
+    ELASTIC_SSL_FINGERPRINT = os.getenv("ELASTIC_SSL_FINGERPRINT")
+    ELASTIC_HOST = os.getenv("ELASTIC_HOST")
     print("REDIS_HOST: ", REDIS_HOST)
     print("REDIS_PORT: ", REDIS_PORT)
 
@@ -184,7 +201,13 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
         aws_secret_access_key=LAKEFS_SECRET_ACCESS_KEY,
         endpoint_url=LAKEFS_ENDPOINT_URL,
     )
-    pprint(lakefs_s3.list_buckets())
+
+    # Create the client instance
+    client = Elasticsearch(
+        ELASTIC_HOST,
+        ssl_assert_fingerprint=ELASTIC_SSL_FINGERPRINT,
+        basic_auth=("elastic", ELASTIC_PASSWORD),
+    )
 
     # src_bucket = _get_iam_s3_client(role_arn=formData.roleARN, endpoint=None).Bucket(
     #     formData.url
@@ -216,15 +239,21 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
         "total_size": size,
     }
 
-    pprint(_data)
-
-    if r.ping():
-        print("Redis Online")
-
     r.json().set(formData.datasetID, ".", _data)
 
-    res = r.json().get(formData.datasetID)
-    print(res)
+    resp = client.get(index="application", id=formData.applicationID)
+    instances = resp["_source"]["instances"]
+    for instance in instances:
+        if instance["id"] == formData.datasetID:
+            instance["status"] = "running"
+
+    client.update(
+        index="application",
+        id=formData.applicationID,
+        body=json.dumps({"doc": {"instances": instances}}, default=vars),
+    )
+
+    branch = repo.branch("main")
 
     for summary in src_bucket.objects.all():
         r.json().numincrby(formData.datasetID, ".ingested_size", summary.size)
@@ -233,13 +262,35 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
         # pprint(summary)
         if summary.key.endswith("/"):
             continue
-        stream = src_bucket.Object(summary.key).get()["Body"]
+        s3_object = src_bucket.Object(summary.key).get()
+        stream = s3_object["Body"]
         lakefs_s3.upload_fileobj(
             Fileobj=stream, Bucket=formData.project, Key=f"main/{summary.key}"
         )
+        # branch.object(path=f"main/{summary.key}").upload(
+        #     content_type=s3_object["ContentType"], data=stream
+        # )
 
     res = r.json().get(formData.datasetID)
-    print(res)
+    resp = client.get(index="application", id=formData.applicationID)
+    instances = resp["_source"]["instances"]
+    for instance in instances:
+        if instance["id"] == formData.datasetID:
+            instance["status"] = "completed"
+            instance["endTime"] = datetime.utcnow().isoformat()
+            instance["chartData"] = {
+                "totalItems": res["total_items"],
+                "ingestedItems": res["ingested_items"],
+                "avgSize": res["avg_size"],
+                "totalSize": res["total_size"],
+                "ingestedSize": res["ingested_size"],
+            }
+
+    client.update(
+        index="application",
+        id=formData.applicationID,
+        body=json.dumps({"doc": {"instances": instances}}, default=vars),
+    )
 
 
 if __name__ == "__main__":

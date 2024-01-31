@@ -6,14 +6,14 @@ from pydantic import BaseModel
 from app.util.BaseApplication import BaseApplicationDTO
 
 
-class InstanceStatus(Enum):
+class InstanceStatus(str, Enum):
     STARTING = "starting"
     RUNNING = "running"
     FAILED = "failed"
     COMPLETED = "completed"
 
 
-class ApplicationType(Enum):
+class ApplicationType(str, Enum):
     INGEST = "ingest"
     PREPROCESS = "preprocess"
 
@@ -34,6 +34,7 @@ class ApplicationPipelineDTO(BaseModel):
     id: UUID
     steps: list[ApplicationPipelineStepDTO]
     entry: UUID
+    label: str
 
 
 class ApplicationFormFieldDTO(BaseModel):
@@ -59,7 +60,7 @@ class ApplicationInstanceDTO(BaseModel):
     endTime: Union[str, None]
     status: InstanceStatus
     datasetId: Union[str, None]
-    initialChartData: IngestApplicationChartDataDTO
+    chartData: IngestApplicationChartDataDTO
 
 
 class ApplicationFormDTO(BaseModel):

@@ -10,6 +10,8 @@ from app.util.flowTest import HelloFlow
 from app.util.argoTest import create_test_workflow
 from app.util.RedisSingleton import RedisSingleton
 from app.util.RabbitMQSingleton import RabbitMQSingleton
+from app.util.elastic_seed import HelloElastic
+from app.util.ElasticSingleton import ElasticSingleton
 
 
 @asynccontextmanager
@@ -19,8 +21,10 @@ async def lifespan(app: FastAPI):
     rabbit = RabbitMQSingleton()
     rabbit.channel.queue_declare(queue="s3_ingest")
     redis = RedisSingleton()
+    elastic = ElasticSingleton()
     yield
     # Add here code that runs when the service shuts down
+    rabbit.connection.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -41,10 +45,17 @@ def helloFlow():
 
 
 @app.post("/helloargo")
-def helloFlow():
+def helloArgo():
     print("Starting Argo Workflows")
     res = create_test_workflow()
     return {"res": res}
+
+
+@app.post("/helloelastic")
+def helloElastic():
+    print("Starting ElasticSearch")
+    HelloElastic()
+    return {}
 
 
 if __name__ == "__main__":

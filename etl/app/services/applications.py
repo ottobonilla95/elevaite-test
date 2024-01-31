@@ -2,15 +2,14 @@ from datetime import datetime
 import json
 from pprint import pprint
 import uuid
-
+from ..util.ElasticSingleton import ElasticSingleton
 from ..util.RedisSingleton import RedisSingleton
-
 from ..util.RabbitMQSingleton import RabbitMQSingleton
-
 from ..util.models import (
     ApplicationFormDTO,
     ApplicationInstanceDTO,
     ApplicationPipelineDTO,
+    IngestApplication,
     IngestApplicationChartDataDTO,
     IngestApplicationDTO,
     InstanceStatus,
@@ -20,41 +19,56 @@ from ..util.mockData import applications_list
 
 
 def getApplicationList() -> list[IngestApplicationDTO]:
-    return map(lambda x: x.toDto(), applications_list)
+    elasticClient = ElasticSingleton()
+    res: list[IngestApplicationDTO] = []
+    for entry in elasticClient.getAllInIndex("application"):
+        print(IngestApplicationDTO(**entry))
+        res.append(IngestApplicationDTO(**entry))
+    # return map(lambda x: x.toDto(), applications_list)
+    return res
 
 
 def getApplicationById(application_id: str) -> IngestApplicationDTO:
-    return list(filter(lambda x: x.id == application_id, applications_list))[0].toDto()
+    elasticClient = ElasticSingleton()
+    res = elasticClient.getById("application", application_id)
+    return IngestApplicationDTO(**res["_source"])
 
 
 def getApplicationForm(application_id: str) -> ApplicationFormDTO:
-    return list(filter(lambda x: x.id == application_id, applications_list))[0].form
+    elasticClient = ElasticSingleton()
+    res = elasticClient.getById("application", application_id)
+    app = IngestApplication(**res["_source"])
+    return app.form
 
 
 def getApplicationInstances(application_id: str) -> list[ApplicationInstanceDTO]:
-    return list(filter(lambda x: x.id == application_id, applications_list))[
-        0
-    ].instances
+    elasticClient = ElasticSingleton()
+    res = elasticClient.getById("application", application_id)
+    app = IngestApplication(**res["_source"])
+    return app.instances
 
 
 def getApplicationPipelines(application_id: str) -> list[ApplicationPipelineDTO]:
-    return list(filter(lambda x: x.id == application_id, applications_list))[
-        0
-    ].pipelines
+    elasticClient = ElasticSingleton()
+    res = elasticClient.getById("application", application_id)
+    app = IngestApplication(**res["_source"])
+    return app.pipelines
 
 
 def getApplicationInstanceById(
     application_id: str, instance_id: str
 ) -> ApplicationInstanceDTO:
-    application_instances = list(
-        filter(lambda x: x.id == application_id, applications_list)
-    )[0].instances
+    elasticClient = ElasticSingleton()
+    res = elasticClient.getById("application", application_id)
+    application_instances = IngestApplication(**res["_source"]).instances
+    print(application_instances)
     return list(filter(lambda x: x.id == instance_id, application_instances))[0]
 
 
 def createApplicationInstance(
     application_id: str, createApplicationInstanceDto: S3IngestFormDataDTO
 ) -> ApplicationInstanceDTO:
+    elasticClient = ElasticSingleton()
     instanceID = uuid.uuid4().urn[33:]
     instance = ApplicationInstanceDTO(
         creator=createApplicationInstanceDto.creator,
@@ -62,14 +76,29 @@ def createApplicationInstance(
         endTime=None,
         id=instanceID,
         status=InstanceStatus.STARTING,
-        initialChartData=IngestApplicationChartDataDTO(),
+        chartData=IngestApplicationChartDataDTO(),
     )
-    application = list(filter(lambda x: x.id == application_id, applications_list))[0]
-    application_index = applications_list.index(application)
+    res = elasticClient.getById("application", application_id)
+    application = IngestApplication(**res["_source"])
+    pprint(application.instances)
     application.instances.append(instance)
-    applications_list[application_index] = application
+    instances = application.instances
+    # instances.append(instance.dict())
+    pprint(application.instances)
 
-    _data = {"id": instanceID, "dto": createApplicationInstanceDto}
+    elasticClient.client.update(
+        index="application",
+        id=application_id,
+        body=json.dumps({"doc": {"instances": instances}}, default=vars),
+    )
+
+    pprint(elasticClient.getById("application", application_id)["_source"])
+
+    _data = {
+        "id": instanceID,
+        "dto": createApplicationInstanceDto,
+        "application_id": application_id,
+    }
 
     rmq = RabbitMQSingleton()
     rmq.channel.basic_publish(

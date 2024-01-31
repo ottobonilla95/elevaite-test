@@ -1,3 +1,4 @@
+from pprint import pprint
 from typing import Annotated
 from fastapi import APIRouter, Body, Form, WebSocket, WebSocketDisconnect
 
@@ -16,9 +17,11 @@ router = APIRouter(prefix="/application", tags=["applications"])
 manager = ConnectionManager()
 
 
-@router.get("/")
+@router.get("")
 def getApplicationList() -> list[IngestApplicationDTO]:
-    return service.getApplicationList()
+    res = service.getApplicationList()
+    pprint(res)
+    return res
 
 
 @router.get("/{application_id}")
