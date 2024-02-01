@@ -2,6 +2,8 @@ from datetime import datetime
 import json
 from pprint import pprint
 import uuid
+
+import pika
 from ..util.ElasticSingleton import ElasticSingleton
 from ..util.RedisSingleton import RedisSingleton
 from ..util.RabbitMQSingleton import RabbitMQSingleton
@@ -66,7 +68,9 @@ def getApplicationInstanceById(
 
 
 def createApplicationInstance(
-    application_id: str, createApplicationInstanceDto: S3IngestFormDataDTO
+    application_id: str,
+    createApplicationInstanceDto: S3IngestFormDataDTO,
+    rmq: pika.BlockingConnection,
 ) -> ApplicationInstanceDTO:
     elasticClient = ElasticSingleton()
     instanceID = uuid.uuid4().urn[33:]
@@ -100,8 +104,8 @@ def createApplicationInstance(
         "application_id": application_id,
     }
 
-    rmq = RabbitMQSingleton()
-    rmq.channel.basic_publish(
+    # rmq = RabbitMQSingleton()
+    rmq.channel().basic_publish(
         exchange="",
         body=json.dumps(_data, default=vars),
         routing_key="s3_ingest",

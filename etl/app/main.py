@@ -18,13 +18,13 @@ from app.util.ElasticSingleton import ElasticSingleton
 async def lifespan(app: FastAPI):
     load_dotenv()
     logging.info("Initializing...")
-    rabbit = RabbitMQSingleton()
-    rabbit.channel.queue_declare(queue="s3_ingest")
+    # rabbit = RabbitMQSingleton()
+    # rabbit.channel.queue_declare(queue="s3_ingest")
     redis = RedisSingleton()
     elastic = ElasticSingleton()
     yield
     # Add here code that runs when the service shuts down
-    rabbit.connection.close()
+    # rabbit.connection.close()
 
 
 app = FastAPI(lifespan=lifespan)

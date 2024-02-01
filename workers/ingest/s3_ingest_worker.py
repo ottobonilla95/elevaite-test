@@ -1,9 +1,9 @@
 from datetime import datetime
 import json
-import logging
 import os
 from pprint import pprint
 import sys
+import threading
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 import pika
@@ -92,8 +92,9 @@ def main():
         _formData = S3IngestData(
             **_data["dto"], datasetID=_data["id"], applicationID=_data["application_id"]
         )
-        s3_lakefs_cp_stream(formData=_formData)
-        print("Done importing data")
+        t = threading.Thread(target=s3_lakefs_cp_stream, args=(_formData))
+        # s3_lakefs_cp_stream(formData=_formData)
+        t.start()
 
     channel.basic_consume(
         queue="s3_ingest", on_message_callback=callback, auto_ack=True
@@ -104,11 +105,9 @@ def main():
     channel.start_consuming()
 
 
-AWS_EXTERNAL_ID = os.getenv("AWS_ASSUME_ROLE_EXTERNAL_ID")
-
-
 def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
     load_dotenv()
+    AWS_EXTERNAL_ID = os.getenv("AWS_ASSUME_ROLE_EXTERNAL_ID")
 
     # I haven't gotten this to work, we need to test it on a staging environment
     def _get_iam_s3_client(role_arn: str, endpoint: str | None) -> BaseClient:
@@ -164,17 +163,26 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
     LAKEFS_ACCESS_KEY_ID = os.getenv("LAKEFS_ACCESS_KEY_ID")
     LAKEFS_SECRET_ACCESS_KEY = os.getenv("LAKEFS_SECRET_ACCESS_KEY")
     LAKEFS_ENDPOINT_URL = os.getenv("LAKEFS_ENDPOINT_URL")
+    LAKEFS_STORAGE_NAMESPACE = os.getenv("LAKEFS_STORAGE_NAMESPACE")
     S3_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID")
     S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY")
     REDIS_HOST = os.getenv("REDIS_HOST")
     REDIS_PORT = os.getenv("REDIS_PORT")
+    REDIS_USERNAME = os.getenv("REDIS_USERNAME")
+    REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
     ELASTIC_PASSWORD = os.getenv("ELASTIC_PASSWORD")
     ELASTIC_SSL_FINGERPRINT = os.getenv("ELASTIC_SSL_FINGERPRINT")
     ELASTIC_HOST = os.getenv("ELASTIC_HOST")
     print("REDIS_HOST: ", REDIS_HOST)
     print("REDIS_PORT: ", REDIS_PORT)
 
-    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+    r = redis.Redis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        decode_responses=True,
+        username=REDIS_USERNAME,
+        password=REDIS_PASSWORD,
+    )
 
     # Create Repository
 
@@ -192,7 +200,7 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
 
     if not repo:
         repo = lakefs.Repository(formData.project, client=clt).create(
-            storage_namespace=f"s3://lakefs-repos/repos/{formData.project}"
+            storage_namespace=f"s3://{LAKEFS_STORAGE_NAMESPACE}/{formData.project}"
         )
 
     lakefs_s3 = boto3.client(
@@ -256,17 +264,16 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
     branch = repo.branch("main")
 
     for summary in src_bucket.objects.all():
-        r.json().numincrby(formData.datasetID, ".ingested_size", summary.size)
-        r.json().numincrby(formData.datasetID, ".ingested_items", 1)
         # print(f"Copying {summary.key} with size {summary.size}...")
         # pprint(summary)
-        if summary.key.endswith("/"):
-            continue
-        s3_object = src_bucket.Object(summary.key).get()
-        stream = s3_object["Body"]
-        lakefs_s3.upload_fileobj(
-            Fileobj=stream, Bucket=formData.project, Key=f"main/{summary.key}"
-        )
+        if not summary.key.endswith("/"):
+            s3_object = src_bucket.Object(summary.key).get()
+            stream = s3_object["Body"]
+            lakefs_s3.upload_fileobj(
+                Fileobj=stream, Bucket=formData.project, Key=f"main/{summary.key}"
+            )
+        r.json().numincrby(formData.datasetID, ".ingested_size", summary.size)
+        r.json().numincrby(formData.datasetID, ".ingested_items", 1)
         # branch.object(path=f"main/{summary.key}").upload(
         #     content_type=s3_object["ContentType"], data=stream
         # )
@@ -291,6 +298,7 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
         id=formData.applicationID,
         body=json.dumps({"doc": {"instances": instances}}, default=vars),
     )
+    print("Done importing data")
 
 
 if __name__ == "__main__":

@@ -26,9 +26,3 @@ class RabbitMQSingleton(metaclass=SingletonMeta):
             )
         )
         self.channel = self.connection.channel()
-
-    def some_business_logic(self):
-        """
-        Finally, any singleton should define some business logic, which can be
-        executed on its instance.
-        """
