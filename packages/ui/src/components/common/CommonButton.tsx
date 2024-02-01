@@ -1,3 +1,4 @@
+import { MutableRefObject } from "react";
 import "./CommonButton.scss";
 
 
@@ -5,13 +6,15 @@ export interface CommonButtonProps extends React.ButtonHTMLAttributes<HTMLButton
     theme?: "light" | "dark";
     noBackground?: boolean;
     overrideClass?: boolean;
+    passedRef?: MutableRefObject<HTMLButtonElement|null>;
 }
 
 
-export function CommonButton({className, overrideClass, noBackground, theme, ...props}: CommonButtonProps): React.ReactElement<CommonButtonProps> {
+export function CommonButton({className, overrideClass, noBackground, theme, passedRef, ...props}: CommonButtonProps): React.ReactElement<CommonButtonProps> {
 
     return (
         <button
+            ref={passedRef}
             {...props}
             className={[
                 "common-button",

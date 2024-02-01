@@ -5,6 +5,12 @@ import SVGMagnifyingGlass from "../icons/elevaite/svgMagnifyingGlass";
 import { SearchResults } from "./SearchResults";
 import "./Searchbar.scss";
 
+
+
+const SEARCH_KEY = "K";
+
+
+
 interface SearchBarProps {
   handleInput: (term: string) => void;
   results: { key: string; link: string; label: string }[];
@@ -21,7 +27,7 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps): JSX.Elemen
   useEffect(() => {
     window.addEventListener("keydown", (e) => {
       if (e.repeat) return;
-      if ((e.ctrlKey || e.metaKey) && e.code === 'KeyF') {        
+      if ((e.ctrlKey || e.metaKey) && e.code === `Key${SEARCH_KEY}`) {        
         e.preventDefault();
         if (inputRef.current) inputRef.current.focus();
       }      
@@ -49,8 +55,8 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps): JSX.Elemen
 
   function getHotkeyHint(): string {
     if (!global.navigator.platform) return "";
-    if (global.navigator.platform.toUpperCase().includes("MAC") || global.navigator.platform === "iPhone") return "⌘+F";
-    return "Ctrl+F";
+    if (global.navigator.platform.toUpperCase().includes("MAC") || global.navigator.platform === "iPhone") return `⌘+${SEARCH_KEY}`;
+    return `Ctrl+${SEARCH_KEY}`;
   }
 
 

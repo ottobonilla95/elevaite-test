@@ -39,7 +39,7 @@ export function useElapsedTime(startTime: string, endTime?: string): UseElapsedT
 
 
     function getElapsedTime(start: string, end?: string): string {
-        let duration = dayjs(end).diff(dayjs(start)) / 1000;
+        let duration = dayjs(end ?? undefined).diff(dayjs(start)) / 1000;
         const result: string[] = [];
 
         const days = Math.floor(duration / 86400);

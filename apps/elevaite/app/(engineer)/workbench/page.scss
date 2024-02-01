@@ -6,6 +6,18 @@
   display: grid;
   grid-template-columns: repeat( auto-fit, minmax(350px, 1fr) );
   gap: 32px;
+
+  & .loading-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 20px;
+
+    & > svg {
+      height: 20px;
+      width: 20px;
+      @include rotate();
+    }
+  }
 }
 
 .app-section {

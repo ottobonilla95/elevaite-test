@@ -1,14 +1,14 @@
 "use client";
-import React, { useContext, useEffect, useState } from "react";
-import "./Navbar.scss";
-import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Searchbar } from "../search/Searchbar";
+import { usePathname } from "next/navigation";
+import React, { useContext, useEffect, useState } from "react";
 import { ColorContext } from "../../contexts";
 import SVGNavbarLogo from "../icons/elevaite/svgNavbarLogo";
+import { Searchbar } from "../search/Searchbar";
 import type { BreadcrumbItem } from "./Breadcrumbs";
 import { Breadcrumbs } from "./Breadcrumbs";
+import "./Navbar.scss";
 
 
 interface NavBarProps {
@@ -29,27 +29,27 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
 
 
   useEffect(() => {
-    function pathToBreadcrumbs(path: string): BreadcrumbItem[] {
-      if (pathname === "/") return [props.breadcrumbLabels.home];
-      return path
-        .split("/")
-        .filter((str) => str !== "")
-        .map((str) => {
-          const breadcrumb: { label: string; link: string } | undefined = props.breadcrumbLabels[str];
-          return {
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Could be undefined
-            label: breadcrumb ? breadcrumb.label : str,
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Could be undefined
-            link: breadcrumb ? breadcrumb.link : "",
-          };
-        });
-    }
     setBreadcrumbItems(pathToBreadcrumbs(pathname));
   }, [pathname, props.breadcrumbLabels]);
 
 
+
   function handleLogout(): void {
     props.logOut();
+  }
+
+  function pathToBreadcrumbs(path: string): BreadcrumbItem[] {
+    if (pathname === "/") return [props.breadcrumbLabels.home];
+    const runningPath = path.split("/").filter(str => str !== "");
+    return runningPath.map((str, index) => {
+      const breadcrumb: { label: string; link: string } | undefined = props.breadcrumbLabels[str];
+      return {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Could be undefined
+        label: breadcrumb ? breadcrumb.label : str,
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Could be undefined
+        link: index < runningPath.length-1 && breadcrumb ? breadcrumb.link : "",
+      };
+    });
   }
   
 

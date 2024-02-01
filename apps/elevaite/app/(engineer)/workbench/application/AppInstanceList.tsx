@@ -1,13 +1,13 @@
 "use client";
-import { useEffect, useState } from "react";
-import "./AppInstanceList.scss";
-import type { CommonSelectOption} from "@repo/ui/components";
+import type { CommonSelectOption } from "@repo/ui/components";
 import { CommonButton, CommonSelect, ElevaiteIcons } from "@repo/ui/components";
 import { useElapsedTime } from "@repo/ui/hooks";
-import { AppInstanceObject, AppInstanceStatus, ApplicationType } from "../../../lib/interfaces";
-import { useSession } from "next-auth/react";
-import { getApplicationInstanceList } from "../../../lib/actions";
 import dayjs from "dayjs";
+import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { getApplicationInstanceById, getApplicationInstanceList } from "../../../lib/actions";
+import { AppInstanceObject, AppInstanceStatus, ApplicationType } from "../../../lib/interfaces";
+import "./AppInstanceList.scss";
 
 
 
@@ -24,7 +24,8 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
     const [isAllInstances, setIsAllInstances] = useState<boolean>(false);
     const [selectedInstance, setSelectedInstance] = useState<AppInstanceObject>();
     const [isLoading, setIsLoading] = useState(true);
-    const [allInstances, setAllInstances] = useState<AppInstanceObject[]>();
+    const [allInstances, setAllInstances] = useState<AppInstanceObject[]>([]);
+    const [myInstances, setMyInstances] = useState<AppInstanceObject[]>([]);
     const [visibleInstances, setVisibleInstances] = useState<AppInstanceObject[]>([]);
 
 
@@ -46,7 +47,7 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
             try {
                 if (!props.applicationId) return;
                 const data = await getApplicationInstanceList(props.applicationId);
-                setAllInstances(data);
+                initializeInstances(data);
                 setIsLoading(false);
             } catch (error) {
                 setIsLoading(false);
@@ -56,18 +57,23 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
     }, [props.applicationId]);
 
     useEffect(() => {
-        if (!allInstances) return;
-        sortInstances(allInstances);
         assignVisibleInstances();
-    }, [allInstances]);
-
+    }, [isAllInstances, allInstances, myInstances]);
 
     useEffect(() => {
         props.onSelectedInstanceChange(selectedInstance);
-    // This rule is starting to grate on my nerves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- I don't want this to run when the props change, only when the selected instance changes.
     }, [selectedInstance]);
 
+
+    // Display Functions
+
+    function initializeInstances(instances: AppInstanceObject[]): void {
+        if (!instances) return;
+        sortInstances(instances);
+        const mine = instances.filter((instance) => { return instance.creator === (session?.data?.user?.name ?? "Unknown User"); });
+        setAllInstances(instances);
+        setMyInstances(mine);
+    }
 
     function sortInstances(instances: AppInstanceObject[]): void {
         const sortingOrder = [AppInstanceStatus.STARTING, AppInstanceStatus.RUNNING, AppInstanceStatus.FAILED, AppInstanceStatus.COMPLETED];
@@ -76,13 +82,15 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
     }
 
     function assignVisibleInstances(): void {
-        setVisibleInstances(allInstances ?? []);
+        setVisibleInstances(isAllInstances ? allInstances : myInstances);
     }
 
 
+    // Interaction Functions
+
     function handleAllInstanceViewChange(value: string): void {
         setIsAllInstances(value === "all");
-        if (value === "all" && selectedInstance?.creator !== "Test User") setSelectedInstance(undefined);
+        if (value === "all" && selectedInstance && selectedInstance.creator !== (session?.data?.user?.name ?? "Unknown User")) setSelectedInstance(undefined);
     }
 
     function handleFlowChange(value: string): void {
@@ -93,9 +101,18 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
         setSelectedInstance((currentInstance) => { return instance.id === currentInstance?.id ? undefined : instance; });
     }
 
+    function handleInstanceUpdate(instance: AppInstanceObject): void {
+        const index = allInstances.findIndex(item => item.id === instance.id);
+        if (index >= 0) {
+            allInstances[index] = instance;
+            initializeInstances(allInstances);
+        }
+    }
+
     function handleAddInstance(): void {
         props.onAddInstanceClick();
     }
+
 
 
     return (
@@ -136,10 +153,11 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
                     : visibleInstances.map((instance) => 
                     <AppInstance
                         key={instance.id}
+                        applicationId={props.applicationId}
                         {...instance}
                         isSelected={selectedInstance?.id === instance.id}
-                        isVisible={isAllInstances || instance.creator === (session?.data?.user?.name ?? "Test User")}
                         onClick={handleInstanceClick}
+                        onInstanceUpdate={handleInstanceUpdate}
                     />
                 )}
             </div>
@@ -150,14 +168,47 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
 
 
 
+
+
+
+
 interface AppInstanceProps extends AppInstanceObject {
-    isVisible?: boolean,
+    applicationId: string | null,
+    isHidden?: boolean,
     isSelected?: boolean,
     onClick: (instance: AppInstanceObject) => void;
+    onInstanceUpdate?: (instance: AppInstanceObject) => void;
 }
 
-function AppInstance({isVisible, isSelected, onClick, ...props}: AppInstanceProps): JSX.Element {
+function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps): JSX.Element {
     const {elapsedTime} = useElapsedTime(props.startTime, props.endTime);
+
+
+    useEffect(() => {
+        if (props.applicationId && props.id && props.onInstanceUpdate && props.status === AppInstanceStatus.RUNNING || props.status === AppInstanceStatus.STARTING) {
+            const delay = props.status === AppInstanceStatus.STARTING ? 20000 : 5000;
+            const interval = setInterval(() => {
+                fetchInstance(props.applicationId, props.id, props.status);
+            }, delay);
+            return () => {clearInterval(interval)};
+        }
+    }, [props.id]);
+
+
+    async function fetchInstance(applicationId?: string | null, instanceId?: string, status?: AppInstanceStatus): Promise<void> {
+        if (!applicationId || !instanceId || !status) return;
+        
+        try {            
+            const data = await getApplicationInstanceById(applicationId, instanceId);
+            if (data && data.status && data.status !== status && props.onInstanceUpdate) {
+                props.onInstanceUpdate(data);
+            }
+        } catch (error) {
+            // We ignore such errors silently.
+        }
+    }
+
+
 
 
     function getRelevantIcon(): JSX.Element {
@@ -183,7 +234,7 @@ function AppInstance({isVisible, isSelected, onClick, ...props}: AppInstanceProp
         <CommonButton
             className={[
                 "app-instance",
-                !isVisible ? "hidden" : undefined,
+                isHidden ? "hidden" : undefined,
                 isSelected ? "selected" : undefined,
             ].filter(Boolean).join(" ")}
             onClick={() => { onClick(props); }}

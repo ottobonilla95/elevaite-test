@@ -18,7 +18,7 @@ export default function MainDetailsWidget({instance}: MainDetailsWidgetProps): J
         ].filter(Boolean).join(" ")}>
             
             <div className="main-details-text">
-                <div className="dataset">{instance ? `Dataset Created: ${instance.datasetId}` : ""}</div>
+                <div className="dataset">{instance ? `Dataset Created: ${instance.datasetId ?? "None"}` : ""}</div>
                 <div className="creator">{instance ? `Created by: ${instance.creator}` : ""}</div>
             </div>
 

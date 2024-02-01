@@ -4,13 +4,13 @@ import { AppInstanceObject, AppInstanceStatus, ChartDataObject } from "./interfa
 
 
 
-export const TEST_CHART: ChartDataObject = {
-    totalItems: 178,
-    ingestedItems: 33,
-    avgSize: 2500/178,
-    totalSize: 2500,
-    ingestedSize: 480,
-}
+// export const TEST_CHART: ChartDataObject = {
+//     totalItems: 178,
+//     ingestedItems: 33,
+//     avgSize: 2500/178,
+//     totalSize: 2500,
+//     ingestedSize: 480,
+// }
 
 
 

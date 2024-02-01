@@ -1,5 +1,5 @@
 "use client";
-import { Card } from "@repo/ui/components";
+import { Card, ElevaiteIcons } from "@repo/ui/components";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import { useEffect, useState } from "react";
 import { ingestionMethods } from "../../../dummydata";
@@ -71,8 +71,8 @@ export default function Page(): JSX.Element {
           }
           {!isLoading && !hasError ? null :
             <Section>{isLoading ?
-              "Loading Applications. Please wait..." :
-              "There has been an error loading the applications. Please try again later."}
+              <div className="loading-box"><ElevaiteIcons.SVGSpinner/><span>Loading Applications. Please wait...</span></div> :
+              <span>There has been an error loading the applications. Please try again later.</span>}
             </Section>
           }
           <Section separator>Preprocess Applications</Section>
@@ -93,10 +93,10 @@ export default function Page(): JSX.Element {
               />
             ))
           }
-          {!isLoading && !hasError ? null :          
+          {!isLoading && !hasError ? null :
             <Section>{isLoading ?
-              "Loading Applications. Please wait..." :
-              "There has been an error loading the applications. Please try again later."}
+              <div className="loading-box"><ElevaiteIcons.SVGSpinner/><span>Loading Applications. Please wait...</span></div> :
+              <span>There has been an error loading the applications. Please try again later.</span>}
             </Section>
           }
         </div>

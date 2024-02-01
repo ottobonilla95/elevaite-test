@@ -1,8 +1,8 @@
 "use server";
 import { redirect } from "next/navigation";
-import type { AppInstanceObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject, S3IngestFormDTO, S3PreprocessFormDTO } from "./interfaces";
-import { isGetApplicationListReponse, isGetApplicationResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse } from "./discriminators";
-import { TEST_CHART, TEST_INSTANCES } from "./testData";
+import { isGetApplicationListReponse, isGetApplicationResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceResponse } from "./discriminators";
+import type { AppInstanceObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "./interfaces";
+import { TEST_INSTANCES } from "./testData";
 
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -41,7 +41,7 @@ export async function getApplicationById(id: string): Promise<ApplicationObject|
 
 
 
-export async function getApplicationInstanceList(id: string): Promise<AppInstanceObject[]> {  
+export async function getApplicationInstanceList(id: string): Promise<AppInstanceObject[]> {
   const url = new URL(`${BACKEND_URL}/application/${id}/instance`);
   const response = await fetch(url, { next: { revalidate: INSTANCE_REVALIDATION_TIME } });
 
@@ -49,6 +49,16 @@ export async function getApplicationInstanceList(id: string): Promise<AppInstanc
   const data: unknown = await response.json();
   if (isGetInstanceListResponse(data) && data.length > 0) return data;
   return TEST_INSTANCES; // Remove this and ^ data.length when done testing.
+  throw new Error("Invalid data type");
+}
+
+export async function getApplicationInstanceById(appId: string, instanceId: string): Promise<AppInstanceObject> {
+  const url = new URL(`${BACKEND_URL}/application/${appId}/instance/${instanceId}`);
+  const response = await fetch(url, { next: { revalidate: INSTANCE_REVALIDATION_TIME } });
+
+  if (!response.ok) throw new Error("Failed to fetch");
+  const data: unknown = await response.json();
+  if (isGetInstanceResponse(data)) return data;
   throw new Error("Invalid data type");
 }
 
@@ -68,12 +78,11 @@ export async function getApplicationPipelines(id: string): Promise<PipelineObjec
 
 
 export async function getInstanceChartData(appId: string, instanceId: string): Promise<ChartDataObject> {
-  const data = TEST_CHART;
-  // const url = new URL(`${BACKEND_URL}/application/${appId}/instance/${instanceId}/chart`);
-  // const response = await fetch(url, { next: { revalidate: INSTANCE_REVALIDATION_TIME } });
+  const url = new URL(`${BACKEND_URL}/application/${appId}/instance/${instanceId}/chart`);
+  const response = await fetch(url, { next: { revalidate: INSTANCE_REVALIDATION_TIME } });
 
-  // if (!response.ok) throw new Error("Failed to fetch");
-  // const data: unknown = await response.json();
+  if (!response.ok) throw new Error("Failed to fetch");
+  const data: unknown = await response.json();
   if (isGetInstanceChartDataResponse(data)) return data;
   throw new Error("Invalid data type");
 }

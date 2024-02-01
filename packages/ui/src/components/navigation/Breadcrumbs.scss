@@ -13,9 +13,16 @@
     color: var(--ev-colors-text);
     font-size: 16px;
     font-weight: 500;
+    user-select: none;
+
+    &.no-link {
+      cursor: default;
+    }
   }
 
   & .separator {
+    align-self: stretch;
     margin: 0 0.5rem;
+    border-left: 1px solid var(--ev-colors-text);
   }
 }

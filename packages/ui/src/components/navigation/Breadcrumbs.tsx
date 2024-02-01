@@ -36,9 +36,9 @@ export function Breadcrumbs({ ...props }: BreadcrumbsProps): JSX.Element {
               <span>{item.label}</span>
             </Link>
           ) : (
-            <span>{item.label}</span>
+            <span className="breadcrumbItem no-link">{item.label}</span>
           )}
-          {index === props.items.length - 1 ? undefined : <div className="separator">|</div>}
+          {index === props.items.length - 1 ? undefined : <div className="separator"/>}
         </React.Fragment>
       ))}
     </div>
