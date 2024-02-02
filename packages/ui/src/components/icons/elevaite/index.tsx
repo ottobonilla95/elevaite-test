@@ -18,6 +18,7 @@ import SVGSpinner from "./svgSpinner";
 import SVGArrowLong from "./svgArrowLong";
 import SVGTarget from "./svgTarget";
 import SVGChevron from "./svgChevron";
+import SVGApplications from "./svgApplications";
 
 
 export const ElevaiteIcons = {
@@ -41,4 +42,5 @@ export const ElevaiteIcons = {
   SVGSpinner,
   SVGArrowLong,
   SVGTarget,
+  SVGApplications,
 };

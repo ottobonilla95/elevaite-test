@@ -62,12 +62,12 @@
   }
   /* Track */
   &::-webkit-scrollbar-track {
-    background: var(--ev-colors-secondary);
+    background: var(--ev-colors-background);
     border-radius: 5px;
   }
   /* Handle */
   &::-webkit-scrollbar-thumb {
-    background: var(--ev-colors-highlight);
+    background: var(--ev-colors-secondary);
     border-radius: 5px;
   }
 }

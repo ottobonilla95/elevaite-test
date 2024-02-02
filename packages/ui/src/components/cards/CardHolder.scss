@@ -67,7 +67,8 @@
     padding: 20px;
     transition: padding 200ms ease-in-out;
     display: grid;
-    @include gridTemplateColumnsCount();
+    // @include gridTemplateColumnsCount();
+    grid-template-columns: repeat(auto-fit, minmax(350px, 450px));
     gap: 32px;
 
     // & > a { width: fit-content; }

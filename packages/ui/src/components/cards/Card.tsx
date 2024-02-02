@@ -53,12 +53,12 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
             }
             <div className="card-header-label">{title}</div>
           </div>
-          {subtitle ? 
+          {/* {subtitle ? 
             <div className="card-header-subtitle">
               <SVGDot />
               {subtitle}
             </div>
-          : null}
+          : null} */}
         </div>
         <div className="card-description">{description}</div>
         {props.miscLabel ? 

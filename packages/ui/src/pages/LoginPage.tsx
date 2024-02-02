@@ -19,7 +19,7 @@ export function LoginPage({ signUp, mode, authenticate }: LoginPageProps): JSX.E
         <AuthFluff mode={mode} />
       </div>
       <div className="ui-flex ui-items-center ui-justify-center ui-bg-[#282828] ui-h-full ui-w-1/2 ui-float-right">
-        {signUp ? <SignUpForm /> : <LogInForm authenticate={authenticate} />}
+        {signUp ? <SignUpForm /> : <LogInForm authenticate={authenticate} authenticateGoogle={async () => { return undefined; }} />}
       </div>
     </div>
   );

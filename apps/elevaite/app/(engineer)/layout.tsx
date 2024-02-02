@@ -1,4 +1,4 @@
-import { ElevaiteIcons } from "@repo/ui/components";
+import { ElevaiteIcons, SidebarIconObject } from "@repo/ui/components";
 import { ColorContextProvider } from "@repo/ui/contexts";
 import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
@@ -42,14 +42,12 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
   },
 };
 
-const sidebarIcons: {
-  linkLocation: string;
-  Icon: React.ReactNode;
-}[] = [
-  // { Icon: <ElevaiteIcons.Datasets />, linkLocation: "/datasets" },
-  // { Icon: <ElevaiteIcons.WorkersQueues />, linkLocation: "/workers_queues" },
-  // { Icon: <ElevaiteIcons.Models />, linkLocation: "/models" },
-  { Icon: <ElevaiteIcons.Workbench />, linkLocation: "/workbench" },
+const sidebarIcons: SidebarIconObject[] = [
+  { icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" },
+  // { icon: <ElevaiteIcons.Datasets />, link: "/datasets" },
+  // { icon: <ElevaiteIcons.WorkersQueues />, link: "/workers_queues" },
+  // { icon: <ElevaiteIcons.Models />, link: "/models" },
+  { icon: <ElevaiteIcons.Workbench />, link: "/workbench", description: "Workbench" },
 ];
 
 export default async function RootLayout({ children }: { children: React.ReactNode }): Promise<JSX.Element> {

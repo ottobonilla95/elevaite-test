@@ -7,8 +7,8 @@ export const S3DataRetrievalAppInstanceFormInitializer: S3IngestFormDTO = {
     creator: "",
     name: "",
     project: "",
-    version: "",
-    parent: "",
+    // version: "",
+    // parent: "",
     outputURO: "",
     connectionName: "",
     description: "",
@@ -40,8 +40,7 @@ export const S3DataRetrievalAppInstanceForm: AppInstanceFormStructure<S3IngestFo
         {
             field: "url",
             label: "S3 Url",
-            info: "Full link, including https://",
-            placeholder: "https://",
+            info: "Full link",
             required: true,
             type: AppInstanceFieldTypes.INPUT,
         },
@@ -54,7 +53,6 @@ export const S3DataRetrievalAppInstanceForm: AppInstanceFormStructure<S3IngestFo
         {
             field: "roleARN",
             label: "IAM Role ARN",
-            placeholder: "arn:aws:iam:",
             info: "No idea.",
             type: AppInstanceFieldTypes.INPUT,
         },
@@ -78,21 +76,21 @@ export const S3DataRetrievalAppInstanceForm: AppInstanceFormStructure<S3IngestFo
                     info: "The project the dataset is attached to",
                     type: AppInstanceFieldTypes.INPUT,
                 },
-                {
-                    field: "version",
-                    label: "Dataset Version",
-                    type: AppInstanceFieldTypes.INPUT,
-                },
+                // {
+                //     field: "version",
+                //     label: "Dataset Version",
+                //     type: AppInstanceFieldTypes.INPUT,
+                // },
                 {
                     field: "parent",
                     label: "Dataset Parent",
                     type: AppInstanceFieldTypes.INPUT,
                 },
-                {
-                    field: "outputURO",
-                    label: "Dataset Output URI",
-                    type: AppInstanceFieldTypes.INPUT,
-                },
+                // {
+                //     field: "outputURO",
+                //     label: "Dataset Output URI",
+                //     type: AppInstanceFieldTypes.INPUT,
+                // },
             ],
         },
 

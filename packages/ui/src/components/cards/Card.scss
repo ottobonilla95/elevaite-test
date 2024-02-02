@@ -85,7 +85,7 @@
       -webkit-line-clamp: 2;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: var(--ev-colors-text);
+      color: var(--ev-colors-tertiaryText);
       font-size: 14px;
     }
 
@@ -96,7 +96,7 @@
     }
 
     & .card-button {
-      align-self: flex-start;
+      align-self: flex-end;
       height: 40px;
       display: flex;
       justify-content: center;
@@ -108,7 +108,7 @@
       font-size: 14px;
       font-weight: 600;
 
-      color: var(--ev-colors-text);
+      color: var(--ev-colors-highlight);
       background-color: var(--ev-colors-primary);
 
       @include buttonClick($backgroundColor: var(--ev-colors-hoverColor), $hoverFocus: true);

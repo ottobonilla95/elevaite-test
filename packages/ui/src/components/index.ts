@@ -7,3 +7,4 @@ export * from "./icons";
 export * from "./Typewriter";
 export * from "./AuthFluff";
 export * from "./authentication";
+export * from "./interfaces";

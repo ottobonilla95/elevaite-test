@@ -1,16 +1,51 @@
 import { AuthFluff, LogInForm } from "@repo/ui/components";
 import type { JSX } from "react";
 import { authenticate, authenticateGoogle } from "../../lib/actions";
+import "./page.scss";
+import SVGNavbarLogo from "../../../../../packages/ui/src/components/icons/elevaite/svgNavbarLogo";
+
+
 
 function Login(): JSX.Element {
   return (
-    <div className="ui-w-screen ui-h-screen">
-      <div className="ui-flex ui-items-center ui-justify-center ui-bg-[#161616] ui-w-1/2 ui-h-full ui-float-left text-white">
-        <AuthFluff mode={1} />
+    <div className="login-page-container">
+
+      <div className="auth-fluff-container">
+        <div/>
+        <div className="center-block">
+          <div className="center-header">
+            <SVGNavbarLogo />
+            <span>Elevate your business by AI.</span>
+          </div>
+          <div className="auth-fluff-content">
+            <AuthFluff mode={1} />
+          </div>
+        </div>
+        <div className="version">
+          <span>Version 2.0</span>
+        </div>
       </div>
-      <div className="ui-flex ui-items-center ui-justify-center ui-bg-[#282828] ui-h-full ui-w-1/2 ui-float-right">
-        <LogInForm authenticate={authenticate} authenticateGoogle={authenticateGoogle} />
+
+      <div className="login-form-container">        
+        <div/>
+
+        <div className="center-block">
+          <div className="title">
+            <span className="main">Sign in to ElevAIte</span>
+            <span>Enter your login details below.</span>
+          </div>
+          <LogInForm authenticate={authenticate} authenticateGoogle={authenticateGoogle} />
+        </div>
+
+        <div className="copyright">
+          <span>Copyright 2023-2024</span>
+          <span>•</span>
+          <a target="_blank" href="https://www.iopex.com/" rel="noopener noreferrer">
+            iOPEX Technologies
+          </a>
+        </div>
       </div>
+
     </div>
   );
 }

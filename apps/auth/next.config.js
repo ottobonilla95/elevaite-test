@@ -15,6 +15,10 @@ const nextConfig = {
   //     },
   //   ];
   // },
+  sassOptions: {
+    includePaths: ["./app/ui"],
+    prependData: `@import "@repo/sass-config/mainSass.scss";`,
+  },
 };
 
 module.exports = nextConfig;

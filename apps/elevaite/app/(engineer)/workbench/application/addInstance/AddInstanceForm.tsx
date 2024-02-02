@@ -1,10 +1,10 @@
 "use client";
 import { CommonButton, CommonCheckbox, CommonInput, ElevaiteIcons } from "@repo/ui/components";
-import { useEffect, useState } from "react";
-import { AppInstanceFieldStructure, AppInstanceFieldTypes, AppInstanceFormStructure, Initializers } from "../../../../lib/interfaces";
-import "./AddInstanceDetails.scss";
-import { createApplicationInstance } from "../../../../lib/actions";
 import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { createApplicationInstance } from "../../../../lib/actions";
+import { AppInstanceFieldStructure, AppInstanceFieldTypes, AppInstanceFormStructure, Initializers } from "../../../../lib/interfaces";
+import "./AddInstanceForm.scss";
 
 
 

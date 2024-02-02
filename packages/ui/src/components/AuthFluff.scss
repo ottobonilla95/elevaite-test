@@ -1,0 +1,40 @@
+
+
+
+.auth-fluff-main-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+
+
+    & .auth-fluff-box {
+        min-height: 100px;
+        width: 400px;
+        background-color: var(--ev-colors-primary);
+        border-radius: 8px;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        padding: 20px;
+
+        & .auth-fluff-box-icon {
+            flex-shrink: 0;
+            height: 60px;
+            width: 60px;
+            background-color: var(--ev-colors-background);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        & .auth-fluff-box-text {
+            flex-grow: 1;
+            font-size: 14px;
+        }
+    }
+
+}

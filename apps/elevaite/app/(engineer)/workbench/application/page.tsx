@@ -7,7 +7,7 @@ import AppInstanceList from "./AppInstanceList";
 import ApplicationDetails from "./ApplicationDetails";
 import WidgetDocker from "./WidgetDocker";
 import "./page.scss";
-import { AddInstanceForm } from "./addInstance/AddInstanceDetails";
+import { AddInstanceForm } from "./addInstance/AddInstanceForm";
 import { getApplicationById, getApplicationInstanceList, getApplicationPipelines } from "../../../lib/actions";
 import { S3DataRetrievalAppInstanceForm } from "../../../lib/dataRetrievalApps";
 import { S3PreprocessingAppInstanceForm } from "../../../lib/preprocessingApps";

@@ -1,5 +1,5 @@
 "use client";
-import { NavBar, Sidebar } from "@repo/ui/components";
+import { NavBar, Sidebar, SidebarIconObject } from "@repo/ui/components";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { logOut } from "../lib/actions";
@@ -8,10 +8,7 @@ import "./AppLayout.scss";
 
 
 interface AppLayoutProps {
-  sidebarIcons: {
-    linkLocation: string;
-    Icon: React.ReactNode;
-  }[];
+  sidebarIcons: SidebarIconObject[];
   layout: "user" | "engineer";
   Background?: React.ReactNode;
   children: React.ReactNode;

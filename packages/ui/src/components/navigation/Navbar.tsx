@@ -9,6 +9,7 @@ import { Searchbar } from "../search/Searchbar";
 import type { BreadcrumbItem } from "./Breadcrumbs";
 import { Breadcrumbs } from "./Breadcrumbs";
 import "./Navbar.scss";
+import { CommonButton } from "../common";
 
 
 interface NavBarProps {
@@ -105,9 +106,13 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
           </button>
           <div className="line" style={{ background: colors.borderColor }} />
           {props.user?.fullName}
-          <button onClick={handleLogout} type="button">
-            {props.user?.icon ? <Image alt="User Image" height={40} src={props.user.icon} width={40} /> : "Logout"}
-          </button>
+          <CommonButton onClick={handleLogout} noBackground>
+            {!props.user?.icon ? "Logout" :
+              <div className="icon-container">
+                <Image alt="User Image" height={40} src={props.user.icon} width={40} />
+              </div>
+            }
+          </CommonButton>
         </div>
       </div>
       {props.children}

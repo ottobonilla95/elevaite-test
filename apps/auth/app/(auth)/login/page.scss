@@ -1,0 +1,95 @@
+
+
+
+.login-page-container {
+    height: 100vh;
+    width: 100vw;
+    display: grid;
+    grid-template-columns: 35% 65%;
+
+
+    & .auth-fluff-container {
+        background: url("/images/background-login-dark.png"), linear-gradient(to right,  var(--ev-colors-background),  var(--ev-colors-background));
+        background-position: left -50px top -200px;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        background-size: auto calc(100% + 200px);
+
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--ev-colors-text);
+
+        & .center-block {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+
+            & .center-header {
+                align-self: center;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+
+                & > span {
+                    font-size: 13px;
+                }
+            }
+
+            & .auth-fluff-content {
+                border-left: 1px solid var(--ev-colors-highlight);
+                padding-left: 10px;
+            }
+        }
+
+        & .version {
+            align-self: flex-end;
+            color: var(--ev-colors-secondaryText);
+            font-size: 13px;
+        }
+    }
+
+
+    & .login-form-container {
+        background-color: var(--ev-colors-primary);
+        padding: 20px 20px 20px 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        color: var(--ev-colors-text);
+
+
+        & .center-block {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+
+            & .title {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                font-size: 13px;
+
+                & .main {
+                    font-size: 30px;
+                    font-weight: 700;
+                }
+            }
+
+
+        }
+
+
+        & .copyright {
+            display: flex;
+            gap: 5px;
+            font-size: 13px;
+            & > a {
+                color: var(--ev-colors-highlight);
+            }
+        }
+    }
+}

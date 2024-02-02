@@ -1,5 +1,7 @@
 import type { JSX, SVGProps } from "react";
 import { Typewriter } from "./Typewriter";
+import "./AuthFluff.scss";
+
 
 interface AuthFluffProps {
   mode: 1 | 2;
@@ -9,30 +11,21 @@ export function AuthFluff({ mode }: AuthFluffProps): JSX.Element {
   return (
     <>
       {mode === 1 ? (
-        <div className="ui-flex ui-flex-col ui-items-start ui-gap-10 ui-w-fit">
-          <span className="ui-text-[#F7F7F7] ui-font-bold ui-font-source_sans ui-text-3xl">Sign in to ElevAIte</span>
-          <div className="ui-flex ui-flex-col ui-items-start ui-gap-5">
-            <div className="ui-flex ui-flex-col ui-items-start ui-p-5 ui-bg-[#282828] ui-rounded-lg ui-w-full">
-              <div className="ui-flex ui-items-center ui-gap-3">
-                <div className="ui-flex ui-items-center ui-justify-center ui-w-[60px] ui-h-[60px]  ui-flex-shrink-0">
-                  <Inbox />
-                </div>
-                <span className="ui-font-inter ui-w-96 ui-text-[#F7F7F7]">
-                  Reliable & Secure Enterprise
-                  <Typewriter className="ui-font-inter" speed={250} stallCycles={4} texts={[" Gen"]} /> AI For the
-                  Future.
-                  <br />
-                  Agile, Precise & Scalable.
-                </span>
-              </div>
+        <div className="auth-fluff-main-container">
+
+          <div className="auth-fluff-box">
+            <div className="auth-fluff-box-icon"><Inbox /></div>
+            <div className="auth-fluff-box-text">
+              <span>Reliable & Secure Enterprise</span>
+              <Typewriter speed={250} stallCycles={4} texts={[" Gen"]} />
+              <span> AI For the Future.</span>
             </div>
-            <div className="ui-flex ui-flex-col ui-items-start ui-p-5 ui-bg-[#282828] ui-rounded-lg ui-w-full">
-              <div className="ui-flex ui-items-center ui-gap-3">
-                <div className="ui-flex ui-items-center ui-justify-center ui-w-[60px] ui-h-[60px]  ui-flex-shrink-0">
-                  <Trouble />
-                </div>
-                <Typewriter
-                  className="ui-font-inter ui-line-clamp-2 ui-w-96 ui-text-[#F7F7F7]"
+          </div>
+
+          <div className="auth-fluff-box">
+            <div className="auth-fluff-box-icon"><Trouble /></div>
+            <div className="auth-fluff-box-text">
+              <Typewriter
                   speed={50}
                   stallCycles={4}
                   texts={[
@@ -41,9 +34,9 @@ export function AuthFluff({ mode }: AuthFluffProps): JSX.Element {
                     "Connect your models to your enterprise apps...",
                   ]}
                 />
-              </div>
             </div>
           </div>
+
         </div>
       ) : (
         <div className="ui-flex ui-items-start ui-bg-[#161616] ui-w-1/2 ui-h-full ui-float-left">

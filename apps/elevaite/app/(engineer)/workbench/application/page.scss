@@ -6,7 +6,7 @@
     min-height: 100%;
     display: grid;
     grid-template-columns: minmax(0, 440px) minmax(0, auto);
-    grid-template-rows: minmax(80px, 1fr) 9fr;
+    grid-template-rows: 80px minmax(400px, auto); //minmax(80px, 1fr) 9fr;
     grid-template-areas: 
     "details details"
     "instances widgets";
@@ -20,6 +20,10 @@
 
     & .details-container {
         grid-area: details;
+        position: sticky;
+        top: 72px;
+        z-index: 10;
+        box-shadow: 0 -9px 5px 12px var(--ev-colors-background);
     }
 
     & .instances-container {

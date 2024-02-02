@@ -25,9 +25,18 @@
     display: flex;
     align-items: center;
     gap: 20px;
+    color: var(--ev-colors-text);
   }
   & .navbar-right {
     flex-grow: 0.25;
+  }
+
+
+  & .icon-container {
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+    overflow: hidden;
   }
 
 }

@@ -42,12 +42,12 @@ export default function ApplicationDetails({isLoading, applicationDetails, onBac
                         <div className="details-text-top">
                             <div className="details-name">{applicationDetails?.title}</div>
                             <div className="details-version">{applicationDetails?.version}</div>
-                            {!applicationDetails?.creator ? null :
+                            {/* {!applicationDetails?.creator ? null :
                                 <div className="details-origin">
                                     <ElevaiteIcons.SVGDot/>
                                     {`By ${applicationDetails?.creator}`}
                                 </div>
-                            }
+                            } */}
                         </div>
                     }
                     {isLoading ? 

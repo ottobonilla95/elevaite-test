@@ -10,7 +10,7 @@ export function Typewriter({
   texts: string[];
   speed?: number;
   stallCycles?: number;
-  className: string;
+  className?: string;
 }): JSX.Element {
   const displayText: string = useTypewriter(texts, speed, stallCycles);
 

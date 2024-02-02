@@ -1,12 +1,9 @@
 import type { SVGProps } from "react"
-import { useColors } from "../../../contexts/ColorContext";
 
 
 function SVGNavbarLogo(props: SVGProps<SVGSVGElement>): JSX.Element {
-    const theme = useColors();
-    let mainColor = "#0F172A";
+    let mainColor = "currentColor";
     if (props.color) mainColor = props.color;
-    else if (theme.navbarLogo) mainColor = theme.navbarLogo;
 
     return (
         <svg
@@ -22,7 +19,7 @@ function SVGNavbarLogo(props: SVGProps<SVGSVGElement>): JSX.Element {
             />
             <path
                 d="M67.965 16.405h-7.307L58.85 20H55l9.822-18.892h4.27L72.418 20h-3.876l-.577-3.595Zm-.471-2.946-1.31-8-4.033 8h5.343ZM82 0l-3.431 20h-3.693l3.43-20H82Z"
-                fill={theme.highlight ? theme.highlight : "#F46F22"}
+                fill="#F46F22"
             />
         </svg>
     );

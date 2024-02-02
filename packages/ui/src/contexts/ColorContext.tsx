@@ -11,6 +11,7 @@ export interface ColorScheme {
   highlight?: string;
   text?: string;
   secondaryText?: string;
+  tertiaryText?: string;
   icon?: string;
   iconBorder?: string;
   hoverColor?: string;
