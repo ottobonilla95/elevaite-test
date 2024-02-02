@@ -92,7 +92,7 @@ def main():
         _formData = S3IngestData(
             **_data["dto"], datasetID=_data["id"], applicationID=_data["application_id"]
         )
-        t = threading.Thread(target=s3_lakefs_cp_stream, args=(_formData))
+        t = threading.Thread(target=s3_lakefs_cp_stream, args=(_formData,))
         # s3_lakefs_cp_stream(formData=_formData)
         t.start()
 
@@ -239,11 +239,18 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
 
     # size = sum(1 for _ in src_bucket.objects.all())
 
+    avg_size = 0
+
+    try:
+        avg_size = size / count
+    except:
+        avg_size = 0
+
     _data = {
         "total_items": count,
         "ingested_items": 0,
         "ingested_size": 0,
-        "avg_size": size / count,
+        "avg_size": avg_size,
         "total_size": size,
     }
 
