@@ -1,4 +1,6 @@
+import docx
 from unstructured.partition.html import partition_html
+from unstructured.partition.docx import partition_docx
 from unstructured.chunking.title import chunk_by_title
 from pprint import pprint
 import sys, glob, os
@@ -28,6 +30,35 @@ def get_file_elements(filepath = None, filedir=None):
         #for k, v in element.to_dict().items():
             #print(k, v)
 
+def get_docx_elements(filepath = None, filedir=None):
+    elements = partition_docx(filepath)
+    print("Total elements = " + str(len(elements)))
+    source = get_filename(filepath=filepath)
+    document_title = ""
+    current_chunks = []
+    current_chunk_charaters = 0
+    documnet_chunks = []
+    for idx, element in enumerate(elements):
+        if element.category == 'Title' and idx == 0:
+            document_title = element.text
+        current_chunks.append(element.text)
+        current_chunk_charaters += len(element.text)
+        if current_chunk_charaters >= 1500:
+            documnet_chunks.append(document_title + "\n" + ' '.join(current_chunks))
+            current_chunks.clear()
+            current_chunk_charaters = 0
+    chunks_as_json = []
+    for idx, document in enumerate(documnet_chunks):
+        print("Index : ", idx)
+        print("Document Chunk: ", document)
+        chunk_as_json = get_chunk_as_json(source=source, chunk=document)
+        print(chunk_as_json)
+        chunks_as_json.append(chunk_as_json)
+    print("Total Chunks: ", len(documnet_chunks))
+    output_directory = '/home/binu/elevaite/ingest/data/msa/output'
+    write_page_chunks_to_file(chunks_as_json, chunk_dir_full_path= output_directory, findex=1)
+            
+
 def write_chunks_to_file(chunks_as_json, chunk_dir_full_path: str, findex: int):
     chunk_index = 0
     if chunk_dir_full_path:
@@ -38,6 +69,17 @@ def write_chunks_to_file(chunks_as_json, chunk_dir_full_path: str, findex: int):
                 print("Writing File" + filepath)
                 with open(filepath, 'w') as f:
                     f.write(json.dumps(page_chunk))
+
+def write_page_chunks_to_file(chunks_as_json, chunk_dir_full_path: str, findex: int):
+    chunk_index = 0
+    if chunk_dir_full_path:
+        for pidx, page_chunk in enumerate(chunks_as_json):
+            chunk_index = chunk_index + 1 
+            filepath = chunk_dir_full_path + "/" + "chunk_" + str(findex) + "_" + str(pidx) +  ".json"
+            print("Writing File" + filepath)
+            print(page_chunk)
+            with open(filepath, 'w') as f:
+                f.write(json.dumps(page_chunk))
 
 def get_filename(filepath):
     return filepath.split("/")[-1]
@@ -84,4 +126,4 @@ if __name__ == "__main__":
             else:
                 process_file_dir(sys.argv[1])
         else:
-            get_file_elements(sys.argv[1])
+            get_docx_elements(sys.argv[1])
