@@ -1,11 +1,63 @@
+import asyncio
 import json
 import os
+from pprint import pprint
 import sys
 import threading
 import lakefs
+import redis
+from unstructured.partition.html import partition_html
+from unstructured.chunking.title import chunk_by_title
 
 from dotenv import load_dotenv
 import pika
+
+from preprocess import get_file_elements_internal
+import vectordb
+
+
+class PreProcessForm:
+    creator: str
+    name: str
+    datasetId: str
+    datasetName: str
+    datasetProject: str
+    datasetVersion: str | None
+    datasetOutputURI: str | None
+    queue: str
+    maxIdleTime: str
+    instanceId: str
+    applicationId: str
+
+    def __init__(
+        self,
+        name: str,
+        datasetId: str,
+        datasetName: str,
+        datasetProject: str,
+        datasetVersion: str | None,
+        datasetOutputURI: str | None,
+        queue: str,
+        maxIdleTime: str,
+        instanceId: str,
+        creator: str,
+        applicationId: str,
+    ) -> None:
+        self.name = name
+        self.datasetId = datasetId
+        self.datasetName = datasetName
+        self.datasetProject = datasetProject
+        self.datasetVersion = datasetVersion
+        self.datasetOutputURI = datasetOutputURI
+        self.queue = queue
+        self.maxIdleTime = maxIdleTime
+        self.instanceId = instanceId
+        self.creator = creator
+        self.applicationId = applicationId
+
+
+def wrap_async_func(_data: PreProcessForm):
+    asyncio.run(preprocess(_data))
 
 
 def main():
@@ -20,8 +72,8 @@ def main():
             port=5672,
             heartbeat=600,
             blocked_connection_timeout=300,
-            # credentials=credentials,
-            # virtual_host="elevaite_dev",
+            credentials=credentials,
+            virtual_host="elevaite_dev",
         )
     )
     channel = connection.channel()
@@ -33,15 +85,17 @@ def main():
 
         print(f" [x] Received {_data}")
 
-        # _formData = S3IngestData(
-        #     **_data["dto"], datasetID=_data["id"], applicationID=_data["application_id"]
-        # )
-        t = threading.Thread(target=preprocess, args=(_formData,))
-        # s3_lakefs_cp_stream(formData=_formData)
+        _formData = PreProcessForm(
+            **_data["dto"],
+            instanceId=_data["id"],
+            applicationId=_data["application_id"],
+        )
+
+        t = threading.Thread(target=wrap_async_func, args=(_formData,))
         t.start()
 
     channel.basic_consume(
-        queue="s3_ingest", on_message_callback=callback, auto_ack=True
+        queue="preprocess", on_message_callback=callback, auto_ack=True
     )
 
     print("Awaiting Messages")
@@ -49,7 +103,7 @@ def main():
     channel.start_consuming()
 
 
-def preprocess():
+async def preprocess(data: PreProcessForm) -> None:
     LAKEFS_ACCESS_KEY_ID = os.getenv("LAKEFS_ACCESS_KEY_ID")
     LAKEFS_SECRET_ACCESS_KEY = os.getenv("LAKEFS_SECRET_ACCESS_KEY")
     LAKEFS_ENDPOINT_URL = os.getenv("LAKEFS_ENDPOINT_URL")
@@ -68,6 +122,73 @@ def preprocess():
         host=LAKEFS_ENDPOINT_URL,
         username=LAKEFS_ACCESS_KEY_ID,
         password=LAKEFS_SECRET_ACCESS_KEY,
+    )
+
+    r = redis.Redis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        decode_responses=True,
+        username=REDIS_USERNAME,
+        password=REDIS_PASSWORD,
+    )
+
+    repo = None
+
+    for _repo in lakefs.repositories(client=clt):
+        if _repo.id == data.datasetProject:
+            repo = _repo
+
+    count = 0
+    size = 0
+    for o in repo.branch("main").objects():
+        count += 1
+        size += o.size_bytes
+
+    # size = sum(1 for _ in src_bucket.objects.all())
+
+    avg_size = 0
+
+    try:
+        avg_size = size / count
+    except:
+        avg_size = 0
+
+    _data = {
+        "total_items": count,
+        "ingested_items": 0,
+        "ingested_size": 0,
+        "avg_size": avg_size,
+        "total_size": size,
+        "ingested_chunks": 0,
+    }
+
+    r.json().set(data.datasetId, ".", _data)
+
+    chunks_as_json = []
+    page_as_json = []
+    findex = 0
+
+    for object in repo.branch("main").objects():
+        with repo.branch("main").object(object.path).reader(pre_sign=False) as fd:
+            # while fd.tell() < file_size:
+            #     print(fd.read(10))
+            #     fd.seek(10, os.SEEK_CUR)
+            file_chunks = get_file_elements_internal(
+                file=fd.read(), filepath=object.path
+            )
+            chunks_as_json.extend(file_chunks)
+            r.json().numincrby(data.datasetId, ".ingested_size", object.size_bytes)
+            r.json().numincrby(data.datasetId, ".ingested_items", 1)
+        findex += 1
+        if findex % 10 == 0:
+            print(findex)
+
+    # pprint(chunks_as_json)
+    print("Number of chunks " + str(len(chunks_as_json)))
+    # payloads = json.load(chunks_as_json)
+    await vectordb.recreate_collection(collection=data.datasetProject)
+    await vectordb.insert_records(
+        collection=data.datasetProject, payload_with_contents=chunks_as_json
     )
 
 

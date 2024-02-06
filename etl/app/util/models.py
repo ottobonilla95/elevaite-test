@@ -110,3 +110,15 @@ class S3IngestFormDataDTO(BaseDatasetInformationForm):
 class CreateApplicationInstanceDTO(BaseModel):
     creator: str
     formData: S3IngestFormDataDTO
+
+
+class PreProcessFormDTO(BaseModel):
+    creator: str
+    name: str
+    datasetId: str
+    datasetName: str
+    datasetProject: str
+    datasetVersion: str | None
+    datasetOutputURI: str | None
+    queue: str
+    maxIdleTime: str

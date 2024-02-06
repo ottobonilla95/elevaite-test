@@ -11,6 +11,7 @@ from app.util.models import (
     ApplicationPipelineDTO,
     IngestApplicationChartDataDTO,
     IngestApplicationDTO,
+    PreProcessFormDTO,
     S3IngestFormDataDTO,
 )
 from app.services import applications as service
@@ -33,12 +34,13 @@ def get_rabbitmq_connection():
             port=5672,
             heartbeat=600,
             blocked_connection_timeout=300,
-            credentials=credentials,
-            virtual_host=RABBITMQ_VHOST,
+            # credentials=credentials,
+            # virtual_host=RABBITMQ_VHOST,
         )
     )
     channel = connection.channel()
     channel.queue_declare("s3_ingest")
+    channel.queue_declare("preprocess")
 
     try:
         yield connection
@@ -90,6 +92,21 @@ def getApplicationInstanceChart(
 def createApplicationInstance(
     application_id: str,
     createApplicationInstanceDto: Annotated[S3IngestFormDataDTO, Body()],
+    rmq: pika.BlockingConnection = Depends(get_rabbitmq_connection),
+) -> ApplicationInstanceDTO:
+    return service.createApplicationInstance(
+        application_id=application_id,
+        createApplicationInstanceDto=createApplicationInstanceDto,
+        rmq=rmq,
+    )
+
+
+@router.post("/{application_id}/instance/")
+def createApplicationInstance(
+    application_id: str,
+    createApplicationInstanceDto: Annotated[
+        S3IngestFormDataDTO | PreProcessFormDTO, Body()
+    ],
     rmq: pika.BlockingConnection = Depends(get_rabbitmq_connection),
 ) -> ApplicationInstanceDTO:
     return service.createApplicationInstance(

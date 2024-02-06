@@ -15,6 +15,7 @@ from ..util.models import (
     IngestApplicationChartDataDTO,
     IngestApplicationDTO,
     InstanceStatus,
+    PreProcessFormDTO,
     S3IngestFormDataDTO,
 )
 from ..util.mockData import applications_list
@@ -69,7 +70,7 @@ def getApplicationInstanceById(
 
 def createApplicationInstance(
     application_id: str,
-    createApplicationInstanceDto: S3IngestFormDataDTO,
+    createApplicationInstanceDto: S3IngestFormDataDTO | PreProcessFormDTO,
     rmq: pika.BlockingConnection,
 ) -> ApplicationInstanceDTO:
     elasticClient = ElasticSingleton()
@@ -81,6 +82,7 @@ def createApplicationInstance(
         id=instanceID,
         status=InstanceStatus.STARTING,
         chartData=IngestApplicationChartDataDTO(),
+        datasetId=instanceID,
     )
     res = elasticClient.getById("application", application_id)
     application = IngestApplication(**res["_source"])
@@ -96,19 +98,26 @@ def createApplicationInstance(
         body=json.dumps({"doc": {"instances": instances}}, default=vars),
     )
 
-    pprint(elasticClient.getById("application", application_id)["_source"])
-
     _data = {
         "id": instanceID,
         "dto": createApplicationInstanceDto,
         "application_id": application_id,
     }
 
+    def get_routing_key(application_id) -> str:
+        match application_id:
+            case "1":
+                return "s3_ingest"
+            case "2":
+                return "preprocess"
+            case _:
+                return "default"
+
     # rmq = RabbitMQSingleton()
     rmq.channel().basic_publish(
         exchange="",
         body=json.dumps(_data, default=vars),
-        routing_key="s3_ingest",
+        routing_key=get_routing_key(application_id=application_id),
     )
 
     return instance
