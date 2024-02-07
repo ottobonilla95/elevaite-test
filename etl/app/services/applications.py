@@ -10,11 +10,14 @@ from ..util.RabbitMQSingleton import RabbitMQSingleton
 from ..util.models import (
     ApplicationFormDTO,
     ApplicationInstanceDTO,
+    ApplicationInstancePipelineStepStatus,
     ApplicationPipelineDTO,
+    ApplicationType,
     IngestApplication,
     IngestApplicationChartDataDTO,
     IngestApplicationDTO,
     InstanceStatus,
+    PipelineStepStatus,
     PreProcessFormDTO,
     S3IngestFormDataDTO,
 )
@@ -83,10 +86,41 @@ def createApplicationInstance(
         status=InstanceStatus.STARTING,
         chartData=IngestApplicationChartDataDTO(),
         datasetId=instanceID,
+        name=createApplicationInstanceDto.name,
+        pipelineStepStatuses=[],
+        comment=None,
     )
     res = elasticClient.getById("application", application_id)
     application = IngestApplication(**res["_source"])
     pprint(application.instances)
+
+    if (
+        application.applicationType == ApplicationType.PREPROCESS
+        and createApplicationInstanceDto.selectedPipeline
+    ):
+        if len(application.pipelines) > 0:
+            _pipeline = None
+            for p in application.pipelines:
+                if p.id == createApplicationInstanceDto.selectedPipeline:
+                    _pipeline = p
+
+            if _pipeline == None:
+                instance.comment = "Pipeline was not found."
+                instance.status = InstanceStatus.FAILED
+            else:
+                instance.selectedPipeline = (
+                    createApplicationInstanceDto.selectedPipeline
+                )
+                for pl in _pipeline.steps:
+                    _status = PipelineStepStatus.IDLE
+                    if pl.id == _pipeline.entry:
+                        _status = PipelineStepStatus.RUNNING
+                    instance.pipelineStepStatuses.append(
+                        ApplicationInstancePipelineStepStatus(
+                            status=_status, step=pl.id
+                        )
+                    )
+
     application.instances.append(instance)
     instances = application.instances
     # instances.append(instance.dict())
@@ -97,6 +131,9 @@ def createApplicationInstance(
         id=application_id,
         body=json.dumps({"doc": {"instances": instances}}, default=vars),
     )
+
+    if instance.status == InstanceStatus.FAILED:
+        raise Exception("Instance creation failed. See comment for reason")
 
     _data = {
         "id": instanceID,
@@ -138,4 +175,5 @@ def getApplicationInstanceChart(
             totalItems=res["total_items"],
             totalSize=res["total_size"],
             ingestedSize=res["ingested_size"],
+            ingestedChunks=res["ingested_chunks"],
         )

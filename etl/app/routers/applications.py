@@ -34,8 +34,8 @@ def get_rabbitmq_connection():
             port=5672,
             heartbeat=600,
             blocked_connection_timeout=300,
-            # credentials=credentials,
-            # virtual_host=RABBITMQ_VHOST,
+            credentials=credentials,
+            virtual_host=RABBITMQ_VHOST,
         )
     )
     channel = connection.channel()

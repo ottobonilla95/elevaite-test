@@ -1,6 +1,5 @@
 from enum import Enum
 from typing import Union
-from uuid import UUID
 from pydantic import BaseModel
 
 from app.util.BaseApplication import BaseApplicationDTO
@@ -8,6 +7,13 @@ from app.util.BaseApplication import BaseApplicationDTO
 
 class InstanceStatus(str, Enum):
     STARTING = "starting"
+    RUNNING = "running"
+    FAILED = "failed"
+    COMPLETED = "completed"
+
+
+class PipelineStepStatus(str, Enum):
+    IDLE = "idle"
     RUNNING = "running"
     FAILED = "failed"
     COMPLETED = "completed"
@@ -24,16 +30,16 @@ class ApplicationPipelineStepDataDTO(BaseModel):
 
 
 class ApplicationPipelineStepDTO(BaseModel):
-    id: UUID
-    dependsOn: list[UUID]
+    id: str
+    dependsOn: list[str]
     title: str
     data: list[ApplicationPipelineStepDataDTO]
 
 
 class ApplicationPipelineDTO(BaseModel):
-    id: UUID
+    id: str
     steps: list[ApplicationPipelineStepDTO]
-    entry: UUID
+    entry: str
     label: str
 
 
@@ -51,16 +57,26 @@ class IngestApplicationChartDataDTO(BaseModel):
     avgSize: int = 0
     totalSize: int = 0
     ingestedSize: int = 0
+    ingestedChunks: int = 0
+
+
+class ApplicationInstancePipelineStepStatus(BaseModel):
+    step: str
+    status: PipelineStepStatus
 
 
 class ApplicationInstanceDTO(BaseModel):
     id: str
     creator: str
+    name: str
+    comment: Union[str, None]
     startTime: Union[str, None]
     endTime: Union[str, None]
     status: InstanceStatus
     datasetId: Union[str, None]
     chartData: IngestApplicationChartDataDTO
+    selectedPipeline: Union[str, None]
+    pipelineStepStatuses: list[ApplicationInstancePipelineStepStatus]
 
 
 class ApplicationFormDTO(BaseModel):
@@ -122,3 +138,4 @@ class PreProcessFormDTO(BaseModel):
     datasetOutputURI: str | None
     queue: str
     maxIdleTime: str
+    selectedPipeline: str
