@@ -269,7 +269,7 @@ async def preprocess(data: PreProcessForm) -> None:
                     "avgSize": res["avg_size"],
                     "totalSize": res["total_size"],
                     "ingestedSize": res["ingested_size"],
-                    "ingested_chunks": res["ingested_chunks"],
+                    "ingestedChunks": res["ingested_chunks"],
                 }
                 for pss in instance["pipelineStepStatuses"]:
                     if pss["step"] == _first_step:
@@ -319,12 +319,18 @@ async def preprocess(data: PreProcessForm) -> None:
         )
     except Exception as e:
         print("Error")
-        print(e.with_traceback)
+        print(e.with_traceback())
         resp = es.get(index="application", id=data.applicationId)
         instances = resp["_source"]["instances"]
         for instance in instances:
             if instance["id"] == data.instanceId:
                 instance["status"] = "failed"
+
+        es.update(
+            index="application",
+            id=data.applicationId,
+            body=json.dumps({"doc": {"instances": instances}}, default=vars),
+        )
 
 
 if __name__ == "__main__":
