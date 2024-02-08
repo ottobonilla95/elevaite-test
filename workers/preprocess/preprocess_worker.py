@@ -283,6 +283,8 @@ async def preprocess(data: PreProcessForm) -> None:
             body=json.dumps({"doc": {"instances": instances}}, default=vars),
         )
 
+        # Save the chunks_as_json.json on lakefs
+
         # pprint(chunks_as_json)
         print("Number of chunks " + str(len(chunks_as_json)))
         # payloads = json.load(chunks_as_json)
@@ -319,12 +321,14 @@ async def preprocess(data: PreProcessForm) -> None:
         )
     except Exception as e:
         print("Error")
-        print(e.with_traceback())
+        print(e)
         resp = es.get(index="application", id=data.applicationId)
         instances = resp["_source"]["instances"]
         for instance in instances:
             if instance["id"] == data.instanceId:
                 instance["status"] = "failed"
+                instance["endTime"] = datetime.utcnow().isoformat()
+                instance["comment"] = e
 
         es.update(
             index="application",
