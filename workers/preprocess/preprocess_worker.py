@@ -219,8 +219,11 @@ async def preprocess(data: PreProcessForm) -> None:
             for pss in instance["pipelineStepStatuses"]:
                 if pss["step"] == _entry_step:
                     pss["status"] = "completed"
+                    pss["endTime"] = datetime.utcnow().isoformat()
+
                 if pss["step"] == _first_step:
                     pss["status"] = "running"
+                    pss["startTime"] = datetime.utcnow().isoformat()
 
     es.update(
         index="application",
@@ -274,8 +277,11 @@ async def preprocess(data: PreProcessForm) -> None:
                 for pss in instance["pipelineStepStatuses"]:
                     if pss["step"] == _first_step:
                         pss["status"] = "completed"
+                        pss["endTime"] = datetime.utcnow().isoformat()
+
                     if pss["step"] == _second_step:
                         pss["status"] = "running"
+                        pss["startTime"] = datetime.utcnow().isoformat()
 
         es.update(
             index="application",
@@ -311,8 +317,10 @@ async def preprocess(data: PreProcessForm) -> None:
                 for pss in instance["pipelineStepStatuses"]:
                     if pss["step"] == _second_step:
                         pss["status"] = "completed"
+                        pss["endTime"] = datetime.utcnow().isoformat()
                     if pss["step"] == _final_step:
                         pss["status"] = "running"
+                        pss["startTime"] = datetime.utcnow().isoformat()
 
         es.update(
             index="application",
@@ -329,6 +337,10 @@ async def preprocess(data: PreProcessForm) -> None:
                 instance["status"] = "failed"
                 instance["endTime"] = datetime.utcnow().isoformat()
                 instance["comment"] = e
+                for pss in instance["pipelineStepStatuses"]:
+                    if pss["endTime"] == None and pss["startTime"] != None:
+                        pss["status"] = "failed"
+                        pss["endTime"] = datetime.utcnow().isoformat()
 
         es.update(
             index="application",

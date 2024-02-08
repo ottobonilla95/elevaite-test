@@ -160,6 +160,38 @@ def createApplicationInstance(
     return instance
 
 
+def approveApplicationInstance(
+    application_id: str, instance_id: str
+) -> ApplicationInstanceDTO:
+    elasticClient = ElasticSingleton()
+    res = elasticClient.getById("application", application_id)
+    app = IngestApplication(**res["_source"])
+    _instance = None
+
+    # TODO: Think about adding an exit pointer to the pipeline. It will probably make things much much simpler
+    for instance in app.instances:
+        if instance.id == instance_id:
+            pipeline = list(
+                filter(lambda x: x.id == instance.selectedPipeline, app.pipelines)
+            )[0]
+            dependedOn = []
+            for ps in pipeline.steps:
+                dependedOn.extend(ps.dependsOn)
+
+            for pss in instance.pipelineStepStatuses:
+                if pss.step not in dependedOn:
+                    pss.endTime = datetime.utcnow().isoformat()
+            _instance = instance
+            break
+
+    elasticClient.client.update(
+        index="application",
+        id=application_id,
+        body=json.dumps({"doc": {"instances": app.instances}}, default=vars),
+    )
+    return _instance
+
+
 def getApplicationInstanceChart(
     application_id: str, instance_id: str
 ) -> IngestApplicationChartDataDTO:

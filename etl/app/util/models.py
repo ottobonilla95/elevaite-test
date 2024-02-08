@@ -63,6 +63,8 @@ class IngestApplicationChartDataDTO(BaseModel):
 class ApplicationInstancePipelineStepStatus(BaseModel):
     step: str
     status: PipelineStepStatus
+    startTime: Union[str, None]
+    endTime: Union[str, None]
 
 
 class ApplicationInstanceDTO(BaseModel):

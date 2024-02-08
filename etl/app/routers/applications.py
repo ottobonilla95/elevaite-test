@@ -88,6 +88,15 @@ def getApplicationInstanceChart(
     )
 
 
+@router.post("/{application_id}/instance/{instance_id}/approve")
+def approveApplicationInstance(
+    application_id: str, instance_id: str
+) -> ApplicationInstanceDTO:
+    return service.approveApplicationInstance(
+        application_id=application_id, instance_id=instance_id
+    )
+
+
 @router.post("/{application_id}/instance/s3")
 def createApplicationInstance(
     application_id: str,
