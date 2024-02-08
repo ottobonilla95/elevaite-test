@@ -1,5 +1,5 @@
 import { Logos } from "@repo/ui/components";
-import { AppInstanceFieldTypes, AppInstanceFormStructure, S3IngestFormDTO, S3PreprocessFormDTO } from "./interfaces";
+import { AppInstanceFieldTypes, AppInstanceFormStructure, S3PreprocessFormDTO } from "./interfaces";
 
 
 
@@ -12,8 +12,8 @@ export const S3PreprocessFormInitializer: S3PreprocessFormDTO = {
     project: "",
     version: "",
     outputURI: "",
-    queue: "",
-    maximumIdleTime: "",
+    queue: "Default",
+    maximumIdleTime: "Default",
 }
 
 export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3PreprocessFormDTO> = {
@@ -71,15 +71,15 @@ export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3Preproce
             field: "queue",
             info: "Queue order type",
             label: "Queue",
-            required: true,
             type: AppInstanceFieldTypes.INPUT,
+            disabled: true,
         },
         {
             field: "maximumIdleTime",
-            info: "Maximum time before shutting down (in hours)",
+            info: "Maximum time before shutting down",
             label: "Maximum Idle Time",
-            required: true,
             type: AppInstanceFieldTypes.INPUT,
+            disabled: true,
         },
 
     ],

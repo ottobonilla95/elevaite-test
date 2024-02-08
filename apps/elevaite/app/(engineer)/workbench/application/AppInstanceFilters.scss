@@ -1,0 +1,250 @@
+
+
+
+
+.app-instance-filters-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    font-size: 12px;
+
+
+    & .top-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+
+        & > span { color: var(--ev-colors-tertiaryText); }
+
+
+        & .app-instances-type {
+            min-width: 110px;
+        }
+
+        & .sorting-filters-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 5px;
+        }
+
+
+        & .sorting-button {
+            height: 24px;
+            width: 24px;
+            background-color: var(--ev-colors-primary);
+
+            &.active { background-color: var(--ev-colors-secondary); }
+            &.descending { transform: rotate(180deg); }
+        }
+
+    }
+
+
+    & .middle-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+
+        & .filters-wrapper {
+            position: relative;
+
+            & .filters-button {
+                padding: 5px 10px;
+                gap: 10px;
+                background-color: var(--ev-colors-secondary);
+                color: var(--ev-colors-tertiaryText);
+                transition: background-color 200ms ease-in-out, color 200ms ease-in-out;
+
+                &.open {
+                    background-color: var(--ev-colors-highlight);
+                    color: var(--ev-colors-text);
+                }
+
+                & > svg { flex-shrink: 0; }
+
+                & .filters-count {
+                    opacity: 0;
+                    height: 18px;
+                    width: 18px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    border-radius: 50%;
+                    background-color: var(--ev-colors-text);
+                    color: var(--ev-colors-primary);
+                    font-weight: 700;
+                    &.show { opacity: 1; }
+                }
+            }
+        }
+
+
+        & .search-input {
+            flex-grow: 1;
+            background-color: var(--ev-colors-hoverColor);
+
+            &.inactive > button {
+                opacity: 0;                
+            }
+
+            & > svg {
+                height: 17px;
+                width: 17px;
+            }
+            & > button {
+                height: 20px;
+                width: 20px;
+            }
+        }
+
+
+    }
+
+
+
+    & .bottom-bar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        min-height: 24px;
+
+
+        & .filter-pill-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 5px;
+            background-color: var(--ev-colors-hoverColor);
+            border-radius: 12px;
+            font-size: 10px;
+
+            & .icon {
+                & > svg { height: 14px; width: 14px; }
+                &.starting { color: var(--ev-colors-secondaryText); }
+                &.running { color: var(--ev-colors-highlight); }
+                &.failed { color: var(--ev-colors-danger); }
+                &.completed { color: var(--ev-colors-success); }
+            }
+            & > button > svg {
+                height: 10px;
+                width: 10px;
+            }
+        }
+    }
+
+}
+
+
+
+
+.filters-container-accordion {
+    position: absolute;
+    top: 100%; left: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 200ms ease-in-out;
+
+    &.open {
+        grid-template-rows: 1fr;
+    }
+
+    & .filters-container {
+        overflow: hidden;
+        width: min-content;
+
+
+        & .filters-content {
+            background-color: var(--ev-colors-hoverColor);
+            color: var(--ev-colors-text);
+            border-radius: 8px;
+            padding: 10px 20px 30px;
+            margin: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+
+
+            & .filters-title {
+                font-size: 20px;
+                font-weight: 600;
+            }
+
+
+
+            & .filters-section-header {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                margin-left: -10px;
+                font-size: 16px;
+                font-weight: 600;
+
+                & > button > svg {
+                    transition: transform 200ms linear;
+                    transform: rotate(-90deg);
+                }
+
+                &.open > button > svg {
+                    transform: rotate(0);
+                }
+            }
+
+
+            & .filters-section-accordion {
+                display: grid;
+                grid-template-columns: 1fr;
+                grid-template-rows: 0fr;
+                transition: grid-template-rows 200ms ease-in-out;
+
+                &.open {
+                    grid-template-rows: 1fr;
+                }
+            }
+
+
+            & .filters-section-container {
+                overflow: hidden;
+                width: min-content;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+
+
+                & .filter-button {
+                    font-size: 14px;
+                    min-width: 140px;
+                    padding: 2px 5px;
+                    background-color: var(--ev-colors-primary);
+        
+                    &.active { background-color: var(--ev-colors-secondary); }
+
+                    &.starting { color: var(--ev-colors-secondaryText); }
+                    &.running { color: var(--ev-colors-highlight); }
+                    &.failed { color: var(--ev-colors-danger); }
+                    &.completed { color: var(--ev-colors-success); }
+
+                    & > svg {
+                        height: 16px;
+                        width: 16px;
+                    }
+                    & > span {
+                        color: var(--ev-colors-text);
+                    }
+                }
+            }
+
+        }
+    }
+
+}
+

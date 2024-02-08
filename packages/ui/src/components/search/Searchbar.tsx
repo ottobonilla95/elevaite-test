@@ -20,19 +20,30 @@ interface SearchBarProps {
 
 export function Searchbar({ handleInput, ...props }: SearchBarProps): JSX.Element {
   const [showResults, setShowResults] = useState(false);
+  const [hintKey, setHintKey] = useState("");
   const inputRef = useRef<HTMLInputElement|null>(null);
   const colors = useContext(ColorContext);
 
 
   useEffect(() => {
-    window.addEventListener("keydown", (e) => {
-      if (e.repeat) return;
-      if ((e.ctrlKey || e.metaKey) && e.code === `Key${SEARCH_KEY}`) {        
-        e.preventDefault();
+    window.addEventListener("keydown", handleSearchKey);
+
+    function handleSearchKey (event: KeyboardEvent) {
+      if (event.repeat) return;
+      if ((event.ctrlKey || event.metaKey) && event.code === `Key${SEARCH_KEY}`) {        
+        event.preventDefault();
         if (inputRef.current) inputRef.current.focus();
       }      
-    })
+    }
+
+    return () => {
+      window.removeEventListener('keydown', handleSearchKey);
+    };
   }, []);
+
+  useEffect(() => {
+    setHintKey(getHotkeyHint());
+  }, [global?.navigator?.platform]);
 
 
   function handleChange (value: string): void {
@@ -54,7 +65,7 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps): JSX.Elemen
 
 
   function getHotkeyHint(): string {
-    if (!global.navigator.platform) return "";
+    if (!global?.navigator?.platform) return "";
     if (global.navigator.platform.toUpperCase().includes("MAC") || global.navigator.platform === "iPhone") return `⌘+${SEARCH_KEY}`;
     return `Ctrl+${SEARCH_KEY}`;
   }
@@ -81,7 +92,7 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps): JSX.Elemen
           type="search"
         />
         <span className="hotkey-hint">
-          {getHotkeyHint()}
+          {hintKey}
         </span>
       </div>
       {showResults ? (

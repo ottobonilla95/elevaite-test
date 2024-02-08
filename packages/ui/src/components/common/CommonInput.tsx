@@ -16,11 +16,13 @@ export interface CommonInputProps {
     info?: string;
     placeholder?: string;
     errorMessage?: string;
+    disabled?: boolean;
+    initialValue?: string;
     onChange?: (value: string, field?: string) => void;
 }
 
 export function CommonInput(props: CommonInputProps): JSX.Element {
-    const [value, setValue] = useState("");
+    const [value, setValue] = useState(props.initialValue ?? "");
     const [hasBeenChanged, setHasBeenChanged] = useState(false);
     const [requiredWarning, setRequiredWarning] = useState("");
 
@@ -66,6 +68,8 @@ export function CommonInput(props: CommonInputProps): JSX.Element {
                 onChange={handleChange}
                 placeholder={props.placeholder}
                 value={value}
+                disabled={props.disabled}
+                title={props.disabled ? "This field is disabled." : ""}
             />
         </div>
     );

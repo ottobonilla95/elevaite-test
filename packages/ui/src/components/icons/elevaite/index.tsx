@@ -19,6 +19,9 @@ import SVGArrowLong from "./svgArrowLong";
 import SVGTarget from "./svgTarget";
 import SVGChevron from "./svgChevron";
 import SVGApplications from "./svgApplications";
+import SVGFilter from "./svgFilter";
+import SVGWarning from "./svgWarning";
+import SVGMagnifyingGlass from "./svgMagnifyingGlass";
 
 
 export const ElevaiteIcons = {
@@ -43,4 +46,7 @@ export const ElevaiteIcons = {
   SVGArrowLong,
   SVGTarget,
   SVGApplications,
+  SVGFilter,
+  SVGWarning,
+  SVGMagnifyingGlass,
 };

@@ -19,7 +19,6 @@ export default function Page(): JSX.Element {
   const id = searchParams.get('id');
   const router = useRouter();
   const [isDetailsLoading, setIsDetailsLoading] = useState(true);
-  const [isListLoading, setIsListLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [applicationDetails, setApplicationDetails] = useState<ApplicationObject|undefined>();
   const [appInstanceList, setAppInstanceList] = useState<AppInstanceObject[]|undefined>();
@@ -40,19 +39,6 @@ export default function Page(): JSX.Element {
         setIsDetailsLoading(false);
         setHasError(true);
         console.error('Error fetching application list', error);
-      }
-    })();
-    void (async () => {
-      try {
-        if (!id) return;
-        setIsListLoading(true)
-        const data = await getApplicationInstanceList(id);
-        setAppInstanceList(data);
-        setIsListLoading(false);
-      } catch (error) {
-        setIsListLoading(false);
-        setHasError(true);
-        console.error('Error fetching application instance list', error);
       }
     })();
     // void (async () => {

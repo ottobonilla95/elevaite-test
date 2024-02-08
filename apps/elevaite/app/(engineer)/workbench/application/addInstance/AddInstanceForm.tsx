@@ -149,7 +149,9 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
                 } else if (field.type === AppInstanceFieldTypes.CHECKBOX) {
                     return <CommonCheckbox {...field} onChange={handleFormDataBooleanChange} key={field.field} />
                 } else {
-                    return <CommonInput {...field} onChange={handleFormDataChange} key={field.field} />
+                    let initialValue = "";
+                    if (field.field && formData && formData[field.field]) initialValue = formData[field.field];
+                    return <CommonInput {...field} initialValue={initialValue} onChange={handleFormDataChange} key={field.field} />
                 }
             }
         })

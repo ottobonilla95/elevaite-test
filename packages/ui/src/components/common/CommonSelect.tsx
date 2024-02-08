@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import "./CommonSelect.scss";
 import SVGChevron from "../icons/elevaite/svgChevron";
-import { CommonButton } from "./CommonButton";
 import { ClickOutsideDetector } from "./ClickOutsideDetector";
+import { CommonButton } from "./CommonButton";
+import "./CommonSelect.scss";
 
 
 export interface CommonSelectOption {
@@ -34,7 +34,6 @@ export function CommonSelect({theme, options, defaultValue, onSelectedValueChang
             if (defaultOption) setSelectedOption(defaultOption);
             else setSelectedOption(options[0]);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- I only want to run this once at the start, not every time props change.
     }, []);
 
 
@@ -52,7 +51,6 @@ export function CommonSelect({theme, options, defaultValue, onSelectedValueChang
         else setIsOpen((currentValue) => !currentValue);
     }
 
-    //TODO: Add OnClickOutside
 
 
     return (

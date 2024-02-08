@@ -1,0 +1,26 @@
+
+
+.simple-input-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 5px;
+
+    border: 1px solid var(--ev-colors-borderColor);
+    border-radius: 4px;
+    color: var(--ev-colors-tertiaryText);
+
+    &:focus-within {
+        border-color: var(--ev-colors-tertiary-text);
+    }
+
+    & > input {
+        flex-grow: 1;
+        background-color: transparent;
+
+        &:focus {
+            outline: none;
+        }
+    }
+
+}

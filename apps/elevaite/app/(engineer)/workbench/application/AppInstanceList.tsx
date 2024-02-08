@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { getApplicationInstanceById, getApplicationInstanceList } from "../../../lib/actions";
 import { AppInstanceObject, AppInstanceStatus, ApplicationType } from "../../../lib/interfaces";
+import { AppInstanceFilters, AppInstanceFiltersObject, ScopeInstances, SortingInstances, initialFilters } from "./AppInstanceFilters";
 import "./AppInstanceList.scss";
 
 
@@ -21,18 +22,13 @@ interface AppInstanceListProps {
 
 export default function AppInstanceList(props: AppInstanceListProps): JSX.Element {
     const session = useSession();
-    const [isAllInstances, setIsAllInstances] = useState<boolean>(false);
-    const [selectedInstance, setSelectedInstance] = useState<AppInstanceObject>();
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedInstance, setSelectedInstance] = useState<AppInstanceObject>();
     const [allInstances, setAllInstances] = useState<AppInstanceObject[]>([]);
-    const [myInstances, setMyInstances] = useState<AppInstanceObject[]>([]);
     const [visibleInstances, setVisibleInstances] = useState<AppInstanceObject[]>([]);
+    const [filters, setFilters] = useState<AppInstanceFiltersObject>(initialFilters);
 
 
-    const instanceViewOptions: CommonSelectOption[] = [
-        {label: "My Instances", value: "my"},
-        {label: "All Instances", value: "all"}
-    ];
 
     const flowOptions: CommonSelectOption[] = [
         {label: "Documents", value: "documents"},
@@ -58,41 +54,51 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
 
     useEffect(() => {
         assignVisibleInstances();
-    }, [isAllInstances, allInstances, myInstances]);
+    }, [allInstances, filters]);
 
     useEffect(() => {
         props.onSelectedInstanceChange(selectedInstance);
     }, [selectedInstance]);
 
 
+
     // Display Functions
 
     function initializeInstances(instances: AppInstanceObject[]): void {
         if (!instances) return;
-        sortInstances(instances);
-        const mine = instances.filter((instance) => { return instance.creator === (session?.data?.user?.name ?? "Unknown User"); });
         setAllInstances(instances);
-        setMyInstances(mine);
     }
 
     function sortInstances(instances: AppInstanceObject[]): void {
         const sortingOrder = [AppInstanceStatus.STARTING, AppInstanceStatus.RUNNING, AppInstanceStatus.FAILED, AppInstanceStatus.COMPLETED];
         instances.sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf() );
+        if (filters.sorting === SortingInstances.descending) instances.reverse();
         instances.sort((a, b) => sortingOrder.indexOf(a.status) - sortingOrder.indexOf(b.status));
     }
 
     function assignVisibleInstances(): void {
-        setVisibleInstances(isAllInstances ? allInstances : myInstances);
+        const filteredInstances = [...allInstances].filter(instance => {
+            // Check scope
+            if (filters.scope === ScopeInstances.allInstances || instance.creator === (session?.data?.user?.name ?? "Unknown User")) {
+                // Check status
+                if (filters.showStatus[instance.status]) {
+                    // Check search term
+                    if (!filters.searchTerm ||
+                        instance.id.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+                        (instance.name && instance.name.toLowerCase().includes(filters.searchTerm.toLowerCase()))
+                    ) {
+                        return instance;
+                    }
+                }
+            }
+        });
+        sortInstances(filteredInstances);
+        setVisibleInstances(filteredInstances);
     }
 
 
     // Interaction Functions
-
-    function handleAllInstanceViewChange(value: string): void {
-        setIsAllInstances(value === "all");
-        if (value === "all" && selectedInstance && selectedInstance.creator !== (session?.data?.user?.name ?? "Unknown User")) setSelectedInstance(undefined);
-    }
-
+    
     function handleFlowChange(value: string): void {
         if (props.onSelectedFlowChange) props.onSelectedFlowChange(value);
     }
@@ -133,33 +139,34 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
             
             <div className="app-instances-header">
                 <div className="app-instances-title">APP INSTANCES</div>
-                <CommonSelect
-                    className="app-instances-type"
-                    defaultValue="my"
-                    onSelectedValueChange={handleAllInstanceViewChange}
-                    options={instanceViewOptions}
-                />
                 <CommonButton className="add-instance" title="Add a new instance" onClick={handleAddInstance}>
-                    <ElevaiteIcons.SVGCross/>
+                    <span>Create New Instance</span>
+                    <ElevaiteIcons.SVGCross circled />
                 </CommonButton>
             </div>
 
-            <div className="app-instances-list">
-                {isLoading ?
-                    <div className="loading-container"><ElevaiteIcons.SVGSpinner/></div>
-                    :
-                    visibleInstances.length === 0 ? 
-                        <div className="list-message">There are no active instances.</div>
-                    : visibleInstances.map((instance) => 
-                    <AppInstance
-                        key={instance.id}
-                        applicationId={props.applicationId}
-                        {...instance}
-                        isSelected={selectedInstance?.id === instance.id}
-                        onClick={handleInstanceClick}
-                        onInstanceUpdate={handleInstanceUpdate}
-                    />
-                )}
+            <AppInstanceFilters
+                onFiltersChanged={setFilters}
+            />
+
+            <div className="app-instances-scroller">
+                <div className="app-instances-list">
+                    {isLoading ?
+                        <div className="loading-container"><ElevaiteIcons.SVGSpinner/></div>
+                        :
+                        visibleInstances.length === 0 ? 
+                            <div className="list-message">No instances to display.</div>
+                        : visibleInstances.map((instance) => 
+                        <AppInstance
+                            key={instance.id}
+                            applicationId={props.applicationId}
+                            {...instance}
+                            isSelected={selectedInstance?.id === instance.id}
+                            onClick={handleInstanceClick}
+                            onInstanceUpdate={handleInstanceUpdate}
+                        />
+                    )}
+                </div>
             </div>
 
         </div>
@@ -182,6 +189,8 @@ interface AppInstanceProps extends AppInstanceObject {
 
 function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps): JSX.Element {
     const {elapsedTime} = useElapsedTime(props.startTime, props.endTime);
+    const [icon, setIcon] = useState<JSX.Element>(<div/>)
+    const [tooltips, setTooltips] = useState({ icon: "", time: "" });
 
 
     useEffect(() => {
@@ -193,6 +202,14 @@ function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps
             return () => {clearInterval(interval)};
         }
     }, [props.id]);
+
+    useEffect(() => {
+        setIcon(getIcon());
+        setTooltips({
+            icon: getIconTooltip(),
+            time: getTimeTooltip(),
+        })
+    }, [props.status]);
 
 
     async function fetchInstance(applicationId?: string | null, instanceId?: string, status?: AppInstanceStatus): Promise<void> {
@@ -208,10 +225,7 @@ function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps
         }
     }
 
-
-
-
-    function getRelevantIcon(): JSX.Element {
+    function getIcon(): JSX.Element {
         switch (props.status) {
             case AppInstanceStatus.STARTING: return <ElevaiteIcons.SVGTarget className="app-instance-icon starting" />
             case AppInstanceStatus.RUNNING: return <ElevaiteIcons.SVGInstanceProgress className="app-instance-icon ongoing" />
@@ -219,15 +233,24 @@ function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps
             case AppInstanceStatus.FAILED: return <ElevaiteIcons.SVGTarget className="app-instance-icon failed" />
         }
     }
-
-    function getRelevantInfo(): string {
+    function getIconTooltip(): string {
         switch (props.status) {
             case AppInstanceStatus.STARTING: return "The instance is initializing."
             case AppInstanceStatus.RUNNING: return "The instance is running. Thank you for your patience."
             case AppInstanceStatus.COMPLETED: return "The instance has been processed succesfully."
             case AppInstanceStatus.FAILED: return "The instance has encountered an error."
         }
+    }    
+    function getTimeTooltip(): string {
+        const formatting = "DD MMM, hh:mm:ss";
+        if (!props.startTime) return "";
+        let tooltip = "Initialized on: " + dayjs(props.startTime).format(formatting);
+        if (props.endTime) {
+            tooltip += `\n${props.status === AppInstanceStatus.FAILED ? "Failed on" : "Completed on"}: ` + dayjs(props.endTime).format(formatting);
+        }
+        return tooltip;
     }
+
 
 
     return (
@@ -241,11 +264,9 @@ function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps
             overrideClass
             noBackground={!isSelected}
         >
-            <div title={getRelevantInfo()}>
-                {getRelevantIcon()}
-            </div>
-            <div className="app-instance-label">{props.id}</div>
-            <div className="app-instance-elapsed-time">{elapsedTime}</div>            
+            <div title={tooltips.icon}>{icon}</div>
+            <div className="app-instance-label" title={props.name ? props.id : ""}>{props.name ? props.name : props.id}</div>
+            <div className="app-instance-elapsed-time" title={tooltips.time}>{elapsedTime}</div>
         </CommonButton>
     );
 }

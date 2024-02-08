@@ -1,7 +1,8 @@
 
 
 
-.app-instances-container {    
+.app-instances-container {
+    height: 100%;
     background-color: var(--ev-colors-primary);
     padding: 16px;
     border-radius: 8px;
@@ -9,7 +10,6 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    min-height: 100%;
 
 
     & .app-flow-header {
@@ -61,20 +61,29 @@
 
         & .add-instance {
             margin-left: auto;
-            height: 24px;
-            width: 24px;
+            justify-content: center;
+            padding: 4px 8px;
             border-radius: 8px;
             background-color: var(--ev-colors-highlight);
             color: var(--ev-colors-primary);
+            font-size: 12px;
+            font-weight: 600;
         }
     }
 
+    & .app-instances-scroller {
+        // margin-top: 20px;
+        flex-grow: 1;
+        overflow-y: scroll;
+        @include scrollbar();
+        margin-right: -15px;
+        padding-right: 15px;
+    }
 
     & .app-instances-list {
         display: flex;
         flex-direction: column;
         gap: 8px;
-        margin-top: 20px;
 
         & .loading-container {
             min-height: 150px;

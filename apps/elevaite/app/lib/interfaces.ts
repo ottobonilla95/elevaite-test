@@ -41,8 +41,10 @@ export interface ApplicationObject {
 
 export interface AppInstanceObject {
     id: string,
+    name?: string,
     datasetId: string,
     creator: string,
+    comment?: string,
     startTime: string,
     endTime?: string,
     status: AppInstanceStatus,

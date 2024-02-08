@@ -47,6 +47,9 @@
         &::placeholder {
             opacity: 0.5;
         }
+        &:disabled {
+            filter: brightness(1.5);
+        }
     }
 
 }

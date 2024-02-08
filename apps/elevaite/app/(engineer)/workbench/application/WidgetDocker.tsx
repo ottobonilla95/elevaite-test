@@ -34,9 +34,11 @@ export default function WidgetDocker(props: WidgetDockerProps): JSX.Element {
 
     return (
         <div className="widget-docker-container">
-            <MainDetailsWidget instance={props.selectedInstance} />
-            {displayedWidgets}
-            <ConsoleLogWidget instance={props.selectedInstance} />
+            <div className="widget-docker-contents">
+                <MainDetailsWidget instance={props.selectedInstance} />
+                {displayedWidgets}
+                <ConsoleLogWidget instance={props.selectedInstance} />
+            </div>
         </div>
     );
 }

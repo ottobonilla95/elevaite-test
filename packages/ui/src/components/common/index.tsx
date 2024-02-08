@@ -3,3 +3,4 @@ export * from "./CommonSelect";
 export * from "./CommonModal";
 export * from "./CommonInput";
 export * from "./CommonCheckbox";
+export * from "./SimpleInput";
