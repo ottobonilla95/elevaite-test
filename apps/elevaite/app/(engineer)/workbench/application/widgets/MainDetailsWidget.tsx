@@ -1,7 +1,11 @@
 import dayjs from "dayjs";
+import utc from 'dayjs/plugin/utc';
 import { useElapsedTime } from "@repo/ui/hooks";
 import "./MainDetailsWidget.scss"
 import type { AppInstanceObject } from "../../../../lib/interfaces";
+
+dayjs.extend(utc);
+
 
 
 interface MainDetailsWidgetProps {
@@ -29,8 +33,8 @@ export default function MainDetailsWidget({instance}: MainDetailsWidgetProps): J
                     <ElapsedTimeDisplay endTime={instance?.endTime} startTime={instance?.startTime} />
                 </div>
                 <div className="start-datetime">
-                    <span className="start-date">{instance ? dayjs(instance.startTime).format("MMM DD, YYYY") : "Month dd, yyyy"}</span>
-                    <span className="start-time">{instance ? dayjs(instance.startTime).format("hh:mm:ss") : "hh:mm:ss"}</span>
+                    <span className="start-date">{instance ? dayjs(instance.startTime).utc().format("MMM DD, YYYY") : "Month dd, yyyy"}</span>
+                    <span className="start-time">{instance ? dayjs(instance.startTime).utc().format("hh:mm a") : "hh:mm"}</span>
                 </div>
             </div>
 

@@ -3,20 +3,22 @@ import type { CommonSelectOption } from "@repo/ui/components";
 import { CommonButton, CommonSelect, ElevaiteIcons } from "@repo/ui/components";
 import { useElapsedTime } from "@repo/ui/hooks";
 import dayjs from "dayjs";
+import utc from 'dayjs/plugin/utc';
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { getApplicationInstanceById, getApplicationInstanceList } from "../../../lib/actions";
-import { AppInstanceObject, AppInstanceStatus, ApplicationType } from "../../../lib/interfaces";
+import { AppInstanceObject, AppInstanceStatus, PipelineObject } from "../../../lib/interfaces";
 import { AppInstanceFilters, AppInstanceFiltersObject, ScopeInstances, SortingInstances, initialFilters } from "./AppInstanceFilters";
 import "./AppInstanceList.scss";
 
+dayjs.extend(utc);
 
 
 interface AppInstanceListProps {
     applicationId: string | null;
-    applicationType?: ApplicationType;
+    pipelines?: PipelineObject[];
     onSelectedInstanceChange: (instance: AppInstanceObject|undefined) => void;
-    onSelectedFlowChange?: (flow: string) => void;
+    onSelectedFlowChange?: (flowValue: string, flowLabel: string) => void;
     onAddInstanceClick: () => void;
 }
 
@@ -27,15 +29,9 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
     const [allInstances, setAllInstances] = useState<AppInstanceObject[]>([]);
     const [visibleInstances, setVisibleInstances] = useState<AppInstanceObject[]>([]);
     const [filters, setFilters] = useState<AppInstanceFiltersObject>(initialFilters);
+    const [flowOptions, setFlowOptions] = useState<CommonSelectOption[]>();
+    const [selectedFlowId, setSelectedFlowId] = useState("");
 
-
-
-    const flowOptions: CommonSelectOption[] = [
-        {label: "Documents", value: "documents"},
-        {label: "Threads", value: "threads"},
-        {label: "Chat Channels", value: "chatChannels"},
-        {label: "Forums", value: "forums"},
-    ];
 
 
     useEffect(() => {
@@ -53,8 +49,13 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
     }, [props.applicationId]);
 
     useEffect(() => {
+        if (!props.pipelines || props.pipelines.length === 0) return;
+        initializePipelines(props.pipelines);
+    }, [props.pipelines]);
+
+    useEffect(() => {
         assignVisibleInstances();
-    }, [allInstances, filters]);
+    }, [allInstances, filters, selectedFlowId]);
 
     useEffect(() => {
         props.onSelectedInstanceChange(selectedInstance);
@@ -69,6 +70,17 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
         setAllInstances(instances);
     }
 
+    function initializePipelines(pipelines: PipelineObject[]): void {
+        const flow = pipelines.map(pipeline => {
+            return {
+                label: pipeline.label,
+                value: pipeline.id,
+            }
+        });
+        if (flow.length > 0) handleFlowChange(flow[0].value, flow[0].label);
+        setFlowOptions(flow);
+    }
+
     function sortInstances(instances: AppInstanceObject[]): void {
         const sortingOrder = [AppInstanceStatus.STARTING, AppInstanceStatus.RUNNING, AppInstanceStatus.FAILED, AppInstanceStatus.COMPLETED];
         instances.sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf() );
@@ -80,14 +92,17 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
         const filteredInstances = [...allInstances].filter(instance => {
             // Check scope
             if (filters.scope === ScopeInstances.allInstances || instance.creator === (session?.data?.user?.name ?? "Unknown User")) {
-                // Check status
-                if (filters.showStatus[instance.status]) {
-                    // Check search term
-                    if (!filters.searchTerm ||
-                        instance.id.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-                        (instance.name && instance.name.toLowerCase().includes(filters.searchTerm.toLowerCase()))
-                    ) {
-                        return instance;
+                // Check Flow
+                if (!selectedFlowId || instance.selectedPipeline === selectedFlowId) {
+                    // Check status
+                    if (filters.showStatus[instance.status]) {
+                        // Check search term
+                        if (!filters.searchTerm ||
+                            instance.id.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+                            (instance.name && instance.name.toLowerCase().includes(filters.searchTerm.toLowerCase()))
+                        ) {
+                            return instance;
+                        }
                     }
                 }
             }
@@ -99,8 +114,9 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
 
     // Interaction Functions
     
-    function handleFlowChange(value: string): void {
-        if (props.onSelectedFlowChange) props.onSelectedFlowChange(value);
+    function handleFlowChange(value: string, label: string): void {
+        setSelectedFlowId(value);
+        if (props.onSelectedFlowChange) props.onSelectedFlowChange(value, label);
     }
 
     function handleInstanceClick(instance: AppInstanceObject): void {
@@ -124,12 +140,12 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
     return (
         <div className="app-instances-container">
 
-            {!props.applicationType || props.applicationType !== ApplicationType.PREPROCESS ? null :
+            {!flowOptions || flowOptions.length === 0 ? null :
                 <div className="app-flow-header">                    
                     <div className="flow-title">Pre-process Flow:</div>
                     <CommonSelect
                         className="flow-type"
-                        defaultValue="documents"
+                        defaultValue={flowOptions[0].value}
                         onSelectedValueChange={handleFlowChange}
                         options={flowOptions}
                         anchor="right"
@@ -194,7 +210,9 @@ function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps
 
 
     useEffect(() => {
-        if (props.applicationId && props.id && props.onInstanceUpdate && props.status === AppInstanceStatus.RUNNING || props.status === AppInstanceStatus.STARTING) {
+        if (props.applicationId && props.id && props.onInstanceUpdate &&
+            !props.id.toLowerCase().includes("test") && // Prevent test instances from attempting to refresh.
+            (props.status === AppInstanceStatus.RUNNING || props.status === AppInstanceStatus.STARTING)) {
             const delay = props.status === AppInstanceStatus.STARTING ? 20000 : 5000;
             const interval = setInterval(() => {
                 fetchInstance(props.applicationId, props.id, props.status);
@@ -242,11 +260,11 @@ function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps
         }
     }    
     function getTimeTooltip(): string {
-        const formatting = "DD MMM, hh:mm:ss";
+        const formatting = "DD MMM, hh:mm a";
         if (!props.startTime) return "";
-        let tooltip = "Initialized on: " + dayjs(props.startTime).format(formatting);
+        let tooltip = "Initialized on: " + dayjs(props.startTime).utc().format(formatting) + " (utc)";
         if (props.endTime) {
-            tooltip += `\n${props.status === AppInstanceStatus.FAILED ? "Failed on" : "Completed on"}: ` + dayjs(props.endTime).format(formatting);
+            tooltip += `\n${props.status === AppInstanceStatus.FAILED ? "Failed on" : "Completed on"}: ` + dayjs(props.endTime).utc().format(formatting) + " (utc)";
         }
         return tooltip;
     }

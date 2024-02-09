@@ -1,6 +1,8 @@
 import dayjs from "dayjs";
-import { useState, useEffect } from "react";
+import utc from 'dayjs/plugin/utc';
+import { useEffect, useState } from "react";
 
+dayjs.extend(utc);
 
 
 interface UseElapsedTimeObject {
@@ -39,7 +41,7 @@ export function useElapsedTime(startTime: string, endTime?: string): UseElapsedT
 
 
     function getElapsedTime(start: string, end?: string): string {
-        let duration = dayjs(end ?? undefined).diff(dayjs(start)) / 1000;
+        let duration = dayjs(end ?? undefined).utc().diff(dayjs(start).utc()) / 1000;
         const result: string[] = [];
 
         const days = Math.floor(duration / 86400);

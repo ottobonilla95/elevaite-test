@@ -124,6 +124,12 @@
                 &.completed { color: var(--ev-colors-success) }
                 &.failed { color: var(--ev-colors-danger) }
             }
+
+            & .time-info-wrapper {
+                flex-grow: 1;
+                display: flex;
+                justify-content: flex-end;
+            }
         }
 
         & > span {

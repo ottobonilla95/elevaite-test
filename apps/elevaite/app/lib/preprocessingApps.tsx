@@ -6,14 +6,15 @@ import { AppInstanceFieldTypes, AppInstanceFormStructure, S3PreprocessFormDTO } 
 
 export const S3PreprocessFormInitializer: S3PreprocessFormDTO = {
     creator: "",
-    pipelineName: "",
+    name: "",
     datasetId: "",
     datasetName: "",
-    project: "",
-    version: "",
-    outputURI: "",
+    datasetProject: "",
+    datasetVersion: "",
+    datasetOutputURI: "",
     queue: "Default",
     maximumIdleTime: "Default",
+    selectedPipeline: "",
 }
 
 export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3PreprocessFormDTO> = {
@@ -23,7 +24,7 @@ export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3Preproce
     fields: [
         { import: true, export: true },
         {
-            field: "pipelineName",
+            field: "name",
             label: "Pipeline Name",
             info: "Main identifier",
             required: true,
@@ -49,18 +50,18 @@ export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3Preproce
                     type: AppInstanceFieldTypes.INPUT,
                 },
                 {
-                    field: "project",
+                    field: "datasetProject",
                     label: "Dataset Project",
                     info: "The project the dataset is attached to",
                     type: AppInstanceFieldTypes.INPUT,
                 },
                 {
-                    field: "version",
+                    field: "datasetVersion",
                     label: "Dataset Version",
                     type: AppInstanceFieldTypes.INPUT,
                 },
                 {
-                    field: "outputURI",
+                    field: "datasetOutputURI",
                     label: "Dataset Output URI",
                     type: AppInstanceFieldTypes.INPUT,
                 },

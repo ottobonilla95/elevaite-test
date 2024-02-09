@@ -1,6 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
-import { isGetApplicationListReponse, isGetApplicationResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceResponse } from "./discriminators";
+import { isGetApplicationListReponse, isGetApplicationPipelinesResponse, isGetApplicationResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceResponse } from "./discriminators";
 import type { AppInstanceObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "./interfaces";
 import { TEST_INSTANCES } from "./testData";
 
@@ -63,16 +63,15 @@ export async function getApplicationInstanceById(appId: string, instanceId: stri
 }
 
 
-export async function getApplicationPipelines(id: string): Promise<PipelineObject> {
+export async function getApplicationPipelines(id: string): Promise<PipelineObject[]> {
   const url = new URL(`${BACKEND_URL}/application/${id}/pipelines`);
   const response = await fetch(url, { next: { revalidate: APP_REVALIDATION_TIME } });
 
   if (!response.ok) throw new Error("Failed to fetch");
   const data: unknown = await response.json();
   console.log("Data for pipelines", data);
-  // if (isGetApplicationResponse(data)) return data;
-  // throw new Error("Invalid data type");
-  return data as PipelineObject;
+  if (isGetApplicationPipelinesResponse(data)) return data;
+  throw new Error("Invalid data type");
 }
 
 
@@ -90,21 +89,11 @@ export async function getInstanceChartData(appId: string, instanceId: string): P
 
 
 
-export async function createApplicationInstance(id: string, dto: Initializers) {
-  let url = "";
-  // TODO: Make this properly
-  if (id === "1") {
-    url = "s3";
-  } else if (id === "2") {
-    url = "";
-  } else {
-    url = "s3";
-  }
-
+export async function createApplicationInstance(id: string, dto: Initializers) { 
   const headers = new Headers();
   headers.append("Content-Type", "application/json");
  
-  const response = await fetch(`${BACKEND_URL}/application/${id}/instance/${url}`, {
+  const response = await fetch(`${BACKEND_URL}/application/${id}/instance/`, {
     method: "POST",
     body: JSON.stringify(dto),
     headers: headers,

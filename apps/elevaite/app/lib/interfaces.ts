@@ -19,6 +19,13 @@ export enum AppInstanceStatus {
     COMPLETED = "completed",
 }
 
+export enum PipelineStatus {
+    IDLE = "idle",
+    RUNNING = "running",
+    FAILED = "failed",
+    COMPLETED = "completed",
+}
+
 export enum AppInstanceFieldTypes {
     INPUT = "input",
     CHECKBOX = "checkbox",
@@ -41,14 +48,16 @@ export interface ApplicationObject {
 
 export interface AppInstanceObject {
     id: string,
-    name?: string,
-    datasetId: string,
     creator: string,
+    name?: string,
     comment?: string,
     startTime: string,
     endTime?: string,
     status: AppInstanceStatus,
+    datasetId: string,
     chartData?: ChartDataObject,
+    selectedPipeline?: string,
+    pipelineStatuses?: PipelineStatusItem[];
 }
 
 export interface ChartDataObject {
@@ -61,7 +70,7 @@ export interface ChartDataObject {
 
 export interface PipelineObject {
     id: string;
-    entry: string; // What's that?
+    entry: string; 
     label: string; // Documents, Threads, Forums, etc
     steps: PipelineStep[];
 }
@@ -69,11 +78,21 @@ export interface PipelineObject {
 export interface PipelineStep {
     id: string;
     dependsOn: string[];
-    stepOrder: number;
-    stepLabel: string;
-    label: string;
-    value: string;
-    status: AppInstanceStatus;
+    title: string;
+    data: [];
+}
+
+export interface PipelineStepData {    
+    status?: PipelineStatus;
+    startTime?: string;
+    endTime?: string;
+}
+
+export interface PipelineStatusItem {
+    step: string;
+    status: PipelineStatus;
+    startTime: string;
+    endTime: string;
 }
 
 
@@ -121,9 +140,9 @@ export interface S3IngestFormDTO {
     creator: string,
     name: string,
     project: string,
-    // version: string,
-    // parent: string,
-    outputURO: string,
+    version: string, // Deprecated. Return ""
+    parent: string,
+    outputURI: string, // Deprecated. Return ""
     connectionName: string,
     description: string,
     url: string,
@@ -133,14 +152,15 @@ export interface S3IngestFormDTO {
 
 export interface S3PreprocessFormDTO {
     creator: string,
-    pipelineName: string,
+    name: string,
     datasetId: string,
     datasetName: string,
-    project: string,
-    version: string,
-    outputURI: string,
+    datasetProject: string,
+    datasetVersion: string,
+    datasetOutputURI: string,
     queue: string;
     maximumIdleTime: string,
+    selectedPipeline: string,
 }
 
 

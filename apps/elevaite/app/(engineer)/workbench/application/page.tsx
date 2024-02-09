@@ -1,8 +1,8 @@
 "use client"
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CommonModal } from "@repo/ui/components";
-import { ApplicationObject, type AppInstanceObject } from "../../../lib/interfaces";
+import { CommonModal, CommonSelectOption } from "@repo/ui/components";
+import { ApplicationObject, type AppInstanceObject, PipelineObject } from "../../../lib/interfaces";
 import AppInstanceList from "./AppInstanceList";
 import ApplicationDetails from "./ApplicationDetails";
 import WidgetDocker from "./WidgetDocker";
@@ -21,10 +21,10 @@ export default function Page(): JSX.Element {
   const [isDetailsLoading, setIsDetailsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [applicationDetails, setApplicationDetails] = useState<ApplicationObject|undefined>();
-  const [appInstanceList, setAppInstanceList] = useState<AppInstanceObject[]|undefined>();
   const [selectedInstance, setSelectedInstance] = useState<AppInstanceObject>();
   const [isAddInstanceModalOpen, setIsAddInstanceModalOpen] = useState(false);
-  const [selectedFlow, setSelectedFlow] = useState<string>("documents");
+  const [selectedFlow, setSelectedFlow] = useState<CommonSelectOption>();
+  const [pipelines, setPipelines] = useState<PipelineObject[]>([]);
 
 
   useEffect(() => {
@@ -41,16 +41,17 @@ export default function Page(): JSX.Element {
         console.error('Error fetching application list', error);
       }
     })();
-    // void (async () => {
-    //   try {
-    //     if (!id) return;
-    //     const pipelines = await getApplicationPipelines(id);
-    //     console.log("Pipelines:", pipelines);
-    //   } catch (error) {
-    //     setHasError(true);
-    //     console.error('Error fetching application pipelines', error);
-    //   }
-    // })();
+    void (async () => {
+      try {
+        if (!id) return;
+        const pipelines = await getApplicationPipelines(id);
+        if (!pipelines || pipelines.length === 0) return;
+        setPipelines(pipelines);
+      } catch (error) {
+        setHasError(true);
+        console.error('Error fetching application pipelines', error);
+      }
+    })();
   }, [id]);
 
 
@@ -77,8 +78,11 @@ export default function Page(): JSX.Element {
     setSelectedInstance(instance);
   }
 
-  function handleSelectedFlowChange(flow: string): void {
-    setSelectedFlow(flow);
+  function handleSelectedFlowChange(flowValue: string, flowLabel: string): void {
+    setSelectedFlow({
+      label: flowLabel,
+      value: flowValue,
+    });
   }
 
 
@@ -96,7 +100,7 @@ export default function Page(): JSX.Element {
       <div className="instances-container">
         <AppInstanceList
           applicationId={id}
-          applicationType={applicationDetails?.applicationType}
+          pipelines={pipelines}
           onAddInstanceClick={() => {setIsAddInstanceModalOpen(true)}}
           onSelectedInstanceChange={handleSelectedInstanceChange}
           onSelectedFlowChange={handleSelectedFlowChange}
@@ -106,9 +110,10 @@ export default function Page(): JSX.Element {
       <div className="widgets-container">
         <WidgetDocker
           applicationId={id}
-          applicationType={applicationDetails?.applicationType}
+          applicationDetails={applicationDetails}
           selectedInstance={selectedInstance}
           selectedFlow={selectedFlow}
+          pipelines={pipelines}
         />
       </div>
 

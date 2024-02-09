@@ -18,7 +18,7 @@ export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> 
     options: CommonSelectOption[];
     defaultValue?: string;
     anchor?: "left" | "right";
-    onSelectedValueChange: (value: string) => void;
+    onSelectedValueChange: (value: string, label: string) => void;
 }
 
 
@@ -40,7 +40,7 @@ export function CommonSelect({theme, options, defaultValue, onSelectedValueChang
     function handleClick(option: CommonSelectOption): void {
         if (option !== selectedOption) {
             setSelectedOption(option);
-            onSelectedValueChange(option.value);
+            onSelectedValueChange(option.value, option.label);
         }
         setIsOpen(false);
     }
