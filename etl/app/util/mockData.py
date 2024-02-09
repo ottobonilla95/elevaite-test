@@ -11,7 +11,7 @@ from .models import (
 applications_list: list[IngestApplication] = [
     IngestApplication(
         id="1",
-        title="S3 Ingest",
+        title="S3 Connector",
         creator="elevAIte",
         applicationType=ApplicationType.INGEST,
         description="Ingest data from an S3 bucket",
@@ -42,7 +42,7 @@ applications_list: list[IngestApplication] = [
     ),
     IngestApplication(
         id="2",
-        title="Preprocess #1",
+        title="Preprocess Pipelines",
         creator="elevAIte",
         applicationType=ApplicationType.PREPROCESS,
         description="Preprocess ingested data",

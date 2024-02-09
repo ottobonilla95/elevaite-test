@@ -176,136 +176,150 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
     print("REDIS_HOST: ", REDIS_HOST)
     print("REDIS_PORT: ", REDIS_PORT)
 
-    r = redis.Redis(
-        host=REDIS_HOST,
-        port=REDIS_PORT,
-        decode_responses=True,
-        username=REDIS_USERNAME,
-        password=REDIS_PASSWORD,
-    )
-
-    # Create Repository
-
-    clt = lakefs.Client(
-        host=LAKEFS_ENDPOINT_URL,
-        username=LAKEFS_ACCESS_KEY_ID,
-        password=LAKEFS_SECRET_ACCESS_KEY,
-    )
-
-    repo = None
-
-    for _repo in lakefs.repositories(client=clt):
-        if _repo.id == formData.project:
-            repo = _repo
-
-    if not repo:
-        repo = lakefs.Repository(formData.project, client=clt).create(
-            storage_namespace=f"s3://{LAKEFS_STORAGE_NAMESPACE}/{formData.project}"
-        )
-
-    lakefs_s3 = boto3.client(
-        "s3",
-        aws_access_key_id=LAKEFS_ACCESS_KEY_ID,
-        aws_secret_access_key=LAKEFS_SECRET_ACCESS_KEY,
-        endpoint_url=LAKEFS_ENDPOINT_URL,
-    )
-
     # Create the client instance
     client = Elasticsearch(
         ELASTIC_HOST,
         ssl_assert_fingerprint=ELASTIC_SSL_FINGERPRINT,
         basic_auth=("elastic", ELASTIC_PASSWORD),
     )
-
-    # src_bucket = _get_iam_s3_client(role_arn=formData.roleARN, endpoint=None).Bucket(
-    #     formData.url
-    # )
-
-    src_bucket = (
-        boto3.Session(
-            aws_access_key_id=S3_ACCESS_KEY_ID,
-            aws_secret_access_key=S3_SECRET_ACCESS_KEY,
-        )
-        .resource("s3")
-        .Bucket(formData.url)
-    )
-    # lakefs_bucket = boto3.Session(...).resource("s3").Bucket("###")
-
-    count = 0
-    size = 0
-    for o in src_bucket.objects.all():
-        count += 1
-        size += o.size
-
-    # size = sum(1 for _ in src_bucket.objects.all())
-
-    avg_size = 0
-
     try:
-        avg_size = size / count
-    except:
-        avg_size = 0
+        r = redis.Redis(
+            host=REDIS_HOST,
+            port=REDIS_PORT,
+            decode_responses=True,
+            username=REDIS_USERNAME,
+            password=REDIS_PASSWORD,
+        )
 
-    _data = {
-        "total_items": count,
-        "ingested_items": 0,
-        "ingested_size": 0,
-        "avg_size": avg_size,
-        "total_size": size,
-    }
+        # Create Repository
 
-    r.json().set(formData.datasetID, ".", _data)
+        clt = lakefs.Client(
+            host=LAKEFS_ENDPOINT_URL,
+            username=LAKEFS_ACCESS_KEY_ID,
+            password=LAKEFS_SECRET_ACCESS_KEY,
+        )
 
-    resp = client.get(index="application", id=formData.applicationID)
-    instances = resp["_source"]["instances"]
-    for instance in instances:
-        if instance["id"] == formData.datasetID:
-            instance["status"] = "running"
+        repo = None
 
-    client.update(
-        index="application",
-        id=formData.applicationID,
-        body=json.dumps({"doc": {"instances": instances}}, default=vars),
-    )
+        for _repo in lakefs.repositories(client=clt):
+            if _repo.id == formData.project:
+                repo = _repo
 
-    branch = repo.branch("main")
-
-    for summary in src_bucket.objects.all():
-        # print(f"Copying {summary.key} with size {summary.size}...")
-        # pprint(summary)
-        if not summary.key.endswith("/"):
-            s3_object = src_bucket.Object(summary.key).get()
-            stream = s3_object["Body"]
-            lakefs_s3.upload_fileobj(
-                Fileobj=stream, Bucket=formData.project, Key=f"main/{summary.key}"
+        if not repo:
+            repo = lakefs.Repository(formData.project, client=clt).create(
+                storage_namespace=f"s3://{LAKEFS_STORAGE_NAMESPACE}/{formData.project}"
             )
-        r.json().numincrby(formData.datasetID, ".ingested_size", summary.size)
-        r.json().numincrby(formData.datasetID, ".ingested_items", 1)
-        # branch.object(path=f"main/{summary.key}").upload(
-        #     content_type=s3_object["ContentType"], data=stream
+
+        lakefs_s3 = boto3.client(
+            "s3",
+            aws_access_key_id=LAKEFS_ACCESS_KEY_ID,
+            aws_secret_access_key=LAKEFS_SECRET_ACCESS_KEY,
+            endpoint_url=LAKEFS_ENDPOINT_URL,
+        )
+
+        # src_bucket = _get_iam_s3_client(role_arn=formData.roleARN, endpoint=None).Bucket(
+        #     formData.url
         # )
 
-    res = r.json().get(formData.datasetID)
-    resp = client.get(index="application", id=formData.applicationID)
-    instances = resp["_source"]["instances"]
-    for instance in instances:
-        if instance["id"] == formData.datasetID:
-            instance["status"] = "completed"
-            instance["endTime"] = datetime.utcnow().isoformat()
-            instance["chartData"] = {
-                "totalItems": res["total_items"],
-                "ingestedItems": res["ingested_items"],
-                "avgSize": res["avg_size"],
-                "totalSize": res["total_size"],
-                "ingestedSize": res["ingested_size"],
-            }
+        src_bucket = (
+            boto3.Session(
+                aws_access_key_id=S3_ACCESS_KEY_ID,
+                aws_secret_access_key=S3_SECRET_ACCESS_KEY,
+            )
+            .resource("s3")
+            .Bucket(formData.url)
+        )
+        # lakefs_bucket = boto3.Session(...).resource("s3").Bucket("###")
 
-    client.update(
-        index="application",
-        id=formData.applicationID,
-        body=json.dumps({"doc": {"instances": instances}}, default=vars),
-    )
-    print("Done importing data")
+        count = 0
+        size = 0
+        for o in src_bucket.objects.all():
+            count += 1
+            size += o.size
+
+        # size = sum(1 for _ in src_bucket.objects.all())
+
+        avg_size = 0
+
+        try:
+            avg_size = size / count
+        except:
+            avg_size = 0
+
+        _data = {
+            "total_items": count,
+            "ingested_items": 0,
+            "ingested_size": 0,
+            "ingested_chunks": 0,
+            "avg_size": avg_size,
+            "total_size": size,
+        }
+
+        r.json().set(formData.datasetID, ".", _data)
+
+        resp = client.get(index="application", id=formData.applicationID)
+        instances = resp["_source"]["instances"]
+        for instance in instances:
+            if instance["id"] == formData.datasetID:
+                instance["status"] = "running"
+
+        client.update(
+            index="application",
+            id=formData.applicationID,
+            body=json.dumps({"doc": {"instances": instances}}, default=vars),
+        )
+
+        # branch = repo.branch("main")
+
+        for summary in src_bucket.objects.all():
+            # print(f"Copying {summary.key} with size {summary.size}...")
+            # pprint(summary)
+            if not summary.key.endswith("/"):
+                s3_object = src_bucket.Object(summary.key).get()
+                stream = s3_object["Body"]
+                lakefs_s3.upload_fileobj(
+                    Fileobj=stream, Bucket=formData.project, Key=f"main/{summary.key}"
+                )
+            r.json().numincrby(formData.datasetID, ".ingested_size", summary.size)
+            r.json().numincrby(formData.datasetID, ".ingested_items", 1)
+            # branch.object(path=f"main/{summary.key}").upload(
+            #     content_type=s3_object["ContentType"], data=stream
+            # )
+
+        res = r.json().get(formData.datasetID)
+        resp = client.get(index="application", id=formData.applicationID)
+        instances = resp["_source"]["instances"]
+        for instance in instances:
+            if instance["id"] == formData.datasetID:
+                instance["status"] = "completed"
+                instance["endTime"] = datetime.utcnow().isoformat()
+                instance["chartData"] = {
+                    "totalItems": res["total_items"],
+                    "ingestedItems": res["ingested_items"],
+                    "avgSize": res["avg_size"],
+                    "totalSize": res["total_size"],
+                    "ingestedSize": res["ingested_size"],
+                }
+
+        client.update(
+            index="application",
+            id=formData.applicationID,
+            body=json.dumps({"doc": {"instances": instances}}, default=vars),
+        )
+        print("Done importing data")
+    except:
+        resp = client.get(index="application", id=formData.applicationID)
+        instances = resp["_source"]["instances"]
+        for instance in instances:
+            if instance["id"] == formData.datasetID:
+                instance["status"] = "failed"
+                instance["endTime"] = datetime.utcnow().isoformat()
+
+        client.update(
+            index="application",
+            id=formData.applicationID,
+            body=json.dumps({"doc": {"instances": instances}}, default=vars),
+        )
 
 
 if __name__ == "__main__":
