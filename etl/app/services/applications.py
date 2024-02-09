@@ -1,6 +1,5 @@
 from datetime import datetime
 import json
-from pprint import pprint
 import uuid
 
 import pika
@@ -28,7 +27,6 @@ def getApplicationList() -> list[IngestApplicationDTO]:
     elasticClient = ElasticSingleton()
     res: list[IngestApplicationDTO] = []
     for entry in elasticClient.getAllInIndex("application"):
-        print(IngestApplicationDTO(**entry))
         res.append(IngestApplicationDTO(**entry))
     # return map(lambda x: x.toDto(), applications_list)
     return res
@@ -67,7 +65,6 @@ def getApplicationInstanceById(
     elasticClient = ElasticSingleton()
     res = elasticClient.getById("application", application_id)
     application_instances = IngestApplication(**res["_source"]).instances
-    print(application_instances)
     return list(filter(lambda x: x.id == instance_id, application_instances))[0]
 
 
@@ -92,7 +89,6 @@ def createApplicationInstance(
     )
     res = elasticClient.getById("application", application_id)
     application = IngestApplication(**res["_source"])
-    pprint(application.instances)
 
     if (
         application.applicationType == ApplicationType.PREPROCESS
@@ -124,7 +120,6 @@ def createApplicationInstance(
     application.instances.append(instance)
     instances = application.instances
     # instances.append(instance.dict())
-    pprint(application.instances)
 
     elasticClient.client.update(
         index="application",
@@ -200,7 +195,6 @@ def getApplicationInstanceChart(
     if r.ping():
         res = r.json().get(instance_id)
 
-        pprint(res)
         return IngestApplicationChartDataDTO(
             avgSize=res["avg_size"],
             ingestedItems=res["ingested_items"],
