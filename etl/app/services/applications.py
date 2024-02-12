@@ -77,7 +77,7 @@ def createApplicationInstance(
     instanceID = uuid.uuid4().urn[33:]
     instance = ApplicationInstanceDTO(
         creator=createApplicationInstanceDto.creator,
-        startTime=datetime.utcnow().isoformat(),
+        startTime=datetime.utcnow().isoformat()[:-3] + "Z",
         endTime=None,
         id=instanceID,
         status=InstanceStatus.STARTING,
@@ -175,7 +175,7 @@ def approveApplicationInstance(
 
             for pss in instance.pipelineStepStatuses:
                 if pss.step not in dependedOn:
-                    pss.endTime = datetime.utcnow().isoformat()
+                    pss.endTime = datetime.utcnow().isoformat()[:-3] + "Z"
             _instance = instance
             break
 

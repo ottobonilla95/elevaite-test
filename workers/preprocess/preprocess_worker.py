@@ -219,11 +219,11 @@ async def preprocess(data: PreProcessForm) -> None:
             for pss in instance["pipelineStepStatuses"]:
                 if pss["step"] == _entry_step:
                     pss["status"] = "completed"
-                    pss["endTime"] = datetime.utcnow().isoformat()
+                    pss["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
 
                 if pss["step"] == _first_step:
                     pss["status"] = "running"
-                    pss["startTime"] = datetime.utcnow().isoformat()
+                    pss["startTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
 
     es.update(
         index="application",
@@ -277,11 +277,11 @@ async def preprocess(data: PreProcessForm) -> None:
                 for pss in instance["pipelineStepStatuses"]:
                     if pss["step"] == _first_step:
                         pss["status"] = "completed"
-                        pss["endTime"] = datetime.utcnow().isoformat()
+                        pss["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
 
                     if pss["step"] == _second_step:
                         pss["status"] = "running"
-                        pss["startTime"] = datetime.utcnow().isoformat()
+                        pss["startTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
 
         es.update(
             index="application",
@@ -305,7 +305,7 @@ async def preprocess(data: PreProcessForm) -> None:
         for instance in instances:
             if instance["id"] == data.instanceId:
                 instance["status"] = "completed"
-                instance["endTime"] = datetime.utcnow().isoformat()
+                instance["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
                 instance["chartData"] = {
                     "totalItems": res["total_items"],
                     "ingestedItems": res["ingested_items"],
@@ -317,10 +317,10 @@ async def preprocess(data: PreProcessForm) -> None:
                 for pss in instance["pipelineStepStatuses"]:
                     if pss["step"] == _second_step:
                         pss["status"] = "completed"
-                        pss["endTime"] = datetime.utcnow().isoformat()
+                        pss["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
                     if pss["step"] == _final_step:
                         pss["status"] = "running"
-                        pss["startTime"] = datetime.utcnow().isoformat()
+                        pss["startTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
 
         es.update(
             index="application",
@@ -335,12 +335,12 @@ async def preprocess(data: PreProcessForm) -> None:
         for instance in instances:
             if instance["id"] == data.instanceId:
                 instance["status"] = "failed"
-                instance["endTime"] = datetime.utcnow().isoformat()
+                instance["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
                 instance["comment"] = e
                 for pss in instance["pipelineStepStatuses"]:
                     if pss["endTime"] == None and pss["startTime"] != None:
                         pss["status"] = "failed"
-                        pss["endTime"] = datetime.utcnow().isoformat()
+                        pss["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
 
         es.update(
             index="application",

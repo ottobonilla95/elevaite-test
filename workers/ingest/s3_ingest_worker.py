@@ -292,7 +292,7 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
         for instance in instances:
             if instance["id"] == formData.datasetID:
                 instance["status"] = "completed"
-                instance["endTime"] = datetime.utcnow().isoformat()
+                instance["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
                 instance["chartData"] = {
                     "totalItems": res["total_items"],
                     "ingestedItems": res["ingested_items"],
@@ -307,13 +307,15 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
             body=json.dumps({"doc": {"instances": instances}}, default=vars),
         )
         print("Done importing data")
-    except:
+    except Exception as e:
+        print("Error")
+        print(e)
         resp = client.get(index="application", id=formData.applicationID)
         instances = resp["_source"]["instances"]
         for instance in instances:
             if instance["id"] == formData.datasetID:
                 instance["status"] = "failed"
-                instance["endTime"] = datetime.utcnow().isoformat()
+                instance["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
 
         client.update(
             index="application",
