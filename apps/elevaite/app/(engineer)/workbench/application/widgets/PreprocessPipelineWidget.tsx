@@ -54,7 +54,7 @@ export function PreprocessPipelineWidget(props: PreprocessPipelineWidgetProps): 
     }, [props.pipelineSteps, props.initialStep]);
 
     useEffect(() => {
-        setDisplaySteps(props.selectedInstance?.pipelineStatuses ? getDisplaySteps(foundationSteps, props.selectedInstance.pipelineStatuses) : foundationSteps);
+        setDisplaySteps(props.selectedInstance?.pipelineStepStatuses ? getDisplaySteps(foundationSteps, props.selectedInstance.pipelineStepStatuses) : foundationSteps);
     }, [foundationSteps, props.selectedInstance]);
 
 
@@ -71,7 +71,6 @@ export function PreprocessPipelineWidget(props: PreprocessPipelineWidgetProps): 
             returnedResults = results.length;
             if (results.length > 0) formattedSteps.push(results);
         }
-        // const finalizedSteps = getFinalizedSteps(formattedSteps, props.pipelineStatuses);
         setFoundationSteps(formattedSteps);
     }
 

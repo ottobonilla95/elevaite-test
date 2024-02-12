@@ -23,12 +23,12 @@ export const TEST_INSTANCES: AppInstanceObject[] = [
         startTime: dayjs().subtract(3, "days").toISOString(),
         status: AppInstanceStatus.RUNNING,
         selectedPipeline: "8470d675-6752-4446-8f07-fe7a99949e42",
-        pipelineStatuses: [
+        pipelineStepStatuses: [
             {
               step: "647427ef-2654-4585-8aaa-e03c66915c91",
               status: PipelineStatus.IDLE,
-              startTime: "20240207T010111+0200",
-              endTime: "20240207T010714+0200"
+              startTime: "2024-02-10T19:30:38.000Z",
+              endTime: "2024-02-10T20:22:38.000Z"
             }
         ]
     },

@@ -1,9 +1,9 @@
 import type { AppInstanceObject, ApplicationObject, ChartDataObject, PipelineObject } from "./interfaces";
 
 
-function isObject(item: unknown): item is object {
-    return Boolean(item) && item !== null && typeof item === "object";
-}
+
+// RESPONSES
+/////////////
 
 
 export function isGetApplicationListReponse(data: unknown): data is ApplicationObject[] {
@@ -26,15 +26,8 @@ export function isGetApplicationPipelinesResponse(data: unknown): data is Pipeli
     return true;
 }
 
-
-
 export function isGetInstanceChartDataResponse(data: unknown): data is ChartDataObject {
-    return isObject(data) &&
-    "totalItems" in data &&
-    "ingestedItems" in data &&
-    "avgSize" in data &&
-    "totalSize" in data &&
-    "ingestedSize" in data;
+    return isInstanceChartObject(data);
 }
 
 export function isGetInstanceListResponse(data: unknown): data is AppInstanceObject[] {
@@ -49,6 +42,21 @@ export function isGetInstanceResponse(data: unknown): data is AppInstanceObject 
     return isInstanceObject(data);
 }
 
+export function isCreateInstanceResponse(data: unknown): data is AppInstanceObject {
+    return isInstanceObject(data);
+}
+
+
+
+
+// OBJECTS
+///////////
+
+
+function isObject(item: unknown): item is object {
+    return Boolean(item) && item !== null && typeof item === "object";
+}
+
 
 function isApplicationObject(item: unknown): item is ApplicationObject {
     return isObject(item) &&
@@ -59,6 +67,15 @@ function isApplicationObject(item: unknown): item is ApplicationObject {
         "icon" in item &&
         "title" in item &&
         "version" in item;
+}
+
+function isInstanceChartObject(item: unknown): item is ChartDataObject {
+    return isObject(item) &&
+        "totalItems" in item &&
+        "ingestedItems" in item &&
+        "avgSize" in item &&
+        "totalSize" in item &&
+        "ingestedSize" in item;
 }
 
 function isInstanceObject(item: unknown): item is AppInstanceObject {

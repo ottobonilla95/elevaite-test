@@ -1,13 +1,11 @@
 "use server";
 import { redirect } from "next/navigation";
-import { isGetApplicationListReponse, isGetApplicationPipelinesResponse, isGetApplicationResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceResponse } from "./discriminators";
+import { isCreateInstanceResponse, isGetApplicationListReponse, isGetApplicationPipelinesResponse, isGetApplicationResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceResponse } from "./discriminators";
 import type { AppInstanceObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "./interfaces";
 import { TEST_INSTANCES } from "./testData";
 
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-
 const APP_REVALIDATION_TIME = 3600; // one hour
 const INSTANCE_REVALIDATION_TIME = 60; // one minute
 
@@ -40,7 +38,6 @@ export async function getApplicationById(id: string): Promise<ApplicationObject|
 }
 
 
-
 export async function getApplicationInstanceList(id: string): Promise<AppInstanceObject[]> {
   const url = new URL(`${BACKEND_URL}/application/${id}/instance`);
   const response = await fetch(url, { next: { revalidate: INSTANCE_REVALIDATION_TIME } });
@@ -51,6 +48,7 @@ export async function getApplicationInstanceList(id: string): Promise<AppInstanc
   return TEST_INSTANCES; // Remove this and ^ data.length when done testing.
   throw new Error("Invalid data type");
 }
+
 
 export async function getApplicationInstanceById(appId: string, instanceId: string): Promise<AppInstanceObject> {
   const url = new URL(`${BACKEND_URL}/application/${appId}/instance/${instanceId}`);
@@ -75,7 +73,6 @@ export async function getApplicationPipelines(id: string): Promise<PipelineObjec
 }
 
 
-
 export async function getInstanceChartData(appId: string, instanceId: string): Promise<ChartDataObject> {
   const url = new URL(`${BACKEND_URL}/application/${appId}/instance/${instanceId}/chart`);
   const response = await fetch(url, { next: { revalidate: INSTANCE_REVALIDATION_TIME } });
@@ -87,17 +84,18 @@ export async function getInstanceChartData(appId: string, instanceId: string): P
 }
 
 
-
-
 export async function createApplicationInstance(id: string, dto: Initializers) { 
   const headers = new Headers();
   headers.append("Content-Type", "application/json");
- 
   const response = await fetch(`${BACKEND_URL}/application/${id}/instance/`, {
     method: "POST",
     body: JSON.stringify(dto),
     headers: headers,
   });
-  console.log("Server response:", response);
   if (!response.ok) throw new Error("Failed to upload");
+  const data: unknown = await response.json();
+  if (isCreateInstanceResponse(data)) return data;
+  throw new Error("Invalid data type");
 }
+
+

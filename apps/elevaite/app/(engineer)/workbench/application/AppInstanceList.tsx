@@ -20,6 +20,8 @@ interface AppInstanceListProps {
     onSelectedInstanceChange: (instance: AppInstanceObject|undefined) => void;
     onSelectedFlowChange?: (flowValue: string, flowLabel: string) => void;
     onAddInstanceClick: () => void;
+    addId?: string;
+    onClearAddId?: (id: string) => void;
 }
 
 export default function AppInstanceList(props: AppInstanceListProps): JSX.Element {
@@ -61,6 +63,26 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
         props.onSelectedInstanceChange(selectedInstance);
     }, [selectedInstance]);
 
+    useEffect(() => {
+        if (props.addId) {
+            fetchAddedInstance(props.addId);
+        }
+    }, [props.addId]);
+
+
+    // Data Functions
+
+    async function fetchAddedInstance(id: string): Promise<void> {
+        if (!props.applicationId || !id) return;
+        try {
+            const data = await getApplicationInstanceById(props.applicationId, id);
+            if (data) handleInstanceUpdate(data);
+            if (props.onClearAddId) props.onClearAddId(id);
+        } catch (error) {
+            console.error('Error fetching added instance:', error);
+        }
+    }
+
 
 
     // Display Functions
@@ -91,11 +113,13 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
     function assignVisibleInstances(): void {
         const filteredInstances = [...allInstances].filter(instance => {
             // Check scope
-            if (filters.scope === ScopeInstances.allInstances || instance.creator === (session?.data?.user?.name ?? "Unknown User")) {
+            if (filters.scope === ScopeInstances.allInstances ||
+                (session?.data?.user?.name && instance.creator === session.data.user.name) ||
+                (!session?.data?.user?.name && instance.creator === "Unknown User")) {
                 // Check Flow
                 if (!selectedFlowId || instance.selectedPipeline === selectedFlowId) {
                     // Check status
-                    if (filters.showStatus[instance.status]) {
+                    if (Object.values(filters.showStatus).every(item => item === false) || filters.showStatus[instance.status]) {
                         // Check search term
                         if (!filters.searchTerm ||
                             instance.id.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
@@ -124,11 +148,14 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
     }
 
     function handleInstanceUpdate(instance: AppInstanceObject): void {
+        if (!instance) return;
         const index = allInstances.findIndex(item => item.id === instance.id);
         if (index >= 0) {
             allInstances[index] = instance;
-            initializeInstances(allInstances);
-        }
+        } else {
+            allInstances.push(instance);
+        }        
+        initializeInstances(allInstances);
     }
 
     function handleAddInstance(): void {

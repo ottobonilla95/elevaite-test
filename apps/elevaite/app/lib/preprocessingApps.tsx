@@ -13,7 +13,7 @@ export const S3PreprocessFormInitializer: S3PreprocessFormDTO = {
     datasetVersion: "",
     datasetOutputURI: "",
     queue: "Default",
-    maximumIdleTime: "Default",
+    maxIdleTime: "Default",
     selectedPipeline: "",
 }
 
@@ -53,6 +53,7 @@ export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3Preproce
                     field: "datasetProject",
                     label: "Dataset Project",
                     info: "The project the dataset is attached to",
+                    required: true,
                     type: AppInstanceFieldTypes.INPUT,
                 },
                 {
@@ -76,7 +77,7 @@ export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3Preproce
             disabled: true,
         },
         {
-            field: "maximumIdleTime",
+            field: "maxIdleTime",
             info: "Maximum time before shutting down",
             label: "Maximum Idle Time",
             type: AppInstanceFieldTypes.INPUT,

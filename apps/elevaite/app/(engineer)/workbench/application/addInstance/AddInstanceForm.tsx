@@ -1,5 +1,5 @@
 "use client";
-import { CommonButton, CommonCheckbox, CommonInput, ElevaiteIcons } from "@repo/ui/components";
+import { CommonButton, CommonCheckbox, CommonInput, CommonSelectOption, ElevaiteIcons } from "@repo/ui/components";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { createApplicationInstance } from "../../../../lib/actions";
@@ -23,7 +23,8 @@ const commonLabels = {
 interface AddInstanceFormProps {
     applicationId: string | null;
     addInstanceStructure: AppInstanceFormStructure<Initializers> | undefined;
-    onClose: (refresh?: boolean) => void;
+    onClose: (addId?: string) => void;
+    selectedFlow?: CommonSelectOption;
 }
 
 export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
@@ -74,11 +75,17 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
      }
 
 
-     function setUser(data: Initializers): Initializers {
+     function setUser(data: Initializers): void {
         if (session?.data?.user?.name) {
             data.creator = session.data.user.name;
         } else data.creator = "Unknown User";
-        return data;
+     }
+
+     function setSelectedPipeline(data: Initializers, flow?: CommonSelectOption): void {
+        if (!flow || !flow.value) return;
+        if ("selectedPipeline" in data) {
+            data.selectedPipeline = flow.value;
+        }
      }
 
 
@@ -92,23 +99,23 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
 
         // Attach user
         setUser(formData);
+        // Attach selected pipeline if relevant
+        setSelectedPipeline(formData, props.selectedFlow);
 
         // Check all required data.
         if (getIsRequiredFieldEmptyInList(formData, props.addInstanceStructure.fields)) return;
 
         // Commit to server
         try {
-            console.log("Form data passed:", formData);
             setIsProcessing(true);
-            await createApplicationInstance(props.applicationId, formData);
+            const response = await createApplicationInstance(props.applicationId, formData);
             setIsProcessing(false);
-            props.onClose(true);
+            props.onClose(response?.id);
         } catch (error) {
-            console.log("Error:", error);
+            console.error("Error:", error);
             setIsProcessing(false);
             setErrorMessage("An error was encountered. Please try again.")
         }
-
     }
 
 

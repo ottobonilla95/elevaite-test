@@ -36,10 +36,10 @@ export const initialFilters: AppInstanceFiltersObject = {
     sorting: SortingInstances.ascending,
     searchTerm: "",
     showStatus: {
-        [AppInstanceStatus.STARTING]: true,
-        [AppInstanceStatus.RUNNING]: true,
-        [AppInstanceStatus.FAILED]: true,
-        [AppInstanceStatus.COMPLETED]: true,
+        [AppInstanceStatus.STARTING]: false,
+        [AppInstanceStatus.RUNNING]: false,
+        [AppInstanceStatus.FAILED]: false,
+        [AppInstanceStatus.COMPLETED]: false,
     }
 }
 
@@ -66,7 +66,7 @@ export function AppInstanceFilters(props: AppInstanceFiltersProps): JSX.Element 
 
     useEffect(() => {
         props.onFiltersChanged(filters);
-        setActiveFiltersCount(Object.keys(filters.showStatus).filter(key => { return !filters.showStatus[key]; }).length);
+        setActiveFiltersCount(Object.keys(filters.showStatus).filter(key => { return filters.showStatus[key]; }).length);
     }, [filters]);
 
     useEffect(() => {
@@ -208,7 +208,7 @@ export function AppInstanceFilters(props: AppInstanceFiltersProps): JSX.Element 
 
             <div className="bottom-bar">
                 {Object.keys(filters.showStatus).map((objectKey: AppInstanceStatus) => {
-                    if (!filters.showStatus[objectKey]) return (
+                    if (filters.showStatus[objectKey]) return (
                         <div key={objectKey} className="filter-pill-container">
                             <div className={[
                                 "icon",

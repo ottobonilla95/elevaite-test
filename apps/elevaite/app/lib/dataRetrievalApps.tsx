@@ -41,6 +41,7 @@ export const S3DataRetrievalAppInstanceForm: AppInstanceFormStructure<S3IngestFo
             field: "url",
             label: "S3 Url",
             info: "Full link",
+            placeholder: "training.data.webex",
             required: true,
             type: AppInstanceFieldTypes.INPUT,
         },
@@ -74,6 +75,7 @@ export const S3DataRetrievalAppInstanceForm: AppInstanceFormStructure<S3IngestFo
                     field: "project",
                     label: "Dataset Project",
                     info: "The project the dataset is attached to",
+                    required: true,
                     type: AppInstanceFieldTypes.INPUT,
                 },
                 // {

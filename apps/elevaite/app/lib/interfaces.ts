@@ -57,7 +57,7 @@ export interface AppInstanceObject {
     datasetId: string,
     chartData?: ChartDataObject,
     selectedPipeline?: string,
-    pipelineStatuses?: PipelineStatusItem[];
+    pipelineStepStatuses?: PipelineStatusItem[];
 }
 
 export interface ChartDataObject {
@@ -159,7 +159,7 @@ export interface S3PreprocessFormDTO {
     datasetVersion: string,
     datasetOutputURI: string,
     queue: string;
-    maximumIdleTime: string,
+    maxIdleTime: string,
     selectedPipeline: string,
 }
 

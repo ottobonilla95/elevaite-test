@@ -1,16 +1,16 @@
 "use client"
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { CommonModal, CommonSelectOption } from "@repo/ui/components";
-import { ApplicationObject, type AppInstanceObject, PipelineObject } from "../../../lib/interfaces";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getApplicationById, getApplicationPipelines } from "../../../lib/actions";
+import { S3DataRetrievalAppInstanceForm } from "../../../lib/dataRetrievalApps";
+import { AppInstanceFormStructure, ApplicationObject, Initializers, PipelineObject, type AppInstanceObject } from "../../../lib/interfaces";
+import { S3PreprocessingAppInstanceForm } from "../../../lib/preprocessingApps";
 import AppInstanceList from "./AppInstanceList";
 import ApplicationDetails from "./ApplicationDetails";
 import WidgetDocker from "./WidgetDocker";
-import "./page.scss";
 import { AddInstanceForm } from "./addInstance/AddInstanceForm";
-import { getApplicationById, getApplicationInstanceList, getApplicationPipelines } from "../../../lib/actions";
-import { S3DataRetrievalAppInstanceForm } from "../../../lib/dataRetrievalApps";
-import { S3PreprocessingAppInstanceForm } from "../../../lib/preprocessingApps";
+import "./page.scss";
 
 
 
@@ -18,6 +18,7 @@ export default function Page(): JSX.Element {
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
   const router = useRouter();
+  const [formStructure, setFormStructure] = useState<AppInstanceFormStructure<Initializers>>();
   const [isDetailsLoading, setIsDetailsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [applicationDetails, setApplicationDetails] = useState<ApplicationObject|undefined>();
@@ -25,9 +26,11 @@ export default function Page(): JSX.Element {
   const [isAddInstanceModalOpen, setIsAddInstanceModalOpen] = useState(false);
   const [selectedFlow, setSelectedFlow] = useState<CommonSelectOption>();
   const [pipelines, setPipelines] = useState<PipelineObject[]>([]);
+  const [addId, setAddId] = useState("");
 
 
   useEffect(() => {
+    assignStructure(id);
     void (async () => {
       try {
         if (!id) return;
@@ -55,17 +58,17 @@ export default function Page(): JSX.Element {
   }, [id]);
 
 
-  function getAddInstanceStructure(id: string|null) {
+  function assignStructure(id: string|null): void {
+    if (!id) return;
     switch (id) {
-      case "1": return S3DataRetrievalAppInstanceForm;
-      case "2": return S3PreprocessingAppInstanceForm;
-      default: return undefined;
+      case "1": setFormStructure(S3DataRetrievalAppInstanceForm); break;
+      case "2": setFormStructure(S3PreprocessingAppInstanceForm); break;
     }
   }
 
 
-  function handleAddInstanceClose(refresh?: boolean) {
-    //TODO: If refresh
+  function handleAddInstanceClose(addId?: string): void {
+    if (addId) setAddId(addId);
     setIsAddInstanceModalOpen(false);
   }
 
@@ -104,6 +107,8 @@ export default function Page(): JSX.Element {
           onAddInstanceClick={() => {setIsAddInstanceModalOpen(true)}}
           onSelectedInstanceChange={handleSelectedInstanceChange}
           onSelectedFlowChange={handleSelectedFlowChange}
+          addId={addId}
+          onClearAddId={(id) => setAddId((currentId) => id === currentId ? "" : currentId )}
         />
       </div>
 
@@ -121,7 +126,8 @@ export default function Page(): JSX.Element {
         <CommonModal onClose={handleAddInstanceClose}>
           <AddInstanceForm
             applicationId={id}
-            addInstanceStructure={getAddInstanceStructure(id)}
+            addInstanceStructure={formStructure}
+            selectedFlow={selectedFlow}
             onClose={handleAddInstanceClose}
           />
         </CommonModal>
