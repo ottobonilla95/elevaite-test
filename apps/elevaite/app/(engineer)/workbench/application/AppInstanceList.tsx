@@ -3,7 +3,6 @@ import type { CommonSelectOption } from "@repo/ui/components";
 import { CommonButton, CommonSelect, ElevaiteIcons } from "@repo/ui/components";
 import { useElapsedTime } from "@repo/ui/hooks";
 import dayjs from "dayjs";
-import utc from 'dayjs/plugin/utc';
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { getApplicationInstanceById, getApplicationInstanceList } from "../../../lib/actions";
@@ -11,7 +10,6 @@ import { AppInstanceObject, AppInstanceStatus, PipelineObject } from "../../../l
 import { AppInstanceFilters, AppInstanceFiltersObject, ScopeInstances, SortingInstances, initialFilters } from "./AppInstanceFilters";
 import "./AppInstanceList.scss";
 
-dayjs.extend(utc);
 
 
 interface AppInstanceListProps {
@@ -289,9 +287,9 @@ function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps
     function getTimeTooltip(): string {
         const formatting = "DD MMM, hh:mm a";
         if (!props.startTime) return "";
-        let tooltip = "Initialized on: " + dayjs(props.startTime).utc().format(formatting) + " (utc)";
+        let tooltip = "Initialized on: " + dayjs(props.startTime).format(formatting);
         if (props.endTime) {
-            tooltip += `\n${props.status === AppInstanceStatus.FAILED ? "Failed on" : "Completed on"}: ` + dayjs(props.endTime).utc().format(formatting) + " (utc)";
+            tooltip += `\n${props.status === AppInstanceStatus.FAILED ? "Failed on" : "Completed on"}: ` + dayjs(props.endTime).format(formatting);
         }
         return tooltip;
     }

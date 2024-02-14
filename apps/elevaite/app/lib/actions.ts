@@ -2,7 +2,6 @@
 import { redirect } from "next/navigation";
 import { isCreateInstanceResponse, isGetApplicationListReponse, isGetApplicationPipelinesResponse, isGetApplicationResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceResponse } from "./discriminators";
 import type { AppInstanceObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "./interfaces";
-import { TEST_INSTANCES } from "./testData";
 
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -44,8 +43,7 @@ export async function getApplicationInstanceList(id: string): Promise<AppInstanc
 
   if (!response.ok) throw new Error("Failed to fetch");
   const data: unknown = await response.json();
-  if (isGetInstanceListResponse(data) && data.length > 0) return data;
-  return TEST_INSTANCES; // Remove this and ^ data.length when done testing.
+  if (isGetInstanceListResponse(data)) return data;
   throw new Error("Invalid data type");
 }
 
