@@ -5,7 +5,6 @@ import uuid
 import pika
 from ..util.ElasticSingleton import ElasticSingleton
 from ..util.RedisSingleton import RedisSingleton
-from ..util.RabbitMQSingleton import RabbitMQSingleton
 from ..util.models import (
     ApplicationFormDTO,
     ApplicationInstanceDTO,
@@ -109,11 +108,13 @@ def createApplicationInstance(
                 )
                 for pl in _pipeline.steps:
                     _status = PipelineStepStatus.IDLE
+                    _startTime = None
                     if pl.id == _pipeline.entry:
                         _status = PipelineStepStatus.RUNNING
+                        _startTime = datetime.utcnow().isoformat()[:-3] + "Z"
                     instance.pipelineStepStatuses.append(
                         ApplicationInstancePipelineStepStatus(
-                            status=_status, step=pl.id
+                            status=_status, step=pl.id, startTime=_startTime
                         )
                     )
 
