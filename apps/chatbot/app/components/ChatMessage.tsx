@@ -1,0 +1,123 @@
+"use client";
+import { ChatbotIcons, ClickOutsideDetector, CommonButton } from "@repo/ui/components";
+import { getInitials } from "@repo/ui/helpers";
+import dayjs from "dayjs";
+import { useRef, useState } from "react";
+import { ChatMessageObject } from "../lib/interfaces";
+import "./ChatMessage.scss";
+import { ChatMessageFiles } from "./ChatMessageFiles";
+import { ChatMessageFeedback } from "./ChatMessageFeedback";
+
+
+
+
+
+
+export function ChatMessage(props: ChatMessageObject): JSX.Element {
+    const filesButtonRef = useRef<HTMLButtonElement|null>(null);
+    const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+    const [isFilesOpen, setIsFilesOpen] = useState(false);
+
+
+    function handleVote(vote: 1 | -1): void {
+        //Handle Vote
+    }
+
+    function toggleFeedback(): void {
+        setIsFeedbackOpen(current => !current);
+    }
+
+    function toggleFiles(): void {
+        setIsFilesOpen(current => !current);
+    }
+
+
+
+
+    return (
+        <div
+            className={[
+                "chat-message-container",
+                props.isBot ? "bot" : undefined,
+            ].filter(Boolean).join(" ")}
+        >
+            
+            <div className="profile-image-container">
+                <div className={["profile-image-backdrop", props.isBot ? "bot" : undefined].filter(Boolean).join(" ")}>
+                    {props.isBot ? <ChatbotIcons.ChatbotProfileLogo/> : getInitials(props.userName)}
+                </div>
+            </div>
+
+            <div className="main-message-container">
+
+                <div className="details-container">
+                    {props.isBot ? 
+                        <span>ELEV<span className="highlight">AI</span>TE</span>
+                    :   <span>{props.userName}</span>
+                    }
+                    <div>•</div>
+                    <span className="date">{dayjs(props.date).format("MMMM DD, YYYY — hh:mm a")}</span>
+                </div>
+
+                <div className="message">
+                    {props.text}
+                </div>
+
+                {!props.isBot ? null :
+                    <div className="controls-container">
+                        
+                        <div className="voting-buttons">
+                            <CommonButton
+                                className={props.vote === 1 ? "active" : ""}
+                                onClick={() => handleVote(1)}>
+                                <ChatbotIcons.SVGThumbs type="up" />
+                                {props.vote === 1 ? "Upvoted" : ""}
+                            </CommonButton>
+                            <CommonButton
+                                className={props.vote === -1 ? "active" : ""}
+                                onClick={() => handleVote(-1)}>
+                                <ChatbotIcons.SVGThumbs type="down" />
+                                {props.vote === -1 ? "Downvoted" : ""}
+                            </CommonButton>
+                        </div>
+
+                        <CommonButton
+                            className={isFeedbackOpen ? "active" : ""}
+                            onClick={toggleFeedback}>
+                            <ChatbotIcons.SVGFeedback />
+                            Provide Feedback
+                        </CommonButton>
+
+                        <div className="relevant-files-container">
+                            <CommonButton
+                                passedRef={filesButtonRef}
+                                className={isFilesOpen ? "active" : ""}
+                                onClick={toggleFiles}>
+                                <ChatbotIcons.SVGDocument />
+                                Relevant Files
+                            </CommonButton>
+                            <ClickOutsideDetector onOutsideClick={() => setIsFilesOpen(false)} ignoredRefs={[filesButtonRef]} >
+                                <div className={["files-dropdown-container", isFilesOpen ? "open" : undefined].filter(Boolean).join(" ")}>
+                                    <div className="files-dropdown-accordion">
+                                        <ChatMessageFiles files={props.files} />
+                                    </div>
+                                </div>
+                            </ClickOutsideDetector>
+                        </div>
+
+                    </div>
+                }
+
+                {!props.isBot ? null :
+                    <div className={["feedback-container", isFeedbackOpen ? "open" : undefined].filter(Boolean).join(" ")}>
+                        <div className="feedback-accordion">
+                            <ChatMessageFeedback id={props.id} />
+                        </div>
+                    </div>
+                }
+
+            </div>
+
+        </div>
+    );
+}

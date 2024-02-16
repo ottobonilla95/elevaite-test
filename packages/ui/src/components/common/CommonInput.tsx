@@ -18,6 +18,7 @@ export interface CommonInputProps {
     errorMessage?: string;
     disabled?: boolean;
     initialValue?: string;
+    className?: string;
     onChange?: (value: string, field?: string) => void;
 }
 
@@ -48,7 +49,10 @@ export function CommonInput(props: CommonInputProps): JSX.Element {
 
 
     return (
-        <div className="common-input-container">
+        <div className={[
+            "common-input-container",
+            props.className,
+        ].filter(Boolean).join(" ")}>
             {!props.label && !props.required && !props.info && !props.errorMessage ? null :
                 <div className="labels">
                     <span className="title">

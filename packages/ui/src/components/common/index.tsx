@@ -4,3 +4,4 @@ export * from "./CommonModal";
 export * from "./CommonInput";
 export * from "./CommonCheckbox";
 export * from "./SimpleInput";
+export * from "./ClickOutsideDetector";

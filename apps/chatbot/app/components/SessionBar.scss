@@ -1,0 +1,114 @@
+
+
+
+.session-bar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow: hidden;
+
+
+    & .session-bar-main {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+        overflow: hidden;
+
+        background-color: var(--ev-colors-primary);
+        border-radius: 8px;
+
+
+        & .session-button {
+            justify-content: center;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            font-size: 14px;
+            font-weight: 600;
+
+            &.new {
+                background-color: var(--ev-colors-highlight);
+                color: var(--ev-colors-primary);
+            }
+            &.clear {
+                background-color: var(--ev-colors-primary);
+                border: 1px solid var(--ev-colors-highlight);
+                color: var(--ev-colors-highlight);
+            }
+        }
+
+
+
+
+        & .spacer {
+            height: 100px;
+            flex-shrink: 1.5;
+        }
+
+
+
+        & .session-list-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            margin-right: -10px;
+            padding-right: 10px;
+
+            color: var(--ev-colors-text);
+            font-size: 14px;
+            font-weight: 600;
+            overflow: hidden;
+
+
+            & .session-list-header {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                padding: 10px;
+
+                border-bottom: 1px solid var(--ev-colors-text);
+            }
+
+            & .session-list-scroller {
+                overflow-y: auto;
+                margin-right: -9px;
+                padding-right: 9px;
+                @include scrollbar();
+
+                & .session-list-contents {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 5px;
+                    padding: 5px 0;
+                }
+            }
+
+        }
+
+
+    }
+}
+
+
+
+.session-list-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+
+    border: 1px solid var(--ev-colors-borderColor);
+    border-radius: 8px;
+
+    & > svg {
+        flex-shrink: 0;
+        width: 20px;
+    }
+
+    & > span {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+}

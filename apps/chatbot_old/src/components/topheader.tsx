@@ -15,27 +15,27 @@ export default function TopHeader() {
   const { data: session } = useSession();
   const [name, setName] = useState();
 
-  useEffect(() => {
-    let params = new URL(window.location.href).searchParams;
-    const token = params.get("token");
-    if (!!token) {
-      let decoded: any = jwt_decode(token);
-      // let expTime = new Date(decoded.exp * 1000);
-      // let currentTime = new Date().getTime();
-      // if (currentTime < expTime.getTime()){
-      //   console.log(expTime);
-      //   setName(()=>decoded.name)
-      // } else {
-      //   window.location.href = process.env.NEXT_PUBLIC_LOGIN_API;
-      // }
-      setName(()=>decoded.name);
-    } else {
-      console.log(process.env.NEXT_PUBLIC_LOGIN_API);
-      if (!!process.env.NEXT_PUBLIC_LOGIN_API){
-        window.location.href = process.env.NEXT_PUBLIC_LOGIN_API;
-      }
-    }
-  }, []);
+  // useEffect(() => {
+  //   let params = new URL(window.location.href).searchParams;
+  //   const token = params.get("token");
+  //   if (!!token) {
+  //     let decoded: any = jwt_decode(token);
+  //     // let expTime = new Date(decoded.exp * 1000);
+  //     // let currentTime = new Date().getTime();
+  //     // if (currentTime < expTime.getTime()){
+  //     //   console.log(expTime);
+  //     //   setName(()=>decoded.name)
+  //     // } else {
+  //     //   window.location.href = process.env.NEXT_PUBLIC_LOGIN_API;
+  //     // }
+  //     setName(()=>decoded.name);
+  //   } else {
+  //     console.log(process.env.NEXT_PUBLIC_LOGIN_API);
+  //     if (!!process.env.NEXT_PUBLIC_LOGIN_API){
+  //       window.location.href = process.env.NEXT_PUBLIC_LOGIN_API;
+  //     }
+  //   }
+  // }, []);
   return (
     <div className="frame-2">
       <div className="frame-3">

@@ -9,12 +9,12 @@ import "./CommonSelect.scss";
 export interface CommonSelectOption {
     label: string;
     value: string;
+    selectedLabel?: string; // Use this instead of label when it is the selected item
     icon?: React.ReactElement;
 }
 
 
 export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> {
-    theme?: "light" | "dark";
     options: CommonSelectOption[];
     defaultValue?: string;
     anchor?: "left" | "right";
@@ -22,7 +22,7 @@ export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> 
 }
 
 
-export function CommonSelect({theme, options, defaultValue, onSelectedValueChange, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
+export function CommonSelect({options, defaultValue, onSelectedValueChange, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
     const [selectedOption, setSelectedOption] = useState<CommonSelectOption>();
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement|null>(null);
@@ -59,7 +59,6 @@ export function CommonSelect({theme, options, defaultValue, onSelectedValueChang
             className={[
                 "common-select",
                 props.className,
-                theme,
             ].filter(Boolean).join(" ")}
         >
             <CommonButton 
@@ -68,8 +67,11 @@ export function CommonSelect({theme, options, defaultValue, onSelectedValueChang
                 onClick={() => { setIsOpen((currentValue) => !currentValue); }}
                 onDoubleClick={handleDoubleClick}
                 noBackground
+                title={selectedOption?.selectedLabel ? selectedOption.label : ""}
             >
-                {selectedOption?.label ? selectedOption.label : "No selected option"}
+                {!selectedOption ? "No selected option" :
+                    selectedOption.selectedLabel ? selectedOption.selectedLabel : selectedOption.label
+                }
                 <SVGChevron/>
             </CommonButton>
 

@@ -1,0 +1,13 @@
+
+
+.gen-ai-bot-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 15px;
+
+    background-color: var(--ev-colors-primary);
+    border-radius: 8px;
+    color: var(--ev-colors-text);    
+}

@@ -17,6 +17,7 @@ export interface ColorScheme {
   hoverColor?: string;
   borderColor?: string;
   background?: string;
+  backgroundSecondary?: string;
   backgroundHighContrast?: string;
   navbarLogo?: string,
   navbarBackground?: string,
