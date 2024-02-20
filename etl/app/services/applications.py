@@ -1,139 +1,127 @@
 from datetime import datetime
 import json
-import uuid
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 import pika
-from ..util.ElasticSingleton import ElasticSingleton
+
 from ..util.RedisSingleton import RedisSingleton
 from ..util.models import (
-    ApplicationFormDTO,
-    ApplicationInstanceDTO,
-    ApplicationInstancePipelineStepStatus,
-    ApplicationPipelineDTO,
-    ApplicationType,
-    IngestApplication,
-    IngestApplicationChartDataDTO,
-    IngestApplicationDTO,
-    InstanceStatus,
-    PipelineStepStatus,
     PreProcessFormDTO,
     S3IngestFormDataDTO,
 )
-from ..util.mockData import applications_list
+from app.util import func as util_func
+from app.schemas.application import Application, is_application
+from app.schemas.instance import (
+    Instance,
+    InstanceChartData,
+    InstanceCreate,
+    InstancePipelineStepStatus,
+    InstancePipelineStepStatusUpdate,
+    InstanceStatus,
+    InstanceUpdate,
+    is_instance,
+)
+from app.schemas.pipeline import Pipeline, PipelineStepStatus, is_pipeline
+from app.crud import application as application_crud
+from app.crud import instance as instance_crud
+from app.crud import pipeline as pipeline_crud
 
 
-def getApplicationList() -> list[IngestApplicationDTO]:
-    elasticClient = ElasticSingleton()
-    res: list[IngestApplicationDTO] = []
-    for entry in elasticClient.getAllInIndex("application"):
-        res.append(IngestApplicationDTO(**entry))
-    # return map(lambda x: x.toDto(), applications_list)
-    return res
+def getApplicationList(db: Session) -> list[Application]:
+    apps = application_crud.get_applications(db=db)
+    return apps
 
 
-def getApplicationById(application_id: str) -> IngestApplicationDTO:
-    elasticClient = ElasticSingleton()
-    res = elasticClient.getById("application", application_id)
-    return IngestApplicationDTO(**res["_source"])
+def getApplicationById(db: Session, application_id: str) -> Application:
+    app = application_crud.get_application_by_id(db, application_id)
+    return app
 
 
-def getApplicationForm(application_id: str) -> ApplicationFormDTO:
-    elasticClient = ElasticSingleton()
-    res = elasticClient.getById("application", application_id)
-    app = IngestApplication(**res["_source"])
-    return app.form
+# def getApplicationForm(application_id: str) -> ApplicationFormDTO:
+#     elasticClient = ElasticSingleton()
+#     res = elasticClient.getById("application", application_id)
+#     app = IngestApplication(**res["_source"])
+#     return app.form
 
 
-def getApplicationInstances(application_id: str) -> list[ApplicationInstanceDTO]:
-    elasticClient = ElasticSingleton()
-    res = elasticClient.getById("application", application_id)
-    app = IngestApplication(**res["_source"])
+def getApplicationInstances(db: Session, application_id: str) -> list[Instance]:
+    app = application_crud.get_application_by_id(db, application_id)
     return app.instances
 
 
-def getApplicationPipelines(application_id: str) -> list[ApplicationPipelineDTO]:
-    elasticClient = ElasticSingleton()
-    res = elasticClient.getById("application", application_id)
-    app = IngestApplication(**res["_source"])
-    return app.pipelines
+def getApplicationPipelines(db: Session, application_id: str) -> list[Pipeline]:
+    pipelines = pipeline_crud.get_pipelines_of_application(db, application_id)
+    return pipelines
 
 
 def getApplicationInstanceById(
-    application_id: str, instance_id: str
-) -> ApplicationInstanceDTO:
-    elasticClient = ElasticSingleton()
-    res = elasticClient.getById("application", application_id)
-    application_instances = IngestApplication(**res["_source"]).instances
-    return list(filter(lambda x: x.id == instance_id, application_instances))[0]
+    db: Session, application_id: str, instance_id: str
+) -> Instance:
+    instances = instance_crud.get_instances(db, application_id)
+    return instances
 
 
 def createApplicationInstance(
+    db: Session,
     application_id: str,
-    createApplicationInstanceDto: S3IngestFormDataDTO | PreProcessFormDTO,
+    createInstanceDto: S3IngestFormDataDTO | PreProcessFormDTO,
     rmq: pika.BlockingConnection,
-) -> ApplicationInstanceDTO:
-    elasticClient = ElasticSingleton()
-    instanceID = uuid.uuid4().urn[33:]
-    instance = ApplicationInstanceDTO(
-        creator=createApplicationInstanceDto.creator,
-        startTime=datetime.utcnow().isoformat()[:-3] + "Z",
-        endTime=None,
-        id=instanceID,
+) -> Instance:
+
+    # TODO: This will be changed with the pipeline rework
+    app = application_crud.get_application_by_id(application_id)
+
+    if not is_application(app):
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    _pipeline = pipeline_crud.get_pipeline_by_id(createInstanceDto.selectedPipelineId)
+
+    _instance_create = InstanceCreate(
+        applicationId=application_id,
+        creator=createInstanceDto.creator,
+        datasetId=createInstanceDto.datasetId,
+        startTime=util_func.get_iso_datetime(),
+        selectedPipelineId=createInstanceDto.selectedPipelineId,
+        name=createInstanceDto.name,
         status=InstanceStatus.STARTING,
-        chartData=IngestApplicationChartDataDTO(),
-        datasetId=instanceID,
-        name=createApplicationInstanceDto.name,
-        pipelineStepStatuses=[],
-        comment=None,
-    )
-    res = elasticClient.getById("application", application_id)
-    application = IngestApplication(**res["_source"])
-
-    if (
-        application.applicationType == ApplicationType.PREPROCESS
-        and createApplicationInstanceDto.selectedPipeline
-    ):
-        if len(application.pipelines) > 0:
-            _pipeline = None
-            for p in application.pipelines:
-                if p.id == createApplicationInstanceDto.selectedPipeline:
-                    _pipeline = p
-
-            if _pipeline == None:
-                instance.comment = "Pipeline was not found."
-                instance.status = InstanceStatus.FAILED
-            else:
-                instance.selectedPipeline = (
-                    createApplicationInstanceDto.selectedPipeline
-                )
-                for pl in _pipeline.steps:
-                    _status = PipelineStepStatus.IDLE
-                    _startTime = None
-                    if pl.id == _pipeline.entry:
-                        _status = PipelineStepStatus.RUNNING
-                        _startTime = datetime.utcnow().isoformat()[:-3] + "Z"
-                    instance.pipelineStepStatuses.append(
-                        ApplicationInstancePipelineStepStatus(
-                            status=_status, step=pl.id, startTime=_startTime
-                        )
-                    )
-
-    application.instances.append(instance)
-    instances = application.instances
-    # instances.append(instance.dict())
-
-    elasticClient.client.update(
-        index="application",
-        id=application_id,
-        body=json.dumps({"doc": {"instances": instances}}, default=vars),
     )
 
-    if instance.status == InstanceStatus.FAILED:
-        raise Exception("Instance creation failed. See comment for reason")
+    _instance = instance_crud.create_instance(_instance_create)
+    if not is_instance(_instance):
+        raise HTTPException(
+            status_code=500, detail="Error inserting instance in database"
+        )
+
+    if not is_pipeline(_pipeline):
+        _instance_update = InstanceUpdate(
+            comment="Pipeline was not found.", status=InstanceStatus.FAILED
+        )
+        res = instance_crud.update_instance(
+            db, application_id, _instance.id, _instance_update
+        )
+        return res
+
+    for ps in _pipeline.steps:
+        _status = PipelineStepStatus.IDLE
+        _start_time = None
+        if ps.id == _pipeline.entry:
+            _status = PipelineStepStatus.RUNNING
+            _start_time = util_func.get_iso_datetime()
+        _ipss = InstancePipelineStepStatus(
+            stepId=ps.id,
+            instanceId=_instance.id,
+            status=_status,
+            startTime=_start_time,
+            endTime=None,
+        )
+        _instance_pipeline_step = instance_crud.add_pipeline_step(
+            db, _instance.id, _ipss
+        )
 
     _data = {
-        "id": instanceID,
-        "dto": createApplicationInstanceDto,
+        "id": _instance.id,
+        "dto": createInstanceDto,
         "application_id": application_id,
     }
 
@@ -146,57 +134,59 @@ def createApplicationInstance(
             case _:
                 return "default"
 
-    # rmq = RabbitMQSingleton()
     rmq.channel().basic_publish(
         exchange="",
         body=json.dumps(_data, default=vars),
         routing_key=get_routing_key(application_id=application_id),
     )
+    # # Maybe we should do this like this?
+    #     return instance_crud.get_instance_by_id(
+    #         db, applicationId=application_id, id=_instance.id
+    #     )
 
-    return instance
+    return _instance
 
 
 def approveApplicationInstance(
-    application_id: str, instance_id: str
-) -> ApplicationInstanceDTO:
-    elasticClient = ElasticSingleton()
-    res = elasticClient.getById("application", application_id)
-    app = IngestApplication(**res["_source"])
-    _instance = None
+    db: Session, application_id: str, instance_id: str
+) -> Instance:
 
-    # TODO: Think about adding an exit pointer to the pipeline. It will probably make things much much simpler
-    for instance in app.instances:
-        if instance.id == instance_id:
-            pipeline = list(
-                filter(lambda x: x.id == instance.selectedPipeline, app.pipelines)
-            )[0]
-            dependedOn = []
-            for ps in pipeline.steps:
-                dependedOn.extend(ps.dependsOn)
-
-            for pss in instance.pipelineStepStatuses:
-                if pss.step not in dependedOn:
-                    pss.endTime = datetime.utcnow().isoformat()[:-3] + "Z"
-            _instance = instance
-            break
-
-    elasticClient.client.update(
-        index="application",
-        id=application_id,
-        body=json.dumps({"doc": {"instances": app.instances}}, default=vars),
+    _end_time = util_func.get_iso_datetime()
+    _instance = instance_crud.update_instance(
+        db,
+        application_id,
+        instance_id,
+        InstanceUpdate(status=InstanceStatus.COMPLETED, endTime=_end_time),
     )
-    return _instance
+
+    if not is_instance(_instance):
+        raise HTTPException(500, "Error updating instance.")
+
+    _pipeline = pipeline_crud.get_pipeline_by_id(db, _instance.selectedPipelineId)
+    if not is_pipeline(_pipeline):
+        raise HTTPException(500, "Selected Pipeline doesn't exist")
+
+    _ipss = instance_crud.update_pipeline_step(
+        db,
+        instance_id,
+        _pipeline.exit,
+        InstancePipelineStepStatusUpdate(
+            endTime=_end_time, status=PipelineStepStatus.COMPLETED
+        ),
+    )
+
+    return getApplicationInstanceById(db, application_id, instance_id)
 
 
 def getApplicationInstanceChart(
     application_id: str, instance_id: str
-) -> IngestApplicationChartDataDTO:
+) -> InstanceChartData:
     r = RedisSingleton().connection
 
     if r.ping():
         res = r.json().get(instance_id)
 
-        return IngestApplicationChartDataDTO(
+        return InstanceChartData(
             avgSize=res["avg_size"],
             ingestedItems=res["ingested_items"],
             totalItems=res["total_items"],

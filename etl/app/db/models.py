@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String
+import uuid
+from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Table, Uuid
 from sqlalchemy.orm import relationship
 
 from app.schemas.instance import InstanceStatus
@@ -25,16 +26,16 @@ class Application(Base):
 class Instance(Base):
     __tablename__ = "instances"
 
-    id = Column(String, primary_key=True)
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4())
     creator = Column(String)
     name = Column(String)
     comment = Column(String, nullable=True)
     startTime = Column(String, nullable=True)
     endTime = Column(String, nullable=True)
     status = Column(Enum(InstanceStatus))
-    datasetId = Column(String, nullable=True)
-    selected_pipeline_id = Column(String, ForeignKey("pipelines.id"), nullable=True)
-    application_id = Column(Integer, ForeignKey("applications.id"), nullable=True)
+    datasetId = Column(Uuid, nullable=True)
+    selectedPipelineId = Column(Uuid, ForeignKey("pipelines.id"), nullable=True)
+    applicationId = Column(Integer, ForeignKey("applications.id"), nullable=True)
 
     chartData = relationship("InstanceChartData", back_populates="instance")
     pipelineStepStatuses = relationship(
@@ -42,12 +43,14 @@ class Instance(Base):
     )
 
     application = relationship("Application", back_populates="instances")
+    project = relationship("Project")
+    dataset = relationship("Dataset")
 
 
 class InstanceChartData(Base):
     __tablename__ = "instance_chart_data"
 
-    instance_id = Column(String, ForeignKey("instances.id"), primary_key=True)
+    instanceId = Column(Uuid, ForeignKey("instances.id"), primary_key=True)
 
     totalItems = Column(Integer, default=0)
     ingestedItems = Column(Integer, default=0)
@@ -62,51 +65,100 @@ class InstanceChartData(Base):
 class Pipeline(Base):
     __tablename__ = "pipelines"
 
-    id = Column(String, primary_key=True)
-    entry = Column(String, ForeignKey("pipeline_steps.id"))
-    exit = Column(String, ForeignKey("pipeline_steps.id"))
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4())
+    entry = Column(Uuid, ForeignKey("pipeline_steps.id"))
+    exit = Column(Uuid, ForeignKey("pipeline_steps.id"))
     label = Column(String)
+    applicationId = Column(Integer, ForeignKey("applications.id"))
 
-    steps = relationship("PipelineStep", back_populates="pipeline")
+    steps = relationship(
+        "PipelineStep",
+        back_populates="pipeline",
+        primaryjoin="Pipeline.id==PipelineStep.pipelineId",
+    )
+
+
+pipeline_step_deps = Table(
+    "pipeline_step_deps",
+    Base.metadata,
+    Column("source_id", Uuid, ForeignKey("pipeline_steps.id")),
+    Column("target_id", Uuid, ForeignKey("pipeline_steps.id")),
+)
 
 
 class PipelineStep(Base):
     __tablename__ = "pipeline_steps"
-    id = Column(String, primary_key=True)
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4())
     title = Column(String)
+    pipelineId = Column(Uuid, ForeignKey("pipelines.id"))
     # parent_id = Column(String, ForeignKey("pipeline_steps.id"))
 
     data = relationship("PipelineStepData", back_populates="step")
-    pipeline = relationship("Pipeline", back_populates="steps")
-    dependsOn = relationship("PipelineStepDependencies", back_populates="source")
-    dependedOn = relationship("PipelineStepDependencies", back_populates="target")
+    pipeline = relationship(
+        "Pipeline", back_populates="steps", foreign_keys=[pipelineId]
+    )
+    dependsOn = relationship(
+        "PipelineStep",
+        secondary=pipeline_step_deps,
+        primaryjoin=(pipeline_step_deps.c.target_id == id),
+        secondaryjoin=(pipeline_step_deps.c.source_id == id),
+        backref="dependedOn",
+    )
+    # dependedOn = relationship("PipelineStepDependencies", back_populates="target")
 
 
 class PipelineStepData(Base):
     __tablename__ = "pipeline_step_data"
 
-    step_id = Column(String, ForeignKey("pipeline_steps.id"), primary_key=True)
+    stepId = Column(Uuid, ForeignKey("pipeline_steps.id"), primary_key=True)
     title = Column(String)
     value = Column(String)
 
+    step = relationship("PipelineStep")
 
-class PipelineStepDependencies(Base):
-    __tablename__ = "pipeline_step_dependencies"
 
-    source_id = Column(String, ForeignKey("pipeline_steps.id"), primary_key=True)
-    target_id = Column(String, ForeignKey("pipeline_steps.id"), primary_key=True)
+# class PipelineStepDependencies(Base):
+#     __tablename__ = "pipeline_step_dependencies"
 
-    source = relationship("PipelineStep", back_populates="dependsOn")
-    target = relationship("PipelineStep", back_populates="dependedOn")
+#     source_id = Column(String, ForeignKey("pipeline_steps.id"), primary_key=True)
+#     target_id = Column(String, ForeignKey("pipeline_steps.id"), primary_key=True)
+
+#     source = relationship("PipelineStep", back_populates="dependsOn")
+#     target = relationship("PipelineStep", back_populates="dependedOn")
 
 
 class InstancePipelineStepStatus(Base):
     __tablename__ = "instance_pipeline_step_statuses"
 
-    instance_id = Column(String, ForeignKey("instances.id"), primary_key=True)
-    step = Column(String, ForeignKey("pipeline_steps.id"), primary_key=True)
+    instanceId = Column(Uuid, ForeignKey("instances.id"), primary_key=True)
+    stepId = Column(Uuid, ForeignKey("pipeline_steps.id"), primary_key=True)
     status = Column(Enum(PipelineStepStatus))
     startTime = Column(String, nullable=True)
     endTime = Column(String, nullable=True)
 
     instance = relationship("Instance", back_populates="pipelineStepStatuses")
+
+
+class Configuration(Base):
+    __tablename__ = "configurations"
+
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4())
+    instanceId = Column(Uuid, ForeignKey("instances.id"), primary_key=True)
+    applicationId = Column(Integer, ForeignKey("applications.id"), primary_key=True)
+
+
+class Dataset(Base):
+    __tablename__ = "datasets"
+
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4())
+    projectId = Column(Uuid, ForeignKey("projects.id"))
+
+    project = relationship("Project", back_populates="datasets")
+
+
+class Project(Base):
+    __tablename__ = "projects"
+
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4())
+
+    datasets = relationship("Dataset", back_populates="project")

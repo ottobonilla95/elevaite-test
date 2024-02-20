@@ -2,7 +2,14 @@ from enum import Enum
 from typing import Union
 from pydantic import BaseModel
 
-from app.util.BaseApplication import BaseApplicationDTO
+
+class BaseApplicationDTO(BaseModel):
+    id: str
+    title: str
+    icon: str
+    description: str
+    version: str
+    creator: str
 
 
 class InstanceStatus(str, Enum):
@@ -111,10 +118,12 @@ class IngestApplication(BaseApplicationDTO):
 class BaseDatasetInformationForm(BaseModel):
     creator: str
     name: str
-    project: str
+    projectId: str | None
     version: str | None
     parent: str | None
     outputURI: str | None
+    datasetId: str | None
+    selectedPipelineId: str
 
 
 class S3IngestFormDataDTO(BaseDatasetInformationForm):
@@ -125,19 +134,9 @@ class S3IngestFormDataDTO(BaseDatasetInformationForm):
     roleARN: str
 
 
-class CreateApplicationInstanceDTO(BaseModel):
-    creator: str
-    formData: S3IngestFormDataDTO
-
-
-class PreProcessFormDTO(BaseModel):
-    creator: str
-    name: str
-    datasetId: str
+class PreProcessFormDTO(BaseDatasetInformationForm):
     datasetName: str
     datasetProject: str
     datasetVersion: str | None
-    datasetOutputURI: str | None
     queue: str
     maxIdleTime: str
-    selectedPipeline: str

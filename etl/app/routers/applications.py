@@ -1,143 +1,115 @@
-import os
 from pprint import pprint
 from typing import Annotated
-from dotenv import load_dotenv
-from fastapi import APIRouter, Body, Depends, Form, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Body, Depends
 import pika
+from sqlalchemy.orm import Session
 
 from app.util.models import (
-    ApplicationFormDTO,
-    ApplicationInstanceDTO,
-    ApplicationPipelineDTO,
-    IngestApplicationChartDataDTO,
-    IngestApplicationDTO,
     PreProcessFormDTO,
     S3IngestFormDataDTO,
 )
 from app.services import applications as service
 from app.util.websockets import ConnectionManager
+from app.routers.deps import get_rabbitmq_connection, get_db
+from app.schemas import (
+    application as application_schemas,
+    instance as instance_schemas,
+    pipeline as pipeline_schemas,
+)
 
 router = APIRouter(prefix="/application", tags=["applications"])
 manager = ConnectionManager()
 
 
-def get_rabbitmq_connection():
-    load_dotenv()
-    RABBITMQ_USER = os.getenv("RABBITMQ_USER")
-    RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
-    RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
-    RABBITMQ_VHOST = os.getenv("RABBITMQ_VHOST")
-    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
-    connection = pika.BlockingConnection(
-        pika.ConnectionParameters(
-            host=RABBITMQ_HOST,
-            port=5672,
-            heartbeat=600,
-            blocked_connection_timeout=300,
-            credentials=credentials,
-            virtual_host=RABBITMQ_VHOST,
-        )
-    )
-    channel = connection.channel()
-    channel.queue_declare("s3_ingest")
-    channel.queue_declare("preprocess")
-
-    try:
-        yield connection
-    finally:
-        connection.close()
-
-
-@router.get("")
-def getApplicationList() -> list[IngestApplicationDTO]:
-    res = service.getApplicationList()
+@router.get("", response_model=list[application_schemas.Application])
+def getApplicationList(
+    db: Session = Depends(get_db),
+) -> list[application_schemas.Application]:
+    res = service.getApplicationList(db)
     pprint(res)
     return res
 
 
-@router.get("/{application_id}")
-def getApplicationById(application_id: str) -> IngestApplicationDTO:
+@router.get("/{application_id}", response_model=application_schemas.Application)
+def getApplicationById(application_id: str) -> application_schemas.Application:
     return service.getApplicationById(application_id)
 
 
-@router.get("/{application_id}/form")
-def getApplicationForm(application_id: str) -> ApplicationFormDTO:
-    return service.getApplicationForm(application_id)
+# @router.get("/{application_id}/form")
+# def getApplicationForm(application_id: str) -> ApplicationFormDTO:
+#     return service.getApplicationForm(application_id)
 
 
-@router.get("/{application_id}/instance")
-def getApplicationInstances(application_id: str) -> list[ApplicationInstanceDTO]:
+@router.get(
+    "/{application_id}/instance", response_model=list[instance_schemas.Instance]
+)
+def getApplicationInstances(application_id: str) -> list[instance_schemas.Instance]:
     return service.getApplicationInstances(application_id)
 
 
-@router.get("/{application_id}/instance/{instance_id}")
+@router.get(
+    "/{application_id}/instance/{instance_id}", response_model=instance_schemas.Instance
+)
 def getApplicationInstanceById(
     application_id: str, instance_id: str
-) -> ApplicationInstanceDTO:
+) -> instance_schemas.Instance:
     return service.getApplicationInstanceById(
         application_id=application_id, instance_id=instance_id
     )
 
 
-@router.get("/{application_id}/instance/{instance_id}/chart")
+@router.get(
+    "/{application_id}/instance/{instance_id}/chart",
+    response_model=instance_schemas.InstanceChartData,
+)
 def getApplicationInstanceChart(
     application_id: str, instance_id: str
-) -> IngestApplicationChartDataDTO:
+) -> instance_schemas.InstanceChartData:
     return service.getApplicationInstanceChart(
         application_id=application_id, instance_id=instance_id
     )
 
 
-@router.post("/{application_id}/instance/{instance_id}/approve")
+@router.post(
+    "/{application_id}/instance/{instance_id}/approve",
+    response_model=instance_schemas.Instance,
+)
 def approveApplicationInstance(
     application_id: str, instance_id: str
-) -> ApplicationInstanceDTO:
+) -> instance_schemas.Instance:
     return service.approveApplicationInstance(
         application_id=application_id, instance_id=instance_id
     )
 
 
-@router.post("/{application_id}/instance/s3")
-def createApplicationInstance(
-    application_id: str,
-    createApplicationInstanceDto: Annotated[S3IngestFormDataDTO, Body()],
-    rmq: pika.BlockingConnection = Depends(get_rabbitmq_connection),
-) -> ApplicationInstanceDTO:
-    return service.createApplicationInstance(
-        application_id=application_id,
-        createApplicationInstanceDto=createApplicationInstanceDto,
-        rmq=rmq,
-    )
-
-
-@router.post("/{application_id}/instance/")
+@router.post("/{application_id}/instance/", response_model=instance_schemas.Instance)
 def createApplicationInstance(
     application_id: str,
     createApplicationInstanceDto: Annotated[
         S3IngestFormDataDTO | PreProcessFormDTO, Body()
     ],
     rmq: pika.BlockingConnection = Depends(get_rabbitmq_connection),
-) -> ApplicationInstanceDTO:
+) -> instance_schemas.Instance:
     return service.createApplicationInstance(
         application_id=application_id,
-        createApplicationInstanceDto=createApplicationInstanceDto,
+        createInstanceDto=createApplicationInstanceDto,
         rmq=rmq,
     )
 
 
-@router.websocket("/{application_id}/instance/{instance_id}/ws/{client_id}")
-async def websocket_endpoint(websocket: WebSocket, client_id: int):
-    await manager.connect(websocket)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            await manager.send_personal_message(f"You wrote: {data}", websocket)
-            await manager.broadcast(f"Client #{client_id} says: {data}")
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
-        await manager.broadcast(f"Client #{client_id} left the chat")
+# @router.websocket("/{application_id}/instance/{instance_id}/ws/{client_id}")
+# async def websocket_endpoint(websocket: WebSocket, client_id: int):
+#     await manager.connect(websocket)
+#     try:
+#         while True:
+#             data = await websocket.receive_text()
+#             await manager.send_personal_message(f"You wrote: {data}", websocket)
+#             await manager.broadcast(f"Client #{client_id} says: {data}")
+#     except WebSocketDisconnect:
+#         manager.disconnect(websocket)
+#         await manager.broadcast(f"Client #{client_id} left the chat")
 
 
-@router.get("/{application_id}/pipelines")
-def getApplicationPipelines(application_id: str) -> list[ApplicationPipelineDTO]:
+@router.get("/{application_id}/pipelines", response_model=pipeline_schemas.Pipeline)
+def getApplicationPipelines(application_id: str) -> list[pipeline_schemas.Pipeline]:
     return service.getApplicationPipelines(application_id)

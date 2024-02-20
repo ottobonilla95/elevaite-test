@@ -1,0 +1,30 @@
+from sqlalchemy.orm import Session
+
+from app.db import models
+from app.schemas import application
+
+
+def get_applications(db: Session, skip: int = 0, limit: int = 0):
+    return db.query(models.Application).offset(skip).limit(limit).all()
+
+
+def get_application_by_id(db: Session, id: int):
+    return db.query(models.Application).filter(models.Application.id == id).first()
+
+
+def create_application(
+    db: Session, createApplicationDTO: application.ApplicationCreate
+):
+    _app = models.Application(
+        title=createApplicationDTO.title,
+        icon=createApplicationDTO.icon,
+        applicationType=createApplicationDTO.applicationType,
+        creator=createApplicationDTO.creator,
+        description=createApplicationDTO.description,
+        version=createApplicationDTO.version,
+    )
+    # app.applicationType = createApplicationDTO
+    db.add(_app)
+    db.commit()
+    db.refresh(_app)
+    return _app

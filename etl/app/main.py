@@ -1,15 +1,19 @@
 from contextlib import asynccontextmanager
 import logging
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 import uvicorn
+from sqlalchemy.orm import Session
+
 from app.routers.applications import router as applications_router
 
 from app.util.RedisSingleton import RedisSingleton
-from app.util.elastic_seed import HelloElastic
 from app.util.ElasticSingleton import ElasticSingleton
 from app.db import models
 from app.db.database import engine
+from app.util.db_seed import seed_db
+from app.schemas import application as application_schemas
+from app.routers.deps import get_db
 
 
 @asynccontextmanager
@@ -34,11 +38,11 @@ def healthCheck():
     return {"Hello": "World"}
 
 
-@app.post("/helloelastic")
-def helloElastic():
-    print("Starting ElasticSearch")
-    HelloElastic()
-    return {}
+@app.post("/seed", response_model=list[application_schemas.Application])
+def seed(
+    db: Session = Depends(get_db),
+) -> list[application_schemas.Application]:
+    return seed_db(db=db)
 
 
 if __name__ == "__main__":
