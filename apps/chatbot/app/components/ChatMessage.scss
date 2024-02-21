@@ -37,6 +37,7 @@ $profile-backdrop-bot: #585679;
 
 
     & .main-message-container {
+        flex-grow: 1;
         display: flex;
         flex-direction: column;
         gap: 10px;

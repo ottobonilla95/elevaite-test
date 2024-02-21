@@ -1,15 +1,11 @@
 "use client";
 import { useSession } from "next-auth/react";
 import { createContext, useContext, useEffect, useState } from "react";
-import { getAgentEventSource, getStreamingResponse } from "../../lib/actions";
-import type { ChatMessageObject, ChatbotV, SessionObject } from "../../lib/interfaces";
-import { ChatBotGenAI, defaultChatbotV, defaultGenAIBotOption, defaultSession } from "../../lib/interfaces";
-import { getTestMessagesList } from "../../lib/testData";
+import { fetchChatbotResponse } from "../../lib/actions";
+import type { ChatBotGenAI, ChatMessageObject, ChatMessageResponse, ChatbotV, SessionObject } from "../../lib/interfaces";
+import { CHATBOT_MESSAGE_ID_PREFIX, SESSION_ID_PREFIX, USER_MESSAGE_ID_PREFIX, defaultChatbotV, defaultGenAIBotOption, defaultSession } from "../../lib/interfaces";
 import { getLoadingMessageFromAgentStatus } from "./ChatContextHelpers";
 
-
-const SESSION_ID_PREFIX = "sessionId_";
-const USER_MESSAGE_ID_PREFIX = "userMessageId_";
 
 
 // STRUCTURE 
@@ -62,18 +58,18 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
     const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
     const [chatLoadingMessage, setChatLoadingMessage] = useState<string>("");
 
-
-    // useEffect(() => {
-    //     console.log("Session:", session);
-    // }, [session]);
     
     // Initializations
     // useEffect(() => {
     //     console.log("Sessions changed", sessions);
     // }, [sessions]);
-    // useEffect(() => {
-    //     console.log("selectedSession changed", selectedSession);
-    // }, [selectedSession]);
+
+    useEffect(() => {
+        if (!selectedSession) return;        
+        const newSessions = sessions.map(item => item.id === selectedSession.id ? selectedSession : item);
+        setSessions(newSessions);
+    }, [selectedSession]);
+
 
 
     useEffect(() => {
@@ -89,8 +85,7 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
         // Find highest id
         const sessionIdNumbersList = sessions.map(item => Number(item.id.slice(SESSION_ID_PREFIX.length)));
         // New id will be highest +1
-        // const newId = SESSION_ID_PREFIX + (sessionIdNumbersList.length > 0 ? (Math.max(...sessionIdNumbersList) + 1) : 0);
-        const newId = (sessionIdNumbersList.length > 0 ? (Math.max(...sessionIdNumbersList) + 1) : 0).toString();
+        const newId = SESSION_ID_PREFIX + (sessionIdNumbersList.length > 0 ? (Math.max(...sessionIdNumbersList) + 1) : 0);
         // New Session
         const newSession: SessionObject = {
             id: newId,
@@ -126,31 +121,24 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
             userName: session.data?.user?.name ?? "Unknown User",
             text: messageText,
         }
-        updateSessionListWithNewMessage(newMessage);
-        void getServerResponse(messageText);
+        const newSession = updateSessionListWithNewMessage(newMessage, selectedSession);
+        void getServerResponse(messageText, newSession);
     }
 
 
-    function updateSessionListWithNewMessage(message: ChatMessageObject): void {
-        if (!selectedSession) return;
-        const newMessageList = [...selectedSession.messages, message];
-        const newSelectedSession = {...selectedSession, messages: newMessageList};
-        const newSessions = sessions.map(item => item.id === newSelectedSession.id ? newSelectedSession : item);
-        setSessions(newSessions);
-        setSelectedSession(newSessions.find(item => item.id === newSelectedSession.id));
+    function updateSessionListWithNewMessage(message: ChatMessageObject, passedSession: SessionObject): SessionObject {
+        const newMessageList = [...passedSession.messages, message];
+        const newSelectedSession = {...passedSession, messages: newMessageList};
+        setSelectedSession(newSelectedSession);
+        return newSelectedSession;
     }
 
 
 
-    async function getServerResponse(messageText: string): Promise<void> {
+    async function getServerResponse(messageText: string, passedSession: SessionObject): Promise<void> {
         const userId = session.data?.user?.id;
-        // console.log("Session:", session, "user id:", userId);
         if (!userId) return;
-        if (selectedGenAIBot === ChatBotGenAI.CiscoClo) {
-            await handleNonStreamingResponse(userId, messageText);
-        } else {
-            await handleStreamingResponse(userId, messageText);
-        }
+        await handleResponse(userId, messageText, passedSession);
     }
 
     function handleAgentStatusChange(event: MessageEvent): void {
@@ -160,48 +148,58 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
     }
 
     // THIS IS NOT BEING USED (check the one below)
-    async function handleStreamingResponse(userId: string, messageText: string): Promise<void> {
-        if (!selectedSession) return;
-        setIsChatLoading(true);
-        try {
-            console.log("UserId:", userId, "sessionId", selectedSession.id, "chatbotV", selectedChatbotV, "chatbotAI", selectedGenAIBot);
-            const agentEvent = await getAgentEventSource(userId, selectedSession.id);
-            agentEvent.onmessage = handleAgentStatusChange;
-            const data = await getStreamingResponse(userId, messageText, selectedSession.id, selectedChatbotV, selectedGenAIBot);
-            updateSessionListWithNewMessage(formatMessageFromServerResponse(data))
-            agentEvent.close();
-        } catch (error) {
-            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
-            console.error("Error in streaming response:", error);
-        } finally {
-            setIsChatLoading(false);
-        }
-    }
+    // async function handleStreamingResponse(userId: string, messageText: string): Promise<void> {
+    //     if (!selectedSession) return;
+    //     setIsChatLoading(true);
+    //     try {
+    //         console.log("UserId:", userId, "sessionId", selectedSession.id, "chatbotV", selectedChatbotV, "chatbotAI", selectedGenAIBot);
+    //         const agentEvent = await getAgentEventSource(userId, selectedSession.id);
+    //         agentEvent.onmessage = handleAgentStatusChange;
+    //         const data = await getStreamingResponse(userId, messageText, selectedSession.id, selectedChatbotV, selectedGenAIBot);
+    //         updateSessionListWithNewMessage(formatMessageFromServerResponse(data))
+    //         agentEvent.close();
+    //     } catch (error) {
+    //         // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+    //         console.error("Error in streaming response:", error);
+    //     } finally {
+    //         setIsChatLoading(false);
+    //     }
+    // }
 
-    async function handleNonStreamingResponse(userId: string, messageText: string): Promise<void> {
-        if (!selectedSession) return;
-        setIsChatLoading(true);
+    async function handleResponse(userId: string, messageText: string, passedSession: SessionObject): Promise<void> {
+        setIsChatLoading(true);        
+        const agentEvent = new EventSource(`${process.env.NEXT_PUBLIC_BACKEND_URL}currentStatus?uid=${userId}&sid=${passedSession.id}`);
         try {
-            console.log("UserId:", userId, "sessionId", selectedSession.id, "chatbotV", selectedChatbotV, "chatbotAI", selectedGenAIBot);
-            // const agentEvent = await getAgentEventSource(userId, selectedSession.id);
-            const agentEvent = new EventSource(`${process.env.NEXT_PUBLIC_BACKEND_URL}currentStatus?uid=${userId}&sid=${selectedSession.id}`);
             agentEvent.onmessage = handleAgentStatusChange;
-            const data = await getStreamingResponse(userId, messageText, selectedSession.id, selectedChatbotV, selectedGenAIBot);
-            updateSessionListWithNewMessage(formatMessageFromServerResponse(data))
-            agentEvent.close();
+            const data = await fetchChatbotResponse(userId, messageText, passedSession.id, selectedChatbotV, selectedGenAIBot);
+            updateSessionListWithNewMessage(formatMessageFromServerResponse(data), passedSession);
         } catch (error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in non-streaming response:", error);
         } finally {
             setIsChatLoading(false);
+            agentEvent.close();
         }
     }
 
 
-    function formatMessageFromServerResponse(data): ChatMessageObject {
-        console.log("Data to format into message:", data);
-        // TODO: finalize this.
-        return getTestMessagesList(1)[0];
+    function formatMessageFromServerResponse(data: ChatMessageResponse): ChatMessageObject {
+        const usedSession = selectedSession ?? sessions[0];
+        // Find highest id of non-bot messages
+        const botIdNumbersList = usedSession.messages.filter(item => item.isBot).map(botItem => Number(botItem.id.slice(CHATBOT_MESSAGE_ID_PREFIX.length)));
+        const newId = CHATBOT_MESSAGE_ID_PREFIX + (botIdNumbersList.length > 0 ? (Math.max(...botIdNumbersList) + 1) : 0);
+        const newMessage: ChatMessageObject = {
+            id: newId,
+            date: new Date().toISOString(),
+            isBot: true,
+            text: data.text,
+            userName: "ElevAIte",
+            files: data.refs.map(item => { return {
+                id: item + new Date().toISOString(),
+                filename: item,
+            }})
+        }
+        return newMessage;
     }
 
    

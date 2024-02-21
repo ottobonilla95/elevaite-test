@@ -3,6 +3,11 @@
 ////////////////////////////////////////////////////
 
 
+export const SESSION_ID_PREFIX = "sessionId_";
+export const USER_MESSAGE_ID_PREFIX = "userMessageId_";
+export const CHATBOT_MESSAGE_ID_PREFIX = "chatbotMessageId_";
+
+
 export enum ChatbotV {
     InWarranty = "in-warranty",
     OutOfWarranty = "out-of-warranty",
@@ -31,12 +36,16 @@ export interface SessionObject {
 }
 
 export const defaultSession: SessionObject = {
-    id: "id_0",
+    id: `${SESSION_ID_PREFIX}0`,
     label: "Session 1",
     messages: [],
     creationDate: new Date().toISOString(),
 }
 
+export interface ChatMessageResponse {
+    text: string;
+    refs: string[];
+}
 
 export interface ChatMessageObject {
     id: string;
