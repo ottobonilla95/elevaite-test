@@ -92,14 +92,20 @@
 
 
 
-.session-list-item {
+button.session-list-item {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 10px 15px;
 
+    background-color: var(--ev-colors-primary);
     border: 1px solid var(--ev-colors-borderColor);
     border-radius: 8px;
+
+    &.active {
+        border-color: var(--ev-colors-highlight);
+        background-color: var(--ev-colors-secondary);
+    }
 
     & > svg {
         flex-shrink: 0;

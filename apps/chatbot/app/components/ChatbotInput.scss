@@ -13,6 +13,13 @@
     border-radius: 8px;
 
 
+    &.loading {
+        & .chatbot-input-field svg {
+            color: var(--ev-colors-text);
+        }
+    }
+
+
     & .chatbot-input-field {
         flex-grow: 1;
         padding: 10px 15px;

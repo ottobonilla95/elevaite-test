@@ -1,10 +1,11 @@
 "use client"
-import { CommonModal, CommonSelectOption } from "@repo/ui/components";
+import type { CommonSelectOption } from "@repo/ui/components";
+import { CommonModal } from "@repo/ui/components";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getApplicationById, getApplicationPipelines } from "../../../lib/actions";
 import { S3DataRetrievalAppInstanceForm } from "../../../lib/dataRetrievalApps";
-import { AppInstanceFormStructure, ApplicationObject, Initializers, PipelineObject, type AppInstanceObject } from "../../../lib/interfaces";
+import type { AppInstanceFormStructure, AppInstanceObject, ApplicationObject, Initializers, PipelineObject } from "../../../lib/interfaces";
 import { S3PreprocessingAppInstanceForm } from "../../../lib/preprocessingApps";
 import AppInstanceList from "./AppInstanceList";
 import ApplicationDetails from "./ApplicationDetails";
@@ -20,7 +21,7 @@ export default function Page(): JSX.Element {
   const router = useRouter();
   const [formStructure, setFormStructure] = useState<AppInstanceFormStructure<Initializers>>();
   const [isDetailsLoading, setIsDetailsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
+  // const [hasError, setHasError] = useState(false);
   const [applicationDetails, setApplicationDetails] = useState<ApplicationObject|undefined>();
   const [selectedInstance, setSelectedInstance] = useState<AppInstanceObject>();
   const [isAddInstanceModalOpen, setIsAddInstanceModalOpen] = useState(false);
@@ -40,35 +41,37 @@ export default function Page(): JSX.Element {
         setIsDetailsLoading(false);
       } catch (error) {
         setIsDetailsLoading(false);
-        setHasError(true);
+        // setHasError(true);
+        // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
         console.error('Error fetching application list', error);
       }
     })();
     void (async () => {
       try {
         if (!id) return;
-        const pipelines = await getApplicationPipelines(id);
-        if (!pipelines || pipelines.length === 0) return;
-        setPipelines(pipelines);
+        const fetchedPipelines = await getApplicationPipelines(id);
+        if (fetchedPipelines.length === 0) return;
+        setPipelines(fetchedPipelines);
       } catch (error) {
-        setHasError(true);
+        // setHasError(true);
+        // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
         console.error('Error fetching application pipelines', error);
       }
     })();
   }, [id]);
 
 
-  function assignStructure(id: string|null): void {
-    if (!id) return;
-    switch (id) {
+  function assignStructure(assignedId: string|null): void {
+    if (!assignedId) return;
+    switch (assignedId) {
       case "1": setFormStructure(S3DataRetrievalAppInstanceForm); break;
       case "2": setFormStructure(S3PreprocessingAppInstanceForm); break;
     }
   }
 
 
-  function handleAddInstanceClose(addId?: string): void {
-    if (addId) setAddId(addId);
+  function handleAddInstanceClose(addingId?: string): void {
+    if (addingId) setAddId(addingId);
     setIsAddInstanceModalOpen(false);
   }
 
@@ -108,7 +111,7 @@ export default function Page(): JSX.Element {
           onSelectedInstanceChange={handleSelectedInstanceChange}
           onSelectedFlowChange={handleSelectedFlowChange}
           addId={addId}
-          onClearAddId={(id) => setAddId((currentId) => id === currentId ? "" : currentId )}
+          onClearAddId={(passedId) => { setAddId((currentId) => passedId === currentId ? "" : currentId ); }}
         />
       </div>
 

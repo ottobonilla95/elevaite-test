@@ -10,6 +10,7 @@ const INSTANCE_REVALIDATION_TIME = 60; // one minute
 
 
 
+// eslint-disable-next-line @typescript-eslint/require-await -- Server actions must be async functions
 export async function logOut(): Promise<void> {
   redirect(`${process.env.NEXTAUTH_URL}/api/signout`);
 }
@@ -65,7 +66,6 @@ export async function getApplicationPipelines(id: string): Promise<PipelineObjec
 
   if (!response.ok) throw new Error("Failed to fetch");
   const data: unknown = await response.json();
-  console.log("Data for pipelines", data);
   if (isGetApplicationPipelinesResponse(data)) return data;
   throw new Error("Invalid data type");
 }
@@ -82,13 +82,13 @@ export async function getInstanceChartData(appId: string, instanceId: string): P
 }
 
 
-export async function createApplicationInstance(id: string, dto: Initializers) { 
+export async function createApplicationInstance(id: string, dto: Initializers): Promise<AppInstanceObject> { 
   const headers = new Headers();
   headers.append("Content-Type", "application/json");
   const response = await fetch(`${BACKEND_URL}/application/${id}/instance/`, {
     method: "POST",
     body: JSON.stringify(dto),
-    headers: headers,
+    headers,
   });
   if (!response.ok) throw new Error("Failed to upload");
   const data: unknown = await response.json();

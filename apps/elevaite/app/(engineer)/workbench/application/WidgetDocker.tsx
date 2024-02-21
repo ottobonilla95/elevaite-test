@@ -1,12 +1,15 @@
 "use client";
-import { ReactNode, useEffect, useState } from "react";
-import { AppInstanceObject, ApplicationObject, ApplicationType, PipelineObject, PipelineStep } from "../../../lib/interfaces";
+import type { CommonSelectOption } from "@repo/ui/components";
+import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
+import type { AppInstanceObject, ApplicationObject, PipelineObject, PipelineStep } from "../../../lib/interfaces";
+import { ApplicationType } from "../../../lib/interfaces";
 import "./WidgetDocker.scss";
 import { ConsoleLogWidget } from "./widgets/ConsoleLogWidget";
 import MainDetailsWidget from "./widgets/MainDetailsWidget";
 import { PreprocessPipelineWidget } from "./widgets/PreprocessPipelineWidget";
 import { ProgressTrackingWidget } from "./widgets/ProgressTrackingWidget";
-import { CommonSelectOption } from "@repo/ui/components";
+
 
 
 interface WidgetDockerProps {
@@ -18,13 +21,13 @@ interface WidgetDockerProps {
 }
 
 export default function WidgetDocker(props: WidgetDockerProps): JSX.Element {
-    const [displayedWidgets, setDIsplayedWidgets] = useState<ReactNode>();
+    const [displayedWidgets, setDisplayedWidgets] = useState<ReactNode>();
     const [selectedPipelineSteps, setSelectedPipelineSteps] = useState<PipelineStep[]>([]);
     const [initialStep, setInitialStep] = useState("");
 
 
     useEffect(() => {
-        setDIsplayedWidgets(getConditionalWidgets());
+        setDisplayedWidgets(getConditionalWidgets());
     }, [props]);
 
     useEffect(() => {
@@ -41,17 +44,17 @@ export default function WidgetDocker(props: WidgetDockerProps): JSX.Element {
         if (!props.selectedInstance || !props.applicationDetails) return null;
         switch (props.applicationDetails.applicationType) {
 
-            case ApplicationType.INGEST: return (props.selectedInstance ? 
+            case ApplicationType.INGEST: return (
                 <ProgressTrackingWidget
-                    key={"progressTracking"}
+                    key="progressTracking"
                     applicationId={props.applicationId}
                     instance={props.selectedInstance}
                 />
-                : null);
+                );
 
-            case ApplicationType.PREPROCESS: return (selectedPipelineSteps && selectedPipelineSteps.length > 0 ?
+            case ApplicationType.PREPROCESS: return (selectedPipelineSteps.length > 0 ?
                 <PreprocessPipelineWidget
-                    key={"preprocessPipeline"}
+                    key="preprocessPipeline"
                     flowLabel={props.selectedFlow?.label}
                     pipelineSteps={selectedPipelineSteps}
                     initialStep={initialStep}

@@ -1,10 +1,10 @@
 "use client"
 import { ChatbotIcons, CommonButton } from "@repo/ui/components";
-import { useEffect, useState } from "react";
+import { useContext, useEffect } from "react";
+import { SessionObject } from "../lib/interfaces";
+import { ChatContext } from "../ui/contexts/ChatContext";
 import { GenAIBot } from "./GenAIBot";
 import "./SessionBar.scss";
-import { getTestSessionsList } from "../lib/testData";
-import { SessionListItem } from "../lib/interfaces";
 
 
 
@@ -13,26 +13,20 @@ import { SessionListItem } from "../lib/interfaces";
 
 
 
-interface SessionBarProps {
-
-}
-
-export function SessionBar(props: SessionBarProps): JSX.Element {
-    const [sessionList, setSessionList] = useState<SessionListItem[]>();
-
-
-    useEffect(() => {
-        setSessionList(getTestSessionsList(3));
-    }, []);
-
-
+export function SessionBar(): JSX.Element {
+    const chatContext = useContext(ChatContext);
 
     function handleNewSession() {
-        console.log("Starting new session");
+        chatContext.addNewSession();
     }
 
     function handleClearAll() {
-        console.log("Clearing all sessions");
+        // Warning?
+        chatContext.clearAllSessions();
+    }
+
+    function handleSessionClick(sessionId: string) {
+        chatContext.setSelectedSession(sessionId);
     }
 
 
@@ -73,10 +67,12 @@ export function SessionBar(props: SessionBarProps): JSX.Element {
 
                     <div className="session-list-scroller">
                         <div className="session-list-contents">
-                            {!sessionList ? null :
-                                sessionList?.map(item => 
+                            {!chatContext.sessions ? null :
+                                chatContext.sessions?.map(item => 
                                     <SessionListItem
                                         key={item.id}
+                                        onClick={handleSessionClick}
+                                        selectedSessionId={chatContext.selectedSession?.id}
                                         {...item}
                                     />
                                 )
@@ -98,11 +94,18 @@ export function SessionBar(props: SessionBarProps): JSX.Element {
 
 
 
-function SessionListItem(props: SessionListItem): JSX.Element {
+function SessionListItem(props: SessionObject & {onClick: (id: string) => void, selectedSessionId?: string}): JSX.Element {
     return (
-        <div className="session-list-item">
+        <CommonButton
+            onClick={() => props.onClick(props.id)}
+            className={[
+                "session-list-item",
+                props.selectedSessionId && props.selectedSessionId === props.id ? "active" : undefined,
+            ].filter(Boolean).join(" ")}
+            overrideClass
+        >
             <ChatbotIcons.SVGMessage/>
             <span title={props.label}>{props.label}</span>
-        </div>
+        </CommonButton>
     );
 }

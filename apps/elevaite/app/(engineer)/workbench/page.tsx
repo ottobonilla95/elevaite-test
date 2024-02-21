@@ -1,11 +1,12 @@
 "use client";
 import { Card, ElevaiteIcons } from "@repo/ui/components";
-import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import { useEffect, useState } from "react";
+import { Tab, TabList, TabPanel, Tabs } from "react-tabs";
 import { ingestionMethods } from "../../../dummydata";
-import "./page.scss";
 import { getApplicationList } from "../../lib/actions";
-import { ApplicationObject, ApplicationType } from "../../lib/interfaces";
+import type { ApplicationObject } from "../../lib/interfaces";
+import { ApplicationType } from "../../lib/interfaces";
+import "./page.scss";
 
 
 
@@ -27,6 +28,7 @@ export default function Page(): JSX.Element {
       } catch (error) {
         setIsLoading(false);
         setHasError(true);
+        // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
         console.error('Error fetching application list:', error);
       }
     })();

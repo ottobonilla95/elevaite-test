@@ -1,28 +1,28 @@
 "use client";
-import { CommonButton, CommonSelect, CommonSelectOption, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
-import { MutableRefObject, useEffect, useRef, useState } from "react";
+import type { CommonSelectOption} from "@repo/ui/components";
+import { ClickOutsideDetector, CommonButton, CommonSelect, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
+import { useEffect, useRef, useState } from "react";
 import { AppInstanceStatus } from "../../../lib/interfaces";
 import "./AppInstanceFilters.scss";
-import { ClickOutsideDetector } from "../../../../../../packages/ui/src/components/common/ClickOutsideDetector";
 
 
 const SEARCH_DEBOUNCE_TIME = 500; // milliseconds
 
 export enum ScopeInstances {
-    myInstances = "my",
-    allInstances = "all",
+    MyInstances = "my",
+    AllInstances = "all",
 }
 
 export enum SortingInstances {
-    ascending = "ascending",
-    descending = "descending",
+    Ascending = "ascending",
+    Descending = "descending",
 }
 
-type StatusDisplay = {
-    [AppInstanceStatus.STARTING]: boolean,
-    [AppInstanceStatus.RUNNING]: boolean,
-    [AppInstanceStatus.FAILED]: boolean,
-    [AppInstanceStatus.COMPLETED]: boolean,
+interface StatusDisplay {
+    [AppInstanceStatus.STARTING]: boolean;
+    [AppInstanceStatus.RUNNING]: boolean;
+    [AppInstanceStatus.FAILED]: boolean;
+    [AppInstanceStatus.COMPLETED]: boolean;
 }
 
 export interface AppInstanceFiltersObject {
@@ -32,8 +32,8 @@ export interface AppInstanceFiltersObject {
     showStatus: StatusDisplay;
 }
 export const initialFilters: AppInstanceFiltersObject = {
-    scope: ScopeInstances.myInstances,
-    sorting: SortingInstances.ascending,
+    scope: ScopeInstances.MyInstances,
+    sorting: SortingInstances.Ascending,
     searchTerm: "",
     showStatus: {
         [AppInstanceStatus.STARTING]: false,
@@ -44,8 +44,8 @@ export const initialFilters: AppInstanceFiltersObject = {
 }
 
 const instanceViewOptions: CommonSelectOption[] = [
-    {label: "My Instances", value: ScopeInstances.myInstances},
-    {label: "All Instances", value: ScopeInstances.allInstances}
+    {label: "My Instances", value: ScopeInstances.MyInstances},
+    {label: "All Instances", value: ScopeInstances.AllInstances}
 ];
 
 
@@ -72,12 +72,12 @@ export function AppInstanceFilters(props: AppInstanceFiltersProps): JSX.Element 
     useEffect(() => {
         const debounceTimeout = setTimeout(() => {
             setFilters(currentFilters => {
-                let newFilters = {...currentFilters};
+                const newFilters = {...currentFilters};
                 newFilters.searchTerm = searchTerm;
                 return newFilters;
             });
         }, SEARCH_DEBOUNCE_TIME);
-        return () => clearTimeout(debounceTimeout);
+        return () => { clearTimeout(debounceTimeout); };
     }, [searchTerm]);
       
 
@@ -92,7 +92,7 @@ export function AppInstanceFilters(props: AppInstanceFiltersProps): JSX.Element 
 
     function handleStatusFilterClick(status: AppInstanceStatus, currentStatus: boolean): void {
         setFilters(currentFilters => {
-            let newFilters = {...currentFilters};
+            const newFilters = {...currentFilters};
             newFilters.showStatus[status] = !currentStatus;
             return newFilters;
         });
@@ -100,7 +100,7 @@ export function AppInstanceFilters(props: AppInstanceFiltersProps): JSX.Element 
 
     function handleSortingFilterClick(sorting: SortingInstances): void {
         setFilters(currentFilters => {
-            let newFilters = {...currentFilters};
+            const newFilters = {...currentFilters};
             newFilters.sorting = sorting;
             return newFilters;
         });
@@ -117,7 +117,7 @@ export function AppInstanceFilters(props: AppInstanceFiltersProps): JSX.Element 
                 <span>Showing: </span>
                 <CommonSelect
                     className="app-instances-type"
-                    defaultValue={ScopeInstances.myInstances}
+                    defaultValue={ScopeInstances.MyInstances}
                     onSelectedValueChange={handleScopeChange}
                     options={instanceViewOptions}
                 />
@@ -126,24 +126,24 @@ export function AppInstanceFilters(props: AppInstanceFiltersProps): JSX.Element 
                     <CommonButton
                         className={[
                             "sorting-button",
-                            SortingInstances.ascending,
-                            filters.sorting === SortingInstances.ascending ? "active" : undefined,
+                            SortingInstances.Ascending,
+                            filters.sorting === SortingInstances.Ascending ? "active" : undefined,
                         ].filter(Boolean).join(" ")}
-                        onClick={() => handleSortingFilterClick(SortingInstances.ascending)}
+                        onClick={() => { handleSortingFilterClick(SortingInstances.Ascending); }}
                         title="Sort instances from oldest to newest."
                     >
-                        <ElevaiteIcons.SVGChevron type={"down"} />
+                        <ElevaiteIcons.SVGChevron type="down" />
                     </CommonButton>
                     <CommonButton
                         className={[
                             "sorting-button",
-                            SortingInstances.descending,
-                            filters.sorting === SortingInstances.descending ? "active" : undefined,
+                            SortingInstances.Descending,
+                            filters.sorting === SortingInstances.Descending ? "active" : undefined,
                         ].filter(Boolean).join(" ")}
-                        onClick={() => handleSortingFilterClick(SortingInstances.descending)}
+                        onClick={() => { handleSortingFilterClick(SortingInstances.Descending); }}
                         title="Sort instances from newest to oldest."
                     >
-                        <ElevaiteIcons.SVGChevron type={"down"} />
+                        <ElevaiteIcons.SVGChevron type="down" />
                     </CommonButton>
                 </div>
             </div>
@@ -159,7 +159,7 @@ export function AppInstanceFilters(props: AppInstanceFiltersProps): JSX.Element 
                             isFiltersOpen ? "open" : undefined,
                         ].filter(Boolean).join(" ")}
                         passedRef={filterButtonRef}
-                        onClick={() => setIsFiltersOpen(current => !current)}
+                        onClick={() => { setIsFiltersOpen(current => !current); }}
                     >
                         <ElevaiteIcons.SVGFilter/>
                         <span>Filters</span>
@@ -170,12 +170,12 @@ export function AppInstanceFilters(props: AppInstanceFiltersProps): JSX.Element 
                             {activeFiltersCount}
                         </div>
                     </CommonButton>
-                    <ClickOutsideDetector onOutsideClick={() => setIsFiltersOpen(false)} ignoredRefs={[filterButtonRef]}>
+                    <ClickOutsideDetector onOutsideClick={() => { setIsFiltersOpen(false); }} ignoredRefs={[filterButtonRef]}>
                         <FiltersContainer
                             isOpen={isFiltersOpen}
-                            onClose={() => setIsFiltersOpen(false)}
+                            onClose={() => { setIsFiltersOpen(false); }}
                             status={filters.showStatus}
-                            onStatusClick={(item) => handleStatusFilterClick(item, filters.showStatus[item])}
+                            onStatusClick={(item) => { handleStatusFilterClick(item, filters.showStatus[item]); }}
                         />
                     </ClickOutsideDetector>
                 </div>
@@ -194,7 +194,7 @@ export function AppInstanceFilters(props: AppInstanceFiltersProps): JSX.Element 
                     leftIcon={<ElevaiteIcons.SVGMagnifyingGlass/>}
                     rightIcon={
                         <CommonButton
-                            onClick={() => handleSearch("")}
+                            onClick={() => { handleSearch(""); }}
                             noBackground
                             disabled={!searchTerm}
                         >
@@ -214,17 +214,18 @@ export function AppInstanceFilters(props: AppInstanceFiltersProps): JSX.Element 
                                 "icon",
                                 objectKey,
                             ].filter(Boolean).join(" ")}>
-                                {getDetail(objectKey, "icon")}
+                                {getIcon(objectKey)}
                             </div>
-                            {getDetail(objectKey)}
+                            {getLabel(objectKey)}
                             <CommonButton
-                                onClick={() => handleStatusFilterClick(objectKey, filters.showStatus[objectKey])}
+                                onClick={() => { handleStatusFilterClick(objectKey, filters.showStatus[objectKey]); }}
                                 noBackground
                             >
                                 <ElevaiteIcons.SVGXmark/>
                             </CommonButton>
                         </div>
                     );
+                    return null;
                 })}
             </div>
 
@@ -265,7 +266,7 @@ function FiltersContainer(props: FiltersContainerProps): JSX.Element {
                         "filters-section-header",
                         isStatusOpen ? "open" : undefined,
                     ].filter(Boolean).join(" ")}>
-                        <CommonButton onClick={() => setIsStatusOpen(current => !current)}>
+                        <CommonButton onClick={() => { setIsStatusOpen(current => !current); }}>
                             <ElevaiteIcons.SVGChevron/>
                             <span>Status</span>
                         </CommonButton>
@@ -284,11 +285,11 @@ function FiltersContainer(props: FiltersContainerProps): JSX.Element {
                                         objectKey,
                                         props.status[objectKey] ? "active" : undefined,
                                     ].filter(Boolean).join(" ")}
-                                    onClick={() => props.onStatusClick(objectKey)}
-                                    title={`Toggle the visibility of ${getDetail(objectKey)} instances.`}
+                                    onClick={() => { props.onStatusClick(objectKey); }}
+                                    title={`Toggle the visibility of ${getLabel(objectKey)} instances.`}
                                 >
-                                    {getDetail(objectKey, "icon")}
-                                    <span>{getDetail(objectKey)}</span>
+                                    {getIcon(objectKey)}
+                                    <span>{getLabel(objectKey)}</span>
                                 </CommonButton>
                             )}
                         </div>
@@ -303,23 +304,20 @@ function FiltersContainer(props: FiltersContainerProps): JSX.Element {
 
 
 
+function getIcon(item: AppInstanceStatus): React.ReactNode {
+    switch(item) {
+        case AppInstanceStatus.COMPLETED: return <ElevaiteIcons.SVGCheckmark/>;
+        case AppInstanceStatus.RUNNING: return <ElevaiteIcons.SVGInstanceProgress/>;
+        case AppInstanceStatus.FAILED: return <ElevaiteIcons.SVGWarning/>;
+        case AppInstanceStatus.STARTING: return <ElevaiteIcons.SVGTarget/>;
+    }
+}
 
-
-
-function getDetail(item: AppInstanceStatus, type?: "icon"): React.ReactNode {
-    if (type === "icon") {
-        switch(item) {
-            case AppInstanceStatus.COMPLETED: return <ElevaiteIcons.SVGCheckmark/>;
-            case AppInstanceStatus.RUNNING: return <ElevaiteIcons.SVGInstanceProgress/>;
-            case AppInstanceStatus.FAILED: return <ElevaiteIcons.SVGWarning/>;
-            case AppInstanceStatus.STARTING: return <ElevaiteIcons.SVGTarget/>;
-        }
-    } else {
-        switch(item) {
-            case AppInstanceStatus.COMPLETED: return "Completed";
-            case AppInstanceStatus.RUNNING: return "Running";
-            case AppInstanceStatus.FAILED: return "Interrupted";
-            case AppInstanceStatus.STARTING: return "Initializing";
-        }
+function getLabel(item: AppInstanceStatus): string {    
+    switch(item) {
+        case AppInstanceStatus.COMPLETED: return "Completed";
+        case AppInstanceStatus.RUNNING: return "Running";
+        case AppInstanceStatus.FAILED: return "Interrupted";
+        case AppInstanceStatus.STARTING: return "Initializing";
     }
 }

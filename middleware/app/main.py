@@ -91,7 +91,7 @@ def get_Agent_incidentSolver(query: str, uid: str, sid: str, collection: str):
         {"from": "human", "message": query}, chat_session_memory
     )
     storeSession(uid, sid, chat_session_memory)
-    if collection.lower() == "cisco_clo":
+    if collection.lower() == "cisco_clo" or collection.lower() == "pan":
         result, refs = streaming_request_upgraded(uid, sid, query, collection, isUpsell=False, withRefs=True)
         data = {"text": result, "refs": refs}
         return JSONResponse(content=data)

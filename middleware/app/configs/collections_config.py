@@ -4,6 +4,6 @@ collections_config = {
   "arlo": "kbDocs_arlo_v1",
   "pan":"kbDocs_30Incidents_v2",
   "cisco":"cisco_webex_poc",
-  "cisco_clo":"cisco_clo_poc"
+  "cisco_clo":"cisco_clo_poc",
   "juniper_vsrx":"juniper_vsrx"
 }

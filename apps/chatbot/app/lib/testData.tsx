@@ -1,4 +1,4 @@
-import { ChatMessageFileObject, ChatMessageFileTypes, ChatMessageObject, SessionListItem } from "./interfaces";
+import { ChatMessageFileObject, ChatMessageFileTypes, ChatMessageObject, SessionObject } from "./interfaces";
 
 
 
@@ -7,12 +7,14 @@ import { ChatMessageFileObject, ChatMessageFileTypes, ChatMessageObject, Session
 
 
 
-export function getTestSessionsList(amount: number): SessionListItem[] {
-    const list: SessionListItem[] = [];
+export function getTestSessionsList(amount: number): SessionObject[] {
+    const list: SessionObject[] = [];
     for (var i=0; i<amount; i++) {
         list.push({
             id: "id_" + i,
-            label: "Firmware Upgrade " + i,
+            label: "Session " + (i+1),
+            messages: [],
+            creationDate: new Date().toISOString(),
         })
     }
     return list;

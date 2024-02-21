@@ -10,6 +10,7 @@ import SVGMessage from "./svgMessage";
 import SVGOpen from "./svgOpen";
 import SVGSend from "./svgSend";
 import SVGSessions from "./svgSessions";
+import SVGSpinner from "./svgSpinner";
 import SVGThumbs from "./svgThumbs";
 import SVGUpload from "./svgUpload";
 
@@ -29,6 +30,7 @@ export const ChatbotIcons = {
     SVGOpen,
     SVGSend,
     SVGSessions,
+    SVGSpinner,
     SVGThumbs,
     SVGUpload,
 };

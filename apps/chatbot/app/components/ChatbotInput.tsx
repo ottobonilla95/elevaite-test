@@ -1,24 +1,28 @@
 "use client";
 import { ChatbotIcons, CommonButton, SimpleInput } from "@repo/ui/components";
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { ChatContext } from "../ui/contexts/ChatContext";
 import "./ChatbotInput.scss";
 
-interface ChatbotInputProps {
 
-}
 
-export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
+
+export function ChatbotInput(): JSX.Element {
+    const chatContext = useContext(ChatContext);
     const [text, setText] = useState("");
 
 
-    function handleTextChange(value: string): void {        
+    function handleTextChange(value: string): void {
+        if (chatContext.isChatLoading) return;
         setText(value);
     }
 
     function handleSend(): void {
-        if (!text) return;
+        if (chatContext.isChatLoading) return;
+        const workingText = text;
         setText("");
-        console.log("Sending:", text);
+        if (!workingText.trim()) return;
+        chatContext.addNewUserMessageToCurrentSession(workingText);
     }
 
     function handleKeyDown(key: string): void {
@@ -26,23 +30,29 @@ export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
     }
 
     function handleSummarize(): void {
+        if (chatContext.isChatLoading) return;
         console.log("Handling summarize");
     }
 
 
     return (
-        <div className="chatbot-input-container">
+        <div className={["chatbot-input-container", chatContext.isChatLoading ? "loading" : undefined].filter(Boolean).join(" ")}>
             <SimpleInput
                 wrapperClassName="chatbot-input-field"
                 value={text}
                 onChange={handleTextChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Enter text and press ENTER"
+                placeholder={chatContext.isChatLoading ? "Please wait..." : "Enter text and press ENTER"}
+                disabled={chatContext.isChatLoading}
                 rightIcon={
                     <CommonButton
                         onClick={handleSend}
+                        disabled={chatContext.isChatLoading}
                     >
-                        <ChatbotIcons.SVGSend/>
+                        {chatContext.isChatLoading ?
+                            <ChatbotIcons.SVGSpinner/> :
+                            <ChatbotIcons.SVGSend/>
+                        }
                     </CommonButton>                    
                 }
             />
@@ -51,6 +61,7 @@ export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
                 className="summarize-button"
                 overrideClass={true}
                 onClick={handleSummarize}
+                disabled={chatContext.isChatLoading}
             >
                 <ChatbotIcons.SVGClipboard/>
                 <span>Summarize</span>

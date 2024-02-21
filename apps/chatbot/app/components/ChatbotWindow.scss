@@ -12,6 +12,7 @@
     
     background-color: var(--ev-colors-backgroundSecondary);
     border-radius: 0 0 8px 8px;
+    
 
     & .chatbot-window-header {
         flex-shrink: 0;
@@ -32,6 +33,7 @@
 
 
     & .chatbot-window-scroller {
+        flex-grow: 1;
         overflow-y: auto;
         margin-right: 1px;
         padding-right: 15px;
@@ -40,9 +42,23 @@
 
 
     & .chatbot-window-message-list {
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+
+    & .chatbot-window-loader {
         display: flex;
         flex-direction: column;
         gap: 10px;
+
+        & > span {
+            align-self: center;
+            color: var(--ev-colors-text);
+        }
     }
 
 }

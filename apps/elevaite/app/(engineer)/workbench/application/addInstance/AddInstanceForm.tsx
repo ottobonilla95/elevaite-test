@@ -1,9 +1,11 @@
 "use client";
-import { CommonButton, CommonCheckbox, CommonInput, CommonSelectOption, ElevaiteIcons } from "@repo/ui/components";
+import type { CommonSelectOption} from "@repo/ui/components";
+import { CommonButton, CommonCheckbox, CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { createApplicationInstance } from "../../../../lib/actions";
-import { AppInstanceFieldStructure, AppInstanceFieldTypes, AppInstanceFormStructure, Initializers } from "../../../../lib/interfaces";
+import type { AppInstanceFieldStructure, AppInstanceFormStructure, Initializers } from "../../../../lib/interfaces";
+import { AppInstanceFieldTypes } from "../../../../lib/interfaces";
 import "./AddInstanceForm.scss";
 
 
@@ -42,47 +44,47 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
 
 
 
-    function getIsRequiredFieldEmptyInList(formData: Initializers, fields: AppInstanceFieldStructure[]): boolean {
+    function getIsRequiredFieldEmptyInList(passedFormData: Initializers, fields: AppInstanceFieldStructure[]): boolean {
         for (const item of fields) {
-            if ("required" in item && !!item.required && item.field) {
-                if (!formData[item.field]) {
+            if ("required" in item && Boolean(item.required) && item.field) {
+                if (!passedFormData[item.field]) {
                     setIsConfirmDisabled(true);
                     return true;
                 }
             } else if ("type" in item && item.type === AppInstanceFieldTypes.GROUP) {
-                if (getIsRequiredFieldEmptyInList(formData, item.fields)) return true;
+                if (getIsRequiredFieldEmptyInList(passedFormData, item.fields)) return true;
             }
         }
         return false;
     }
 
-    function handleFormDataChange(value: string, field: string) {
+    function handleFormDataChange(value: string, field: string): void {
         setFormData( (currentValues) => {
             if (!currentValues) return;
             return { ...currentValues, [field]: value}
         });
      }
 
-     function handleFormDataBooleanChange(value: boolean, field: string) {
+     function handleFormDataBooleanChange(value: boolean, field: string): void {
         setFormData( (currentValues) => {
             if (!currentValues) return;
             return { ...currentValues, [field]: value}
         });
      }
 
-     function handleErrorMessageClick() {
+     function handleErrorMessageClick(): void {
         setErrorMessage("");
      }
 
 
      function setUser(data: Initializers): void {
-        if (session?.data?.user?.name) {
+        if (session.data?.user?.name) {
             data.creator = session.data.user.name;
         } else data.creator = "Unknown User";
      }
 
      function setSelectedPipeline(data: Initializers, flow?: CommonSelectOption): void {
-        if (!flow || !flow.value) return;
+        if (!flow?.value) return;
         if ("selectedPipeline" in data) {
             data.selectedPipeline = flow.value;
         }
@@ -110,8 +112,9 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
             setIsProcessing(true);
             const response = await createApplicationInstance(props.applicationId, formData);
             setIsProcessing(false);
-            props.onClose(response?.id);
+            props.onClose(response.id);
         } catch (error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error:", error);
             setIsProcessing(false);
             setErrorMessage("An error was encountered. Please try again.")
@@ -149,18 +152,18 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
                 if (field.type === AppInstanceFieldTypes.GROUP) {
                     return (
                         <div className="group-information" key={`group${field.label}`}>
-                            <span>{"Dataset Info"}</span>
+                            <span>Dataset Info</span>
                             {mapFields(field.fields)}
                         </div>
                     )
                 } else if (field.type === AppInstanceFieldTypes.CHECKBOX) {
                     return <CommonCheckbox {...field} onChange={handleFormDataBooleanChange} key={field.field} />
-                } else {
-                    let initialValue = "";
-                    if (field.field && formData && formData[field.field]) initialValue = formData[field.field];
-                    return <CommonInput {...field} initialValue={initialValue} onChange={handleFormDataChange} key={field.field} />
-                }
+                } 
+                let initialValue = "";
+                if (field.field && formData?.[field.field] && typeof formData[field.field] === "string") initialValue = formData[field.field] as string;
+                return <CommonInput {...field} initialValue={initialValue} onChange={handleFormDataChange} key={field.field} />                
             }
+            return null;
         })
         return <>{components}</>;
     }
@@ -175,6 +178,7 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
                 </div>
             }
             {!errorMessage ? null : 
+                // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- This probably can have a better handling
                 <div className="error-container" onClick={handleErrorMessageClick}>
                     <span>{errorMessage}</span>
                 </div>

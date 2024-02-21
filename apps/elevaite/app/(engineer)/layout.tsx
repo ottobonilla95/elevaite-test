@@ -1,4 +1,5 @@
-import { ElevaiteIcons, SidebarIconObject } from "@repo/ui/components";
+import type { SidebarIconObject } from "@repo/ui/components";
+import { ElevaiteIcons } from "@repo/ui/components";
 import { ColorContextProvider } from "@repo/ui/contexts";
 import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";

@@ -1,7 +1,7 @@
 
-import { ElevaiteIcons, CommonButton, Logos } from "@repo/ui/components";
+import { CommonButton, ElevaiteIcons, Logos } from "@repo/ui/components";
+import type { ApplicationObject } from "../../../lib/interfaces";
 import "./ApplicationDetails.scss";
-import { ApplicationObject } from "../../../lib/interfaces";
 
 
 export interface ApplicationDetailsProps {
@@ -15,10 +15,10 @@ export default function ApplicationDetails({isLoading, applicationDetails, onBac
 
 
     //TODO: Do this properly.
-    function getIcon(id?: string): JSX.Element {
-        if (!id) return <></>;
+    function getIcon(id?: string): React.ReactNode {
+        if (!id) return null;
         if (id === "1") return <Logos.Aws/>;
-        else return <Logos.Preprocess/>;
+        return <Logos.Preprocess/>;
     }
 
 
@@ -37,7 +37,7 @@ export default function ApplicationDetails({isLoading, applicationDetails, onBac
                 </div>
                 <div className="details-text-content">
                     {isLoading ? 
-                        <div className="skeleton top"></div>
+                        <div className="skeleton top" />
                         :
                         <div className="details-text-top">
                             <div className="details-name">{applicationDetails?.title}</div>
@@ -51,7 +51,7 @@ export default function ApplicationDetails({isLoading, applicationDetails, onBac
                         </div>
                     }
                     {isLoading ? 
-                        <div className="skeleton bottom"></div>
+                        <div className="skeleton bottom" />
                         :
                         <div className="details-text-bottom">
                             {applicationDetails?.description}

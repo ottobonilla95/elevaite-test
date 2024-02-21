@@ -226,12 +226,14 @@
                     padding: 2px 5px;
                     background-color: var(--ev-colors-hoverColor);
         
-                    &.active { background-color: var(--ev-colors-secondary); }
+                    &.active {
+                        background-color: var(--ev-colors-secondary);
 
-                    &.starting { color: var(--ev-colors-secondaryText); }
-                    &.running { color: var(--ev-colors-highlight); }
-                    &.failed { color: var(--ev-colors-danger); }
-                    &.completed { color: var(--ev-colors-success); }
+                        &.starting { color: var(--ev-colors-secondaryText); }
+                        &.running { color: var(--ev-colors-highlight); }
+                        &.failed { color: var(--ev-colors-danger); }
+                        &.completed { color: var(--ev-colors-success); }
+                    }
 
                     & > svg {
                         height: 16px;

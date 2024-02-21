@@ -41,8 +41,12 @@ module.exports = {
   ignorePatterns: ["node_modules/", "dist/"],
   // add rules configurations here
   rules: {
+    "no-console": "warn",
+    "no-unused-vars": "off",
+    "no-nested-ternary": "off",
     "import/no-default-export": "off",
-    "react/jsx-sort-props": [-1, {}],
+    "react-hooks/exhaustive-deps": "off",
+    "react/jsx-sort-props": [0, {}],
     "unicorn/filename-case": [
       "error",
       {
@@ -52,6 +56,7 @@ module.exports = {
         },
       },
     ],
+    "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/no-misused-promises": [
       2,
       {

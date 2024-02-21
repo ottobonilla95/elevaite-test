@@ -6,8 +6,10 @@ import dayjs from "dayjs";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { getApplicationInstanceById, getApplicationInstanceList } from "../../../lib/actions";
-import { AppInstanceObject, AppInstanceStatus, PipelineObject } from "../../../lib/interfaces";
-import { AppInstanceFilters, AppInstanceFiltersObject, ScopeInstances, SortingInstances, initialFilters } from "./AppInstanceFilters";
+import type { AppInstanceObject, PipelineObject } from "../../../lib/interfaces";
+import { AppInstanceStatus } from "../../../lib/interfaces";
+import type { AppInstanceFiltersObject} from "./AppInstanceFilters";
+import { AppInstanceFilters, ScopeInstances, SortingInstances, initialFilters } from "./AppInstanceFilters";
 import "./AppInstanceList.scss";
 
 
@@ -40,10 +42,11 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
                 if (!props.applicationId) return;
                 const data = await getApplicationInstanceList(props.applicationId);
                 initializeInstances(data);
-                setIsLoading(false);
             } catch (error) {
-                setIsLoading(false);
+                // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
                 console.error('Error fetching instances list:', error);
+            } finally {
+                setIsLoading(false);
             }
         })();
     }, [props.applicationId]);
@@ -63,7 +66,7 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
 
     useEffect(() => {
         if (props.addId) {
-            fetchAddedInstance(props.addId);
+            void fetchAddedInstance(props.addId);
         }
     }, [props.addId]);
 
@@ -74,9 +77,10 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
         if (!props.applicationId || !id) return;
         try {
             const data = await getApplicationInstanceById(props.applicationId, id);
-            if (data) handleInstanceUpdate(data);
+            handleInstanceUpdate(data);
             if (props.onClearAddId) props.onClearAddId(id);
         } catch (error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error('Error fetching added instance:', error);
         }
     }
@@ -86,7 +90,6 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
     // Display Functions
 
     function initializeInstances(instances: AppInstanceObject[]): void {
-        if (!instances) return;
         setAllInstances(instances);
     }
 
@@ -104,20 +107,20 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
     function sortInstances(instances: AppInstanceObject[]): void {
         const sortingOrder = [AppInstanceStatus.STARTING, AppInstanceStatus.RUNNING, AppInstanceStatus.FAILED, AppInstanceStatus.COMPLETED];
         instances.sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf() );
-        if (filters.sorting === SortingInstances.descending) instances.reverse();
+        if (filters.sorting === SortingInstances.Descending) instances.reverse();
         instances.sort((a, b) => sortingOrder.indexOf(a.status) - sortingOrder.indexOf(b.status));
     }
 
     function assignVisibleInstances(): void {
         const filteredInstances = [...allInstances].filter(instance => {
             // Check scope
-            if (filters.scope === ScopeInstances.allInstances ||
-                (session?.data?.user?.name && instance.creator === session.data.user.name) ||
-                (!session?.data?.user?.name && instance.creator === "Unknown User")) {
+            if (filters.scope === ScopeInstances.AllInstances ||
+                (session.data?.user?.name && instance.creator === session.data.user.name) ||
+                (!session.data?.user?.name && instance.creator === "Unknown User")) {
                 // Check Flow
                 if (!selectedFlowId || instance.selectedPipeline === selectedFlowId) {
                     // Check status
-                    if (Object.values(filters.showStatus).every(item => item === false) || filters.showStatus[instance.status]) {
+                    if (Object.values(filters.showStatus).every(item => !item) || filters.showStatus[instance.status]) {
                         // Check search term
                         if (!filters.searchTerm ||
                             instance.id.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
@@ -128,6 +131,7 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
                     }
                 }
             }
+            return false;
         });
         sortInstances(filteredInstances);
         setVisibleInstances(filteredInstances);
@@ -146,14 +150,11 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
     }
 
     function handleInstanceUpdate(instance: AppInstanceObject): void {
-        if (!instance) return;
-        const index = allInstances.findIndex(item => item.id === instance.id);
-        if (index >= 0) {
-            allInstances[index] = instance;
+        if (allInstances.some(item => item.id === instance.id)) {
+            initializeInstances(allInstances.map(item => item.id === instance.id ? instance : item));
         } else {
-            allInstances.push(instance);
-        }        
-        initializeInstances(allInstances);
+            initializeInstances([...allInstances, instance]);
+        }
     }
 
     function handleAddInstance(): void {
@@ -240,7 +241,7 @@ function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps
             (props.status === AppInstanceStatus.RUNNING || props.status === AppInstanceStatus.STARTING)) {
             const delay = props.status === AppInstanceStatus.STARTING ? 20000 : 5000;
             const interval = setInterval(() => {
-                fetchInstance(props.applicationId, props.id, props.status);
+                void fetchInstance(props.applicationId, props.id, props.status);
             }, delay);
             return () => {clearInterval(interval)};
         }
@@ -260,7 +261,7 @@ function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps
         
         try {            
             const data = await getApplicationInstanceById(applicationId, instanceId);
-            if (data && data.status && data.status !== status && props.onInstanceUpdate) {
+            if (data.status !== status && props.onInstanceUpdate) {
                 props.onInstanceUpdate(data);
             }
         } catch (error) {
@@ -273,7 +274,7 @@ function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps
             case AppInstanceStatus.STARTING: return <ElevaiteIcons.SVGTarget className="app-instance-icon starting" />
             case AppInstanceStatus.RUNNING: return <ElevaiteIcons.SVGInstanceProgress className="app-instance-icon ongoing" />
             case AppInstanceStatus.COMPLETED: return <ElevaiteIcons.SVGCheckmark className="app-instance-icon completed" />
-            case AppInstanceStatus.FAILED: return <ElevaiteIcons.SVGTarget className="app-instance-icon failed" />
+            case AppInstanceStatus.FAILED: return <ElevaiteIcons.SVGWarning className="app-instance-icon failed" />
         }
     }
     function getIconTooltip(): string {
@@ -287,9 +288,9 @@ function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps
     function getTimeTooltip(): string {
         const formatting = "DD MMM, hh:mm a";
         if (!props.startTime) return "";
-        let tooltip = "Initialized on: " + dayjs(props.startTime).format(formatting);
+        let tooltip = `Initialized on: ${dayjs(props.startTime).format(formatting)}`;
         if (props.endTime) {
-            tooltip += `\n${props.status === AppInstanceStatus.FAILED ? "Failed on" : "Completed on"}: ` + dayjs(props.endTime).format(formatting);
+            tooltip += `\n${props.status === AppInstanceStatus.FAILED ? "Failed on" : "Completed on"}: ${dayjs(props.endTime).format(formatting)}`;
         }
         return tooltip;
     }
