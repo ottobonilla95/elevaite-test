@@ -11,7 +11,6 @@ import { Breadcrumbs } from "./Breadcrumbs";
 import "./Navbar.scss";
 import { CommonButton } from "../common";
 
-
 interface NavBarProps {
   breadcrumbLabels: Record<string, { label: string; link: string }>;
   user?: { icon?: string; fullName?: string };
@@ -25,15 +24,16 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
   const [btnPressed, setBtnPressed] = useState(false);
   const [breadcrumbItems, setBreadcrumbItems] = useState<BreadcrumbItem[]>([]);
   const [hover, setHover] = useState(false);
-  const pathname = usePathname();  
+  const pathname = usePathname();
   const colors = useContext(ColorContext);
-
 
   useEffect(() => {
     setBreadcrumbItems(pathToBreadcrumbs(pathname));
   }, [pathname, props.breadcrumbLabels]);
 
-
+  useEffect(() => {
+    console.log(props.user);
+  }, [props.user]);
 
   function handleLogout(): void {
     props.logOut();
@@ -41,19 +41,17 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
 
   function pathToBreadcrumbs(path: string): BreadcrumbItem[] {
     if (pathname === "/") return [props.breadcrumbLabels.home];
-    const runningPath = path.split("/").filter(str => str !== "");
+    const runningPath = path.split("/").filter((str) => str !== "");
     return runningPath.map((str, index) => {
       const breadcrumb: { label: string; link: string } | undefined = props.breadcrumbLabels[str];
       return {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Could be undefined
         label: breadcrumb ? breadcrumb.label : str,
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Could be undefined
-        link: index < runningPath.length-1 && breadcrumb ? breadcrumb.link : "",
+        link: index < runningPath.length - 1 && breadcrumb ? breadcrumb.link : "",
       };
     });
   }
-  
-
 
   return (
     <div className="navbar-container">
@@ -73,10 +71,18 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
           />
           <button
             className="help"
-            onClick={() => { setBtnPressed(!btnPressed); }}
-            onFocus={() => { setHover(true); }}
-            onMouseEnter={() => { setHover(true); }}
-            onMouseLeave={() => { setHover(false); }}
+            onClick={() => {
+              setBtnPressed(!btnPressed);
+            }}
+            onFocus={() => {
+              setHover(true);
+            }}
+            onMouseEnter={() => {
+              setHover(true);
+            }}
+            onMouseLeave={() => {
+              setHover(false);
+            }}
             style={{ background: btnPressed || hover ? colors.hoverColor : "", borderColor: colors.borderColor }}
             type="button"
           >
@@ -107,11 +113,13 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
           <div className="line" style={{ background: colors.borderColor }} />
           {props.user?.fullName}
           <CommonButton onClick={handleLogout} noBackground>
-            {!props.user?.icon ? "Logout" :
+            {!props.user?.icon ? (
+              "Logout"
+            ) : (
               <div className="icon-container">
                 <Image alt="User Image" height={40} src={props.user.icon} width={40} />
               </div>
-            }
+            )}
           </CommonButton>
         </div>
       </div>

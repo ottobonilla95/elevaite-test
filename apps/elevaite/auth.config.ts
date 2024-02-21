@@ -1,6 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 
 export const authConfig = {
+  session: { strategy: "jwt", maxAge: 3600 },
   callbacks: {
     authorized({ auth, request: { nextUrl: _nextUrl } }) {
       if (process.env.NODE_ENV === "development") return true;

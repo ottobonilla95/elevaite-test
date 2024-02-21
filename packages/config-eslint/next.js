@@ -42,7 +42,7 @@ module.exports = {
   // add rules configurations here
   rules: {
     "import/no-default-export": "off",
-    "react/jsx-sort-props": [-1, {}],
+    "react/jsx-sort-props": [0, {}],
     "unicorn/filename-case": [
       "error",
       {

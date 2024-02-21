@@ -1,19 +1,23 @@
 "use server";
 import { redirect } from "next/navigation";
-import { isCreateInstanceResponse, isGetApplicationListReponse, isGetApplicationPipelinesResponse, isGetApplicationResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceResponse } from "./discriminators";
+import {
+  isCreateInstanceResponse,
+  isGetApplicationListReponse,
+  isGetApplicationPipelinesResponse,
+  isGetApplicationResponse,
+  isGetInstanceChartDataResponse,
+  isGetInstanceListResponse,
+  isGetInstanceResponse,
+} from "./discriminators";
 import type { AppInstanceObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "./interfaces";
-
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 const APP_REVALIDATION_TIME = 3600; // one hour
 const INSTANCE_REVALIDATION_TIME = 60; // one minute
 
-
-
 export async function logOut(): Promise<void> {
-  redirect(`${process.env.NEXTAUTH_URL}/api/signout`);
+  redirect(`${process.env.NEXTAUTH_URL_INTERNAL}/api/signout`);
 }
-
 
 export async function getApplicationList(): Promise<ApplicationObject[]> {
   const url = new URL(`${BACKEND_URL}/application`);
@@ -25,8 +29,7 @@ export async function getApplicationList(): Promise<ApplicationObject[]> {
   throw new Error("Invalid data type");
 }
 
-
-export async function getApplicationById(id: string): Promise<ApplicationObject|undefined> {
+export async function getApplicationById(id: string): Promise<ApplicationObject | undefined> {
   const url = new URL(`${BACKEND_URL}/application/${id}`);
   const response = await fetch(url, { next: { revalidate: APP_REVALIDATION_TIME } });
 
@@ -35,7 +38,6 @@ export async function getApplicationById(id: string): Promise<ApplicationObject|
   if (isGetApplicationResponse(data)) return data;
   throw new Error("Invalid data type");
 }
-
 
 export async function getApplicationInstanceList(id: string): Promise<AppInstanceObject[]> {
   const url = new URL(`${BACKEND_URL}/application/${id}/instance`);
@@ -47,7 +49,6 @@ export async function getApplicationInstanceList(id: string): Promise<AppInstanc
   throw new Error("Invalid data type");
 }
 
-
 export async function getApplicationInstanceById(appId: string, instanceId: string): Promise<AppInstanceObject> {
   const url = new URL(`${BACKEND_URL}/application/${appId}/instance/${instanceId}`);
   const response = await fetch(url, { next: { revalidate: INSTANCE_REVALIDATION_TIME } });
@@ -57,7 +58,6 @@ export async function getApplicationInstanceById(appId: string, instanceId: stri
   if (isGetInstanceResponse(data)) return data;
   throw new Error("Invalid data type");
 }
-
 
 export async function getApplicationPipelines(id: string): Promise<PipelineObject[]> {
   const url = new URL(`${BACKEND_URL}/application/${id}/pipelines`);
@@ -70,7 +70,6 @@ export async function getApplicationPipelines(id: string): Promise<PipelineObjec
   throw new Error("Invalid data type");
 }
 
-
 export async function getInstanceChartData(appId: string, instanceId: string): Promise<ChartDataObject> {
   const url = new URL(`${BACKEND_URL}/application/${appId}/instance/${instanceId}/chart`);
   const response = await fetch(url, { next: { revalidate: INSTANCE_REVALIDATION_TIME } });
@@ -81,8 +80,7 @@ export async function getInstanceChartData(appId: string, instanceId: string): P
   throw new Error("Invalid data type");
 }
 
-
-export async function createApplicationInstance(id: string, dto: Initializers) { 
+export async function createApplicationInstance(id: string, dto: Initializers) {
   const headers = new Headers();
   headers.append("Content-Type", "application/json");
   const response = await fetch(`${BACKEND_URL}/application/${id}/instance/`, {
@@ -95,5 +93,3 @@ export async function createApplicationInstance(id: string, dto: Initializers) {
   if (isCreateInstanceResponse(data)) return data;
   throw new Error("Invalid data type");
 }
-
-
