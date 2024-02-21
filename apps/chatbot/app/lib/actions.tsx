@@ -14,6 +14,7 @@ export async function logOut(): Promise<void> {
 }
 
 
+// eslint-disable-next-line @typescript-eslint/require-await -- Server actions must be async functions
 export async function getAgentEventSource(userId: string, sessionId: string): Promise<EventSource> {
     return new EventSource(`${BACKEND_URL}currentStatus?uid=${userId}&sid=${sessionId}`);
 }
@@ -21,6 +22,7 @@ export async function getAgentEventSource(userId: string, sessionId: string): Pr
 
 export async function getStreamingResponse(userId: string, messageText: string, sessionId: string, chatbotV: ChatbotV, chatbotGenAi: ChatBotGenAI) {
     const url = new URL(`${BACKEND_URL}${chatbotV}?query=${messageText}&uid=${userId}&sid=${sessionId}&collection=${chatbotGenAi}`);
+    console.log("Url:", url);
     const response = await fetch(url);
     if (!response.ok) throw new Error("Failed to fetch");
     const data: unknown = await response.json();

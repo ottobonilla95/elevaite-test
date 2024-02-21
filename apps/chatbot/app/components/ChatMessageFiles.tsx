@@ -1,5 +1,5 @@
 import { ChatbotIcons, CommonButton } from "@repo/ui/components";
-import { ChatMessageFileObject } from "../lib/interfaces";
+import type { ChatMessageFileObject } from "../lib/interfaces";
 import "./ChatMessageFiles.scss";
 
 

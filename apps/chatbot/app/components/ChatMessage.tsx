@@ -3,10 +3,10 @@ import { ChatbotIcons, ClickOutsideDetector, CommonButton } from "@repo/ui/compo
 import { getInitials } from "@repo/ui/helpers";
 import dayjs from "dayjs";
 import { useRef, useState } from "react";
-import { ChatMessageObject } from "../lib/interfaces";
+import type { ChatMessageObject } from "../lib/interfaces";
 import "./ChatMessage.scss";
-import { ChatMessageFiles } from "./ChatMessageFiles";
 import { ChatMessageFeedback } from "./ChatMessageFeedback";
+import { ChatMessageFiles } from "./ChatMessageFiles";
 
 
 
@@ -69,13 +69,13 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
                         <div className="voting-buttons">
                             <CommonButton
                                 className={props.vote === 1 ? "active" : ""}
-                                onClick={() => handleVote(1)}>
+                                onClick={() => { handleVote(1); }}>
                                 <ChatbotIcons.SVGThumbs type="up" />
                                 {props.vote === 1 ? "Upvoted" : ""}
                             </CommonButton>
                             <CommonButton
                                 className={props.vote === -1 ? "active" : ""}
-                                onClick={() => handleVote(-1)}>
+                                onClick={() => { handleVote(-1); }}>
                                 <ChatbotIcons.SVGThumbs type="down" />
                                 {props.vote === -1 ? "Downvoted" : ""}
                             </CommonButton>
@@ -96,7 +96,7 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
                                 <ChatbotIcons.SVGDocument />
                                 Relevant Files
                             </CommonButton>
-                            <ClickOutsideDetector onOutsideClick={() => setIsFilesOpen(false)} ignoredRefs={[filesButtonRef]} >
+                            <ClickOutsideDetector onOutsideClick={() => { setIsFilesOpen(false); }} ignoredRefs={[filesButtonRef]} >
                                 <div className={["files-dropdown-container", isFilesOpen ? "open" : undefined].filter(Boolean).join(" ")}>
                                     <div className="files-dropdown-accordion">
                                         <ChatMessageFiles files={props.files} />

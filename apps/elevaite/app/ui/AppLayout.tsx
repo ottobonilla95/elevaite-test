@@ -1,5 +1,6 @@
 "use client";
-import { NavBar, Sidebar, SidebarIconObject } from "@repo/ui/components";
+import type { SidebarIconObject } from "@repo/ui/components";
+import { NavBar, Sidebar } from "@repo/ui/components";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { logOut } from "../lib/actions";

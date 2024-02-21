@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
-import { AppInstanceObject, AppInstanceStatus, ChartDataObject, PipelineStatus } from "./interfaces";
+import type { AppInstanceObject } from "./interfaces";
+import { AppInstanceStatus, PipelineStatus } from "./interfaces";
 
 
 

@@ -1,5 +1,6 @@
 import { Logos } from "@repo/ui/components";
-import { AppInstanceFieldTypes, AppInstanceFormStructure, S3PreprocessFormDTO } from "./interfaces";
+import type { AppInstanceFormStructure, S3PreprocessFormDTO } from "./interfaces";
+import { AppInstanceFieldTypes } from "./interfaces";
 
 
 

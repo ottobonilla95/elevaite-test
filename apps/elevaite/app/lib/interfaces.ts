@@ -1,7 +1,7 @@
 
 // Remember to change the discriminators if you change an interface!
 
-import { CommonInputProps, CommonCheckboxProps } from "@repo/ui/components";
+import type { CommonInputProps, CommonCheckboxProps } from "@repo/ui/components";
 
 
 // ENUMS
@@ -113,12 +113,12 @@ export type AppInstanceFieldStructure =
     }
 
 
-export type AppInstanceFormStructure<InitializerType> = {
+export interface AppInstanceFormStructure<InitializerType> {
     title: string;
     icon: JSX.Element;
     initializer: InitializerType;
     fields: AppInstanceFieldStructure[];
-};
+}
 
 
 

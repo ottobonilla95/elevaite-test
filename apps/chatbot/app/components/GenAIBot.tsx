@@ -1,24 +1,25 @@
-import { CommonSelect, CommonSelectOption } from "@repo/ui/components";
+import type { CommonSelectOption } from "@repo/ui/components";
+import { CommonSelect } from "@repo/ui/components";
 import { useContext } from "react";
 import { ChatBotGenAI, defaultGenAIBotOption } from "../lib/interfaces";
 import { ChatContext } from "../ui/contexts/ChatContext";
-import "./GenAIBot.scss";
+import "./GenAiBot.scss";
 
 
 const genAIBotOptions: CommonSelectOption[] = [
-    { value: ChatBotGenAI.NETGEAR, label: "Network Devices Provider", selectedLabel: "Network" },
-    { value: ChatBotGenAI.NETSKOPE, label: "Edge Security Provider", selectedLabel: "Edge" },
-    { value: ChatBotGenAI.PAN, label: "Hardware Firewall Provider", selectedLabel: "Firewall" },
-    { value: ChatBotGenAI.CISCO, label: "Collaboration Provider", selectedLabel: "Collab" },
-    { value: ChatBotGenAI.CISCO_CLO, label: "CLO" },
-    { value: ChatBotGenAI.ARLO, label: "Arlo" },
+    { value: ChatBotGenAI.Netgear, label: "Network Devices Provider", selectedLabel: "Network" },
+    { value: ChatBotGenAI.Netskope, label: "Edge Security Provider", selectedLabel: "Edge" },
+    { value: ChatBotGenAI.Pan, label: "Hardware Firewall Provider", selectedLabel: "Firewall" },
+    { value: ChatBotGenAI.Cisco, label: "Collaboration Provider", selectedLabel: "Collab" },
+    { value: ChatBotGenAI.CiscoClo, label: "CLO" },
+    { value: ChatBotGenAI.Arlo, label: "Arlo" },
     // { value: ChatBotGenAI.JUNIPER, label: "" },
 ];
 
 
 
 
-export function GenAIBot(): JSX.Element {
+export function GenAiBot(): JSX.Element {
     const chatContext = useContext(ChatContext);
 
 
@@ -33,7 +34,7 @@ export function GenAIBot(): JSX.Element {
             <CommonSelect
                 options={genAIBotOptions}
                 onSelectedValueChange={handleBotChange}
-                anchor={"right"}
+                anchor="right"
                 defaultValue={defaultGenAIBotOption}
             />
         </div>

@@ -4,23 +4,23 @@
 
 
 export enum ChatbotV {
-    IN_WARRANTY = "in-warranty",
-    OUT_OF_WARRANTY = "out-of-warranty",
-    AGENT_ASSIST = "agent-assist",
-    UPSELL = "upsell",
+    InWarranty = "in-warranty",
+    OutOfWarranty = "out-of-warranty",
+    AgentAssist = "agent-assist",
+    Upsell = "upsell",
 }
-export const defaultChatbotV = ChatbotV.IN_WARRANTY;
+export const defaultChatbotV = ChatbotV.InWarranty;
 
 export enum ChatBotGenAI {
-    NETGEAR = "netgear",
-    NETSKOPE = "netskope",
-    PAN = "pan",
-    CISCO = "cisco",
-    CISCO_CLO = "cisco_clo",
-    ARLO = "arlo",
-    JUNIPER = "juniper_vsrx",
+    Netgear = "netgear",
+    Netskope = "netskope",
+    Pan = "pan",
+    Cisco = "cisco",
+    CiscoClo = "cisco_clo",
+    Arlo = "arlo",
+    Juniper = "juniper_vsrx",
 }
-export const defaultGenAIBotOption = ChatBotGenAI.CISCO_CLO;
+export const defaultGenAIBotOption = ChatBotGenAI.CiscoClo;
 
 
 export interface SessionObject {

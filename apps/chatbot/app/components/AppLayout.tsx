@@ -1,9 +1,10 @@
 "use client";
 import { NavBar } from "@repo/ui/components";
-import "./AppLayout.scss";
-import { ReactNode, useState } from "react";
 import { useSession } from "next-auth/react";
+import type { ReactNode } from "react";
+import { useState } from "react";
 import { logOut } from "../lib/actions";
+import "./AppLayout.scss";
 import { SessionBar } from "./SessionBar";
 
 

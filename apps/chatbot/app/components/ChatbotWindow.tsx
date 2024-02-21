@@ -1,9 +1,9 @@
 "use client";
+import { LoadingBar } from "@repo/ui/components";
 import { useContext, useEffect, useRef } from "react";
 import { ChatContext } from "../ui/contexts/ChatContext";
 import { ChatMessage } from "./ChatMessage";
 import "./ChatbotWindow.scss";
-import { LoadingBar } from "@repo/ui/components";
 
 
 
@@ -13,7 +13,7 @@ export function ChatbotWindow(): JSX.Element {
 
 
     useEffect(() => {
-        if (chatContext.selectedSession?.messages.length && chatContext.selectedSession?.messages.length > 0) {
+        if (chatContext.selectedSession?.messages.length && chatContext.selectedSession.messages.length > 0) {
             scrollToLastMessage();
         }
     }, [chatContext.selectedSession?.messages.length]);

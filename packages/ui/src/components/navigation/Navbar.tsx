@@ -31,9 +31,9 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
     setBreadcrumbItems(pathToBreadcrumbs(pathname));
   }, [pathname, props.breadcrumbLabels]);
 
-  useEffect(() => {
-    console.log(props.user);
-  }, [props.user]);
+  // useEffect(() => {
+  //   console.log(props.user);
+  // }, [props.user]);
 
   function handleLogout(): void {
     props.logOut();

@@ -1,10 +1,11 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
-import { ChatBotGenAI, ChatMessageObject, ChatbotV, SessionObject, defaultChatbotV, defaultGenAIBotOption, defaultSession } from "../../lib/interfaces";
 import { useSession } from "next-auth/react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { getAgentEventSource, getStreamingResponse } from "../../lib/actions";
-import { getLoadingMessageFromAgentStatus } from "./ChatContextHelpers";
+import type { ChatMessageObject, ChatbotV, SessionObject } from "../../lib/interfaces";
+import { ChatBotGenAI, defaultChatbotV, defaultGenAIBotOption, defaultSession } from "../../lib/interfaces";
 import { getTestMessagesList } from "../../lib/testData";
+import { getLoadingMessageFromAgentStatus } from "./ChatContextHelpers";
 
 
 const SESSION_ID_PREFIX = "sessionId_";
@@ -28,14 +29,14 @@ export interface ChatContextStructure {
 
 export const ChatContext = createContext<ChatContextStructure>({
     sessions: [],
-    addNewSession: () => {},
-    clearAllSessions: () => {},
+    addNewSession: () => {/**/},
+    clearAllSessions: () => {/**/},
     selectedSession: undefined,
-    setSelectedSession: () => {},
-    setSelectedGenAIBot: () => {},
+    setSelectedSession: () => {/**/},
+    setSelectedGenAIBot: () => {/**/},
     isChatLoading: false,
     chatLoadingMessage: "",
-    addNewUserMessageToCurrentSession: () => {},
+    addNewUserMessageToCurrentSession: () => {/**/},
 });
 
 
@@ -62,9 +63,9 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
     const [chatLoadingMessage, setChatLoadingMessage] = useState<string>("");
 
 
-    useEffect(() => {
-        console.log("Session:", session);
-    }, [session]);
+    // useEffect(() => {
+    //     console.log("Session:", session);
+    // }, [session]);
     
     // Initializations
     // useEffect(() => {
@@ -86,13 +87,14 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
 
     function addNewSession(): void {
         // Find highest id
-        const idNumbersList = sessions.map(item => Number(item.id.slice(SESSION_ID_PREFIX.length)));
+        const sessionIdNumbersList = sessions.map(item => Number(item.id.slice(SESSION_ID_PREFIX.length)));
         // New id will be highest +1
-        const newId = SESSION_ID_PREFIX + (Math.max(...idNumbersList) + 1);
+        // const newId = SESSION_ID_PREFIX + (sessionIdNumbersList.length > 0 ? (Math.max(...sessionIdNumbersList) + 1) : 0);
+        const newId = (sessionIdNumbersList.length > 0 ? (Math.max(...sessionIdNumbersList) + 1) : 0).toString();
         // New Session
         const newSession: SessionObject = {
             id: newId,
-            label: "Session " + (sessions.length + 1),
+            label: `Session ${sessions.length + 1}`,
             messages: [],
             creationDate: new Date().toISOString(),
         }
@@ -115,22 +117,22 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
     function addNewUserMessageToCurrentSession(messageText: string): void {
         if (!messageText || ! selectedSession) return;
         // Find highest id of non-bot messages
-        const userIdNumbersList = selectedSession?.messages.filter(item => !item.isBot).map(userItem => Number(userItem.id.slice(USER_MESSAGE_ID_PREFIX.length)));
+        const userIdNumbersList = selectedSession.messages.filter(item => !item.isBot).map(userItem => Number(userItem.id.slice(USER_MESSAGE_ID_PREFIX.length)));
         const newId = USER_MESSAGE_ID_PREFIX + (userIdNumbersList.length > 0 ? (Math.max(...userIdNumbersList) + 1) : 0);
         const newMessage: ChatMessageObject = {
             id: newId,
             date: new Date().toISOString(),
             isBot: false,
-            userName: session?.data?.user?.name ?? "Unknown User",
+            userName: session.data?.user?.name ?? "Unknown User",
             text: messageText,
         }
         updateSessionListWithNewMessage(newMessage);
-        getServerResponse(messageText);
+        void getServerResponse(messageText);
     }
 
 
     function updateSessionListWithNewMessage(message: ChatMessageObject): void {
-        if (!sessions || !selectedSession || !message) return;
+        if (!selectedSession) return;
         const newMessageList = [...selectedSession.messages, message];
         const newSelectedSession = {...selectedSession, messages: newMessageList};
         const newSessions = sessions.map(item => item.id === newSelectedSession.id ? newSelectedSession : item);
@@ -140,52 +142,58 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
 
 
 
-    function getServerResponse(messageText: string): void {
-        const userId = session?.data?.user?.id;
+    async function getServerResponse(messageText: string): Promise<void> {
+        const userId = session.data?.user?.id;
         // console.log("Session:", session, "user id:", userId);
         if (!userId) return;
-        if (selectedGenAIBot === ChatBotGenAI.CISCO_CLO) {
-            handleNonStreamingResponse(userId, messageText);
+        if (selectedGenAIBot === ChatBotGenAI.CiscoClo) {
+            await handleNonStreamingResponse(userId, messageText);
         } else {
-            handleStreamingResponse(userId, messageText);
+            await handleStreamingResponse(userId, messageText);
         }
     }
 
-    function handleAgentStatusChange(event: MessageEvent<any>) {
-        if (event?.data && typeof event.data === "string") {
+    function handleAgentStatusChange(event: MessageEvent): void {
+        if (event.data && typeof event.data === "string") {
             setChatLoadingMessage(getLoadingMessageFromAgentStatus(event.data));
         }
     }
 
+    // THIS IS NOT BEING USED (check the one below)
     async function handleStreamingResponse(userId: string, messageText: string): Promise<void> {
         if (!selectedSession) return;
         setIsChatLoading(true);
-        const agentEvent = await getAgentEventSource(userId, selectedSession.id);
-        agentEvent.onmessage = handleAgentStatusChange;
         try {
+            console.log("UserId:", userId, "sessionId", selectedSession.id, "chatbotV", selectedChatbotV, "chatbotAI", selectedGenAIBot);
+            const agentEvent = await getAgentEventSource(userId, selectedSession.id);
+            agentEvent.onmessage = handleAgentStatusChange;
             const data = await getStreamingResponse(userId, messageText, selectedSession.id, selectedChatbotV, selectedGenAIBot);
             updateSessionListWithNewMessage(formatMessageFromServerResponse(data))
+            agentEvent.close();
         } catch (error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in streaming response:", error);
         } finally {
             setIsChatLoading(false);
-            agentEvent.close();
         }
     }
 
     async function handleNonStreamingResponse(userId: string, messageText: string): Promise<void> {
         if (!selectedSession) return;
         setIsChatLoading(true);
-        const agentEvent = await getAgentEventSource(userId, selectedSession.id);
-        agentEvent.onmessage = handleAgentStatusChange;
         try {
-        const data = await getStreamingResponse(userId, messageText, selectedSession.id, selectedChatbotV, selectedGenAIBot);
-        updateSessionListWithNewMessage(formatMessageFromServerResponse(data))
+            console.log("UserId:", userId, "sessionId", selectedSession.id, "chatbotV", selectedChatbotV, "chatbotAI", selectedGenAIBot);
+            // const agentEvent = await getAgentEventSource(userId, selectedSession.id);
+            const agentEvent = new EventSource(`${process.env.NEXT_PUBLIC_BACKEND_URL}currentStatus?uid=${userId}&sid=${selectedSession.id}`);
+            agentEvent.onmessage = handleAgentStatusChange;
+            const data = await getStreamingResponse(userId, messageText, selectedSession.id, selectedChatbotV, selectedGenAIBot);
+            updateSessionListWithNewMessage(formatMessageFromServerResponse(data))
+            agentEvent.close();
         } catch (error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in non-streaming response:", error);
         } finally {
             setIsChatLoading(false);
-            agentEvent.close();
         }
     }
 

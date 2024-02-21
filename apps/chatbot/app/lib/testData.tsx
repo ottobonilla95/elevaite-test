@@ -1,4 +1,5 @@
-import { ChatMessageFileObject, ChatMessageFileTypes, ChatMessageObject, SessionObject } from "./interfaces";
+import type { ChatMessageFileObject, ChatMessageObject, SessionObject } from "./interfaces";
+import { ChatMessageFileTypes } from "./interfaces";
 
 
 
@@ -9,10 +10,10 @@ import { ChatMessageFileObject, ChatMessageFileTypes, ChatMessageObject, Session
 
 export function getTestSessionsList(amount: number): SessionObject[] {
     const list: SessionObject[] = [];
-    for (var i=0; i<amount; i++) {
+    for (let i=0; i<amount; i++) {
         list.push({
-            id: "id_" + i,
-            label: "Session " + (i+1),
+            id: `id_${i}`,
+            label: `Session ${i+1}`,
             messages: [],
             creationDate: new Date().toISOString(),
         })
@@ -25,9 +26,9 @@ export function getTestSessionsList(amount: number): SessionObject[] {
 
 export function getTestMessagesList(amount: number): ChatMessageObject[] {
     const list: ChatMessageObject[] = [];
-    for (var i=0; i<amount; i++) {
+    for (let i=0; i<amount; i++) {
         list.push({
-            id: "id_" + i,
+            id: `id_${i}`,
             isBot: i % 2 !== 0,
             date: new Date().toISOString(),
             text: LOREM.slice(0, getRandomInRange(200, LOREM.length)),
@@ -42,10 +43,10 @@ export function getTestMessagesList(amount: number): ChatMessageObject[] {
 
 export function getTestMessageFiles(): ChatMessageFileObject[] {
     const files: ChatMessageFileObject[] = [];
-    for (var i=0; i <= getRandomInRange(0, 6); i++) {
+    for (let i=0; i <= getRandomInRange(0, 6); i++) {
         files.push({
-            id: "file_id_" + (i+1),
-            filename: "Test file " + (i+1),
+            id: `file_id_${i+1}`,
+            filename: `Test file ${i+1}`,
             isViewable: getRandomInRange(0, 1) > 0,
             isDownloadable: getRandomInRange(0, 1) > 0,
             fileType: ChatMessageFileTypes.DOC,
@@ -57,7 +58,7 @@ export function getTestMessageFiles(): ChatMessageFileObject[] {
 
 
 
-function getRandomInRange(min: number, max: number) {
+function getRandomInRange(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
 

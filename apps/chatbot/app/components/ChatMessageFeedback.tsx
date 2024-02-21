@@ -1,8 +1,8 @@
 "use client";
-import { useState } from "react";
-import "./ChatMessageFeedback.scss";
 import { ChatbotIcons, CommonButton, SimpleInput } from "@repo/ui/components";
-import { ChatMessageFileObject } from "../lib/interfaces";
+import { useState } from "react";
+import type { ChatMessageFileObject } from "../lib/interfaces";
+import "./ChatMessageFeedback.scss";
 
 
 
@@ -26,7 +26,7 @@ export function ChatMessageFeedback(props: ChatMessageFeedbackProps): JSX.Elemen
     function handleUpload(): void {
         console.log("Uploading?", files);
         setFiles(current => [...current, {
-            id: "testId" + current.length+1,
+            id: `testId${current.length}${1}`,
             filename: `Test_file_${current.length+1}.doc`,
         }]);
     }
@@ -40,7 +40,7 @@ export function ChatMessageFeedback(props: ChatMessageFeedbackProps): JSX.Elemen
     return (
         <div className="chat-message-feedback-container">
 
-            <div className={["feedback-files-container", files && files.length > 0 ? "open" : undefined].filter(Boolean).join(" ")}>
+            <div className={["feedback-files-container", files.length > 0 ? "open" : undefined].filter(Boolean).join(" ")}>
                 <div className="feedback-files-accordion">
                     <div className="feedback-files-contents">
                         {files.map(file => <FeedbackFile key={file.id} {...file} onDelete={handleFileDeletion} />)}
@@ -49,9 +49,9 @@ export function ChatMessageFeedback(props: ChatMessageFeedbackProps): JSX.Elemen
             </div>
             
             <SimpleInput
-                wrapperClassName={["feedback-input-field", files && files.length > 0 ? "open" : undefined].filter(Boolean).join(" ")}
+                wrapperClassName={["feedback-input-field", files.length > 0 ? "open" : undefined].filter(Boolean).join(" ")}
                 value={feedbackText}
-                onChange={(string) => setFeedbackText(string)}
+                onChange={(string) => { setFeedbackText(string); }}
                 onKeyDown={handleKeyDown}
                 placeholder="Add your feedback."
                 rightIcon={
@@ -77,7 +77,7 @@ function FeedbackFile(props: ChatMessageFileObject & { onDelete: (id: string) =>
         <div className="feedback-file-container">
             <ChatbotIcons.SVGDocument/>
             <span title={props.filename}>{props.filename}</span>
-            <CommonButton onClick={() => props.onDelete(props.id)}>
+            <CommonButton onClick={() => { props.onDelete(props.id); }}>
                 <ChatbotIcons.SVGClose/>
             </CommonButton>
         </div>
