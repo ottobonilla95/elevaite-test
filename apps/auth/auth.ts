@@ -21,7 +21,7 @@ if (!fusionTentantId) throw new Error("FUSIONAUTH_TENTANT_ID does not exist in t
 
 const fusionClient = new FusionAuthClient(fusionAuthAPIKey, fusionAuthUrl, fusionTentantId);
 
-export async function fusionLogout(refreshToken: string) {
+export async function fusionLogout(refreshToken: string): Promise<void> {
   try {
     await fusionClient.logout(true, refreshToken);
   } catch (error) {

@@ -11,21 +11,25 @@ const getDomainWithoutSubdomain = (url: string | URL) => {
     .join(".");
 };
 
-const NEXTAUTH_URL = process.env.NEXTAUTH_URL;
-if (!NEXTAUTH_URL) {
-  throw new Error("NEXTAUTH_URL does not exist in the env");
+const NEXTAUTH_URL_INTERNAL = process.env.NEXTAUTH_URL_INTERNAL;
+if (!NEXTAUTH_URL_INTERNAL) {
+  throw new Error("NEXTAUTH_URL_INTERNAL does not exist in the env");
 }
 
-const useSecureCookies = NEXTAUTH_URL.startsWith("https://");
+const useSecureCookies = NEXTAUTH_URL_INTERNAL.startsWith("https://");
 const cookiePrefix = useSecureCookies ? "__Secure-" : "";
-const hostName = getDomainWithoutSubdomain(NEXTAUTH_URL);
+const hostName = getDomainWithoutSubdomain(NEXTAUTH_URL_INTERNAL);
+
+type LaxType = "lax";
+
+const LAX: LaxType = "lax";
 
 const cookies = {
   sessionToken: {
     name: `${cookiePrefix}authjs.session-token`,
     options: {
       httpOnly: true,
-      sameSite: "lax" as const,
+      sameSite: LAX,
       path: "/",
       secure: useSecureCookies,
       domain: hostName === "localhost" ? hostName : `.${hostName}`, // add a . in front so that subdomains are included

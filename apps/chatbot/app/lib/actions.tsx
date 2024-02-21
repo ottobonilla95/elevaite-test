@@ -8,9 +8,9 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 
 
-
+// eslint-disable-next-line @typescript-eslint/require-await -- Server actions must be async functions
 export async function logOut(): Promise<void> {
-    redirect(`${process.env.NEXTAUTH_URL}/api/signout`);
+  redirect(`${process.env.NEXTAUTH_URL_INTERNAL}/api/signout`);
 }
 
 

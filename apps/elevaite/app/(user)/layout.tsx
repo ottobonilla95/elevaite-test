@@ -42,7 +42,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   const session = await auth();
   if (session?.user) {
-    // @ts-expect-error TODO: Look into https://react.dev/reference/react/experimental_taintObjectReference
     // filter out sensitive data before passing to client.
     session.user = {
       name: session.user.name,
@@ -56,11 +55,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={`${inter.className} bg-[${AppDrawerTheme.secondary}] -z-50`}>
         <SessionProvider session={session}>
           <ColorContextProvider theme={AppDrawerTheme}>
-            <AppLayout
-              breadcrumbLabels={breadcrumbLabels}
-              layout="user"
-              sidebarIcons={sidebarIcons}
-            >
+            <AppLayout breadcrumbLabels={breadcrumbLabels} layout="user" sidebarIcons={sidebarIcons}>
               {children}
             </AppLayout>
           </ColorContextProvider>
