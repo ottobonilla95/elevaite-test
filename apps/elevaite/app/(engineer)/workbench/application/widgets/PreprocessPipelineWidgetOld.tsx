@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import { Fragment, useEffect, useState } from "react";
 import type { AppInstanceObject, PipelineStatusItem, PipelineStep, PipelineStepData } from "../../../../lib/interfaces";
 import { PipelineStatus } from "../../../../lib/interfaces";
-import "./PreprocessPipelineWidget.scss";
+import "./PreprocessPipelineWidgetOld.scss";
 
 
 
@@ -18,7 +18,7 @@ interface PreprocessPipelineWidgetProps {
     selectedInstance?: AppInstanceObject;
 }
 
-export function PreprocessPipelineWidget(props: PreprocessPipelineWidgetProps): JSX.Element {
+export function PreprocessPipelineWidgetOld(props: PreprocessPipelineWidgetProps): JSX.Element {
     const [isClosed, setIsClosed] = useState(false);
     const [foundationSteps, setFoundationSteps] = useState<(PipelineStep & PipelineStepData)[][]>([]);
     const [displaySteps, setDisplaySteps] = useState<(PipelineStep & PipelineStepData)[][]>([]);

@@ -1,5 +1,5 @@
 "use client";
-import type { CommonSelectOption} from "@repo/ui/components";
+import type { CommonSelectOption } from "@repo/ui/components";
 import { CommonButton, CommonCheckbox, CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";

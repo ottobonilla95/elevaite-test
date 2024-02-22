@@ -2,33 +2,34 @@
 import { ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { getInstanceChartData } from "../../../../lib/actions";
-import { AppInstanceObject, AppInstanceStatus, ChartDataObject } from "../../../../lib/interfaces";
+import type { AppInstanceObject, ChartDataObject } from "../../../../lib/interfaces";
+import { AppInstanceStatus } from "../../../../lib/interfaces";
 import "./ProgressTrackingWidget.scss";
 
 
 
 enum ProgressBitTypes {
-    docsIngested = "Docs Ingested",
-    averageDocSize = "Avg Doc Size",
-    totalPages = "Total Pages",
-    totalChukns = "Total Chunks",
-    dataLoading = "Data Loading Progress",
+    DocsIngested = "Docs Ingested",
+    AverageDocSize = "Avg Doc Size",
+    TotalPages = "Total Pages",
+    TotalChukns = "Total Chunks",
+    DataLoading = "Data Loading Progress",
 }
 
 const progressBits = [
-    {   label: ProgressBitTypes.docsIngested,
+    {   label: ProgressBitTypes.DocsIngested,
         units: "files",
         value: -1,     },
-    {   label: ProgressBitTypes.averageDocSize,
+    {   label: ProgressBitTypes.AverageDocSize,
         units: "KB",
         value: -1,     },
-    // {   label: ProgressBitTypes.totalPages,
+    // {   label: ProgressBitTypes.TotalPages,
     //     units: "pp.",
     //     value: -1,     },
-    // {   label: ProgressBitTypes.totalChukns,
+    // {   label: ProgressBitTypes.TotalChukns,
     //     units: "chunks",
     //     value: -1,     },
-    {   label: ProgressBitTypes.dataLoading,
+    {   label: ProgressBitTypes.DataLoading,
         units: "Completion",
         value: -1,     },
 ];
@@ -52,15 +53,15 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
 
 
     useEffect(() => {
-        if (!props.instance) return;
         if (props.instance.chartData) setChartData(props.instance.chartData);
         if (props.instance.status === AppInstanceStatus.RUNNING) {
-            fetchChartData();
+            void fetchChartData();
             const interval = setInterval(() => {
-                fetchChartData();
+                void fetchChartData();
             }, 5000);
             return () => {clearInterval(interval)};
-        } else setIsLoading(false);
+        }
+        setIsLoading(false);
     }, [props.instance]);
 
 
@@ -69,24 +70,24 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
         const modifiedBits = structuredClone(displayBits);
 
         // docs ingested
-        const docsIngested = modifiedBits.find(item => item.label === ProgressBitTypes.docsIngested);
-        if (docsIngested) docsIngested.value = chartData?.ingestedItems ?? 0;
+        const docsIngested = modifiedBits.find(item => item.label === ProgressBitTypes.DocsIngested);
+        if (docsIngested) docsIngested.value = chartData.ingestedItems;
         // average doc size
-        const avgSize = modifiedBits.find(item => item.label === ProgressBitTypes.averageDocSize);
-        if (avgSize) avgSize.value = Math.round(chartData && chartData.totalItems > 0 ? (chartData.totalSize / chartData.totalItems / 1024) : 0);
+        const avgSize = modifiedBits.find(item => item.label === ProgressBitTypes.AverageDocSize);
+        if (avgSize) avgSize.value = Math.round(chartData.totalItems > 0 ? (chartData.totalSize / chartData.totalItems / 1024) : 0);
         // progress
-        const loadingProgress = modifiedBits.find(item => item.label === ProgressBitTypes.dataLoading);
-        if (loadingProgress) loadingProgress.value = Math.round(chartData && chartData.totalSize > 0 ? (chartData.ingestedSize / chartData.totalSize * 100) : 0);
+        const loadingProgress = modifiedBits.find(item => item.label === ProgressBitTypes.DataLoading);
+        if (loadingProgress) loadingProgress.value = Math.round(chartData.totalSize > 0 ? (chartData.ingestedSize / chartData.totalSize * 100) : 0);
 
         setDisplayBits(modifiedBits);
     }, [chartData]);
 
 
-    async function fetchChartData() {
-        if (!props.applicationId || !props.instance) return;
+    async function fetchChartData(): Promise<void> {
+        if (!props.applicationId) return;
         try {
             const fetchedData = await getInstanceChartData(props.applicationId, props.instance.id);
-            if (fetchedData) setChartData(fetchedData);
+            setChartData(fetchedData);
         } catch (error) {
             // console.error('Error fetching chart data:', error);
         } finally {            
@@ -120,7 +121,7 @@ function ProgressBit(props: {label: string, units: string, value: number, isLoad
     return (
         <div className={[
             "progress-bit-container",
-            props.label === ProgressBitTypes.dataLoading ? "loading-bar-version" : undefined,
+            props.label as ProgressBitTypes === ProgressBitTypes.DataLoading ? "loading-bar-version" : undefined,
             isDisabled ? "disabled" : undefined,
         ].filter(Boolean).join(" ")}>
             {!props.isLoading ? null :
@@ -129,7 +130,7 @@ function ProgressBit(props: {label: string, units: string, value: number, isLoad
                 </div>
             }
             <div className="bit-label">{props.label}</div>
-            {props.label === ProgressBitTypes.dataLoading ? 
+            {props.label as ProgressBitTypes === ProgressBitTypes.DataLoading ? 
                 <div className="loading-bar-container">
                     <div className="loading-bar-content">
                         <div className="bit-value">{isDisabled ? "--" : props.value}%</div>

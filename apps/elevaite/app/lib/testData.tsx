@@ -15,6 +15,30 @@ import { AppInstanceStatus, PipelineStatus } from "./interfaces";
 
 
 
+export const testPipelineFlow = [
+    {
+        step: "Step 1",
+        label: "Dataset ID URL",
+        status: AppInstanceStatus.COMPLETED,
+    },
+    {
+        step: "Step 2",
+        label: "Extract Elements",
+        status: AppInstanceStatus.COMPLETED,
+    },
+    {
+        step: "Step 3",
+        label: "Chunk Content",
+        status: AppInstanceStatus.RUNNING,
+    },
+    {
+        step: "Step 4",
+        label: "Approve",
+        status: AppInstanceStatus.STARTING,
+    },
+]
+
+
 
 export const TEST_INSTANCES: AppInstanceObject[] = [
     {

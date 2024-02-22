@@ -1,7 +1,8 @@
 import dayjs from "dayjs";
-import "./ConsoleLogWidget.scss";
-import { AppInstanceObject, AppInstanceStatus } from "../../../../lib/interfaces";
 import { useEffect, useState } from "react";
+import type { AppInstanceObject } from "../../../../lib/interfaces";
+import { AppInstanceStatus } from "../../../../lib/interfaces";
+import "./ConsoleLogWidget.scss";
 
 
 const commonLabels = {
@@ -31,7 +32,7 @@ export function ConsoleLogWidget(props: ConsoleLogWidgetProps): JSX.Element {
     }, [props.instance]);
 
 
-    function setStandardLogEntries() {
+    function setStandardLogEntries(): void {
         if (!props.instance) return;
         if (props.instance.startTime) {
             setEntries(current => {
@@ -50,7 +51,7 @@ export function ConsoleLogWidget(props: ConsoleLogWidgetProps): JSX.Element {
                 return [...current, 
                     {
                         date: props.instance.endTime,
-                        description: props.instance!.status === AppInstanceStatus.FAILED ? standardizedMessages.instanceFail : standardizedMessages.instanceComplete,
+                        description: props.instance.status === AppInstanceStatus.FAILED ? standardizedMessages.instanceFail : standardizedMessages.instanceComplete,
                     }
                 ]
             });
