@@ -53,5 +53,6 @@ export const authConfig = {
   },
   providers: [],
   basePath: "/api/auth",
-  trustHost: true
+  trustHost: true,
+  secret: process.env.AUTH_SECRET,
 } satisfies NextAuthConfig;
