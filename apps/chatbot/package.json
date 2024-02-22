@@ -6,12 +6,13 @@
     "dev": "next dev -p 3002",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\chatbot\\Dockerfile\" -t chatbot:latest \".\""
   },
   "dependencies": {
     "@repo/ui": "*",
     "next": "14.1.0",
-    "next-auth": "^5.0.0-beta.4",
+    "next-auth": "5.0.0-beta.4",
     "react": "^18",
     "react-dom": "^18",
     "dayjs": "^1.11.10"

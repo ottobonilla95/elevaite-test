@@ -23,15 +23,17 @@ export function PreprocessPipelineWidget(props: PreprocessPipelineWidgetProps): 
     const [foundationSteps, setFoundationSteps] = useState<(PipelineStep & PipelineStepData)[][]>([]);
     const [displaySteps, setDisplaySteps] = useState<(PipelineStep & PipelineStepData)[][]>([]);
 
-
     useEffect(() => {
         formatSteps();
     }, [props.pipelineSteps, props.initialStep]);
 
     useEffect(() => {
-        setDisplaySteps(props.selectedInstance?.pipelineStepStatuses ? getDisplaySteps(foundationSteps, props.selectedInstance.pipelineStepStatuses) : foundationSteps);
+        setDisplaySteps(
+            props.selectedInstance?.pipelineStepStatuses
+                ? getDisplaySteps(foundationSteps, props.selectedInstance.pipelineStepStatuses)
+                : foundationSteps
+        );
     }, [foundationSteps, props.selectedInstance]);
-
 
     // Arange the received steps into a matrix that can be displayed directly.
     function formatSteps(): void {
@@ -53,9 +55,13 @@ export function PreprocessPipelineWidget(props: PreprocessPipelineWidgetProps): 
     function returnStepsWhichDependOn(steps: PipelineStep[], dependencies: string[]): PipelineStep[] {
         const returningSteps: PipelineStep[] = [];
         for (const step of steps) {
-            if ((dependencies.length === 0 && step.dependsOn.length ===0) || 
-                step.dependsOn.some(id => { return dependencies.includes(id); })
-            ) returningSteps.push(step);
+            if (
+                (dependencies.length === 0 && step.dependsOn.length === 0) ||
+                step.dependsOn.some((id) => {
+                    return dependencies.includes(id);
+                })
+            )
+                returningSteps.push(step);
         }
         return returningSteps;
     }
@@ -69,6 +75,8 @@ export function PreprocessPipelineWidget(props: PreprocessPipelineWidgetProps): 
             let relevantStep: (PipelineStep & PipelineStepData) | undefined;
             for (const stepGroup of stepClone) {
                 for (const step of stepGroup) {
+                    //TODO: @Thanos please check
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- Check
                     if (step.id === status.step) relevantStep = step;
                 }
             }
@@ -81,41 +89,30 @@ export function PreprocessPipelineWidget(props: PreprocessPipelineWidgetProps): 
         return stepClone;
     }
 
-
-
-  
     return (
         <div className="preprocess-pipeline-widget-container">
             <div className="pipeline-header">
                 <span>Preprocess Pipeline</span>
-                <CommonButton 
-                    className={[
-                        "pipeline-accordion-button",
-                        isClosed ? "closed" : undefined,
-                    ].filter(Boolean).join(" ")}
-                    onClick={() => { setIsClosed((currentValue) => !currentValue); }}
+                <CommonButton
+                    className={["pipeline-accordion-button", isClosed ? "closed" : undefined].filter(Boolean).join(" ")}
+                    onClick={() => {
+                        setIsClosed((currentValue) => !currentValue);
+                    }}
                 >
                     <ElevaiteIcons.SVGChevron />
                 </CommonButton>
             </div>
-            <div className={[
-                "pipeline-accordion",
-                isClosed ? "closed" : undefined,
-            ].filter(Boolean).join(" ")}>
+            <div className={["pipeline-accordion", isClosed ? "closed" : undefined].filter(Boolean).join(" ")}>
                 <div className="pipeline-content">
-
-                    <div className="separator"/>
-                    <div className="flow-type-title">
-                        {`Pre-process ${props.flowLabel} Flow`}
-                    </div>
+                    <div className="separator" />
+                    <div className="flow-type-title">{`Pre-process ${props.flowLabel} Flow`}</div>
 
                     <div className="flow-scroller">
                         <div className="flow-content">
-
-                        <div className="flow-start">
-                            <div className="backdrop"/>
-                            <span>Start</span>
-                        </div>
+                            <div className="flow-start">
+                                <div className="backdrop" />
+                                <span>Start</span>
+                            </div>
 
                         {displaySteps.map((stepGroup, index) => 
                         
@@ -136,25 +133,41 @@ export function PreprocessPipelineWidget(props: PreprocessPipelineWidgetProps): 
 
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
     );
 }
 
-
-
-
-function StepBlock(props: (PipelineStep & PipelineStepData) & { stepNumber?: number; }): JSX.Element {
-
+function StepBlock(props: (PipelineStep & PipelineStepData) & { stepNumber?: number }): JSX.Element {
     function getRelevantIcon(status?: PipelineStatus): React.ReactNode {
         switch (status) {
-            case PipelineStatus.IDLE: return <div title="Idle"><ElevaiteIcons.SVGTarget className="step-block-icon starting" size={12}/></div>
-            case PipelineStatus.RUNNING: return <div title="Running"><ElevaiteIcons.SVGInstanceProgress className="step-block-icon ongoing" size={12}/></div>
-            case PipelineStatus.COMPLETED: return <div title="Completed"><ElevaiteIcons.SVGCheckmark className="step-block-icon completed" size={12}/></div>
-            case PipelineStatus.FAILED: return <div title="Failed"><ElevaiteIcons.SVGTarget className="step-block-icon failed" size={12}/></div>
-            default: return null;
+            case PipelineStatus.IDLE:
+                return (
+                    <div title="Idle">
+                        <ElevaiteIcons.SVGTarget className="step-block-icon starting" size={12} />
+                    </div>
+                );
+            case PipelineStatus.RUNNING:
+                return (
+                    <div title="Running">
+                        <ElevaiteIcons.SVGInstanceProgress className="step-block-icon ongoing" size={12} />
+                    </div>
+                );
+            case PipelineStatus.COMPLETED:
+                return (
+                    <div title="Completed">
+                        <ElevaiteIcons.SVGCheckmark className="step-block-icon completed" size={12} />
+                    </div>
+                );
+            case PipelineStatus.FAILED:
+                return (
+                    <div title="Failed">
+                        <ElevaiteIcons.SVGTarget className="step-block-icon failed" size={12} />
+                    </div>
+                );
+            default:
+                return null;
         }
     }
 
@@ -173,18 +186,15 @@ function StepBlock(props: (PipelineStep & PipelineStepData) & { stepNumber?: num
             <div className="step-block-header">
                 {getRelevantIcon(props.status)}
                 <span>{props.stepNumber ? `Step ${props.stepNumber}` : ""}</span>
-                {!props.startTime ? null :
+                {!props.startTime ? null : (
                     <div className="time-info-wrapper">
                         <div className="time-info" title={getTimeTooltip(props.startTime, props.endTime, props.status)}>
-                            <ElevaiteIcons.SVGInfo/>
+                            <ElevaiteIcons.SVGInfo />
                         </div>
                     </div>
-                }
+                )}
             </div>
             <span>{props.title}</span>
         </div>
     );
 }
-
-
-

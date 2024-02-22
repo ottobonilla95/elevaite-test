@@ -10,9 +10,11 @@ export const authConfig = {
     },
     // eslint-disable-next-line @typescript-eslint/require-await -- has to be async according to documentation
     async session({ session, token, user }) {
-      session.user.id = token.sub || user.id;
+      session.user ? (session.user.id = token.sub || user.id) : null;
       return session;
     },
   },
   providers: [], // Add providers with an empty array for now
+  trustHost: true,
+  secret: process.env.AUTH_SECRET,
 } satisfies NextAuthConfig;

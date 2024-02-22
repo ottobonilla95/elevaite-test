@@ -1,8 +1,3 @@
-
-
-
-
-
 export function getInitials(name: string): string {
     var splitName = name.trim().split(/\s+/);
     // If there are three names, remove the middle one
@@ -14,12 +9,10 @@ export function getInitials(name: string): string {
         splitName = splitName.slice(0, 2);
     }
 
-    var initials = [];
+    const initials: string[] = [];
     for (var i = 0; i < splitName.length; i++) {
         initials.push(splitName[i].charAt(0));
     }
 
     return initials.join("");
 }
-
-

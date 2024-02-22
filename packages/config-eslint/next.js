@@ -65,5 +65,6 @@ module.exports = {
         },
       },
     ],
+    "@typescript-eslint/naming-convention": "off"
   },
 };

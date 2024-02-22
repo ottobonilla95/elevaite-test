@@ -6,8 +6,6 @@ import type { AppInstanceObject, ChartDataObject } from "../../../../lib/interfa
 import { AppInstanceStatus } from "../../../../lib/interfaces";
 import "./ProgressTrackingWidget.scss";
 
-
-
 enum ProgressBitTypes {
     DocsIngested = "Docs Ingested",
     AverageDocSize = "Avg Doc Size",
@@ -34,8 +32,6 @@ const progressBits = [
         value: -1,     },
 ];
 
-
-
 interface ProgressTrackingWidgetProps {
     applicationId: string | null;
     instance: AppInstanceObject;
@@ -46,11 +42,9 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
     const [displayBits, setDisplayBits] = useState(progressBits);
     const [isLoading, setIsLoading] = useState(true);
 
-
     useEffect(() => {
         setIsLoading(true);
     }, [props.applicationId, props.instance]);
-
 
     useEffect(() => {
         if (props.instance.chartData) setChartData(props.instance.chartData);
@@ -63,7 +57,6 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
         }
         setIsLoading(false);
     }, [props.instance]);
-
 
     useEffect(() => {
         if (!chartData) return;
@@ -82,7 +75,6 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
         setDisplayBits(modifiedBits);
     }, [chartData]);
 
-
     async function fetchChartData(): Promise<void> {
         if (!props.applicationId) return;
         try {
@@ -90,32 +82,33 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
             setChartData(fetchedData);
         } catch (error) {
             // console.error('Error fetching chart data:', error);
-        } finally {            
+        } finally {
             // Only do this once when initiating. We don't want it to show on subsequent loads.
             setIsLoading(false);
         }
     }
 
-
-
     return (
         <div className="progress-tracking-widget-container">
-            {displayBits.map(bit => 
+            {displayBits.map((bit) => (
                 <ProgressBit
                     key={bit.label}
                     {...bit}
                     isLoading={isLoading}
                     disabled={props.instance.status === AppInstanceStatus.STARTING}
                 />
-            )}
+            ))}
         </div>
     );
 }
 
-
-
-
-function ProgressBit(props: {label: string, units: string, value: number, isLoading?: boolean; disabled?: boolean}): JSX.Element {
+function ProgressBit(props: {
+    label: string;
+    units: string;
+    value: number;
+    isLoading?: boolean;
+    disabled?: boolean;
+}): JSX.Element {
     const isDisabled = props.disabled || props.isLoading || props.value === -1;
 
     return (
