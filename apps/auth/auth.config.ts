@@ -11,8 +11,10 @@ function getDomainWithoutSubdomain(url: string | URL): string {
 
 const NEXTAUTH_URL_INTERNAL = process.env.NEXTAUTH_URL_INTERNAL;
 const ELEVAITE_HOMEPAGE = process.env.ELEVAITE_HOMEPAGE;
-if (!NEXTAUTH_URL_INTERNAL) throw new Error("NEXTAUTH_URL_INTERNAL does not exist in the env");
-if (!ELEVAITE_HOMEPAGE) throw new Error("ELEVAITE_HOMEPAGE does not exist in the env");
+if (!NEXTAUTH_URL_INTERNAL)
+  throw new Error("NEXTAUTH_URL_INTERNAL does not exist in the env");
+if (!ELEVAITE_HOMEPAGE)
+  throw new Error("ELEVAITE_HOMEPAGE does not exist in the env");
 const useSecureCookies = NEXTAUTH_URL_INTERNAL.startsWith("https://");
 const cookiePrefix = useSecureCookies ? "__Secure-" : "";
 const hostName = getDomainWithoutSubdomain(NEXTAUTH_URL_INTERNAL);
@@ -42,17 +44,18 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = Boolean(auth?.user);
-      if (isLoggedIn) return Response.redirect(new URL(ELEVAITE_HOMEPAGE, nextUrl));
+      if (isLoggedIn)
+        return Response.redirect(new URL(ELEVAITE_HOMEPAGE, nextUrl));
       return false; // Redirect unauthenticated users to login page
     },
     // eslint-disable-next-line @typescript-eslint/require-await -- has to be async according to documentation
     async session({ session, token, user }) {
-      session.user.id = token.sub || user.id;
+      session.user ? (session.user.id = token.sub || user.id) : null;
       return session;
     },
   },
   providers: [],
-  basePath: "/api/auth",
+  // basePath: "/api/auth",
   trustHost: true,
   secret: process.env.AUTH_SECRET,
 } satisfies NextAuthConfig;
