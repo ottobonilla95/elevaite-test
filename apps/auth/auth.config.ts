@@ -53,4 +53,5 @@ export const authConfig = {
   },
   providers: [],
   basePath: "/api/auth",
+  trustHost: true
 } satisfies NextAuthConfig;
