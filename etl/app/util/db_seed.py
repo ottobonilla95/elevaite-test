@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from elevaitedb.schemas.application import ApplicationCreate, ApplicationType
 from elevaitedb.crud.application import create_application
 from elevaitedb.schemas.pipeline import Pipeline, PipelineCreate
+from elevaitedb.db import models
 from .mockData import applications_list
 
 
@@ -34,8 +35,17 @@ def seed_db(db: Session):
     res = []
 
     for app in applications_list:
-        _r = create_application(db, app)
-        res.append(_r)
+        _app = (
+            db.query(models.Application).filter(models.Application.id == app.id).first()
+        )
+
+        if _app:
+            db.delete(_app)
+
+        db.add(app)
+        db.commit()
+        db.refresh(app)
+        res.append(app)
 
     # return [res1, res2]
     return res

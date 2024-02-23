@@ -36,7 +36,7 @@ class Instance(Base):
     datasetId = Column(Uuid, ForeignKey("datasets.id"), nullable=True)
     selectedPipelineId = Column(Uuid, ForeignKey("pipelines.id"), nullable=True)
     applicationId = Column(Integer, ForeignKey("applications.id"), nullable=True)
-    projectId = Column(Integer, ForeignKey("projects.id"), nullable=True)
+    projectId = Column(Uuid, ForeignKey("projects.id"), nullable=True)
 
     chartData = relationship("InstanceChartData", back_populates="instance")
     pipelineStepStatuses = relationship(
