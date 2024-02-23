@@ -42,6 +42,19 @@ $profile-backdrop-bot: #585679;
         flex-direction: column;
         gap: 10px;
 
+        
+        & .message {
+            & ul {
+                list-style: disc;
+            }
+
+            & ol {
+                list-style: decimal;
+            }
+
+        }
+
+
 
         & .details-container {
             display: flex;
