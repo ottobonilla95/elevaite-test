@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.db import models
+from elevaitedb.db import models
 
 
 def get_pipelines(db: Session, skip: int = 0, limit: int = 0) -> list[models.Pipeline]:

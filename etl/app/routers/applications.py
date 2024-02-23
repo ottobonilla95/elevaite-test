@@ -11,7 +11,7 @@ from app.util.models import (
 from app.services import applications as service
 from app.util.websockets import ConnectionManager
 from app.routers.deps import get_rabbitmq_connection, get_db
-from app.schemas import (
+from elevaitedb.schemas import (
     application as application_schemas,
     instance as instance_schemas,
     pipeline as pipeline_schemas,
@@ -25,14 +25,15 @@ manager = ConnectionManager()
 def getApplicationList(
     db: Session = Depends(get_db),
 ) -> list[application_schemas.Application]:
-    res = service.getApplicationList(db)
-    pprint(res)
-    return res
+    return service.getApplicationList(db)
 
 
 @router.get("/{application_id}", response_model=application_schemas.Application)
-def getApplicationById(application_id: str) -> application_schemas.Application:
-    return service.getApplicationById(application_id)
+def getApplicationById(
+    application_id: str,
+    db: Session = Depends(get_db),
+) -> application_schemas.Application:
+    return service.getApplicationById(db, application_id)
 
 
 # @router.get("/{application_id}/form")
@@ -43,18 +44,23 @@ def getApplicationById(application_id: str) -> application_schemas.Application:
 @router.get(
     "/{application_id}/instance", response_model=list[instance_schemas.Instance]
 )
-def getApplicationInstances(application_id: str) -> list[instance_schemas.Instance]:
-    return service.getApplicationInstances(application_id)
+def getApplicationInstances(
+    application_id: str,
+    db: Session = Depends(get_db),
+) -> list[instance_schemas.Instance]:
+    return service.getApplicationInstances(db, application_id)
 
 
 @router.get(
     "/{application_id}/instance/{instance_id}", response_model=instance_schemas.Instance
 )
 def getApplicationInstanceById(
-    application_id: str, instance_id: str
+    application_id: str,
+    instance_id: str,
+    db: Session = Depends(get_db),
 ) -> instance_schemas.Instance:
     return service.getApplicationInstanceById(
-        application_id=application_id, instance_id=instance_id
+        db, application_id=application_id, instance_id=instance_id
     )
 
 
@@ -75,10 +81,12 @@ def getApplicationInstanceChart(
     response_model=instance_schemas.Instance,
 )
 def approveApplicationInstance(
-    application_id: str, instance_id: str
+    application_id: str,
+    instance_id: str,
+    db: Session = Depends(get_db),
 ) -> instance_schemas.Instance:
     return service.approveApplicationInstance(
-        application_id=application_id, instance_id=instance_id
+        db, application_id=application_id, instance_id=instance_id
     )
 
 
@@ -89,8 +97,10 @@ def createApplicationInstance(
         S3IngestFormDataDTO | PreProcessFormDTO, Body()
     ],
     rmq: pika.BlockingConnection = Depends(get_rabbitmq_connection),
+    db: Session = Depends(get_db),
 ) -> instance_schemas.Instance:
     return service.createApplicationInstance(
+        db=db,
         application_id=application_id,
         createInstanceDto=createApplicationInstanceDto,
         rmq=rmq,
@@ -111,5 +121,8 @@ def createApplicationInstance(
 
 
 @router.get("/{application_id}/pipelines", response_model=pipeline_schemas.Pipeline)
-def getApplicationPipelines(application_id: str) -> list[pipeline_schemas.Pipeline]:
-    return service.getApplicationPipelines(application_id)
+def getApplicationPipelines(
+    application_id: str,
+    db: Session = Depends(get_db),
+) -> list[pipeline_schemas.Pipeline]:
+    return service.getApplicationPipelines(db, application_id)

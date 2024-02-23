@@ -14,8 +14,8 @@ from unstructured.chunking.title import chunk_by_title
 from dotenv import load_dotenv
 import pika
 
-from preprocess import get_file_elements_internal
-import vectordb
+from .preprocess import get_file_elements_internal
+from . import vectordb
 
 
 class PreProcessForm:
@@ -65,47 +65,19 @@ def wrap_async_func(_data: PreProcessForm):
     asyncio.run(preprocess(_data))
 
 
-def main():
-    load_dotenv()
-    RABBITMQ_USER = os.getenv("RABBITMQ_USER")
-    RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
-    RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
-    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
-    connection = pika.BlockingConnection(
-        pika.ConnectionParameters(
-            host=RABBITMQ_HOST,
-            port=5672,
-            heartbeat=600,
-            blocked_connection_timeout=300,
-            credentials=credentials,
-            virtual_host="elevaite_dev",
-        )
-    )
-    channel = connection.channel()
+def preprocess_callback(ch, method, properties, body):
+    _data = json.loads(body)
 
-    channel.queue_declare(queue="preprocess")
+    print(f" [x] Received {_data}")
 
-    def callback(ch, method, properties, body):
-        _data = json.loads(body)
-
-        print(f" [x] Received {_data}")
-
-        _formData = PreProcessForm(
-            **_data["dto"],
-            instanceId=_data["id"],
-            applicationId=_data["application_id"],
-        )
-
-        t = threading.Thread(target=wrap_async_func, args=(_formData,))
-        t.start()
-
-    channel.basic_consume(
-        queue="preprocess", on_message_callback=callback, auto_ack=True
+    _formData = PreProcessForm(
+        **_data["dto"],
+        instanceId=_data["id"],
+        applicationId=_data["application_id"],
     )
 
-    print("Awaiting Messages")
-
-    channel.start_consuming()
+    t = threading.Thread(target=wrap_async_func, args=(_formData,))
+    t.start()
 
 
 async def preprocess(data: PreProcessForm) -> None:
@@ -347,14 +319,3 @@ async def preprocess(data: PreProcessForm) -> None:
             id=data.applicationId,
             body=json.dumps({"doc": {"instances": instances}}, default=vars),
         )
-
-
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("Interrupted")
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit(0)

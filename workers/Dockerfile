@@ -17,4 +17,4 @@ RUN poetry install && rm -rf $POETRY_CACHE_DIR
 COPY . .
 RUN poetry install && rm -rf $POETRY_CACHE_DIR
 
-CMD ["poetry", "run", "python", "-u", "preprocess_worker.py"]
+CMD ["poetry", "run", "python", "-u", "main.py"]

@@ -1,10 +1,10 @@
 from sqlalchemy.orm import Session
 
-from app.db import models
-from app.schemas import application
+from elevaitedb.db import models
+from elevaitedb.schemas import application
 
 
-def get_applications(db: Session, skip: int = 0, limit: int = 0):
+def get_applications(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Application).offset(skip).limit(limit).all()
 
 

@@ -2,9 +2,9 @@ import uuid
 from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Table, Uuid
 from sqlalchemy.orm import relationship
 
-from app.schemas.instance import InstanceStatus
-from app.schemas.pipeline import PipelineStepStatus
-from app.schemas.application import ApplicationType
+from elevaitedb.schemas.instance import InstanceStatus
+from elevaitedb.schemas.pipeline import PipelineStepStatus
+from elevaitedb.schemas.application import ApplicationType
 from .database import Base
 
 
@@ -33,9 +33,10 @@ class Instance(Base):
     startTime = Column(String, nullable=True)
     endTime = Column(String, nullable=True)
     status = Column(Enum(InstanceStatus))
-    datasetId = Column(Uuid, nullable=True)
+    datasetId = Column(Uuid, ForeignKey("datasets.id"), nullable=True)
     selectedPipelineId = Column(Uuid, ForeignKey("pipelines.id"), nullable=True)
     applicationId = Column(Integer, ForeignKey("applications.id"), nullable=True)
+    projectId = Column(Integer, ForeignKey("projects.id"), nullable=True)
 
     chartData = relationship("InstanceChartData", back_populates="instance")
     pipelineStepStatuses = relationship(

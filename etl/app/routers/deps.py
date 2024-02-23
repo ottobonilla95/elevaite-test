@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 import pika
-from ..db.database import SessionLocal
+from elevaitedb.db.database import SessionLocal
 
 
 def get_db():

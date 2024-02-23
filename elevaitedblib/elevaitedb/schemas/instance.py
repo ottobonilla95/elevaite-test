@@ -3,7 +3,7 @@ from typing import TypeGuard, Union
 
 from pydantic import BaseModel
 
-from app.schemas.pipeline import PipelineStepStatus
+from .pipeline import PipelineStepStatus
 
 
 class InstanceStatus(str, Enum):

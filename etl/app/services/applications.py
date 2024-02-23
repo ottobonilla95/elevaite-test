@@ -11,8 +11,8 @@ from ..util.models import (
     S3IngestFormDataDTO,
 )
 from app.util import func as util_func
-from app.schemas.application import Application, is_application
-from app.schemas.instance import (
+from elevaitedb.schemas.application import Application, is_application
+from elevaitedb.schemas.instance import (
     Instance,
     InstanceChartData,
     InstanceCreate,
@@ -22,10 +22,12 @@ from app.schemas.instance import (
     InstanceUpdate,
     is_instance,
 )
-from app.schemas.pipeline import Pipeline, PipelineStepStatus, is_pipeline
-from app.crud import application as application_crud
-from app.crud import instance as instance_crud
-from app.crud import pipeline as pipeline_crud
+from elevaitedb.schemas.pipeline import Pipeline, PipelineStepStatus, is_pipeline
+from elevaitedb.crud import (
+    pipeline as pipeline_crud,
+    application as application_crud,
+    instance as instance_crud,
+)
 
 
 def getApplicationList(db: Session) -> list[Application]:

@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "elevaitedb"
+version = "0.1.4"
+description = ""
+authors = ["John Zachariadis <johnbelly95@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "~3.11"
+sqlalchemy = "^2.0.27"
+alembic = "^1.13.1"
+psycopg2-binary = "^2.9.9"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,8 +1,8 @@
 import pika
 from sqlalchemy.orm import Session
 
-from app.db import models
-from app.schemas import instance as schema
+from elevaitedb.db import models
+from elevaitedb.schemas import instance as schema
 
 
 def get_instances(db: Session, applicationId: int, skip: int = 0, limit: int = 0):

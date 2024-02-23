@@ -1,15 +1,9 @@
-from .models import (
-    ApplicationFormDTO,
-    ApplicationFormFieldDTO,
-    ApplicationPipelineDTO,
-    ApplicationPipelineStepDTO,
-    ApplicationType,
-    IngestApplication,
-)
+from elevaitedb.schemas.application import Application, ApplicationType
+from elevaitedb.schemas.pipeline import Pipeline, PipelineStep
 
 
-applications_list: list[IngestApplication] = [
-    IngestApplication(
+applications_list: list[Application] = [
+    Application(
         id="1",
         title="S3 Connector",
         creator="elevAIte",
@@ -19,28 +13,28 @@ applications_list: list[IngestApplication] = [
         icon="",
         instances=[],
         pipelines=[],
-        form=ApplicationFormDTO(
-            bottomFields=[
-                ApplicationFormFieldDTO(
-                    fieldInput="alphanumeric",
-                    fieldOrder=1,
-                    fieldType="text",
-                    fieldLabel="url",
-                    required=True,
-                )
-            ],
-            topFields=[
-                ApplicationFormFieldDTO(
-                    fieldInput="alphanumeric",
-                    fieldOrder=1,
-                    fieldType="text",
-                    fieldLabel="url",
-                    required=True,
-                )
-            ],
-        ),
+        # form=ApplicationFormDTO(
+        #     bottomFields=[
+        #         ApplicationFormFieldDTO(
+        #             fieldInput="alphanumeric",
+        #             fieldOrder=1,
+        #             fieldType="text",
+        #             fieldLabel="url",
+        #             required=True,
+        #         )
+        #     ],
+        #     topFields=[
+        #         ApplicationFormFieldDTO(
+        #             fieldInput="alphanumeric",
+        #             fieldOrder=1,
+        #             fieldType="text",
+        #             fieldLabel="url",
+        #             required=True,
+        #         )
+        #     ],
+        # ),
     ),
-    IngestApplication(
+    Application(
         id="2",
         title="Preprocess Pipelines",
         creator="elevAIte",
@@ -50,30 +44,30 @@ applications_list: list[IngestApplication] = [
         icon="",
         instances=[],
         pipelines=[
-            ApplicationPipelineDTO(
+            Pipeline(
                 label="Documents",
                 id="8470d675-6752-4446-8f07-fe7a99949e42",
                 entry="14fc347b-aa19-4a2a-9d9b-3b3a630c9d5c",
                 steps=[
-                    ApplicationPipelineStepDTO(
+                    PipelineStep(
                         title="Start",
                         data=[],
                         dependsOn=[],
                         id="14fc347b-aa19-4a2a-9d9b-3b3a630c9d5c",
                     ),
-                    ApplicationPipelineStepDTO(
+                    PipelineStep(
                         title="Partition Data",
                         data=[],
                         dependsOn=["14fc347b-aa19-4a2a-9d9b-3b3a630c9d5c"],
                         id="647427ef-2654-4585-8aaa-e03c66915c91",
                     ),
-                    ApplicationPipelineStepDTO(
+                    PipelineStep(
                         title="Vectorize Data",
                         data=[],
                         dependsOn=["647427ef-2654-4585-8aaa-e03c66915c91"],
                         id="19feed33-c233-44c4-83ea-8d5dd54e7ec1",
                     ),
-                    ApplicationPipelineStepDTO(
+                    PipelineStep(
                         title="Approve",
                         data=[],
                         dependsOn=["19feed33-c233-44c4-83ea-8d5dd54e7ec1"],
@@ -82,17 +76,17 @@ applications_list: list[IngestApplication] = [
                 ],
             )
         ],
-        form=ApplicationFormDTO(
-            bottomFields=[
-                ApplicationFormFieldDTO(
-                    fieldInput="alphanumeric",
-                    fieldOrder=1,
-                    fieldType="text",
-                    fieldLabel="url",
-                    required=True,
-                )
-            ],
-            topFields=[],
-        ),
+        # form=ApplicationFormDTO(
+        #     bottomFields=[
+        #         ApplicationFormFieldDTO(
+        #             fieldInput="alphanumeric",
+        #             fieldOrder=1,
+        #             fieldType="text",
+        #             fieldLabel="url",
+        #             required=True,
+        #         )
+        #     ],
+        #     topFields=[],
+        # ),
     ),
 ]

@@ -64,45 +64,17 @@ class S3IngestData:
         self.applicationID = applicationID
 
 
-def main():
-    load_dotenv()
-    RABBITMQ_USER = os.getenv("RABBITMQ_USER")
-    RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
-    RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
-    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
-    connection = pika.BlockingConnection(
-        pika.ConnectionParameters(
-            host=RABBITMQ_HOST,
-            port=5672,
-            heartbeat=600,
-            blocked_connection_timeout=300,
-            credentials=credentials,
-            virtual_host="elevaite_dev",
-        )
+def s3_ingest_callback(ch, method, properties, body):
+    _data = json.loads(body)
+
+    print(f" [x] Received {_data}")
+
+    _formData = S3IngestData(
+        **_data["dto"], datasetID=_data["id"], applicationID=_data["application_id"]
     )
-    channel = connection.channel()
-
-    channel.queue_declare(queue="s3_ingest")
-
-    def callback(ch, method, properties, body):
-        _data = json.loads(body)
-
-        print(f" [x] Received {_data}")
-
-        _formData = S3IngestData(
-            **_data["dto"], datasetID=_data["id"], applicationID=_data["application_id"]
-        )
-        t = threading.Thread(target=s3_lakefs_cp_stream, args=(_formData,))
-        # s3_lakefs_cp_stream(formData=_formData)
-        t.start()
-
-    channel.basic_consume(
-        queue="s3_ingest", on_message_callback=callback, auto_ack=True
-    )
-
-    print("Awaiting Messages")
-
-    channel.start_consuming()
+    t = threading.Thread(target=s3_lakefs_cp_stream, args=(_formData,))
+    # s3_lakefs_cp_stream(formData=_formData)
+    t.start()
 
 
 def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
@@ -322,14 +294,3 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
             id=formData.applicationID,
             body=json.dumps({"doc": {"instances": instances}}, default=vars),
         )
-
-
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("Interrupted")
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit(0)

@@ -9,10 +9,10 @@ from app.routers.applications import router as applications_router
 
 from app.util.RedisSingleton import RedisSingleton
 from app.util.ElasticSingleton import ElasticSingleton
-from app.db import models
-from app.db.database import engine
+from elevaitedb.db import models
+from elevaitedb.db.database import engine
 from app.util.db_seed import seed_db
-from app.schemas import application as application_schemas
+from elevaitedb.schemas import application as application_schemas
 from app.routers.deps import get_db
 
 
