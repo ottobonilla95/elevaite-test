@@ -1,4 +1,3 @@
-import pika
 from sqlalchemy.orm import Session
 
 from elevaitedb.db import models
@@ -34,12 +33,25 @@ def create_instance(
         applicationId=createInstanceDTO.applicationId,
         selectedPipelineId=createInstanceDTO.selectedPipelineId,
         status=schema.InstanceStatus.STARTING,
+        startTime=createInstanceDTO.startTime,
         datasetId=createInstanceDTO.datasetId,
     )
     # app.applicationType = createApplicationDTO
     db.add(_instance)
     db.commit()
     db.refresh(_instance)
+
+    _chartData = models.InstanceChartData()
+    # _chartData.instanceId = _instance.id
+    _instance.chartData = _chartData
+
+    db.add(_instance)
+    db.add(_chartData)
+    db.commit()
+    db.refresh(_instance)
+
+    print(_instance)
+
     return _instance
 
 

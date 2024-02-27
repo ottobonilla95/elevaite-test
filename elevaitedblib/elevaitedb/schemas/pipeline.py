@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import TypeGuard
 
-from pydantic import BaseModel
+from pydantic import UUID4, BaseModel
 
 
 class PipelineStepStatus(str, Enum):
@@ -12,7 +12,7 @@ class PipelineStepStatus(str, Enum):
 
 
 class PipelineStepDataBase(BaseModel):
-    stepId: str
+    stepId: UUID4
     title: str
     value: str
 
@@ -36,12 +36,14 @@ class PipelineStepCreate(PipelineStepBase):
 
 
 class PipelineStep(PipelineStepBase):
-    id: str
+    id: UUID4
+    pipelineId: UUID4
 
 
 class PipelineBase(BaseModel):
     steps: list[PipelineStep]
-    entry: str
+    entry: UUID4
+    exit: UUID4
     label: str
 
 
@@ -50,8 +52,11 @@ class PipelineCreate(PipelineBase):
 
 
 class Pipeline(PipelineBase):
-    id: str
+    id: UUID4
+
+    class Config:
+        orm_mode = True
 
 
 def is_pipeline(var: object) -> TypeGuard[Pipeline]:
-    return var is not None and var["id"] is not None
+    return var is not None and var.id is not None

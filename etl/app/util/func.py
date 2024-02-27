@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 
 
 def get_iso_datetime() -> str:

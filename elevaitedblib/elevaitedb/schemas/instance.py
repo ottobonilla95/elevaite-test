@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import TypeGuard, Union
 
-from pydantic import BaseModel
+from pydantic import UUID4, BaseModel
 
 from .pipeline import PipelineStepStatus
 
@@ -20,9 +20,10 @@ class InstanceBase(BaseModel):
     startTime: Union[str, None]
     endTime: Union[str, None]
     status: InstanceStatus
-    datasetId: Union[str, None]
-    selectedPipelineId: Union[str, None]
-    applicationId: Union[str, None]
+    datasetId: Union[UUID4, None]
+    projectId: Union[UUID4, None]
+    selectedPipelineId: Union[UUID4, None]
+    applicationId: Union[int, None]
 
 
 class InstanceChartData(BaseModel):
@@ -33,13 +34,19 @@ class InstanceChartData(BaseModel):
     ingestedSize: int
     ingestedChunks: int
 
+    class Config:
+        orm_mode = True
+
 
 class InstancePipelineStepStatus(BaseModel):
-    instanceId: str
-    stepId: str
+    instanceId: UUID4
+    stepId: UUID4
     status: PipelineStepStatus
     startTime: Union[str, None]
     endTime: Union[str, None]
+
+    class Config:
+        orm_mode = True
 
 
 class InstancePipelineStepStatusUpdate(BaseModel):
@@ -59,10 +66,13 @@ class InstanceUpdate(BaseModel):
 
 
 class Instance(InstanceBase):
-    id: str
+    id: UUID4
     chartData: InstanceChartData
     pipelineStepStatuses: list[InstancePipelineStepStatus]
 
+    class Config:
+        orm_mode = True
+
 
 def is_instance(var: object) -> TypeGuard[Instance]:
-    return var is not None and var["id"]
+    return var is not None and var.id and var.status

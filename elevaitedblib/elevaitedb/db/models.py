@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Table, Uuid
+from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Table, Uuid, JSON
 from sqlalchemy.orm import relationship
 
 from elevaitedb.schemas.instance import InstanceStatus
@@ -38,14 +38,19 @@ class Instance(Base):
     applicationId = Column(Integer, ForeignKey("applications.id"), nullable=True)
     projectId = Column(Uuid, ForeignKey("projects.id"), nullable=True)
 
-    chartData = relationship("InstanceChartData", back_populates="instance")
+    chartData = relationship(
+        "InstanceChartData", back_populates="instance", uselist=False
+    )
     pipelineStepStatuses = relationship(
         "InstancePipelineStepStatus", back_populates="instance"
     )
 
-    application = relationship("Application", back_populates="instances")
-    project = relationship("Project")
-    dataset = relationship("Dataset")
+    application = relationship("Application", back_populates="instances", uselist=False)
+    project = relationship("Project", uselist=False)
+    dataset = relationship("Dataset", uselist=False)
+    configuration = relationship(
+        "Configuration", back_populates="instance", uselist=False
+    )
 
 
 class InstanceChartData(Base):
@@ -146,12 +151,17 @@ class Configuration(Base):
     id = Column(Uuid, primary_key=True, default=uuid.uuid4())
     instanceId = Column(Uuid, ForeignKey("instances.id"), primary_key=True)
     applicationId = Column(Integer, ForeignKey("applications.id"), primary_key=True)
+    raw = Column(JSON)
+
+    instance = relationship("Instance", back_populates="configuration")
+    application = relationship("Application")
 
 
 class Dataset(Base):
     __tablename__ = "datasets"
 
     id = Column(Uuid, primary_key=True, default=uuid.uuid4())
+    name = Column(String)
     projectId = Column(Uuid, ForeignKey("projects.id"))
 
     project = relationship("Project", back_populates="datasets")
@@ -161,5 +171,6 @@ class Project(Base):
     __tablename__ = "projects"
 
     id = Column(Uuid, primary_key=True, default=uuid.uuid4())
+    name = Column(String)
 
     datasets = relationship("Dataset", back_populates="project")

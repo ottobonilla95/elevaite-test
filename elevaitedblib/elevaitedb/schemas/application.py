@@ -29,4 +29,4 @@ class Application(ApplicationBase):
 
 
 def is_application(val: object | None) -> TypeGuard[Application]:
-    return val is not None and val["applicationType"] != None
+    return val is not None and val.applicationType != None

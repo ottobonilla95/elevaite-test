@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 
 import pika
 
-from ..util.RedisSingleton import RedisSingleton
-from ..util.models import (
+from app.util.name_generatior import get_random_name
+from app.util.RedisSingleton import RedisSingleton
+from app.util.models import (
     PreProcessFormDTO,
     S3IngestFormDataDTO,
 )
@@ -23,10 +24,14 @@ from elevaitedb.schemas.instance import (
     is_instance,
 )
 from elevaitedb.schemas.pipeline import Pipeline, PipelineStepStatus, is_pipeline
+from elevaitedb.schemas.configuration import ConfigurationCreate
+from elevaitedb.schemas.dataset import DatasetCreate, is_dataset
 from elevaitedb.crud import (
     pipeline as pipeline_crud,
     application as application_crud,
     instance as instance_crud,
+    configuration as configuration_crud,
+    dataset as dataset_crud,
 )
 
 
@@ -72,28 +77,58 @@ def createApplicationInstance(
 ) -> Instance:
 
     # TODO: This will be changed with the pipeline rework
-    app = application_crud.get_application_by_id(application_id)
+    app = application_crud.get_application_by_id(db, application_id)
 
     if not is_application(app):
         raise HTTPException(status_code=404, detail="Application not found")
 
-    _pipeline = pipeline_crud.get_pipeline_by_id(createInstanceDto.selectedPipelineId)
+    _pipeline = pipeline_crud.get_pipeline_by_id(
+        db, createInstanceDto.selectedPipelineId
+    )
+
+    # _dataset = None
+
+    if not createInstanceDto.datasetId:
+        _dataset = dataset_crud.create_dataset(
+            db,
+            dataset_create=DatasetCreate(
+                name=get_random_name(),
+                projectId=createInstanceDto.projectId,
+            ),
+        )
+    else:
+        _dataset = dataset_crud.get_dataset_by_id(db, createInstanceDto.datasetId)
+
+    if not is_dataset(_dataset):
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    print(_dataset.__dict__)
 
     _instance_create = InstanceCreate(
         applicationId=application_id,
         creator=createInstanceDto.creator,
-        datasetId=createInstanceDto.datasetId,
+        datasetId=_dataset.id,
         startTime=util_func.get_iso_datetime(),
         selectedPipelineId=createInstanceDto.selectedPipelineId,
         name=createInstanceDto.name,
         status=InstanceStatus.STARTING,
     )
 
-    _instance = instance_crud.create_instance(_instance_create)
+    _instance = instance_crud.create_instance(db, _instance_create)
     if not is_instance(_instance):
         raise HTTPException(
             status_code=500, detail="Error inserting instance in database"
         )
+
+    _configuration_create = ConfigurationCreate(
+        instanceId=_instance.id,
+        applicationId=application_id,
+        raw=json.dumps(
+            createInstanceDto, default=lambda o: o.__dict__, sort_keys=True, indent=4
+        ),
+    )
+
+    _configuration = configuration_crud.create_configuration(db, _configuration_create)
 
     if not is_pipeline(_pipeline):
         _instance_update = InstanceUpdate(
@@ -136,11 +171,11 @@ def createApplicationInstance(
             case _:
                 return "default"
 
-    rmq.channel().basic_publish(
-        exchange="",
-        body=json.dumps(_data, default=vars),
-        routing_key=get_routing_key(application_id=application_id),
-    )
+    # rmq.channel().basic_publish(
+    #     exchange="",
+    #     body=json.dumps(_data, default=vars),
+    #     routing_key=get_routing_key(application_id=application_id),
+    # )
     # # Maybe we should do this like this?
     #     return instance_crud.get_instance_by_id(
     #         db, applicationId=application_id, id=_instance.id
