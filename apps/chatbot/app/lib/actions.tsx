@@ -1,7 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
-import { isChatMessageResponse } from "./discriminators";
-import type { ChatBotGenAI, ChatMessageResponse, ChatbotV } from "./interfaces";
+import { isChatMessageResponse, isSessionSummaryResponse } from "./discriminators";
+import type { ChatBotGenAI, ChatMessageResponse, ChatbotV, SessionSummaryObject } from "./interfaces";
 
 
 
@@ -27,5 +27,12 @@ export async function fetchChatbotResponse(userId: string, messageText: string, 
 
 
 
-
+export async function fetchSessionSummary(userId: string, sessionId: string): Promise<SessionSummaryObject> {
+  const url = new URL(`${BACKEND_URL}summarization?uid=${userId}&sid=${sessionId}`);
+  const response = await fetch(url);  
+  if (!response.ok) throw new Error("Failed to fetch");
+  const data: unknown = await response.json();
+  if (isSessionSummaryResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
 

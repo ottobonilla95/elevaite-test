@@ -1,0 +1,38 @@
+
+
+.pipeline-info-status-container {
+    flex-shrink: 0;
+    position: relative;
+    padding: 0 10px;
+    border-radius: 8px;
+
+    & .content {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+
+        & > span {
+            // min-width: 85px;
+            text-align: end;
+        }
+        
+        &.starting { color: var(--ev-colors-secondaryText); }
+        &.running { color: var(--ev-colors-highlight); }
+        &.failed { color: var(--ev-colors-danger); }
+        &.completed { color: var(--ev-colors-success); }
+    }
+
+    & .backdrop {
+        position: absolute;
+        top: 0; bottom: 0; left: 0; right: 0;
+        border-radius: 8px;
+        opacity: 0.1;
+        &.starting { background-color: transparent; }
+        &.running { background-color: var(--ev-colors-highlight); }
+        &.failed { background-color: var(--ev-colors-danger); }
+        &.completed { background-color: var(--ev-colors-success); }
+    }
+}

@@ -21,7 +21,6 @@ export function SessionBar(): JSX.Element {
     }
 
     function handleClearAll(): void {
-        // Warning?
         chatContext.clearAllSessions();
     }
 

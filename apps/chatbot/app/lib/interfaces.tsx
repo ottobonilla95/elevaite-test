@@ -33,6 +33,15 @@ export interface SessionObject {
     label: string;
     messages: ChatMessageObject[];
     creationDate: string;
+    summary?: SessionSummaryObject;
+}
+
+export interface SessionSummaryObject {
+    title: string;
+    problem: string;
+    solution: string;
+    sessionMessageLengthOnLastUpdate?: number;
+    isExpectingDisplay?: boolean;
 }
 
 export const defaultSession: SessionObject = {

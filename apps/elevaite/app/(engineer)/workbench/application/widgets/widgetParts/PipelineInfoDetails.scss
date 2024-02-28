@@ -1,0 +1,27 @@
+
+
+.pipeline-info-details-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    cursor: default;
+
+    & .pipeline-info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+
+        & .label {
+            flex-shrink: 0;
+            color: var(--ev-colors-secondaryText);
+        }
+
+        & .text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+}

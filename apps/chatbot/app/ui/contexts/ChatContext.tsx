@@ -1,8 +1,8 @@
 "use client";
 import { useSession } from "next-auth/react";
 import { createContext, useContext, useEffect, useState } from "react";
-import { fetchChatbotResponse } from "../../lib/actions";
-import type { ChatBotGenAI, ChatMessageObject, ChatMessageResponse, ChatbotV, SessionObject } from "../../lib/interfaces";
+import { fetchChatbotResponse, fetchSessionSummary } from "../../lib/actions";
+import type { ChatBotGenAI, ChatMessageObject, ChatMessageResponse, ChatbotV, SessionObject, SessionSummaryObject } from "../../lib/interfaces";
 import { CHATBOT_MESSAGE_ID_PREFIX, SESSION_ID_PREFIX, USER_MESSAGE_ID_PREFIX, defaultChatbotV, defaultGenAIBotOption, defaultSession } from "../../lib/interfaces";
 import { getLoadingMessageFromAgentStatus } from "./ChatContextHelpers";
 
@@ -14,6 +14,7 @@ import { getLoadingMessageFromAgentStatus } from "./ChatContextHelpers";
 export interface ChatContextStructure {
     sessions: SessionObject[];
     addNewSession: () => void;
+    deleteSessionById: (sessionId: string) => void;
     clearAllSessions: () => void;
     selectedSession: SessionObject | undefined;
     setSelectedSession: (sessionId: string) => void;
@@ -21,11 +22,16 @@ export interface ChatContextStructure {
     isChatLoading: boolean;
     chatLoadingMessage: string;
     addNewUserMessageToCurrentSession: (message: string) => void;
+    updateMessageVote: (messageId: string, passedVote: -1 | 0 | 1) => void;
+    updateMessageFeedback: (messageId: string, passedFeedback: string) => void;
+    getSessionSummary: () => void;
+    removeExpectedDisplayFromSelectedSessionSummary: () => void;
 }
 
 export const ChatContext = createContext<ChatContextStructure>({
     sessions: [],
     addNewSession: () => {/**/},
+    deleteSessionById: () => {/**/},
     clearAllSessions: () => {/**/},
     selectedSession: undefined,
     setSelectedSession: () => {/**/},
@@ -33,6 +39,10 @@ export const ChatContext = createContext<ChatContextStructure>({
     isChatLoading: false,
     chatLoadingMessage: "",
     addNewUserMessageToCurrentSession: () => {/**/},
+    updateMessageVote: () => {/**/},
+    updateMessageFeedback: () => {/**/},
+    getSessionSummary: () => {/**/},
+    removeExpectedDisplayFromSelectedSessionSummary: () => {/**/},
 });
 
 
@@ -54,6 +64,7 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
     const [sessions, setSessions] = useState<SessionObject[]>([defaultSession]);
     const [selectedSession, setSelectedSession] = useState<SessionObject>();
     const [selectedGenAIBot, setSelectedGenAIBot] = useState<ChatBotGenAI>(defaultGenAIBotOption);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- No provisions to change this for now. Leaving it because we will, eventually.
     const [selectedChatbotV, setSelectedChatbotV] = useState<ChatbotV>(defaultChatbotV);
     const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
     const [chatLoadingMessage, setChatLoadingMessage] = useState<string>("");
@@ -65,15 +76,18 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
     // }, [sessions]);
 
     useEffect(() => {
-        if (!selectedSession) return;        
+        if (!selectedSession) return;
         const newSessions = sessions.map(item => item.id === selectedSession.id ? selectedSession : item);
         setSessions(newSessions);
     }, [selectedSession]);
 
-
-
     useEffect(() => {
         // Whenever we add a session or delete all sessions, select the latest one.
+        if (sessions.length === 0) {
+            const newSessions = [defaultSession];
+            setSessions(newSessions);
+            setSelectedSession(newSessions[0]);
+        }
         setSelectedSession(sessions[sessions.length-1]);
     }, [sessions.length]);
 
@@ -85,11 +99,12 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
         // Find highest id
         const sessionIdNumbersList = sessions.map(item => Number(item.id.slice(SESSION_ID_PREFIX.length)));
         // New id will be highest +1
-        const newId = SESSION_ID_PREFIX + (sessionIdNumbersList.length > 0 ? (Math.max(...sessionIdNumbersList) + 1) : 0);
+        const newIdNumber = (sessionIdNumbersList.length > 0 ? (Math.max(...sessionIdNumbersList) + 1) : 0);
+        const newId = SESSION_ID_PREFIX + newIdNumber;
         // New Session
         const newSession: SessionObject = {
             id: newId,
-            label: `Session ${sessions.length + 1}`,
+            label: `Session ${newIdNumber + 1}`,
             messages: [],
             creationDate: new Date().toISOString(),
         }
@@ -97,8 +112,14 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
         setSessions(currentSessions => [...currentSessions, newSession]);
     }
 
+    function deleteSessionById(sessionId: string): void {
+        const foundSession = sessions.find(item => item.id === sessionId);
+        if (!foundSession) return;
+        setSessions(current => current.filter(item => { return item.id !== sessionId; } ));
+    }
+
     function clearAllSessions(): void {
-        setSessions([defaultSession]);
+        setSessions([]);
     }
 
     function setInternallySelectedSession(sessionId: string): void {
@@ -122,7 +143,7 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
             text: messageText,
         }
         const newSession = updateSessionListWithNewMessage(newMessage, selectedSession);
-        void getServerResponse(messageText, newSession);
+        void getServerChatbotResponse(messageText, newSession);
     }
 
 
@@ -133,12 +154,42 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
         return newSelectedSession;
     }
 
+    function updateMessageVote(messageId: string, passedVote: -1 | 0 | 1): void {
+        if (!selectedSession) return;
+        const newMessageList = [...selectedSession.messages].map(item => item.id === messageId ? {...item, vote: passedVote} : item);
+        const newSelectedSession = {...selectedSession, messages: newMessageList};        
+        setSelectedSession(newSelectedSession);
+    }
+
+    function updateMessageFeedback(messageId: string, passedFeedback: string): void {
+        if (!selectedSession) return;
+        const newMessageList = [...selectedSession.messages].map(item => item.id === messageId ? {...item, feedback: passedFeedback} : item);
+        const newSelectedSession = {...selectedSession, messages: newMessageList};        
+        setSelectedSession(newSelectedSession);
+    }
+
+    function updateCurrentSessionWithSummary(summary: SessionSummaryObject, messagesLength?: number): void {
+        if (!selectedSession) return;
+        summary.isExpectingDisplay = true;
+        if (messagesLength) {
+            summary.sessionMessageLengthOnLastUpdate = messagesLength;
+        }
+        setSelectedSession({...selectedSession, summary} );
+    }
+
+    function removeExpectedDisplayFromSelectedSessionSummary(): void {
+        if (!selectedSession) return;
+        const newSummary = selectedSession.summary;
+        if (newSummary) newSummary.isExpectingDisplay = false;
+        setSelectedSession( {...selectedSession, summary: newSummary} );
+    }
 
 
-    async function getServerResponse(messageText: string, passedSession: SessionObject): Promise<void> {
+
+    async function getServerChatbotResponse(messageText: string, passedSession: SessionObject): Promise<void> {
         const userId = session.data?.user?.id;
         if (!userId) return;
-        await handleResponse(userId, messageText, passedSession);
+        await handleServerChatbotResponse(userId, messageText, passedSession);
     }
 
     function handleAgentStatusChange(event: MessageEvent): void {
@@ -147,26 +198,7 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
         }
     }
 
-    // THIS IS NOT BEING USED (check the one below)
-    // async function handleStreamingResponse(userId: string, messageText: string): Promise<void> {
-    //     if (!selectedSession) return;
-    //     setIsChatLoading(true);
-    //     try {
-    //         console.log("UserId:", userId, "sessionId", selectedSession.id, "chatbotV", selectedChatbotV, "chatbotAI", selectedGenAIBot);
-    //         const agentEvent = await getAgentEventSource(userId, selectedSession.id);
-    //         agentEvent.onmessage = handleAgentStatusChange;
-    //         const data = await getStreamingResponse(userId, messageText, selectedSession.id, selectedChatbotV, selectedGenAIBot);
-    //         updateSessionListWithNewMessage(formatMessageFromServerResponse(data))
-    //         agentEvent.close();
-    //     } catch (error) {
-    //         // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
-    //         console.error("Error in streaming response:", error);
-    //     } finally {
-    //         setIsChatLoading(false);
-    //     }
-    // }
-
-    async function handleResponse(userId: string, messageText: string, passedSession: SessionObject): Promise<void> {
+    async function handleServerChatbotResponse(userId: string, messageText: string, passedSession: SessionObject): Promise<void> {
         setIsChatLoading(true);        
         const agentEvent = new EventSource(`${process.env.NEXT_PUBLIC_BACKEND_URL}currentStatus?uid=${userId}&sid=${passedSession.id}`);
         try {
@@ -175,10 +207,35 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
             updateSessionListWithNewMessage(formatMessageFromServerResponse(data), passedSession);
         } catch (error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
-            console.error("Error in non-streaming response:", error);
+            console.error("Error in chatbot response:", error);
         } finally {
             setIsChatLoading(false);
             agentEvent.close();
+        }
+    }
+
+    function getSessionSummary(): void {
+        const userId = session.data?.user?.id;
+        if (!userId || !selectedSession) return;
+        // If we already have the summary and the length of the messages hasn't changed, serve it again.
+        if (selectedSession.summary?.sessionMessageLengthOnLastUpdate &&
+            selectedSession.summary.sessionMessageLengthOnLastUpdate === selectedSession.messages.length) {
+            updateCurrentSessionWithSummary(selectedSession.summary, selectedSession.messages.length);
+            return;
+        }
+        void requestSessionSummary(userId, selectedSession.id, selectedSession.messages.length);
+    }
+
+    async function requestSessionSummary(userId: string, sessionId: string, messagesLength?: number): Promise<void> {
+        setIsChatLoading(true);
+        try {
+            const data = await fetchSessionSummary(userId, sessionId);
+            updateCurrentSessionWithSummary(data, messagesLength);
+        } catch (error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching summary response:", error);
+        } finally {
+            setIsChatLoading(false);
         }
     }
 
@@ -209,6 +266,7 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
             value={ {
                 sessions,
                 addNewSession,
+                deleteSessionById,
                 clearAllSessions,
                 selectedSession,
                 setSelectedSession: setInternallySelectedSession,
@@ -216,6 +274,10 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
                 isChatLoading,
                 chatLoadingMessage,
                 addNewUserMessageToCurrentSession,
+                updateMessageVote,
+                updateMessageFeedback,
+                getSessionSummary,
+                removeExpectedDisplayFromSelectedSessionSummary,
             } }
         >
             {props.children}

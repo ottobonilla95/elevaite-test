@@ -1,3 +1,4 @@
+import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import type { AppInstanceObject } from "../../../../lib/interfaces";
@@ -20,6 +21,7 @@ interface ConsoleLogWidgetProps {
 }
 
 export function ConsoleLogWidget(props: ConsoleLogWidgetProps): JSX.Element {
+    const [isClosed, setIsClosed] = useState(false);
     const [entries, setEntries] = useState<{ date: string; description: string }[]>([]);
 
     useEffect(() => {
@@ -68,12 +70,30 @@ export function ConsoleLogWidget(props: ConsoleLogWidgetProps): JSX.Element {
 
     return (
         <div className="console-log-widget-container">
-            <div className="widget-label">{commonLabels.consoleLog}</div>
-            <div className="log-scroller">
-                <div className="log-contents">
-                    {entries.map((entry) => (
-                        <ConsoleLogEntry {...entry} key={entry.date + entry.description} />
-                    ))}
+            <div className="console-log-header">                
+                <div className="widget-label">{commonLabels.consoleLog}</div>
+                <CommonButton
+                    className={["console-log-accordion-button", isClosed ? "closed" : undefined].filter(Boolean).join(" ")}
+                    onClick={() => {
+                        setIsClosed((currentValue) => !currentValue);
+                    }}
+                >
+                    <ElevaiteIcons.SVGChevron />
+                </CommonButton>
+            </div>
+
+            
+            <div className={["console-log-accordion", isClosed ? "closed" : undefined].filter(Boolean).join(" ")}>
+                <div className="console-log-content">
+                    <div className="separator" />
+
+                    <div className="log-scroller">
+                        <div className="log-contents">
+                            {entries.map((entry) => (
+                                <ConsoleLogEntry {...entry} key={entry.date + entry.description} />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

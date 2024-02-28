@@ -1,0 +1,78 @@
+
+
+.pipeline-diagram-container .diagram-content .pipeline-diagram-step-container.selected {    
+    box-shadow: 0px 0px 10px var(--ev-colors-highlight);
+}
+
+
+
+.pipeline-diagram-step-container {
+    background-color: var(--ev-colors-primary);
+    padding: 10px;
+    border-radius: 8px;
+    width: 300px;
+    min-height: 65px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+
+
+    & .pipeline-diagram-step-header {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        color: var(--ev-colors-secondaryText);
+
+        & .pipeline-diagram-step-icon {
+            &.starting { color: var(--ev-colors-secondaryText) }
+            &.ongoing { color: var(--ev-colors-highlight) }
+            &.completed { color: var(--ev-colors-success) }
+            &.failed { color: var(--ev-colors-danger) }
+        }
+
+        & .time-info-wrapper {
+            flex-grow: 1;
+            display: flex;
+            justify-content: flex-end;
+        }
+    }
+
+    & > span {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ev-colors-secondaryText);
+        &.completed { color: var(--ev-colors-highlight); }
+    }
+
+    & .pipeline-extra-container {
+        align-self: stretch;
+        margin: 10px -10px -10px -10px;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px;
+        border-radius: 0 0 8px 8px;
+        background-color: var(--ev-colors-background);
+        border-top: 1px solid var(--ev-colors-borderColor);
+        color: var(--ev-colors-secondaryText);
+        font-size: 10px;
+        font-weight: 500;
+
+        & > div {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        & .pipeline-extra-label {
+            flex-shrink: 0;
+            font-weight: 400;
+            max-width: 50%;
+        }
+        & .pipeline-extra-text {
+            flex-grow: 1;
+            text-align: end;
+        }
+    }
+}

@@ -1,19 +1,26 @@
 "use client";
 import { ChatbotIcons, CommonButton, SimpleInput } from "@repo/ui/components";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import type { ChatMessageFileObject } from "../lib/interfaces";
+import { ChatContext } from "../ui/contexts/ChatContext";
 import "./ChatMessageFeedback.scss";
+
+
 
 interface ChatMessageFeedbackProps {
     id: string;
+    feedback?: string;
+    onFeedbackSubmit?: () => void;
 }
 
 export function ChatMessageFeedback(props: ChatMessageFeedbackProps): JSX.Element {
-    const [feedbackText, setFeedbackText] = useState("");
+    const chatContext = useContext(ChatContext);
+    const [feedbackText, setFeedbackText] = useState(props.feedback ?? "");
     const [files, setFiles] = useState<ChatMessageFileObject[]>([]);
 
     function handleSubmit(): void {
-        console.log("Feedback:", feedbackText);
+        chatContext.updateMessageFeedback(props.id, feedbackText);
+        if (props.onFeedbackSubmit) props.onFeedbackSubmit();
     }
 
     function handleKeyDown(key: string): void {
@@ -21,7 +28,6 @@ export function ChatMessageFeedback(props: ChatMessageFeedbackProps): JSX.Elemen
     }
 
     function handleUpload(): void {
-        console.log("Uploading?", files);
         setFiles((current) => [
             ...current,
             {

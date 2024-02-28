@@ -1,15 +1,17 @@
 "use client";
 import { LoadingBar } from "@repo/ui/components";
-import { useContext, useEffect, useRef } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { ChatContext } from "../ui/contexts/ChatContext";
 import { ChatMessage } from "./ChatMessage";
 import "./ChatbotWindow.scss";
+import { SessionSummary } from "./SessionSummary";
 
 
 
 export function ChatbotWindow(): JSX.Element {
     const chatContext = useContext(ChatContext);
     const messageListRef = useRef<HTMLDivElement|null>(null);
+    const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
 
     useEffect(() => {
@@ -18,6 +20,12 @@ export function ChatbotWindow(): JSX.Element {
         }
     }, [chatContext.selectedSession?.messages.length]);
 
+    useEffect(() => {
+        if (chatContext.selectedSession?.summary?.isExpectingDisplay) {
+            setIsSummaryOpen(true);
+            chatContext.removeExpectedDisplayFromSelectedSessionSummary();
+        }
+    }, [chatContext.selectedSession?.summary?.isExpectingDisplay]);
 
 
     function scrollToLastMessage(): void {
@@ -25,10 +33,33 @@ export function ChatbotWindow(): JSX.Element {
         messageListRef.current.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
     }
 
+    function handleClose(): void {
+        setIsSummaryOpen(false);
+    }
+
+    function handleDeleteSession(sessionId: string): void {
+        chatContext.deleteSessionById(sessionId);
+        handleClose();
+    }
+
 
 
     return (
         <div className="chatbot-window-container">
+
+            {!chatContext.selectedSession?.summary ? null :
+                <div className={[
+                    "session-summary-wrapper",
+                    isSummaryOpen ? "open" : undefined,
+                ].filter(Boolean).join(" ")}>
+                    <SessionSummary 
+                        sessionId={chatContext.selectedSession.id}
+                        summary={chatContext.selectedSession.summary}
+                        onClose={handleClose}
+                        onDeleteSession={handleDeleteSession}
+                    />
+                </div>
+            }
 
             <div className="chatbot-window-header">
                 <span>{chatContext.selectedSession?.label}</span>

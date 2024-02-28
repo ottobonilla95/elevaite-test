@@ -4,6 +4,7 @@
 .chatbot-window-container {
     flex-grow: 1;
     overflow: hidden;
+    position: relative;
 
     display: flex;
     flex-direction: column;
@@ -58,6 +59,29 @@
         & > span {
             align-self: center;
             color: var(--ev-colors-text);
+        }
+    }
+
+
+
+
+    & .session-summary-wrapper {
+        position: absolute;
+        top: 0; bottom: 0; left: 0; right: 0;
+        z-index: 30;
+
+        margin: 60px 10px 10px 10px;
+        background-color: var(--ev-colors-primary);
+        border: 1px solid var(--ev-colors-borderColor);
+        border-radius: 8px;
+        box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.24);
+
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 200ms ease-in-out;
+        &.open {
+            opacity: 1;
+            pointer-events: all;
         }
     }
 

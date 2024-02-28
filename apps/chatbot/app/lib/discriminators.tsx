@@ -1,4 +1,4 @@
-import type { ChatMessageResponse } from "./interfaces";
+import type { ChatMessageResponse, SessionSummaryObject } from "./interfaces";
 
 
 
@@ -10,6 +10,9 @@ export function isChatMessageResponse(data: unknown): data is ChatMessageRespons
     return isChatMessageResponseObject(data);
 }
 
+export function isSessionSummaryResponse(data: unknown): data is SessionSummaryObject {
+    return isSessionSummaryObject(data);
+}
 
 
 
@@ -30,5 +33,10 @@ function isChatMessageResponseObject(item: unknown): item is ChatMessageResponse
         Array.isArray(item.refs);
 }
 
-
+function isSessionSummaryObject(item: unknown): item is SessionSummaryObject {
+    return isObject(item) &&
+        "title" in item &&
+        "problem" in item &&
+        "solution" in item;
+}
 

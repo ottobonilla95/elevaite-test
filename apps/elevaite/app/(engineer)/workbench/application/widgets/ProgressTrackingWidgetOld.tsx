@@ -4,28 +4,33 @@ import { useEffect, useState } from "react";
 import { getInstanceChartData } from "../../../../lib/actions";
 import type { AppInstanceObject, ChartDataObject } from "../../../../lib/interfaces";
 import { AppInstanceStatus } from "../../../../lib/interfaces";
-import "./ProgressTrackingWidget.scss";
-
+import "./ProgressTrackingWidgetOld.scss";
 
 enum ProgressBitTypes {
-    AverageFileSize = "Avg File Size",
-    TotalFiles = "Total Files",
-    TotalSize = "Total Size",
+    DocsIngested = "Docs Ingested",
+    AverageDocSize = "Avg Doc Size",
+    TotalPages = "Total Pages",
+    TotalChukns = "Total Chunks",
+    DataLoading = "Data Loading Progress",
 }
 
 const progressBits = [
-    {   label: ProgressBitTypes.TotalSize,
-        units: "KB",
-        value: -1,     },
-    {   label: ProgressBitTypes.AverageFileSize,
-        units: "KB",
-        value: -1,     },
-    {   label: ProgressBitTypes.TotalFiles,
+    {   label: ProgressBitTypes.DocsIngested,
         units: "files",
         value: -1,     },
+    {   label: ProgressBitTypes.AverageDocSize,
+        units: "KB",
+        value: -1,     },
+    // {   label: ProgressBitTypes.TotalPages,
+    //     units: "pp.",
+    //     value: -1,     },
+    // {   label: ProgressBitTypes.TotalChukns,
+    //     units: "chunks",
+    //     value: -1,     },
+    {   label: ProgressBitTypes.DataLoading,
+        units: "Completion",
+        value: -1,     },
 ];
-
-
 
 interface ProgressTrackingWidgetProps {
     applicationId: string | null;
@@ -36,7 +41,6 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
     const [chartData, setChartData] = useState<ChartDataObject>();
     const [displayBits, setDisplayBits] = useState(progressBits);
     const [isLoading, setIsLoading] = useState(true);
-
 
     useEffect(() => {
         setIsLoading(true);
@@ -59,20 +63,18 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
         if (!chartData) return;
         const modifiedBits = structuredClone(displayBits);
 
-        // total size
-        const totalSize = modifiedBits.find(item => item.label === ProgressBitTypes.TotalSize);
-        if (totalSize) totalSize.value = Math.round(chartData.totalSize > 0 ? (chartData.totalSize / 1024) : 0);
-        // average file size
-        const avgSize = modifiedBits.find(item => item.label === ProgressBitTypes.AverageFileSize);
+        // docs ingested
+        const docsIngested = modifiedBits.find(item => item.label === ProgressBitTypes.DocsIngested);
+        if (docsIngested) docsIngested.value = chartData.ingestedItems;
+        // average doc size
+        const avgSize = modifiedBits.find(item => item.label === ProgressBitTypes.AverageDocSize);
         if (avgSize) avgSize.value = Math.round(chartData.totalItems > 0 ? (chartData.totalSize / chartData.totalItems / 1024) : 0);
-        // total files
-        const totalFiles = modifiedBits.find(item => item.label === ProgressBitTypes.TotalFiles);
-        if (totalFiles) totalFiles.value = chartData.totalItems;
+        // progress
+        const loadingProgress = modifiedBits.find(item => item.label === ProgressBitTypes.DataLoading);
+        if (loadingProgress) loadingProgress.value = Math.round(chartData.totalSize > 0 ? (chartData.ingestedSize / chartData.totalSize * 100) : 0);
 
         setDisplayBits(modifiedBits);
     }, [chartData]);
-
-
 
     async function fetchChartData(): Promise<void> {
         if (!props.instance || !props.applicationId) return;
@@ -87,14 +89,8 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
         }
     }
 
-
     return (
         <div className="progress-tracking-widget-container">
-            <ProgressBitInfo 
-                name="Iopex Community"
-                uri="test uri"
-                lastIngest="test date"
-            />
             {displayBits.map((bit) => (
                 <ProgressBit
                     key={bit.label}
@@ -106,41 +102,6 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
         </div>
     );
 }
-
-
-
-
-function ProgressBitInfo(props: {
-    name: string;
-    uri: string;
-    lastIngest: string;
-    isSkeleton?: boolean;
-}): JSX.Element {
-
-    return (
-        <div className="progress-bit-info-container">
-            <div className="info-row">
-                <span className="label">Dataset Name:</span>
-                {props.isSkeleton ? <div className="skeleton small"/> :
-                    <div className="text" title={props.name}>{props.name}</div>
-                }
-            </div>
-            <div className="info-row">
-                <span className="label">S3 URI:</span>
-                {props.isSkeleton ? <div className="skeleton large"/> :
-                    <div className="text" title={props.uri}>{props.uri}</div>
-                }
-            </div>
-            <div className={["info-row", props.isSkeleton ? undefined : "extra"].filter(Boolean).join(" ")}>
-                {props.isSkeleton ? <><div/><div className="skeleton dark"/></> :
-                    <span className="text">{props.lastIngest}</span>
-                }
-            </div>
-        </div>
-    );
-}
-
-
 
 function ProgressBit(props: {
     label: string;
@@ -154,18 +115,31 @@ function ProgressBit(props: {
     return (
         <div className={[
             "progress-bit-container",
+            props.label as ProgressBitTypes === ProgressBitTypes.DataLoading ? "progress-bar-version" : undefined,
             isDisabled ? "disabled" : undefined,
         ].filter(Boolean).join(" ")}>
-            {/* {!props.isLoading ? null :
+            {!props.isLoading ? null :
                 <div className="progress-overlay">
                     <ElevaiteIcons.SVGSpinner/>
                 </div>
-            } */}
+            }
             <div className="bit-label">{props.label}</div>
-            <div className="bit-content">
-                <div className="bit-value">{isDisabled ? "--" : props.value}</div>
-                <div className="bit-units">{props.units}</div>
-            </div>
+            {props.label as ProgressBitTypes === ProgressBitTypes.DataLoading ? 
+                <div className="progress-bar-container">
+                    <div className="progress-bar-content">
+                        <div className="bit-value">{isDisabled ? "--" : props.value}%</div>
+                        <div className="bit-units">{props.units}</div>
+                    </div>
+                    <div className="progress-bar">
+                        <div className="fill-bar" style={{width: `${isDisabled ? "0" : props.value}%`}} />
+                    </div>
+                </div>
+            :
+                <div className="bit-content">
+                    <div className="bit-value">{isDisabled ? "--" : props.value}</div>
+                    <div className="bit-units">{props.units}</div>
+                </div>
+            }
         </div>
     );
 }

@@ -1,0 +1,31 @@
+
+
+.pipeline-webhook-container {
+    display: flex;
+    flex-direction: column;
+
+    padding: 5px 10px;
+    background-color: var(--ev-colors-background);
+    border-radius: 8px;
+
+
+    color: var(--ev-colors-secondaryText);
+    font-size: 14px;
+
+    & .link {
+        color: var(--ev-colors-highlight);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    & > a {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+
+        & > svg {
+            flex-shrink: 0;
+        }
+    }
+}

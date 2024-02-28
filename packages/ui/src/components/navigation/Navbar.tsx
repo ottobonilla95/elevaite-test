@@ -117,7 +117,7 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
               "Logout"
             ) : (
               <div className="icon-container">
-                <Image alt="User Image" height={40} src={props.user.icon} width={40} />
+                <Image alt="User Image" height={40} width={40} src={props.user.icon} />
               </div>
             )}
           </CommonButton>

@@ -44,14 +44,15 @@ $profile-backdrop-bot: #585679;
 
         
         & .message {
+            & ol {
+                list-style: decimal;
+                & ul {
+                    margin-left: 1em;
+                }
+            }
             & ul {
                 list-style: disc;
             }
-
-            & ol {
-                list-style: decimal;
-            }
-
         }
 
 
@@ -91,7 +92,7 @@ $profile-backdrop-bot: #585679;
 
                 &.active {
                     background-color: var(--ev-colors-secondary);
-                    color: var(--ev-colors-text);
+                    color: var(--ev-colors-text); 
                     & > svg { color: var(--ev-colors-highlight); }
                 }
             }
@@ -112,8 +113,8 @@ $profile-backdrop-bot: #585679;
 
                 & .files-dropdown-container {
                     position: absolute;
-                    top: 100%;
-                    left: 0;
+                    bottom: 0;
+                    left: 100%;
                     z-index: 50;
                     min-width: 100%;
                     width: max-content;

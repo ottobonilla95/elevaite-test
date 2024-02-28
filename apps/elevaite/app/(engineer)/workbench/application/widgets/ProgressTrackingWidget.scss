@@ -5,26 +5,74 @@
 
 .progress-tracking-widget-container {
     flex-grow: 1;
+    background-color: var(--ev-colors-backgroundHighContrast);
 
-    display: grid;
-    grid-template-columns: repeat(2, 2fr) 3fr;
-    gap: 20px;
+    display: flex;
+    gap: 10px;
+    padding: 5px;
+    border-radius: 8px;
 }
+
+
+
+.progress-bit-info-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 10px;
+
+    background-color: var(--ev-colors-background);
+    border-radius: 8px;
+    font-size: 12px;
+
+    & .info-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+
+        & .label {
+            flex-shrink: 0;
+            color: var(--ev-colors-secondaryText);
+        }
+
+        &.extra {
+            align-self: flex-end;
+            color: var(--ev-colors-secondaryText);
+        }
+
+        & .text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        & .skeleton {
+            position: relative;
+            &.large { flex-grow: 0.6; @include skeleton(); }
+            &.small { flex-grow: 0.5; @include skeleton(); }
+            &.dark { flex-grow: 0.25; @include skeleton($backgroundColor: var(--ev-colors-secondary)); }
+        }
+    }
+}
+
+
+
 
 .progress-bit-container {
     flex-shrink: 0;
-    flex-grow: 1;
-    min-height: 125px;
-    padding: 20px;
+    min-height: 80px;
+    min-width: 80px;
+    padding: 10px;
     border-radius: 8px;
-    background-color: var(--ev-colors-backgroundHighContrast);
+    background-color: var(--ev-colors-background);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    gap: 10px;
+    gap: 5px;
     position: relative;
 
-    & .loading-overlay {
+    & .progress-overlay {
         position: absolute;
         top: 0; bottom: 0; left: 0; right: 0;
         border-radius: 8px;
@@ -36,7 +84,7 @@
         & > svg { @include rotate(); }
     }
 
-    &.loading-bar-version {
+    &.progress-bar-version {
         flex-shrink: 1;
         flex-grow: 1.5;
     }
@@ -45,59 +93,60 @@
         & .bit-value {
             color: var(--ev-colors-secondaryText);
         }
-        & .bit-content .bit-units, & .loading-bar-container .loading-bar-content .bit-units {
+        & .bit-content .bit-units, & .progress-bar-container .progress-bar-content .bit-units {
             color: var(--ev-colors-secondary);
         }
     }
 
 
 
-    & .loading-bar-container {
-        display: flex;
-        align-items: center;
-        gap: 20px;
+    // & .progress-bar-container {
+    //     display: flex;
+    //     align-items: center;
+    //     gap: 20px;
 
-        & .loading-bar-content {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+    //     & .progress-bar-content {
+    //         display: flex;
+    //         flex-direction: column;
+    //         justify-content: center;
+    //         align-items: center;
 
-            & .bit-value {
-                font-size: 16px;
-                font-weight: 600;
-            }
-            & .bit-units {
-                font-size: 12px;
-                font-weight: 400;
-                color: var(--ev-colors-secondaryText);
-            }
-        }
+    //         & .bit-value {
+    //             font-size: 16px;
+    //             font-weight: 600;
+    //         }
+    //         & .bit-units {
+    //             font-size: 12px;
+    //             font-weight: 400;
+    //             color: var(--ev-colors-secondaryText);
+    //         }
+    //     }
 
-        & .loading-bar {
-            flex-grow: 1;
-            position: relative;
-            height: 16px;
-            border-radius: 4px;
-            background-color: var(--ev-colors-primary);
+    //     & .progress-bar {
+    //         flex-grow: 1;
+    //         position: relative;
+    //         height: 16px;
+    //         border-radius: 4px;
+    //         background-color: var(--ev-colors-primary);
 
-            & .fill-bar{
-                position: absolute;
-                top: 0; bottom: 0; left: 0;
-                background-color: var(--ev-colors-highlight);
-                border-radius: 4px;
-            }
-        }
-    }
+    //         & .fill-bar{
+    //             position: absolute;
+    //             top: 0; bottom: 0; left: 0;
+    //             background-color: var(--ev-colors-highlight);
+    //             border-radius: 4px;
+    //         }
+    //     }
+    // }
     
 
 
 
     & .bit-label {
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 500;
         color: var(--ev-colors-secondaryText);
-        text-transform: uppercase;
+        text-align: end;
+        // text-transform: uppercase;
     }
 
     & .bit-content {
@@ -107,13 +156,13 @@
 
         & .bit-value {
             flex-grow: 1;
-            font-size: 32px;
+            font-size: 20px;
             font-weight: 600;
             text-align: end;
         }
         & .bit-units {
             flex-shrink: 0;
-            font-size: 20px;
+            font-size: 14px;
             font-weight: 300;
             color: var(--ev-colors-highlight);
         }

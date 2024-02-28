@@ -6,19 +6,27 @@ import {
 } from "@repo/ui/components";
 import { getInitials } from "@repo/ui/helpers";
 import dayjs from "dayjs";
-import { useRef, useState } from "react";
+import { useRef, useState, useContext } from "react";
 import type { ChatMessageObject } from "../lib/interfaces";
+import { ChatContext } from "../ui/contexts/ChatContext";
 import "./ChatMessage.scss";
 import { ChatMessageFeedback } from "./ChatMessageFeedback";
 import { ChatMessageFiles } from "./ChatMessageFiles";
 
+
+
 export function ChatMessage(props: ChatMessageObject): JSX.Element {
+  const chatContext = useContext(ChatContext);
   const filesButtonRef = useRef<HTMLButtonElement | null>(null);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isFilesOpen, setIsFilesOpen] = useState(false);
 
+
+
   function handleVote(vote: 1 | -1): void {
-    //Handle Vote
+    const newVote = props.vote === vote ? 0 : vote;
+    if (newVote === -1) setIsFeedbackOpen(true);
+    chatContext.updateMessageVote(props.id, newVote);
   }
 
   function toggleFeedback(): void {
@@ -28,6 +36,8 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
   function toggleFiles(): void {
     setIsFilesOpen((current) => !current);
   }
+
+
 
   return (
     <div
@@ -141,7 +151,11 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
               .join(" ")}
           >
             <div className="feedback-accordion">
-              <ChatMessageFeedback id={props.id} />
+              <ChatMessageFeedback
+                id={props.id}
+                feedback={props.feedback}
+                onFeedbackSubmit={() => {setIsFeedbackOpen(false)}}
+              />
             </div>
           </div>
         )}

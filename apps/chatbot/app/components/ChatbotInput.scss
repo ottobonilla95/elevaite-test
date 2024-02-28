@@ -30,6 +30,11 @@
             border-color: var(--ev-colors-highlight);
         }
 
+        & button {            
+            height: 28px;
+            width: 28px;
+        }
+
         & svg {
             color: var(--ev-colors-highlight);
         }

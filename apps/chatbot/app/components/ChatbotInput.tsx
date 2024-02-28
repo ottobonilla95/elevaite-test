@@ -31,7 +31,7 @@ export function ChatbotInput(): JSX.Element {
 
     function handleSummarize(): void {
         if (chatContext.isChatLoading) return;
-        console.log("Handling summarize");
+        chatContext.getSessionSummary();
     }
 
 

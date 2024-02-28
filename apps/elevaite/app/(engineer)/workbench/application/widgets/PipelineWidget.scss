@@ -1,7 +1,7 @@
 
 
 
-.console-log-widget-container {
+.preprocess-pipeline-widget-container {
     flex-grow: 1;
     padding: 5px 20px;
     border-radius: 8px;
@@ -9,21 +9,30 @@
 
     display: flex;
     flex-direction: column;
-
-
-    & .console-log-header {
+    
+    & .pipeline-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 10px;
+        gap: 20px;
 
-        & .widget-label {
-            font-size: 14px;
-            font-weight: 500;
+        & .pipeline-titles {
+            display: flex;
+            flex-direction: column;
+
+            & .main {
+                text-transform: uppercase;
+                font-size: 14px;
+                font-weight: 500;
+            }
+            & .sub {
+                color: var(--ev-colors-highlight);
+                font-size: 14px;
+                font-weight: 500;
+            }
         }
 
-        
-        & .console-log-accordion-button {
+        & .pipeline-accordion-button {
             & > svg {
                 color: var(--ev-colors-borderColor);
                 transition: transform 200ms ease-in-out;
@@ -35,8 +44,7 @@
     }
 
 
-
-    & .console-log-accordion {        
+    & .pipeline-accordion {        
         display: grid;
         grid-template-columns: 1fr;
         grid-template-rows: 1fr;
@@ -44,55 +52,43 @@
         
         &.closed {
             grid-template-rows: 0fr;
-            & .console-log-content {
+            & .pipeline-content {
                 margin-top: 0;
-                min-height: 0;
-                max-height: 0;
             }
         }
     }
 
-    & .console-log-content {
-        min-height: 150px;
-        max-height: 600px;
+    & .pipeline-content {
         overflow: hidden;
-        margin: 0 -19px;
+        margin: 5px -19px 0;
         padding: 0 19px;
         transition: margin 200ms ease-in-out;
         display: flex;
         flex-direction: column;
         gap: 10px;
 
-        transition: min-height 200ms ease-in-out, max-height 200ms ease-in-out;
-        
         & .separator {
+            flex-grow: 1;
             border-top: 1px solid var(--ev-colors-text);
-            margin: 10px -20px;
+            margin: 0 -20px;
         }
 
-        & .log-scroller {
-            overflow: auto;
-            margin-right: -15px;
-            padding: 0 15px;
-            @include scrollbar();
+        & .pipeline-details-container {
+            display: flex;
 
-            & .log-contents {
-                display: flex;
-                flex-direction: column;
-                gap: 5px;
+            & > div {
+                &:first-child {
+                    height: 0;
+                    min-height: 100%;
+                }
+                &:last-child {
+                    min-height: 400px;
+                }
             }
         }
+
     }
 
-}
+    
 
-
-.console-log-container {
-    font-size: 14px;
-    font-weight: 400;
-    & .time {
-        color: var(--ev-colors-secondaryText);
-        margin-right: 10px;
-        font-variant-numeric: tabular-nums;
-    }
 }

@@ -7,7 +7,7 @@ import { ApplicationType } from "../../../lib/interfaces";
 import "./WidgetDocker.scss";
 import { ConsoleLogWidget } from "./widgets/ConsoleLogWidget";
 import MainDetailsWidget from "./widgets/MainDetailsWidget";
-import { PreprocessPipelineWidget } from "./widgets/PreprocessPipelineWidget";
+import { PipelineWidget } from "./widgets/PipelineWidget";
 import { ProgressTrackingWidget } from "./widgets/ProgressTrackingWidget";
 
 
@@ -41,20 +41,32 @@ export default function WidgetDocker(props: WidgetDockerProps): JSX.Element {
 
 
     function getConditionalWidgets(): ReactNode {
-        if (!props.selectedInstance || !props.applicationDetails) return null;
+        if (!props.applicationDetails) return null;
         switch (props.applicationDetails.applicationType) {
 
             case ApplicationType.INGEST: return (
-                <ProgressTrackingWidget
-                    key="progressTracking"
-                    applicationId={props.applicationId}
-                    instance={props.selectedInstance}
-                />
-                );
+                <>
+                    <ProgressTrackingWidget
+                        key="progressTracking"
+                        applicationId={props.applicationId}
+                        instance={props.selectedInstance}
+                    />
+                    <PipelineWidget
+                        key="pipeline"
+                        title="AWS S3 Ingest Runtime Details"
+                        subtitle="Ingest Pipeline"
+                        pipelineSteps={selectedPipelineSteps}
+                        initialStep={initialStep}
+                        selectedInstance={props.selectedInstance}
+                    />
+                </>
+            );
 
             case ApplicationType.PREPROCESS: return (selectedPipelineSteps.length > 0 ?
-                <PreprocessPipelineWidget
-                    key="preprocessPipeline"
+                <PipelineWidget
+                    key="pipeline"
+                    title="Preprocessing Runtime Details"
+                    subtitle="Preprocess Pipeline"
                     flowLabel={props.selectedFlow?.label}
                     pipelineSteps={selectedPipelineSteps}
                     initialStep={initialStep}
