@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class BaseDatasetInformationForm(BaseModel):
     creator: str
     name: str
-    projectId: str | None
+    projectId: str
     version: str | None
     parent: str | None
     outputURI: str | None

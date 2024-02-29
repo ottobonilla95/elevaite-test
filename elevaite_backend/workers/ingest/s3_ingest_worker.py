@@ -1,67 +1,78 @@
-from datetime import datetime
 import json
 import os
-from pprint import pprint
-import sys
 import threading
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
-import pika
 import boto3
 import lakefs
 
 from botocore.client import BaseClient
 from botocore.client import Config as ClientConfig
 from botocore.credentials import RefreshableCredentials
-from botocore.exceptions import ClientError
 from botocore.session import get_session
 import redis
+
+from elevaitedb.db.database import SessionLocal
+from elevaitedb.crud import project as project_crud, instance as instance_crud
+from elevaitedb.util import func as util_func
+from elevaitedb.util.s3url import S3Url
+from elevaitedb.schemas.instance import (
+    InstanceStatus,
+    InstanceUpdate,
+    InstanceChartData,
+)
 
 
 class S3IngestData:
     creator: str
     name: str
-    project: str
+    projectId: str
     version: str | None
     parent: str | None
     outputURI: str | None
+    datasetId: str
+    selectedPipelineId: str
     connectionName: str
     description: str | None
     url: str
     useEC2: bool
     roleARN: str
-    datasetID: str
-    applicationID: str
+    applicationId: str
+    instanceId: str
 
     def __init__(
         self,
         creator: str,
         name: str,
-        project: str,
+        projectId: str,
         version: str | None,
         parent: str | None,
         outputURI: str | None,
+        datasetId: str,
+        selectedPipelineId: str,
         connectionName: str,
         description: str | None,
         url: str,
         useEC2: bool,
         roleARN: str,
-        datasetID: str,
-        applicationID: str,
+        applicationId: str,
+        instanceId: str,
     ) -> None:
         self.creator = creator
         self.name = name
-        self.project = project
+        self.projectId = projectId
         self.version = version
         self.parent = parent
         self.outputURI = outputURI
+        self.datasetId = datasetId
+        self.selectedPipelineId = selectedPipelineId
         self.connectionName = connectionName
         self.description = description
         self.url = url
         self.useEC2 = useEC2
         self.roleARN = roleARN
-        self.datasetID = datasetID
-        self.applicationID = applicationID
+        self.applicationId = applicationId
+        self.instanceId = instanceId
 
 
 def s3_ingest_callback(ch, method, properties, body):
@@ -70,7 +81,9 @@ def s3_ingest_callback(ch, method, properties, body):
     print(f" [x] Received {_data}")
 
     _formData = S3IngestData(
-        **_data["dto"], datasetID=_data["id"], applicationID=_data["application_id"]
+        **_data["dto"],
+        instanceId=_data["id"],
+        applicationId=_data["application_id"],
     )
     t = threading.Thread(target=s3_lakefs_cp_stream, args=(_formData,))
     # s3_lakefs_cp_stream(formData=_formData)
@@ -79,6 +92,7 @@ def s3_ingest_callback(ch, method, properties, body):
 
 def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
     load_dotenv()
+    db = SessionLocal()
     AWS_EXTERNAL_ID = os.getenv("AWS_ASSUME_ROLE_EXTERNAL_ID")
 
     # I haven't gotten this to work, we need to test it on a staging environment
@@ -171,16 +185,21 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
             password=LAKEFS_SECRET_ACCESS_KEY,
         )
 
+        project = project_crud.get_project_by_id(db, formData.projectId)
+        project_name = util_func.to_kebab_case(project.name)
+
         repo = None
 
         for _repo in lakefs.repositories(client=clt):
-            if _repo.id == formData.project:
+            if _repo.id == project_name:
                 repo = _repo
 
         if not repo:
-            repo = lakefs.Repository(formData.project, client=clt).create(
-                storage_namespace=f"s3://{LAKEFS_STORAGE_NAMESPACE}/{formData.project}"
+            repo = lakefs.Repository(project_name, client=clt).create(
+                storage_namespace=f"s3://{LAKEFS_STORAGE_NAMESPACE}/{project_name}"
             )
+
+        lakefs_branch = repo.branch("main")
 
         lakefs_s3 = boto3.client(
             "s3",
@@ -193,23 +212,22 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
         #     formData.url
         # )
 
+        s3url = S3Url(formData.url)
+
         src_bucket = (
             boto3.Session(
                 aws_access_key_id=S3_ACCESS_KEY_ID,
                 aws_secret_access_key=S3_SECRET_ACCESS_KEY,
             )
             .resource("s3")
-            .Bucket(formData.url)
+            .Bucket(s3url.bucket)
         )
-        # lakefs_bucket = boto3.Session(...).resource("s3").Bucket("###")
 
         count = 0
         size = 0
-        for o in src_bucket.objects.all():
+        for o in src_bucket.objects.filter(Prefix=s3url.key):
             count += 1
             size += o.size
-
-        # size = sum(1 for _ in src_bucket.objects.all())
 
         avg_size = 0
 
@@ -227,70 +245,77 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
             "total_size": size,
         }
 
-        r.json().set(formData.datasetID, ".", _data)
+        r.json().set(formData.instanceId, ".", _data)
 
-        resp = client.get(index="application", id=formData.applicationID)
-        instances = resp["_source"]["instances"]
-        for instance in instances:
-            if instance["id"] == formData.datasetID:
-                instance["status"] = "running"
-
-        client.update(
-            index="application",
-            id=formData.applicationID,
-            body=json.dumps({"doc": {"instances": instances}}, default=vars),
+        instance_crud.update_instance(
+            db,
+            formData.applicationId,
+            formData.instanceId,
+            InstanceUpdate(status=InstanceStatus.RUNNING),
         )
 
         # branch = repo.branch("main")
 
-        for summary in src_bucket.objects.all():
+        for summary in src_bucket.objects.filter(Prefix=s3url.key):
             # print(f"Copying {summary.key} with size {summary.size}...")
             # pprint(summary)
             if not summary.key.endswith("/"):
                 s3_object = src_bucket.Object(summary.key).get()
                 stream = s3_object["Body"]
                 lakefs_s3.upload_fileobj(
-                    Fileobj=stream, Bucket=formData.project, Key=f"main/{summary.key}"
+                    Fileobj=stream, Bucket=project_name, Key=f"main/{summary.key}"
                 )
-            r.json().numincrby(formData.datasetID, ".ingested_size", summary.size)
-            r.json().numincrby(formData.datasetID, ".ingested_items", 1)
-            # branch.object(path=f"main/{summary.key}").upload(
-            #     content_type=s3_object["ContentType"], data=stream
-            # )
+            r.json().numincrby(formData.instanceId, ".ingested_size", summary.size)
+            r.json().numincrby(formData.instanceId, ".ingested_items", 1)
 
-        res = r.json().get(formData.datasetID)
-        resp = client.get(index="application", id=formData.applicationID)
-        instances = resp["_source"]["instances"]
-        for instance in instances:
-            if instance["id"] == formData.datasetID:
-                instance["status"] = "completed"
-                instance["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
-                instance["chartData"] = {
-                    "totalItems": res["total_items"],
-                    "ingestedItems": res["ingested_items"],
-                    "avgSize": res["avg_size"],
-                    "totalSize": res["total_size"],
-                    "ingestedSize": res["ingested_size"],
-                }
+        res = r.json().get(formData.instanceId)
 
-        client.update(
-            index="application",
-            id=formData.applicationID,
-            body=json.dumps({"doc": {"instances": instances}}, default=vars),
+        instance_crud.update_instance_chart_data(
+            db,
+            formData.instanceId,
+            InstanceChartData(
+                avgSize=res["avg_size"],
+                ingestedChunks=0,
+                totalItems=res["total_items"],
+                ingestedItems=res["ingested_items"],
+                ingestedSize=res["ingested_size"],
+                totalSize=res["total_size"],
+            ),
         )
+        instance_crud.update_instance(
+            db,
+            formData.applicationId,
+            formData.instanceId,
+            InstanceUpdate(
+                status=InstanceStatus.COMPLETED, endTime=util_func.get_iso_datetime()
+            ),
+        )
+
+        if lakefs_branch.uncommitted():
+            lakefs_branch.commit(
+                formData.instanceId,
+                {
+                    "instanceId": formData.instanceId,
+                    "timestamp": util_func.get_iso_datetime(),
+                },
+            )
+
+        # client.update(
+        #     index="application",
+        #     id=formData.applicationID,
+        #     body=json.dumps({"doc": {"instances": instances}}, default=vars),
+        # )
         print("Done importing data")
     except Exception as e:
         print("Error")
         print(e)
-        resp = client.get(index="application", id=formData.applicationID)
-        instances = resp["_source"]["instances"]
-        for instance in instances:
-            if instance["id"] == formData.datasetID:
-                instance["status"] = "failed"
-                instance["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
-
-        client.update(
-            index="application",
-            id=formData.applicationID,
-            body=json.dumps({"doc": {"instances": instances}}, default=vars),
+        instance_crud.update_instance(
+            db,
+            formData.applicationId,
+            formData.instanceId,
+            InstanceUpdate(
+                status=InstanceStatus.FAILED,
+                endTime=util_func.get_iso_datetime(),
+                comment=str(e),
+            ),
         )

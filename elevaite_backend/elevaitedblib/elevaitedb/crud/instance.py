@@ -74,6 +74,23 @@ def update_instance(
     return _instance
 
 
+def update_instance_chart_data(
+    db: Session, instance_id: str, updateChartData: schema.InstanceChartData
+):
+    _chartData = (
+        db.query(models.InstanceChartData)
+        .filter(models.InstanceChartData.instanceId == instance_id)
+        .first()
+    )
+    for var, value in vars(updateChartData).items():
+        setattr(_chartData, var, value) if value else None
+
+    db.add(_chartData)
+    db.commit()
+    db.refresh(_chartData)
+    return _chartData
+
+
 def add_pipeline_step(
     db: Session,
     instance_id: str,

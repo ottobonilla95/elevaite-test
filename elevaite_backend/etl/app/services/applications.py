@@ -24,7 +24,11 @@ from elevaitedb.schemas.instance import (
     is_instance,
 )
 from elevaitedb.schemas.pipeline import Pipeline, PipelineStepStatus, is_pipeline
-from elevaitedb.schemas.configuration import ConfigurationCreate
+from elevaitedb.schemas.configuration import (
+    ConfigurationCreate,
+    Configuration,
+    is_configuration,
+)
 from elevaitedb.schemas.dataset import DatasetCreate, is_dataset
 from elevaitedb.crud import (
     pipeline as pipeline_crud,
@@ -99,10 +103,10 @@ def createApplicationInstance(
     else:
         _dataset = dataset_crud.get_dataset_by_id(db, createInstanceDto.datasetId)
 
+    createInstanceDto.datasetId = str(_dataset.id)
+
     if not is_dataset(_dataset):
         raise HTTPException(status_code=404, detail="Application not found")
-
-    print(_dataset.__dict__)
 
     _instance_create = InstanceCreate(
         applicationId=application_id,
@@ -157,7 +161,7 @@ def createApplicationInstance(
         )
 
     _data = {
-        "id": _instance.id,
+        "id": str(_instance.id),
         "dto": createInstanceDto,
         "application_id": application_id,
     }
@@ -171,11 +175,11 @@ def createApplicationInstance(
             case _:
                 return "default"
 
-    # rmq.channel().basic_publish(
-    #     exchange="",
-    #     body=json.dumps(_data, default=vars),
-    #     routing_key=get_routing_key(application_id=application_id),
-    # )
+    rmq.channel().basic_publish(
+        exchange="",
+        body=json.dumps(_data, default=vars),
+        routing_key=get_routing_key(application_id=application_id),
+    )
     # # Maybe we should do this like this?
     #     return instance_crud.get_instance_by_id(
     #         db, applicationId=application_id, id=_instance.id
@@ -231,3 +235,13 @@ def getApplicationInstanceChart(
             ingestedSize=res["ingested_size"],
             ingestedChunks=res["ingested_chunks"],
         )
+
+
+def getApplicationInstanceConfiguration(
+    db: Session, application_id: int, instance_id: str
+) -> Configuration:
+    res = configuration_crud.get_configuration_by_id(db, application_id, instance_id)
+    if not is_configuration(res):
+        raise HTTPException(404, "Configuration not found")
+
+    return res

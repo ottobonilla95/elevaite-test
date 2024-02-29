@@ -15,6 +15,7 @@ from elevaitedb.schemas import (
     application as application_schemas,
     instance as instance_schemas,
     pipeline as pipeline_schemas,
+    configuration as configuration_schemas,
 )
 
 router = APIRouter(prefix="/application", tags=["applications"])
@@ -73,6 +74,20 @@ def getApplicationInstanceChart(
 ) -> instance_schemas.InstanceChartData:
     return service.getApplicationInstanceChart(
         application_id=application_id, instance_id=instance_id
+    )
+
+
+@router.get(
+    "/{application_id}/instance/{instance_id}/configuration",
+    response_model=configuration_schemas.Configuration,
+)
+def getApplicationInstanceConfiguration(
+    application_id: str,
+    instance_id: str,
+    db: Session = Depends(get_db),
+) -> instance_schemas.InstanceChartData:
+    return service.getApplicationInstanceConfiguration(
+        db=db, application_id=application_id, instance_id=instance_id
     )
 
 

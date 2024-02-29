@@ -4,6 +4,7 @@ from typing import TypeGuard, Union
 from pydantic import UUID4, BaseModel
 
 from .pipeline import PipelineStepStatus
+from .configuration import Configuration
 
 
 class InstanceStatus(str, Enum):
@@ -69,6 +70,7 @@ class Instance(InstanceBase):
     id: UUID4
     chartData: InstanceChartData
     pipelineStepStatuses: list[InstancePipelineStepStatus]
+    configuration: Configuration
 
     class Config:
         orm_mode = True

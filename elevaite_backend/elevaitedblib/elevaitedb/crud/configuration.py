@@ -8,7 +8,7 @@ def get_configuration_by_id(db: Session, application_id: int, instance_id: int):
     return (
         db.query(models.Configuration)
         .filter(models.Configuration.applicationId == application_id)
-        .filter(models.Configuration.id == instance_id)
+        .filter(models.Configuration.instanceId == instance_id)
         .first()
     )
 
