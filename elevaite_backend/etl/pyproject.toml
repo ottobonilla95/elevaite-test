@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "etl"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "~3.11"
+redis = "^5.0.1"
+qdrant-client = "^1.7.0"
+langchain = "^0.1.0"
+fastapi = "^0.109.0"
+uvicorn = "^0.26.0"
+websockets = "^12.0"
+python-multipart = "^0.0.6"
+unstructured = "~0.11.6"
+tiktoken = ">=0.5.1,<0.6.0"
+openai = "0.28.1"
+python-dotenv = "^1.0.1"
+pika = "^1.3.2"
+elasticsearch = "^8.12.0"
+sqlalchemy = "^2.0.26"
+psycopg2-binary = "^2.9.9"
+alembic = "^1.13.1"
+pydantic = ">=1.10.5,<2"
+elevaitedb = { path = "../elevaitedblib", develop = false }
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
