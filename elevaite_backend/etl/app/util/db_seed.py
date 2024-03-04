@@ -29,7 +29,7 @@ def seed_db(db: Session):
     pre_process_pipeline_step_1 = models.PipelineStep(
         title="Dataset Configuration",
         data=[],
-        dependsOn=[],
+        _dependsOn=[],
         id="14fc347b-aa19-4a2a-9d9b-3b3a630c9d5c",
     )
     db.add(pre_process_pipeline_step_1)
@@ -37,34 +37,34 @@ def seed_db(db: Session):
     pre_process_pipeline_step_2 = models.PipelineStep(
         title="Partition Data",
         data=[],
-        dependsOn=[],
+        _dependsOn=[],
         id="647427ef-2654-4585-8aaa-e03c66915c91",
     )
-    pre_process_pipeline_step_2.dependsOn.append(pre_process_pipeline_step_1)
+    pre_process_pipeline_step_2._dependsOn.append(pre_process_pipeline_step_1)
     db.add(pre_process_pipeline_step_2)
 
     pre_process_pipeline_step_3 = models.PipelineStep(
         title="Vectorize Data",
         data=[],
-        dependsOn=[],
+        _dependsOn=[],
         id="19feed33-c233-44c4-83ea-8d5dd54e7ec1",
     )
-    pre_process_pipeline_step_3.dependsOn.append(pre_process_pipeline_step_2)
+    pre_process_pipeline_step_3._dependsOn.append(pre_process_pipeline_step_2)
     db.add(pre_process_pipeline_step_3)
 
     pre_process_pipeline_step_4 = models.PipelineStep(
         title="Data Lake Storage",
         data=[],
-        dependsOn=[],
+        _dependsOn=[],
         id="547b4b9d-7ea5-414a-a2bf-a691c3e97954",
     )
-    pre_process_pipeline_step_4.dependsOn.append(pre_process_pipeline_step_3)
+    pre_process_pipeline_step_4._dependsOn.append(pre_process_pipeline_step_3)
     db.add(pre_process_pipeline_step_4)
 
     ingest_pipeline_step_1 = models.PipelineStep(
         title="Data Source Configuration",
         data=[],
-        dependsOn=[],
+        _dependsOn=[],
         id="9966b76c-5a5a-4eeb-924f-bd5983b4610a",
     )
     db.add(ingest_pipeline_step_1)
@@ -72,19 +72,19 @@ def seed_db(db: Session):
     ingest_pipeline_step_2 = models.PipelineStep(
         title="Worker Process",
         data=[],
-        dependsOn=[],
+        _dependsOn=[],
         id="9fb4ebe8-a679-40a7-90a7-e14f26e6f397",
     )
-    ingest_pipeline_step_2.dependsOn.append(ingest_pipeline_step_1)
+    ingest_pipeline_step_2._dependsOn.append(ingest_pipeline_step_1)
     db.add(ingest_pipeline_step_2)
 
     ingest_pipeline_step_3 = models.PipelineStep(
         title="Data Lake Storage",
         data=[],
-        dependsOn=[],
+        _dependsOn=[],
         id="f3427f14-ac54-4bb8-b681-5e2d3e9bbad8",
     )
-    ingest_pipeline_step_3.dependsOn.append(ingest_pipeline_step_2)
+    ingest_pipeline_step_3._dependsOn.append(ingest_pipeline_step_2)
     db.add(ingest_pipeline_step_3)
 
     db.commit()
