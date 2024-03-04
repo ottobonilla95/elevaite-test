@@ -340,20 +340,13 @@ async def preprocess(data: PreProcessForm) -> None:
     except Exception as e:
         print("Error")
         print(e)
-        resp = es.get(index="application", id=data.applicationId)
-        instances = resp["_source"]["instances"]
-        for instance in instances:
-            if instance["id"] == data.instanceId:
-                instance["status"] = "failed"
-                instance["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
-                instance["comment"] = e
-                for pss in instance["pipelineStepStatuses"]:
-                    if pss["endTime"] == None and pss["startTime"] != None:
-                        pss["status"] = "failed"
-                        pss["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
-
-        es.update(
-            index="application",
-            id=data.applicationId,
-            body=json.dumps({"doc": {"instances": instances}}, default=vars),
+        instance_crud.update_instance(
+            db,
+            data.applicationId,
+            data.instanceId,
+            InstanceUpdate(
+                status=InstanceStatus.FAILED,
+                endTime=util_func.get_iso_datetime(),
+                comment=str(e),
+            ),
         )
