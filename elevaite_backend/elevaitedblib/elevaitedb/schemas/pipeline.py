@@ -24,9 +24,13 @@ class PipelineStepDataCreate(PipelineStepDataBase):
 class PipelineStepData(PipelineStepDataBase):
     pass
 
+    class Config:
+        orm_mode = True
+
 
 class PipelineStepBase(BaseModel):
-    dependsOn: list[str]
+    previousStepIds: list[UUID4]
+    nextStepIds: list[UUID4]
     title: str
     data: list[PipelineStepDataBase]
 
@@ -38,6 +42,9 @@ class PipelineStepCreate(PipelineStepBase):
 class PipelineStep(PipelineStepBase):
     id: UUID4
     pipelineId: UUID4
+
+    class Config:
+        orm_mode = True
 
 
 class PipelineBase(BaseModel):

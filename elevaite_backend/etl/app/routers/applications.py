@@ -31,14 +31,14 @@ def getApplicationList(
 
 @router.get("/{application_id}", response_model=application_schemas.Application)
 def getApplicationById(
-    application_id: str,
+    application_id: int,
     db: Session = Depends(get_db),
 ) -> application_schemas.Application:
     return service.getApplicationById(db, application_id)
 
 
 # @router.get("/{application_id}/form")
-# def getApplicationForm(application_id: str) -> ApplicationFormDTO:
+# def getApplicationForm(application_id: int) -> ApplicationFormDTO:
 #     return service.getApplicationForm(application_id)
 
 
@@ -46,7 +46,7 @@ def getApplicationById(
     "/{application_id}/instance", response_model=list[instance_schemas.Instance]
 )
 def getApplicationInstances(
-    application_id: str,
+    application_id: int,
     db: Session = Depends(get_db),
 ) -> list[instance_schemas.Instance]:
     return service.getApplicationInstances(db, application_id)
@@ -56,7 +56,7 @@ def getApplicationInstances(
     "/{application_id}/instance/{instance_id}", response_model=instance_schemas.Instance
 )
 def getApplicationInstanceById(
-    application_id: str,
+    application_id: int,
     instance_id: str,
     db: Session = Depends(get_db),
 ) -> instance_schemas.Instance:
@@ -70,7 +70,7 @@ def getApplicationInstanceById(
     response_model=instance_schemas.InstanceChartData,
 )
 def getApplicationInstanceChart(
-    application_id: str, instance_id: str
+    application_id: int, instance_id: str
 ) -> instance_schemas.InstanceChartData:
     return service.getApplicationInstanceChart(
         application_id=application_id, instance_id=instance_id
@@ -82,7 +82,7 @@ def getApplicationInstanceChart(
     response_model=configuration_schemas.Configuration,
 )
 def getApplicationInstanceConfiguration(
-    application_id: str,
+    application_id: int,
     instance_id: str,
     db: Session = Depends(get_db),
 ) -> instance_schemas.InstanceChartData:
@@ -96,7 +96,7 @@ def getApplicationInstanceConfiguration(
     response_model=instance_schemas.Instance,
 )
 def approveApplicationInstance(
-    application_id: str,
+    application_id: int,
     instance_id: str,
     db: Session = Depends(get_db),
 ) -> instance_schemas.Instance:
@@ -107,7 +107,7 @@ def approveApplicationInstance(
 
 @router.post("/{application_id}/instance/", response_model=instance_schemas.Instance)
 def createApplicationInstance(
-    application_id: str,
+    application_id: int,
     createApplicationInstanceDto: Annotated[
         S3IngestFormDataDTO | PreProcessFormDTO, Body()
     ],
@@ -135,9 +135,11 @@ def createApplicationInstance(
 #         await manager.broadcast(f"Client #{client_id} left the chat")
 
 
-@router.get("/{application_id}/pipelines", response_model=pipeline_schemas.Pipeline)
+@router.get(
+    "/{application_id}/pipelines", response_model=list[pipeline_schemas.Pipeline]
+)
 def getApplicationPipelines(
-    application_id: str,
+    application_id: int,
     db: Session = Depends(get_db),
 ) -> list[pipeline_schemas.Pipeline]:
     return service.getApplicationPipelines(db, application_id)

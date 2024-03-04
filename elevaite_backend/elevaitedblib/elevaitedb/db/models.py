@@ -1,6 +1,8 @@
 import uuid
+from pydantic import UUID4
 from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Table, Uuid, JSON
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from elevaitedb.schemas.instance import InstanceStatus
 from elevaitedb.schemas.pipeline import PipelineStepStatus
@@ -103,12 +105,21 @@ class PipelineStep(Base):
     pipeline = relationship(
         "Pipeline", back_populates="steps", foreign_keys=[pipelineId]
     )
-    dependsOn = relationship(
+
+    @hybrid_property
+    def previousStepIds(self) -> list[UUID4]:
+        return [x.id for x in self._dependsOn]
+
+    @hybrid_property
+    def nextStepIds(self) -> list[UUID4]:
+        return [x.id for x in self._dependedOn]
+
+    _dependsOn = relationship(
         "PipelineStep",
         secondary=pipeline_step_deps,
         primaryjoin=(pipeline_step_deps.c.target_id == id),
         secondaryjoin=(pipeline_step_deps.c.source_id == id),
-        backref="dependedOn",
+        backref="_dependedOn",
     )
     # dependedOn = relationship("PipelineStepDependencies", back_populates="target")
 

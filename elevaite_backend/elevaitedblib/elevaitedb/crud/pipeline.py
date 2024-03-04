@@ -8,7 +8,7 @@ def get_pipelines(db: Session, skip: int = 0, limit: int = 0) -> list[models.Pip
 
 
 def get_pipelines_of_application(
-    db: Session, application_id: str, skip: int = 0, limit: int = 0
+    db: Session, application_id: int, skip: int = 0, limit: int = 100
 ) -> list[models.Pipeline]:
     return (
         db.query(models.Pipeline)

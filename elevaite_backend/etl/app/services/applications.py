@@ -44,30 +44,32 @@ def getApplicationList(db: Session) -> list[Application]:
     return apps
 
 
-def getApplicationById(db: Session, application_id: str) -> Application:
+def getApplicationById(db: Session, application_id: int) -> Application:
     app = application_crud.get_application_by_id(db, application_id)
     return app
 
 
-# def getApplicationForm(application_id: str) -> ApplicationFormDTO:
+# def getApplicationForm(application_id: int) -> ApplicationFormDTO:
 #     elasticClient = ElasticSingleton()
 #     res = elasticClient.getById("application", application_id)
 #     app = IngestApplication(**res["_source"])
 #     return app.form
 
 
-def getApplicationInstances(db: Session, application_id: str) -> list[Instance]:
+def getApplicationInstances(db: Session, application_id: int) -> list[Instance]:
     app = application_crud.get_application_by_id(db, application_id)
     return app.instances
 
 
-def getApplicationPipelines(db: Session, application_id: str) -> list[Pipeline]:
+def getApplicationPipelines(db: Session, application_id: int) -> list[Pipeline]:
     pipelines = pipeline_crud.get_pipelines_of_application(db, application_id)
+    print(pipelines[0].steps[1].dependsOn)
+    print(pipelines[0].steps[1].dependedOn)
     return pipelines
 
 
 def getApplicationInstanceById(
-    db: Session, application_id: str, instance_id: str
+    db: Session, application_id: int, instance_id: str
 ) -> Instance:
     instances = instance_crud.get_instances(db, application_id)
     return instances
@@ -75,7 +77,7 @@ def getApplicationInstanceById(
 
 def createApplicationInstance(
     db: Session,
-    application_id: str,
+    application_id: int,
     createInstanceDto: S3IngestFormDataDTO | PreProcessFormDTO,
     rmq: pika.BlockingConnection,
 ) -> Instance:
@@ -189,7 +191,7 @@ def createApplicationInstance(
 
 
 def approveApplicationInstance(
-    db: Session, application_id: str, instance_id: str
+    db: Session, application_id: int, instance_id: str
 ) -> Instance:
 
     _end_time = util_func.get_iso_datetime()
@@ -220,7 +222,7 @@ def approveApplicationInstance(
 
 
 def getApplicationInstanceChart(
-    application_id: str, instance_id: str
+    application_id: int, instance_id: str
 ) -> InstanceChartData:
     r = RedisSingleton().connection
 
