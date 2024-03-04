@@ -63,8 +63,6 @@ def getApplicationInstances(db: Session, application_id: int) -> list[Instance]:
 
 def getApplicationPipelines(db: Session, application_id: int) -> list[Pipeline]:
     pipelines = pipeline_crud.get_pipelines_of_application(db, application_id)
-    print(pipelines[0].steps[1].dependsOn)
-    print(pipelines[0].steps[1].dependedOn)
     return pipelines
 
 
