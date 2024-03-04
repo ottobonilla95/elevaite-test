@@ -299,33 +299,44 @@ async def preprocess(data: PreProcessForm) -> None:
         )
 
         res = r.json().get(data.instanceId)
-    #     resp = es.get(index="application", id=data.applicationId)
-    #     instances = resp["_source"]["instances"]
-    #     for instance in instances:
-    #         if instance["id"] == data.instanceId:
-    #             instance["status"] = "completed"
-    #             instance["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
-    #             instance["chartData"] = {
-    #                 "totalItems": res["total_items"],
-    #                 "ingestedItems": res["ingested_items"],
-    #                 "avgSize": res["avg_size"],
-    #                 "totalSize": res["total_size"],
-    #                 "ingestedSize": res["ingested_size"],
-    #                 "ingested_chunks": res["ingested_chunks"],
-    #             }
-    #             for pss in instance["pipelineStepStatuses"]:
-    #                 if pss["step"] == _second_step:
-    #                     pss["status"] = "completed"
-    #                     pss["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
-    #                 if pss["step"] == _final_step:
-    #                     pss["status"] = "running"
-    #                     pss["startTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
 
-    #     es.update(
-    #         index="application",
-    #         id=data.applicationId,
-    #         body=json.dumps({"doc": {"instances": instances}}, default=vars),
-    #     )
+        instance_crud.update_instance_chart_data(
+            db,
+            data.instanceId,
+            InstanceChartData(
+                totalItems=res["total_items"],
+                ingestedItems=res["ingested_items"],
+                avgSize=res["avg_size"],
+                totalSize=res["total_size"],
+                ingestedSize=res["ingested_size"],
+                ingestedChunks=res["ingested_chunks"],
+            ),
+        )
+        instance_crud.update_instance(
+            db,
+            data.applicationId,
+            data.instanceId,
+            InstanceUpdate(status=InstanceStatus.COMPLETED),
+        )
+        instance_crud.update_pipeline_step(
+            db,
+            data.instanceId,
+            _second_step.id,
+            InstancePipelineStepStatusUpdate(
+                status=PipelineStepStatus.COMPLETED,
+                endTime=util_func.get_iso_datetime(),
+            ),
+        )
+        instance_crud.update_pipeline_step(
+            db,
+            data.instanceId,
+            _final_step.id,
+            InstancePipelineStepStatusUpdate(
+                status=PipelineStepStatus.COMPLETED,
+                endTime=util_func.get_iso_datetime(),
+                startTime=util_func.get_iso_datetime(),
+            ),
+        )
     except Exception as e:
         print("Error")
         print(e)
