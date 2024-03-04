@@ -3,11 +3,6 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends
 import pika
 from sqlalchemy.orm import Session
-
-from app.util.models import (
-    PreProcessFormDTO,
-    S3IngestFormDataDTO,
-)
 from app.services import applications as service
 from app.util.websockets import ConnectionManager
 from app.routers.deps import get_rabbitmq_connection, get_db
@@ -109,7 +104,9 @@ def approveApplicationInstance(
 def createApplicationInstance(
     application_id: int,
     createApplicationInstanceDto: Annotated[
-        S3IngestFormDataDTO | PreProcessFormDTO, Body()
+        configuration_schemas.S3IngestFormDataDTO
+        | configuration_schemas.PreProcessFormDTO,
+        Body(),
     ],
     rmq: pika.BlockingConnection = Depends(get_rabbitmq_connection),
     db: Session = Depends(get_db),

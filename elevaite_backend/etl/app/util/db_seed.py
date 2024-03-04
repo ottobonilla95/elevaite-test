@@ -35,7 +35,7 @@ def seed_db(db: Session):
     db.add(pre_process_pipeline_step_1)
 
     pre_process_pipeline_step_2 = models.PipelineStep(
-        title="Partition Data",
+        title="Document Segmentation",
         data=[],
         _dependsOn=[],
         id="647427ef-2654-4585-8aaa-e03c66915c91",
@@ -44,7 +44,7 @@ def seed_db(db: Session):
     db.add(pre_process_pipeline_step_2)
 
     pre_process_pipeline_step_3 = models.PipelineStep(
-        title="Vectorize Data",
+        title="Document Vectorization",
         data=[],
         _dependsOn=[],
         id="19feed33-c233-44c4-83ea-8d5dd54e7ec1",
@@ -53,7 +53,7 @@ def seed_db(db: Session):
     db.add(pre_process_pipeline_step_3)
 
     pre_process_pipeline_step_4 = models.PipelineStep(
-        title="Data Lake Storage",
+        title="Vector DB",
         data=[],
         _dependsOn=[],
         id="547b4b9d-7ea5-414a-a2bf-a691c3e97954",

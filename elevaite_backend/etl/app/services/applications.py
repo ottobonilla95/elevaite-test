@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+from pprint import pprint
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -7,10 +8,6 @@ import pika
 
 from app.util.name_generatior import get_random_name
 from app.util.RedisSingleton import RedisSingleton
-from app.util.models import (
-    PreProcessFormDTO,
-    S3IngestFormDataDTO,
-)
 from app.util import func as util_func
 from elevaitedb.schemas.application import Application, is_application
 from elevaitedb.schemas.instance import (
@@ -27,6 +24,8 @@ from elevaitedb.schemas.pipeline import Pipeline, PipelineStepStatus, is_pipelin
 from elevaitedb.schemas.configuration import (
     ConfigurationCreate,
     Configuration,
+    PreProcessFormDTO,
+    S3IngestFormDataDTO,
     is_configuration,
 )
 from elevaitedb.schemas.dataset import DatasetCreate, is_dataset
@@ -166,11 +165,11 @@ def createApplicationInstance(
         "application_id": application_id,
     }
 
-    def get_routing_key(application_id) -> str:
+    def get_routing_key(application_id: int) -> str:
         match application_id:
-            case "1":
+            case 1:
                 return "s3_ingest"
-            case "2":
+            case 2:
                 return "preprocess"
             case _:
                 return "default"
@@ -184,6 +183,10 @@ def createApplicationInstance(
     #     return instance_crud.get_instance_by_id(
     #         db, applicationId=application_id, id=_instance.id
     #     )
+
+    __instance = instance_crud.get_instance_by_id(
+        db, applicationId=application_id, id=_instance.id
+    )
 
     return _instance
 

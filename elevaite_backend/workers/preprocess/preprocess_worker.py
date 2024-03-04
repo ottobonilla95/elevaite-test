@@ -3,16 +3,12 @@ from datetime import datetime
 import json
 import os
 from pprint import pprint
-import sys
 import threading
 from elasticsearch import Elasticsearch
 import lakefs
 import redis
 from unstructured.partition.html import partition_html
 from unstructured.chunking.title import chunk_by_title
-
-from dotenv import load_dotenv
-import pika
 
 from .preprocess import get_file_elements_internal
 from . import vectordb
@@ -30,7 +26,9 @@ from elevaitedb.schemas.instance import (
     InstanceStatus,
     InstanceUpdate,
     InstanceChartData,
+    InstancePipelineStepStatusUpdate,
 )
+from elevaitedb.schemas.pipeline import PipelineStepStatus
 
 
 class PreProcessForm:
@@ -174,115 +172,115 @@ async def preprocess(data: PreProcessForm) -> None:
 
     r.json().set(data.instanceId, ".", _data)
 
-    resp = es.get(index="application", id=data.applicationId)
-    application = resp["_source"]
-
     _application = application_crud.get_application_by_id(db, data.applicationId)
     _pipeline = pipeline_crud.get_pipeline_by_id(db, data.selectedPipelineId)
-    _entry_step = _pipeline.entry
+    _entry_step = None
     _first_step = None
     _second_step = None
-    _final_step = _pipeline.exit
+    _final_step = None
 
-    pprint(_pipeline.__dict__)
-    pprint(_entry_step)
-    pprint(_final_step)
+    for s in _pipeline.steps:
+        if s.id == _pipeline.entry:
+            _entry_step = s
+            break
 
-    # for p in application["pipelines"]:
-    #     if p["id"] == data.selectedPipeline:
-    #         _pipeline = p
-    #         break
+    for s in _pipeline.steps:
+        if _entry_step.id in s.previousStepIds:
+            _first_step = s
+            break
 
-    # for s in _pipeline["steps"]:
-    #     if s["id"] == _pipeline["entry"]:
-    #         _entry_step = s["id"]
-    #         break
+    for s in _pipeline.steps:
+        if _first_step.id in s.previousStepIds:
+            _second_step = s
+            break
 
-    # for s in _pipeline["steps"]:
-    #     if _entry_step in s["dependsOn"]:
-    #         _first_step = s["id"]
-    #         break
+    for s in _pipeline.steps:
+        if s.id == _pipeline.exit:
+            _final_step = s
+            break
 
-    # for s in _pipeline["steps"]:
-    #     if _first_step in s["dependsOn"]:
-    #         _second_step = s["id"]
-    #         break
-
-    # for s in _pipeline["steps"]:
-    #     if _second_step in s["dependsOn"]:
-    #         _final_step = s["id"]
-    #         break
-
-    # instances = resp["_source"]["instances"]
-    # for instance in instances:
-    #     if instance["id"] == data.instanceId:
-    #         instance["status"] = "running"
-    #         for pss in instance["pipelineStepStatuses"]:
-    #             if pss["step"] == _entry_step:
-    #                 pss["status"] = "completed"
-    #                 pss["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
-
-    #             if pss["step"] == _first_step:
-    #                 pss["status"] = "running"
-    #                 pss["startTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
-
-    # es.update(
-    #     index="application",
-    #     id=data.applicationId,
-    #     body=json.dumps({"doc": {"instances": instances}}, default=vars),
-    # )
+    _instance = instance_crud.get_instance_by_id(
+        db, data.applicationId, data.instanceId
+    )
+    instance_crud.update_instance(
+        db,
+        data.applicationId,
+        data.instanceId,
+        InstanceUpdate(status=InstanceStatus.RUNNING),
+    )
+    instance_crud.update_pipeline_step(
+        db,
+        data.instanceId,
+        _entry_step.id,
+        InstancePipelineStepStatusUpdate(
+            status=PipelineStepStatus.COMPLETED, endTime=util_func.get_iso_datetime()
+        ),
+    )
+    instance_crud.update_pipeline_step(
+        db,
+        data.instanceId,
+        _first_step.id,
+        InstancePipelineStepStatusUpdate(
+            status=PipelineStepStatus.RUNNING, startTime=util_func.get_iso_datetime()
+        ),
+    )
 
     chunks_as_json = []
     page_as_json = []
     findex = 0
     try:
+        for object in repo.branch("main").objects():
+            with repo.branch("main").object(object.path).reader(pre_sign=False) as fd:
+                # while fd.tell() < file_size:
+                #     print(fd.read(10))
+                #     fd.seek(10, os.SEEK_CUR)
+                file_chunks = get_file_elements_internal(
+                    file=fd.read(), filepath=object.path
+                )
+                chunks_as_json.extend(file_chunks)
+                r.json().numincrby(data.instanceId, ".ingested_size", object.size_bytes)
+                r.json().numincrby(data.instanceId, ".ingested_items", 1)
+                r.json().numincrby(
+                    data.instanceId, ".ingested_chunks", len(file_chunks)
+                )
+            findex += 1
+            if findex % 10 == 0:
+                print(findex)
 
-        #     for object in repo.branch("main").objects():
-        #         with repo.branch("main").object(object.path).reader(pre_sign=False) as fd:
-        #             # while fd.tell() < file_size:
-        #             #     print(fd.read(10))
-        #             #     fd.seek(10, os.SEEK_CUR)
-        #             file_chunks = get_file_elements_internal(
-        #                 file=fd.read(), filepath=object.path
-        #             )
-        #             chunks_as_json.extend(file_chunks)
-        #             r.json().numincrby(data.instanceId, ".ingested_size", object.size_bytes)
-        #             r.json().numincrby(data.instanceId, ".ingested_items", 1)
-        #             r.json().numincrby(
-        #                 data.instanceId, ".ingested_chunks", len(file_chunks)
-        #             )
-        #         findex += 1
-        #         if findex % 10 == 0:
-        #             print(findex)
+        res = r.json().get(data.instanceId)
 
-        #     res = r.json().get(data.instanceId)
-        #     resp = es.get(index="application", id=data.applicationId)
-        #     application = resp["_source"]
-        #     instances = resp["_source"]["instances"]
-        #     _pipeline = None
+        instance_crud.update_instance_chart_data(
+            db,
+            data.instanceId,
+            InstanceChartData(
+                totalItems=res["total_items"],
+                ingestedItems=res["ingested_items"],
+                avgSize=res["avg_size"],
+                totalSize=res["total_size"],
+                ingestedSize=res["ingested_size"],
+                ingestedChunks=res["ingested_chunks"],
+            ),
+        )
 
-        #     for p in application["pipelines"]:
-        #         if p["id"] == data.selectedPipeline:
-        #             _pipeline = p
+        instance_crud.update_pipeline_step(
+            db,
+            data.instanceId,
+            _first_step.id,
+            InstancePipelineStepStatusUpdate(
+                status=PipelineStepStatus.COMPLETED,
+                endTime=util_func.get_iso_datetime(),
+            ),
+        )
 
-        #     for instance in instances:
-        #         if instance["id"] == data.instanceId:
-        #             instance["chartData"] = {
-        #                 "totalItems": res["total_items"],
-        #                 "ingestedItems": res["ingested_items"],
-        #                 "avgSize": res["avg_size"],
-        #                 "totalSize": res["total_size"],
-        #                 "ingestedSize": res["ingested_size"],
-        #                 "ingestedChunks": res["ingested_chunks"],
-        #             }
-        #             for pss in instance["pipelineStepStatuses"]:
-        #                 if pss["step"] == _first_step:
-        #                     pss["status"] = "completed"
-        #                     pss["endTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
-
-        #                 if pss["step"] == _second_step:
-        #                     pss["status"] = "running"
-        #                     pss["startTime"] = datetime.utcnow().isoformat()[:-3] + "Z"
+        instance_crud.update_pipeline_step(
+            db,
+            data.instanceId,
+            _second_step.id,
+            InstancePipelineStepStatusUpdate(
+                status=PipelineStepStatus.RUNNING,
+                startTime=util_func.get_iso_datetime(),
+            ),
+        )
 
         #     es.update(
         #         index="application",
@@ -292,13 +290,13 @@ async def preprocess(data: PreProcessForm) -> None:
 
         #     # Save the chunks_as_json.json on lakefs
 
-        #     # pprint(chunks_as_json)
-        #     print("Number of chunks " + str(len(chunks_as_json)))
-        #     # payloads = json.load(chunks_as_json)
-        #     await vectordb.recreate_collection(collection=data.datasetProject)
-        #     await vectordb.insert_records(
-        #         collection=data.datasetProject, payload_with_contents=chunks_as_json
-        #     )
+        # pprint(chunks_as_json)
+        print("Number of chunks " + str(len(chunks_as_json)))
+        # payloads = json.load(chunks_as_json)
+        await vectordb.recreate_collection(collection=project_name)
+        await vectordb.insert_records(
+            collection=project_name, payload_with_contents=chunks_as_json
+        )
 
         res = r.json().get(data.instanceId)
     #     resp = es.get(index="application", id=data.applicationId)
