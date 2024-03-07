@@ -1,7 +1,10 @@
 "use client";
 import { ElevaiteIcons } from "@repo/ui/components";
 import { Fragment, useEffect, useState } from "react";
+import { S3DataRetrievalAppPipelineStructure } from "../../../../../lib/dataRetrievalApps";
 import type { PipelineStep } from "../../../../../lib/interfaces";
+import { ApplicationType } from "../../../../../lib/interfaces";
+import { S3PreprocessingAppPipelineStructure } from "../../../../../lib/preprocessingApps";
 import "./PipelineDiagram.scss";
 import { PipelineDiagramStep } from "./PipelineDiagramStep";
 
@@ -12,19 +15,8 @@ const DEFAULT_DISPLAY_STEPS: PipelineStep[][] = [
     [{
         id: "default_1",
         title: "Data Source Configuration",
-        dependsOn: [],
-        data: [],
-    }],
-    [{
-        id: "default_2",
-        title: "Worker Progress",
-        dependsOn: ["default_1"],
-        data: [],
-    }],
-    [{
-        id: "default_3",
-        title: "Data Lake Storage",
-        dependsOn: ["default_2"],
+        previousStepIds: [],
+        nextStepIds: [],
         data: [],
     }],
 ];
@@ -34,22 +26,22 @@ const DEFAULT_DISPLAY_STEPS: PipelineStep[][] = [
 
 
 
-interface PipelineDiagramProps {
+interface PipelineDiagramProps {    
+    type?: ApplicationType;
     steps?: PipelineStep[][];
     selectedStepId?: string;
-    onSelectedStep?: (step: PipelineStep) => void;
+    onSelectedStep?: (step: PipelineStep, stepOrder?: string) => void;
 }
 
 export function PipelineDiagram(props: PipelineDiagramProps): JSX.Element {
     const [displaySteps, setDisplaySteps] = useState<PipelineStep[][]>(DEFAULT_DISPLAY_STEPS);
 
 
-
     useEffect(() => {
-        setDisplaySteps(DEFAULT_DISPLAY_STEPS);
-        // if (props.steps) setDisplaySteps(props.steps);
-        // else setDisplaySteps(DEFAULT_DISPLAY_STEPS);
-    }, [props.steps]);
+        if (props.steps && props.steps.length > 0) setDisplaySteps(props.steps);
+        else if (props.type) setDisplaySteps(props.type === ApplicationType.INGEST ? S3DataRetrievalAppPipelineStructure : S3PreprocessingAppPipelineStructure);
+        else setDisplaySteps(DEFAULT_DISPLAY_STEPS);
+    }, [props.steps, props.type]);
 
 
 

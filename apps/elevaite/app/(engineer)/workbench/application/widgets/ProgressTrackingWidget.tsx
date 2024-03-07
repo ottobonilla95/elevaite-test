@@ -1,9 +1,9 @@
 "use client";
-import { ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { getInstanceChartData } from "../../../../lib/actions";
-import type { AppInstanceObject, ChartDataObject } from "../../../../lib/interfaces";
-import { AppInstanceStatus } from "../../../../lib/interfaces";
+import { getConfigurationObjectFromRaw } from "../../../../lib/helpers";
+import type { AppInstanceObject, ChartDataObject, Initializers, S3IngestFormDTO, S3PreprocessFormDTO } from "../../../../lib/interfaces";
+import { AppInstanceStatus, ApplicationType } from "../../../../lib/interfaces";
 import "./ProgressTrackingWidget.scss";
 
 
@@ -29,6 +29,7 @@ const progressBits = [
 
 interface ProgressTrackingWidgetProps {
     applicationId: string | null;
+    type?: ApplicationType;
     instance?: AppInstanceObject;
 }
 
@@ -36,10 +37,12 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
     const [chartData, setChartData] = useState<ChartDataObject>();
     const [displayBits, setDisplayBits] = useState(progressBits);
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedInstanceConfiguration, setSelectedInstanceConfiguration] = useState<Initializers|undefined>();
 
 
     useEffect(() => {
         setIsLoading(true);
+        setSelectedInstanceConfiguration(getConfigurationObjectFromRaw(props.instance?.configuration?.raw));
     }, [props.applicationId, props.instance]);
 
     useEffect(() => {
@@ -90,10 +93,10 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
 
     return (
         <div className="progress-tracking-widget-container">
-            <ProgressBitInfo 
-                name="Iopex Community"
-                uri="test uri"
-                lastIngest="test date"
+            <ProgressBitInfo
+                type={props.type}
+                configuration={selectedInstanceConfiguration}
+                isSkeleton={!props.instance}
             />
             {displayBits.map((bit) => (
                 <ProgressBit
@@ -111,29 +114,63 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
 
 
 function ProgressBitInfo(props: {
-    name: string;
-    uri: string;
-    lastIngest: string;
+    configuration?: Initializers;
+    type?: ApplicationType;
     isSkeleton?: boolean;
 }): JSX.Element {
+    const [details, setDetails] = useState(
+        {
+            mainLabel: "",
+            mainValue: "",
+            secondaryLabel: "",
+            secondaryValue: "",
+            lastProgress: ""
+        });
+
+
+    useEffect(() => {
+        if (props.type === ApplicationType.INGEST) {
+            const conf: S3IngestFormDTO | undefined = props.configuration ? props.configuration as S3IngestFormDTO : undefined;
+            setDetails({
+                mainLabel: "Dataset Name:",
+                mainValue: conf ? conf.name : "",
+                secondaryLabel: "S3 URI:",
+                secondaryValue: conf ? conf.url : "",
+                lastProgress: "New Instance",
+            });
+        } else if (props.type === ApplicationType.PREPROCESS) {            
+            const conf: S3PreprocessFormDTO | undefined = props.configuration ? props.configuration as S3PreprocessFormDTO : undefined;
+            setDetails({
+                mainLabel: "Pipeline Name:",
+                mainValue: conf ? conf.name : "",
+                secondaryLabel: "Input Dataset:",
+                secondaryValue: conf ? conf.datasetName : "",
+                lastProgress: "New Instance",
+            });
+        }
+    }, [props.type, props.configuration]);
+
 
     return (
         <div className="progress-bit-info-container">
             <div className="info-row">
-                <span className="label">Dataset Name:</span>
+                <span className="label">{details.mainLabel}</span>
                 {props.isSkeleton ? <div className="skeleton small"/> :
-                    <div className="text" title={props.name}>{props.name}</div>
+                    <div className="text" title={details.mainValue}>{details.mainValue}</div>
                 }
             </div>
             <div className="info-row">
-                <span className="label">S3 URI:</span>
+                <span className="label">{details.secondaryLabel}</span>
                 {props.isSkeleton ? <div className="skeleton large"/> :
-                    <div className="text" title={props.uri}>{props.uri}</div>
+                    <div className="text" title={details.secondaryValue}>{details.secondaryValue}</div>
                 }
             </div>
             <div className={["info-row", props.isSkeleton ? undefined : "extra"].filter(Boolean).join(" ")}>
                 {props.isSkeleton ? <><div/><div className="skeleton dark"/></> :
-                    <span className="text">{props.lastIngest}</span>
+                    <span className="text">
+                        <span>{props.type ? `Last ${props.type}: ` : "Last progress: "}</span>
+                        {details.lastProgress}
+                    </span>
                 }
             </div>
         </div>

@@ -1,9 +1,10 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
+import { Logos } from "..";
 import SVGChevron from "../icons/elevaite/svgChevron";
-import SVGDot from "../icons/elevaite/svgDot";
 import "./Card.scss";
-import { ElevaiteIcons, Logos } from "..";
+
+
 
 export interface CardProps {
   icon: string;
@@ -22,7 +23,6 @@ export interface CardProps {
 }
 
 export function Card({ icon, title, subtitle, description, ...props }: CardProps): JSX.Element {
-  
   const router = useRouter();
   const pathname = usePathname();
 
@@ -46,8 +46,8 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
         <div className="card-header">
           <div className="card-header-title">
             {!icon ? //TODO: Remove testing icons
-                props.id === "1" ? <Logos.Aws/> :
-                props.id === "2" ? <Logos.Preprocess/>
+                props.id == "1" ? <Logos.Aws/> :
+                props.id == "2" ? <Logos.Preprocess/>
               : null :
               <img src={icon} alt={props.iconAlt ? props.iconAlt : "logo"} className="card-header-icon" />
             }

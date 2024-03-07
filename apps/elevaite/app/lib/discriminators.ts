@@ -1,4 +1,4 @@
-import type { AppInstanceObject, ApplicationObject, ChartDataObject, PipelineObject } from "./interfaces";
+import type { AppInstanceObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "./interfaces";
 
 
 
@@ -44,6 +44,11 @@ export function isGetInstanceResponse(data: unknown): data is AppInstanceObject 
 
 export function isCreateInstanceResponse(data: unknown): data is AppInstanceObject {
     return isInstanceObject(data);
+}
+
+
+export function isInitializerDto(data: unknown): data is Initializers {
+    return isApplicationConfigurationObject(data);
 }
 
 
@@ -93,6 +98,12 @@ function isApplicationPipelineObject(item: unknown): item is PipelineObject {
         "entry" in item &&
         "label" in item &&
         "steps" in item;
+}
+
+function isApplicationConfigurationObject(item: unknown): item is Initializers  {
+    return isObject(item) &&
+        "projectId" in item &&
+        "creator" in item;
 }
 
 

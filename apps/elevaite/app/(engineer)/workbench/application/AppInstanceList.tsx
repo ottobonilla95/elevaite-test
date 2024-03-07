@@ -118,7 +118,7 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
                 (session.data?.user?.name && instance.creator === session.data.user.name) ||
                 (!session.data?.user?.name && instance.creator === "Unknown User")) {
                 // Check Flow
-                if (!selectedFlowId || instance.selectedPipeline === selectedFlowId) {
+                if (!selectedFlowId || instance.selectedPipelineId === selectedFlowId) {
                     // Check status
                     if (Object.values(filters.showStatus).every(item => !item) || filters.showStatus[instance.status]) {
                         // Check search term
@@ -135,6 +135,14 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
         });
         sortInstances(filteredInstances);
         setVisibleInstances(filteredInstances);
+    }
+
+    function getFlowLabel(id: string|null): string {
+        switch (id) {
+          case "1": return "Ingest";
+          case "2": return "Pre-process";
+          default: return "";
+        }
     }
 
 
@@ -168,7 +176,7 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
 
             {!flowOptions || flowOptions.length === 0 ? null :
                 <div className="app-flow-header">                    
-                    <div className="flow-title">Pre-process Flow:</div>
+                    <div className="flow-title">{`${getFlowLabel(props.applicationId)} Flow:`}</div>
                     <CommonSelect
                         className="flow-type"
                         defaultValue={flowOptions[0].value}
@@ -239,7 +247,7 @@ function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps
         if (props.applicationId && props.id && props.onInstanceUpdate &&
             !props.id.toLowerCase().includes("test") && // Prevent test instances from attempting to refresh.
             (props.status === AppInstanceStatus.RUNNING || props.status === AppInstanceStatus.STARTING)) {
-            const delay = props.status === AppInstanceStatus.STARTING ? 20000 : 5000;
+            const delay = props.status === AppInstanceStatus.STARTING ? 2000 : 5000;
             const interval = setInterval(() => {
                 void fetchInstance(props.applicationId, props.id, props.status);
             }, delay);

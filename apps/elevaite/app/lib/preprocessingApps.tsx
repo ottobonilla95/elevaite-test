@@ -1,11 +1,12 @@
 import { Logos } from "@repo/ui/components";
-import type { AppInstanceFormStructure, S3PreprocessFormDTO } from "./interfaces";
+import type { AppInstanceFormStructure, PipelineStep, S3PreprocessFormDTO } from "./interfaces";
 import { AppInstanceFieldTypes } from "./interfaces";
 
 
 
 
 export const S3PreprocessFormInitializer: S3PreprocessFormDTO = {
+    projectId: "7f66ade4-2bf0-4d46-a2dc-c2aee9e9e043",
     creator: "",
     name: "",
     datasetId: "",
@@ -15,7 +16,7 @@ export const S3PreprocessFormInitializer: S3PreprocessFormDTO = {
     datasetOutputURI: "",
     queue: "Default",
     maxIdleTime: "Default",
-    selectedPipeline: "",
+    selectedPipelineId: "",
 }
 
 export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3PreprocessFormDTO> = {
@@ -87,3 +88,99 @@ export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3Preproce
 
     ],
 }
+
+
+
+
+
+export const S3PreprocessingAppPipelineStructure: PipelineStep[][] = [
+    [{
+        id: "S3PreprocessingAppPipelineStructure_1.1",
+        title: "Dataset Configuration",
+        previousStepIds: [],
+        nextStepIds: [],
+        data: [],
+        addedInfo: [
+            {label: "Dataset Project", field: ""}
+        ],
+        sideDetails: {
+            details: [
+                {label: "Dataset Name", field: ""},
+                {label: "Dataset Version", field: ""},
+                {label: "Dataset Ingest Date", field: ""},
+                {label: "Repo Name", field: ""},
+                {label: "Datasource Location", field: ""},
+            ],
+            configuration: "test",
+        }
+    }],
+    [{
+        id: "S3PreprocessingAppPipelineStructure_2.1",
+        title: "Document Segmentation",
+        previousStepIds: ["S3PreprocessingAppPipelineStructure_1.1"],
+        nextStepIds: [],
+        data: [],
+        addedInfo: [
+            {label: "Total Files Processed", field: ""}
+        ],
+        sideDetails: {
+            details: [
+                {label: "Step Started", field: ""},
+                {label: "Step Ended", field: ""},
+                {label: "Time Elapsed", field: ""},
+                {label: "Total Files Ingested", field: ""},
+                {label: "Total Files Segments", field: ""},
+                {label: "Average Segment Size", field: ""},
+                {label: "Largest Segmentation Size", field: ""},
+            ],
+        }
+    }],
+    [{
+        id: "S3PreprocessingAppPipelineStructure_3.1",
+        title: "Document Vectorization",
+        previousStepIds: ["S3PreprocessingAppPipelineStructure_2.1"],
+        nextStepIds: [],
+        data: [],
+        addedInfo: [
+            {label: "Repo Name", field: ""}
+        ],
+        sideDetails: {
+            details: [
+                {label: "Step Started", field: ""},
+                {label: "Step Ended", field: ""},
+                {label: "Time Elapsed", field: ""},
+                {label: "Total Files Ingested", field: ""},
+                {label: "Total Files Segments", field: ""},
+                {label: "Average Token Size", field: ""},
+                {label: "Largest Token Size", field: ""},
+                {label: "Embedding Model Used", field: ""},
+                {label: "Embedding Model Dimension", field: ""},
+            ],
+        }
+    }],
+    [{
+        id: "S3PreprocessingAppPipelineStructure_4.1",
+        title: "Vector DB",
+        previousStepIds: ["S3PreprocessingAppPipelineStructure_3.1"],
+        nextStepIds: [],
+        data: [],
+        addedInfo: [
+            {label: "Repo Name", field: ""}
+        ],
+        sideDetails: {
+            details: [
+                {label: "Source URL", field: ""},
+                {label: "Source ID", field: ""},
+                {label: "Source Version", field: ""},
+                {label: "Source Doc Created", field: ""},
+                {label: "Source Last Modified", field: ""},
+                {label: "Document File Name", field: ""},
+                {label: "Document Type", field: ""},
+                {label: "Document Version", field: ""},
+                {label: "Languages", field: ""},
+                {label: "Page Number", field: ""},
+            ],
+        }
+    }],
+];
+

@@ -85,8 +85,8 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
 
      function setSelectedPipeline(data: Initializers, flow?: CommonSelectOption): void {
         if (!flow?.value) return;
-        if ("selectedPipeline" in data) {
-            data.selectedPipeline = flow.value;
+        if ("selectedPipelineId" in data) {
+            data.selectedPipelineId = flow.value;
         }
      }
 

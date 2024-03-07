@@ -8,14 +8,14 @@
     border-radius: 8px;
     background-color: var(--ev-colors-backgroundHighContrast);
 
-
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 20px;
     flex-wrap: wrap;
 
-
+    cursor: default;
+    
 
     &.inert {
         & .main-details-text { flex-grow: 0.5; }

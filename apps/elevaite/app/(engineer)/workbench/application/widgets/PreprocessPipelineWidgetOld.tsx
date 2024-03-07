@@ -53,8 +53,8 @@ export function PreprocessPipelineWidgetOld(props: PreprocessPipelineWidgetProps
     function returnStepsWhichDependOn(steps: PipelineStep[], dependencies: string[]): PipelineStep[] {
         const returningSteps: PipelineStep[] = [];
         for (const step of steps) {
-            if ((dependencies.length === 0 && step.dependsOn.length ===0) || 
-                step.dependsOn.some(id => { return dependencies.includes(id); })
+            if ((dependencies.length === 0 && step.previousStepIds.length ===0) || 
+                step.previousStepIds.some(id => { return dependencies.includes(id); })
             ) returningSteps.push(step);
         }
         return returningSteps;

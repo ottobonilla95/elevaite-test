@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getApplicationById, getApplicationPipelines } from "../../../lib/actions";
 import { S3DataRetrievalAppInstanceForm } from "../../../lib/dataRetrievalApps";
+import { attachSideInfoToPipelineSteps } from "../../../lib/helpers";
 import type { AppInstanceFormStructure, AppInstanceObject, ApplicationObject, Initializers, PipelineObject } from "../../../lib/interfaces";
 import { S3PreprocessingAppInstanceForm } from "../../../lib/preprocessingApps";
 import AppInstanceList from "./AppInstanceList";
@@ -51,7 +52,7 @@ export default function Page(): JSX.Element {
         if (!id) return;
         const fetchedPipelines = await getApplicationPipelines(id);
         if (fetchedPipelines.length === 0) return;
-        setPipelines(fetchedPipelines);
+        setPipelines(attachSideInfoToPipelineSteps(fetchedPipelines, id));
       } catch (error) {
         // setHasError(true);
         // eslint-disable-next-line no-console -- Current handling (consider a different error handling)

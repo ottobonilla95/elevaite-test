@@ -1,0 +1,68 @@
+
+
+.pipeline-info-configuration-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+
+    background-color: var(--ev-colors-background);
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: default;
+
+    & .info-config-block {
+    
+        
+        & .info-config-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            color: var(--ev-colors-secondaryText);
+            position: relative;
+
+            &.skeleton {
+                @include skeleton($width: 50%);
+            }
+
+            // & .info-config-icon {
+    
+            // }
+        }
+
+        & .info-config-value {
+            position: relative;
+
+            &.skeleton {
+                @include skeleton($backgroundColor: var(--ev-colors-secondaryText), $width: 70%);
+            }
+        }
+
+        & .info-config-checkbox {
+            height: 18px;
+            width: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid var(--ev-colors-borderColor);
+            border-radius: 4px;
+            & > svg { color: var(--ev-colors-highlight); }
+        }
+    }
+
+
+    & .info-config-group-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid var(--ev-colors-borderColor);
+        border-radius: 8px;
+
+        & .config-group-title {
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+    }
+}

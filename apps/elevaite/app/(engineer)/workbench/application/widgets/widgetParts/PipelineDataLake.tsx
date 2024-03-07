@@ -6,7 +6,9 @@ import "./PipelineDataLake.scss";
 
 
 interface PipelineDataLakeProps {
-
+    totalFiles: number;
+    doc?: number;
+    zip?: number;
 }
 
 export function PipelineDataLake(props: PipelineDataLakeProps): JSX.Element {
@@ -18,9 +20,13 @@ export function PipelineDataLake(props: PipelineDataLakeProps): JSX.Element {
             <span className="title">Data Lake</span>
 
             <div className="file-info-container">
-                <div className="file-info">21 Total Files</div>
-                <div className="file-info"><span>18</span><span className="type">.docx</span></div>
-                <div className="file-info"><span>3</span><span className="type">.zip</span></div>
+                <div className="file-info">{props.totalFiles} Total Files</div>
+                {!props.doc ? undefined : 
+                    <div className="file-info"><span>{props.doc}</span><span className="type">.docx</span></div>
+                }
+                {!props.zip ? undefined :
+                    <div className="file-info"><span>{props.zip}</span><span className="type">.zip</span></div>
+                }
             </div>
 
             <div className="search-container">

@@ -2,6 +2,7 @@
 import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import type { AppInstanceObject, PipelineStatusItem, PipelineStep, PipelineStepData } from "../../../../lib/interfaces";
+import { ApplicationType } from "../../../../lib/interfaces";
 import "./PipelineWidget.scss";
 import { PipelineDiagram } from "./widgetParts/PipelineDiagram";
 import { PipelineInfo } from "./widgetParts/PipelineInfo";
@@ -12,8 +13,7 @@ import { PipelineInfo } from "./widgetParts/PipelineInfo";
 
 
 interface PipelineWidgetProps {
-    title: string;
-    subtitle: string;
+    type?: ApplicationType;
     flowLabel?: string;
     pipelineSteps?: PipelineStep[];
     initialStep?: string;
@@ -25,6 +25,8 @@ export function PipelineWidget(props: PipelineWidgetProps): JSX.Element {
     const [foundationSteps, setFoundationSteps] = useState<(PipelineStep & PipelineStepData)[][]>([]);
     const [displaySteps, setDisplaySteps] = useState<(PipelineStep & PipelineStepData)[][]>([]);
     const [selectedStep, setSelectedStep] = useState<(PipelineStep & PipelineStepData)|undefined>();
+    const [selectedStepOrder, setSelectedStepOrder] = useState("");
+
 
 
     useEffect(() => {
@@ -42,8 +44,9 @@ export function PipelineWidget(props: PipelineWidgetProps): JSX.Element {
 
 
 
-    function handleSelectedStep(step: PipelineStep & PipelineStepData): void {
+    function handleSelectedStep(step: PipelineStep & PipelineStepData, stepOrder?: string): void {
         setSelectedStep(step.id === selectedStep?.id ? undefined : step);
+        setSelectedStepOrder(step.id === selectedStep?.id ? "" : stepOrder ?? "");
     }
 
 
@@ -69,8 +72,8 @@ export function PipelineWidget(props: PipelineWidgetProps): JSX.Element {
         const returningSteps: PipelineStep[] = [];
         for (const step of steps) {
             if (
-                (dependencies.length === 0 && step.dependsOn.length === 0) ||
-                step.dependsOn.some((id) => {
+                (dependencies.length === 0 && step.previousStepIds.length === 0) ||
+                step.previousStepIds.some((id) => {
                     return dependencies.includes(id);
                 })
             )
@@ -88,7 +91,7 @@ export function PipelineWidget(props: PipelineWidgetProps): JSX.Element {
             let relevantStep: (PipelineStep & PipelineStepData) | undefined;
             for (const stepGroup of stepClone) {
                 for (const step of stepGroup) {
-                    if (step.id === status.step) relevantStep = step;
+                    if (step.id === status.stepId) relevantStep = step;
                 }
             }
             if (relevantStep) {
@@ -104,8 +107,12 @@ export function PipelineWidget(props: PipelineWidgetProps): JSX.Element {
         <div className="preprocess-pipeline-widget-container">
             <div className="pipeline-header">
                 <div className="pipeline-titles">
-                    <span className="main">{props.title}</span>
-                    <span className="sub">{props.subtitle}</span>
+                    <span className="main">
+                        {`${props.type === ApplicationType.INGEST ? "AWS S3 Ingest" : props.type === ApplicationType.PREPROCESS ? "Preprocess" : ""} runtime details`}
+                    </span>
+                    <span className="sub">
+                        {`${props.type === ApplicationType.INGEST ? "Ingest" : props.type === ApplicationType.PREPROCESS ? "Preprocess" : ""} ${props.flowLabel ? `${props.flowLabel} ` : ""}pipeline`}
+                    </span>
                 </div>
                 <CommonButton
                     className={["pipeline-accordion-button", isClosed ? "closed" : undefined].filter(Boolean).join(" ")}
@@ -126,10 +133,14 @@ export function PipelineWidget(props: PipelineWidgetProps): JSX.Element {
                             steps={displaySteps}
                             selectedStepId={selectedStep?.id}
                             onSelectedStep={handleSelectedStep}
+                            type={props.type}
                         />
 
-                        <PipelineInfo
-
+                        <PipelineInfo                        
+                            selectedInstance={props.selectedInstance}
+                            selectedStep={selectedStep}
+                            selectedStepOrder={selectedStepOrder}
+                            type={props.type}
                         />
                     </div>
 

@@ -17,7 +17,8 @@ export default function ApplicationDetails({isLoading, applicationDetails, onBac
     //TODO: Do this properly.
     function getIcon(id?: string): React.ReactNode {
         if (!id) return null;
-        if (id === "1") return <Logos.Aws/>;
+        // eslint-disable-next-line eqeqeq -- This is testing, and consistency isn't expected or required
+        if (id == "1") return <Logos.Aws/>;
         return <Logos.Preprocess/>;
     }
 

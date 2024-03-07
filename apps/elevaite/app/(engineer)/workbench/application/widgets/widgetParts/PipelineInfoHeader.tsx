@@ -3,7 +3,7 @@ import "./PipelineInfoHeader.scss";
 
 
 interface PipelineInfoHeaderProps {
-    title: string;
+    title?: string;
     step?: string;
     children?: React.ReactNode;
 }
@@ -13,11 +13,11 @@ export function PipelineInfoHeader(props: PipelineInfoHeaderProps): JSX.Element 
         <div className="pipeline-info-header-container">
 
             <div className="title-row">
-                <span>{props.title}</span>
+                <span>{props.title ? props.title : "Select Step"}</span>
                 {props.children}
             </div>
 
-            <span>{props.step ? `${props.step} — Details` : ""}</span>
+            <span>{!props.title ? "to see details" : props.step ? `${props.step} — Details` : ""}</span>
 
         </div>
     );

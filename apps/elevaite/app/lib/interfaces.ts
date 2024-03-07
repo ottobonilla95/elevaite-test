@@ -37,35 +37,44 @@ export enum AppInstanceFieldTypes {
 ////////////////
 
 export interface ApplicationObject {
-    id: "string",
-    applicationType: ApplicationType,
-    creator: "string",
-    description: "string",
-    icon: "string",
-    title: "string",
-    version: "string",
+    id: "string";
+    applicationType: ApplicationType;
+    creator: "string";
+    description: "string";
+    icon: "string";
+    title: "string";
+    version: "string";
 }
 
 export interface AppInstanceObject {
-    id: string,
-    creator: string,
-    name?: string,
-    comment?: string,
-    startTime: string,
-    endTime?: string,
-    status: AppInstanceStatus,
-    datasetId: string,
-    chartData?: ChartDataObject,
-    selectedPipeline?: string,
+    id: string;
+    creator: string;
+    name?: string;
+    comment?: string;
+    startTime: string;
+    endTime?: string;
+    status: AppInstanceStatus;
+    projectId?: string;
+    datasetId: string;
+    chartData?: ChartDataObject;
+    selectedPipelineId?: string;
     pipelineStepStatuses?: PipelineStatusItem[];
+    configuration?: AppInstanceConfigurationObject;
 }
 
 export interface ChartDataObject {
-    totalItems: number,
-    ingestedItems: number,
-    avgSize: number,
-    totalSize: number,
-    ingestedSize: number,
+    totalItems: number;
+    ingestedItems: number;
+    avgSize: number;
+    totalSize: number;
+    ingestedSize: number;
+}
+
+export interface AppInstanceConfigurationObject {
+    id: string;
+    applicationId: string | number;
+    instanceId: string;
+    raw: string;
 }
 
 export interface PipelineObject {
@@ -77,9 +86,12 @@ export interface PipelineObject {
 
 export interface PipelineStep {
     id: string;
-    dependsOn: string[];
+    previousStepIds: string[];
+    nextStepIds: string[];
     title: string;
     data: [];
+    addedInfo?: PipelineStepAddedInfo[];
+    sideDetails?: PipelineStepSideDetails;
 }
 
 export interface PipelineStepData {    
@@ -88,11 +100,24 @@ export interface PipelineStepData {
     endTime?: string;
 }
 
+export interface PipelineStepAddedInfo {
+    label: string;
+    field?: string;
+}
+
+export interface PipelineStepSideDetails {
+    details?: {label: string; field?: string;}[];
+    configuration?: string;
+    webhook?: string;
+    datalake?: { totalFiles: number; doc?: number; zip?: number};
+}
+
 export interface PipelineStatusItem {
-    step: string;
+    stepId: string;
     status: PipelineStatus;
     startTime: string;
     endTime: string;
+    instanceId: string;
 }
 
 
@@ -137,30 +162,33 @@ export type Initializers =
 
 
 export interface S3IngestFormDTO {
-    creator: string,
-    name: string,
-    project: string,
-    version: string, // Deprecated. Return ""
-    parent: string,
-    outputURI: string, // Deprecated. Return ""
-    connectionName: string,
-    description: string,
-    url: string,
-    useEC2: boolean,
-    roleARN: string,
+    projectId: string;
+    creator: string;
+    name: string;
+    project: string;
+    version: string; // Deprecated. Return ""
+    parent: string;
+    outputURI: string; // Deprecated. Return ""
+    connectionName: string;
+    description: string;
+    url: string;
+    useEC2: boolean;
+    roleARN: string;
+    selectedPipelineId: string;
 }
 
 export interface S3PreprocessFormDTO {
-    creator: string,
-    name: string,
-    datasetId: string,
-    datasetName: string,
-    datasetProject: string,
-    datasetVersion: string,
-    datasetOutputURI: string,
+    projectId: string;
+    creator: string;
+    name: string;
+    datasetId: string;
+    datasetName: string;
+    datasetProject: string;
+    datasetVersion: string;
+    datasetOutputURI: string;
     queue: string;
-    maxIdleTime: string,
-    selectedPipeline: string,
+    maxIdleTime: string;
+    selectedPipelineId: string;
 }
 
 

@@ -14,7 +14,7 @@ type PipelineDiagramStepProps =
     stepNumber?: number;
     endStep?: number;
     selectedStepId?: string;
-    onSelectedStep?: (step: PipelineStep) => void;
+    onSelectedStep?: (step: PipelineStep, stepOrder?: string) => void;
 }
 
 
@@ -31,7 +31,7 @@ export function PipelineDiagramStep({stepNumber, endStep, selectedStepId, onSele
 
 
     function handleClick(): void {
-        if (onSelectedStep) onSelectedStep({...props});
+        if (onSelectedStep) onSelectedStep({...props}, stepLabel);
     }
 
 
@@ -99,10 +99,14 @@ export function PipelineDiagramStep({stepNumber, endStep, selectedStepId, onSele
                 )} */}
             </div>
             <span className={props.status === PipelineStatus.COMPLETED ? "completed" : ""}>{props.title}</span>
-            <div className="pipeline-extra-container">
-                <div className="pipeline-extra-label">Dataset Project:</div>
-                <div className="pipeline-extra-text">This is a test dataset project name</div>
-            </div>
+            {!props.addedInfo ? null : 
+                props.addedInfo.map(info => 
+                    <div className="pipeline-extra-container" key={info.label}>
+                        <div className="pipeline-extra-label">{`${info.label}:`}</div>
+                        <div className="pipeline-extra-text">{info.field ?? ""}</div>
+                    </div>
+                )
+            }
         </CommonButton>
     );
 }
