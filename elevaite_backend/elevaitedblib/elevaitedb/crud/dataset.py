@@ -1,8 +1,7 @@
 from sqlalchemy.orm import Session
 
-from elevaitedb.db import models
-
-from elevaitedb.schemas.dataset import DatasetCreate
+from ..db import models
+from ..schemas.dataset import DatasetCreate
 
 
 def get_dataset_by_id(db: Session, dataset_id: str):

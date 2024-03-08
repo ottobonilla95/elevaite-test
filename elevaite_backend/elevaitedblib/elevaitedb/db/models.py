@@ -1,12 +1,24 @@
+from datetime import datetime
 import uuid
 from pydantic import UUID4
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Table, Uuid, JSON
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Uuid,
+    JSON,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 
-from elevaitedb.schemas.instance import InstanceStatus
-from elevaitedb.schemas.pipeline import PipelineStepStatus
-from elevaitedb.schemas.application import ApplicationType
+from ..schemas.instance import InstanceStatus
+from ..schemas.pipeline import PipelineStepStatus
+from ..schemas.application import ApplicationType
 from .database import Base
 
 
@@ -28,17 +40,19 @@ class Application(Base):
 class Instance(Base):
     __tablename__ = "instances"
 
-    id = Column(Uuid, primary_key=True, default=uuid.uuid4())
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     creator = Column(String)
     name = Column(String)
     comment = Column(String, nullable=True)
     startTime = Column(String, nullable=True)
     endTime = Column(String, nullable=True)
     status = Column(Enum(InstanceStatus))
-    datasetId = Column(Uuid, ForeignKey("datasets.id"), nullable=True)
-    selectedPipelineId = Column(Uuid, ForeignKey("pipelines.id"), nullable=True)
-    applicationId = Column(Integer, ForeignKey("applications.id"), nullable=True)
-    projectId = Column(Uuid, ForeignKey("projects.id"), nullable=True)
+    datasetId = Column(Uuid, ForeignKey("datasets.id"), nullable=False)
+    selectedPipelineId = Column(Uuid, ForeignKey("pipelines.id"), nullable=False)
+    applicationId = Column(Integer, ForeignKey("applications.id"), nullable=False)
+    configurationId = Column(Uuid, ForeignKey("configurations.id"), nullable=False)
+    projectId = Column(Uuid, ForeignKey("projects.id"), nullable=False)
+    configurationRaw = Column(JSON)
 
     chartData = relationship(
         "InstanceChartData", back_populates="instance", uselist=False
@@ -50,9 +64,7 @@ class Instance(Base):
     application = relationship("Application", back_populates="instances", uselist=False)
     project = relationship("Project", uselist=False)
     dataset = relationship("Dataset", uselist=False)
-    configuration = relationship(
-        "Configuration", back_populates="instance", uselist=False
-    )
+    configuration = relationship("Configuration", back_populates="instances")
 
 
 class InstanceChartData(Base):
@@ -73,7 +85,7 @@ class InstanceChartData(Base):
 class Pipeline(Base):
     __tablename__ = "pipelines"
 
-    id = Column(Uuid, primary_key=True, default=uuid.uuid4())
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     entry = Column(Uuid, ForeignKey("pipeline_steps.id"))
     exit = Column(Uuid, ForeignKey("pipeline_steps.id"))
     label = Column(String)
@@ -96,7 +108,7 @@ pipeline_step_deps = Table(
 
 class PipelineStep(Base):
     __tablename__ = "pipeline_steps"
-    id = Column(Uuid, primary_key=True, default=uuid.uuid4())
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     title = Column(String)
     pipelineId = Column(Uuid, ForeignKey("pipelines.id"))
     # parent_id = Column(String, ForeignKey("pipeline_steps.id"))
@@ -159,19 +171,22 @@ class InstancePipelineStepStatus(Base):
 class Configuration(Base):
     __tablename__ = "configurations"
 
-    id = Column(Uuid, primary_key=True, default=uuid.uuid4())
-    instanceId = Column(Uuid, ForeignKey("instances.id"), primary_key=True)
-    applicationId = Column(Integer, ForeignKey("applications.id"), primary_key=True)
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    applicationId = Column(Integer, ForeignKey("applications.id"))
+    name = Column(String, unique=True)
+    createDate = Column(DateTime, default=datetime.utcnow)
+    updateDate = Column(DateTime, nullable=True, onupdate=datetime.utcnow)
+    isTemplate = Column(Boolean)
     raw = Column(JSON)
 
-    instance = relationship("Instance", back_populates="configuration")
+    instances = relationship("Instance", back_populates="configuration", uselist=True)
     application = relationship("Application")
 
 
 class Dataset(Base):
     __tablename__ = "datasets"
 
-    id = Column(Uuid, primary_key=True, default=uuid.uuid4())
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     name = Column(String)
     projectId = Column(Uuid, ForeignKey("projects.id"))
 
@@ -181,7 +196,7 @@ class Dataset(Base):
 class Project(Base):
     __tablename__ = "projects"
 
-    id = Column(Uuid, primary_key=True, default=uuid.uuid4())
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     name = Column(String)
 
     datasets = relationship("Dataset", back_populates="project")

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from elevaitedb.db import models
-from elevaitedb.schemas.project import ProjectCreate
+from ..db import models
+from ..schemas.project import ProjectCreate
 
 
 def get_project_by_id(db: Session, project_id: str):

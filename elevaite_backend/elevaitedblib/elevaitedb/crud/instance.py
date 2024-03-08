@@ -14,7 +14,7 @@ def get_instances(db: Session, applicationId: int, skip: int = 0, limit: int = 0
     )
 
 
-def get_instance_by_id(db: Session, applicationId: int, id: int):
+def get_instance_by_id(db: Session, applicationId: int, id: str):
     return (
         db.query(models.Instance)
         .filter(models.Instance.applicationId == applicationId)

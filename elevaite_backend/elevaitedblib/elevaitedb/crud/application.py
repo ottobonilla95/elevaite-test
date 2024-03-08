@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from elevaitedb.db import models
-from elevaitedb.schemas import application
+from ..db import models
+from ..schemas import application
 
 
 def get_applications(db: Session, skip: int = 0, limit: int = 100):

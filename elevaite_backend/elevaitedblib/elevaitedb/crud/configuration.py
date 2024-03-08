@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from elevaitedb.db import models
-from elevaitedb.schemas import configuration as schema
+from ..db import models
+from ..schemas import configuration as schema
 
 
 def get_configuration_by_id(db: Session, application_id: int, instance_id: int):
@@ -13,12 +13,19 @@ def get_configuration_by_id(db: Session, application_id: int, instance_id: int):
     )
 
 
+def get_configurations_of_application(db: Session, application_id: int):
+    return (
+        db.query(models.Configuration)
+        .filter(models.Configuration.applicationId == application_id)
+        .all()
+    )
+
+
 def create_configuration(
     db: Session,
     configurationCreate: schema.ConfigurationCreate,
 ):
     _configuration = models.Configuration(
-        instanceId=configurationCreate.instanceId,
         applicationId=configurationCreate.applicationId,
         raw=configurationCreate.raw,
     )

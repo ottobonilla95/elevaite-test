@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import TypeGuard
 from pydantic import UUID4, BaseModel, Json
 
@@ -11,10 +12,11 @@ class BaseDatasetInformationForm(BaseModel):
     outputURI: str | None
     datasetId: str | None
     selectedPipelineId: str
+    configurationName: str
 
 
 class S3IngestFormDataDTO(BaseDatasetInformationForm):
-    connectionName: str
+    type: str = "ingest"
     description: str | None
     url: str
     useEC2: bool
@@ -22,15 +24,19 @@ class S3IngestFormDataDTO(BaseDatasetInformationForm):
 
 
 class PreProcessFormDTO(BaseDatasetInformationForm):
+    type: str = "preprocess"
     datasetVersion: str | None
     queue: str
     maxIdleTime: str
 
 
 class ConfigurationBase(BaseModel):
-    instanceId: UUID4
     applicationId: int
     raw: S3IngestFormDataDTO | PreProcessFormDTO | str
+    name: str
+    createDate: datetime
+    updateDate: datetime
+    isTemplate: bool
 
 
 class ConfigurationCreate(ConfigurationBase):

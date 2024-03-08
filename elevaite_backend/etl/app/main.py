@@ -6,6 +6,8 @@ import uvicorn
 from sqlalchemy.orm import Session
 
 from app.routers.applications import router as applications_router
+from app.routers.instances import router as instances_router
+from app.routers.configurations import router as configuration_router
 
 from app.util.RedisSingleton import RedisSingleton
 from app.util.ElasticSingleton import ElasticSingleton
@@ -31,6 +33,8 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(applications_router)
+app.include_router(instances_router)
+app.include_router(configuration_router)
 
 
 @app.get("/hc")

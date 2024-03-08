@@ -21,10 +21,12 @@ class InstanceBase(BaseModel):
     startTime: Union[str, None]
     endTime: Union[str, None]
     status: InstanceStatus
-    datasetId: Union[UUID4, None]
-    projectId: Union[UUID4, None]
-    selectedPipelineId: Union[UUID4, None]
-    applicationId: Union[int, None]
+    datasetId: UUID4
+    projectId: UUID4
+    selectedPipelineId: UUID4
+    configurationId: UUID4
+    applicationId: int
+    configurationRaw: str
 
 
 class InstanceChartData(BaseModel):
