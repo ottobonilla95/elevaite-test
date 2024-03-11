@@ -46,3 +46,8 @@ def getConfigurationsOfApplication(db: Session, application_id: int):
 def getConfigurationById(db: Session, application_id: int, conf_id: str):
     _conf = configuration_crud.get_configuration_by_id(db, application_id, conf_id)
     return _conf
+
+
+def createConfiguration(db: Session, create_configuration: ConfigurationCreate):
+    _conf = configuration_crud.create_configuration(db, create_configuration)
+    return _conf

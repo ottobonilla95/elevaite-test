@@ -82,6 +82,18 @@ def createApplicationInstance(
 
     createInstanceDto.datasetId = str(_dataset.id)
 
+    _configuration_raw = json.dumps(
+        createInstanceDto, default=lambda o: o.__dict__, sort_keys=True, indent=4
+    )
+    _configuration_create = ConfigurationCreate(
+        applicationId=application_id,
+        isTemplate=createInstanceDto.isTemplate,
+        name=createInstanceDto.configurationName,
+        raw=_configuration_raw,
+    )
+
+    _configuration = configuration_crud.create_configuration(db, _configuration_create)
+
     if not is_dataset(_dataset):
         raise HTTPException(status_code=404, detail="Application not found")
 
@@ -93,6 +105,9 @@ def createApplicationInstance(
         selectedPipelineId=createInstanceDto.selectedPipelineId,
         name=createInstanceDto.name,
         status=InstanceStatus.STARTING,
+        configurationId=_configuration.id,
+        configurationRaw=_configuration_raw,
+        projectId=createInstanceDto.projectId,
     )
 
     _instance = instance_crud.create_instance(db, _instance_create)
@@ -100,16 +115,6 @@ def createApplicationInstance(
         raise HTTPException(
             status_code=500, detail="Error inserting instance in database"
         )
-
-    _configuration_create = ConfigurationCreate(
-        instanceId=_instance.id,
-        applicationId=application_id,
-        raw=json.dumps(
-            createInstanceDto, default=lambda o: o.__dict__, sort_keys=True, indent=4
-        ),
-    )
-
-    _configuration = configuration_crud.create_configuration(db, _configuration_create)
 
     if not is_pipeline(_pipeline):
         _instance_update = InstanceUpdate(
@@ -166,7 +171,9 @@ def createApplicationInstance(
         db, applicationId=application_id, id=_instance.id
     )
 
-    return _instance
+    pprint(__instance.configuration.__dict__)
+
+    return __instance
 
 
 def approveApplicationInstance(

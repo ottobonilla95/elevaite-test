@@ -27,6 +27,8 @@ def create_configuration(
 ):
     _configuration = models.Configuration(
         applicationId=configurationCreate.applicationId,
+        name=configurationCreate.name,
+        isTemplate=configurationCreate.isTemplate,
         raw=configurationCreate.raw,
     )
     # app.applicationType = createApplicationDTO

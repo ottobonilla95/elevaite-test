@@ -30,11 +30,14 @@ def create_instance(
     _instance = models.Instance(
         creator=createInstanceDTO.creator,
         name=createInstanceDTO.name,
-        applicationId=createInstanceDTO.applicationId,
-        selectedPipelineId=createInstanceDTO.selectedPipelineId,
-        status=schema.InstanceStatus.STARTING,
         startTime=createInstanceDTO.startTime,
+        status=schema.InstanceStatus.STARTING,
         datasetId=createInstanceDTO.datasetId,
+        selectedPipelineId=createInstanceDTO.selectedPipelineId,
+        applicationId=createInstanceDTO.applicationId,
+        configurationId=createInstanceDTO.configurationId,
+        projectId=createInstanceDTO.projectId,
+        configurationRaw=createInstanceDTO.configurationRaw,
     )
     # app.applicationType = createApplicationDTO
     db.add(_instance)

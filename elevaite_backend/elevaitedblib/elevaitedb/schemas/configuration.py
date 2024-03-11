@@ -13,6 +13,7 @@ class BaseDatasetInformationForm(BaseModel):
     datasetId: str | None
     selectedPipelineId: str
     configurationName: str
+    isTemplate: bool
 
 
 class S3IngestFormDataDTO(BaseDatasetInformationForm):
@@ -34,8 +35,6 @@ class ConfigurationBase(BaseModel):
     applicationId: int
     raw: S3IngestFormDataDTO | PreProcessFormDTO | str
     name: str
-    createDate: datetime
-    updateDate: datetime
     isTemplate: bool
 
 
@@ -45,6 +44,8 @@ class ConfigurationCreate(ConfigurationBase):
 
 class Configuration(ConfigurationBase):
     id: UUID4
+    createDate: datetime
+    updateDate: datetime | None
 
     class Config:
         orm_mode = True

@@ -32,7 +32,8 @@ class S3IngestData:
     outputURI: str | None
     datasetId: str
     selectedPipelineId: str
-    connectionName: str
+    configurationName: str
+    isTemplate: bool
     description: str | None
     url: str
     useEC2: bool
@@ -50,7 +51,9 @@ class S3IngestData:
         outputURI: str | None,
         datasetId: str,
         selectedPipelineId: str,
-        connectionName: str,
+        configurationName: str,
+        isTemplate: bool,
+        type: str,
         description: str | None,
         url: str,
         useEC2: bool,
@@ -66,7 +69,8 @@ class S3IngestData:
         self.outputURI = outputURI
         self.datasetId = datasetId
         self.selectedPipelineId = selectedPipelineId
-        self.connectionName = connectionName
+        self.configurationName = configurationName
+        self.isTemplate = isTemplate
         self.description = description
         self.url = url
         self.useEC2 = useEC2
@@ -309,6 +313,7 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
     except Exception as e:
         print("Error")
         print(e)
+        print(e.with_traceback())
         instance_crud.update_instance(
             db,
             formData.applicationId,
