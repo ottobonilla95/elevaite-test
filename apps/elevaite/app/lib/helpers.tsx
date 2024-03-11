@@ -1,6 +1,8 @@
+import dayjs from "dayjs";
 import { S3DataRetrievalAppPipelineStructure } from "./dataRetrievalApps";
 import { isInitializerDto } from "./discriminators";
-import type { Initializers, PipelineObject, PipelineStep } from "./interfaces";
+import type { AppInstanceObject, ApplicationType, ChartDataObject, Initializers, PipelineObject, PipelineStep, PipelineStepAddedInfo } from "./interfaces";
+import { StepDataSource, StepDataType } from "./interfaces";
 import { S3PreprocessingAppPipelineStructure } from "./preprocessingApps";
 
 
@@ -36,6 +38,29 @@ export function getConfigurationObjectFromRaw(raw?: string): Initializers|undefi
     const parsedConfiguration = JSON.parse(raw) as unknown;
     if (!isInitializerDto(parsedConfiguration)) return;
     return parsedConfiguration;
+}
+
+
+
+export function getDisplayValueFromStepDetail(detail: PipelineStepAddedInfo, step?: PipelineStep, instance?: AppInstanceObject, appType?: ApplicationType): string {
+    if (!detail.field || !instance || !appType) return "";
+
+    let source: PipelineStep | Initializers | AppInstanceObject | ChartDataObject | undefined;
+    switch (detail.source) {
+        case StepDataSource.CONFIG: source = getConfigurationObjectFromRaw(instance.configuration?.raw); break;
+        case StepDataSource.INSTANCE: source = instance; break;
+        case StepDataSource.CHART: source = instance.chartData; break;
+        case StepDataSource.STEP: source = step; break;
+        default: source = instance; break;
+    }
+
+    if (source?.[detail.field] && (typeof source[detail.field] === "string" || typeof source[detail.field] === "number")) {
+        const result = source[detail.field] as string;
+        if (detail.type === StepDataType.DATE) return dayjs(result).format("DD-MMM-YYYY, hh:mm:ss a");
+        return result;
+    }
+
+    return "";
 }
 
 

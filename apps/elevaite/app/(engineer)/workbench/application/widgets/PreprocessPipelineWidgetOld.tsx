@@ -69,7 +69,7 @@ export function PreprocessPipelineWidgetOld(props: PreprocessPipelineWidgetProps
             let relevantStep: (PipelineStep & PipelineStepData) | undefined;
             for (const stepGroup of stepClone) {
                 for (const step of stepGroup) {
-                    if (step.id === status.step) relevantStep = step;
+                    if (step.id === status.stepId) relevantStep = step;
                 }
             }
             if (relevantStep) {

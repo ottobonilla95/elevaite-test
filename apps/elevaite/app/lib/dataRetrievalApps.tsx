@@ -1,6 +1,6 @@
 import { Logos } from "@repo/ui/components";
 import type { AppInstanceFormStructure, PipelineStep, S3IngestFormDTO } from "./interfaces";
-import { AppInstanceFieldTypes } from "./interfaces";
+import { AppInstanceFieldTypes, StepDataSource, StepDataType } from "./interfaces";
 
 
 
@@ -114,7 +114,7 @@ export const S3DataRetrievalAppPipelineStructure: PipelineStep[][] = [
         nextStepIds: [],
         data: [],
         addedInfo: [
-            {label: "Dataset Project", field: ""}
+            {label: "Dataset Project", field: "project", source: StepDataSource.CONFIG},
         ],
         sideDetails: {
             configuration: "",
@@ -127,15 +127,15 @@ export const S3DataRetrievalAppPipelineStructure: PipelineStep[][] = [
         nextStepIds: [],
         data: [],
         addedInfo: [
-            {label: "Total Files Processed", field: ""}
+            {label: "Total Files Processed", field: "ingestedItems", source: StepDataSource.CHART},
         ],
         sideDetails: {
             details: [
-                {label: "Step Started", field: ""},
-                {label: "Step Ended", field: ""},
+                {label: "Step Started", field: "startTime", source: StepDataSource.STEP, type: StepDataType.DATE},
+                {label: "Step Ended", field: "endTime", source: StepDataSource.STEP, type: StepDataType.DATE},
                 {label: "Time Elapsed", field: ""},
-                {label: "Total Files Processed", field: ""},
-                {label: "Current Document Processed", field: ""},
+                {label: "Total Files Processed", field: "ingestedItems", source: StepDataSource.CHART},
+                {label: "Current File Processed", field: ""},
             ],
             webhook: "http://elevaite-s3docingest.com",
         }
@@ -147,16 +147,16 @@ export const S3DataRetrievalAppPipelineStructure: PipelineStep[][] = [
         nextStepIds: [],
         data: [],
         addedInfo: [
-            {label: "Repo Name", field: ""},
-            {label: "Dataset Id", field: ""}
+            {label: "Repo Name", field: "outputURI", source: StepDataSource.CONFIG},
+            {label: "Dataset Id", field: "datasetId"}
         ],
         sideDetails: {
             details: [
-                {label: "Dataset Name", field: ""},
-                {label: "Dataset Id", field: ""},
-                {label: "Dataset Version", field: ""},
-                {label: "Repo Name", field: ""},
-                {label: "Datasource Location", field: ""},
+                {label: "Dataset Name", field: "name"},
+                {label: "Dataset Id", field: "datasetId"},
+                {label: "Dataset Version", field: "version"},
+                {label: "Repo Name", field: "outputURI", source: StepDataSource.CONFIG},
+                {label: "Datasource Location", field: "outputURI", source: StepDataSource.CONFIG},
             ],
             datalake: {
                 totalFiles: 21,

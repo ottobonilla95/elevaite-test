@@ -82,6 +82,7 @@ export default function Page(): JSX.Element {
   }
 
   function handleSelectedInstanceChange(instance: AppInstanceObject|undefined): void {
+    // console.log("Selected instance", instance);
     setSelectedInstance(instance);
   }
 

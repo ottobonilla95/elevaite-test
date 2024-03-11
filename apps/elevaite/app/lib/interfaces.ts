@@ -32,6 +32,18 @@ export enum AppInstanceFieldTypes {
     GROUP = "group",
 }
 
+export enum StepDataSource {
+    INSTANCE = "instance",
+    CONFIG = "configuration",
+    STEP = "step",
+    CHART = "chartData",
+}
+
+export enum StepDataType {
+    STRING = "string",
+    DATE = "date",
+}
+
 
 // COMMON INTERFACES
 ////////////////
@@ -102,11 +114,13 @@ export interface PipelineStepData {
 
 export interface PipelineStepAddedInfo {
     label: string;
-    field?: string;
+    field: string;
+    source?: StepDataSource;
+    type?: StepDataType;
 }
 
 export interface PipelineStepSideDetails {
-    details?: {label: string; field?: string;}[];
+    details?: PipelineStepAddedInfo[];
     configuration?: string;
     webhook?: string;
     datalake?: { totalFiles: number; doc?: number; zip?: number};

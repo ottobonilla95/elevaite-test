@@ -45,6 +45,7 @@ export function PipelineWidget(props: PipelineWidgetProps): JSX.Element {
 
 
     function handleSelectedStep(step: PipelineStep & PipelineStepData, stepOrder?: string): void {
+        // console.log("Selected step:", step);
         setSelectedStep(step.id === selectedStep?.id ? undefined : step);
         setSelectedStepOrder(step.id === selectedStep?.id ? "" : stepOrder ?? "");
     }
@@ -84,12 +85,12 @@ export function PipelineWidget(props: PipelineWidgetProps): JSX.Element {
 
 
     function getDisplaySteps(steps: PipelineStep[][], statuses?: PipelineStatusItem[]): (PipelineStep & PipelineStepData)[][] {
-        const stepClone: PipelineStep[][] = JSON.parse(JSON.stringify(steps)) as PipelineStep[][];
-        if (!statuses || statuses.length === 0) return stepClone;
+        const stepsClone: PipelineStep[][] = JSON.parse(JSON.stringify(steps)) as PipelineStep[][];
+        if (!statuses || statuses.length === 0) return stepsClone;
 
         for (const status of statuses) {
             let relevantStep: (PipelineStep & PipelineStepData) | undefined;
-            for (const stepGroup of stepClone) {
+            for (const stepGroup of stepsClone) {
                 for (const step of stepGroup) {
                     if (step.id === status.stepId) relevantStep = step;
                 }
@@ -100,7 +101,7 @@ export function PipelineWidget(props: PipelineWidgetProps): JSX.Element {
                 relevantStep.status = status.status;
             }
         }
-        return stepClone;
+        return stepsClone;
     }
 
     return (
@@ -134,9 +135,10 @@ export function PipelineWidget(props: PipelineWidgetProps): JSX.Element {
                             selectedStepId={selectedStep?.id}
                             onSelectedStep={handleSelectedStep}
                             type={props.type}
+                            selectedInstance={props.selectedInstance}
                         />
 
-                        <PipelineInfo                        
+                        <PipelineInfo
                             selectedInstance={props.selectedInstance}
                             selectedStep={selectedStep}
                             selectedStepOrder={selectedStepOrder}

@@ -1,9 +1,10 @@
 "use client";
 import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
-import type { PipelineStep, PipelineStepData } from "../../../../../lib/interfaces";
+import type { AppInstanceObject, ApplicationType, PipelineStep, PipelineStepData } from "../../../../../lib/interfaces";
 import { PipelineStatus } from "../../../../../lib/interfaces";
 import "./PipelineDiagramStep.scss";
+import { getDisplayValueFromStepDetail } from "../../../../../lib/helpers";
 
 
 
@@ -14,6 +15,8 @@ type PipelineDiagramStepProps =
     stepNumber?: number;
     endStep?: number;
     selectedStepId?: string;
+    selectedInstance?: AppInstanceObject;
+    type?: ApplicationType;
     onSelectedStep?: (step: PipelineStep, stepOrder?: string) => void;
 }
 
@@ -103,7 +106,9 @@ export function PipelineDiagramStep({stepNumber, endStep, selectedStepId, onSele
                 props.addedInfo.map(info => 
                     <div className="pipeline-extra-container" key={info.label}>
                         <div className="pipeline-extra-label">{`${info.label}:`}</div>
-                        <div className="pipeline-extra-text">{info.field ?? ""}</div>
+                        <div className="pipeline-extra-text">
+                            {getDisplayValueFromStepDetail(info, {...props}, props.selectedInstance, props.type)}
+                        </div>
                     </div>
                 )
             }

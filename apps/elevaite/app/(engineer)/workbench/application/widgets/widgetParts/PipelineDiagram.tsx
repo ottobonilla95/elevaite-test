@@ -2,7 +2,7 @@
 import { ElevaiteIcons } from "@repo/ui/components";
 import { Fragment, useEffect, useState } from "react";
 import { S3DataRetrievalAppPipelineStructure } from "../../../../../lib/dataRetrievalApps";
-import type { PipelineStep } from "../../../../../lib/interfaces";
+import type { AppInstanceObject, PipelineStep } from "../../../../../lib/interfaces";
 import { ApplicationType } from "../../../../../lib/interfaces";
 import { S3PreprocessingAppPipelineStructure } from "../../../../../lib/preprocessingApps";
 import "./PipelineDiagram.scss";
@@ -26,8 +26,9 @@ const DEFAULT_DISPLAY_STEPS: PipelineStep[][] = [
 
 
 
-interface PipelineDiagramProps {    
+interface PipelineDiagramProps {
     type?: ApplicationType;
+    selectedInstance?: AppInstanceObject;
     steps?: PipelineStep[][];
     selectedStepId?: string;
     onSelectedStep?: (step: PipelineStep, stepOrder?: string) => void;
@@ -71,6 +72,8 @@ export function PipelineDiagram(props: PipelineDiagramProps): JSX.Element {
                                     endStep={displaySteps.length-1}
                                     selectedStepId={props.selectedStepId}
                                     onSelectedStep={props.onSelectedStep}
+                                    selectedInstance={props.selectedInstance}
+                                    type={props.type}
                                     {...step}
                                 />
                             )}

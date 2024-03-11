@@ -30,10 +30,15 @@ export function PipelineInfo(props: PipelineInfoProps): JSX.Element {
             </PipelineInfoHeader>
 
             {!props.selectedStep?.sideDetails?.details ? undefined :
-                <PipelineInfoDetails data={props.selectedStep.sideDetails.details} />
+                <PipelineInfoDetails
+                    data={props.selectedStep.sideDetails.details}
+                    selectedStep={props.selectedStep}
+                    selectedInstance={props.selectedInstance}
+                    type={props.type}
+                />
             }
    
-            {!props.selectedStep?.sideDetails?.configuration ? undefined :
+            {props.selectedStep?.sideDetails?.configuration === undefined ? undefined :
                 <PipelineInfoConfiguration
                     isSkeleton={!props.selectedInstance}
                     type={props.type}
