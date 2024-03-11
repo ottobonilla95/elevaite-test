@@ -189,6 +189,9 @@ export interface S3IngestFormDTO {
     useEC2: boolean;
     roleARN: string;
     selectedPipelineId: string;
+    configurationName: string;
+    isTemplate: boolean;
+    type: ApplicationType;
 }
 
 export interface S3PreprocessFormDTO {
@@ -203,6 +206,9 @@ export interface S3PreprocessFormDTO {
     queue: string;
     maxIdleTime: string;
     selectedPipelineId: string;
+    configurationName: string;
+    isTemplate: boolean;
+    type: ApplicationType;
 }
 
 

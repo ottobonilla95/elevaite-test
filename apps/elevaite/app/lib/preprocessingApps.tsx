@@ -1,6 +1,6 @@
 import { Logos } from "@repo/ui/components";
 import type { AppInstanceFormStructure, PipelineStep, S3PreprocessFormDTO } from "./interfaces";
-import { AppInstanceFieldTypes } from "./interfaces";
+import { AppInstanceFieldTypes, ApplicationType } from "./interfaces";
 
 
 
@@ -17,7 +17,11 @@ export const S3PreprocessFormInitializer: S3PreprocessFormDTO = {
     queue: "Default",
     maxIdleTime: "Default",
     selectedPipelineId: "",
+    configurationName: "",
+    isTemplate: false,
+    type: ApplicationType.PREPROCESS,
 }
+
 
 export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3PreprocessFormDTO> = {
     title: "Preprocess Functions",

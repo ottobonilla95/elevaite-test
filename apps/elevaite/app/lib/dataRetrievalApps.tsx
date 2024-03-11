@@ -1,6 +1,6 @@
 import { Logos } from "@repo/ui/components";
 import type { AppInstanceFormStructure, PipelineStep, S3IngestFormDTO } from "./interfaces";
-import { AppInstanceFieldTypes, StepDataSource, StepDataType } from "./interfaces";
+import { AppInstanceFieldTypes, ApplicationType, StepDataSource, StepDataType } from "./interfaces";
 
 
 
@@ -17,7 +17,10 @@ export const S3DataRetrievalAppInstanceFormInitializer: S3IngestFormDTO = {
     url: "",
     useEC2: false,
     roleARN: "",
-    selectedPipelineId: ""
+    selectedPipelineId: "",
+    configurationName: "",
+    isTemplate: false,
+    type: ApplicationType.INGEST,
 }
 
 
