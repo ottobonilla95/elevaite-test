@@ -40,6 +40,8 @@ class PreProcessForm:
     outputURI: str | None
     datasetId: str | None
     selectedPipelineId: str
+    configurationName: str
+    isTemplate: bool
     datasetVersion: str | None
     queue: str
     maxIdleTime: str
@@ -56,6 +58,9 @@ class PreProcessForm:
         outputURI: str | None,
         datasetId: str | None,
         selectedPipelineId: str,
+        configurationName: str,
+        isTemplate: bool,
+        type: str,
         datasetVersion: str | None,
         queue: str,
         maxIdleTime: str,
@@ -70,6 +75,8 @@ class PreProcessForm:
         self.outputURI = outputURI
         self.datasetId = datasetId
         self.selectedPipelineId = selectedPipelineId
+        self.configurationName = configurationName
+        self.isTemplate = isTemplate
         self.datasetVersion = datasetVersion
         self.queue = queue
         self.maxIdleTime = maxIdleTime
