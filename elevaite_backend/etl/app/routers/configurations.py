@@ -1,4 +1,5 @@
 from pprint import pprint
+from typing import Annotated
 from fastapi import APIRouter, Body, Depends
 from sqlalchemy.orm import Session
 from app.services import configurations as conf_service
@@ -23,4 +24,17 @@ def getApplicationConfigurations(
 ):
     return conf_service.getConfigurationById(
         db, application_id, conf_id=configuration_id
+    )
+
+
+@router.post("/", response_model=configuration_schemas.Configuration)
+def createConfiguration(
+    application_id: int,
+    createConfigurationDto: Annotated[
+        configuration_schemas.ConfigurationCreate, Body()
+    ],
+    db: Session = Depends(get_db),
+):
+    return conf_service.createConfiguration(
+        db, create_configuration=createConfigurationDto
     )

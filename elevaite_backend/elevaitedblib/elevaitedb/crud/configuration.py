@@ -1,14 +1,15 @@
+import json
 from sqlalchemy.orm import Session
 
 from ..db import models
 from ..schemas import configuration as schema
 
 
-def get_configuration_by_id(db: Session, application_id: int, instance_id: int):
+def get_configuration_by_id(db: Session, application_id: int, id: str):
     return (
         db.query(models.Configuration)
         .filter(models.Configuration.applicationId == application_id)
-        .filter(models.Configuration.instanceId == instance_id)
+        .filter(models.Configuration.id == id)
         .first()
     )
 
@@ -29,7 +30,12 @@ def create_configuration(
         applicationId=configurationCreate.applicationId,
         name=configurationCreate.name,
         isTemplate=configurationCreate.isTemplate,
-        raw=configurationCreate.raw,
+        raw=json.dumps(
+            configurationCreate.raw,
+            default=lambda o: o.__dict__,
+            sort_keys=True,
+            indent=4,
+        ),
     )
     # app.applicationType = createApplicationDTO
     db.add(_configuration)

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "elevaitedb"
-version = "0.1.41"
+version = "0.1.46"
 description = ""
 authors = ["John Zachariadis <johnbelly95@gmail.com>"]
 readme = "README.md"

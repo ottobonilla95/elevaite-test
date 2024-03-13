@@ -76,9 +76,8 @@ def getApplicationInstanceConfiguration(
 @router.post("/", response_model=instance_schemas.Instance)
 def createApplicationInstance(
     application_id: int,
-    createApplicationInstanceDto: Annotated[
-        configuration_schemas.S3IngestFormDataDTO
-        | configuration_schemas.PreProcessFormDTO,
+    createInstanceDto: Annotated[
+        instance_schemas.InstanceCreateDTO,
         Body(),
     ],
     rmq: pika.BlockingConnection = Depends(get_rabbitmq_connection),
@@ -87,6 +86,6 @@ def createApplicationInstance(
     return instance_service.createApplicationInstance(
         db=db,
         application_id=application_id,
-        createInstanceDto=createApplicationInstanceDto,
+        createInstanceDto=createInstanceDto,
         rmq=rmq,
     )

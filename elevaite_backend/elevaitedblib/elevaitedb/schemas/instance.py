@@ -14,6 +14,14 @@ class InstanceStatus(str, Enum):
     COMPLETED = "completed"
 
 
+class InstanceStepDataLabel(str, Enum):
+    CURR_DOC = "CURR_DOC"
+    AVG_CHUNK_SIZE = "AVG_CHUNK_SIZE"
+    LRGST_CHUNK_SIZE = "LRGST_CHUNK_SIZE"
+    AVG_TOKEN_SIZE = "AVG_TOKEN_SIZE"
+    LRGST_TOKEN_SIZE = "LRGST_TOKEN_SIZE"
+
+
 class InstanceBase(BaseModel):
     creator: str
     name: str
@@ -52,6 +60,11 @@ class InstancePipelineStepStatus(BaseModel):
         orm_mode = True
 
 
+class InstancePipelineStepData(BaseModel):
+    label: InstanceStepDataLabel
+    value: str | int
+
+
 class InstancePipelineStepStatusUpdate(BaseModel):
     status: PipelineStepStatus | None = None
     startTime: str | None = None
@@ -60,6 +73,14 @@ class InstancePipelineStepStatusUpdate(BaseModel):
 
 class InstanceCreate(InstanceBase):
     pass
+
+
+class InstanceCreateDTO(BaseModel):
+    creator: str
+    configurationId: UUID4
+    projectId: UUID4
+    selectedPipelineId: UUID4
+    instanceName: str
 
 
 class InstanceUpdate(BaseModel):

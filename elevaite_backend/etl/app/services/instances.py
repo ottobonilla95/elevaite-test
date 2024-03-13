@@ -18,6 +18,7 @@ from elevaitedb.schemas.instance import (
     InstancePipelineStepStatusUpdate,
     InstanceStatus,
     InstanceUpdate,
+    InstanceCreateDTO,
     is_instance,
 )
 from elevaitedb.schemas.pipeline import Pipeline, PipelineStepStatus, is_pipeline
@@ -53,7 +54,7 @@ def getApplicationInstanceById(
 def createApplicationInstance(
     db: Session,
     application_id: int,
-    createInstanceDto: S3IngestFormDataDTO | PreProcessFormDTO,
+    createInstanceDto: InstanceCreateDTO,
     rmq: pika.BlockingConnection,
 ) -> Instance:
 
@@ -63,36 +64,32 @@ def createApplicationInstance(
     if not is_application(app):
         raise HTTPException(status_code=404, detail="Application not found")
 
-    _pipeline = pipeline_crud.get_pipeline_by_id(
-        db, createInstanceDto.selectedPipelineId
+    _configuration = configuration_crud.get_configuration_by_id(
+        db, application_id=application_id, id=createInstanceDto.configurationId
     )
+
+    _raw_configuration = json.loads(_configuration.raw)
+    if _raw_configuration["type"] == "ingest":
+        _conf = S3IngestFormDataDTO(**_raw_configuration)
+    else:
+        _conf = PreProcessFormDTO(**_raw_configuration)
+
+    _pipeline = pipeline_crud.get_pipeline_by_id(db, _conf.selectedPipelineId)
 
     # _dataset = None
 
-    if not createInstanceDto.datasetId:
+    if not _conf.datasetId:
         _dataset = dataset_crud.create_dataset(
             db,
             dataset_create=DatasetCreate(
                 name=get_random_name(),
-                projectId=createInstanceDto.projectId,
+                projectId=str(createInstanceDto.projectId),
             ),
         )
     else:
-        _dataset = dataset_crud.get_dataset_by_id(db, createInstanceDto.datasetId)
+        _dataset = dataset_crud.get_dataset_by_id(db, _conf.datasetId)
 
-    createInstanceDto.datasetId = str(_dataset.id)
-
-    _configuration_raw = json.dumps(
-        createInstanceDto, default=lambda o: o.__dict__, sort_keys=True, indent=4
-    )
-    _configuration_create = ConfigurationCreate(
-        applicationId=application_id,
-        isTemplate=createInstanceDto.isTemplate,
-        name=createInstanceDto.configurationName,
-        raw=_configuration_raw,
-    )
-
-    _configuration = configuration_crud.create_configuration(db, _configuration_create)
+    _conf.datasetId = str(_dataset.id)
 
     if not is_dataset(_dataset):
         raise HTTPException(status_code=404, detail="Application not found")
@@ -102,11 +99,11 @@ def createApplicationInstance(
         creator=createInstanceDto.creator,
         datasetId=_dataset.id,
         startTime=util_func.get_iso_datetime(),
-        selectedPipelineId=createInstanceDto.selectedPipelineId,
-        name=createInstanceDto.name,
+        selectedPipelineId=_pipeline.id,
+        name=createInstanceDto.instanceName,
         status=InstanceStatus.STARTING,
         configurationId=_configuration.id,
-        configurationRaw=_configuration_raw,
+        configurationRaw=_configuration.raw,
         projectId=createInstanceDto.projectId,
     )
 
@@ -144,7 +141,7 @@ def createApplicationInstance(
 
     _data = {
         "id": str(_instance.id),
-        "dto": createInstanceDto,
+        "dto": _raw_configuration,
         "application_id": application_id,
     }
 
@@ -170,8 +167,6 @@ def createApplicationInstance(
     __instance = instance_crud.get_instance_by_id(
         db, applicationId=application_id, id=_instance.id
     )
-
-    pprint(__instance.configuration.__dict__)
 
     return __instance
 

@@ -13,13 +13,18 @@ from botocore.session import get_session
 import redis
 
 from elevaitedb.db.database import SessionLocal
-from elevaitedb.crud import project as project_crud, instance as instance_crud
+from elevaitedb.crud import (
+    project as project_crud,
+    instance as instance_crud,
+    pipeline as pipeline_crud,
+)
 from elevaitedb.util import func as util_func
 from elevaitedb.util.s3url import S3Url
 from elevaitedb.schemas.instance import (
     InstanceStatus,
     InstanceUpdate,
     InstanceChartData,
+    InstanceStepDataLabel,
 )
 
 
@@ -94,7 +99,7 @@ def s3_ingest_callback(ch, method, properties, body):
     t.start()
 
 
-def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
+def s3_lakefs_cp_stream(data: S3IngestData) -> None:
     load_dotenv()
     db = SessionLocal()
     AWS_EXTERNAL_ID = os.getenv("AWS_ASSUME_ROLE_EXTERNAL_ID")
@@ -189,8 +194,27 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
             password=LAKEFS_SECRET_ACCESS_KEY,
         )
 
-        project = project_crud.get_project_by_id(db, formData.projectId)
+        project = project_crud.get_project_by_id(db, data.projectId)
         project_name = util_func.to_kebab_case(project.name)
+        _pipeline = pipeline_crud.get_pipeline_by_id(db, data.selectedPipelineId)
+        _entry_step = None
+        _first_step = None
+        _final_step = None
+
+        for s in _pipeline.steps:
+            if s.id == _pipeline.entry:
+                _entry_step = s
+                break
+
+        for s in _pipeline.steps:
+            if _entry_step.id in s.previousStepIds:
+                _first_step = s
+                break
+
+        for s in _pipeline.steps:
+            if s.id == _pipeline.exit:
+                _final_step = s
+                break
 
         repo = None
 
@@ -216,7 +240,7 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
         #     formData.url
         # )
 
-        s3url = S3Url(formData.url)
+        s3url = S3Url(data.url)
 
         src_bucket = (
             boto3.Session(
@@ -249,12 +273,12 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
             "total_size": size,
         }
 
-        r.json().set(formData.instanceId, ".", _data)
+        r.json().set(data.instanceId, ".", _data)
 
         instance_crud.update_instance(
             db,
-            formData.applicationId,
-            formData.instanceId,
+            data.applicationId,
+            data.instanceId,
             InstanceUpdate(status=InstanceStatus.RUNNING),
         )
 
@@ -264,19 +288,24 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
             # print(f"Copying {summary.key} with size {summary.size}...")
             # pprint(summary)
             if not summary.key.endswith("/"):
+                r.json().set(
+                    str(_first_step.id),
+                    ".",
+                    [{"label": InstanceStepDataLabel.CURR_DOC, "value": summary.key}],
+                )
                 s3_object = src_bucket.Object(summary.key).get()
                 stream = s3_object["Body"]
                 lakefs_s3.upload_fileobj(
                     Fileobj=stream, Bucket=project_name, Key=f"main/{summary.key}"
                 )
-            r.json().numincrby(formData.instanceId, ".ingested_size", summary.size)
-            r.json().numincrby(formData.instanceId, ".ingested_items", 1)
+            r.json().numincrby(data.instanceId, ".ingested_size", summary.size)
+            r.json().numincrby(data.instanceId, ".ingested_items", 1)
 
-        res = r.json().get(formData.instanceId)
+        res = r.json().get(data.instanceId)
 
         instance_crud.update_instance_chart_data(
             db,
-            formData.instanceId,
+            data.instanceId,
             InstanceChartData(
                 avgSize=res["avg_size"],
                 ingestedChunks=0,
@@ -288,8 +317,8 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
         )
         instance_crud.update_instance(
             db,
-            formData.applicationId,
-            formData.instanceId,
+            data.applicationId,
+            data.instanceId,
             InstanceUpdate(
                 status=InstanceStatus.COMPLETED, endTime=util_func.get_iso_datetime()
             ),
@@ -297,9 +326,9 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
 
         if lakefs_branch.uncommitted():
             lakefs_branch.commit(
-                formData.instanceId,
+                data.instanceId,
                 {
-                    "instanceId": formData.instanceId,
+                    "instanceId": data.instanceId,
                     "timestamp": util_func.get_iso_datetime(),
                 },
             )
@@ -316,8 +345,8 @@ def s3_lakefs_cp_stream(formData: S3IngestData) -> None:
         print(e.with_traceback())
         instance_crud.update_instance(
             db,
-            formData.applicationId,
-            formData.instanceId,
+            data.applicationId,
+            data.instanceId,
             InstanceUpdate(
                 status=InstanceStatus.FAILED,
                 endTime=util_func.get_iso_datetime(),
