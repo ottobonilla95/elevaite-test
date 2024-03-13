@@ -427,7 +427,7 @@ requests = ["requests (>=2.4.0,<3.0.0)"]
 
 [[package]]
 name = "elevaitedb"
-version = "0.1.46"
+version = "0.1.47"
 description = ""
 optional = false
 python-versions = "~3.11"

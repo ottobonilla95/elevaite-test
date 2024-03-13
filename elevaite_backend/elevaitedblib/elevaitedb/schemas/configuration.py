@@ -12,7 +12,6 @@ class BaseDatasetInformationForm(BaseModel):
     outputURI: str | None
     datasetId: str | None
     selectedPipelineId: str
-    configurationName: str
     isTemplate: bool
 
 

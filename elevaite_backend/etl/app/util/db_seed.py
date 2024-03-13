@@ -11,7 +11,7 @@ def seed_db(db: Session):
     db.execute(
         text(
             "TRUNCATE {} RESTART IDENTITY;".format(
-                ",".join(
+                ", ".join(
                     table.name for table in reversed(models.Base.metadata.sorted_tables)
                 )
             )

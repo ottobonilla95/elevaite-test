@@ -30,11 +30,13 @@ def create_configuration(
         applicationId=configurationCreate.applicationId,
         name=configurationCreate.name,
         isTemplate=configurationCreate.isTemplate,
-        raw=json.dumps(
-            configurationCreate.raw,
-            default=lambda o: o.__dict__,
-            sort_keys=True,
-            indent=4,
+        raw=json.loads(
+            json.dumps(
+                configurationCreate.raw,
+                default=lambda o: o.__dict__,
+                sort_keys=True,
+                indent=4,
+            )
         ),
     )
     # app.applicationType = createApplicationDTO
