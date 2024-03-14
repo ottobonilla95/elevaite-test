@@ -38,3 +38,20 @@ def createConfiguration(
     return conf_service.createConfiguration(
         db, create_configuration=createConfigurationDto
     )
+
+
+@router.put("/{configuration_id}", response_model=configuration_schemas.Configuration)
+def updateConfiguration(
+    application_id: int,
+    configuration_id: str,
+    updateConfigurationDto: Annotated[
+        configuration_schemas.ConfigurationUpdate, Body()
+    ],
+    db: Session = Depends(get_db),
+):
+    return conf_service.updateConfiguration(
+        db=db,
+        application_id=application_id,
+        conf_id=configuration_id,
+        updateConfiguration=updateConfigurationDto,
+    )

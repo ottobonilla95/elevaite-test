@@ -427,7 +427,7 @@ requests = ["requests (>=2.4.0,<3.0.0)"]
 
 [[package]]
 name = "elevaitedb"
-version = "0.1.47"
+version = "0.1.49"
 description = ""
 optional = false
 python-versions = "~3.11"
@@ -1053,13 +1053,13 @@ six = "*"
 
 [[package]]
 name = "langsmith"
-version = "0.1.24"
+version = "0.1.25"
 description = "Client library to connect to the LangSmith LLM Tracing and Evaluation Platform."
 optional = false
 python-versions = ">=3.8.1,<4.0"
 files = [
-    {file = "langsmith-0.1.24-py3-none-any.whl", hash = "sha256:898ef5265bca8fc912f7fbf207e1d69cacd86055faecf6811bd42641e6319840"},
-    {file = "langsmith-0.1.24.tar.gz", hash = "sha256:432b829e763f5077df411bc59bb35449813f18174d2ebc8bbbb38427071d5e7d"},
+    {file = "langsmith-0.1.25-py3-none-any.whl", hash = "sha256:4790405a90dce8e24cbf5bd77278ffe5cf7cc1047056138bd189533a22ac6dee"},
+    {file = "langsmith-0.1.25.tar.gz", hash = "sha256:250949a4f239dd1a1eda70bae006b96271d164938258d527c484b7388da61fcb"},
 ]
 
 [package.dependencies]

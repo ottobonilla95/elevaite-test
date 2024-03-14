@@ -44,3 +44,19 @@ def create_configuration(
     db.commit()
     db.refresh(_configuration)
     return _configuration
+
+
+def update_configuration(
+    db: Session, application_id: int, conf_id: str, dto: schema.ConfigurationUpdate
+):
+    _conf = get_configuration_by_id(db, application_id, conf_id)
+    if _conf is None:
+        return None
+
+    for var, value in vars(dto).items():
+        setattr(_conf, var, value) if value else None
+
+    db.add(_conf)
+    db.commit()
+    db.refresh(_conf)
+    return _conf

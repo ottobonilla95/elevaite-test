@@ -41,6 +41,12 @@ class ConfigurationCreate(ConfigurationBase):
     pass
 
 
+class ConfigurationUpdate(BaseModel):
+    raw: S3IngestFormDataDTO | PreProcessFormDTO | str | None
+    name: str | None
+    isTemplate: bool | None
+
+
 class Configuration(ConfigurationBase):
     id: UUID4
     createDate: datetime
