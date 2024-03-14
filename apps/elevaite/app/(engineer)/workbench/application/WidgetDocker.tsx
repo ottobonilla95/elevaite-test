@@ -80,12 +80,16 @@ export default function WidgetDocker(props: WidgetDockerProps): JSX.Element {
     return (
         <div className="widget-docker-container">
             <div className="widget-docker-contents">
-                <MainDetailsWidget instance={props.selectedInstance} />
-                <ProgressTrackingWidget
-                    applicationId={props.applicationId}
-                    instance={props.selectedInstance}
-                    type={props.applicationDetails?.applicationType}
-                />
+                {!props.selectedInstance ? null :
+                    <>
+                        <MainDetailsWidget instance={props.selectedInstance} />
+                        <ProgressTrackingWidget
+                            applicationId={props.applicationId}
+                            instance={props.selectedInstance}
+                            type={props.applicationDetails?.applicationType}
+                        />
+                    </>
+                }
                 <PipelineWidget
                     type={props.applicationDetails?.applicationType}
                     flowLabel={props.selectedFlow?.label}

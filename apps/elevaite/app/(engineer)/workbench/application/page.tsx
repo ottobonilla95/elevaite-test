@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { getApplicationById, getApplicationPipelines } from "../../../lib/actions";
 import { S3DataRetrievalAppInstanceForm } from "../../../lib/dataRetrievalApps";
 import { attachSideInfoToPipelineSteps } from "../../../lib/helpers";
-import type { AppInstanceFormStructure, AppInstanceObject, ApplicationObject, Initializers, PipelineObject } from "../../../lib/interfaces";
+import type { AppInstanceConfigurationObject, AppInstanceFormStructure, AppInstanceObject, ApplicationObject, Initializers, PipelineObject } from "../../../lib/interfaces";
 import { S3PreprocessingAppInstanceForm } from "../../../lib/preprocessingApps";
 import AppInstanceList from "./AppInstanceList";
 import ApplicationDetails from "./ApplicationDetails";
@@ -29,6 +29,7 @@ export default function Page(): JSX.Element {
   const [selectedFlow, setSelectedFlow] = useState<CommonSelectOption>();
   const [pipelines, setPipelines] = useState<PipelineObject[]>([]);
   const [addId, setAddId] = useState("");
+  const [selectedConfig, setSelectedConfig] = useState<AppInstanceConfigurationObject|undefined>();
 
 
   useEffect(() => {
@@ -93,6 +94,16 @@ export default function Page(): JSX.Element {
     });
   }
 
+  function handleAddInstance(): void {
+    setSelectedConfig(undefined);
+    setIsAddInstanceModalOpen(true);
+  }
+
+  function handleConfigClone(config: AppInstanceConfigurationObject|undefined): void {
+    setSelectedConfig(config);
+    setIsAddInstanceModalOpen(true);
+  }
+
 
   return (
     <div className="ingest-container">
@@ -109,9 +120,10 @@ export default function Page(): JSX.Element {
         <AppInstanceList
           applicationId={id}
           pipelines={pipelines}
-          onAddInstanceClick={() => {setIsAddInstanceModalOpen(true)}}
+          onAddInstanceClick={handleAddInstance}
           onSelectedInstanceChange={handleSelectedInstanceChange}
           onSelectedFlowChange={handleSelectedFlowChange}
+          onConfigClone={handleConfigClone}
           addId={addId}
           onClearAddId={(passedId) => { setAddId((currentId) => passedId === currentId ? "" : currentId ); }}
         />
@@ -134,6 +146,7 @@ export default function Page(): JSX.Element {
             addInstanceStructure={formStructure}
             selectedFlow={selectedFlow}
             onClose={handleAddInstanceClose}
+            initialConfig={selectedConfig}
           />
         </CommonModal>
       }

@@ -112,7 +112,7 @@ export function PipelineWidget(props: PipelineWidgetProps): JSX.Element {
                         {`${props.type === ApplicationType.INGEST ? "AWS S3 Ingest" : props.type === ApplicationType.PREPROCESS ? "Preprocess" : ""} runtime details`}
                     </span>
                     <span className="sub">
-                        {`${props.type === ApplicationType.INGEST ? "Ingest" : props.type === ApplicationType.PREPROCESS ? "Preprocess" : ""} ${props.flowLabel ? `${props.flowLabel} ` : ""}pipeline`}
+                        {`${props.type === ApplicationType.INGEST ? "" : props.type === ApplicationType.PREPROCESS ? "Preprocess" : ""} ${props.flowLabel ? `${props.flowLabel} ` : ""}pipeline`}
                     </span>
                 </div>
                 <CommonButton
@@ -130,6 +130,14 @@ export function PipelineWidget(props: PipelineWidgetProps): JSX.Element {
                     {/* <div className="flow-type-title">{`Pre-process ${props.flowLabel} Flow`}</div> */}
 
                     <div className="pipeline-details-container">
+
+                        {props.selectedInstance ? null :
+                            <div className="empty-diagram-notification">
+                                <span>This is the default pipeline structure.</span><br />
+                                <span>Select an instance from the left sidebar to see details.</span>
+                            </div>
+                        }
+
                         <PipelineDiagram
                             steps={displaySteps}
                             selectedStepId={selectedStep?.id}

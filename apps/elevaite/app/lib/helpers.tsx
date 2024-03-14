@@ -33,9 +33,9 @@ export function attachSideInfoToPipelineSteps(pipelines: PipelineObject[], appId
 }
 
 
-export function getConfigurationObjectFromRaw(raw?: string): Initializers|undefined {
+export function getConfigurationObjectFromRaw(raw?: unknown): Initializers|undefined {
     if (!raw) return;
-    const parsedConfiguration = JSON.parse(raw) as unknown;
+    const parsedConfiguration = typeof raw === "string" ? JSON.parse(raw) as unknown : raw;
     if (!isInitializerDto(parsedConfiguration)) return;
     return parsedConfiguration;
 }

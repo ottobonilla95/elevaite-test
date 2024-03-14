@@ -1,4 +1,4 @@
-import type { AppInstanceObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "./interfaces";
+import type { AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "./interfaces";
 
 
 
@@ -16,6 +16,14 @@ export function isGetApplicationListReponse(data: unknown): data is ApplicationO
 
 export function isGetApplicationResponse(data: unknown): data is ApplicationObject {
     return isApplicationObject(data);
+}
+
+export function isGetApplicationconfigurationsResponse(data: unknown): data is ApplicationConfigurationObject[] {
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (!isApplicationConfigurationObject(item)) return false;
+    }
+    return true;
 }
 
 export function isGetApplicationPipelinesResponse(data: unknown): data is PipelineObject[] {
@@ -46,9 +54,13 @@ export function isCreateInstanceResponse(data: unknown): data is AppInstanceObje
     return isInstanceObject(data);
 }
 
+export function isCreateConfigurationResponse(data: unknown): data is ApplicationConfigurationObject {
+    return isApplicationConfigurationObject(data);
+}
+
 
 export function isInitializerDto(data: unknown): data is Initializers {
-    return isApplicationConfigurationObject(data);
+    return isInitializerObject(data);
 }
 
 
@@ -100,10 +112,21 @@ function isApplicationPipelineObject(item: unknown): item is PipelineObject {
         "steps" in item;
 }
 
-function isApplicationConfigurationObject(item: unknown): item is Initializers  {
+function isInitializerObject(item: unknown): item is Initializers  {
     return isObject(item) &&
         "projectId" in item &&
         "creator" in item;
+}
+
+function isApplicationConfigurationObject(item: unknown): item is Initializers  {
+    return isObject(item) &&
+        "id" in item &&
+        "applicationId" in item &&
+        "name" in item &&
+        "isTemplate" in item &&
+        "createDate" in item &&
+        "updateDate" in item &&
+        "raw" in item;
 }
 
 

@@ -11,6 +11,12 @@
 
     & .common-select-display {
         justify-content: space-between;
+
+        & .spinner {
+            height: 16px;
+            width: 16px;
+            color: var(--ev-colors-text);
+        }
     }
 
     & .common-select-options-container {

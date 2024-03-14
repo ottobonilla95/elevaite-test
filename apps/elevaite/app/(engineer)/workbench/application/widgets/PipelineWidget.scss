@@ -75,13 +75,27 @@
 
         & .pipeline-details-container {
             display: flex;
+            position: relative;
+
+
+            & .empty-diagram-notification {
+                position: absolute;
+                margin: -10px 0 0 -20px;
+                padding: 5px 10px;
+                z-index: 10;
+
+                font-size: 12px;
+                color: var(--ev-colors-secondaryText);
+                background-color: rgba(0, 0, 0, 0.5);
+                border-bottom-right-radius: 8px;
+            }
 
             & > div {
-                &:first-child {
+                &.pipeline-diagram-container {
                     height: 0;
                     min-height: 100%;
                 }
-                &:last-child {
+                &.pipeline-info-container {
                     min-height: 400px;
                 }
             }

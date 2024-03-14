@@ -2,15 +2,17 @@
 import { revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  isCreateConfigurationResponse,
   isCreateInstanceResponse,
   isGetApplicationListReponse,
   isGetApplicationPipelinesResponse,
   isGetApplicationResponse,
+  isGetApplicationconfigurationsResponse,
   isGetInstanceChartDataResponse,
   isGetInstanceListResponse,
   isGetInstanceResponse,
 } from "./discriminators";
-import type { AppInstanceObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "./interfaces";
+import type { AppInstanceObject, ApplicationConfigurationDto, ApplicationConfigurationObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "./interfaces";
 
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -19,6 +21,7 @@ const INSTANCE_REVALIDATION_TIME = 5 * 60; // X minutes
 enum cacheTags {
   instance = "INSTANCE",
   pipeline = "PIPELINE",
+  configuration = "CONFIGURATION",
 };
 
 
@@ -88,6 +91,28 @@ export async function getInstanceChartData(appId: string, instanceId: string): P
   throw new Error("Invalid data type");
 }
 
+export async function getApplicationConfigurations(id: string): Promise<ApplicationConfigurationObject[] | undefined> {
+  const url = new URL(`${BACKEND_URL}/application/${id}/configuration`);
+  const response = await fetch(url, { next: { revalidate: APP_REVALIDATION_TIME, tags: [cacheTags.configuration] } });
+
+  if (!response.ok) throw new Error("Failed to fetch");
+  const data: unknown = await response.json();
+  if (isGetApplicationconfigurationsResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 export async function createApplicationInstance(id: string, dto: Initializers): Promise<AppInstanceObject> {
   const headers = new Headers();
   headers.append("Content-Type", "application/json");
@@ -109,3 +134,52 @@ export async function createApplicationInstance(id: string, dto: Initializers): 
   if (isCreateInstanceResponse(data)) return data;
   throw new Error("Invalid data type");
 }
+
+
+export async function createApplicationConfiguration(appId: string, dto: ApplicationConfigurationDto): Promise<ApplicationConfigurationObject> {
+  const headers = new Headers();
+  headers.append("Content-Type", "application/json");
+  const response = await fetch(`${BACKEND_URL}/application/${appId}/configuration/`, {
+    method: "POST",
+    body: JSON.stringify(dto),
+    headers,
+  });
+  revalidateTag(cacheTags.configuration);
+  if (!response.ok) {
+    if (response.status === 422) {
+      const errorData: unknown = await response.json();
+      // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+      console.dir(errorData, { depth: null });
+    }
+    throw new Error("Failed to upload");
+  }
+  const data: unknown = await response.json();
+  if (isCreateConfigurationResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+
+
+export async function updateApplicationConfiguration(appId: string, configId: string, dto: Omit<ApplicationConfigurationDto, "applicationId">): Promise<ApplicationConfigurationObject> {
+  const headers = new Headers();
+  headers.append("Content-Type", "application/json");
+  const response = await fetch(`${BACKEND_URL}/application/${appId}/configuration/${configId}`, {
+    method: "PUT",
+    body: JSON.stringify(dto),
+    headers,
+  });
+  revalidateTag(cacheTags.configuration);
+  if (!response.ok) {
+    if (response.status === 422) {
+      const errorData: unknown = await response.json();
+      // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+      console.dir(errorData, { depth: null });
+    }
+    throw new Error("Failed to update");
+  }
+  const data: unknown = await response.json();
+  if (isCreateConfigurationResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+

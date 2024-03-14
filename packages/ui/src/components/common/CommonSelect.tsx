@@ -4,6 +4,7 @@ import SVGChevron from "../icons/elevaite/svgChevron";
 import { ClickOutsideDetector } from "./ClickOutsideDetector";
 import { CommonButton } from "./CommonButton";
 import "./CommonSelect.scss";
+import SVGSpinner from "../icons/elevaite/svgSpinner";
 
 
 export interface CommonSelectOption {
@@ -18,11 +19,14 @@ export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> 
     options: CommonSelectOption[];
     defaultValue?: string;
     anchor?: "left" | "right";
+    showTitles?: boolean;
+    disabled?: boolean;
+    isLoading?: boolean;
     onSelectedValueChange: (value: string, label: string) => void;
 }
 
 
-export function CommonSelect({options, defaultValue, onSelectedValueChange, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
+export function CommonSelect({options, defaultValue, anchor, showTitles, onSelectedValueChange, isLoading, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
     const [selectedOption, setSelectedOption] = useState<CommonSelectOption>();
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement|null>(null);
@@ -34,7 +38,7 @@ export function CommonSelect({options, defaultValue, onSelectedValueChange, ...p
             if (defaultOption) setSelectedOption(defaultOption);
             else setSelectedOption(options[0]);
         }
-    }, []);
+    }, [defaultValue]);
 
 
     function handleClick(option: CommonSelectOption): void {
@@ -67,18 +71,26 @@ export function CommonSelect({options, defaultValue, onSelectedValueChange, ...p
                 onClick={() => { setIsOpen((currentValue) => !currentValue); }}
                 onDoubleClick={handleDoubleClick}
                 noBackground
-                title={selectedOption?.selectedLabel ? selectedOption.label : ""}
+                title={selectedOption && (selectedOption?.selectedLabel || showTitles) ? selectedOption.label : ""}
+                disabled={props.disabled || isLoading}
             >
-                {!selectedOption ? "No selected option" :
-                    selectedOption.selectedLabel ? selectedOption.selectedLabel : selectedOption.label
+                <span>
+                    {isLoading ? "Please wait..." :
+                        !selectedOption ? "No selected option" :
+                        selectedOption.selectedLabel ? selectedOption.selectedLabel : selectedOption.label
+                    }
+                </span>
+                {isLoading ? 
+                    <SVGSpinner className="spinner"/>
+                    :
+                    <SVGChevron/>
                 }
-                <SVGChevron/>
             </CommonButton>
 
             <ClickOutsideDetector onOutsideClick={() => setIsOpen(false)} ignoredRefs={[buttonRef]} >
                 <div className={[
                     "common-select-options-container",
-                    props.anchor ? `anchor-${props.anchor}` : undefined,
+                    anchor ? `anchor-${anchor}` : undefined,
                     isOpen ? "open" : undefined,
                 ].filter(Boolean).join(" ")}>
                     <div className="common-select-options-accordion">
@@ -89,8 +101,9 @@ export function CommonSelect({options, defaultValue, onSelectedValueChange, ...p
                                     key={option.value}
                                     onClick={() => { handleClick(option); } }
                                     noBackground
+                                    title={showTitles ? option.label : ""}
                                 >
-                                    {option.label}
+                                    <span>{option.label}</span>
                                 </CommonButton>
                             )}
                         </div>

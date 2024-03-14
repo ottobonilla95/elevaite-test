@@ -1,14 +1,16 @@
 import type { SVGProps } from "react"
+import "./svgSpinner.scss";
 
 
-function SVGSpinner(props: SVGProps<SVGSVGElement> & { size?: number }): JSX.Element {
+
+function SVGSpinner({className, ...props}: SVGProps<SVGSVGElement> & { size?: number }): JSX.Element {
     let mainColor = "var(--ev-colors-highlight)";
     if (props.color) mainColor = props.color;
 
 
     return (
         <svg
-            className="animate-spin"
+            className={["svg-spinner", className].filter(Boolean).join(" ")}
             fill="none"
             height={props.size ? props.size : 32}
             width={props.size ? props.size : 32}

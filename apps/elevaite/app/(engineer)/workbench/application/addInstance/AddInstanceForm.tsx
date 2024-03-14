@@ -3,10 +3,11 @@ import type { CommonSelectOption } from "@repo/ui/components";
 import { CommonButton, CommonCheckbox, CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { createApplicationInstance } from "../../../../lib/actions";
-import type { AppInstanceFieldStructure, AppInstanceFormStructure, Initializers } from "../../../../lib/interfaces";
+import { createApplicationConfiguration, createApplicationInstance, updateApplicationConfiguration } from "../../../../lib/actions";
+import type { AppInstanceConfigurationObject, AppInstanceFieldStructure, AppInstanceFormStructure, ApplicationConfigurationDto, Initializers } from "../../../../lib/interfaces";
 import { AppInstanceFieldTypes } from "../../../../lib/interfaces";
 import "./AddInstanceForm.scss";
+import { Configurations } from "./Configurations";
 
 
 
@@ -16,6 +17,7 @@ const commonLabels = {
     exportConf: "Export Configuration",
     testConnection: "Test Connection",
     buttonCancel: "Cancel",
+    buttonSave: "Save Configuration",
     buttonConfirm: "Launch",
     unknownHandler: "Unknown Handler",
 }
@@ -27,15 +29,25 @@ interface AddInstanceFormProps {
     addInstanceStructure: AppInstanceFormStructure<Initializers> | undefined;
     onClose: (addId?: string) => void;
     selectedFlow?: CommonSelectOption;
+    initialConfig?: AppInstanceConfigurationObject|undefined;
 }
 
 export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
+    const session = useSession();
     const [formData, setFormData] = useState(props.addInstanceStructure?.initializer);
     const [isConfirmDisabled, setIsConfirmDisabled] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
-    const session = useSession();
+    const [isConfigNameOpen, setIsConfigNameOpen] = useState(false);
+    const [selectedConfigurationId, setSelectedConfigurationId] = useState("");
 
+
+    useEffect(() => {
+        if (props.initialConfig?.raw) {
+            setFormData(props.initialConfig.raw);
+            setSelectedConfigurationId(props.initialConfig.id);
+        }
+    }, []);
 
     useEffect(() => {
         if (!props.addInstanceStructure || !formData) return;        
@@ -56,6 +68,11 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
             }
         }
         return false;
+    }
+
+    function handleSelectedConfigurationChange(config: Initializers, configurationId: string): void {
+        setSelectedConfigurationId(configurationId);
+        setFormData(config);
     }
 
     function handleFormDataChange(value: string, field: string): void {
@@ -93,6 +110,73 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
 
     function handleClose(): void {
         props.onClose();
+    }
+
+
+    function handleSave(): void {
+        setIsConfigNameOpen(true);
+    }
+
+
+    async function finalizeSave(name: string, updateId?: string): Promise<void> {
+        if (!props.applicationId || !props.addInstanceStructure || !formData) return;
+
+        // Attach user
+        setUser(formData);
+        // Attach selected pipeline if relevant
+        setSelectedPipeline(formData, props.selectedFlow);
+
+        // Check all required data.
+        if (getIsRequiredFieldEmptyInList(formData, props.addInstanceStructure.fields)) return;
+
+        if (updateId) {
+            await updateConf(formData, name, updateId);
+        } else {
+            await createConf(formData, name);
+        }
+    }
+
+    async function createConf(configData: Initializers, configName: string): Promise<void> {
+        if (!props.applicationId) return;
+
+        const dto: ApplicationConfigurationDto = {
+            applicationId: props.applicationId,
+            name: configName,
+            isTemplate: true,
+            raw: configData,
+        };
+        try {
+            setIsProcessing(true);
+            await createApplicationConfiguration(props.applicationId, dto);
+            props.onClose();
+        } catch (error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error:", error);
+            setErrorMessage("The configuration could not be saved. Please try again.")
+        } finally {
+            setIsProcessing(false);
+        }
+    }
+
+    async function updateConf(configData: Initializers, configName: string, updateId: string): Promise<void> {        
+        if (!props.applicationId) return;
+
+        const dto: Omit<ApplicationConfigurationDto, "applicationId"> = {
+            name: configName,
+            isTemplate: true,
+            raw: configData,
+        };
+        try {
+            setIsProcessing(true);
+            await updateApplicationConfiguration(props.applicationId, updateId, dto);
+            props.onClose();
+        } catch (error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error:", error);
+            setErrorMessage("The configuration could not be updated. Please try again.")
+        } finally {
+            setIsProcessing(false);
+        }
     }
 
 
@@ -157,7 +241,9 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
                         </div>
                     )
                 } else if (field.type === AppInstanceFieldTypes.CHECKBOX) {
-                    return <CommonCheckbox {...field} onChange={handleFormDataBooleanChange} key={field.field} />
+                    let initialCheckbox = false;
+                    if (field.field && formData?.[field.field] && typeof formData[field.field] === "boolean") initialCheckbox = formData[field.field] as boolean;
+                    return <CommonCheckbox {...field} defaultTrue={initialCheckbox} onChange={handleFormDataBooleanChange} key={field.field} />
                 } 
                 let initialValue = "";
                 if (field.field && formData?.[field.field] && typeof formData[field.field] === "string") initialValue = formData[field.field] as string;
@@ -190,8 +276,15 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
                     <ElevaiteIcons.SVGXmark/>
                 </CommonButton>
             </div>
+            <Configurations
+                applicationId={props.applicationId}
+                isConfigNameOpen={isConfigNameOpen}
+                onCancel={() => { setIsConfigNameOpen(false); }}
+                onConfirm={finalizeSave}
+                onSelectedConfigurationChange={handleSelectedConfigurationChange}
+            />
             <div className="details-scroller">
-                <div className="details-content">
+                <div className="details-content" key={selectedConfigurationId}>
 
                     {!props.addInstanceStructure ? null :
                         mapFields(props.addInstanceStructure.fields)
@@ -205,8 +298,17 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
                             {commonLabels.buttonCancel}
                         </CommonButton>
                         <CommonButton
+                            className="details-button config"
+                            disabled={isConfirmDisabled}
+                            title={!isConfirmDisabled ? "" : "Mandatory fields (*) are missing"}
+                            onClick={handleSave}
+                        >
+                            {commonLabels.buttonSave}
+                        </CommonButton>
+                        <CommonButton
                             className="details-button launch"
                             disabled={isConfirmDisabled}
+                            title={!isConfirmDisabled ? "" : "Mandatory fields (*) are missing"}
                             onClick={handleConfirm}
                         >
                             {commonLabels.buttonConfirm}

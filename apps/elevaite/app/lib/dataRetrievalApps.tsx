@@ -29,7 +29,7 @@ export const S3DataRetrievalAppInstanceForm: AppInstanceFormStructure<S3IngestFo
     icon: <Logos.Aws/>,
     initializer: S3DataRetrievalAppInstanceFormInitializer,
     fields: [
-        { import: true, export: true },
+        // { import: true, export: true },
         {
             field: "connectionName",
             label: "Connection Name",
@@ -47,7 +47,7 @@ export const S3DataRetrievalAppInstanceForm: AppInstanceFormStructure<S3IngestFo
             field: "url",
             label: "S3 Url",
             info: "Full link",
-            placeholder: "training.data.webex",
+            placeholder: "s3://training-data-webex/uncompressed/data/",
             required: true,
             type: AppInstanceFieldTypes.INPUT,
         },

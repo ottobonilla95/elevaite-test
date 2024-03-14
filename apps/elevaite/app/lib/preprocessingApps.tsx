@@ -28,7 +28,7 @@ export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3Preproce
     icon: <Logos.Preprocess/>,
     initializer: S3PreprocessFormInitializer,
     fields: [
-        { import: true, export: true },
+        // { import: true, export: true },
         {
             field: "name",
             label: "Pipeline Name",

@@ -125,7 +125,12 @@
                 padding: 10px;
                 border: 1px solid var(--ev-colors-borderColor);
                 background-color: var(--ev-colors-primary);
+                font-size: 14px;
                 font-weight: 600;
+
+                &.config {
+                    border-color: var(--ev-colors-highlight);
+                }
                 
                 &.launch {
                     background-color: var(--ev-colors-highlight);

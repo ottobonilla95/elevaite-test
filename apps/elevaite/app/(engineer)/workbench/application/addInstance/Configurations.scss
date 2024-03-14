@@ -1,0 +1,81 @@
+
+
+.configurations-container {
+    font-size: 14px;
+
+
+    & .configuration-selection-container {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+
+        & .common-select {
+            background-color: var(--ev-colors-background);
+            border-radius: 8px;
+
+            & svg:not(.spinner) {
+                color: var(--ev-colors-highlight);
+            }
+
+            & span {
+                width: 200px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                text-align: end;
+            }
+        }
+    }
+
+
+    & .configuration-name-dialog {
+        position: absolute;
+        top: 0; bottom: 0; left: 0; right: 0;
+        border-radius: 8px;
+        background-color: rgba(0, 0, 0, 0.4);
+        z-index: 20;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        & .configuration-name-panel {
+            width: 80%;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: var(--ev-colors-primary);
+            box-shadow: 0px 3px 8px rgba(0, 0, 0, 1);
+
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+
+            & .configuration-notes {
+                color: var(--ev-colors-secondaryText);
+            }
+
+            & .configuration-controls-container {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 10px;
+
+                & .config-button {
+                    border: 1px solid var(--ev-colors-borderColor);
+                    background-color: var(--ev-colors-primary);
+                    font-size: 14px;
+                    font-weight: 600;
+                    padding: 10px 30px;
+                    
+                    &.save {
+                        background-color: var(--ev-colors-highlight);
+                    }
+                }
+            }
+        }
+    }
+
+
+
+
+}

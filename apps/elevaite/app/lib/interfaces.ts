@@ -58,6 +58,23 @@ export interface ApplicationObject {
     version: "string";
 }
 
+export interface ApplicationConfigurationObject {
+    id: string;
+    applicationId: string;
+    name: string;
+    isTemplate: boolean;
+    createDate: string;
+    updateDate: string;
+    raw: Initializers;
+}
+
+export interface ApplicationConfigurationDto {    
+    applicationId: string;
+    name: string;
+    isTemplate: boolean;
+    raw: Initializers;
+}
+
 export interface AppInstanceObject {
     id: string;
     creator: string;
@@ -86,7 +103,7 @@ export interface AppInstanceConfigurationObject {
     id: string;
     applicationId: string | number;
     instanceId: string;
-    raw: string;
+    raw: Initializers;
 }
 
 export interface PipelineObject {

@@ -1,14 +1,14 @@
 "use client";
 import type { CommonSelectOption } from "@repo/ui/components";
-import { CommonButton, CommonSelect, ElevaiteIcons } from "@repo/ui/components";
+import { ClickOutsideDetector, CommonButton, CommonSelect, ElevaiteIcons } from "@repo/ui/components";
 import { useElapsedTime } from "@repo/ui/hooks";
 import dayjs from "dayjs";
 import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getApplicationInstanceById, getApplicationInstanceList } from "../../../lib/actions";
-import type { AppInstanceObject, PipelineObject } from "../../../lib/interfaces";
+import type { AppInstanceConfigurationObject, AppInstanceObject, PipelineObject } from "../../../lib/interfaces";
 import { AppInstanceStatus } from "../../../lib/interfaces";
-import type { AppInstanceFiltersObject} from "./AppInstanceFilters";
+import type { AppInstanceFiltersObject } from "./AppInstanceFilters";
 import { AppInstanceFilters, ScopeInstances, SortingInstances, initialFilters } from "./AppInstanceFilters";
 import "./AppInstanceList.scss";
 
@@ -22,6 +22,7 @@ interface AppInstanceListProps {
     onAddInstanceClick: () => void;
     addId?: string;
     onClearAddId?: (id: string) => void;
+    onConfigClone?: (config: AppInstanceConfigurationObject|undefined) => void;
 }
 
 export default function AppInstanceList(props: AppInstanceListProps): JSX.Element {
@@ -169,12 +170,17 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
         props.onAddInstanceClick();
     }
 
+    function handleConfigClone(config: AppInstanceConfigurationObject|undefined): void {
+        if (props.onConfigClone) props.onConfigClone(config);
+    }
+
 
 
     return (
         <div className="app-instances-container">
 
-            {!flowOptions || flowOptions.length === 0 ? null :
+            {props.applicationId === "1" ? null : // Hide it if Ingest
+            !flowOptions || flowOptions.length === 0 ? null :
                 <div className="app-flow-header">                    
                     <div className="flow-title">{`${getFlowLabel(props.applicationId)} Flow:`}</div>
                     <CommonSelect
@@ -214,6 +220,7 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
                             isSelected={selectedInstance?.id === instance.id}
                             onClick={handleInstanceClick}
                             onInstanceUpdate={handleInstanceUpdate}
+                            onConfigClone={handleConfigClone}
                         />
                     )}
                 </div>
@@ -235,12 +242,15 @@ interface AppInstanceProps extends AppInstanceObject {
     isSelected?: boolean,
     onClick: (instance: AppInstanceObject) => void;
     onInstanceUpdate?: (instance: AppInstanceObject) => void;
+    onConfigClone?: (config: AppInstanceConfigurationObject|undefined) => void;
 }
 
-function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps): JSX.Element {
+function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps): JSX.Element {    
+    const menuButtonRef = useRef<HTMLButtonElement|null>(null);
     const {elapsedTime} = useElapsedTime(props.startTime, props.endTime);
     const [icon, setIcon] = useState<JSX.Element>(<div/>)
     const [tooltips, setTooltips] = useState({ icon: "", time: "" });
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
 
     useEffect(() => {
@@ -262,6 +272,12 @@ function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps
             time: getTimeTooltip(),
         })
     }, [props.status]);
+
+
+    function handleConfigurationClone(): void {
+        setIsMenuOpen(false);
+        if (props.onConfigClone) props.onConfigClone(props.configuration);
+    }
 
 
     async function fetchInstance(applicationId?: string | null, instanceId?: string, status?: AppInstanceStatus): Promise<void> {
@@ -306,19 +322,45 @@ function AppInstance({isHidden, isSelected, onClick, ...props}: AppInstanceProps
 
 
     return (
-        <CommonButton
+        <div
             className={[
                 "app-instance",
                 isHidden ? "hidden" : undefined,
                 isSelected ? "selected" : undefined,
             ].filter(Boolean).join(" ")}
-            onClick={() => { onClick(props); }}
-            overrideClass
-            noBackground={!isSelected}
         >
-            <div title={tooltips.icon}>{icon}</div>
-            <div className="app-instance-label" title={props.name ? props.id : ""}>{props.name ? props.name : props.id}</div>
-            <div className="app-instance-elapsed-time" title={tooltips.time}>{elapsedTime}</div>
-        </CommonButton>
+            <CommonButton
+                className="app-instance-main-button"
+                onClick={() => { onClick(props); }}
+                overrideClass
+                noBackground={!isSelected}
+            >
+                <div title={tooltips.icon}>{icon}</div>
+                <div className="app-instance-label" title={props.name ? props.id : ""}>{props.name ? props.name : props.id}</div>
+                <div className="app-instance-elapsed-time" title={tooltips.time}>{elapsedTime}</div>
+            </CommonButton>
+            <div className="app-instance-menu-button">
+                <CommonButton
+                    onClick={() => { setIsMenuOpen(true); }}
+                    passedRef={menuButtonRef}
+                    noBackground
+                >
+                    <ElevaiteIcons.SVGMenuDots/>
+                </CommonButton>
+            </div>
+
+            
+            <ClickOutsideDetector onOutsideClick={() => { setIsMenuOpen(false); }} ignoredRefs={[menuButtonRef]}>
+                <div className={["app-instance-menu-container", isMenuOpen ? "open" : undefined].filter(Boolean).join(" ")}>
+                    <CommonButton
+                        onClick={handleConfigurationClone}
+                        noBackground
+                    >
+                        Clone Configuration
+                    </CommonButton>
+                </div>
+            </ClickOutsideDetector>
+
+        </div>
     );
 }
