@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from ..db import models
 from ..schemas import configuration as schema
+from ..util.func import to_dict
 
 
 def get_configuration_by_id(db: Session, application_id: int, id: str):
@@ -30,14 +31,7 @@ def create_configuration(
         applicationId=configurationCreate.applicationId,
         name=configurationCreate.name,
         isTemplate=configurationCreate.isTemplate,
-        raw=json.loads(
-            json.dumps(
-                configurationCreate.raw,
-                default=lambda o: o.__dict__,
-                sort_keys=True,
-                indent=4,
-            )
-        ),
+        raw=to_dict(configurationCreate.raw),
     )
     # app.applicationType = createApplicationDTO
     db.add(_configuration)
@@ -54,7 +48,14 @@ def update_configuration(
         return None
 
     for var, value in vars(dto).items():
-        setattr(_conf, var, value) if value else None
+        if value:
+            (
+                setattr(_conf, var, value)
+                if var != "raw"
+                else setattr(_conf, var, to_dict(value))
+            )
+        else:
+            None
 
     db.add(_conf)
     db.commit()

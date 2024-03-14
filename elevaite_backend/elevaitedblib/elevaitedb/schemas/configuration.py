@@ -32,7 +32,7 @@ class PreProcessFormDTO(BaseDatasetInformationForm):
 
 class ConfigurationBase(BaseModel):
     applicationId: int
-    raw: S3IngestFormDataDTO | PreProcessFormDTO | str
+    raw: S3IngestFormDataDTO | PreProcessFormDTO
     name: str
     isTemplate: bool
 
