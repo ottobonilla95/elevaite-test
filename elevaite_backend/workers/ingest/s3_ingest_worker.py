@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 import boto3
 import lakefs
+from lakefs_sdk.exceptions import BadRequestException
 
 from botocore.client import BaseClient
 from botocore.client import Config as ClientConfig
@@ -93,6 +94,7 @@ def s3_ingest_callback(ch, method, properties, body):
         **_data["dto"],
         instanceId=_data["id"],
         applicationId=_data["application_id"],
+        configurationName=_data["configurationName"],
     )
     t = threading.Thread(target=s3_lakefs_cp_stream, args=(_formData,))
     # s3_lakefs_cp_stream(formData=_formData)
@@ -324,7 +326,14 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
             ),
         )
 
-        if lakefs_branch.uncommitted():
+        __commit_flag__ = False
+
+        for diff in lakefs_branch.uncommitted():
+            if diff is not None:
+                __commit_flag__ = True
+                break
+
+        if __commit_flag__:
             lakefs_branch.commit(
                 data.instanceId,
                 {
@@ -332,13 +341,11 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
                     "timestamp": util_func.get_iso_datetime(),
                 },
             )
+        else:
+            print("Dataset is identical")
 
-        # client.update(
-        #     index="application",
-        #     id=formData.applicationID,
-        #     body=json.dumps({"doc": {"instances": instances}}, default=vars),
-        # )
-        print("Done importing data")
+    except BadRequestException as e:
+        print("Dataset is identical")
     except Exception as e:
         print("Error")
         print(e)
@@ -353,3 +360,5 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
                 comment=str(e),
             ),
         )
+    else:
+        print("Done importing data")

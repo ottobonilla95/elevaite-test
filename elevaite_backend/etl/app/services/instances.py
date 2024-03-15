@@ -68,7 +68,7 @@ def createApplicationInstance(
         db, application_id=application_id, id=createInstanceDto.configurationId
     )
 
-    _raw_configuration = json.loads(_configuration.raw)
+    _raw_configuration = _configuration.raw
     if _raw_configuration["type"] == "ingest":
         _conf = S3IngestFormDataDTO(**_raw_configuration)
     else:
@@ -103,7 +103,7 @@ def createApplicationInstance(
         name=createInstanceDto.instanceName,
         status=InstanceStatus.STARTING,
         configurationId=_configuration.id,
-        configurationRaw=_configuration.raw,
+        configurationRaw=json.dumps(_raw_configuration),
         projectId=createInstanceDto.projectId,
     )
 
@@ -142,6 +142,7 @@ def createApplicationInstance(
     _data = {
         "id": str(_instance.id),
         "dto": _raw_configuration,
+        "configurationName": _configuration.name,
         "application_id": application_id,
     }
 
