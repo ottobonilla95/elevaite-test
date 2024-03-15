@@ -25,6 +25,11 @@ import SVGMagnifyingGlass from "./svgMagnifyingGlass";
 import SVGNavbarLogo from "./svgNavbarLogo";
 import SVGOpenLink from "./svgOpenLink";
 import SVGCloudUpload from "./svgCloudUpload";
+import SVGModels from "./svgModels";
+import SVGArchive from "./svgArchive";
+import SVGPlay from "./svgPlay";
+import SVGDownload from "./svgDownload";
+
 
 export const ElevaiteIcons = {
     Logo: ElevaiteLogo,
@@ -54,4 +59,8 @@ export const ElevaiteIcons = {
     SVGNavbarLogo,
     SVGOpenLink,
     SVGCloudUpload,
+    SVGModels,
+    SVGArchive,
+    SVGPlay,
+    SVGDownload,
 };

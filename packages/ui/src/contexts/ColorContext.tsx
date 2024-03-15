@@ -23,6 +23,7 @@ export interface ColorScheme {
   navbarBackground?: string,
   success?: string,
   danger?: string,
+  tagBorder?: string,
 }
 
 export interface ColorContextStructure extends ColorScheme {

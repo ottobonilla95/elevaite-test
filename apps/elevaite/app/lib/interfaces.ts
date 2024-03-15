@@ -44,6 +44,12 @@ export enum StepDataType {
     DATE = "date",
 }
 
+export enum ModelsStatus {
+    REGISTERING = "registering",
+    ACTIVE = "active",
+    FAILED = "failed",
+}
+
 
 // COMMON INTERFACES
 ////////////////
@@ -151,6 +157,24 @@ export interface PipelineStatusItem {
     instanceId: string;
 }
 
+
+
+// MODELS
+////////////////
+
+export interface ModelObject {
+    id: string;
+    name: string;
+    date_created: string;
+    model_type: string;
+    status: ModelsStatus;
+    tags: string[];
+    node: {
+        cpu: string | number;
+        gpu: string | number;
+        ram: string | number;
+    }
+}
 
 
 

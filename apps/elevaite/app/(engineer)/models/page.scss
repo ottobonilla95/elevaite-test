@@ -1,0 +1,11 @@
+
+
+.models-main-container {    
+    height: 100%;
+    display: grid;
+    grid-template-rows: 80px 1fr;
+    gap: 20px;
+    padding: 20px;
+
+    color: var(--ev-colors-text);
+}

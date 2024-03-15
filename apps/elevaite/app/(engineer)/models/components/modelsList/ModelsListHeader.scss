@@ -1,0 +1,50 @@
+
+
+.models-list-header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 0 20px;
+
+    background-color: var(--ev-colors-primary);
+    border: 1px solid var(--ev-colors-borderColor);
+    border-radius: 8px 8px 0 0;
+
+    & .tabs-container {
+        display: flex;
+        align-items: center;
+
+        & > button.tab-button {
+            padding: 20px;
+            border-bottom: 2px solid transparent;
+            border-radius: 0;
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: uppercase;
+            color: var(--ev-colors-secondaryText);
+
+            &.active {
+                color: var(--ev-colors-highlight);
+                border-bottom-color: var(--ev-colors-highlight);
+            }
+        }
+    }
+
+
+    & .controls-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+
+        & > button {
+            flex-shrink: 0;
+
+            & > svg {
+                width: 20px;
+            }
+        }
+    }
+
+}

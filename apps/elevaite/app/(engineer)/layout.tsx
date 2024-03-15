@@ -47,7 +47,7 @@ const sidebarIcons: SidebarIconObject[] = [
     { icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" },
     // { icon: <ElevaiteIcons.Datasets />, link: "/datasets" },
     // { icon: <ElevaiteIcons.WorkersQueues />, link: "/workers_queues" },
-    // { icon: <ElevaiteIcons.Models />, link: "/models" },
+    { icon: <ElevaiteIcons.SVGModels />, link: "/models" },
     { icon: <ElevaiteIcons.Workbench />, link: "/workbench", description: "Workbench" },
 ];
 
@@ -56,6 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     if (session?.user) {
         // filter out sensitive data before passing to client.
         session.user = {
+            id: session.user.id,
             name: session.user.name,
             email: session.user.email,
             image: session.user.image,

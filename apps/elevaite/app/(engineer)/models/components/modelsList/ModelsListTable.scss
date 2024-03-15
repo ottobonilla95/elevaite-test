@@ -1,0 +1,19 @@
+
+
+
+.models-list-table-container {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease-in-out;
+
+    &.is-visible {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+
+    & .table-grid {
+        display: grid;
+        grid-template-columns: 6fr 3fr 3fr 2fr 4fr 50px 50px 50px 4fr;
+    }
+}

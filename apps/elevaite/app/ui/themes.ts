@@ -20,6 +20,7 @@ export const EngineerTheme: ColorScheme = {
   navbarBackground: "#282828",
   success: "#D8FC77",
   danger: "#DC143C",
+  tagBorder: "#71570D",
 };
 
 // Light
@@ -42,4 +43,5 @@ export const AppDrawerTheme: ColorScheme = {
   navbarBackground: "#CBD5E1",
   success: "#D8FC77",
   danger: "#DC143C",
+  tagBorder: "#71570D",
 };
