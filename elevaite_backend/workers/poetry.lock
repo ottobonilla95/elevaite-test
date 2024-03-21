@@ -224,17 +224,17 @@ lxml = ["lxml"]
 
 [[package]]
 name = "boto3"
-version = "1.34.63"
+version = "1.34.67"
 description = "The AWS SDK for Python"
 optional = false
-python-versions = ">= 3.8"
+python-versions = ">=3.8"
 files = [
-    {file = "boto3-1.34.63-py3-none-any.whl", hash = "sha256:617174f9051b564a57fb1079186ad15db6519ab3bb0d1fb22cb54767b0c4f46e"},
-    {file = "boto3-1.34.63.tar.gz", hash = "sha256:e14f3866f6f372aadc5457ff9a052a45d9e2dd93466122ba86cdd5351cfeafaf"},
+    {file = "boto3-1.34.67-py3-none-any.whl", hash = "sha256:473febdf2606cf36f14c470dc3ff1b986efac15f69e37eb0fd728d42749065dd"},
+    {file = "boto3-1.34.67.tar.gz", hash = "sha256:950161d438ae1bf31374f04175e5f2624a5de8109674ff80f4de5d962313072a"},
 ]
 
 [package.dependencies]
-botocore = ">=1.34.63,<1.35.0"
+botocore = ">=1.34.67,<1.35.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.10.0,<0.11.0"
 
@@ -243,13 +243,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.34.63"
+version = "1.34.67"
 description = "Low-level, data-driven core of boto 3."
 optional = false
-python-versions = ">= 3.8"
+python-versions = ">=3.8"
 files = [
-    {file = "botocore-1.34.63-py3-none-any.whl", hash = "sha256:8a6cbc3a5c5988725c00815f8f7f6baf81980b19d9a2ee414b031e726759dba9"},
-    {file = "botocore-1.34.63.tar.gz", hash = "sha256:2237743fc3ed68319bc358b451e7c13a02110242b1522b839806fd64fcee45fb"},
+    {file = "botocore-1.34.67-py3-none-any.whl", hash = "sha256:56002d7c046ec134811dd079469692ab82919c9840ea4e1c1c373a1d228e37ae"},
+    {file = "botocore-1.34.67.tar.gz", hash = "sha256:fc094c055a6ac151820a4d8e28f7b30d03e02695ce180527520a5e219b14e8a1"},
 ]
 
 [package.dependencies]
@@ -477,7 +477,7 @@ requests = ["requests (>=2.4.0,<3.0.0)"]
 
 [[package]]
 name = "elevaitedb"
-version = "0.1.53"
+version = "0.1.65"
 description = ""
 optional = false
 python-versions = "~3.11"
@@ -967,13 +967,13 @@ setuptools = "68.2.2"
 
 [[package]]
 name = "lakefs-sdk"
-version = "1.13.0"
+version = "1.14.1"
 description = "lakeFS API"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "lakefs-sdk-1.13.0.tar.gz", hash = "sha256:f4225d1aa2bc5f027e006e05de2c49d5904d76fac27abeea077ffce11a749fdf"},
-    {file = "lakefs_sdk-1.13.0-py3-none-any.whl", hash = "sha256:115bd34509683fae6f6cb71afcd525a1a1dabe924efc5098a12f6550470340f8"},
+    {file = "lakefs-sdk-1.14.1.tar.gz", hash = "sha256:36469b8c4f128c7e3db34704224d8b8ffef4e1c6e880032b326b57e95c6c1bf8"},
+    {file = "lakefs_sdk-1.14.1-py3-none-any.whl", hash = "sha256:b909696aabe3840f1e9329249769d5fc32b448f207fd61a4d93a0de1bcf51369"},
 ]
 
 [package.dependencies]

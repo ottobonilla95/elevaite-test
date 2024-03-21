@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, UUID4
 
 from .dataset import Dataset
 
@@ -12,7 +12,7 @@ class ProjectCreate(ProjectBase):
 
 
 class Project(ProjectBase):
-    id: str
+    id: UUID4
     datasets: list[Dataset]
 
     class Config:

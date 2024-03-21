@@ -1,10 +1,43 @@
+from datetime import datetime
 from typing import TypeGuard
-from pydantic import BaseModel
+from pydantic import UUID4, BaseModel
+
+
+class DatasetVersionBase(BaseModel):
+    commitId: str
+    version: int
+
+
+class DatasetVersionCreate(DatasetVersionBase):
+    pass
+
+
+class DatasetVersion(DatasetVersionBase):
+    id: UUID4
+    createDate: datetime
+
+    class Config:
+        orm_mode = True
+
+
+class DatasetTagBase(BaseModel):
+    name: str
+
+
+class DatasetTagCreate(DatasetTagBase):
+    pass
+
+
+class DatasetTag(DatasetTagBase):
+    id: UUID4
+
+    class Config:
+        orm_mode = True
 
 
 class DatasetBase(BaseModel):
     name: str
-    projectId: str
+    projectId: UUID4
 
 
 class DatasetCreate(DatasetBase):
@@ -12,7 +45,11 @@ class DatasetCreate(DatasetBase):
 
 
 class Dataset(DatasetBase):
-    id: str
+    id: UUID4
+    versions: list[DatasetVersion]
+    tags: list[DatasetTag]
+    createDate: datetime
+    updateDate: datetime | None
 
     class Config:
         orm_mode = True

@@ -86,10 +86,19 @@ def createApplicationInstance(
                 projectId=str(createInstanceDto.projectId),
             ),
         )
+        tags = dataset_crud.get_dataset_tags(db=db)
+        _source_tag = list(filter(lambda x: x.name == "Source", tags))
+        if len(_source_tag) == 1:
+            source_tag = _source_tag[0]
+            dataset_crud.add_tag_to_dataset(
+                db=db, dataset_id=_dataset.id, tag_id=source_tag.id
+            )
+
     else:
         _dataset = dataset_crud.get_dataset_by_id(db, _conf.datasetId)
 
     _conf.datasetId = str(_dataset.id)
+    _raw_configuration["datasetId"] = str(_dataset.id)
 
     if not is_dataset(_dataset):
         raise HTTPException(status_code=404, detail="Application not found")

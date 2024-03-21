@@ -18,6 +18,7 @@ from elevaitedb.crud import (
     project as project_crud,
     instance as instance_crud,
     pipeline as pipeline_crud,
+    dataset as dataset_crud,
 )
 from elevaitedb.util import func as util_func
 from elevaitedb.util.s3url import S3Url
@@ -26,7 +27,10 @@ from elevaitedb.schemas.instance import (
     InstanceUpdate,
     InstanceChartData,
     InstanceStepDataLabel,
+    PipelineStepStatus,
+    InstancePipelineStepStatusUpdate,
 )
+from elevaitedb.schemas.dataset import DatasetVersionCreate
 
 
 class S3IngestData:
@@ -202,6 +206,9 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
         _entry_step = None
         _first_step = None
         _final_step = None
+        dataset = dataset_crud.get_dataset_by_id(db=db, dataset_id=data.datasetId)
+        dataset_name = util_func.to_kebab_case(dataset.name)
+        repo_name = project_name + "-" + dataset_name
 
         for s in _pipeline.steps:
             if s.id == _pipeline.entry:
@@ -221,12 +228,12 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
         repo = None
 
         for _repo in lakefs.repositories(client=clt):
-            if _repo.id == project_name:
+            if _repo.id == repo_name:
                 repo = _repo
 
         if not repo:
-            repo = lakefs.Repository(project_name, client=clt).create(
-                storage_namespace=f"s3://{LAKEFS_STORAGE_NAMESPACE}/{project_name}"
+            repo = lakefs.Repository(repo_name, client=clt).create(
+                storage_namespace=f"s3://{LAKEFS_STORAGE_NAMESPACE}/{repo_name}"
             )
 
         lakefs_branch = repo.branch("main")
@@ -284,6 +291,26 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
             InstanceUpdate(status=InstanceStatus.RUNNING),
         )
 
+        instance_crud.update_pipeline_step(
+            db,
+            data.instanceId,
+            _entry_step.id,
+            InstancePipelineStepStatusUpdate(
+                endTime=util_func.get_iso_datetime(),
+                status=PipelineStepStatus.COMPLETED,
+            ),
+        )
+
+        instance_crud.update_pipeline_step(
+            db,
+            data.instanceId,
+            _first_step.id,
+            InstancePipelineStepStatusUpdate(
+                startTime=util_func.get_iso_datetime(),
+                status=PipelineStepStatus.RUNNING,
+            ),
+        )
+
         # branch = repo.branch("main")
 
         for summary in src_bucket.objects.filter(Prefix=s3url.key):
@@ -298,7 +325,7 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
                 s3_object = src_bucket.Object(summary.key).get()
                 stream = s3_object["Body"]
                 lakefs_s3.upload_fileobj(
-                    Fileobj=stream, Bucket=project_name, Key=f"main/{summary.key}"
+                    Fileobj=stream, Bucket=repo_name, Key=f"main/{summary.key}"
                 )
             r.json().numincrby(data.instanceId, ".ingested_size", summary.size)
             r.json().numincrby(data.instanceId, ".ingested_items", 1)
@@ -326,23 +353,63 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
             ),
         )
 
+        instance_crud.update_pipeline_step(
+            db,
+            data.instanceId,
+            _first_step.id,
+            InstancePipelineStepStatusUpdate(
+                endTime=util_func.get_iso_datetime(),
+                status=PipelineStepStatus.COMPLETED,
+            ),
+        )
+
+        instance_crud.update_pipeline_step(
+            db,
+            data.instanceId,
+            _final_step.id,
+            InstancePipelineStepStatusUpdate(
+                startTime=util_func.get_iso_datetime(),
+                status=PipelineStepStatus.RUNNING,
+            ),
+        )
+
         __commit_flag__ = False
 
         for diff in lakefs_branch.uncommitted():
             if diff is not None:
                 __commit_flag__ = True
                 break
+            else:
+                break
 
         if __commit_flag__:
-            lakefs_branch.commit(
+            ref = lakefs_branch.commit(
                 data.instanceId,
                 {
                     "instanceId": data.instanceId,
                     "timestamp": util_func.get_iso_datetime(),
                 },
             )
+            curr_version = dataset_crud.get_max_version_of_dataset(
+                db=db, datasetId=data.datasetId
+            )
+            dataset_crud.create_dataset_version(
+                db,
+                data.datasetId,
+                DatasetVersionCreate(commitId=ref.id, version=curr_version + 1),
+            )
         else:
             print("Dataset is identical")
+
+        instance_crud.update_pipeline_step(
+            db,
+            data.instanceId,
+            _final_step.id,
+            InstancePipelineStepStatusUpdate(
+                endTime=util_func.get_iso_datetime(),
+                status=PipelineStepStatus.COMPLETED,
+            ),
+        )
 
     except BadRequestException as e:
         print("Dataset is identical")

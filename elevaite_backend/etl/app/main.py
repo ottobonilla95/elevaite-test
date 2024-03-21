@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.routers.applications import router as applications_router
 from app.routers.instances import router as instances_router
 from app.routers.configurations import router as configuration_router
+from app.routers.datasets import router as datasets_router
+from app.routers.projects import router as projects_router
 
 from app.util.RedisSingleton import RedisSingleton
 from app.util.ElasticSingleton import ElasticSingleton
@@ -35,6 +37,8 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(applications_router)
 app.include_router(instances_router)
 app.include_router(configuration_router)
+app.include_router(datasets_router)
+app.include_router(projects_router)
 
 
 @app.get("/hc")

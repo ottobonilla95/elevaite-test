@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from pydantic import UUID4
 from sqlalchemy import (
@@ -13,9 +13,10 @@ from sqlalchemy import (
     Uuid,
     JSON,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property
 
+from ..util.func import get_utc_datetime
 from ..schemas.instance import InstanceStatus
 from ..schemas.pipeline import PipelineStepStatus
 from ..schemas.application import ApplicationType
@@ -174,13 +175,28 @@ class Configuration(Base):
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     applicationId = Column(Integer, ForeignKey("applications.id"))
     name = Column(String, unique=True)
-    createDate = Column(DateTime, default=datetime.utcnow)
-    updateDate = Column(DateTime, nullable=True, onupdate=datetime.utcnow)
+    createDate = Column(DateTime, default=get_utc_datetime)
+    updateDate = Column(DateTime, nullable=True, onupdate=get_utc_datetime)
     isTemplate = Column(Boolean)
     raw = Column(JSON)
 
     instances = relationship("Instance", back_populates="configuration", uselist=True)
     application = relationship("Application")
+
+
+class DatasetTag(Base):
+    __tablename__ = "dataset_tags"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    name: Mapped[str]
+
+
+dataset_dataset_tags = Table(
+    "dataset_dataset_tags",
+    Base.metadata,
+    Column("dataset_id", Uuid, ForeignKey("datasets.id")),
+    Column("tag_id", Uuid, ForeignKey("dataset_tags.id")),
+)
 
 
 class Dataset(Base):
@@ -189,8 +205,24 @@ class Dataset(Base):
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     name = Column(String)
     projectId = Column(Uuid, ForeignKey("projects.id"))
+    createDate = Column(DateTime, default=get_utc_datetime)
+    updateDate = Column(DateTime, nullable=True, onupdate=get_utc_datetime)
 
     project = relationship("Project", back_populates="datasets")
+    versions = relationship("DatasetVersion", back_populates="dataset")
+    tags: Mapped[list["DatasetTag"]] = relationship(secondary=dataset_dataset_tags)
+
+
+class DatasetVersion(Base):
+    __tablename__ = "dataset_versions"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    commitId: Mapped[str] = mapped_column()
+    version: Mapped[int] = mapped_column()
+    datasetId = mapped_column(ForeignKey("datasets.id"))
+    createDate = Column(DateTime, default=get_utc_datetime)
+
+    dataset: Mapped[Dataset] = relationship(back_populates="versions")
 
 
 class Project(Base):
@@ -200,3 +232,14 @@ class Project(Base):
     name = Column(String)
 
     datasets = relationship("Dataset", back_populates="project")
+    collections = relationship("Collection", back_populates="project")
+
+
+class Collection(Base):
+    __tablename__ = "collections"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    name: Mapped[str]
+    projectId = mapped_column(ForeignKey("projects.id"))
+
+    project: Mapped[Project] = relationship(back_populates="collections")

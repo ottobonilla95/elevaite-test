@@ -158,4 +158,13 @@ def seed_db(db: Session):
     db.refresh(ingest_application_1)
     res.append(pre_process_application_1)
     res.append(ingest_application_1)
+
+    _source = models.DatasetTag(name="Source")
+    db.add(_source)
+    _evaluation = models.DatasetTag(name="Evaluation")
+    db.add(_evaluation)
+    _training = models.DatasetTag(name="Training")
+    db.add(_training)
+    db.commit()
+
     return res

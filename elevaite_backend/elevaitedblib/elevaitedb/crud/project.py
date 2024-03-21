@@ -4,6 +4,10 @@ from ..db import models
 from ..schemas.project import ProjectCreate
 
 
+def get_projects(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Project).offset(skip).limit(limit).all()
+
+
 def get_project_by_id(db: Session, project_id: str):
     return db.query(models.Project).filter(models.Project.id == project_id).first()
 
