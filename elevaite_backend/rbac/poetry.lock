@@ -282,7 +282,7 @@ wmi = ["wmi (>=1.5.1)"]
 
 [[package]]
 name = "elevaitedb"
-version = "0.1.65"
+version = "0.2.00"
 description = ""
 optional = false
 python-versions = "~3.11"
@@ -652,6 +652,7 @@ files = [
 ]
 
 [package.dependencies]
+email-validator = {version = ">=1.0.3", optional = true, markers = "extra == \"email\""}
 typing-extensions = ">=4.2.0"
 
 [package.extras]
@@ -966,4 +967,4 @@ standard = ["colorama (>=0.4)", "httptools (>=0.5.0)", "python-dotenv (>=0.13)",
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.11"
-content-hash = "7140d63105161b2d407c26be897344cd887fb2de3b848d8928c4aa26d1dc567c"
+content-hash = "d0d2779196509262d642adc42ba94d80189b72a669510f7161d495296e79ecb2"

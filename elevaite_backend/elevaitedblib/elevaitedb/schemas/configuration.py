@@ -25,7 +25,8 @@ class S3IngestFormDataDTO(BaseDatasetInformationForm):
 
 class PreProcessFormDTO(BaseDatasetInformationForm):
     type: str = "preprocess"
-    datasetVersion: str | None
+    datasetVersion: int | None
+    collectionId: str | None
     queue: str
     maxIdleTime: str
 

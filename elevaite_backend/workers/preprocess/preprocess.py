@@ -1,6 +1,7 @@
 import docx
 from unstructured.partition.html import partition_html
 from unstructured.partition.docx import partition_docx
+from unstructured.partition.auto import partition
 from unstructured.chunking.title import chunk_by_title
 from pprint import pprint
 import sys, glob, os

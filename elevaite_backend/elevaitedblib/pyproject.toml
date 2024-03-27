@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "elevaitedb"
-version = "0.1.65"
+version = "0.2.00"
 description = ""
 authors = ["John Zachariadis <johnbelly95@gmail.com>"]
 readme = "README.md"
@@ -11,6 +11,7 @@ sqlalchemy = "^2.0.27"
 alembic = "^1.13.1"
 psycopg2-binary = "^2.9.9"
 pydantic = ">=1.10.5,<2"
+email-validator = "^2.1.1"
 
 
 [build-system]

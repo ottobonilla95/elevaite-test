@@ -228,8 +228,8 @@ class Dataset(Base):
     createDate = Column(DateTime, default=get_utc_datetime)
     updateDate = Column(DateTime, nullable=True, onupdate=get_utc_datetime)
 
-    project = relationship("Project", back_populates="datasets")
-    versions = relationship("DatasetVersion", back_populates="dataset")
+    project: Mapped["Project"] = relationship(back_populates="datasets")
+    versions: Mapped[list["DatasetVersion"]] = relationship(back_populates="dataset")
     tags: Mapped[list["DatasetTag"]] = relationship(secondary=dataset_dataset_tags)
 
 

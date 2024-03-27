@@ -60,6 +60,15 @@ def add_tag_to_dataset(db: Session, dataset_id: str, tag_id: str):
     return _dataset
 
 
+def get_dataset_version(db: Session, datasetId: str, version: int):
+    return (
+        db.query(models.DatasetVersion)
+        .filter(models.DatasetVersion.datasetId == datasetId)
+        .filter(models.DatasetVersion.version == version)
+        .first()
+    )
+
+
 def get_max_version_of_dataset(db: Session, datasetId: str):
     curr_ver = db.scalar(
         select(func.max(models.DatasetVersion.version)).where(

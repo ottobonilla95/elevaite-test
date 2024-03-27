@@ -19,6 +19,8 @@ from elevaitedb.crud import (
     instance as instance_crud,
     application as application_crud,
     pipeline as pipeline_crud,
+    collection as collection_crud,
+    dataset as dataset_crud,
 )
 from elevaitedb.util import func as util_func
 from elevaitedb.util.s3url import S3Url
@@ -29,6 +31,7 @@ from elevaitedb.schemas.instance import (
     InstancePipelineStepStatusUpdate,
 )
 from elevaitedb.schemas.pipeline import PipelineStepStatus
+from elevaitedb.schemas.collection import Collection
 
 
 class PreProcessForm:
@@ -38,15 +41,16 @@ class PreProcessForm:
     version: str | None
     parent: str | None
     outputURI: str | None
-    datasetId: str | None
+    datasetId: str
     selectedPipelineId: str
     configurationName: str
     isTemplate: bool
-    datasetVersion: str | None
+    datasetVersion: int | None
     queue: str
     maxIdleTime: str
     instanceId: str
     applicationId: int
+    collectionId: str
 
     def __init__(
         self,
@@ -61,11 +65,12 @@ class PreProcessForm:
         configurationName: str,
         isTemplate: bool,
         type: str,
-        datasetVersion: str | None,
+        datasetVersion: int | None,
         queue: str,
         maxIdleTime: str,
         instanceId: str,
         applicationId: int,
+        collectionId: str,
     ) -> None:
         self.creator = creator
         self.name = name
@@ -82,6 +87,7 @@ class PreProcessForm:
         self.maxIdleTime = maxIdleTime
         self.instanceId = instanceId
         self.applicationId = applicationId
+        self.collectionId = collectionId
 
 
 def wrap_async_func(_data: PreProcessForm):
@@ -97,6 +103,7 @@ def preprocess_callback(ch, method, properties, body):
         **_data["dto"],
         instanceId=_data["id"],
         applicationId=_data["application_id"],
+        configurationName=_data["configurationName"],
     )
 
     t = threading.Thread(target=wrap_async_func, args=(_formData,))
@@ -148,14 +155,37 @@ async def preprocess(data: PreProcessForm) -> None:
 
     _project = project_crud.get_project_by_id(db, data.projectId)
     project_name = util_func.to_kebab_case(_project.name)
+    dataset = dataset_crud.get_dataset_by_id(db=db, dataset_id=data.datasetId)
+    if dataset is None:
+        raise Exception("Dataset not found")
+    dataset_name = util_func.to_kebab_case(dataset.name)
+    repo_name = project_name + "-" + dataset_name
 
     for _repo in lakefs.repositories(client=clt):
-        if _repo.id == project_name:
+        if _repo.id == repo_name:
             repo = _repo
+
+    _version = (
+        data.datasetVersion
+        if data.datasetVersion
+        else dataset_crud.get_max_version_of_dataset(db=db, datasetId=data.datasetId)
+    )
+
+    dataset_version = dataset_crud.get_dataset_version(
+        db=db, datasetId=dataset.id, version=_version
+    )
+    if dataset_version is None:
+        raise Exception("Dataset Version not found.")
+    ref = lakefs.Reference(repo.id, dataset_version.commitId, client=clt)
+
+    _collection = collection_crud.get_collection_by_id(
+        db=db, collectionId=data.collectionId
+    )
+    collection_name = util_func.to_kebab_case(_collection.name)
 
     count = 0
     size = 0
-    for o in repo.branch("main").objects():
+    for o in ref.objects():
         count += 1
         size += o.size_bytes
 
@@ -236,8 +266,8 @@ async def preprocess(data: PreProcessForm) -> None:
     page_as_json = []
     findex = 0
     try:
-        for object in repo.branch("main").objects():
-            with repo.branch("main").object(object.path).reader(pre_sign=False) as fd:
+        for object in ref.objects():
+            with ref.object(object.path).reader(pre_sign=False) as fd:
                 # while fd.tell() < file_size:
                 #     print(fd.read(10))
                 #     fd.seek(10, os.SEEK_CUR)
@@ -300,9 +330,9 @@ async def preprocess(data: PreProcessForm) -> None:
         # pprint(chunks_as_json)
         print("Number of chunks " + str(len(chunks_as_json)))
         # payloads = json.load(chunks_as_json)
-        await vectordb.recreate_collection(collection=project_name)
+        await vectordb.recreate_collection(collection=collection_name)
         await vectordb.insert_records(
-            collection=project_name, payload_with_contents=chunks_as_json
+            collection=collection_name, payload_with_contents=chunks_as_json
         )
 
         res = r.json().get(data.instanceId)

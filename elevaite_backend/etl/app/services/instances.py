@@ -30,12 +30,14 @@ from elevaitedb.schemas.configuration import (
     is_configuration,
 )
 from elevaitedb.schemas.dataset import DatasetCreate, is_dataset
+from elevaitedb.schemas.collection import CollectionCreate
 from elevaitedb.crud import (
     pipeline as pipeline_crud,
     application as application_crud,
     instance as instance_crud,
     configuration as configuration_crud,
     dataset as dataset_crud,
+    collection as collection_crud,
 )
 
 
@@ -71,8 +73,12 @@ def createApplicationInstance(
     _raw_configuration = _configuration.raw
     if _raw_configuration["type"] == "ingest":
         _conf = S3IngestFormDataDTO(**_raw_configuration)
-    else:
+    elif _raw_configuration["type"] == "preprocess":
         _conf = PreProcessFormDTO(**_raw_configuration)
+    else:
+        raise HTTPException(
+            status_code=402, detail="Configuration Type must be ingest or preprocess"
+        )
 
     _pipeline = pipeline_crud.get_pipeline_by_id(db, _conf.selectedPipelineId)
 
@@ -99,6 +105,20 @@ def createApplicationInstance(
 
     _conf.datasetId = str(_dataset.id)
     _raw_configuration["datasetId"] = str(_dataset.id)
+
+    if _conf.type == "preprocess":
+        if _conf.collectionId is None:
+            _collection = collection_crud.create_collection(
+                db=db,
+                projectId=_conf.projectId,
+                cc=CollectionCreate(name=get_random_name()),
+            )
+        else:
+            _collection = collection_crud.get_collection_by_id(
+                db=db, collectionId=_conf.collectionId
+            )
+        _conf.collectionId = str(_collection.id)
+        _raw_configuration["collectionId"] = str(_collection.id)
 
     if not is_dataset(_dataset):
         raise HTTPException(status_code=404, detail="Application not found")
