@@ -1,0 +1,8 @@
+{
+   "insufficient_permissions": {
+      "summary": "logged-in user is not assigned to organization in which accounts are read",
+      "value": {
+         "detail": "you are not assigned to organization - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   }
+}

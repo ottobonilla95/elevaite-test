@@ -1,0 +1,8 @@
+{
+   "not_found_account": {
+      "summary": "account not found",
+      "value": {
+         "detail": "account - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   }
+}

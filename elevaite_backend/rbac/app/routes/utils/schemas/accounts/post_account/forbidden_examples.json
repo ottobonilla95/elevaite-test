@@ -1,0 +1,8 @@
+{
+   "insufficient_permissions": {
+      "summary": "logged-in user does not have superadmin privileges to create accounts",
+      "value": {
+         "detail": "you do not have superadmin privileges to create accounts"
+      }
+   }
+}

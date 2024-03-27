@@ -1,0 +1,35 @@
+{
+   "payload_field_type_validation_error": {
+      "summary": "Field-Type payload validation error - user_id,project_id has invalid UUID format; payload has invalid format; extra fields present",
+      "value": {
+         "detail": [
+            {
+            "loc": [
+               "string",
+               0
+            ],
+            "msg": "string",
+            "type": "string"
+            }
+         ]
+      }
+   },
+   "not_found_user_in_project": {
+      "summary": "user to patch is not assigned to project",
+      "value": {
+         "detail": "user - '789e4567-e89b-12d3-a456-426614174001' - is not assigned to project - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   },
+   "not_found_user_in_account": {
+      "summary": "user to patch is not assigned to account",
+      "value": {
+         "detail": "user - '789e4567-e89b-12d3-a456-426614174001' - is not assigned to account - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   },
+   "business_logic_validation_error": {
+      "summary": "Attempting to update project permission overrides for superadmin/admin/project-owner",
+      "value": {
+         "detail": "Invalid action - Attempting to update project permission overrides for user - '789e4567-e89b-12d3-a456-426614174000' - who is admin/superadmin/project-owner"
+      }
+   }
+}

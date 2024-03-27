@@ -1,0 +1,8 @@
+{
+   "assignment_conflict": {
+      "summary": "One or more users are already assigned to account",
+      "value": {
+         "detail": "One or more users are already assigned to account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   }
+}

@@ -1,0 +1,8 @@
+{
+   "conflict": {
+      "summary": "One or more account-scoped roles are already assigned to the user in account",
+      "value": {
+         "detail": "One or more account-scoped roles are already assigned to user - '789e4567-e89b-12d3-a456-426614174000' - in account - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   }
+}

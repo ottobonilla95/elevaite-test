@@ -1,0 +1,14 @@
+{
+   "enable_success": {
+      "summary": "Account successfully enabled",
+      "value": {
+            "message": "Account successfully enabled."
+      }
+   },
+   "disable_success": {
+      "summary": "Account successfully disabled",
+      "value": {
+            "message": "Account successfully disabled."
+      }
+   }
+}

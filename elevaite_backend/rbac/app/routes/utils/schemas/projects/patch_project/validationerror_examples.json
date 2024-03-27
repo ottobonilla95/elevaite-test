@@ -1,0 +1,23 @@
+{
+   "payload_field_type_validation_error": {
+      "summary": "Field-Type payload validation error - project_id does not have valid UUID format; name field missing; extra fields present",
+      "value": {
+         "detail": [
+            {
+            "loc": [
+               "string",
+               0
+            ],
+            "msg": "string",
+            "type": "string"
+            }
+         ]
+      }
+   },
+   "payload_business_logic_validation_error": {
+      "summary": "Business-logic payload validation error",
+      "value": {
+         "detail": "At least one field must be provided in payload"
+      }
+   }
+}

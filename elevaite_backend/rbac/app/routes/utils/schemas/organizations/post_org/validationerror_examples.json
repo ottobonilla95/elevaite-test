@@ -1,0 +1,17 @@
+{
+   "payload_field_type_validation_error": {
+      "summary": "Field-Type payload validation error - name field missing; extra fields present",
+      "value": {
+         "detail": [
+            {
+            "loc": [
+               "string",
+               0
+            ],
+            "msg": "string",
+            "type": "string"
+            }
+         ]
+      }
+   }
+}

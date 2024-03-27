@@ -1,0 +1,17 @@
+{
+   "payload_field_type_validation_error": {
+      "summary": "Field-Type payload validation error - org_id/account_id does not have valid UUID format",
+      "value": {
+         "detail": [
+            {
+            "loc": [
+               "string",
+               0
+            ],
+            "msg": "string",
+            "type": "string"
+            }
+         ]
+      }
+   }
+}

@@ -1,0 +1,14 @@
+{
+   "assign_success": {
+      "summary": "Users Assigned",
+      "value": {
+            "message": "Successfully assigned 4 users to the account"
+      }
+   },
+   "deassign_success": {
+      "summary": "Users Deassigned",
+      "value": {
+            "message": "Successfully deassigned 4 users from the account"
+      }
+    }
+   }

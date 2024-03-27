@@ -1,0 +1,20 @@
+ {
+   "no_token": {
+      "summary": "no token",
+      "value": {
+         "detail": "Request header must contain bearer access_token for authentication"
+      }
+   },
+   "invalid_or_expired_token": {
+      "summary": "Invalid or expired token",
+      "value": {
+         "detail": "invalid or expired auth credentials"
+      }
+   },
+   "no_corresponding_user": {
+      "summary": "No corresponding user in db",
+      "value": {
+         "detail": "user is unauthenticated"
+      }
+   }
+}

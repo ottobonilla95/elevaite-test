@@ -1,0 +1,8 @@
+{
+   "conflict": {
+      "summary": "An account with same name already exists in organization",
+      "value": {
+         "detail": "An account with name - 'account_1' - already exists in organization - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   }
+}

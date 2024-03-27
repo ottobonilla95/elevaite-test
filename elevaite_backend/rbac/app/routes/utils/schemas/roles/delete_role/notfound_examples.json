@@ -1,0 +1,8 @@
+{
+   "not_found_role": {
+      "summary": "role not found",
+      "value": {
+         "detail": "role - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   }
+}

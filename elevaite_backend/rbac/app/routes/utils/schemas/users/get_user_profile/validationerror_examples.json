@@ -1,0 +1,23 @@
+{
+   "payload_field_type_validation_error": {
+      "summary": "Field-Type payload validation error - user_id or account_id has invalid UUID format",
+      "value": {
+         "detail": [
+            {
+            "loc": [
+               "string",
+               0
+            ],
+            "msg": "string",
+            "type": "string"
+            }
+         ]
+      }
+   },
+   "not_found_user_in_account": {
+      "summary": "user in payload not found in account",
+      "value": {
+         "detail": "user - '789e4567-e89b-12d3-a456-426614174000' - not assigned to account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   }
+}

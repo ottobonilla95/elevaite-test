@@ -1,0 +1,14 @@
+{
+   "account_disabled": {
+      "summary": "account is disabled",
+      "value": {
+         "detail": "account - '789e4567-e89b-12d3-a456-426614174000' - is disabled"
+      }
+   },
+   "insufficient_permissions": {
+      "summary": "logged-in user does not have superadmin/admin privileges to patch account",
+      "value": {
+         "detail": "you do not have superadmin/admin privileges to patch account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   }
+}

@@ -1,0 +1,26 @@
+{
+   "account_disabled": {
+      "summary": "account is disabled",
+      "value": {
+         "detail": "account - '789e4567-e89b-12d3-a456-426614174000' - is disabled"
+      }
+   },
+   "insufficient_permissions_1": {
+      "summary": "logged-in user is not assigned to project associated account - '789e4567-e89b-12d3-a456-426614174000'",
+      "value": {
+         "detail": "you are not assigned to account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "insufficient_permissions_2": {
+      "summary": "logged-in user is not assigned to project - '789e4567-e89b-12d3-a456-426614174000'",
+      "value": {
+         "detail": "you are not assigned to project - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "insufficient_permissions_3": {
+      "summary": "logged-in user is not assigned to all projects in the project hierarchy of project - '789e4567-e89b-12d3-a456-426614174000'",
+      "value": {
+         "detail": "you are not assigned to all projects in the project hierarchy of project - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   }
+}

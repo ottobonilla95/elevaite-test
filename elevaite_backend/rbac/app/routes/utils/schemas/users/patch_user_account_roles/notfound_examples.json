@@ -1,0 +1,26 @@
+{
+   "not_found_user": {
+      "summary": "user not found",
+      "value": {
+         "detail": "user - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   },
+   "not_found_account": {
+      "summary": "account not found",
+      "value": {
+         "detail": "account - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   },
+   "not_found_roles_1": {
+      "summary": "one or more roles not found",
+      "value": {
+         "detail": "one or more roles not found"
+      }
+   },
+   "not_found_roles_2": {
+      "summary": "One or more roles to remove were not found for the user in account",
+      "value": {
+         "detail": "One or more roles to remove were not found for user - '789e4567-e89b-12d3-a456-426614174000' - in account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   }   
+}

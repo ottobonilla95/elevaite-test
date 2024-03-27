@@ -1,0 +1,17 @@
+{
+   "payload_field_type_validation_error": {
+      "summary": "Field-Type payload validation error - account_id or name field missing; account_id or parent_project_id dont have valid UUID format; extra fields present",
+      "value": {
+         "detail": [
+            {
+            "loc": [
+               "string",
+               0
+            ],
+            "msg": "string",
+            "type": "string"
+            }
+         ]
+      }
+   }
+}

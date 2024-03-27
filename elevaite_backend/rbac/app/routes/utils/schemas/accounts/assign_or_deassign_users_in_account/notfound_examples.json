@@ -1,0 +1,14 @@
+{
+   "account_not_found": {
+      "summary": "account not found",
+      "value": {
+         "detail": "account - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   },
+   "users_not_found": {
+      "summary": "One or more users in assignment/deassignment list not found",
+      "value": {
+         "detail": "One or more users not found"
+      }
+   }
+}

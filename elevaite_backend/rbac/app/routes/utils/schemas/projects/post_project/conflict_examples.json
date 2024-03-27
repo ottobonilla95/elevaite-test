@@ -1,0 +1,8 @@
+{
+   "conflict": {
+      "summary": "A project with same name already exists in account",
+      "value": {
+         "detail": "A project with same name - 'account_1' - already exists in account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   }
+}

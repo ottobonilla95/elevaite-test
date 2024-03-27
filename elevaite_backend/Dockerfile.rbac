@@ -1,0 +1,14 @@
+FROM python:3.11-alpine
+RUN mkdir elevaite
+WORKDIR /elevaite
+RUN pip3 install poetry
+RUN poetry config virtualenvs.create false
+RUN pip install --no-cache-dir --upgrade uvicorn==0.23.2
+# Install dependencies
+COPY . .
+WORKDIR /elevaite/rbac
+RUN poetry install
+
+EXPOSE 9005
+ENV PORT 9005
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9005"]

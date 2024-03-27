@@ -1,0 +1,9 @@
+{
+   "conflict": {
+      "summary": "A user with same email already exists in organization",
+      "value": {
+         "detail": "A user with email - 'example@gmail.com' - already exists in organization - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   }
+}
+

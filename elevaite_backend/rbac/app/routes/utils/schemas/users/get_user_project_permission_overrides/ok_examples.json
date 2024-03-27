@@ -1,0 +1,165 @@
+{
+   "retrieved_project_permission_overrides": {
+      "summary": "Successfully retrieved project permission overrides",
+      "value": {
+         "Project": {
+             "CREATE": {
+                 "action": "Allow"
+             },
+             "READ": {
+                 "action": "Allow"
+             }
+         },
+         "Ingest": {
+             "CONFIGURE": {
+                 "READ": {
+                     "action": "Deny"
+                 },
+                 "CREATE": {
+                     "action": "Deny"
+                 },
+                 "RUN": {
+                     "action": "Deny"
+                 }
+             },
+             "SCHEDULE": {
+                 "READ": {
+                     "action": "Deny"
+                 },
+                 "CREATE": {
+                     "action": "Deny"
+                 }
+             },
+             "ENABLE_WEBHOOKS": {
+                 "READ": {
+                     "action": "Deny"
+                 },
+                 "CREATE": {
+                     "action": "Deny"
+                 }
+             },
+             "READ": {
+                 "action": "Deny"
+             }
+         },
+         "Preprocess": {
+             "CONFIGURE": {
+                 "READ": {
+                     "action": "Deny"
+                 },
+                 "CREATE": {
+                     "action": "Deny"
+                 },
+                 "RUN": {
+                     "action": "Deny"
+                 }
+             },
+             "SCHEDULE": {
+                 "READ": {
+                     "action": "Deny"
+                 },
+                 "CREATE": {
+                     "action": "Deny"
+                 }
+             },
+             "ENABLE_WEBHOOKS": {
+                 "READ": {
+                     "action": "Deny"
+                 },
+                 "CREATE": {
+                     "action": "Deny"
+                 }
+             },
+             "READ": {
+                 "action": "Deny"
+             }
+         },
+         "Train": {
+             "DOWNLOAD": {
+                 "READ": {
+                     "action": "Allow"
+                 },
+                 "CREATE": {
+                     "action": "Allow"
+                 },
+                 "RUN": {
+                     "action": "Allow"
+                 }
+             },
+             "EVALUATE": {
+                 "READ": {
+                     "action": "Allow"
+                 },
+                 "CREATE": {
+                     "action": "Allow"
+                 },
+                 "RUN": {
+                     "action": "Allow"
+                 }
+             },
+             "FINE_TUNING": {
+                 "READ": {
+                     "action": "Allow"
+                 },
+                 "CREATE": {
+                     "action": "Allow"
+                 }
+             }
+         },
+         "Deploy": {
+             "READ": {
+                 "action": "Deny"
+             },
+             "CREATE": {
+                 "action": "Deny"
+             },
+             "RUN": {
+                 "action": "Deny"
+             },
+             "ENABLE_WEBHOOKS": {
+                 "READ": {
+                     "action": "Deny"
+                 },
+                 "CREATE": {
+                     "action": "Deny"
+                 }
+             },
+             "SCHEDULE": {
+                 "READ": {
+                     "action": "Deny"
+                 },
+                 "CREATE": {
+                     "action": "Deny"
+                 }
+             },
+             "CONFIGURE": {
+                 "READ": {
+                     "action": "Deny"
+                 },
+                 "CREATE": {
+                     "action": "Deny"
+                 },
+                 "RUN": {
+                     "action": "Deny"
+                 }
+             }
+         },
+         "Model": {
+             "READ": {
+                 "action": "Allow"
+             },
+             "TAG": {
+                 "action": "Allow"
+             }
+         },
+         "Dataset": {
+             "READ": {
+                 "action": "Deny"
+             },
+             "TAG": {
+                 "action": "Deny"
+             }
+         }
+     }
+   }
+}

@@ -1,0 +1,47 @@
+{
+   "payload_field_type_validation_error": {
+      "summary": "Field-Type payload validation error - user_id,account_id,role_id has invalid UUID format; action is a literal != 'Add'/'Remove'; extra fields present",
+      "value": {
+         "detail": [
+            {
+            "loc": [
+               "string",
+               0
+            ],
+            "msg": "string",
+            "type": "string"
+            }
+         ]
+      }
+   },
+   "payload_business_logic_validation_error_1": {
+      "summary": "Business-logic payload validation error - Duplicate role IDs are not allowed",
+      "value": {
+         "detail": "Duplicate role IDs are not allowed"
+      }
+   },
+   "payload_business_logic_validation_error_2": {
+      "summary": "Business-logic payload validation error - The list of role IDs must have length between 1 and 10 (inclusive)",
+      "value": {
+         "detail": "The list of role IDs must have length between 1 and 10 (inclusive)"
+      }
+   },
+   "payload_business_validation_error_3": {
+      "summary": "Invalid action - you cannot update account scoped roles for superadmin user",
+      "value": {
+         "detail": "Invalid action : cannot patch account roles for superadmin user - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "payload_business_validation_error_4": {
+      "summary": "Invalid action - you cannot update account scoped roles for admin user",
+      "value": {
+         "detail": "Invalid action : cannot patch account roles for admin user - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "not_found_user_in_account": {
+      "summary": "user not assigned to account",
+      "value": {
+         "detail": "user - '789e4567-e89b-12d3-a456-426614174000' - is not assigned to account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   }
+}

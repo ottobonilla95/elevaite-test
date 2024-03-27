@@ -1,0 +1,29 @@
+{
+   "payload_field_type_validation_error": {
+      "summary": "Field-Type payload validation error - account_id does not have valid UUID format; action is not a Literal = 'Disable' or 'Enable'; extra fields present",
+      "value": {
+         "detail": [
+            {
+            "loc": [
+               "string",
+               0
+            ],
+            "msg": "string",
+            "type": "string"
+            }
+         ]
+      }
+   },
+   "payload_field_value_validation_error_1": {
+      "summary": "Field-value payload validation error - cannot disable an already disabled account",
+      "value": {
+         "detail": "account - '789e4567-e89b-12d3-a456-426614174000' - is already disabled."
+      }
+   },
+   "payload_field_value_validation_error_2": {
+      "summary": "Field-value payload validation error - cannot enable an already enabled account",
+      "value": {
+         "detail": "account - '789e4567-e89b-12d3-a456-426614174000' - is already enabled."
+      }
+   }
+}

@@ -1,0 +1,9 @@
+{
+   "insufficient_permissions": {
+      "summary": "logged-in user does not have permission to register user with email which doesnt correspond to idp access token",
+      "value": {
+         "detail": "you do not have permissions to register user with email - 'example@gmail.com'"
+      }
+   }
+}
+

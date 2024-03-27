@@ -1,0 +1,21 @@
+{
+   "account_disabled": {
+      "summary": "account is disabled",
+      "value": {
+         "detail": "account - '789e4567-e89b-12d3-a456-426614174001' - is disabled"
+      }
+   },
+   "insufficient_permissions_1": {
+      "summary": "logged-in user is not assigned to account",
+      "value": {
+         "detail": "you are not assigned to account - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   },
+   "insufficient_permissions_2": {
+      "summary": "logged-in user does not have superadmin,admin or project association with project-owner privileges to update project permission overrides for user in this project",
+      "value": {
+         "detail": "you do not have superadmin,admin or project association with project-owner privileges to update project permission overrides for user - '789e4567-e89b-12d3-a456-426614174000' - in project - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   }
+}
+

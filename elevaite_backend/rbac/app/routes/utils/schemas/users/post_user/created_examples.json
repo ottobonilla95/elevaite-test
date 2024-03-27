@@ -1,0 +1,15 @@
+{
+   "created_user": {
+      "summary": "Successfully registered new user in organization",
+      "value": {
+         "id": "123e4567-e89b-12d3-a456-426614174000",
+         "organization_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+         "firstname": "Newly registered user's first name",
+         "lastname": "Newly registered user's last name",
+         "email": "john.doe@example.com",
+         "is_superadmin": false,
+         "created_at": "2022-01-01T00:00:00Z",
+         "updated_at": "2022-01-02T00:00:00Z"
+       }
+   }
+}

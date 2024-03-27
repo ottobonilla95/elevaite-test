@@ -1,0 +1,20 @@
+{
+   "not_found_user_account_association": {
+      "summary": "logged-in user is not assigned to account",
+      "value": {
+         "detail": "you are not assigned to account - '5b8d6492-f85f-48a6-9cd2-a347480dd372'"
+      }
+   },
+   "insufficient_permissions": {
+      "summary": "logged-in user does not have superadmin/admin privileges to assign self to project",
+      "value": {
+         "detail": "you do not have superadmin/admin privileges to assign self to project - '5b8d6492-f85f-48a6-9cd2-a347480dd372'"
+      }
+   },
+   "not_found_user_project_association": {
+      "summary": "logged-in user is not assigned to project",
+      "value": {
+         "detail": "you are not assigned to project - '5b8d6492-f85f-48a6-9cd2-a347480dd372'"
+      }
+   }
+}

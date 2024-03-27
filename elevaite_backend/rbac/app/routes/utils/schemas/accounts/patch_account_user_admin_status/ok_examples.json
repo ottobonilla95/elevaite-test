@@ -1,0 +1,14 @@
+{
+   "grant_success": {
+      "summary": "Admin status successfully granted",
+      "value": {
+            "message": "Admin status successfully granted."
+      }
+   },
+   "revoke_success": {
+      "summary": "Admin status successfully revoked",
+      "value": {
+            "message": "Admin status successfully revoked."
+      }
+   }
+}

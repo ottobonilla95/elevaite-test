@@ -1,0 +1,17 @@
+{
+   "payload_field_type_validation_error": {
+      "summary": "Field-Type payload validation error - org_id has invalid UUID format, email has invalid format; extra fields present",
+      "value": {
+         "detail": [
+            {
+            "loc": [
+               "string",
+               0
+            ],
+            "msg": "string",
+            "type": "string"
+            }
+         ]
+      }
+   }
+}

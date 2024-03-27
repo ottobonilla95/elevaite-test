@@ -1,0 +1,8 @@
+{
+   "service_unavailable": {
+      "summary": "Service unavailable",
+      "value": {
+         "detail": "The server is currently unable to handle the request due to a server-side error, temporary overloading, or maintenance of the server"
+      }
+   }
+}

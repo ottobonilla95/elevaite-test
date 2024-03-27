@@ -1,0 +1,14 @@
+{
+   "patched_account": {
+      "summary": "Successfully patched account response",
+      "value": {
+         "id": "123e4567-e89b-12d3-a456-426614174000",
+         "organization_id": "123e4567-e89b-12d3-a456-426614174000",
+         "name": "Patched account name",
+         "description": "Patched account desc",
+         "is_disabled": "False",
+         "created_at": "2022-01-01T00:00:00Z",
+         "updated_at": "2022-01-02T00:00:00Z"
+      }
+   }
+}

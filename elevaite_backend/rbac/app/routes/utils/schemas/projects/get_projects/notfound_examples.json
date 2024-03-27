@@ -1,0 +1,14 @@
+{
+   "not_found_account": {
+      "summary": "account not found",
+      "value": {
+         "detail": "account - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   },
+   "not_found_parent_project": {
+      "summary": "parent_project - '789e4567-e89b-12d3-a456-426614174000' - not found",
+      "value": {
+         "detail": "parent_project - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   }
+}

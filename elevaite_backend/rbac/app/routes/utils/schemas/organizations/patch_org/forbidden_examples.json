@@ -1,0 +1,8 @@
+{
+   "insufficient_permissions": {
+       "summary": "logged-in user does not have superadmin privileges to patch organization",
+       "value": {
+           "detail": "you do not have superadmin privileges to patch organization - '789e4567-e89b-12d3-a456-426614174000'"
+       }
+   }
+}

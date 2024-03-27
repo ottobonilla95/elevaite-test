@@ -1,0 +1,21 @@
+{
+   "account_disabled": {
+      "summary": "account is disabled",
+      "value": {
+         "detail": "account - '789e4567-e89b-12d3-a456-426614174000' - is disabled"
+      }
+},
+   "insufficient_permissions_1": {
+      "summary": "logged-in user is not superadmin and is not assigned to account",
+      "value": {
+         "detail": "you are not assigned to account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "insufficient_permissions_2": {
+      "summary": "logged-in user is assigned to account, but does not superadmin/admin privileges to update user-account roles",
+      "value": {
+         "detail": "you do not have superadmin/admin privileges to update user-account roles in account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   }
+}
+

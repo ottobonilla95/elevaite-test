@@ -1,0 +1,12 @@
+{
+   "patched_org": {
+       "summary": "Successfully patched organization response",
+       "value": {
+           "id" : "123e4567-e89b-12d3-a456-426614174000",
+           "name": "Patched org name",
+           "description": "Patched org desc",
+           "created_at": "2022-01-01T00:00:00Z",
+           "updated_at": "2022-01-01T00:00:00Z"
+       }
+   }
+}
