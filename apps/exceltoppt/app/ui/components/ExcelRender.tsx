@@ -29,9 +29,14 @@ export function OutTable({
       <table className={tableClassName}>
         <tbody>
           <tr>
-            {withZeroColumn && !withoutRowNum ? <th className={tableHeaderRowClass || ""} /> : null}
+            {withZeroColumn && !withoutRowNum ? (
+              <th className={tableHeaderRowClass || ""} />
+            ) : null}
             {columns.map((c) => (
-              <th className={c.key === -1 ? tableHeaderRowClass : ""} key={c.key}>
+              <th
+                className={c.key === -1 ? tableHeaderRowClass : ""}
+                key={c.key}
+              >
                 {c.key === -1 ? "" : c.name}
               </th>
             ))}
@@ -44,7 +49,10 @@ export function OutTable({
                 </td>
               )}
               {columns.map((c) => (
-                <td className="border border-solid border-[#E5E5E5] text-[#171717b8] font-medium text-sm" key={c.key}>
+                <td
+                  className="border border-solid border-[#E5E5E5] text-[#171717b8] font-medium text-sm"
+                  key={c.key}
+                >
                   {r[c.key]}
                 </td>
               ))}
@@ -65,7 +73,10 @@ export function ExcelWorkSheetRenderer(ws: WorkSheet): {
   if (!ws["!ref"]) throw new Error("Worksheet ref not found");
 
   /* Convert array of arrays */
-  const json = XLSX.utils.sheet_to_json<StringOrUndefined[]>(ws, { header: 1, blankrows: false });
+  const json = XLSX.utils.sheet_to_json<StringOrUndefined[]>(ws, {
+    header: 1,
+    blankrows: false,
+  });
   let lastWithData = 0;
   let lastColWithData = 0;
   for (let index = 0; index < json.length; index++) {
@@ -78,7 +89,8 @@ export function ExcelWorkSheetRenderer(ws: WorkSheet): {
       if (_element !== undefined) _indexOfLastDatum = _index;
     }
 
-    if (lastColWithData < _indexOfLastDatum) lastColWithData = _indexOfLastDatum - 1;
+    if (lastColWithData < _indexOfLastDatum)
+      lastColWithData = _indexOfLastDatum - 1;
     if (element.length !== 0 && index > lastWithData) lastWithData = index;
   }
 
@@ -90,7 +102,7 @@ export function ExcelWorkSheetRenderer(ws: WorkSheet): {
   return { rows: json, cols };
 }
 
-// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars -- Might revert to this
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Might revert to this
 function makeCols(refstr: string): { name: string; key: number }[] {
   const o: { name: string; key: number }[] = [],
     C = XLSX.utils.decode_range(refstr).e.c + 1;

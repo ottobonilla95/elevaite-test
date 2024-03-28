@@ -15,9 +15,9 @@ interface UploadExcelProps {
 function UploadExcel({ onSubmit }: UploadExcelProps): JSX.Element {
   const [serverFiles, setServerFiles] = useState<UploadedFile[]>([]);
   const [originalFiles, setOriginalFiles] = useState<File[]>([]);
-  // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars -- To be developed
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- To be developed
   const [manifest, setManifest] = useState(false);
-  // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars -- To be developed
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- To be developed
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCanclebutton = (): void => {
@@ -101,7 +101,12 @@ function FileCard({ file, onXClose }: FileCardProps): JSX.Element {
     <div className="flex flex-col w-full p-3 gap-3 justify-center items-start rounded-lg bg-[#F8FAFB]">
       <div className="flex flex-col gap-2 self-stretch">
         <div className="flex flex-1 items-center gap-2">
-          <Image alt="Excel Icon" height={24} src={ExcelSVG as StaticImport} width={24} />
+          <Image
+            alt="Excel Icon"
+            height={24}
+            src={ExcelSVG as StaticImport}
+            width={24}
+          />
           <span className="flex-grow text-sm font-medium">{file.name}</span>
           <XClose
             className="close cursor-pointer"
@@ -117,7 +122,9 @@ function FileCard({ file, onXClose }: FileCardProps): JSX.Element {
             {" Sheets Found"}
           </span>
           <span className="text-[#121212] font-medium text-xs">
-            <span className="text-[#666D80] font-medium text-xs">{"Size: "}</span>
+            <span className="text-[#666D80] font-medium text-xs">
+              {"Size: "}
+            </span>
             {file.fileSize}
           </span>
         </div>
@@ -128,8 +135,20 @@ function FileCard({ file, onXClose }: FileCardProps): JSX.Element {
 
 function XClose(props: SVGProps<SVGSVGElement>): JSX.Element {
   return (
-    <svg fill="none" height={16} width={16} xmlns="http://www.w3.org/2000/svg" {...props}>
-      <path d="m12 4-8 8m0-8 8 8" stroke="#666D80" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.333} />
+    <svg
+      fill="none"
+      height={16}
+      width={16}
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path
+        d="m12 4-8 8m0-8 8 8"
+        stroke="#666D80"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.333}
+      />
     </svg>
   );
 }

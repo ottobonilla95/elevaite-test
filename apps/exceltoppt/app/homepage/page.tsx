@@ -21,7 +21,12 @@ function Homepage(): JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
 
   const steps = [
-    { label: "Upload Excel", link: "/homepage", stage: Stages.Upload, key: "upload" },
+    {
+      label: "Upload Excel",
+      link: "/homepage",
+      stage: Stages.Upload,
+      key: "upload",
+    },
     {
       label: "Review Manifest List",
       link: "/homepage/manifest",
@@ -34,10 +39,18 @@ function Homepage(): JSX.Element {
       stage: Stages.Template,
       key: "template",
     },
-    { label: "View PPT", link: "/homepage/review", stage: Stages.Review, key: "review" },
+    {
+      label: "View PPT",
+      link: "/homepage/review",
+      stage: Stages.Review,
+      key: "review",
+    },
   ];
 
-  async function goToManifest(_serverFiles: UploadedFile[], _files: File[]): Promise<void> {
+  async function goToManifest(
+    _serverFiles: UploadedFile[],
+    _files: File[]
+  ): Promise<void> {
     try {
       //TODO: This is a temporary bodge as the server currently handles single files.
       const selectedFile = _serverFiles[0];
@@ -46,7 +59,9 @@ function Homepage(): JSX.Element {
         fileName: selectedFile.name.split(".")[0],
         filePath: selectedFile.name,
       });
-      const _sheetNames = Array.isArray(data.sheet_names) ? data.sheet_names : [data.sheet_names];
+      const _sheetNames = Array.isArray(data.sheet_names)
+        ? data.sheet_names
+        : [data.sheet_names];
       setIsLoading(false);
       setFile(_files[0]);
       setFilename(selectedFile.name.split(".")[0]);
@@ -58,7 +73,7 @@ function Homepage(): JSX.Element {
       console.error("Error generating manifest:", error);
     }
   }
-  // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars, no-unused-vars -- Might need it later
+  // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars -- Might need it later
   async function goToTemplate(): Promise<void> {
     setStage(Stages.Template);
   }
@@ -72,7 +87,8 @@ function Homepage(): JSX.Element {
     } catch (error) {
       throw new Error("Something went wrong", { cause: error });
     }
-    if ("error" in res) throw new Error("Something went wrong", { cause: res.error });
+    if ("error" in res)
+      throw new Error("Something went wrong", { cause: res.error });
     setLocation(res.export_url);
     setSummary(res.summary);
     setStage(Stages.Review);
@@ -114,7 +130,12 @@ function Homepage(): JSX.Element {
         );
       case Stages.Review:
         return (
-          <PreviewPowerPoint location={location} sheetName={selectedSheet} summary={summary} workbookName={filename} />
+          <PreviewPowerPoint
+            location={location}
+            sheetName={selectedSheet}
+            summary={summary}
+            workbookName={filename}
+          />
         );
       default:
         return <>{null}</>;
