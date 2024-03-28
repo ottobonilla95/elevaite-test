@@ -1,58 +1,160 @@
+import type { CommonMenuItem } from "@repo/ui/components";
+import { CommonButton, CommonMenu, ElevaiteIcons } from "@repo/ui/components";
 import dayjs from "dayjs";
-import { ModelObject, ModelsStatus } from "../../../../lib/interfaces";
+import { specialHandlingModelFields, useModels } from "../../../../lib/contexts/ModelsContext";
+import type { ModelObject } from "../../../../lib/interfaces";
+import { ModelsStatus } from "../../../../lib/interfaces";
 import "./ModelsListRow.scss";
-import { ElevaiteIcons } from "@repo/ui/components";
 
 
+
+export interface RowStructure {
+    header: string;
+    field: string;
+    isSortable?: boolean;
+    specialHandling?: specialHandlingModelFields;
+    align?: "left" | "right" | "center";
+    style?: "block";
+}
 
 
 interface ModelListNormalRow {
     model: ModelObject;
+    structure: RowStructure[];
+    menu?: CommonMenuItem<ModelObject>[];
 }
 
 interface ModelListHeaderRow {
     isHeader: true;
     model?: never;
+    structure: RowStructure[];
+    menu?: CommonMenuItem<ModelObject>[];
 }
 
 type ModelsListRowProps = ModelListNormalRow | ModelListHeaderRow;
 
 export function ModelsListRow(props: ModelsListRowProps): JSX.Element {
+    const modelsContext = useModels();
 
 
+    function getSpecialItem(item: RowStructure): React.ReactNode {
+        switch (item.specialHandling) {
+            case specialHandlingModelFields.STATUS: return (!props.model?.status ? "" :
+                <StatusCell status={props.model.status} url={props.model.endpointUrl} />);
+            case specialHandlingModelFields.TAGS: return (props.model?.[item.field] ? <>{(props.model[item.field] as string[]).map((tag: string) => 
+                    <div className="tag" key={tag}>{tag}</div>
+                )}</> : "");
+            case specialHandlingModelFields.DATE: return (props.model?.[item.field] ? dayjs(props.model[item.field] as string).format("DD-MMM-YYYY hh:mm a") : "");
+            default: return "";
+        }
+    }
 
 
+    function handleSortClick(item: RowStructure): void {
+        if (!item.isSortable) return;
+        modelsContext.sortModels(item.field, item.specialHandling);
+    }
 
 
     return (
         <div className={["models-list-row-container", "isHeader" in props ? "header" : undefined].filter(Boolean).join(" ")}>
-            <div className="name">{"isHeader" in props ? "Model Name" : props.model.name }</div>
-            <div className="id">{"isHeader" in props ? "Model ID" : props.model.id }</div>
-            <div className="type">{"isHeader" in props ? "Model Type" : props.model.model_type }</div>
-            <div className="status">{"isHeader" in props ? "Status" : <StatusCell status={props.model.status}/> }</div>
-            <div className="tags">{"isHeader" in props ? "Tags" : props.model.tags.map(tag => 
-                <div className="tag" key={tag}>{tag}</div>
-                ) }</div>
-            <div className="node cpu">{"isHeader" in props ? "CPU" : props.model.node.cpu }</div>
-            <div className="node gpu">{"isHeader" in props ? "GPU" : props.model.node.gpu }</div>
-            <div className="node ram">{"isHeader" in props ? "RAM" : props.model.node.ram }</div>
-            <div className="created">{"isHeader" in props ? "Created at" : dayjs(props.model.date_created).format("DD-MMM-YYYY hh:mm a") }</div>
+
+            {!props.menu ? undefined : 
+                "isHeader" in props ? <div className="models-list-row-cell menu"/> :
+                <div className="models-list-row-cell menu">
+                    <CommonMenu
+                        item={props.model}
+                        menu={props.menu}
+                    />
+                </div>
+            }
+
+            {props.structure.map(structureItem => 
+
+                // Header
+                "isHeader" in props ? 
+            
+                <CommonButton key={structureItem.field}
+                    className={[
+                        "models-list-row-cell",
+                        structureItem.field,
+                        structureItem.align,
+                        structureItem.style,
+                    ].filter(Boolean).join(" ")}
+                    onClick={() => { handleSortClick(structureItem); }}
+                    disabled={!structureItem.isSortable}
+                    overrideClass
+                >
+                    {structureItem.header}
+                    
+                    {structureItem.isSortable ? 
+                        <div className={[
+                            "sort-container",
+                            modelsContext.modelsSorting.field === structureItem.field && modelsContext.modelsSorting.isDesc ? "desc" : undefined,
+                            modelsContext.modelsSorting.field === structureItem.field && !modelsContext.modelsSorting.isDesc ? "asc" : undefined,
+                        ].filter(Boolean).join(" ")}>
+                            <ElevaiteIcons.SVGChevron type="sort"/>
+                            <ElevaiteIcons.SVGChevron type="sort"/>
+                        </div>
+                    : undefined }
+                </CommonButton>
+
+                // Non-Header
+                :
+
+                <div key={structureItem.field}
+                    className={[
+                        "models-list-row-cell",
+                        structureItem.field,
+                        structureItem.align,
+                        structureItem.style,
+                    ].filter(Boolean).join(" ")}
+                >
+                    {structureItem.specialHandling ? getSpecialItem(structureItem) :
+                        props.model[structureItem.field] ? props.model[structureItem.field] : ""
+                    }
+                </div>
+        
+                
+            )}
+
+
         </div>
     );
 }
 
 
 
-function StatusCell({status}: {status: ModelsStatus}): JSX.Element {
+function StatusCell({status, url}: {status: ModelsStatus, url?: string;}): JSX.Element {
+
+    function onEndpointClick(): void {
+        if (!url) return;
+        void navigator.clipboard.writeText(url);
+    }
+
     return (
-        <div className={["status-cell", status].join(" ")}>
+        <div
+            className={[
+                "status-cell",
+                status === ModelsStatus.DEPLOYED ? "deployed" : undefined,
+                status,
+            ].join(" ")}
+            title={url ? "Click to copy the endpoing url to clipboard" : ""}
+        >
             {status === ModelsStatus.ACTIVE ? <ElevaiteIcons.SVGCheckmark/> : 
             status === ModelsStatus.REGISTERING ? <ElevaiteIcons.SVGInstanceProgress/> :
+            status === ModelsStatus.DEPLOYED ? <ElevaiteIcons.SVGDeployed/> :
             <ElevaiteIcons.SVGXmark/>
             }
+
             {status === ModelsStatus.ACTIVE ? "Active" : 
             status === ModelsStatus.REGISTERING ? "Registering" :
+            status === ModelsStatus.DEPLOYED ? "Deployed" :
             "Failed"
+            }
+
+            {status !== ModelsStatus.DEPLOYED || !url ? undefined :
+                <CommonButton title={url} onClick={onEndpointClick}><ElevaiteIcons.SVGCopy/></CommonButton>
             }
         </div>
     );

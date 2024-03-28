@@ -46,6 +46,7 @@
         }
 
         & .common-select-options-contents {
+            margin: 0 5px 5px;
             background-color: var(--ev-colors-primary);
             border: 1px solid var(--ev-colors-borderColor);
             border-radius: 4px;
@@ -53,6 +54,12 @@
             flex-direction: column;
             gap: 0.5em;
             padding: 0.5em;
+            box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.5);
+
+
+            // These don't do anything unless max-height is applied
+            overflow: auto;
+            @include scrollbar();
         }
     }
 

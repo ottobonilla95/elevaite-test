@@ -1,0 +1,31 @@
+
+
+.common-form-labels-container {    
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    & .labels {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5em;        
+        font-size: 14px;
+
+        & .title {
+            color: var(--ev-colors-secondaryText);
+        }
+
+        & .required {
+            color: var(--ev-colors-highlight);
+            &.unfulfilled {
+                color: var(--ev-colors-danger);
+            }
+        }
+
+
+        & .error-message {
+            color: var(--ev-colors-danger);
+            margin-left: auto;
+        }
+    }
+}

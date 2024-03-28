@@ -9,12 +9,7 @@ import { ModelsListTable } from "./modelsList/ModelsListTable";
 
 
 
-
-interface ModelsListProps {
-
-}
-
-export function ModelsList(props: ModelsListProps): JSX.Element {
+export function ModelsList(): JSX.Element {
     const [selectedTab, setSelectedTab] = useState<MODELS_LIST_TABS>(MODELS_LIST_TABS.MODELS);
 
 

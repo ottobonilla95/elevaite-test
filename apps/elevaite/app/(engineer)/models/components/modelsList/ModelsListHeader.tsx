@@ -1,4 +1,4 @@
-import { CommonButton, CommonSelect, ElevaiteIcons } from "@repo/ui/components";
+import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 import "./ModelsListHeader.scss";
 
 
@@ -41,18 +41,11 @@ export function ModelsListHeader(props: ModelsListHeaderProps): JSX.Element {
             </div>
 
             <div className="controls-container">
-                <CommonSelect
-                    options={[{label: "Filtered by", value: "none"}]}
-                    defaultValue="none"
-                    onSelectedValueChange={() => {console.log("Value changed")}}
-                />
                 <CommonButton
                     noBackground
                 >
                     <ElevaiteIcons.SVGFilter/>
                 </CommonButton>
-                {/* Sortable by field type */}
-                {/* Filters? */}
             </div>
 
         </div>

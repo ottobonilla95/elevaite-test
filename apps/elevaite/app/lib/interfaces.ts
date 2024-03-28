@@ -48,7 +48,10 @@ export enum ModelsStatus {
     REGISTERING = "registering",
     ACTIVE = "active",
     FAILED = "failed",
+    DEPLOYED = "deployed",
 }
+
+
 
 
 // COMMON INTERFACES
@@ -168,7 +171,10 @@ export interface ModelObject {
     date_created: string;
     model_type: string;
     status: ModelsStatus;
+    endpointUrl?: string;
     tags: string[];
+    ramToRun: string | number;
+    ramToTrain: string | number;
     node: {
         cpu: string | number;
         gpu: string | number;

@@ -29,6 +29,11 @@ import SVGModels from "./svgModels";
 import SVGArchive from "./svgArchive";
 import SVGPlay from "./svgPlay";
 import SVGDownload from "./svgDownload";
+import SVGDeployed from "./svgDeployed";
+import SVGRegister from "./svgRegister";
+import SVGSettings from "./svgSettings";
+import SVGCopy from "./svgCopy";
+import SVGRefresh from "./svgRefresh";
 
 
 export const ElevaiteIcons = {
@@ -63,4 +68,9 @@ export const ElevaiteIcons = {
     SVGArchive,
     SVGPlay,
     SVGDownload,
+    SVGDeployed,
+    SVGRegister,
+    SVGSettings,
+    SVGCopy,
+    SVGRefresh,
 };

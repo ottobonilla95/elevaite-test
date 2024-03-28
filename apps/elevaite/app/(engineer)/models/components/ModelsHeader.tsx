@@ -1,46 +1,45 @@
-import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
+import { CommonButton, CommonModal, ElevaiteIcons } from "@repo/ui/components";
 import "./ModelsHeader.scss";
+import { useState } from "react";
+import { RegisterModelForm } from "./modelsList/RegisterModel/RegisterModelForm";
 
 
 
-interface ModelsHeaderProps {
 
-}
-
-export function ModelsHeader(props: ModelsHeaderProps): JSX.Element {
+export function ModelsHeader(): JSX.Element {
+    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
 
-    function handleOpenArchive():void {
-        console.log("Opening archive");
+    function handleOpenRegisterModal():void {
+        setIsRegisterModalOpen(true);
+    }
+
+    function handleCloseRegisterModal(): void {
+        setIsRegisterModalOpen(false);
     }
 
     return (
         <div className="models-header-container">
 
             <div className="part-container left">
-                <CommonButton
-                    className="archive-button"
-                    onClick={handleOpenArchive}
-                >
-                    <ElevaiteIcons.SVGArchive/>
-                    Open Archive
-                </CommonButton>
+                <div className="title">MODELS</div>
             </div>
 
             <div className="part-container right">
                 <CommonButton
-                    className="icon-button"
-                    noBackground
+                    className="register-button"
+                    onClick={handleOpenRegisterModal}
                 >
-                    <ElevaiteIcons.SVGDownload/>
-                </CommonButton>
-                <CommonButton
-                    className="icon-button play"
-                    noBackground
-                >
-                    <ElevaiteIcons.SVGPlay/>
+                    <ElevaiteIcons.SVGRegister/>
+                    Register Model
                 </CommonButton>
             </div>
+
+            {!isRegisterModalOpen ? null :
+                <CommonModal onClose={handleCloseRegisterModal}>
+                    <RegisterModelForm onClose={handleCloseRegisterModal}/>
+                </CommonModal>
+            }
 
         </div>
     );
