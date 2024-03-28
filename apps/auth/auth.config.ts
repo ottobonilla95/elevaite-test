@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
+import { registerToBackend } from "./app/lib/rbacActions";
 
 function getDomainWithoutSubdomain(url: string | URL): string {
   const urlParts = new URL(url).hostname.split(".");
@@ -52,6 +53,30 @@ export const authConfig = {
     async session({ session, token, user }) {
       session.user ? (session.user.id = token.sub || user.id) : null;
       return session;
+    },
+    async signIn(params) {
+      const email = params.profile?.email || params.user.email;
+      const firstName = params.profile?.given_name;
+      const lastName = params.profile?.given_name;
+      const authToken = params.account?.access_token;
+      if (!email || !firstName || !lastName || !authToken)
+        throw new Error("Missing identifier in provider response", {
+          cause: { email, firstName, lastName, authToken },
+        });
+
+      try {
+        await registerToBackend({
+          email,
+          firstName,
+          lastName,
+          authToken,
+        });
+      } catch (error) {
+        // eslint-disable-next-line no-console -- Temporary
+        console.error(error);
+        return false;
+      }
+      return true;
     },
   },
   providers: [],

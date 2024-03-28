@@ -16,7 +16,9 @@
     "NEXTAUTH_URL",
     "NEXTAUTH_URL_INTERNAL",
     "NEXT_PUBLIC_BACKEND_URL",
-    "ELEVAITE_HOMEPAGE"
+    "ELEVAITE_HOMEPAGE",
+    "ORG_ID",
+    "RBAC_BACKEND_URL"
   ],
   "pipeline": {
     "build": {
