@@ -18,6 +18,7 @@ export interface CommonSelectOption {
 export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> {
     options: CommonSelectOption[];
     defaultValue?: string;
+    noSelectionMessage?: string;
     anchor?: "left" | "right";
     showTitles?: boolean;
     disabled?: boolean;
@@ -26,7 +27,7 @@ export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> 
 }
 
 
-export function CommonSelect({options, defaultValue, anchor, showTitles, onSelectedValueChange, isLoading, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
+export function CommonSelect({options, defaultValue, noSelectionMessage, anchor, showTitles, onSelectedValueChange, isLoading, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
     const [selectedOption, setSelectedOption] = useState<CommonSelectOption>();
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement|null>(null);
@@ -76,7 +77,7 @@ export function CommonSelect({options, defaultValue, anchor, showTitles, onSelec
             >
                 <span>
                     {isLoading ? "Please wait..." :
-                        !selectedOption ? "No selected option" :
+                        !selectedOption ? noSelectionMessage ? noSelectionMessage : "No selected option" :
                         selectedOption.selectedLabel ? selectedOption.selectedLabel : selectedOption.label
                     }
                 </span>

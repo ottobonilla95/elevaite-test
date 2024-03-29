@@ -1,9 +1,18 @@
-import type { AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "./interfaces";
+import type { AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, AvailableModelObject, ChartDataObject, Initializers, ModelObject, PipelineObject } from "./interfaces";
 
 
 
 // RESPONSES
 /////////////
+
+
+export function isArrayOfStrings(data: unknown): data is string[] {
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (typeof item !== "string") return false;
+    }
+    return true;
+}
 
 
 export function isGetApplicationListReponse(data: unknown): data is ApplicationObject[] {
@@ -42,6 +51,22 @@ export function isGetInstanceListResponse(data: unknown): data is AppInstanceObj
     if (!Array.isArray(data)) return false;
     for (const item of data) {
         if (!isInstanceObject(item)) return false;
+    }
+    return true;
+}
+
+export function isGetAvailableModelsResponse(data: unknown): data is AvailableModelObject[] {
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (!isAvailableModelObject(item)) return false;
+    }
+    return true;
+}
+
+export function isGetModelsResponse(data: unknown): data is ModelObject[] {
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (!isModelObject(item)) return false;
     }
     return true;
 }
@@ -127,6 +152,24 @@ function isApplicationConfigurationObject(item: unknown): item is Initializers  
         "createDate" in item &&
         "updateDate" in item &&
         "raw" in item;
+}
+
+function isAvailableModelObject(item: unknown): item is AvailableModelObject {
+    return isObject(item) &&
+        "id" in item &&
+        "created_at" in item &&
+        "gated" in item &&
+        "library_name" in item;
+}
+
+function isModelObject(item: unknown): item is ModelObject {
+    return isObject(item) &&
+        "id" in item &&
+        "name" in item &&
+        "status" in item &&
+        "task" in item &&
+        "tags" in item &&
+        "huggingface_repo" in item;
 }
 
 

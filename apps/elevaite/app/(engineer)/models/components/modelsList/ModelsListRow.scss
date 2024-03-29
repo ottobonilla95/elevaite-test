@@ -80,6 +80,8 @@
 
         &.id { color: var(--ev-colors-secondaryText); }
 
+        &.name:not(.header) { background-color: var(--ev-colors-background); }
+
         &.tags {
             display: flex;
             align-items: center;
@@ -96,29 +98,30 @@
         border: 1px solid var(--ev-colors-tagBorder);
         border-radius: 12px;
     }
-
-    & .status-cell {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        padding: 2px 5px;
-
-        & > svg {
-            height: 14px;
-            width: 14px;
-        }
-
-        &.active { & > svg { color: var(--ev-colors-success); } }
-        &.registering { & > svg { color: var(--ev-colors-highlight); } }
-        &.failed { & > svg { color: var(--ev-colors-danger); } }
-        &.deployed {
-            background-color: var(--ev-colors-secondary);
-            border-radius: 4px;
-
-            & > svg { color: var(--ev-colors-success); }
-        }
-
-        & > div { color: var(--ev-colors-secondaryText); }
-    }
 }
 
+
+
+.status-cell {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 5px;
+
+    & > svg {
+        height: 14px;
+        width: 14px;
+    }
+
+    &.registered { & > svg { color: var(--ev-colors-success); } }
+    &.registering { & > svg { color: var(--ev-colors-highlight); } }
+    &.failed { & > svg { color: var(--ev-colors-danger); } }
+    &.deployed {
+        background-color: var(--ev-colors-secondary);
+        border-radius: 4px;
+
+        & > svg { color: var(--ev-colors-success); }
+    }
+
+    & > div { color: var(--ev-colors-secondaryText); }
+}

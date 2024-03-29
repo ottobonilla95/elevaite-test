@@ -12,13 +12,14 @@ export interface RowStructure {
     header: string;
     field: string;
     isSortable?: boolean;
+    onClick?: (model: ModelObject) => void;
     specialHandling?: specialHandlingModelFields;
     align?: "left" | "right" | "center";
     style?: "block";
 }
 
 
-interface ModelListNormalRow {
+export interface ModelListNormalRow {
     model: ModelObject;
     structure: RowStructure[];
     menu?: CommonMenuItem<ModelObject>[];
@@ -76,7 +77,7 @@ export function ModelsListRow(props: ModelsListRowProps): JSX.Element {
             
                 <CommonButton key={structureItem.field}
                     className={[
-                        "models-list-row-cell",
+                        "models-list-row-cell header",
                         structureItem.field,
                         structureItem.align,
                         structureItem.style,
@@ -100,6 +101,24 @@ export function ModelsListRow(props: ModelsListRowProps): JSX.Element {
                 </CommonButton>
 
                 // Non-Header
+                : structureItem.onClick ? 
+                    
+                    <CommonButton key={structureItem.field}
+                        className={[
+                            "models-list-row-cell",
+                            structureItem.field,
+                            structureItem.align,
+                            structureItem.style,
+                        ].filter(Boolean).join(" ")}
+                        onClick={() => { if (structureItem.onClick) structureItem.onClick(props.model); }}
+                        disabled={!structureItem.isSortable}
+                        overrideClass
+                    >                    
+                        {structureItem.specialHandling ? getSpecialItem(structureItem) :
+                            props.model[structureItem.field] ? props.model[structureItem.field] : ""
+                        }
+                    </CommonButton>
+
                 :
 
                 <div key={structureItem.field}
@@ -125,7 +144,7 @@ export function ModelsListRow(props: ModelsListRowProps): JSX.Element {
 
 
 
-function StatusCell({status, url}: {status: ModelsStatus, url?: string;}): JSX.Element {
+export function StatusCell({status, url}: {status: ModelsStatus, url?: string;}): JSX.Element {
 
     function onEndpointClick(): void {
         if (!url) return;

@@ -66,7 +66,6 @@ export function Configurations(props: ConfigurationsProps): JSX.Element {
         if (id === NO_CONFIGURATION.value) return;
         const config = savedConfigurations.find(item => item.id === id);
         if (!config) return;
-        console.log("selected config", config);
         setSelectedConfiguration(config);
 
         props.onSelectedConfigurationChange(config.raw, id);

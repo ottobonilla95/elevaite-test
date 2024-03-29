@@ -46,7 +46,7 @@ export enum StepDataType {
 
 export enum ModelsStatus {
     REGISTERING = "registering",
-    ACTIVE = "active",
+    ACTIVE = "registered",
     FAILED = "failed",
     DEPLOYED = "deployed",
 }
@@ -166,21 +166,39 @@ export interface PipelineStatusItem {
 ////////////////
 
 export interface ModelObject {
-    id: string;
+    id: number | string;
+    huggingface_repo?: string;
     name: string;
-    date_created: string;
-    model_type: string;
-    status: ModelsStatus;
+    status?: ModelsStatus; // enum? "registered", "failed"
+    tags?: string[];
+    task?: string;
+    created_at?: string;
     endpointUrl?: string;
-    tags: string[];
-    ramToRun: string | number;
-    ramToTrain: string | number;
-    node: {
-        cpu: string | number;
-        gpu: string | number;
-        ram: string | number;
-    }
+    ramToRun?: string | number;
+    ramToTrain?: string | number;
 }
+
+
+
+export interface AvailableModelObject {
+    id: string;
+    author: string;
+    created_at: string;
+    last_modified: string;
+    gated: boolean | string;
+    library_name: string;
+    sha: string;
+    memory_requirements?: {
+        float16: MemoryLayers;
+        float32: MemoryLayers;
+    };
+}
+interface MemoryLayers { 
+    largest_layer: MemoryBit;
+    total_size: MemoryBit;
+    training_using_adam: MemoryBit;
+ }
+interface MemoryBit { value_bytes: number; value_str: string; }
 
 
 

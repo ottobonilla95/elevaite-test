@@ -1,0 +1,101 @@
+
+
+.models-details-view-container {
+    overflow: hidden;
+
+
+    & .models-details-view-contents {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+        padding: 20px;
+
+        background-color: var(--ev-colors-backgroundHighContrast);
+        border-radius: 8px;
+
+        & .tabs-container {
+            display: flex;
+            align-items: center;
+    
+            & > button.tab-button {
+                padding: 20px;
+                border-bottom: 2px solid transparent;
+                border-radius: 0;
+                font-size: 14px;
+                font-weight: 500;
+                text-transform: uppercase;
+                color: var(--ev-colors-secondaryText);
+    
+                &.active {
+                    color: var(--ev-colors-highlight);
+                    border-bottom-color: var(--ev-colors-highlight);
+                }
+            }
+        }
+
+
+
+        & .models-details-scroller {
+            flex-grow: 1;
+            overflow-y: scroll;
+            padding-right: 15px;
+            margin-right: -15px;
+            
+            @include scrollbar();
+        }
+
+        & .model-details-tab-contents {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
+
+            & .model-details-page-contents {
+                grid-column: 1;
+                grid-row: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 200ms ease-in-out;
+
+                &.visible {
+                    opacity: 1;
+                    pointer-events: all;
+                }
+
+                &.general {
+                    gap: 20px;
+                }
+                &.parameters {
+                    flex-direction: row;
+
+                    & .model-column {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 10px;
+                    }
+                }
+            }
+        }
+
+
+    }
+
+
+}
+
+
+
+.model-bit {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 50px;
+    font-size: 14px;
+    color: var(--ev-colors-secondaryText);
+
+    &.general {        
+        grid-template-columns: 1fr 3fr;
+    }
+}

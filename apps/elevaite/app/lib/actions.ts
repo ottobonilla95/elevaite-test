@@ -2,26 +2,32 @@
 import { revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  isArrayOfStrings,
   isCreateConfigurationResponse,
   isCreateInstanceResponse,
   isGetApplicationListReponse,
   isGetApplicationPipelinesResponse,
   isGetApplicationResponse,
   isGetApplicationconfigurationsResponse,
+  isGetAvailableModelsResponse,
   isGetInstanceChartDataResponse,
   isGetInstanceListResponse,
   isGetInstanceResponse,
+  isGetModelsResponse,
 } from "./discriminators";
-import type { AppInstanceObject, ApplicationConfigurationDto, ApplicationConfigurationObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "./interfaces";
+import type { AppInstanceObject, ApplicationConfigurationDto, ApplicationConfigurationObject, ApplicationObject, AvailableModelObject, ChartDataObject, Initializers, ModelObject, PipelineObject } from "./interfaces";
 
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const MODELS_URL = process.env.NEXT_MODELS_API_URL;
+const DEFAULT_AVAILABLE_MODELS_LIMIT = "10";
 const APP_REVALIDATION_TIME = 3600; // one hour
 const INSTANCE_REVALIDATION_TIME = 5 * 60; // X minutes
 enum cacheTags {
   instance = "INSTANCE",
   pipeline = "PIPELINE",
   configuration = "CONFIGURATION",
+  models = "MODELS",
 };
 
 
@@ -102,8 +108,39 @@ export async function getApplicationConfigurations(id: string): Promise<Applicat
 }
 
 
+// MODELS
 
+export async function getModelsTasks(): Promise<string[]> {
+  const url = new URL(`${MODELS_URL}/tasks`);
+  const response = await fetch(url, { next: { revalidate: APP_REVALIDATION_TIME } });
+  
+  if (!response.ok) throw new Error("Failed to fetch model tasks");
+  const data: unknown = await response.json();
+  if (isArrayOfStrings(data)) return data;
+  throw new Error("Invalid data type");
+}
 
+export async function getAvailableModels(task: string, limit?: number): Promise<AvailableModelObject[]> {
+  const url = new URL(`${MODELS_URL}/huggingface/models`);
+  url.searchParams.set("task", task);
+  url.searchParams.set("limit", limit ? limit.toString() : DEFAULT_AVAILABLE_MODELS_LIMIT);
+  const response = await fetch(url, { cache: "no-store" });
+
+  if (!response.ok) throw new Error("Failed to fetch models");
+  const data: unknown = await response.json();
+  if (isGetAvailableModelsResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+export async function getModels(): Promise<ModelObject[]> {
+  const url = new URL(`${MODELS_URL}/models`);
+  const response = await fetch(url, { next: { revalidate: INSTANCE_REVALIDATION_TIME, tags: [cacheTags.models] }});
+
+  if (!response.ok) throw new Error("Failed to fetch models");
+  const data: unknown = await response.json();
+  if (isGetModelsResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
 
 
 

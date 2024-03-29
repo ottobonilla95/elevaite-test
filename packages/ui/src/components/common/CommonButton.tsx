@@ -7,10 +7,17 @@ export interface CommonButtonProps extends React.ButtonHTMLAttributes<HTMLButton
     noBackground?: boolean;
     overrideClass?: boolean;
     passedRef?: MutableRefObject<HTMLButtonElement|null>;
+    onMiddleClick?: () => void;
 }
 
 
-export function CommonButton({className, overrideClass, noBackground, theme, passedRef, ...props}: CommonButtonProps): React.ReactElement<CommonButtonProps> {
+export function CommonButton({className, overrideClass, noBackground, theme, passedRef, onMiddleClick, ...props}: CommonButtonProps): React.ReactElement<CommonButtonProps> {
+
+    function check(event: React.MouseEvent<HTMLButtonElement>) {
+        if (event.button === 1) {
+            if (onMiddleClick) onMiddleClick();
+        }
+    }
 
     return (
         <button
@@ -24,6 +31,7 @@ export function CommonButton({className, overrideClass, noBackground, theme, pas
                 theme,
             ].filter(Boolean).join(" ")}
             type="button"
+            onMouseUp={check}
         >
             {props.children}
         </button>
