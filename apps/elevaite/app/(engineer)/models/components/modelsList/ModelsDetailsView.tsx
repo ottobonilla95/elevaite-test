@@ -140,7 +140,13 @@ export function ModelsDetailsView(props: ModelsDetailsViewProps): JSX.Element {
 
 
 
-function ModelBit(props): JSX.Element {
+interface ModelBitProps {
+    label: string;
+    value: string;
+    general?: boolean;
+}
+
+function ModelBit(props: ModelBitProps): JSX.Element {
     return (
         <div className={["model-bit", props.general ? "general" : undefined].filter(Boolean).join(" ")}>
             <span>{props.label}</span>
