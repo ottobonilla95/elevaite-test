@@ -1,4 +1,4 @@
-import type { AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, AvailableModelObject, ChartDataObject, Initializers, ModelObject, PipelineObject } from "./interfaces";
+import type { AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, AvailableModelObject, ChartDataObject, Initializers, ModelObject, ModelParametersObject, PipelineObject } from "./interfaces";
 
 
 
@@ -61,6 +61,14 @@ export function isGetAvailableModelsResponse(data: unknown): data is AvailableMo
         if (!isAvailableModelObject(item)) return false;
     }
     return true;
+}
+
+export function isGetModelByIdResponse(data: unknown): data is ModelObject {
+    return isModelObject(data);
+}
+
+export function isGetModelParametersResponse(data: unknown): data is ModelParametersObject {
+    return isModelParametersObject(data);
 }
 
 export function isGetModelsResponse(data: unknown): data is ModelObject[] {
@@ -172,5 +180,8 @@ function isModelObject(item: unknown): item is ModelObject {
         "huggingface_repo" in item;
 }
 
-
+function isModelParametersObject(item: unknown): item is ModelParametersObject {
+    return isObject(item);
+    // Can't be sure of _any_ field that's common to all.
+}
 

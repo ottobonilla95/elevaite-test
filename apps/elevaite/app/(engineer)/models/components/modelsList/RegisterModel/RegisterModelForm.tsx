@@ -1,5 +1,5 @@
 import type { CommonSelectOption } from "@repo/ui/components";
-import { CommonButton, CommonFormLabels, CommonSelect, ElevaiteIcons } from "@repo/ui/components";
+import { CommonButton, CommonFormLabels, CommonSelect, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { useModels } from "../../../../../lib/contexts/ModelsContext";
 import type { AvailableModelObject } from "../../../../../lib/interfaces";
@@ -20,7 +20,8 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
     const [selectedModelTask, setSelectedModelTask] = useState("");
     const [availableModelOptions, setAvailableModelOptions] = useState<CommonSelectOption[]>([]);
     const [selectedAvailableModel, setSelectedAvailableModel] = useState<AvailableModelObject|undefined>();
-    const [isConfirmDisabled, setIsConfirmDisabled] = useState(true);
+    const [currentTag, setCurrentTag] = useState("");
+    const [tags, setTags] = useState<string[]>([]);
 
 
     useEffect(() => {
@@ -53,6 +54,20 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
         console.log("Registering", selectedAvailableModel);
     }
 
+    function handleKeyDown(key: string): void {
+        if (key !== "Enter") return;
+        if (!tags.includes(currentTag)) {
+            const newTags = [...tags, currentTag].sort();
+            setTags(newTags);
+        }
+        setCurrentTag("");
+    }
+
+    function removeTag(tag: string): void {
+        if (!tags.includes(tag)) return;
+        const newTags = tags.filter(item => item !== tag);
+        setTags(newTags);
+    }
 
     function formatModelOptions(tasks: string[]): CommonSelectOption[] {
         return tasks.map(item => { return  {
@@ -135,8 +150,22 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
                             label="Model Tags"
                         >
                             <div className="tags-container">
-                                {/* <div className="tag">Test Tag 1</div>
-                                <div className="tag">Test Tag 2</div> */}
+                                {tags.map(tag => 
+                                    <div key={tag} className="tag">
+                                        <span>{tag}</span>
+                                        <CommonButton
+                                            onClick={() => { removeTag(tag); }}
+                                            noBackground
+                                        >
+                                            <ElevaiteIcons.SVGXmark/>
+                                        </CommonButton>
+                                    </div>
+                                )}
+                                <SimpleInput
+                                    value={currentTag}
+                                    onChange={setCurrentTag}
+                                    onKeyDown={handleKeyDown}
+                                />
                             </div>
                         </CommonFormLabels>
 

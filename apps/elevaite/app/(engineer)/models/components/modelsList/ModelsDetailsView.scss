@@ -50,6 +50,17 @@
             grid-template-columns: 1fr;
             grid-template-rows: 1fr;
 
+            & .loading-message {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+                padding: 30px 0 0 30px;
+                & > svg {
+                    height: 25px;
+                    width: 25px;
+                }
+            }
+
             & .model-details-page-contents {
                 grid-column: 1;
                 grid-row: 1;

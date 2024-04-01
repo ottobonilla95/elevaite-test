@@ -5,12 +5,23 @@ import { StatusCell } from "./ModelsListRow";
 
 
 
-interface ModelsDetailsHeaderProps {
 
-}
 
-export function ModelsDetailsHeader(props: ModelsDetailsHeaderProps): JSX.Element {
+export function ModelsDetailsHeader(): JSX.Element {
     const modelsContext = useModels();
+
+
+    function handleClose(): void {
+        modelsContext.setSelectedModel(undefined);
+    }
+
+    function handleRefresh(): void {
+        modelsContext.refreshSelectedModel();
+    }
+
+    function handleAddTag(): void {
+        console.log("Adding Tag");
+    }
 
 
     return (
@@ -28,12 +39,15 @@ export function ModelsDetailsHeader(props: ModelsDetailsHeaderProps): JSX.Elemen
 
                         <div className="models-details-controls-container">
                             <CommonButton
+                                onClick={handleRefresh}
+                                disabled={modelsContext.loading.currentModelParameters}
                                 noBackground
                             >
                                 <ElevaiteIcons.SVGRefresh/>
                             </CommonButton>
                             
                             <CommonButton
+                                onClick={handleClose}
                                 noBackground
                             >
                                 <ElevaiteIcons.SVGXmark/>
@@ -56,8 +70,18 @@ export function ModelsDetailsHeader(props: ModelsDetailsHeaderProps): JSX.Elemen
             </div>
 
             <div className="models-details-tags">
-                <div className="add-tag">+ Add Tag</div>
-                <div className="tag">Finance</div>
+                <CommonButton
+                    className="add-tag"
+                    onClick={handleAddTag}
+                    disabled={modelsContext.loading.currentModelParameters}
+                >
+                    + Add Tag
+                </CommonButton>
+                {!modelsContext.selectedModel?.tags ? undefined :
+                    modelsContext.selectedModel.tags.map(tag => 
+                        <div key={tag} className="tag">{tag}</div>
+                    )
+                }                
             </div>
 
         </div>

@@ -13,9 +13,11 @@ import {
   isGetInstanceChartDataResponse,
   isGetInstanceListResponse,
   isGetInstanceResponse,
+  isGetModelByIdResponse,
+  isGetModelParametersResponse,
   isGetModelsResponse,
 } from "./discriminators";
-import type { AppInstanceObject, ApplicationConfigurationDto, ApplicationConfigurationObject, ApplicationObject, AvailableModelObject, ChartDataObject, Initializers, ModelObject, PipelineObject } from "./interfaces";
+import type { AppInstanceObject, ApplicationConfigurationDto, ApplicationConfigurationObject, ApplicationObject, AvailableModelObject, ChartDataObject, Initializers, ModelObject, ModelParametersObject, PipelineObject } from "./interfaces";
 
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -139,6 +141,26 @@ export async function getModels(): Promise<ModelObject[]> {
   if (!response.ok) throw new Error("Failed to fetch models");
   const data: unknown = await response.json();
   if (isGetModelsResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+export async function getModelById(id: string|number): Promise<ModelObject> {
+  const url = new URL(`${MODELS_URL}/models/${id}`);
+  const response = await fetch(url, { next: { revalidate: INSTANCE_REVALIDATION_TIME, tags: [cacheTags.models] }});
+
+  if (!response.ok) throw new Error("Failed to fetch model");
+  const data: unknown = await response.json();
+  if (isGetModelByIdResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+export async function getModelParametersById(id: string|number): Promise<ModelParametersObject> {
+  const url = new URL(`${MODELS_URL}/models/${id}/config`);
+  const response = await fetch(url, { next: { revalidate: INSTANCE_REVALIDATION_TIME, tags: [cacheTags.models] }});
+
+  if (!response.ok) throw new Error("Failed to fetch model parameters");
+  const data: unknown = await response.json();
+  if (isGetModelParametersResponse(data)) return data;
   throw new Error("Invalid data type");
 }
 

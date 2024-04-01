@@ -1,12 +1,13 @@
 "use client";
-import { CommonButton } from "@repo/ui/components";
+import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 import { useState } from "react";
 import { ModelsDetailsHeader } from "./ModelsDetailsHeader";
 import "./ModelsDetailsView.scss";
+import { ModelsContext, useModels } from "../../../../lib/contexts/ModelsContext";
 
 
 
-const TEST_DATA_1 = [
+const GENERAL_FIELDS = [
     { label: "CREATED AT:", value: "Jul 31 2023 11:45" },
     { label: "UPDATED AT:", value: "Jul 31 2023 11:45" },
     { label: "MODEL TASK:", value: "question-answering" },
@@ -19,7 +20,7 @@ const TEST_DATA_1 = [
     { label: "DESCRIPTION:", value: "Test Data" },
 ];
 
-const TEST_DATA_2 = [
+const PARAMETERS_COLUMN_1 = [
     { label: "Architectures:", value: "MixtrailForCausalLM" },
     { label: "Max Position Embeddings:", value: "32678" },
     { label: "Attention Dropout:", value: "0.0" },
@@ -35,7 +36,7 @@ const TEST_DATA_2 = [
     { label: "Num Local Experts:", value: "8" },
 ];
 
-const TEST_DATA_3 = [
+const PARAMETERS_COLUMN_2 = [
     { label: "BOS Token ID:", value: "1" },
     { label: "EOS Token ID:", value: "2" },
     { label: "Output Router Logits:", value: "false" },
@@ -79,6 +80,7 @@ interface ModelsDetailsViewProps {
 }
 
 export function ModelsDetailsView(props: ModelsDetailsViewProps): JSX.Element {
+    const modelsContext = useModels();
     const [selectedTab, setSelectedTab] = useState(MODELS_DETAILS_TABS.GENERAL);
 
 
@@ -108,26 +110,37 @@ export function ModelsDetailsView(props: ModelsDetailsViewProps): JSX.Element {
 
                     <div className="model-details-tab-contents">
 
-                        <div className={["model-details-page-contents general", selectedTab === MODELS_DETAILS_TABS.GENERAL ? "visible" : undefined].filter(Boolean).join(" ")}>
-                            {TEST_DATA_1.map(item =>
-                                <ModelBit key={item.label} label={item.label} value={item.value} general />
-                            )}
-                        </div>
-                        <div className={["model-details-page-contents parameters", selectedTab === MODELS_DETAILS_TABS.PARAMETERS ? "visible" : undefined].filter(Boolean).join(" ")}>
-                            <div className="model-column">
-                                {TEST_DATA_2.map(item =>
-                                    <ModelBit key={item.label} label={item.label} value={item.value} />
+                        {modelsContext.loading.currentModelParameters ?
+                            <div className="loading-message">
+                                <ElevaiteIcons.SVGSpinner/>
+                                <span>Loading...</span>
+                            </div>
+
+                            :
+
+                            <>
+                            <div className={["model-details-page-contents general", selectedTab === MODELS_DETAILS_TABS.GENERAL ? "visible" : undefined].filter(Boolean).join(" ")}>
+                                {GENERAL_FIELDS.map(item =>
+                                    <ModelBit key={item.label} label={item.label} value={item.value} general />
                                 )}
                             </div>
-                            <div className="model-column">
-                                {TEST_DATA_3.map(item =>
-                                    <ModelBit key={item.label} label={item.label} value={item.value} />
-                                )}
+                            <div className={["model-details-page-contents parameters", selectedTab === MODELS_DETAILS_TABS.PARAMETERS ? "visible" : undefined].filter(Boolean).join(" ")}>
+                                <div className="model-column">
+                                    {PARAMETERS_COLUMN_1.map(item =>
+                                        <ModelBit key={item.label} label={item.label} value={item.value} />
+                                    )}
+                                </div>
+                                <div className="model-column">
+                                    {PARAMETERS_COLUMN_2.map(item =>
+                                        <ModelBit key={item.label} label={item.label} value={item.value} />
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                        <div className={["model-details-page-contents", selectedTab === MODELS_DETAILS_TABS.PERFORMANCE ? "visible" : undefined].filter(Boolean).join(" ")}>
-                            Performance test
-                        </div>
+                            <div className={["model-details-page-contents", selectedTab === MODELS_DETAILS_TABS.PERFORMANCE ? "visible" : undefined].filter(Boolean).join(" ")}>
+                                Performance test
+                            </div>
+                            </>
+                        }
 
                     </div>
 

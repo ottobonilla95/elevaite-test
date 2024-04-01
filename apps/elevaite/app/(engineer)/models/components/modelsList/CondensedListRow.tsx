@@ -52,12 +52,6 @@ export function CondensedListRow(props: ModelListNormalRow): JSX.Element {
                     {props.model.huggingface_repo}
                 </div>
 
-                <div className="condensed-across">
-                    {!props.model.status ? undefined : 
-                        <StatusCell status={props.model.status} url={props.model.endpointUrl} />
-                    }
-                </div>
-
             </div>
 
 
@@ -71,6 +65,12 @@ export function CondensedListRow(props: ModelListNormalRow): JSX.Element {
 
                 <div className="models-list-row-cell created_at">
                     {props.model.created_at ? dayjs(props.model.created_at).format("DD-MMM-YYYY hh:mm a") : "Unknown date"}
+                </div>
+
+                <div className="condensed-across">
+                    {!props.model.status ? undefined : 
+                        <StatusCell status={props.model.status} url={props.model.endpointUrl} />
+                    }
                 </div>
             </div>
 

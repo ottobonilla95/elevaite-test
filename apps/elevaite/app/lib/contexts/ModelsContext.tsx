@@ -1,9 +1,9 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 import dayjs from "dayjs";
-import type { AvailableModelObject, ModelObject} from "../interfaces";
+import type { AvailableModelObject, ModelObject, ModelParametersObject} from "../interfaces";
 import { ModelsStatus } from "../interfaces";
-import { getAvailableModels, getModels, getModelsTasks } from "../actions";
+import { getAvailableModels, getModelById, getModelParametersById, getModels, getModelsTasks } from "../actions";
 
 
 
@@ -69,10 +69,11 @@ const TEST: ModelObject[] = [
 ];
 
 
-const defaultLoadingList = {
+const defaultLoadingList: LoadingListObject = {
     models: false,
     modelTasks: false,
     availableModels: false,
+    currentModelParameters: false,
 };
 
 
@@ -88,6 +89,7 @@ interface LoadingListObject {
     models?: boolean;
     modelTasks?: boolean;
     availableModels?: boolean;
+    currentModelParameters?: boolean;
 }
 
 
@@ -100,6 +102,7 @@ export interface ModelsContextStructure {
     modelsSorting: SortingObject;
     selectedModel: ModelObject|undefined;
     setSelectedModel: (model: ModelObject|undefined) => void;
+    refreshSelectedModel: () => void;
     sortModels: (field: string, specialHandling?: string) => void;
     getAvailableRemoteModels: (task: string) => void;
     loading: LoadingListObject;
@@ -113,6 +116,7 @@ export const ModelsContext = createContext<ModelsContextStructure>({
     modelsSorting: {field: undefined},
     selectedModel: undefined,
     setSelectedModel: () => {/**/},
+    refreshSelectedModel: () => {/**/},
     sortModels: () => {/**/},
     getAvailableRemoteModels: () => {/**/},
     loading: defaultLoadingList,
@@ -181,6 +185,7 @@ interface ModelsContextProviderProps {
 export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.Element {
     const [models, setModels] = useState<ModelObject[]>(TEST);
     const [selectedModel, setSelectedModel] = useState<ModelObject|undefined>();
+    const [selectedModelParameters, setSelectedModelParameters] = useState<ModelParametersObject>();
     const [modelTasks, setModelTasks] = useState<string[]>([]);
     const [availableModels, setAvailableModels] = useState<AvailableModelObject[]>([]);
     const [displayModels, setDisplayModels] = useState<ModelObject[]>([]);
@@ -238,9 +243,20 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
 
 
     function remoteSetSelectedModel(model: ModelObject|undefined): void {
-        setSelectedModel(selectedModel === model ? undefined : model);
+        if (!model || selectedModel === model) {
+            setSelectedModel(undefined);
+            setSelectedModelParameters(undefined);
+        } else {
+            setSelectedModel(model);
+            void fetchSelectedModelParameters(model.id);
+        }
     }
 
+    function refreshSelectedModel(): void {
+        if (!selectedModel) return;
+        void fetchSelectedModelParameters(selectedModel.id);
+        // void fetchModelById(selectedModel.id); // This doesn't do anything different for the time being.
+    }
 
     function getAvailableRemoteModels(task: string): void {
         void fetchAvailableModels(task);
@@ -259,6 +275,34 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
         }
     }
 
+    // async function fetchModelById(modelId: string|number): Promise<void> {
+    //     try {
+    //         // setLoading(current => {return {...current, : true}} )
+    //         const result = await getModelById(modelId);
+    //         console.log("Model details:", result);
+    //         console.log("Selected Model:", selectedModel);
+    //     } catch(error) {            
+    //         // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+    //         console.error("Error in fetching model:", error);
+    //     } finally {                
+    //         // setLoading(current => {return {...current, : false}} )
+    //     }
+    // }
+
+    async function fetchSelectedModelParameters(modelId: string|number): Promise<void> {
+        try {
+            setLoading(current => {return {...current, currentModelParameters: true}} )
+            const result = await getModelParametersById(modelId);
+            setSelectedModelParameters(result);
+            console.log("Model Parameters:", result);
+        } catch(error) {            
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching selected model parameters:", error);
+        } finally {                
+            setLoading(current => {return {...current, currentModelParameters: false}} )
+        }
+    }
+
 
   
     return (
@@ -270,6 +314,7 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
                 modelsSorting: sorting,
                 selectedModel,
                 setSelectedModel: remoteSetSelectedModel,
+                refreshSelectedModel,
                 sortModels,
                 getAvailableRemoteModels,
                 loading,

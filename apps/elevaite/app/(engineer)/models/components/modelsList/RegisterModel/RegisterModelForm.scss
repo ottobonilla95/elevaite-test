@@ -79,6 +79,7 @@
 
 
         & .tags-container {
+            max-width: 530px;
             min-height: 45px;
             display: flex;
             align-items: center;
@@ -91,10 +92,17 @@
             font-size: 14px;
             
             & .tag {
+                display: flex;
+                align-items: center;
+                gap: 10px;
                 padding: 0 10px;
                 background-color: var(--ev-colors-primary);
                 border: 1px solid var(--ev-colors-tagBorder);
                 border-radius: 12px;
+                & svg {
+                    height: 10px;
+                    width: 10px;
+                }
             }
         }
 
