@@ -49,9 +49,18 @@ export const authConfig = {
         return Response.redirect(new URL(ELEVAITE_HOMEPAGE, nextUrl));
       return false; // Redirect unauthenticated users to login page
     },
+    // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars -- has to be async according to documentation
+    async jwt({ account, token, user, profile, session, trigger }) {
+      if (account) {
+        token.authToken = account.access_token;
+      }
+
+      return token;
+    },
     // eslint-disable-next-line @typescript-eslint/require-await -- has to be async according to documentation
     async session({ session, token, user }) {
       session.user ? (session.user.id = token.sub || user.id) : null;
+      Object.assign(session, { authToken: token.authToken });
       return session;
     },
     async signIn(params) {

@@ -9,6 +9,12 @@ export const authConfig = {
       if (isLoggedIn) return true;
       return false; // Redirect unauthenticated users to login page
     },
+    // eslint-disable-next-line @typescript-eslint/require-await -- has to be async according to documentation
+    async session({ session, token, user }) {
+      session.user ? (session.user.id = token.sub || user.id) : null;
+      Object.assign(session, { authToken: token.authToken });
+      return session;
+    },
   },
   providers: [], // Add providers with an empty array for now
   trustHost: true,

@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { authConfig } from "./auth.config";
 
-const getDomainWithoutSubdomain = (url: string | URL) => {
+const getDomainWithoutSubdomain = (url: string | URL): string => {
   const urlParts = new URL(url).hostname.split(".");
 
   return urlParts
