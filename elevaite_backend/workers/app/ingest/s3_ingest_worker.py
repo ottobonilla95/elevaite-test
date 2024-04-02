@@ -29,7 +29,7 @@ from elevaitedb.schemas.instance import (
 from elevaitedb.schemas.dataset import DatasetVersionCreate
 
 from ..interfaces import S3IngestData
-from ..util import (
+from ..util.func import (
     set_instance_chart_data,
     set_instance_running,
     set_pipeline_step_completed,

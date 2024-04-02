@@ -30,7 +30,7 @@ from elevaitedb.schemas.collection import Collection
 from .preprocess import get_file_elements_internal
 from . import vectordb
 
-from ..util import (
+from ..util.func import (
     get_repo_name,
     set_instance_running,
     set_pipeline_step_completed,

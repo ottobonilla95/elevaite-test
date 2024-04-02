@@ -3,9 +3,9 @@ import sys
 from dotenv import load_dotenv
 import pika
 
-from preprocess.preprocess_worker import preprocess_callback
+from app.preprocess.preprocess_worker import preprocess_callback
 
-from ingest.s3_ingest_worker import s3_ingest_callback
+from app.ingest.s3_ingest_worker import s3_ingest_callback
 
 
 def main():
