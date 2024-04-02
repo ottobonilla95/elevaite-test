@@ -8,7 +8,7 @@ import pika
 
 from app.util.name_generatior import get_random_name
 from app.util.RedisSingleton import RedisSingleton
-from app.util import func as util_func
+from elevaitedb.util import func as util_func
 from elevaitedb.schemas.application import Application, is_application
 from elevaitedb.schemas.instance import (
     Instance,

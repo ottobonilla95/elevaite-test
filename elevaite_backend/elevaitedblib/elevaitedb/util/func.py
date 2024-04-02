@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 
 def get_iso_datetime() -> str:
-    return get_utc_datetime().isoformat()[:-3] + "Z"
+    return get_utc_datetime().isoformat()
 
 
 def to_snake_case(var: str) -> str:
