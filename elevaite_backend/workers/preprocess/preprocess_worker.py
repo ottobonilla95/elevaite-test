@@ -10,14 +10,9 @@ import redis
 from unstructured.partition.html import partition_html
 from unstructured.chunking.title import chunk_by_title
 
-from .preprocess import get_file_elements_internal
-from . import vectordb
-
 from elevaitedb.db.database import SessionLocal
 from elevaitedb.crud import (
-    project as project_crud,
     instance as instance_crud,
-    application as application_crud,
     pipeline as pipeline_crud,
     collection as collection_crud,
     dataset as dataset_crud,
@@ -28,66 +23,23 @@ from elevaitedb.schemas.instance import (
     InstanceStatus,
     InstanceUpdate,
     InstanceChartData,
-    InstancePipelineStepStatusUpdate,
 )
 from elevaitedb.schemas.pipeline import PipelineStepStatus
 from elevaitedb.schemas.collection import Collection
 
+from .preprocess import get_file_elements_internal
+from . import vectordb
 
-class PreProcessForm:
-    creator: str
-    name: str
-    projectId: str
-    version: str | None
-    parent: str | None
-    outputURI: str | None
-    datasetId: str
-    selectedPipelineId: str
-    configurationName: str
-    isTemplate: bool
-    datasetVersion: int | None
-    queue: str
-    maxIdleTime: str
-    instanceId: str
-    applicationId: int
-    collectionId: str
-
-    def __init__(
-        self,
-        creator: str,
-        name: str,
-        projectId: str,
-        version: str | None,
-        parent: str | None,
-        outputURI: str | None,
-        datasetId: str | None,
-        selectedPipelineId: str,
-        configurationName: str,
-        isTemplate: bool,
-        type: str,
-        datasetVersion: int | None,
-        queue: str,
-        maxIdleTime: str,
-        instanceId: str,
-        applicationId: int,
-        collectionId: str,
-    ) -> None:
-        self.creator = creator
-        self.name = name
-        self.projectId = projectId
-        self.version = version
-        self.parent = parent
-        self.outputURI = outputURI
-        self.datasetId = datasetId
-        self.selectedPipelineId = selectedPipelineId
-        self.configurationName = configurationName
-        self.isTemplate = isTemplate
-        self.datasetVersion = datasetVersion
-        self.queue = queue
-        self.maxIdleTime = maxIdleTime
-        self.instanceId = instanceId
-        self.applicationId = applicationId
-        self.collectionId = collectionId
+from ..util import (
+    get_repo_name,
+    set_instance_running,
+    set_pipeline_step_completed,
+    set_redis_stats,
+    set_pipeline_step_running,
+    set_instance_completed,
+    set_instance_chart_data,
+)
+from ..interfaces import PreProcessForm
 
 
 def wrap_async_func(_data: PreProcessForm):
@@ -153,13 +105,9 @@ async def preprocess(data: PreProcessForm) -> None:
 
     repo = None
 
-    _project = project_crud.get_project_by_id(db, data.projectId)
-    project_name = util_func.to_kebab_case(_project.name)
-    dataset = dataset_crud.get_dataset_by_id(db=db, dataset_id=data.datasetId)
-    if dataset is None:
-        raise Exception("Dataset not found")
-    dataset_name = util_func.to_kebab_case(dataset.name)
-    repo_name = project_name + "-" + dataset_name
+    repo_name = get_repo_name(
+        db=db, dataset_id=data.datasetId, project_id=data.projectId
+    )
 
     for _repo in lakefs.repositories(client=clt):
         if _repo.id == repo_name:
@@ -172,7 +120,7 @@ async def preprocess(data: PreProcessForm) -> None:
     )
 
     dataset_version = dataset_crud.get_dataset_version(
-        db=db, datasetId=dataset.id, version=_version
+        db=db, datasetId=data.datasetId, version=_version
     )
     if dataset_version is None:
         raise Exception("Dataset Version not found.")
@@ -198,18 +146,10 @@ async def preprocess(data: PreProcessForm) -> None:
     except:
         avg_size = 0
 
-    _data = {
-        "total_items": count,
-        "ingested_items": 0,
-        "ingested_size": 0,
-        "avg_size": avg_size,
-        "total_size": size,
-        "ingested_chunks": 0,
-    }
+    set_redis_stats(
+        r=r, instance_id=data.instanceId, count=count, avg_size=avg_size, size=size
+    )
 
-    r.json().set(data.instanceId, ".", _data)
-
-    _application = application_crud.get_application_by_id(db, data.applicationId)
     _pipeline = pipeline_crud.get_pipeline_by_id(db, data.selectedPipelineId)
     _entry_step = None
     _first_step = None
@@ -236,30 +176,16 @@ async def preprocess(data: PreProcessForm) -> None:
             _final_step = s
             break
 
-    _instance = instance_crud.get_instance_by_id(
-        db, data.applicationId, data.instanceId
+    set_instance_running(
+        db=db, application_id=data.applicationId, instance_id=data.instanceId
     )
-    instance_crud.update_instance(
-        db,
-        data.applicationId,
-        data.instanceId,
-        InstanceUpdate(status=InstanceStatus.RUNNING),
+
+    set_pipeline_step_completed(
+        db=db, instance_id=data.instanceId, step_id=_entry_step.id
     )
-    instance_crud.update_pipeline_step(
-        db,
-        data.instanceId,
-        _entry_step.id,
-        InstancePipelineStepStatusUpdate(
-            status=PipelineStepStatus.COMPLETED, endTime=util_func.get_iso_datetime()
-        ),
-    )
-    instance_crud.update_pipeline_step(
-        db,
-        data.instanceId,
-        _first_step.id,
-        InstancePipelineStepStatusUpdate(
-            status=PipelineStepStatus.RUNNING, startTime=util_func.get_iso_datetime()
-        ),
+
+    set_pipeline_step_running(
+        db=db, instance_id=data.instanceId, step_id=_first_step.id
     )
 
     chunks_as_json = []
@@ -284,50 +210,16 @@ async def preprocess(data: PreProcessForm) -> None:
             if findex % 10 == 0:
                 print(findex)
 
-        res = r.json().get(data.instanceId)
+        set_instance_chart_data(r=r, db=db, instance_id=data.instanceId)
 
-        instance_crud.update_instance_chart_data(
-            db,
-            data.instanceId,
-            InstanceChartData(
-                totalItems=res["total_items"],
-                ingestedItems=res["ingested_items"],
-                avgSize=res["avg_size"],
-                totalSize=res["total_size"],
-                ingestedSize=res["ingested_size"],
-                ingestedChunks=res["ingested_chunks"],
-            ),
+        set_pipeline_step_completed(
+            db=db, instance_id=data.instanceId, step_id=_first_step.id
         )
 
-        instance_crud.update_pipeline_step(
-            db,
-            data.instanceId,
-            _first_step.id,
-            InstancePipelineStepStatusUpdate(
-                status=PipelineStepStatus.COMPLETED,
-                endTime=util_func.get_iso_datetime(),
-            ),
+        set_pipeline_step_running(
+            db=db, instance_id=data.instanceId, step_id=_second_step.id
         )
 
-        instance_crud.update_pipeline_step(
-            db,
-            data.instanceId,
-            _second_step.id,
-            InstancePipelineStepStatusUpdate(
-                status=PipelineStepStatus.RUNNING,
-                startTime=util_func.get_iso_datetime(),
-            ),
-        )
-
-        #     es.update(
-        #         index="application",
-        #         id=data.applicationId,
-        #         body=json.dumps({"doc": {"instances": instances}}, default=vars),
-        #     )
-
-        #     # Save the chunks_as_json.json on lakefs
-
-        # pprint(chunks_as_json)
         print("Number of chunks " + str(len(chunks_as_json)))
         # payloads = json.load(chunks_as_json)
         await vectordb.recreate_collection(collection=collection_name)
@@ -349,30 +241,21 @@ async def preprocess(data: PreProcessForm) -> None:
                 ingestedChunks=res["ingested_chunks"],
             ),
         )
-        instance_crud.update_instance(
-            db,
-            data.applicationId,
-            data.instanceId,
-            InstanceUpdate(status=InstanceStatus.COMPLETED),
+
+        set_instance_completed(
+            db=db, application_id=data.applicationId, instance_id=data.instanceId
         )
-        instance_crud.update_pipeline_step(
-            db,
-            data.instanceId,
-            _second_step.id,
-            InstancePipelineStepStatusUpdate(
-                status=PipelineStepStatus.COMPLETED,
-                endTime=util_func.get_iso_datetime(),
-            ),
+
+        set_pipeline_step_completed(
+            db=db, instance_id=data.instanceId, step_id=_second_step.id
         )
-        instance_crud.update_pipeline_step(
-            db,
-            data.instanceId,
-            _final_step.id,
-            InstancePipelineStepStatusUpdate(
-                status=PipelineStepStatus.COMPLETED,
-                endTime=util_func.get_iso_datetime(),
-                startTime=util_func.get_iso_datetime(),
-            ),
+
+        set_pipeline_step_running(
+            db=db, instance_id=data.instanceId, step_id=_final_step.id
+        )
+
+        set_pipeline_step_completed(
+            db=db, instance_id=data.instanceId, step_id=_final_step.id
         )
     except Exception as e:
         print("Error")

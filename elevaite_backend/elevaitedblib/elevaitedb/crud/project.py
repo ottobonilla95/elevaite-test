@@ -1,6 +1,7 @@
-# from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
 
-# from ..db import models
+from ..db import models
+
 # from ..schemas.project import ProjectCreate
 
 
@@ -18,3 +19,8 @@
 #     db.commit()
 #     db.refresh(_project)
 #     return _project
+
+
+def get_project_name(db: Session, project_id: str):
+    _project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    return _project.name

@@ -15,7 +15,6 @@ import redis
 
 from elevaitedb.db.database import SessionLocal
 from elevaitedb.crud import (
-    project as project_crud,
     instance as instance_crud,
     pipeline as pipeline_crud,
     dataset as dataset_crud,
@@ -25,68 +24,20 @@ from elevaitedb.util.s3url import S3Url
 from elevaitedb.schemas.instance import (
     InstanceStatus,
     InstanceUpdate,
-    InstanceChartData,
     InstanceStepDataLabel,
-    PipelineStepStatus,
-    InstancePipelineStepStatusUpdate,
 )
 from elevaitedb.schemas.dataset import DatasetVersionCreate
 
-
-class S3IngestData:
-    creator: str
-    name: str
-    projectId: str
-    version: str | None
-    parent: str | None
-    outputURI: str | None
-    datasetId: str
-    selectedPipelineId: str
-    configurationName: str
-    isTemplate: bool
-    description: str | None
-    url: str
-    useEC2: bool
-    roleARN: str
-    applicationId: str
-    instanceId: str
-
-    def __init__(
-        self,
-        creator: str,
-        name: str,
-        projectId: str,
-        version: str | None,
-        parent: str | None,
-        outputURI: str | None,
-        datasetId: str,
-        selectedPipelineId: str,
-        configurationName: str,
-        isTemplate: bool,
-        type: str,
-        description: str | None,
-        url: str,
-        useEC2: bool,
-        roleARN: str,
-        applicationId: str,
-        instanceId: str,
-    ) -> None:
-        self.creator = creator
-        self.name = name
-        self.projectId = projectId
-        self.version = version
-        self.parent = parent
-        self.outputURI = outputURI
-        self.datasetId = datasetId
-        self.selectedPipelineId = selectedPipelineId
-        self.configurationName = configurationName
-        self.isTemplate = isTemplate
-        self.description = description
-        self.url = url
-        self.useEC2 = useEC2
-        self.roleARN = roleARN
-        self.applicationId = applicationId
-        self.instanceId = instanceId
+from ..interfaces import S3IngestData
+from ..util import (
+    set_instance_chart_data,
+    set_instance_running,
+    set_pipeline_step_completed,
+    set_redis_stats,
+    set_pipeline_step_running,
+    set_instance_completed,
+    get_repo_name,
+)
 
 
 def s3_ingest_callback(ch, method, properties, body):
@@ -101,7 +52,6 @@ def s3_ingest_callback(ch, method, properties, body):
         configurationName=_data["configurationName"],
     )
     t = threading.Thread(target=s3_lakefs_cp_stream, args=(_formData,))
-    # s3_lakefs_cp_stream(formData=_formData)
     t.start()
 
 
@@ -199,16 +149,14 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
             username=LAKEFS_ACCESS_KEY_ID,
             password=LAKEFS_SECRET_ACCESS_KEY,
         )
-
-        project = project_crud.get_project_by_id(db, data.projectId)
-        project_name = util_func.to_kebab_case(project.name)
         _pipeline = pipeline_crud.get_pipeline_by_id(db, data.selectedPipelineId)
         _entry_step = None
         _first_step = None
         _final_step = None
-        dataset = dataset_crud.get_dataset_by_id(db=db, dataset_id=data.datasetId)
-        dataset_name = util_func.to_kebab_case(dataset.name)
-        repo_name = project_name + "-" + dataset_name
+
+        repo_name = get_repo_name(
+            db=db, dataset_id=data.datasetId, project_id=data.projectId
+        )
 
         for s in _pipeline.steps:
             if s.id == _pipeline.entry:
@@ -273,42 +221,20 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
         except:
             avg_size = 0
 
-        _data = {
-            "total_items": count,
-            "ingested_items": 0,
-            "ingested_size": 0,
-            "ingested_chunks": 0,
-            "avg_size": avg_size,
-            "total_size": size,
-        }
-
-        r.json().set(data.instanceId, ".", _data)
-
-        instance_crud.update_instance(
-            db,
-            data.applicationId,
-            data.instanceId,
-            InstanceUpdate(status=InstanceStatus.RUNNING),
+        set_redis_stats(
+            r=r, instance_id=data.instanceId, count=count, avg_size=avg_size, size=size
         )
 
-        instance_crud.update_pipeline_step(
-            db,
-            data.instanceId,
-            _entry_step.id,
-            InstancePipelineStepStatusUpdate(
-                endTime=util_func.get_iso_datetime(),
-                status=PipelineStepStatus.COMPLETED,
-            ),
+        set_instance_running(
+            db=db, application_id=data.applicationId, instance_id=data.instanceId
         )
 
-        instance_crud.update_pipeline_step(
-            db,
-            data.instanceId,
-            _first_step.id,
-            InstancePipelineStepStatusUpdate(
-                startTime=util_func.get_iso_datetime(),
-                status=PipelineStepStatus.RUNNING,
-            ),
+        set_pipeline_step_completed(
+            db=db, instance_id=data.instanceId, step_id=_entry_step.id
+        )
+
+        set_pipeline_step_running(
+            db=db, instance_id=data.instanceId, step_id=_first_step.id
         )
 
         # branch = repo.branch("main")
@@ -330,47 +256,18 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
             r.json().numincrby(data.instanceId, ".ingested_size", summary.size)
             r.json().numincrby(data.instanceId, ".ingested_items", 1)
 
-        res = r.json().get(data.instanceId)
+        set_instance_chart_data(r=r, db=db, instance_id=data.instanceId)
 
-        instance_crud.update_instance_chart_data(
-            db,
-            data.instanceId,
-            InstanceChartData(
-                avgSize=res["avg_size"],
-                ingestedChunks=0,
-                totalItems=res["total_items"],
-                ingestedItems=res["ingested_items"],
-                ingestedSize=res["ingested_size"],
-                totalSize=res["total_size"],
-            ),
-        )
-        instance_crud.update_instance(
-            db,
-            data.applicationId,
-            data.instanceId,
-            InstanceUpdate(
-                status=InstanceStatus.COMPLETED, endTime=util_func.get_iso_datetime()
-            ),
+        set_instance_completed(
+            db=db, application_id=data.applicationId, instance_id=data.instanceId
         )
 
-        instance_crud.update_pipeline_step(
-            db,
-            data.instanceId,
-            _first_step.id,
-            InstancePipelineStepStatusUpdate(
-                endTime=util_func.get_iso_datetime(),
-                status=PipelineStepStatus.COMPLETED,
-            ),
+        set_pipeline_step_completed(
+            db=db, instance_id=data.instanceId, step_id=_first_step.id
         )
 
-        instance_crud.update_pipeline_step(
-            db,
-            data.instanceId,
-            _final_step.id,
-            InstancePipelineStepStatusUpdate(
-                startTime=util_func.get_iso_datetime(),
-                status=PipelineStepStatus.RUNNING,
-            ),
+        set_pipeline_step_running(
+            db=db, instance_id=data.instanceId, step_id=_final_step.id
         )
 
         __commit_flag__ = False
@@ -401,14 +298,8 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
         else:
             print("Dataset is identical")
 
-        instance_crud.update_pipeline_step(
-            db,
-            data.instanceId,
-            _final_step.id,
-            InstancePipelineStepStatusUpdate(
-                endTime=util_func.get_iso_datetime(),
-                status=PipelineStepStatus.COMPLETED,
-            ),
+        set_pipeline_step_completed(
+            db=db, instance_id=data.instanceId, step_id=_final_step.id
         )
 
     except BadRequestException as e:
