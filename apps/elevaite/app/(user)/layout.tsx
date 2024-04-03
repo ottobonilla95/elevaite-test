@@ -1,67 +1,45 @@
 import type { SidebarIconObject } from "@repo/ui/components";
 import { ElevaiteIcons } from "@repo/ui/components";
-import { ColorContextProvider } from "@repo/ui/contexts";
 import type { Metadata } from "next";
-import { SessionProvider } from "next-auth/react";
-import { Inter } from "next/font/google";
-import { auth } from "../../auth";
 import AppLayout from "../ui/AppLayout";
-import { AppDrawerTheme } from "../ui/themes";
 import "./layout.css";
 
-const inter = Inter({ subsets: ["latin"] });
+
 
 export const metadata: Metadata = {
   title: "ElevAIte",
   description: "ElevAIte home",
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }): Promise<JSX.Element> {
-  const breadcrumbLabels: Record<string, { label: string; link: string }> = {
-    appDrawer: {
-      label: "Applications",
-      link: "/appDrawer",
-    },
-    home: {
-      label: "Applications",
-      link: "/",
-    },
-    homepage: {
-      label: "Applications",
-      link: "/",
-    },
-  };
+const breadcrumbLabels: Record<string, { label: string; link: string }> = {
+  appDrawer: {
+    label: "Applications",
+    link: "/appDrawer",
+  },
+  home: {
+    label: "Applications",
+    link: "/",
+  },
+  homepage: {
+    label: "Applications",
+    link: "/",
+  },
+};
 
-  const sidebarIcons: SidebarIconObject[] = [
-    { icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" },
-    // { icon: <ElevaiteIcons.Datasets />, link: "/datasets" },
-    // { icon: <ElevaiteIcons.WorkersQueues />, link: "/workers_queues" },
-    { icon: <ElevaiteIcons.SVGModels />, link: "/models" },
-    { icon: <ElevaiteIcons.Workbench />, link: "/workbench", description: "Workbench" },
-  ];
+const sidebarIcons: SidebarIconObject[] = [
+  // { icon: <ElevaiteIcons.Datasets />, link: "/datasets" },
+  // { icon: <ElevaiteIcons.WorkersQueues />, link: "/workers_queues" },
+  { icon: <ElevaiteIcons.SVGModels />, link: "/models", description: "Models" },
+  { icon: <ElevaiteIcons.Workbench />, link: "/workbench", description: "Workbench" },
+  { icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" },
+];
 
-  const session = await auth();
-  if (session?.user) {
-    // filter out sensitive data before passing to client.
-    session.user = {
-      id: session.user.id,
-      name: session.user.name,
-      email: session.user.email,
-      image: session.user.image,
-    };
-  }
 
+
+export default function PageLayout({ children }: { children: React.ReactNode }): JSX.Element {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-[${AppDrawerTheme.secondary}] -z-50`}>
-        <SessionProvider session={session}>
-          <ColorContextProvider theme={AppDrawerTheme}>
-            <AppLayout breadcrumbLabels={breadcrumbLabels} layout="user" sidebarIcons={sidebarIcons}>
-              {children}
-            </AppLayout>
-          </ColorContextProvider>
-        </SessionProvider>
-      </body>
-    </html>
+    <AppLayout breadcrumbLabels={breadcrumbLabels} layout="user" sidebarIcons={sidebarIcons}>
+      {children}
+    </AppLayout>
   );
 }

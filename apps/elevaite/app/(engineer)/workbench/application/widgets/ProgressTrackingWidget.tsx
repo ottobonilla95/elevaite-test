@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getInstanceChartData } from "../../../../lib/actions";
+import { getInstanceChartData } from "../../../../lib/actions/applicationActions";
 import { getConfigurationObjectFromRaw } from "../../../../lib/helpers";
 import type { AppInstanceObject, ChartDataObject, Initializers, S3IngestFormDTO, S3PreprocessFormDTO } from "../../../../lib/interfaces";
 import { AppInstanceStatus, ApplicationType } from "../../../../lib/interfaces";

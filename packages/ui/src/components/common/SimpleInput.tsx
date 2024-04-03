@@ -5,6 +5,7 @@ import "./SimpleInput.scss";
 
 interface SimpleInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "onKeyDown"> {
     wrapperClassName?: string;
+    useCommonStyling?: boolean;
     leftIcon?: React.ReactNode;
     hideLeftIcon?: boolean;
     rightIcon?: React.ReactNode;
@@ -14,7 +15,7 @@ interface SimpleInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEleme
     onKeyDown?: (key: string) => void;
 }
 
-export function SimpleInput({wrapperClassName, leftIcon, hideLeftIcon, rightIcon, hideRightIcon, value, onChange, onKeyDown, ...props}: SimpleInputProps): JSX.Element {
+export function SimpleInput({wrapperClassName, useCommonStyling, leftIcon, hideLeftIcon, rightIcon, hideRightIcon, value, onChange, onKeyDown, ...props}: SimpleInputProps): JSX.Element {
 
     function handleChange(event: React.FormEvent<HTMLInputElement>): void {
         onChange(event.currentTarget.value);
@@ -29,6 +30,7 @@ export function SimpleInput({wrapperClassName, leftIcon, hideLeftIcon, rightIcon
         <div className={[
             "simple-input-container",
             wrapperClassName,
+            useCommonStyling ? "common-style" : undefined,
         ].filter(Boolean).join(" ")}>
             {leftIcon && !hideLeftIcon ? leftIcon : undefined}
             <input

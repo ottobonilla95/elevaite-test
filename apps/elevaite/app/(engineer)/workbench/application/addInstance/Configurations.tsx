@@ -3,7 +3,7 @@ import type { CommonSelectOption } from "@repo/ui/components";
 import { CommonButton, CommonInput, CommonSelect } from "@repo/ui/components";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
-import { getApplicationConfigurations } from "../../../../lib/actions";
+import { getApplicationConfigurations } from "../../../../lib/actions/applicationActions";
 import type { ApplicationConfigurationObject, Initializers } from "../../../../lib/interfaces";
 import "./Configurations.scss";
 

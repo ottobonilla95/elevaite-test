@@ -23,6 +23,7 @@ export interface ModelListNormalRow {
     model: ModelObject;
     structure: RowStructure[];
     menu?: CommonMenuItem<ModelObject>[];
+    menuToTop?: boolean;
 }
 
 interface ModelListHeaderRow {
@@ -61,11 +62,12 @@ export function ModelsListRow(props: ModelsListRowProps): JSX.Element {
         <div className={["models-list-row-container", "isHeader" in props ? "header" : undefined].filter(Boolean).join(" ")}>
 
             {!props.menu ? undefined : 
-                "isHeader" in props ? <div className="models-list-row-cell menu"/> :
+                "isHeader" in props || props.menu.length === 0 ? <div className="models-list-row-cell menu"/> :
                 <div className="models-list-row-cell menu">
                     <CommonMenu
                         item={props.model}
                         menu={props.menu}
+                        top={props.menuToTop}
                     />
                 </div>
             }

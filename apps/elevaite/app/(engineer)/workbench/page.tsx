@@ -2,8 +2,7 @@
 import { Card, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { Tab, TabList, TabPanel, Tabs } from "react-tabs";
-import { ingestionMethods } from "../../../dummydata";
-import { getApplicationList } from "../../lib/actions";
+import { getApplicationList } from "../../lib/actions/applicationActions";
 import type { ApplicationObject } from "../../lib/interfaces";
 import { ApplicationType } from "../../lib/interfaces";
 import "./page.scss";
@@ -47,9 +46,9 @@ export default function Page(): JSX.Element {
     <Tabs>
       <TabList>
         <Tab>INGEST</Tab>
-        <Tab>TRAINING</Tab>
+        {/* <Tab>TRAINING</Tab>
         <Tab>QA</Tab>
-        <Tab>DEPLOY</Tab>
+        <Tab>DEPLOY</Tab> */}
       </TabList>
       <TabPanel>
         <div className="tab-panel-contents ingest">
@@ -103,7 +102,7 @@ export default function Page(): JSX.Element {
           }
         </div>
       </TabPanel>
-      <TabPanel>
+      {/* <TabPanel>
         <div className="grid sm:max-lg:grid-cols-1 lg:max-2xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4 p-8 w-fit">
           {ingestionMethods.map((method) => (
             <Card
@@ -150,7 +149,7 @@ export default function Page(): JSX.Element {
             />
           ))}
         </div>
-      </TabPanel>
+      </TabPanel> */}
     </Tabs>
   );
 }

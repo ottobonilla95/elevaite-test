@@ -3,7 +3,7 @@ import type { CommonSelectOption } from "@repo/ui/components";
 import { CommonModal } from "@repo/ui/components";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getApplicationById, getApplicationPipelines } from "../../../lib/actions";
+import { getApplicationById, getApplicationPipelines } from "../../../lib/actions/applicationActions";
 import { S3DataRetrievalAppInstanceForm } from "../../../lib/dataRetrievalApps";
 import { attachSideInfoToPipelineSteps } from "../../../lib/helpers";
 import type { AppInstanceConfigurationObject, AppInstanceFormStructure, AppInstanceObject, ApplicationObject, Initializers, PipelineObject } from "../../../lib/interfaces";

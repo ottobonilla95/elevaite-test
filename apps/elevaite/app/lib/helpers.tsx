@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { S3DataRetrievalAppPipelineStructure } from "./dataRetrievalApps";
-import { isInitializerDto } from "./discriminators";
+import { isInitializerDto } from "./actions/applicationDiscriminators";
 import type { AppInstanceObject, ApplicationType, ChartDataObject, Initializers, PipelineObject, PipelineStep, PipelineStepAddedInfo } from "./interfaces";
 import { StepDataSource, StepDataType } from "./interfaces";
 import { S3PreprocessingAppPipelineStructure } from "./preprocessingApps";

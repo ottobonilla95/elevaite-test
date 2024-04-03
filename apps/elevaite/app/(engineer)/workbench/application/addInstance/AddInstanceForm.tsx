@@ -3,7 +3,7 @@ import type { CommonSelectOption } from "@repo/ui/components";
 import { CommonButton, CommonCheckbox, CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { createApplicationConfiguration, createApplicationInstance, updateApplicationConfiguration } from "../../../../lib/actions";
+import { createApplicationConfiguration, createApplicationInstance, updateApplicationConfiguration } from "../../../../lib/actions/applicationActions";
 import type { AppInstanceConfigurationObject, AppInstanceFieldStructure, AppInstanceFormStructure, ApplicationConfigurationDto, Initializers } from "../../../../lib/interfaces";
 import { AppInstanceFieldTypes } from "../../../../lib/interfaces";
 import "./AddInstanceForm.scss";

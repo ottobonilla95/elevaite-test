@@ -180,8 +180,10 @@ export interface ModelObject {
 
 
 export interface ModelParametersObject {
+    architectures: string[];
+    model_type: string;
+    // ^ Always present
     activation_function?: string;
-    architectures?: string[];
     attention_probs_dropout_prob?: number;
     attn_pdrop?: number;
     bos_token_id?: number;
@@ -202,7 +204,6 @@ export interface ModelParametersObject {
     layer_norm_eps?: number;
     max_length?: number;
     max_position_embeddings?: number;
-    model_type?: string;
     n_ctx?: number;
     n_embd?: number;
     n_head?: number;
@@ -251,6 +252,20 @@ interface MemoryLayers {
     training_using_adam: MemoryBit;
  }
 interface MemoryBit { value_bytes: number; value_str: string; }
+
+
+
+export interface EvaluationObject {
+    name: string;
+    modelId: string|number;
+    dataset: string;
+    date?: string;
+    userName?: string;
+    latency?: string;
+    processor?: string;
+    costPerToken?: string;
+}
+
 
 
 

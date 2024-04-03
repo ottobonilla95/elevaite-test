@@ -1,9 +1,9 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
 import dayjs from "dayjs";
-import type { AvailableModelObject, ModelObject, ModelParametersObject} from "../interfaces";
+import { createContext, useContext, useEffect, useState } from "react";
+import { deleteModel, getAvailableModels, getModelById, getModelParametersById, getModels, getModelsTasks, registerModel } from "../actions/modelActions";
+import type { AvailableModelObject, EvaluationObject, ModelObject, ModelParametersObject } from "../interfaces";
 import { ModelsStatus } from "../interfaces";
-import { getAvailableModels, getModelById, getModelParametersById, getModels, getModelsTasks } from "../actions";
 
 
 
@@ -24,56 +24,15 @@ export enum specialHandlingModelFields {
 
 // STATIC OBJECTS
 
-const TEST: ModelObject[] = [
-    {
-        id: "Test_1",
-        created_at: dayjs().toISOString(),
-        task: "question-answering",
-        name: "Test model 1",
-        status: ModelsStatus.ACTIVE,
-        tags: ["Test Tag 1", "Test Tag 2"],
-        ramToRun: "24 GB",
-        ramToTrain: "80 GB",
-    },
-    {
-        id: "Test_2",
-        created_at: dayjs().subtract(1, "hour").toISOString(),
-        task: "question-answering",
-        name: "Test model 2",
-        status: ModelsStatus.REGISTERING,
-        tags: ["Test Tag 1", "Test Tag 2", "Test Tag 3", "Test Tag 4"],
-        ramToRun: "24 GB",
-        ramToTrain: "64 GB",
-    },
-    {
-        id: "Test_3",
-        created_at: dayjs().subtract(15, "minutes").toISOString(),
-        task: "token-classification",
-        name: "Test model 3",
-        status: ModelsStatus.FAILED,
-        tags: [],
-        ramToRun: "16 GB",
-        ramToTrain: "24 GB",
-    },
-    {
-        id: "Test_4",
-        created_at: dayjs().subtract(1, "minute").toISOString(),
-        task: "token-classification",
-        name: "Test model 4",
-        status: ModelsStatus.DEPLOYED,
-        endpointUrl: "testURL",
-        tags: ["Test Tag 1"],
-        ramToRun: "24 GB",
-        ramToTrain: "64 GB",
-    },
-];
-
 
 const defaultLoadingList: LoadingListObject = {
     models: false,
     modelTasks: false,
     availableModels: false,
     currentModelParameters: false,
+    registerModel: false,
+    deleteModel: false,
+    model: undefined,
 };
 
 
@@ -90,6 +49,9 @@ interface LoadingListObject {
     modelTasks?: boolean;
     availableModels?: boolean;
     currentModelParameters?: boolean;
+    registerModel?: boolean;
+    deleteModel?: boolean;
+    model?: string|number;
 }
 
 
@@ -102,9 +64,15 @@ export interface ModelsContextStructure {
     modelsSorting: SortingObject;
     selectedModel: ModelObject|undefined;
     setSelectedModel: (model: ModelObject|undefined) => void;
+    selectedModelParameters: ModelParametersObject|undefined,
     refreshSelectedModel: () => void;
+    refreshModelById: (modelId: string|number) => Promise<void>;
     sortModels: (field: string, specialHandling?: string) => void;
     getAvailableRemoteModels: (task: string) => void;
+    registerModel: (modelName: string, modelRepo: string, tags?: string[]) => Promise<void>;
+    deleteModel: (modelId: string|number) => Promise<void>;
+    evaluations: EvaluationObject[],
+    evaluateModel: (modelId: string|number, dataset) => void;
     loading: LoadingListObject;
 }
 
@@ -116,9 +84,15 @@ export const ModelsContext = createContext<ModelsContextStructure>({
     modelsSorting: {field: undefined},
     selectedModel: undefined,
     setSelectedModel: () => {/**/},
+    selectedModelParameters: undefined,
     refreshSelectedModel: () => {/**/},
+    refreshModelById: async () => {/**/},
     sortModels: () => {/**/},
     getAvailableRemoteModels: () => {/**/},
+    registerModel: async () => {/**/},
+    deleteModel: async () => {/**/},
+    evaluations: [],
+    evaluateModel: () => {/**/},
     loading: defaultLoadingList,
 });
 
@@ -183,13 +157,14 @@ interface ModelsContextProviderProps {
 
 
 export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.Element {
-    const [models, setModels] = useState<ModelObject[]>(TEST);
+    const [models, setModels] = useState<ModelObject[]>([]);
     const [selectedModel, setSelectedModel] = useState<ModelObject|undefined>();
-    const [selectedModelParameters, setSelectedModelParameters] = useState<ModelParametersObject>();
+    const [selectedModelParameters, setSelectedModelParameters] = useState<ModelParametersObject|undefined>();
     const [modelTasks, setModelTasks] = useState<string[]>([]);
     const [availableModels, setAvailableModels] = useState<AvailableModelObject[]>([]);
     const [displayModels, setDisplayModels] = useState<ModelObject[]>([]);
     const [sorting, setSorting] = useState<SortingObject>({field: undefined});
+    const [evaluations, setEvaluations] = useState<EvaluationObject[]>([]);
     const [loading, setLoading] = useState<LoadingListObject>(defaultLoadingList);
 
 
@@ -222,6 +197,7 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
     }, []);
 
     useEffect(() => {
+        console.log("models", models);
         const modelsClone = JSON.parse(JSON.stringify(models)) as ModelObject[];
         setDisplayModels(sortDisplayModels(modelsClone, sorting));
     }, [models]);
@@ -248,14 +224,25 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
             setSelectedModelParameters(undefined);
         } else {
             setSelectedModel(model);
-            void fetchSelectedModelParameters(model.id);
+            if (model.status === ModelsStatus.ACTIVE || model.status === ModelsStatus.DEPLOYED) {
+                void fetchSelectedModelParameters(model.id);
+            }
         }
+    }
+
+    async function refreshModelById(modelId: string|number): Promise<void> {
+        if (loading.model === modelId) return;
+        const fetchedModel = await fetchModelById(modelId);
+        if (!fetchedModel) return;
+        console.log("Refreshed model", fetchedModel);
     }
 
     function refreshSelectedModel(): void {
         if (!selectedModel) return;
-        void fetchSelectedModelParameters(selectedModel.id);
-        // void fetchModelById(selectedModel.id); // This doesn't do anything different for the time being.
+        if (selectedModel.status === ModelsStatus.ACTIVE || selectedModel.status === ModelsStatus.DEPLOYED) {
+            void fetchSelectedModelParameters(selectedModel.id);
+            // void fetchModelById(selectedModel.id); // This doesn't do anything different for the time being.
+        }
     }
 
     function getAvailableRemoteModels(task: string): void {
@@ -264,42 +251,81 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
 
     async function fetchAvailableModels(task: string): Promise<void> {
         try {
-            setLoading(current => {return {...current, availableModels: true}} )
+            setLoading(current => {return {...current, availableModels: true}} );
             const result = await getAvailableModels(task, AVAILABLE_MODELS_LIMIT);
             setAvailableModels(result);
         } catch(error) {            
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in fetching available models:", error);
         } finally {                
-            setLoading(current => {return {...current, availableModels: false}} )
+            setLoading(current => {return {...current, availableModels: false}} );
         }
     }
 
-    // async function fetchModelById(modelId: string|number): Promise<void> {
-    //     try {
-    //         // setLoading(current => {return {...current, : true}} )
-    //         const result = await getModelById(modelId);
-    //         console.log("Model details:", result);
-    //         console.log("Selected Model:", selectedModel);
-    //     } catch(error) {            
-    //         // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
-    //         console.error("Error in fetching model:", error);
-    //     } finally {                
-    //         // setLoading(current => {return {...current, : false}} )
-    //     }
-    // }
+    async function fetchModelById(modelId: string|number): Promise<ModelObject|undefined> {
+        try {
+            setLoading(current => {return {...current, model: modelId}} )
+            const result = await getModelById(modelId);
+            return result;
+        } catch(error) {            
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching model:", error);
+        } finally {                
+            setLoading(current => {return {...current, model: undefined}} )
+        }
+    }
 
     async function fetchSelectedModelParameters(modelId: string|number): Promise<void> {
         try {
-            setLoading(current => {return {...current, currentModelParameters: true}} )
+            setLoading(current => {return {...current, currentModelParameters: true}} );
             const result = await getModelParametersById(modelId);
             setSelectedModelParameters(result);
-            console.log("Model Parameters:", result);
-        } catch(error) {            
+        } catch(error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in fetching selected model parameters:", error);
-        } finally {                
-            setLoading(current => {return {...current, currentModelParameters: false}} )
+        } finally {
+            setLoading(current => {return {...current, currentModelParameters: false}} );
+        }
+    }
+
+
+    async function actionRegisterModel(modelName: string, modelRepo: string, tags?: string[]): Promise<void> {
+        try {
+            setLoading(current => {return {...current, registerModel: true}} );
+            const result = await registerModel(modelName, modelRepo, tags);
+            setModels(current => [...current, result]);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching selected model parameters:", error);
+        } finally {
+            setLoading(current => {return {...current, registerModel: false}} );
+        }
+    }
+
+    function evaluateModel(modelId: string|number, dataset: string): void {
+        const evaluation: EvaluationObject = {
+            modelId,
+            dataset,
+            name: `Model Evaluation #${evaluations.length+1}`,
+            processor: "CPU",
+            latency: `${Math.floor(Math.random() * 300)} ms`,
+            costPerToken: `${Math.floor(Math.random() * 3)}.${Math.floor(Math.random() * 9)} ¢`,
+        }
+        setEvaluations(current => [evaluation, ...current]);
+    }
+
+    async function actionDeleteModel(modelId: string|number): Promise<void> {
+        try {
+            setLoading(current => {return {...current, deleteModel: true}} );
+            const result = await deleteModel(modelId.toString());
+            if (result) {
+                setModels(current => current.filter(item => item.id.toString() !== modelId));
+            }
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching selected model parameters:", error);
+        } finally {
+            setLoading(current => {return {...current, deleteModel: false}} );
         }
     }
 
@@ -314,9 +340,15 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
                 modelsSorting: sorting,
                 selectedModel,
                 setSelectedModel: remoteSetSelectedModel,
+                selectedModelParameters,
                 refreshSelectedModel,
+                refreshModelById,
                 sortModels,
                 getAvailableRemoteModels,
+                registerModel: actionRegisterModel,
+                deleteModel: actionDeleteModel,
+                evaluations,
+                evaluateModel,
                 loading,
             } }
         >

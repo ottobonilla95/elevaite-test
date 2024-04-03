@@ -11,7 +11,7 @@
 
   @include scrollbar();
 
-  background: url("/images/background-application-light.png"), linear-gradient(to right,  var(--ev-colors-primary),  var(--ev-colors-primary));
+  background: url("/images/background-application-light.png"), linear-gradient(to right,  var(--ev-colors-background),  var(--ev-colors-background));
   background-position: right -50px bottom -200px, top;
   background-repeat: no-repeat;
   background-attachment: fixed;

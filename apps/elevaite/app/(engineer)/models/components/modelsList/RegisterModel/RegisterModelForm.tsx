@@ -1,5 +1,5 @@
 import type { CommonSelectOption } from "@repo/ui/components";
-import { CommonButton, CommonFormLabels, CommonSelect, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
+import { CommonButton, CommonFormLabels, CommonInput, CommonSelect, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { useModels } from "../../../../../lib/contexts/ModelsContext";
 import type { AvailableModelObject } from "../../../../../lib/interfaces";
@@ -20,8 +20,10 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
     const [selectedModelTask, setSelectedModelTask] = useState("");
     const [availableModelOptions, setAvailableModelOptions] = useState<CommonSelectOption[]>([]);
     const [selectedAvailableModel, setSelectedAvailableModel] = useState<AvailableModelObject|undefined>();
+    const [name, setName] = useState("");
     const [currentTag, setCurrentTag] = useState("");
     const [tags, setTags] = useState<string[]>([]);
+    const [readyToClose, setReadyToClose] = useState(false);
 
 
     useEffect(() => {
@@ -31,6 +33,12 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
     useEffect(() => {
         setAvailableModelOptions(formatAvailableModelOptions(modelsContext.availableModels));
     }, [modelsContext.availableModels]);
+
+    useEffect(() => {
+        if (modelsContext.loading.registerModel) {
+            setReadyToClose(true);
+        } else if (readyToClose) props.onClose();
+    }, [modelsContext.loading.registerModel]);
 
 
     
@@ -51,7 +59,9 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
     }
 
     function handleRegister(): void {
-        console.log("Registering", selectedAvailableModel);
+        if (!name || !selectedAvailableModel) return;
+        console.log("Registering", name, selectedAvailableModel.id, tags);
+        void modelsContext.registerModel(name, selectedAvailableModel.id, tags);
     }
 
     function handleKeyDown(key: string): void {
@@ -98,6 +108,12 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
     return (
         <div className="register-model-form-container">
 
+            {!modelsContext.loading.registerModel ? undefined :
+                <div className="register-loading">
+                    <ElevaiteIcons.SVGSpinner/>
+                </div>
+            } 
+
             <div className="register-header">
                 <div className="register-title">
                     <div className="title-icon">
@@ -130,9 +146,15 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
                     <div className="model-information">
                         <span>Model Information</span>
 
+                        <CommonInput
+                            label="Model Name"
+                            onChange={setName}
+                            info="A name to reference the model"
+                            required
+                        />
 
                         <CommonFormLabels
-                            label="Model Name"
+                            label="Model Repository"
                             info="Select model to register"
                             required
                         >
@@ -148,6 +170,7 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
                     
                         <CommonFormLabels
                             label="Model Tags"
+                            info="Add any tags to append to the model when registering"
                         >
                             <div className="tags-container">
                                 {tags.map(tag => 
@@ -183,8 +206,8 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
                 </CommonButton>
                 <CommonButton
                     className="details-button submit"
-                    disabled={!selectedAvailableModel}
-                    title={selectedAvailableModel ? "" : "Mandatory fields (*) are missing"}
+                    disabled={!selectedAvailableModel || !name}
+                    title={selectedAvailableModel && name ? "" : "Mandatory fields (*) are missing"}
                     onClick={handleRegister}
                 >
                     Register

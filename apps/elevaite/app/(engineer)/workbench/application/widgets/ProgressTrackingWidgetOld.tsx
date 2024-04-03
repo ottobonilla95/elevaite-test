@@ -1,7 +1,7 @@
 "use client";
 import { ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
-import { getInstanceChartData } from "../../../../lib/actions";
+import { getInstanceChartData } from "../../../../lib/actions/applicationActions";
 import type { AppInstanceObject, ChartDataObject } from "../../../../lib/interfaces";
 import { AppInstanceStatus } from "../../../../lib/interfaces";
 import "./ProgressTrackingWidgetOld.scss";

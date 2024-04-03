@@ -34,6 +34,7 @@ import SVGRegister from "./svgRegister";
 import SVGSettings from "./svgSettings";
 import SVGCopy from "./svgCopy";
 import SVGRefresh from "./svgRefresh";
+import SVGEvaluate from "./svgEvaluate";
 
 
 export const ElevaiteIcons = {
@@ -73,4 +74,5 @@ export const ElevaiteIcons = {
     SVGSettings,
     SVGCopy,
     SVGRefresh,
+    SVGEvaluate,
 };

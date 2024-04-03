@@ -15,6 +15,14 @@
 
     &.selected {
         background-color: var(--ev-colors-primary);
+        & .models-list-row-cell {
+            &.name {                
+                background-color: var(--ev-colors-primary);
+                &:hover {
+                    background-color: var(--ev-colors-background);
+                }
+            }
+        }
     }
     &:last-child {
         border-radius: 0 0 8px 8px;
@@ -33,6 +41,21 @@
             flex-grow: 1;
             display: flex;
             justify-content: flex-end;
+        }
+    }
+
+
+    & .models-list-row-cell {
+        &.name {
+            padding: 2px 10px;
+            border-radius: 8px;
+            background-color: var(--ev-colors-background);
+            transition: filter 200ms ease-in-out, background-color 200ms ease-in-out;
+            &:hover {
+                transition: none;
+                background-color: var(--ev-colors-primary);
+                color: var(--ev-colors-highlight);
+            }
         }
     }
 

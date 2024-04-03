@@ -1,5 +1,6 @@
 export * from "./CommonButton";
 export * from "./CommonCheckbox";
+export * from "./CommonDialog";
 export * from "./CommonFormLabels";
 export * from "./CommonInput";
 export * from "./CommonMenu";

@@ -80,7 +80,15 @@
 
         &.id { color: var(--ev-colors-secondaryText); }
 
-        &.name:not(.header) { background-color: var(--ev-colors-background); }
+        &.name:not(.header) {
+            background-color: var(--ev-colors-background);
+            transition: filter 200ms ease-in-out, background-color 200ms ease-in-out;
+            &:hover {
+                transition: none;
+                background-color: var(--ev-colors-primary);
+                color: var(--ev-colors-highlight);
+            }
+        }
 
         &.tags {
             display: flex;

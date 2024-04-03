@@ -5,7 +5,7 @@ import { useElapsedTime } from "@repo/ui/hooks";
 import dayjs from "dayjs";
 import { useSession } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
-import { getApplicationInstanceById, getApplicationInstanceList } from "../../../lib/actions";
+import { getApplicationInstanceById, getApplicationInstanceList } from "../../../lib/actions/applicationActions";
 import type { AppInstanceConfigurationObject, AppInstanceObject, PipelineObject } from "../../../lib/interfaces";
 import { AppInstanceStatus } from "../../../lib/interfaces";
 import type { AppInstanceFiltersObject } from "./AppInstanceFilters";

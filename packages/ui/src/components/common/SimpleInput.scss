@@ -23,4 +23,27 @@
         }
     }
 
+    &.common-style {
+        padding: 0;
+        border: none;
+        border-radius: 8px;
+        
+        & > input {
+            padding: 10px;
+            background-color: var(--ev-colors-background);
+            border: 1px solid var(--ev-colors-borderColor);
+            border-radius: 8px;
+    
+            &:focus {
+                outline: 1px solid var(--ev-colors-highlight);
+            }
+            &::placeholder {
+                opacity: 0.5;
+            }
+            &:disabled {
+                filter: brightness(1.5);
+            }
+        }
+    }
+
 }

@@ -3,7 +3,7 @@ import type { SidebarIconObject } from "@repo/ui/components";
 import { NavBar, Sidebar } from "@repo/ui/components";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
-import { logOut } from "../lib/actions";
+import { logOut } from "../lib/actions/generalActions";
 import { engineerSearchHelper, userSearchHelper } from "../lib/searchHelpers";
 import "./AppLayout.scss";
 

@@ -30,10 +30,12 @@ export function CondensedListRow(props: ModelListNormalRow): JSX.Element {
             <div className="condensed-line">
 
                 {!props.menu ? undefined : 
+                props.menu.length === 0 ? <div className="models-list-row-cell menu"/> :
                     <div className="models-list-row-cell menu">
                         <CommonMenu
                             item={props.model}
                             menu={props.menu}
+                            top={props.menuToTop}
                         />
                     </div>
                 }

@@ -1,18 +1,11 @@
-import type { AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, AvailableModelObject, ChartDataObject, Initializers, ModelObject, ModelParametersObject, PipelineObject } from "./interfaces";
+import type { AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "../interfaces";
+import { isObject } from "./generalDiscriminators";
+
 
 
 
 // RESPONSES
 /////////////
-
-
-export function isArrayOfStrings(data: unknown): data is string[] {
-    if (!Array.isArray(data)) return false;
-    for (const item of data) {
-        if (typeof item !== "string") return false;
-    }
-    return true;
-}
 
 
 export function isGetApplicationListReponse(data: unknown): data is ApplicationObject[] {
@@ -55,30 +48,6 @@ export function isGetInstanceListResponse(data: unknown): data is AppInstanceObj
     return true;
 }
 
-export function isGetAvailableModelsResponse(data: unknown): data is AvailableModelObject[] {
-    if (!Array.isArray(data)) return false;
-    for (const item of data) {
-        if (!isAvailableModelObject(item)) return false;
-    }
-    return true;
-}
-
-export function isGetModelByIdResponse(data: unknown): data is ModelObject {
-    return isModelObject(data);
-}
-
-export function isGetModelParametersResponse(data: unknown): data is ModelParametersObject {
-    return isModelParametersObject(data);
-}
-
-export function isGetModelsResponse(data: unknown): data is ModelObject[] {
-    if (!Array.isArray(data)) return false;
-    for (const item of data) {
-        if (!isModelObject(item)) return false;
-    }
-    return true;
-}
-
 export function isGetInstanceResponse(data: unknown): data is AppInstanceObject {
     return isInstanceObject(data);
 }
@@ -91,24 +60,16 @@ export function isCreateConfigurationResponse(data: unknown): data is Applicatio
     return isApplicationConfigurationObject(data);
 }
 
-
 export function isInitializerDto(data: unknown): data is Initializers {
     return isInitializerObject(data);
 }
 
 
 
-
 // OBJECTS
 ///////////
 
-
-function isObject(item: unknown): item is object {
-    return Boolean(item) && item !== null && typeof item === "object";
-}
-
-
-function isApplicationObject(item: unknown): item is ApplicationObject {
+export function isApplicationObject(item: unknown): item is ApplicationObject {
     return isObject(item) &&
         "id" in item &&
         "applicationType" in item &&
@@ -119,7 +80,7 @@ function isApplicationObject(item: unknown): item is ApplicationObject {
         "version" in item;
 }
 
-function isInstanceChartObject(item: unknown): item is ChartDataObject {
+export function isInstanceChartObject(item: unknown): item is ChartDataObject {
     return isObject(item) &&
         "totalItems" in item &&
         "ingestedItems" in item &&
@@ -128,7 +89,7 @@ function isInstanceChartObject(item: unknown): item is ChartDataObject {
         "ingestedSize" in item;
 }
 
-function isInstanceObject(item: unknown): item is AppInstanceObject {
+export function isInstanceObject(item: unknown): item is AppInstanceObject {
     return isObject(item) &&
         "id" in item &&
         "datasetId" in item &&
@@ -137,7 +98,7 @@ function isInstanceObject(item: unknown): item is AppInstanceObject {
         "status" in item;
 }
 
-function isApplicationPipelineObject(item: unknown): item is PipelineObject {
+export function isApplicationPipelineObject(item: unknown): item is PipelineObject {
     return isObject(item) &&
         "id" in item &&
         "entry" in item &&
@@ -145,13 +106,13 @@ function isApplicationPipelineObject(item: unknown): item is PipelineObject {
         "steps" in item;
 }
 
-function isInitializerObject(item: unknown): item is Initializers  {
+export function isInitializerObject(item: unknown): item is Initializers {
     return isObject(item) &&
         "projectId" in item &&
         "creator" in item;
 }
 
-function isApplicationConfigurationObject(item: unknown): item is Initializers  {
+export function isApplicationConfigurationObject(item: unknown): item is ApplicationConfigurationObject {
     return isObject(item) &&
         "id" in item &&
         "applicationId" in item &&
@@ -160,28 +121,5 @@ function isApplicationConfigurationObject(item: unknown): item is Initializers  
         "createDate" in item &&
         "updateDate" in item &&
         "raw" in item;
-}
-
-function isAvailableModelObject(item: unknown): item is AvailableModelObject {
-    return isObject(item) &&
-        "id" in item &&
-        "created_at" in item &&
-        "gated" in item &&
-        "library_name" in item;
-}
-
-function isModelObject(item: unknown): item is ModelObject {
-    return isObject(item) &&
-        "id" in item &&
-        "name" in item &&
-        "status" in item &&
-        "task" in item &&
-        "tags" in item &&
-        "huggingface_repo" in item;
-}
-
-function isModelParametersObject(item: unknown): item is ModelParametersObject {
-    return isObject(item);
-    // Can't be sure of _any_ field that's common to all.
 }
 

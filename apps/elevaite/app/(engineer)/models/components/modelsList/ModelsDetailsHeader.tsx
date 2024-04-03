@@ -42,6 +42,7 @@ export function ModelsDetailsHeader(): JSX.Element {
                                 onClick={handleRefresh}
                                 disabled={modelsContext.loading.currentModelParameters}
                                 noBackground
+                                title="Refresh model details"
                             >
                                 <ElevaiteIcons.SVGRefresh/>
                             </CommonButton>
@@ -49,6 +50,7 @@ export function ModelsDetailsHeader(): JSX.Element {
                             <CommonButton
                                 onClick={handleClose}
                                 noBackground
+                                title="Close model details"
                             >
                                 <ElevaiteIcons.SVGXmark/>
                             </CommonButton>

@@ -8,7 +8,7 @@ import SVGSpinner from "../icons/elevaite/svgSpinner";
 
 
 export interface CommonSelectOption {
-    label: string;
+    label?: string;
     value: string;
     selectedLabel?: string; // Use this instead of label when it is the selected item
     icon?: React.ReactElement;
@@ -45,7 +45,7 @@ export function CommonSelect({options, defaultValue, noSelectionMessage, anchor,
     function handleClick(option: CommonSelectOption): void {
         if (option !== selectedOption) {
             setSelectedOption(option);
-            onSelectedValueChange(option.value, option.label);
+            onSelectedValueChange(option.value, option.label ? option.label : option.value);
         }
         setIsOpen(false);
     }
@@ -72,13 +72,13 @@ export function CommonSelect({options, defaultValue, noSelectionMessage, anchor,
                 onClick={() => { setIsOpen((currentValue) => !currentValue); }}
                 onDoubleClick={handleDoubleClick}
                 noBackground
-                title={selectedOption && (selectedOption?.selectedLabel || showTitles) ? selectedOption.label : ""}
+                title={selectedOption && (selectedOption?.selectedLabel || showTitles) ? (selectedOption.label ? selectedOption.label : selectedOption.value) : ""}
                 disabled={props.disabled || isLoading}
             >
                 <span>
                     {isLoading ? "Please wait..." :
                         !selectedOption ? noSelectionMessage ? noSelectionMessage : "No selected option" :
-                        selectedOption.selectedLabel ? selectedOption.selectedLabel : selectedOption.label
+                        selectedOption.selectedLabel ? selectedOption.selectedLabel : (selectedOption.label ? selectedOption.label : selectedOption.value)
                     }
                 </span>
                 {isLoading ? 
@@ -102,9 +102,9 @@ export function CommonSelect({options, defaultValue, noSelectionMessage, anchor,
                                     key={option.value}
                                     onClick={() => { handleClick(option); } }
                                     noBackground
-                                    title={showTitles ? option.label : ""}
+                                    title={showTitles ? (option.label ? option.label : option.value) : ""}
                                 >
-                                    <span>{option.label}</span>
+                                    <span>{option.label ? option.label : option.value}</span>
                                 </CommonButton>
                             )}
                         </div>

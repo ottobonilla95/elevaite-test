@@ -4,13 +4,13 @@ import "./ModelsListHeader.scss";
 
 export enum MODELS_LIST_TABS {
     MODELS = "Models",
-    VECTOR = "Embedding Models",
+    EMBEDDING = "Embedding Models",
 };
 
 
-const ModelsListTabsArray: MODELS_LIST_TABS[] = [
-    MODELS_LIST_TABS.MODELS,
-    MODELS_LIST_TABS.VECTOR,
+const ModelsListTabsArray: {label: MODELS_LIST_TABS, isDisabled?: boolean}[] = [
+    { label: MODELS_LIST_TABS.MODELS },
+    { label: MODELS_LIST_TABS.EMBEDDING, isDisabled: true },
 ];
 
 
@@ -26,16 +26,17 @@ export function ModelsListHeader(props: ModelsListHeaderProps): JSX.Element {
         <div className="models-list-header-container">
 
             <div className="tabs-container">
-                {ModelsListTabsArray.map((item: MODELS_LIST_TABS) => 
+                {ModelsListTabsArray.map((item: {label: MODELS_LIST_TABS, isDisabled?: boolean}) => 
                     <CommonButton
-                        key={item}
+                        key={item.label}
                         className={[
                             "tab-button",
-                            props.selectedTab === item ? "active" : undefined,
+                            props.selectedTab === item.label ? "active" : undefined,
                         ].filter(Boolean).join(" ")}                        
-                        onClick={() => { props.onTabSelected(item)}}
+                        onClick={() => { props.onTabSelected(item.label)}}
+                        disabled={item.isDisabled}
                     >
-                        {item}
+                        {item.label}
                     </CommonButton>
                 )}
             </div>

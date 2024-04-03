@@ -1,12 +1,22 @@
-import type { CommonMenuItem } from "@repo/ui/components";
+"use client";
+import { ElevaiteIcons, type CommonMenuItem, CommonDialog, CommonInput, CommonSelect, CommonFormLabels } from "@repo/ui/components";
+import { useState } from "react";
 import { specialHandlingModelFields, useModels } from "../../../../lib/contexts/ModelsContext";
-import type { ModelObject } from "../../../../lib/interfaces";
+import { ModelsStatus, type ModelObject } from "../../../../lib/interfaces";
+import { CondensedListRow } from "./CondensedListRow";
 import type { RowStructure } from "./ModelsListRow";
 import { ModelsListRow } from "./ModelsListRow";
 import "./ModelsListTable.scss";
-import { CondensedListRow } from "./CondensedListRow";
 
 
+
+
+enum MENU_ACTIONS {
+    DEPLOY = "Deploy",
+    DELETE = "Delete",
+    EVALUATE = "Evaluate",
+    QA = "QA",
+};
 
 
 interface ModelsListTableProps {
@@ -15,6 +25,9 @@ interface ModelsListTableProps {
 
 export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
     const modelsContext = useModels();
+    const [dataset, setDataset] = useState("");
+    const [pendingAction, setPendingAction] = useState< undefined | 
+        { title: string, action: MENU_ACTIONS, model: ModelObject, label?: string; icon?: React.ReactNode } >();
 
 
     const modelsListStructure: RowStructure[] = [
@@ -30,19 +43,53 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
     
     
     const modelsListMenu: CommonMenuItem<ModelObject>[] = [
-        { label: "Deploy Model", onClick: (item: ModelObject) => { handleMenuClick(item, "deploy"); } },
-        { label: "Archive Model", onClick: (item: ModelObject) => { handleMenuClick(item, "archive"); } },
-        { label: "Evaluate Model", onClick: (item: ModelObject) => { handleMenuClick(item, "evaluate"); } },
-        { label: "Launch Model QA", onClick: (item: ModelObject) => { handleMenuClick(item, "qa"); } },
+        { label: "Deploy Model", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.DEPLOY); } },
+        { label: "Remove Model", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.DELETE); } },
+        { label: "Evaluate Model", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.EVALUATE); } },
+        { label: "Launch Model QA", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.QA); } },
     ]
     
+
+
+    function getModelsListMenu(status?: ModelsStatus): CommonMenuItem<ModelObject>[] {
+        if (!status || status === ModelsStatus.REGISTERING) return [];
+        else if (status === ModelsStatus.FAILED) return [
+            { label: "Remove Model", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.DELETE); } },
+        ]
+        return modelsListMenu;
+    }
+
+
+
+
     
-    function handleMenuClick(item: ModelObject, action: string): void {
-        console.log("item", item, "action:", action);
+    function handleMenuClick(model: ModelObject, action: MENU_ACTIONS): void {
+        switch (action) {
+            case MENU_ACTIONS.DEPLOY: setPendingAction({title: "Deploy Model?", action, model}); break;
+            case MENU_ACTIONS.EVALUATE: setPendingAction({title: "Evaluate Model", action, model, label: "Evaluate", icon: <ElevaiteIcons.SVGEvaluate/>}); break;
+            case MENU_ACTIONS.DELETE: setPendingAction({title: "Delete Model?", action, model}); break;
+            default: break;
+        }
     }
     
     function handleModelClick(item: ModelObject): void {
         modelsContext.setSelectedModel(item);
+    }
+
+    function handleDialogClose(): void {
+        setPendingAction(undefined);
+    }
+
+    function handleDialogConfirm(): void {
+        if (!pendingAction) return;
+        switch (pendingAction.action) {
+            case MENU_ACTIONS.DEPLOY: break;
+            case MENU_ACTIONS.EVALUATE: modelsContext.evaluateModel(pendingAction.model.id, dataset); break;
+            case MENU_ACTIONS.DELETE: void modelsContext.deleteModel(pendingAction.model.id.toString()); break;
+            default: break;
+        }
+        console.log("Confirmed", pendingAction);
+        handleDialogClose();
     }
 
 
@@ -52,20 +99,81 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
             "models-list-table-container",
             props.isVisible ? "is-visible" : undefined,
         ].filter(Boolean).join(" ")}>
-            {modelsContext.selectedModel ? 
+            {modelsContext.loading.models ? 
+                <div className="table-span">
+                    <ElevaiteIcons.SVGSpinner/>
+                    <span>Loading...</span>
+                </div>
+            :
+            
+            modelsContext.selectedModel ? 
                 <div className="condensed-grid">
-                    {modelsContext.models.map(model => 
-                        <CondensedListRow key={model.id} model={model} structure={modelsListStructure} menu={modelsListMenu} />
+                    {modelsContext.models.map((model, index) => 
+                        <CondensedListRow
+                            key={model.id}
+                            model={model}
+                            structure={modelsListStructure}
+                            menu={getModelsListMenu(model.status)}
+                            menuToTop={modelsContext.models.length > 4 && index > (modelsContext.models.length - 4) }
+                        />
                     )}
                 </div>
             :
                 <div className="models-list-table-grid">
-                    <ModelsListRow isHeader structure={modelsListStructure} menu={modelsListMenu} />
-                    {modelsContext.models.map(model => 
-                        <ModelsListRow key={model.id} model={model} structure={modelsListStructure} menu={modelsListMenu} />
+                    <ModelsListRow isHeader structure={modelsListStructure} menu={getModelsListMenu()} />
+                    {modelsContext.models.length === 0 ? 
+                        <div className="table-span empty">
+                            There are no models to display.
+                        </div>
+
+                    :
+
+                    modelsContext.models.map((model, index) => 
+                        <ModelsListRow
+                            key={model.id}
+                            model={model}
+                            structure={modelsListStructure}
+                            menu={getModelsListMenu(model.status)}
+                            menuToTop={modelsContext.models.length > 4 && index > (modelsContext.models.length - 4) }
+                        />
                     )}
                 </div>
             }
+
+
+            {!pendingAction ? undefined :
+                <CommonDialog
+                    title={pendingAction.title}
+                    icon={pendingAction.icon}
+                    onConfirm={handleDialogConfirm}
+                    onCancel={handleDialogClose}
+                    confirmLabel={pendingAction.label}
+                    dangerSubmit={pendingAction.action === MENU_ACTIONS.DELETE}
+                    disableConfirm={pendingAction.action === MENU_ACTIONS.EVALUATE && !dataset}
+                    confirmTooltip={pendingAction.action === MENU_ACTIONS.EVALUATE && !dataset ? "Please select a dataset" : ""}
+                >
+                    {pendingAction.action !== MENU_ACTIONS.EVALUATE ? undefined :
+                        <div className="evaluation-dialog-container">
+                            <CommonInput
+                                label="Selected Model"
+                                initialValue={pendingAction.model.name}
+                                disabled
+                            />
+                            <CommonFormLabels
+                                label="Evaluation Dataset"
+                            >
+                                <CommonSelect
+                                    className="evaluate-dialog-dataset"
+                                    options={modelsContext.modelTasks.map(item => { return {value: item}})}
+                                    onSelectedValueChange={setDataset}
+                                />
+                            </CommonFormLabels>
+                        </div>
+                    }
+                </CommonDialog>
+            }
+
+
         </div>
     );
 }
