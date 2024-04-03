@@ -1,0 +1,49 @@
+{
+   "user_profile": {
+      "summary": "Successfully retrieved user profile",
+      "value": {
+         "id": "ea775375-38a6-4bae-8e91-5bd51618eb71",
+         "organization_id": "789e4567-e89b-12d3-a456-426614174001",
+         "firstname": "First name",
+         "lastname": "Last name",
+         "email": "example@gmail.com",
+         "is_superadmin": false,
+         "created_at": "2024-03-14T12:21:31.277153",
+         "updated_at": "2024-03-14T12:21:31.277153",
+         "account_memberships": [
+             {
+                 "account_id": "5191d5e7-38b8-414f-9650-70fc062a95d0",
+                 "account_name": "Account 1",
+                 "is_admin": false,
+                 "roles": [
+                    {
+                        "id": "482f314c-ce36-4740-ab7f-81bbe157c042",
+                        "name": "Data Scientist"
+                    },
+                    {
+                        "id": "e4f2b540-6ae6-407b-8436-26795f641557",
+                        "name": "ML OPS"
+                    }
+                ]
+             },
+             {
+                 "account_id": "cdb752ca-9a8b-4f1b-9b08-1357dc8e39a0",
+                 "account_name": "Account 2",
+                 "is_admin": true,
+                 "roles": []
+             },
+             {
+                 "account_id": "ab266f53-1a8c-4ede-91a9-cfe7101ece80",
+                 "account_name": "Account_3",
+                 "is_admin": false,
+                 "roles": [
+                    {
+                        "id": "a1df1a9e-4c01-4302-a74d-fe1ec9db7339",
+                        "name": "ML Engineer"
+                    }
+                ]
+             }
+         ]
+     }
+   }
+}

@@ -27,7 +27,7 @@ psycopg2-binary = "^2.9.9"
 alembic = "^1.13.1"
 pydantic = ">=1.10.5,<2"
 elevaitedb = { path = "../elevaitedblib", develop = false }
-
+rbac_api = { path = "../rbac", develop = true }
 
 [build-system]
 requires = ["poetry-core"]

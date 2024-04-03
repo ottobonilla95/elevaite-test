@@ -1,0 +1,26 @@
+{
+   "not_found_user_project_association": {
+      "summary": "logged-in user is not assigned to project",
+      "value": {
+         "detail": "you are not assigned to project - '5b8d6492-f85f-48a6-9cd2-a347480dd372'"
+      }
+   },
+   "account_disabled": {
+      "summary": "project's associated account is disabled",
+      "value": {
+         "detail": "account - '5b8d6492-f85f-48a6-9cd2-a347480dd372' - is disabled"
+      }
+   },
+   "insufficient_permissions_1": {
+      "summary": "logged-in user is not a superadmin/admin and does not have account-specific role-based access permissions to perform actions on or within project resources due to denied Project - 'READ' permissions in account",
+      "value": {
+         "detail": "you are not a superadmin/admin and you do not have account-specific role-based access permissions to perform actions on or within project resources due to denied Project - 'READ' permissions in account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "insufficient_permissions_2": {
+      "summary": "logged-in user is not assigned to one or more projects in the project hierarchy of parent project",
+      "value": {
+         "detail": "you are not assigned to one or more projects in the project hierarchy of parent project - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   }
+}

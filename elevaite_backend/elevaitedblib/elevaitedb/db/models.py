@@ -264,11 +264,9 @@ class Project(Base):
     name: Mapped[str] = mapped_column(String(60), nullable=False)
     description: Mapped[str] = mapped_column(String(500), nullable=True)
     is_disabled: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=func.now(), onupdate=func.now()
-    )
-
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+    
     # --------- LOGICAL RELATIONSHIPS BASED ON FOREIGN KEYS-----------
     account = relationship(
         "Account", back_populates="projects", foreign_keys=[account_id]
@@ -314,14 +312,10 @@ class User_Account(Base):
         Uuid(as_uuid=True), ForeignKey("accounts.id")
     )
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=func.now(), onupdate=func.now()
-    )
-
-    __table_args__ = (
-        UniqueConstraint("user_id", "account_id", name="_user_account_uc"),
-    )  # Add a unique constraint for the combination of user_id and account_id
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+    
+    __table_args__ = (UniqueConstraint('user_id', 'account_id', name='_user_account_uc'),)# Add a unique constraint for the combination of user_id and account_id
 
     role_user_accounts = relationship(
         "Role_User_Account",
@@ -333,53 +327,28 @@ class User_Account(Base):
 # Association table for the many-to-many relationship between User and Project; used for targeting a user in a project
 # Defined as a class and not a Table to allow for use of Mapped[] annotation for compatibility with static type checkers in orm-to-python conversions.
 class User_Project(Base):
-    __tablename__ = "user_project"
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("users.id")
-    )
-    project_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("projects.id")
-    )
-    permission_overrides = Column(
-        type_=JSONB, default=lambda: ProjectScopedPermissions().dict()
-    )  # Use JSONB for filterable and indexable JSON structure
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=func.now(), onupdate=func.now()
-    )
-
-    __table_args__ = (
-        UniqueConstraint("user_id", "project_id", name="_user_project_uc"),
-    )  # Add a unique constraint for the combination of user_id and project_id
-
+    __tablename__ = 'user_project'
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey('users.id'))
+    project_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey('projects.id'))
+    permission_overrides = Column(type_=JSONB, default=lambda: ProjectScopedPermissions().dict())  # Use JSONB for filterable and indexable JSON structure
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+    
+    __table_args__ = (UniqueConstraint('user_id', 'project_id', name='_user_project_uc'),) # Add a unique constraint for the combination of user_id and project_id
 
 # Association table for the many-to-many relationship between Role and User_Account; used for connecting a specific user in an account to the role table to assign account-specific role-based permissions
 # Defined as a class and not a Table to allow for use of Mapped[] annotation for compatibility with static type checkers in orm-to-python conversions.
 class Role_User_Account(Base):
-    __tablename__ = "role_user_account"
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4()
-    )
-    role_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("roles.id"), nullable=False
-    )
-    user_account_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey("user_account.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=func.now(), onupdate=func.now()
-    )
-
-    __table_args__ = (
-        UniqueConstraint("role_id", "user_account_id", name="_role_useracc_uc"),
-    )  # Add a unique constraint for the combination of role_id and user_account_id
-
+    __tablename__ = 'role_user_account'
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4())
+    role_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey('roles.id'), nullable=False)
+    user_account_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey('user_account.id', ondelete='CASCADE'), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+    
+    __table_args__ = (UniqueConstraint('role_id', 'user_account_id', name='_role_useracc_uc'),) # Add a unique constraint for the combination of role_id and user_account_id
+    
     user_account = relationship("User_Account", back_populates="role_user_accounts")
 
 
@@ -390,10 +359,8 @@ class Organization(Base):
     )
     name: Mapped[str] = mapped_column(String(60), nullable=False, unique=True)
     description: Mapped[str] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=func.now(), onupdate=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
 
     accounts = relationship(
         "Account", back_populates="organization"
@@ -411,10 +378,8 @@ class Account(Base):
     name: Mapped[str] = mapped_column(String(60), nullable=False)
     description: Mapped[str] = mapped_column(String(500), nullable=True)
     is_disabled: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=func.now(), onupdate=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
 
     # Table constraints
     __table_args__ = (
@@ -447,11 +412,9 @@ class User(Base):
     lastname: Mapped[str] = mapped_column(String(60), nullable=True)
     email: Mapped[str] = mapped_column(String(254), unique=True, nullable=False)
     is_superadmin: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=func.now(), onupdate=func.now()
-    )
-
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+    
     # --------- LOGICAL RELATIONSHIPS BASED ON FOREIGN KEYS-----------
     accounts = relationship(
         "Account", secondary="user_account", back_populates="users"
@@ -475,10 +438,8 @@ class Role(Base):
         String, nullable=False, unique=True
     )  # 'DATA_SCIENTIST'
     permissions = Column(JSONB)  # Use JSONB for filterable and indexable JSON structure
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=func.now(), onupdate=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
 
     # --------- LOGICAL RELATIONSHIPS BASED ON FOREIGN KEYS-----------
     # user_account_overrides = relationship('User_Account', back_populates='overriding_role')
@@ -489,17 +450,11 @@ class Role(Base):
 class APIKey(Base):
     __tablename__ = "apikeys"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4()
-    )
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("users.id"), nullable=False
-    )
-    key: Mapped[str] = mapped_column(
-        String, unique=True, nullable=False
-    )  # Assuming key should be unique
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    updated_at = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4())
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    key: Mapped[str] = mapped_column(String, unique=True, nullable=False)  # Assuming key should be unique
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
+    updated_at = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
 
     # --------- LOGICAL RELATIONSHIPS BASED ON FOREIGN KEYS-----------
     user = relationship("User", back_populates="api_keys")  #

@@ -1,0 +1,35 @@
+{
+   "payload_field_type_validation_error": {
+      "summary": "Field-Type payload validation error - application_id invalid int format",
+      "value": {
+         "detail": [
+            {
+            "loc": [
+               "string",
+               0
+            ],
+            "msg": "string",
+            "type": "string"
+            }
+         ]
+      }
+   },
+   "request_header_required_field": {
+      "summary": "Request header must contain 'X-elevAIte-accountId' for this endpoint",
+      "value": {
+         "detail": "Request header must contain 'X-elevAIte-accountId' for this endpoint"
+      }
+   },
+   "payload_business_logic_validation_error_1": {
+      "summary": "Business-logic payload validation error: Unsupported connector type",
+      "value": {
+         "detail": "Unsupported connector type - 'train'"
+      }
+   },
+   "payload_business_logic_validation_error_2": {
+      "summary": "Business-logic payload validation error: RBAC Validation for connector type not implemented.",
+      "value": {
+         "detail": "RBAC Validation for connector type - 'train' - not implemented."
+      }
+   }
+}

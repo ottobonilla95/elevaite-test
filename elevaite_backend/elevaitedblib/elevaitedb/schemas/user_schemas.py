@@ -66,7 +66,7 @@ class UserAccountMembershipInfo(BaseModel):
    account_id: UUID = Field(..., description="The ID of the account")
    account_name: str = Field(..., description="The name of the account")
    is_admin: bool = Field(..., description="Whether the user is an admin in this account")
-   roles: List[RoleResponseDTO] = Field(..., description="The roles of the user within this account")
+   roles: List[RoleSummaryDTO] = Field(..., description="The roles of the user within this account")
 
 
    # model_config = {

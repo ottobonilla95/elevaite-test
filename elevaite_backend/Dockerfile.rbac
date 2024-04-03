@@ -9,6 +9,7 @@ COPY . .
 WORKDIR /elevaite/rbac
 RUN poetry install
 
+WORKDIR /elevaite/rbac/rbac_api
 EXPOSE 9005
 ENV PORT 9005
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9005"]

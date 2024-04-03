@@ -2,70 +2,48 @@ from pydantic import BaseModel, Field, Extra, root_validator, validator
 from typing import Optional, Literal, List
 from uuid import UUID
 from datetime import datetime
-import json
-import os
+
 # ActionEnumType Model : Defines possible enum values for an action on resource type
 class ActionEnumType(BaseModel):
    action: Literal["Allow", "Deny"] = Field(default="Deny")
    class Config:
       extra = Extra.forbid
-# # Permission type for Organization resource type in create/patch role request
-# class OrganizationPermissionRequestType(BaseModel):
-#     READ: ActionEnumType
 
-# Permission type for Organization resource type in role response
-# class OrganizationPermissionResponseType(BaseModel):
-#     CREATE: ActionEnumType
-#     READ: ActionEnumType
-#     UPDATE: ActionEnumType
-
-# Permission type for Account resource type in role create/patch request
-# class AccountPermissionRequestType(BaseModel):
-#     READ: ActionEnumType
-
-# # Permission type for Account resource type in role response
-# class AccountPermissionResponseType(BaseModel):
-#     CREATE: ActionEnumType
-#     READ: ActionEnumType
-#     UPDATE: ActionEnumType
-#     ARCHIVE: ActionEnumType
-
-# Permission type for Project resource type in role create/patch request
-class ProjectPermissionType(BaseModel):
+# Permission type for AccountScoped Project resource type
+class AccountScopedProjectResourcePermissionType(BaseModel):
    CREATE: ActionEnumType = Field(default_factory=ActionEnumType)
    READ: ActionEnumType = Field(default_factory=ActionEnumType)
    class Config:
       extra = Extra.forbid
-# # Permission type for Project resource type in role response
-# class ProjectPermissionResponseType(BaseModel):
-#     CREATE: ActionEnumType
-#     READ: ActionEnumType
 
-# Permission type for User resource type in role create/patch request
-# class UserPermissionType(BaseModel):
-#     CREATE: ActionEnumType = Field(default_factory=ActionEnumType)
+# Permission type for ProjectScoped Project resource type
+class ProjectScopedProjectResourcePermissionType(BaseModel):
+   CREATE: ActionEnumType = Field(default_factory=ActionEnumType)
+   class Config:
+      extra = Extra.forbid
 
-# Permission type for User resource type in role response
-# class UserPermissionResponseType(BaseModel):
-#     CREATE: ActionEnumType
-#     READ: ActionEnumType
-#     UPDATE : ActionEnumType
-#     ARCHIVE: ActionEnumType
+class ConnectorConfigurationsPermissionType(BaseModel):
+   READ: ActionEnumType = Field(default_factory=ActionEnumType)
+   CREATE: ActionEnumType = Field(default_factory=ActionEnumType)
+   UPDATE: ActionEnumType = Field(default_factory=ActionEnumType)
+   class Config:
+      extra = Extra.forbid
 
-# Permission type for Configure action on a particular resource type, in role create/patch request
+class ConnectorInstancesPermissionType(BaseModel):
+   READ: ActionEnumType = Field(default_factory=ActionEnumType)
+   CREATE: ActionEnumType = Field(default_factory=ActionEnumType)
+   class Config:
+      extra = Extra.forbid
+
+class ConnectorPipelinesPermissionType(BaseModel):
+   READ: ActionEnumType = Field(default_factory=ActionEnumType)
+
 class ConfigurePermissionType(BaseModel):
    READ: ActionEnumType = Field(default_factory=ActionEnumType)
    CREATE: ActionEnumType = Field(default_factory=ActionEnumType)
    RUN: ActionEnumType = Field(default_factory=ActionEnumType)
    class Config:
       extra = Extra.forbid
-# Permission type for Configure action on a particular resource type, in role response
-# class ConfigurePermissionResponseType(BaseModel):
-#     READ: ActionEnumType
-#     CREATE: ActionEnumType
-#     RUN: ActionEnumType
-#     UPDATE: ActionEnumType
-#     ARCHIVE: ActionEnumType
 
 # Permission type for Schedule action on a particular resource type, in role create/patch request
 class SchedulePermissionType(BaseModel):
@@ -73,64 +51,40 @@ class SchedulePermissionType(BaseModel):
    CREATE: ActionEnumType = Field(default_factory=ActionEnumType)
    class Config:
       extra = Extra.forbid
-# Permission type for Schedule action on a particular resource type, in role response
-# class SchedulePermissionResponseType(BaseModel):
-#     READ: ActionEnumType
-#     CREATE: ActionEnumType
-#     UPDATE: ActionEnumType
-#     ARCHIVE: ActionEnumType
+
 # Permission type for EnableWebHooks action on a particular resource type in role create/patch request
 class EnableWebHooksPermissionType(BaseModel):
    READ: ActionEnumType = Field(default_factory=ActionEnumType)
    CREATE: ActionEnumType = Field(default_factory=ActionEnumType)
    class Config:
       extra = Extra.forbid
-# Permission type for EnableWebHooks action on a particular resource type in role response
-# class EnableWebHooksPermissionResponseType(BaseModel):
-#     READ: ActionEnumType
-#     CREATE: ActionEnumType
-#     UPDATE: ActionEnumType
-#     ARCHIVE: ActionEnumType
 
 # Permission type for ingest action on a particular resource type in role create/patch request
 class IngestPermissionType(BaseModel):
-   CONFIGURE: ConfigurePermissionType = Field(default_factory=ConfigurePermissionType)
+   CONFIGURATIONS: ConnectorConfigurationsPermissionType = Field(default_factory=ConnectorConfigurationsPermissionType)
+   INSTANCES: ConnectorInstancesPermissionType = Field(default_factory=ConnectorInstancesPermissionType)
    SCHEDULE: SchedulePermissionType = Field(default_factory=SchedulePermissionType)
    ENABLE_WEBHOOKS: EnableWebHooksPermissionType = Field(default_factory=EnableWebHooksPermissionType)
    READ: ActionEnumType = Field(default_factory=ActionEnumType)
+   PIPELINES: ConnectorPipelinesPermissionType = Field(default_factory=ConnectorPipelinesPermissionType)
    class Config:
       extra = Extra.forbid
-
-# Permission type for ingest action on a particular resource type in role create/patch request
-# class IngestPermissionResponseType(BaseModel):
-#     CONFIGURE: ConfigurePermissionResponseType
-#     SCHEDULE: SchedulePermissionResponseType
-#     ENABLE_WEBHOOKS: EnableWebHooksPermissionResponseType
-#     READ: ActionEnumType
 
 # PreprocessPermissionType follows the same structure as IngestPermissionType
 class PreprocessPermissionType(IngestPermissionType):
    pass
-# class PreprocessPermissionResponseType(IngestPermissionResponseType):
-#     pass
 
 # DownloadPermissionType Model (similar to ConfigurePermissionType for Train)
 class DownloadPermissionType(ConfigurePermissionType):
    pass
-# class DownloadPermissionResponseType(ConfigurePermissionResponseType):
-#     pass
 
 # EvaluatePermissionType Model (similar to ConfigurePermissionType for Train)
 class EvaluatePermissionType(ConfigurePermissionType):
    pass
-# class EvaluatePermissionResponseType(ConfigurePermissionResponseType):
-#     pass
 
 # FineTuningPermissionType Model (similar to EnableWebHooksPermissionType for Train)
 class FineTuningPermissionType(EnableWebHooksPermissionType):
    pass
-# class FineTuningPermissionResponseType(EnableWebHooksPermissionResponseType):
-#     pass
 
 # Permission type for Train action
 class TrainPermissionType(BaseModel):
@@ -140,11 +94,6 @@ class TrainPermissionType(BaseModel):
    FINE_TUNING: FineTuningPermissionType = Field(default_factory=FineTuningPermissionType)
    class Config:
       extra = Extra.forbid
-
-# class TrainPermissionResponseType(BaseModel):
-#     DOWNLOAD: DownloadPermissionResponseType
-#     EVALUATE: EvaluatePermissionResponseType
-#     FINE_TUNING: FineTuningPermissionResponseType
 
 # permission type for deploy action
 class DeployPermissionType(BaseModel):
@@ -156,13 +105,6 @@ class DeployPermissionType(BaseModel):
    CONFIGURE: ConfigurePermissionType = Field(default_factory=ConfigurePermissionType)
    class Config:
       extra = Extra.forbid
-# class DeployPermissionResponseType(BaseModel):
-#     READ: ActionEnumType
-#     CREATE: ActionEnumType
-#     RUN: ActionEnumType
-#     ENABLE_WEBHOOKS: EnableWebHooksPermissionResponseType
-#     SCHEDULE: SchedulePermissionResponseType
-#     CONFIGURE: ConfigurePermissionResponseType
 
 # 'Dataset' and 'Model' are artifacts
 class ArtifactPermissionType(BaseModel):
@@ -183,32 +125,14 @@ class ApplicationPermissionType(BaseModel):
    RUN : ActionEnumType = Field(default_factory=ActionEnumType)
    class Config:
       extra = Extra.forbid
-# class ApplicationPermissionResponseType(BaseModel):
-#     READ: ActionEnumType
-#     CONFIGURE: ConfigurePermissionResponseType
-#     RUN : ActionEnumType
 
 class APIKeyPermissionType(BaseModel):
    CREATE: ActionEnumType = Field(default_factory=ActionEnumType)
    class Config:
       extra = Extra.forbid
 
-# class APIKeyPermissionResponseType(BaseModel):
-#     CREATE: ActionEnumType
-#     READ: ActionEnumType
-#     ARCHIVE: ActionEnumType
-
-# class RolePermissionType:
-#     READ: ActionEnumType
-# class RolePermissionResponseType:
-#     CREATE: ActionEnumType
-#     READ: ActionEnumType
-#     UPDATE: ActionEnumType
-#     ARCHIVE: ActionEnumType
-
 class AccountScopedPermissions(BaseModel):
-   Project: ProjectPermissionType = Field(default_factory=ProjectPermissionType)
-   # User: UserPermissionType = Field(default_factory=UserPermissionType)
+   Project: AccountScopedProjectResourcePermissionType = Field(default_factory=AccountScopedProjectResourcePermissionType)
    Ingest: IngestPermissionType = Field(default_factory=IngestPermissionType)
    Preprocess: PreprocessPermissionType = Field(default_factory=PreprocessPermissionType)
    Train: TrainPermissionType = Field(default_factory=TrainPermissionType)
@@ -222,7 +146,7 @@ class AccountScopedPermissions(BaseModel):
       orm_mode = True
 
 class ProjectScopedPermissions(BaseModel):
-   Project: ProjectPermissionType = Field(default_factory=ProjectPermissionType)
+   Project: ProjectScopedProjectResourcePermissionType = Field(default_factory=ProjectScopedProjectResourcePermissionType)
    Ingest: IngestPermissionType = Field(default_factory=IngestPermissionType)
    Preprocess: PreprocessPermissionType = Field(default_factory=PreprocessPermissionType)
    Train: TrainPermissionType = Field(default_factory=TrainPermissionType)
@@ -232,21 +156,6 @@ class ProjectScopedPermissions(BaseModel):
    class Config:
       extra = Extra.forbid
       orm_mode = True
-# class permissionsResponseType(BaseModel):
-#     Organizaiton: OrganizationPermissionResponseType
-#     Account: AccountPermissionResponseType
-#     Project: ProjectPermissionResponseType
-#     User: UserPermissionResponseType
-#     Ingest: IngestPermissionResponseType
-#     Preprocess: PreprocessPermissionResponseType
-#     Train: TrainPermissionResponseType
-#     Deploy: DeployPermissionResponseType
-#     Model: ModelPermissionType
-#     Dataset: DatasetPermissionType
-#     Application: ApplicationPermissionResponseType
-#     ApiKey: APIKeyPermissionResponseType
-#     Role: RolePermissionResponseType
-   
 
 # RoleCreationRequestDTO: Defines the structure for creating a new role with detailed permissions
 class RoleCreationRequestDTO(BaseModel):
