@@ -21,6 +21,7 @@ from elevaitedb.crud import (
 )
 from elevaitedb.util import func as util_func
 from elevaitedb.util.s3url import S3Url
+from elevaitedb.util.logger import ESLogger
 from elevaitedb.schemas.instance import (
     InstanceStatus,
     InstanceUpdate,
@@ -124,8 +125,6 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
     ELASTIC_PASSWORD = os.getenv("ELASTIC_PASSWORD")
     ELASTIC_SSL_FINGERPRINT = os.getenv("ELASTIC_SSL_FINGERPRINT")
     ELASTIC_HOST = os.getenv("ELASTIC_HOST")
-    print("REDIS_HOST: ", REDIS_HOST)
-    print("REDIS_PORT: ", REDIS_PORT)
 
     # Create the client instance
     client = Elasticsearch(
@@ -133,6 +132,10 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
         ssl_assert_fingerprint=ELASTIC_SSL_FINGERPRINT,
         basic_auth=("elastic", ELASTIC_PASSWORD),
     )
+
+    logger = ESLogger(key=data.instanceId)
+    logger.info(message="Initialized worker")
+
     try:
         r = redis.Redis(
             host=REDIS_HOST,
@@ -183,6 +186,7 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
             repo = lakefs.Repository(repo_name, client=clt).create(
                 storage_namespace=f"s3://{LAKEFS_STORAGE_NAMESPACE}/{repo_name}"
             )
+        logger.info(message="Initialized lake repository")
 
         lakefs_branch = repo.branch("main")
 
@@ -233,9 +237,13 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
             db=db, instance_id=data.instanceId, step_id=_entry_step.id
         )
 
+        logger.info(message="Completed Initialization")
+
         set_pipeline_step_running(
             db=db, instance_id=data.instanceId, step_id=_first_step.id
         )
+
+        logger.info(message="Starting file ingestion")
 
         # branch = repo.branch("main")
 
@@ -262,6 +270,8 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
             db=db, application_id=data.applicationId, instance_id=data.instanceId
         )
 
+        logger.info(message="Completed file ingestion")
+
         set_pipeline_step_completed(
             db=db, instance_id=data.instanceId, step_id=_first_step.id
         )
@@ -280,6 +290,9 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
                 break
 
         if __commit_flag__:
+            logger.info(
+                message="Changes found, commiting to repository and creating new version"
+            )
             ref = lakefs_branch.commit(
                 data.instanceId,
                 {
@@ -296,6 +309,7 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
                 DatasetVersionCreate(commitId=ref.id, version=curr_version + 1),
             )
         else:
+            logger.info(message="Dataset is identical, will not commit")
             print("Dataset is identical")
 
         set_pipeline_step_completed(
@@ -307,6 +321,8 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
     except Exception as e:
         print("Error")
         print(e)
+        logger.error(message="Error encountered, aborting ingestion")
+        logger.error(message=e)
         print(e.with_traceback())
         instance_crud.update_instance(
             db,

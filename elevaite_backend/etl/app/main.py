@@ -9,8 +9,6 @@ from app.routers.applications import router as applications_router
 from app.routers.instances import router as instances_router
 from app.routers.configurations import router as configuration_router
 from app.routers.datasets import router as datasets_router
-
-# from app.routers.projects import router as projects_router
 from app.routers.collections import router as collections_router
 
 from app.util.RedisSingleton import RedisSingleton

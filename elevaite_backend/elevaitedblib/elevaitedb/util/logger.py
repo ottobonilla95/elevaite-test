@@ -2,7 +2,8 @@ from typing import Any, Mapping
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 import os
-import func as util_func
+from uuid import uuid4
+from . import func as util_func
 
 
 class ESLogger:
@@ -34,9 +35,21 @@ class ESLogger:
     def info(self, message: str):
         self.client.create(
             index=self.index,
+            id=str(uuid4()),
             document={
                 "timestamp": util_func.get_iso_datetime(),
                 "message": message,
                 "level": "info",
+            },
+        )
+
+    def error(self, message: str):
+        self.client.create(
+            index=self.index,
+            id=str(uuid4()),
+            document={
+                "timestamp": util_func.get_iso_datetime(),
+                "message": message,
+                "level": "error",
             },
         )

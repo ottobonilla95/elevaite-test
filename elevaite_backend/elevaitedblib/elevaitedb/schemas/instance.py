@@ -99,5 +99,16 @@ class Instance(InstanceBase):
         orm_mode = True
 
 
+class LogLevel(str, Enum):
+    INFO = "info"
+    ERROR = "error"
+
+
+class InstanceLogs(BaseModel):
+    timestamp: str
+    message: str
+    level: LogLevel
+
+
 def is_instance(var: object) -> TypeGuard[Instance]:
     return var is not None and var.id and var.status

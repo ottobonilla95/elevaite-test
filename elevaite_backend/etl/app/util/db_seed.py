@@ -8,23 +8,23 @@ from elevaitedb.db import models
 def seed_db(db: Session):
     res = []
 
-    db.execute(
-        text(
-            "TRUNCATE {} RESTART IDENTITY;".format(
-                ", ".join(
-                    table.name for table in reversed(models.Base.metadata.sorted_tables)
-                )
-            )
-        )
-    )
+    # db.execute(
+    #     text(
+    #         "TRUNCATE {} RESTART IDENTITY;".format(
+    #             ", ".join(
+    #                 table.name for table in reversed(models.Base.metadata.sorted_tables)
+    #             )
+    #         )
+    #     )
+    # )
 
-    db.commit()
+    # db.commit()
 
-    project_1 = models.Project(
-        id="7f66ade4-2bf0-4d46-a2dc-c2aee9e9e043", name="Default Project"
-    )
-    db.add(project_1)
-    db.commit()
+    # project_1 = models.Project(
+    #     id="7f66ade4-2bf0-4d46-a2dc-c2aee9e9e043", name="Default Project"
+    # )
+    # db.add(project_1)
+    # db.commit()
 
     pre_process_pipeline_step_1 = models.PipelineStep(
         title="Dataset Configuration",

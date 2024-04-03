@@ -8,6 +8,7 @@ import pika
 
 from app.util.name_generatior import get_random_name
 from app.util.RedisSingleton import RedisSingleton
+from app.util.ElasticSingleton import ElasticSingleton
 from elevaitedb.util import func as util_func
 from elevaitedb.schemas.application import Application, is_application
 from elevaitedb.schemas.instance import (
@@ -19,6 +20,7 @@ from elevaitedb.schemas.instance import (
     InstanceStatus,
     InstanceUpdate,
     InstanceCreateDTO,
+    InstanceLogs,
     is_instance,
 )
 from elevaitedb.schemas.pipeline import Pipeline, PipelineStepStatus, is_pipeline
@@ -258,3 +260,14 @@ def getApplicationInstanceConfiguration(
         raise HTTPException(404, "Configuration not found")
 
     return res
+
+
+def getApplicationInstanceLogs(instance_id: str, limit: int = 100, offset: int = 0):
+    es = ElasticSingleton()
+    result: list[InstanceLogs] = []
+    _entries = es.getAllInIndexPaginated(
+        index=instance_id, offset=offset, pagesize=limit
+    )
+    for entry in _entries:
+        result.append(InstanceLogs(**entry["_source"]))
+    return result

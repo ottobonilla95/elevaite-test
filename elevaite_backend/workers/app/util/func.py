@@ -67,7 +67,7 @@ def set_pipeline_step_running(db: Session, instance_id: str, step_id: str):
         instance_id=instance_id,
         step_id=step_id,
         dto=InstancePipelineStepStatusUpdate(
-            endTime=util_func.get_iso_datetime(),
+            startTime=util_func.get_iso_datetime(),
             status=PipelineStepStatus.RUNNING,
         ),
     )

@@ -24,8 +24,7 @@ from elevaitedb.schemas.instance import (
     InstanceUpdate,
     InstanceChartData,
 )
-from elevaitedb.schemas.pipeline import PipelineStepStatus
-from elevaitedb.schemas.collection import Collection
+from elevaitedb.util.logger import ESLogger
 
 from .preprocess import get_file_elements_internal
 from . import vectordb
@@ -103,6 +102,9 @@ async def preprocess(data: PreProcessForm) -> None:
     if not es.ping():
         raise Exception("Could not connect to ElasticSearch")
 
+    logger = ESLogger(key=data.instanceId)
+    logger.info(message="Initialized worker")
+
     repo = None
 
     repo_name = get_repo_name(
@@ -125,6 +127,8 @@ async def preprocess(data: PreProcessForm) -> None:
     if dataset_version is None:
         raise Exception("Dataset Version not found.")
     ref = lakefs.Reference(repo.id, dataset_version.commitId, client=clt)
+
+    logger.info(message="Dataset found")
 
     _collection = collection_crud.get_collection_by_id(
         db=db, collectionId=data.collectionId
@@ -188,10 +192,13 @@ async def preprocess(data: PreProcessForm) -> None:
         db=db, instance_id=data.instanceId, step_id=_first_step.id
     )
 
+    logger.info(message="Completed Initialization")
+
     chunks_as_json = []
     page_as_json = []
     findex = 0
     try:
+        logger.info(message="Starting file segmentation")
         for object in ref.objects():
             with ref.object(object.path).reader(pre_sign=False) as fd:
                 # while fd.tell() < file_size:
@@ -209,6 +216,7 @@ async def preprocess(data: PreProcessForm) -> None:
             findex += 1
             if findex % 10 == 0:
                 print(findex)
+        logger.info(message="Completed file segmentation")
 
         set_instance_chart_data(r=r, db=db, instance_id=data.instanceId)
 
@@ -222,25 +230,15 @@ async def preprocess(data: PreProcessForm) -> None:
 
         print("Number of chunks " + str(len(chunks_as_json)))
         # payloads = json.load(chunks_as_json)
+        logger.info(message="Recreating QDrant Collection")
         await vectordb.recreate_collection(collection=collection_name)
+        logger.info(message="Starting segment vectorization")
         await vectordb.insert_records(
             collection=collection_name, payload_with_contents=chunks_as_json
         )
+        logger.info(message="Completed segment vectorization")
 
-        res = r.json().get(data.instanceId)
-
-        instance_crud.update_instance_chart_data(
-            db,
-            data.instanceId,
-            InstanceChartData(
-                totalItems=res["total_items"],
-                ingestedItems=res["ingested_items"],
-                avgSize=res["avg_size"],
-                totalSize=res["total_size"],
-                ingestedSize=res["ingested_size"],
-                ingestedChunks=res["ingested_chunks"],
-            ),
-        )
+        set_instance_chart_data(r=r, db=db, instance_id=data.instanceId)
 
         set_instance_completed(
             db=db, application_id=data.applicationId, instance_id=data.instanceId
@@ -257,9 +255,12 @@ async def preprocess(data: PreProcessForm) -> None:
         set_pipeline_step_completed(
             db=db, instance_id=data.instanceId, step_id=_final_step.id
         )
+        logger.info(message="Worker completed pre-process pipeline")
     except Exception as e:
         print("Error")
         print(e)
+        logger.error(message="Error encountered, aborting pipeline")
+        logger.error(message=e)
         instance_crud.update_instance(
             db,
             data.applicationId,

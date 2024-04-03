@@ -59,6 +59,18 @@ def getApplicationInstanceConfiguration(
     )
 
 
+@router.get(
+    "/{instance_id}/log",
+    response_model=list[instance_schemas.InstanceLogs],
+)
+def getApplicationInstanceLogs(
+    instance_id: str, skip: int = 0, limit: int = 100
+) -> list[instance_schemas.InstanceLogs]:
+    return instance_service.getApplicationInstanceLogs(
+        instance_id=instance_id, offset=skip, limit=limit
+    )
+
+
 # @router.post(
 #     "/{instance_id}/approve",
 #     response_model=instance_schemas.Instance,

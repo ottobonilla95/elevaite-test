@@ -40,5 +40,13 @@ class ElasticSingleton(metaclass=SingletonMeta):
             # Continue from there
             offset += pagesize
 
+    def getAllInIndexPaginated(
+        self, index: str, pagesize: int = 250, offset: int = 0, **kwargs
+    ):
+        result = self.client.search(
+            index=index, **kwargs, body={"size": pagesize, "from": offset}
+        )
+        return result["hits"]["hits"]
+
     def getById(self, index: str, id: str):
         return self.client.get(index=index, id=id)
