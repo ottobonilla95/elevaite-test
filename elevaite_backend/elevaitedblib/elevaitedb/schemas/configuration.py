@@ -5,14 +5,13 @@ from pydantic import UUID4, BaseModel, Json
 
 class BaseDatasetInformationForm(BaseModel):
     creator: str
-    name: str
+    datasetName: str | None
     projectId: str
     version: str | None
     parent: str | None
     outputURI: str | None
     datasetId: str | None
     selectedPipelineId: str
-    isTemplate: bool
 
 
 class S3IngestFormDataDTO(BaseDatasetInformationForm):

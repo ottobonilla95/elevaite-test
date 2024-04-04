@@ -87,10 +87,13 @@ def createApplicationInstance(
     # _dataset = None
 
     if not _conf.datasetId:
+        datasetName = (
+            _conf.datasetName if _conf.datasetName is not None else get_random_name()
+        )
         _dataset = dataset_crud.create_dataset(
             db,
             dataset_create=DatasetCreate(
-                name=get_random_name(),
+                name=datasetName,
                 projectId=str(createInstanceDto.projectId),
             ),
         )
@@ -104,6 +107,8 @@ def createApplicationInstance(
 
     else:
         _dataset = dataset_crud.get_dataset_by_id(db, _conf.datasetId)
+        if not is_dataset(_dataset):
+            raise HTTPException(status_code=404, detail="Dataset not found")
 
     _conf.datasetId = str(_dataset.id)
     _raw_configuration["datasetId"] = str(_dataset.id)
@@ -121,9 +126,6 @@ def createApplicationInstance(
             )
         _conf.collectionId = str(_collection.id)
         _raw_configuration["collectionId"] = str(_collection.id)
-
-    if not is_dataset(_dataset):
-        raise HTTPException(status_code=404, detail="Application not found")
 
     _instance_create = InstanceCreate(
         applicationId=application_id,
