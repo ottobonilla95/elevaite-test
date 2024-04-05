@@ -1,1 +1,0 @@
-export { TypeAComment } from "./TypeAComment";

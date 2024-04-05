@@ -15,8 +15,8 @@
     "@headlessui/tailwindcss": "^0.2.0",
     "@repo/ui": "*",
     "dayjs": "^1.11.10",
-    "next": "14.0.4",
-    "next-auth": "5.0.0-beta.4",
+    "next": "14.1.4",
+    "next-auth": "5.0.0-beta.16",
     "prismjs": "^1.29.0",
     "react": "^18",
     "react-dom": "^18",
@@ -26,7 +26,7 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.1/xlsx-0.20.1.tgz"
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "^14.0.4",
+    "@next/eslint-plugin-next": "^14.1.4",
     "@repo/eslint-config": "*",
     "@repo/sass-config": "*",
     "@repo/tailwind-config": "*",
