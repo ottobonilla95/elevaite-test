@@ -34,6 +34,7 @@ def get_file_elements(filepath=None, filedir=None):
 
 def get_file_elements_internal(file, filepath):
     elements = partition_html(file=file)
+    # elements = partition(file=file)
     source = get_filename(filepath)
     chunks = chunk_by_title(elements=elements, max_characters=2000)
     chunks_as_json = []
