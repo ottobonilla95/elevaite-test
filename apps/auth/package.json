@@ -11,6 +11,7 @@
     "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\auth\\Dockerfile\" -t auth:latest \".\""
   },
   "dependencies": {
+    "@auth/core": "^0.28.2",
     "@fusionauth/typescript-client": "^1.48.0",
     "@repo/ui": "*",
     "next": "^14.1.4",

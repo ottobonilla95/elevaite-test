@@ -11,7 +11,8 @@ export const authConfig = {
     },
     // eslint-disable-next-line @typescript-eslint/require-await -- has to be async according to documentation
     async session({ session, token, user }) {
-      session.user ? (session.user.id = token.sub || user.id) : null;
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- you never know
+      session.user ? (session.user.id = token.sub ?? user.id) : null;
       Object.assign(session, { authToken: token.authToken });
       return session;
     },
