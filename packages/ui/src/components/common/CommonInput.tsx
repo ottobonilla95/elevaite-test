@@ -18,6 +18,7 @@ export interface CommonInputProps {
     errorMessage?: string;
     disabled?: boolean;
     initialValue?: string;
+    controlledValue?: string; // Use this to control the value externally
     className?: string;
     onChange?: (value: string, field?: string) => void;
 }
@@ -26,6 +27,12 @@ export function CommonInput(props: CommonInputProps): JSX.Element {
     const [value, setValue] = useState(props.initialValue ?? "");
     const [hasBeenChanged, setHasBeenChanged] = useState(false);
     const [requiredWarning, setRequiredWarning] = useState("");
+    
+    
+    useEffect(() => {
+        if (props.controlledValue === undefined || props.controlledValue === value) return;
+        setValue(props.controlledValue);
+    }, [props.controlledValue]);
 
     useEffect(() => {
         if (value.length > 0) {

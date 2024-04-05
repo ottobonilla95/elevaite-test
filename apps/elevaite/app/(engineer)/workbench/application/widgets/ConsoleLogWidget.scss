@@ -25,7 +25,7 @@
         
         & .console-log-accordion-button {
             & > svg {
-                color: var(--ev-colors-borderColor);
+                color: var(--ev-colors-secondaryText);
                 transition: transform 200ms ease-in-out;
             }
             &.closed > svg {

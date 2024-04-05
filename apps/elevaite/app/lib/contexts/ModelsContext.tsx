@@ -1,8 +1,8 @@
 "use client";
 import dayjs from "dayjs";
 import { createContext, useContext, useEffect, useState } from "react";
-import { deleteModel, getAvailableModels, getModelById, getModelParametersById, getModels, getModelsTasks, registerModel } from "../actions/modelActions";
-import type { AvailableModelObject, EvaluationObject, ModelObject, ModelParametersObject } from "../interfaces";
+import { deleteModel, getAvailableModels, getModelDatasets, getModelById, getModelParametersById, getModels, getModelsTasks, registerModel, getAvailableModelsByName } from "../actions/modelActions";
+import type { AvailableModelObject, EvaluationObject, ModelDatasetObject, ModelObject, ModelParametersObject } from "../interfaces";
 import { ModelsStatus } from "../interfaces";
 
 
@@ -28,6 +28,7 @@ export enum specialHandlingModelFields {
 const defaultLoadingList: LoadingListObject = {
     models: false,
     modelTasks: false,
+    datasets: false,
     availableModels: false,
     currentModelParameters: false,
     registerModel: false,
@@ -45,13 +46,14 @@ interface SortingObject {
 }
 
 interface LoadingListObject {
-    models?: boolean;
-    modelTasks?: boolean;
-    availableModels?: boolean;
-    currentModelParameters?: boolean;
-    registerModel?: boolean;
-    deleteModel?: boolean;
-    model?: string|number;
+    models: boolean;
+    modelTasks: boolean;
+    datasets: boolean;
+    availableModels: boolean;
+    currentModelParameters: boolean;
+    registerModel: boolean;
+    deleteModel: boolean;
+    model: string|number|undefined;
 }
 
 
@@ -69,10 +71,11 @@ export interface ModelsContextStructure {
     refreshModelById: (modelId: string|number) => Promise<void>;
     sortModels: (field: string, specialHandling?: string) => void;
     getAvailableRemoteModels: (task: string) => void;
+    getAvailableRemoteModelsByName: (task: string) => void;
     registerModel: (modelName: string, modelRepo: string, tags?: string[]) => Promise<void>;
     deleteModel: (modelId: string|number) => Promise<void>;
     evaluations: EvaluationObject[],
-    evaluateModel: (modelId: string|number, dataset) => void;
+    evaluateModel: (modelId: string|number, dataset: ModelDatasetObject) => void;
     loading: LoadingListObject;
 }
 
@@ -89,6 +92,7 @@ export const ModelsContext = createContext<ModelsContextStructure>({
     refreshModelById: async () => {/**/},
     sortModels: () => {/**/},
     getAvailableRemoteModels: () => {/**/},
+    getAvailableRemoteModelsByName: () => {/**/},
     registerModel: async () => {/**/},
     deleteModel: async () => {/**/},
     evaluations: [],
@@ -134,14 +138,6 @@ function sortDisplayModels(models: ModelObject[], sorting: SortingObject, specia
 }
 
 
-// FETCHING
-
-async function fetchModelTasks(): Promise<string[]> {
-    const result = await getModelsTasks();
-    result.sort();
-    return result;
-}
-
 
 
 
@@ -161,6 +157,7 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
     const [selectedModel, setSelectedModel] = useState<ModelObject|undefined>();
     const [selectedModelParameters, setSelectedModelParameters] = useState<ModelParametersObject|undefined>();
     const [modelTasks, setModelTasks] = useState<string[]>([]);
+    const [datasets, setDatasets] = useState<ModelDatasetObject[]>([]);
     const [availableModels, setAvailableModels] = useState<AvailableModelObject[]>([]);
     const [displayModels, setDisplayModels] = useState<ModelObject[]>([]);
     const [sorting, setSorting] = useState<SortingObject>({field: undefined});
@@ -169,31 +166,9 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
 
 
     useEffect(() => {
-        void (async () => {
-            try {
-                setLoading(current => {return {...current, models: true}} )
-                const fetchedModels = await getModels();
-                setModels(fetchedModels);
-                console.log("Fetched models", fetchedModels);
-            } catch(error) {
-                // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
-                console.error("Error in fetching models:", error);
-            } finally {                
-                setLoading(current => {return {...current, models: false}} )
-            }
-        })();
-        void (async () => {            
-            try {
-                setLoading(current => {return {...current, modelTasks: true}} )
-                const fetchedModelTasks = await fetchModelTasks();
-                setModelTasks(fetchedModelTasks);
-            } catch(error) {
-                // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
-                console.error("Error in fetching model tasks:", error);
-            } finally {                
-                setLoading(current => {return {...current, modelTasks: false}} )
-            }
-        })();
+        void fetchModels();
+        void fetchModelTasks();
+        void fetchDatasets();
     }, []);
 
     useEffect(() => {
@@ -248,13 +223,71 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
     function getAvailableRemoteModels(task: string): void {
         void fetchAvailableModels(task);
     }
+    function getAvailableRemoteModelsByName(name: string): void {
+        void fetchAvailableModelsByName(name);
+    }
+
+    async function fetchModels(): Promise<void> {
+        try {
+            setLoading(current => {return {...current, models: true}} );
+            const fetchedModels = await getModels();
+            setModels(fetchedModels);
+            // console.log("Fetched models", fetchedModels);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching models:", error);
+        } finally {                
+            setLoading(current => {return {...current, models: false}} );
+        }
+    }
+
+    async function fetchModelTasks(): Promise<void> {
+        try {
+            setLoading(current => {return {...current, modelTasks: true}} );
+            const fetchedModelTasks = await getModelsTasks();
+            fetchedModelTasks.sort();
+            setModelTasks(fetchedModelTasks);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching model tasks:", error);
+        } finally {                
+            setLoading(current => {return {...current, modelTasks: false}} );
+        }
+    }
+
+    async function fetchDatasets(): Promise<void> {
+        try {
+            setLoading(current => {return {...current, datasets: true}} );
+            const fetchedDatasets = await getModelDatasets();
+            setDatasets(fetchedDatasets);
+            // console.log("Fetched datasets", fetchedDatasets);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching datasets:", error);
+        } finally {
+            setLoading(current => {return {...current, datasets: false}} );
+        }
+    }
 
     async function fetchAvailableModels(task: string): Promise<void> {
         try {
             setLoading(current => {return {...current, availableModels: true}} );
             const result = await getAvailableModels(task, AVAILABLE_MODELS_LIMIT);
             setAvailableModels(result);
-        } catch(error) {            
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching available models:", error);
+        } finally {                
+            setLoading(current => {return {...current, availableModels: false}} );
+        }
+    }
+
+    async function fetchAvailableModelsByName(name: string): Promise<void> {
+        try {
+            setLoading(current => {return {...current, availableModels: true}} );
+            const result = await getAvailableModelsByName(name, AVAILABLE_MODELS_LIMIT);
+            setAvailableModels(result);
+        } catch(error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in fetching available models:", error);
         } finally {                
@@ -264,14 +297,14 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
 
     async function fetchModelById(modelId: string|number): Promise<ModelObject|undefined> {
         try {
-            setLoading(current => {return {...current, model: modelId}} )
+            setLoading(current => {return {...current, model: modelId}} );
             const result = await getModelById(modelId);
             return result;
         } catch(error) {            
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in fetching model:", error);
         } finally {                
-            setLoading(current => {return {...current, model: undefined}} )
+            setLoading(current => {return {...current, model: undefined}} );
         }
     }
 
@@ -302,14 +335,14 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
         }
     }
 
-    function evaluateModel(modelId: string|number, dataset: string): void {
+    function evaluateModel(modelId: string|number, dataset: ModelDatasetObject): void {
         const evaluation: EvaluationObject = {
             modelId,
-            dataset,
-            name: `Model Evaluation #${evaluations.length+1}`,
+            datasetName: dataset.name,
+            name: `Model Evaluation #${(evaluations.length+1).toString()}`,
             processor: "CPU",
-            latency: `${Math.floor(Math.random() * 300)} ms`,
-            costPerToken: `${Math.floor(Math.random() * 3)}.${Math.floor(Math.random() * 9)} ¢`,
+            latency: `${Math.floor(Math.random() * 300).toString()} ms`,
+            costPerToken: `${Math.floor(Math.random() * 3).toString()}.${Math.floor(Math.random() * 9).toString()} ¢`,
         }
         setEvaluations(current => [evaluation, ...current]);
     }
@@ -345,6 +378,7 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
                 refreshModelById,
                 sortModels,
                 getAvailableRemoteModels,
+                getAvailableRemoteModelsByName,
                 registerModel: actionRegisterModel,
                 deleteModel: actionDeleteModel,
                 evaluations,

@@ -21,11 +21,13 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
     const [availableModelOptions, setAvailableModelOptions] = useState<CommonSelectOption[]>([]);
     const [selectedAvailableModel, setSelectedAvailableModel] = useState<AvailableModelObject|undefined>();
     const [name, setName] = useState("");
+    const [searchName, setSearchName] = useState("");
     const [currentTag, setCurrentTag] = useState("");
     const [tags, setTags] = useState<string[]>([]);
     const [readyToClose, setReadyToClose] = useState(false);
 
 
+    
     useEffect(() => {
         setModelOptions(formatModelOptions(modelsContext.modelTasks));
     }, [modelsContext.modelTasks]);
@@ -40,10 +42,36 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
         } else if (readyToClose) props.onClose();
     }, [modelsContext.loading.registerModel]);
 
+    useEffect(() => {
+        let defaultName = "";
+        if (selectedAvailableModel) {
+            const defaultNameList = selectedAvailableModel.id.split("/");
+            if (defaultNameList.length > 1) {
+                const lastItem = defaultNameList.at(-1);
+                defaultName = lastItem ? lastItem : "";
+            }
+        } else defaultName = "";
+        setName(defaultName);
+    }, [selectedAvailableModel]);
+
+    useEffect(() => {
+        const delayInputTimeoutId = setTimeout(() => {
+            searchForAvailableModelsByName(searchName);
+        }, 500);
+        return () => { clearTimeout(delayInputTimeoutId); };
+    }, [searchName, 500]);
 
     
+
+
+
     function handleClose(): void {
         props.onClose();
+    }
+
+    function searchForAvailableModelsByName(searchTerm: string|undefined): void {
+        if (!searchTerm) return;
+        modelsContext.getAvailableRemoteModelsByName(searchTerm);
     }
 
     function handleTaskChange(value: string): void {
@@ -60,7 +88,6 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
 
     function handleRegister(): void {
         if (!name || !selectedAvailableModel) return;
-        console.log("Registering", name, selectedAvailableModel.id, tags);
         void modelsContext.registerModel(name, selectedAvailableModel.id, tags);
     }
 
@@ -131,10 +158,19 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
 
             <div className="details-scroller">
                 <div className="details-content">
+
+
+
+                    <CommonInput
+                        label="Search by Repository Name"
+                        controlledValue={searchName}
+                        onChange={setSearchName}
+                        info="Repository name (also known as model id)"
+                    />
+
                     <CommonFormLabels
-                        label="Model Task"
+                        label="Or search by Model Task"
                         info="Select model task to get a list of available model names"
-                        required
                     >
                         <CommonSelect
                             options={modelOptions}
@@ -143,15 +179,9 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
                         />
                     </CommonFormLabels>
 
+
                     <div className="model-information">
                         <span>Model Information</span>
-
-                        <CommonInput
-                            label="Model Name"
-                            onChange={setName}
-                            info="A name to reference the model"
-                            required
-                        />
 
                         <CommonFormLabels
                             label="Model Repository"
@@ -161,12 +191,20 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
                             <CommonSelect
                                 key={selectedModelTask}
                                 options={availableModelOptions}
-                                noSelectionMessage={selectedModelTask ? "No selected model" : "Please select a model task"}
-                                disabled={!selectedModelTask}
+                                noSelectionMessage={selectedModelTask || (searchName && availableModelOptions.length > 0) ? "No selected model" : "Search for a model or select a model task"}
+                                disabled={!selectedModelTask && !searchName}
                                 isLoading={modelsContext.loading.availableModels}
                                 onSelectedValueChange={handleModelChange}
                             />
                         </CommonFormLabels>
+
+                        <CommonInput
+                            label="Model Name"
+                            controlledValue={name}
+                            onChange={setName}
+                            info="A name to reference the registered model"
+                            required
+                        />
                     
                         <CommonFormLabels
                             label="Model Tags"

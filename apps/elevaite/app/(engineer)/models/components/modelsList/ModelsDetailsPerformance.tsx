@@ -25,7 +25,7 @@ export function ModelsDetailsPerformance(): JSX.Element {
                 :
                 currentEvaluations.map(evaluation => 
                     <ModelDetailsEvaluationBlock
-                        key={`${evaluation.modelId}_${evaluation.name}`}
+                        key={`${evaluation.modelId.toString()}_${evaluation.name}`}
                         {...evaluation}
                     />
                 )
@@ -53,7 +53,7 @@ function ModelDetailsEvaluationBlock(props: EvaluationObject): JSX.Element {
 
             <div className="evaluation-contents">
                 <div className="label">Dataset Name:</div>
-                <div className="value">{props.dataset}</div>
+                <div className="value">{props.datasetName}</div>
                 <div className="label">Latency:</div>
                 <div className="value">{props.latency}</div>
                 <div className="label">Processor:</div>

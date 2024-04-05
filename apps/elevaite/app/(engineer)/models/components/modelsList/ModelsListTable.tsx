@@ -15,7 +15,6 @@ enum MENU_ACTIONS {
     DEPLOY = "Deploy",
     DELETE = "Delete",
     EVALUATE = "Evaluate",
-    QA = "QA",
 };
 
 
@@ -46,7 +45,6 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
         { label: "Deploy Model", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.DEPLOY); } },
         { label: "Remove Model", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.DELETE); } },
         { label: "Evaluate Model", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.EVALUATE); } },
-        { label: "Launch Model QA", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.QA); } },
     ]
     
 
@@ -88,7 +86,6 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
             case MENU_ACTIONS.DELETE: void modelsContext.deleteModel(pendingAction.model.id.toString()); break;
             default: break;
         }
-        console.log("Confirmed", pendingAction);
         handleDialogClose();
     }
 

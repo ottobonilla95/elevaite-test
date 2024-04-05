@@ -8,7 +8,7 @@
     grid-template-columns: minmax(0, 440px) minmax(0, auto);
     grid-template-rows: 80px 1fr; //minmax(80px, 1fr) 9fr;
     grid-template-areas: 
-    "details details"
+    "details widgets"
     "instances widgets";
     gap: 20px;
     padding: 20px;

@@ -1,0 +1,16 @@
+
+
+.add-instance-ingest-container {
+    display: contents;
+
+    & .common-select {
+        background-color: var(--ev-colors-background);
+        border: 1px solid var(--ev-colors-borderColor);
+        border-radius: 8px;
+
+        & > .common-button {
+            flex-grow: 1;
+            padding: 10px;
+        }
+    }
+}

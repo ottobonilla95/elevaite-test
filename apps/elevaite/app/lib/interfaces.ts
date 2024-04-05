@@ -44,6 +44,11 @@ export enum StepDataType {
     DATE = "date",
 }
 
+export enum formDataType {
+    STRING = "string",
+    BOOLEAN = "boolean",
+}
+
 export enum ModelsStatus {
     REGISTERING = "registering",
     ACTIVE = "registered",
@@ -74,13 +79,6 @@ export interface ApplicationConfigurationObject {
     isTemplate: boolean;
     createDate: string;
     updateDate: string;
-    raw: Initializers;
-}
-
-export interface ApplicationConfigurationDto {    
-    applicationId: string;
-    name: string;
-    isTemplate: boolean;
     raw: Initializers;
 }
 
@@ -258,12 +256,77 @@ interface MemoryBit { value_bytes: number; value_str: string; }
 export interface EvaluationObject {
     name: string;
     modelId: string|number;
-    dataset: string;
+    datasetName: string;
     date?: string;
     userName?: string;
     latency?: string;
     processor?: string;
     costPerToken?: string;
+}
+
+export interface ModelDatasetObject {
+    id: string|number;
+    name: string;
+    status: string;
+    huggingface_repo: string;
+    tags: string[];
+}
+
+
+
+
+
+
+// RBAC
+////////////////
+
+export interface OrganizationObject {
+    id: string;
+    name: string;
+    description: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AccountObject {
+    id: string;
+    organization_id: string;
+    name: string;
+    description: string;
+    is_disabled: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ProjectObject {
+    id: string;
+    account_id: string;
+    name: string;
+    description: string;
+    project_owner_id: string;
+    parent_project_id?: string;
+    is_disabled?: boolean;
+    datasets: RbacDatasetObject[],
+    created_at: string;
+    updated_at: string;
+}
+
+export interface RbacDatasetObject {
+    id: string;
+    projectId: string;
+    name: string;
+    versions: {
+        id: string;
+        commitId: string;
+        version: string|number;
+        createDate: string;
+    }[];
+    tags: {
+        id: string;
+        name: string;
+    }[];
+    createDate: string;
+    updateDate: string;
 }
 
 
@@ -306,24 +369,28 @@ export type Initializers =
 ;
 
 
+export interface ApplicationConfigurationDto {    
+    applicationId: string;
+    name: string;
+    isTemplate: boolean;
+    raw: Initializers;
+}
+
 
 export interface S3IngestFormDTO {
-    projectId: string;
+    type: ApplicationType.INGEST;
+    selectedPipelineId: string;
     creator: string;
-    name: string;
-    project: string;
-    version: string; // Deprecated. Return ""
-    parent: string;
-    outputURI: string; // Deprecated. Return ""
-    connectionName: string;
     description: string;
     url: string;
     useEC2: boolean;
     roleARN: string;
-    selectedPipelineId: string;
-    configurationName: string;
-    isTemplate: boolean;
-    type: ApplicationType;
+    datasetId: string;
+    datasetName: string;
+    projectId: string;
+    version: string;
+    parent: string;
+    outputURI: string;
 }
 
 export interface S3PreprocessFormDTO {
@@ -340,7 +407,7 @@ export interface S3PreprocessFormDTO {
     selectedPipelineId: string;
     configurationName: string;
     isTemplate: boolean;
-    type: ApplicationType;
+    type: ApplicationType.PREPROCESS;
 }
 
 

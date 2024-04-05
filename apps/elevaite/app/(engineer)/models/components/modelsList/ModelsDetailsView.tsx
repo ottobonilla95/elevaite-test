@@ -125,15 +125,15 @@ export function ModelsDetailsView(): JSX.Element {
                             </div>
                             <div className={["model-details-page-contents parameters", selectedTab === MODELS_DETAILS_TABS.PARAMETERS ? "visible" : undefined].filter(Boolean).join(" ")}>
                                 <div className="model-column">
-                                    <ModelBit label="Architectures" value={modelsContext.selectedModelParameters ? modelsContext.selectedModelParameters.architectures.join(", ") : ""} />
-                                    <ModelBit label="Model Type" value={modelsContext.selectedModelParameters ? modelsContext.selectedModelParameters.model_type : ""} />
+                                    <ModelBit label="Architectures:" value={modelsContext.selectedModelParameters ? modelsContext.selectedModelParameters.architectures.join(", ") : ""} />
+                                    <ModelBit label="Model Type:" value={modelsContext.selectedModelParameters ? modelsContext.selectedModelParameters.model_type : ""} />
                                     {!modelsContext.selectedModelParameters ? undefined :
                                         Object.keys(modelsContext.selectedModelParameters).map(key => {
-                                            if (typeof modelsContext.selectedModelParameters?.[key] === "string")
+                                            if (typeof modelsContext.selectedModelParameters?.[key] === "string" && key !== "model_type")
                                                 return (
                                                     <ModelBit
                                                         key={key}
-                                                        label={key.split("_").join(" ")}
+                                                        label={`${key.split("_").join(" ")}:`}
                                                         value={modelsContext.selectedModelParameters[key] as string}
                                                     />
                                                 )
@@ -176,7 +176,7 @@ interface ModelBitProps {
 function ModelBit(props: ModelBitProps): JSX.Element {
     return (
         <div className={["model-bit", props.general ? "general" : undefined].filter(Boolean).join(" ")}>
-            <span>{props.label}</span>
+            <span className="label">{props.label}</span>
             <span>{props.value}</span>
         </div>
     );

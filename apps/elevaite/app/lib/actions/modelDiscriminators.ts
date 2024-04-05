@@ -1,4 +1,4 @@
-import type { AvailableModelObject, ModelObject, ModelParametersObject } from "../interfaces";
+import type { AvailableModelObject, ModelDatasetObject, ModelObject, ModelParametersObject } from "../interfaces";
 import { isObject } from "./generalDiscriminators";
 
 
@@ -25,6 +25,14 @@ export function isGetModelParametersResponse(data: unknown): data is ModelParame
     return isModelParametersObject(data);
 }
 
+export function isGetDatasetsResponse(data: unknown): data is ModelDatasetObject[] {    
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (!isModelDatasetObject(item)) return false;
+    }
+    return true;
+}
+
 export function isGetModelsResponse(data: unknown): data is ModelObject[] {
     if (!Array.isArray(data)) return false;
     for (const item of data) {
@@ -46,6 +54,7 @@ export function isAvailableModelObject(item: unknown): item is AvailableModelObj
         "gated" in item &&
         "library_name" in item;
 }
+
 export function isModelObject(item: unknown): item is ModelObject {
     return isObject(item) &&
         "id" in item &&
@@ -55,10 +64,18 @@ export function isModelObject(item: unknown): item is ModelObject {
         "tags" in item &&
         "huggingface_repo" in item;
 }
+
+export function isModelDatasetObject(item: unknown): item is ModelDatasetObject {
+    return isObject(item) &&    
+    "id" in item &&
+    "name" in item &&
+    "status" in item &&
+    "huggingface_repo" in item &&
+    "tags" in item;
+}
+
 export function isModelParametersObject(item: unknown): item is ModelParametersObject {
     return isObject(item) &&
         "architectures" in item &&
         "model_type" in item;
-        // "hidden_size" in item &&
-        // "intermediate_size" in item;
 }

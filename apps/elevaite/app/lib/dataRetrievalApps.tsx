@@ -5,22 +5,20 @@ import { AppInstanceFieldTypes, ApplicationType, StepDataSource, StepDataType } 
 
 
 export const S3DataRetrievalAppInstanceFormInitializer: S3IngestFormDTO = {
-    projectId: "7f66ade4-2bf0-4d46-a2dc-c2aee9e9e043",
+    type: ApplicationType.INGEST,
+    selectedPipelineId: "",
     creator: "",
-    name: "",
-    project: "",
-    version: "",
-    parent: "",
-    outputURI: "",
-    connectionName: "",
+    // ^ Hidden
     description: "",
     url: "",
     useEC2: false,
     roleARN: "",
-    selectedPipelineId: "",
-    configurationName: "",
-    isTemplate: false,
-    type: ApplicationType.INGEST,
+    datasetId: "",
+    datasetName: "",
+    projectId: "",
+    version: "",
+    parent: "",
+    outputURI: "",
 }
 
 
@@ -33,7 +31,7 @@ export const S3DataRetrievalAppInstanceForm: AppInstanceFormStructure<S3IngestFo
         {
             field: "connectionName",
             label: "Connection Name",
-            info: "Main identifier",
+            info: "This will be the display name of the instance",
             required: true,
             type: AppInstanceFieldTypes.INPUT,
         },

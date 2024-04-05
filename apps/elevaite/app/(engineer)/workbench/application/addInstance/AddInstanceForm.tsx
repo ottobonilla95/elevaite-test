@@ -4,10 +4,11 @@ import { CommonButton, CommonCheckbox, CommonInput, ElevaiteIcons } from "@repo/
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { createApplicationConfiguration, createApplicationInstance, updateApplicationConfiguration } from "../../../../lib/actions/applicationActions";
-import type { AppInstanceConfigurationObject, AppInstanceFieldStructure, AppInstanceFormStructure, ApplicationConfigurationDto, Initializers } from "../../../../lib/interfaces";
+import { AppInstanceConfigurationObject, AppInstanceFieldStructure, AppInstanceFormStructure, ApplicationConfigurationDto, Initializers, S3IngestFormDTO, formDataType } from "../../../../lib/interfaces";
 import { AppInstanceFieldTypes } from "../../../../lib/interfaces";
 import "./AddInstanceForm.scss";
 import { Configurations } from "./Configurations";
+import { AddInstanceIngest } from "./AddInstanceIngest";
 
 
 
@@ -50,6 +51,7 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
     }, []);
 
     useEffect(() => {
+        console.log("Formdata changed", formData);
         if (!props.addInstanceStructure || !formData) return;        
         setIsConfirmDisabled(getIsRequiredFieldEmptyInList(formData, props.addInstanceStructure.fields));
     }, [formData]);
@@ -75,7 +77,15 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
         setFormData(config);
     }
 
-    function handleFormDataChange(value: string, field: string): void {
+    function handleFormDataChange(value: string|boolean, field: string, type?: formDataType): void {
+        switch (type) {
+            case formDataType.STRING: if (typeof value === "string") handleFormDataStringChange(value, field); break;
+            case formDataType.BOOLEAN: if (typeof value === "boolean") handleFormDataBooleanChange(value, field); break;
+            default: if (typeof value === "string") handleFormDataStringChange(value, field);
+        }
+    }
+
+    function handleFormDataStringChange(value: string, field: string): void {
         setFormData( (currentValues) => {
             if (!currentValues) return;
             return { ...currentValues, [field]: value}
@@ -195,13 +205,13 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
         try {
             setIsProcessing(true);
             const response = await createApplicationInstance(props.applicationId, formData);
-            setIsProcessing(false);
             props.onClose(response.id);
         } catch (error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error:", error);
-            setIsProcessing(false);
             setErrorMessage("An error was encountered. Please try again.")
+        } finally {
+            setIsProcessing(false);
         }
     }
 
@@ -286,7 +296,14 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
             <div className="details-scroller">
                 <div className="details-content" key={selectedConfigurationId}>
 
-                    {!props.addInstanceStructure ? null :
+                    {!formData ? undefined :
+                        props.applicationId === "1" ? 
+                        <AddInstanceIngest
+                            formData={formData as S3IngestFormDTO}
+                            onFormChange={handleFormDataChange}
+                        />
+                        :
+                        !props.addInstanceStructure ? null :
                         mapFields(props.addInstanceStructure.fields)
                     }                    
 

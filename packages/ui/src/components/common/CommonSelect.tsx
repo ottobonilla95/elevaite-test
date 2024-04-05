@@ -18,16 +18,20 @@ export interface CommonSelectOption {
 export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> {
     options: CommonSelectOption[];
     defaultValue?: string;
+    callbackOnDefaultValue?: boolean;
     noSelectionMessage?: string;
     anchor?: "left" | "right";
     showTitles?: boolean;
+    emptyListLabel?: string;
     disabled?: boolean;
     isLoading?: boolean;
     onSelectedValueChange: (value: string, label: string) => void;
+    onAdd?: () => void;
+    addLabel?: string;
 }
 
 
-export function CommonSelect({options, defaultValue, noSelectionMessage, anchor, showTitles, onSelectedValueChange, isLoading, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
+export function CommonSelect({options, defaultValue, callbackOnDefaultValue, noSelectionMessage, anchor, showTitles, emptyListLabel, onSelectedValueChange, onAdd, addLabel, isLoading, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
     const [selectedOption, setSelectedOption] = useState<CommonSelectOption>();
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement|null>(null);
@@ -36,8 +40,14 @@ export function CommonSelect({options, defaultValue, noSelectionMessage, anchor,
     useEffect(() => {
         if (defaultValue) {
             const defaultOption = options.find((item) => { return item.value === defaultValue;})
-            if (defaultOption) setSelectedOption(defaultOption);
-            else setSelectedOption(options[0]);
+            if (defaultOption) {
+                setSelectedOption(defaultOption);
+                if (callbackOnDefaultValue) onSelectedValueChange(defaultOption.value, defaultOption.label ? defaultOption.label : defaultOption.value);
+            }
+            else {
+                setSelectedOption(options[0]);
+                if (callbackOnDefaultValue) onSelectedValueChange(options[0].value, options[0].label ? options[0].label : options[0].value);
+            }
         }
     }, [defaultValue]);
 
@@ -54,6 +64,10 @@ export function CommonSelect({options, defaultValue, noSelectionMessage, anchor,
         if (options.length === 2 && selectedOption?.value === options[0].value) handleClick(options[1]);
         else if (options.length === 2 && selectedOption?.value === options[1].value) handleClick(options[0]);
         else setIsOpen((currentValue) => !currentValue);
+    }
+
+    function handleAdd(): void {
+        if (onAdd) onAdd();
     }
 
 
@@ -96,7 +110,12 @@ export function CommonSelect({options, defaultValue, noSelectionMessage, anchor,
                 ].filter(Boolean).join(" ")}>
                     <div className="common-select-options-accordion">
                         <div className="common-select-options-contents">
-                            {options.map((option) => 
+                            {options.length === 0 ? 
+                                <div className="empty-list">
+                                    {emptyListLabel ? emptyListLabel : "No options"}
+                                </div>
+                            :
+                            options.map((option) => 
                                 <CommonButton
                                     className="common-select-option"
                                     key={option.value}
@@ -107,6 +126,15 @@ export function CommonSelect({options, defaultValue, noSelectionMessage, anchor,
                                     <span>{option.label ? option.label : option.value}</span>
                                 </CommonButton>
                             )}
+                            {!onAdd ? undefined :
+                                <CommonButton
+                                    className="common-select-add-option"
+                                    onClick={handleAdd}
+                                    noBackground
+                                >
+                                    <span>{addLabel ? addLabel : "+"}</span>
+                                </CommonButton>
+                            }
                         </div>
                     </div>
                 </div>

@@ -19,7 +19,7 @@ export function PipelineDataLake(props: PipelineDataLakeProps): JSX.Element {
         <div className="pipeline-datalake-container">
             <span className="title">Data Lake</span>
 
-            <div className="file-info-container">
+            {/* <div className="file-info-container">
                 <div className="file-info">{props.totalFiles} Total Files</div>
                 {!props.doc ? undefined : 
                     <div className="file-info"><span>{props.doc}</span><span className="type">.docx</span></div>
@@ -27,7 +27,7 @@ export function PipelineDataLake(props: PipelineDataLakeProps): JSX.Element {
                 {!props.zip ? undefined :
                     <div className="file-info"><span>{props.zip}</span><span className="type">.zip</span></div>
                 }
-            </div>
+            </div> */}
 
             <div className="search-container">
                 <ElevaiteIcons.SVGMagnifyingGlass/>
