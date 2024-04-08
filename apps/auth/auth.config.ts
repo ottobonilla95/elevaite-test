@@ -118,7 +118,8 @@ const _config = {
     async session({ session, token, user }) {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- you never know
       session.user ? (session.user.id = token.sub ?? user.id) : null;
-      Object.assign(session, { authToken: token.authToken });
+      Object.assign(session, { authToken: token.access_token });
+      Object.assign(session, { error: token.error });
       return session;
     },
     async signIn(params) {
