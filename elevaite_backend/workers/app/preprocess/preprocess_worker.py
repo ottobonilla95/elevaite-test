@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+import io
 import json
 import os
 from pprint import pprint
@@ -26,7 +27,7 @@ from elevaitedb.schemas.instance import (
 )
 from elevaitedb.util.logger import ESLogger
 
-from .preprocess import get_file_elements_internal
+from .preprocess import get_file_elements_from_url, get_file_elements_internal
 from . import vectordb
 
 from ..util.func import (
@@ -200,12 +201,16 @@ async def preprocess(data: PreProcessForm) -> None:
     try:
         logger.info(message="Starting file segmentation")
         for object in ref.objects():
-            with ref.object(object.path).reader(pre_sign=False) as fd:
+            print(object)
+            with ref.object(object.path).reader(pre_sign=False, mode="rb") as fd:
                 # while fd.tell() < file_size:
                 #     print(fd.read(10))
                 #     fd.seek(10, os.SEEK_CUR)
+                input = fd.read()
                 file_chunks = get_file_elements_internal(
-                    file=fd.read(), filepath=object.path
+                    file=input,
+                    filepath=object.path,
+                    content_type=object.content_type,
                 )
                 chunks_as_json.extend(file_chunks)
                 r.json().numincrby(data.instanceId, ".ingested_size", object.size_bytes)
@@ -260,7 +265,7 @@ async def preprocess(data: PreProcessForm) -> None:
         print("Error")
         print(e)
         logger.error(message="Error encountered, aborting pipeline")
-        logger.error(message=e)
+        logger.error(message=str(e))
         instance_crud.update_instance(
             db,
             data.applicationId,

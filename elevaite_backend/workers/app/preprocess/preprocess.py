@@ -32,9 +32,22 @@ def get_file_elements(filepath=None, filedir=None):
     # print(k, v)
 
 
-def get_file_elements_internal(file, filepath):
-    elements = partition_html(file=file)
-    # elements = partition(file=file)
+def get_file_elements_internal(file, filepath, content_type: str | None = None):
+    elements = partition_html(file=file, content_type=content_type)
+    # elements = partition(file=file, content_type=content_type)
+    source = get_filename(filepath)
+    chunks = chunk_by_title(elements=elements, max_characters=2000)
+    chunks_as_json = []
+    for idx, chunk in enumerate(chunks):
+        chunk_as_json = get_chunk_as_json(source=source, chunk=chunk)
+        chunks_as_json.append(chunk_as_json)
+    return chunks_as_json
+
+
+def get_file_elements_from_url(
+    filepath, content_type: str | None = None, physical_address: str | None = None
+):
+    elements = partition(url=physical_address, content_type=content_type)
     source = get_filename(filepath)
     chunks = chunk_by_title(elements=elements, max_characters=2000)
     chunks_as_json = []

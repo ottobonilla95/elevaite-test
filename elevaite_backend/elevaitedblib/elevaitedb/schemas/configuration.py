@@ -9,7 +9,6 @@ class BaseDatasetInformationForm(BaseModel):
     projectId: str
     version: str | None
     parent: str | None
-    outputURI: str | None
     datasetId: str | None
     selectedPipelineId: str
 
