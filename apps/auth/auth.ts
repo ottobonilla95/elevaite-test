@@ -11,15 +11,22 @@ const fusionAuthUrl = process.env.FUSIONAUTH_URL;
 if (!fusionAuthUrl) throw new Error("FUSIONAUTH_URL does not exist in the env");
 
 const fusionAppId = process.env.FUSIONAUTH_APPLICATION_ID;
-if (!fusionAppId) throw new Error("FUSIONAUTH_APPLICATION_ID does not exist in the env");
+if (!fusionAppId)
+  throw new Error("FUSIONAUTH_APPLICATION_ID does not exist in the env");
 
 const fusionAuthAPIKey = process.env.FUSIONAUTH_API_KEY;
-if (!fusionAuthAPIKey) throw new Error("FUSIONAUTH_API_KEY does not exist in the env");
+if (!fusionAuthAPIKey)
+  throw new Error("FUSIONAUTH_API_KEY does not exist in the env");
 
 const fusionTentantId = process.env.FUSIONAUTH_TENTANT_ID;
-if (!fusionTentantId) throw new Error("FUSIONAUTH_TENTANT_ID does not exist in the env");
+if (!fusionTentantId)
+  throw new Error("FUSIONAUTH_TENTANT_ID does not exist in the env");
 
-const fusionClient = new FusionAuthClient(fusionAuthAPIKey, fusionAuthUrl, fusionTentantId);
+const fusionClient = new FusionAuthClient(
+  fusionAuthAPIKey,
+  fusionAuthUrl,
+  fusionTentantId
+);
 
 export async function fusionLogout(refreshToken: string): Promise<void> {
   try {
@@ -56,18 +63,17 @@ export const authOptions: NextAuthConfig = {
             if (!_user?.id) return null;
             // eslint-disable-next-line no-console -- temporary
             console.log(_user);
-            return { id: _user.id, email: _user.email, image: _user.imageUrl, name: _user.fullName } satisfies User;
+            return {
+              id: _user.id,
+              email: _user.email,
+              image: _user.imageUrl,
+              name: _user.fullName,
+            } satisfies User;
           } catch (error) {
             // eslint-disable-next-line no-console -- temporary
             console.error(error);
             return null;
           }
-
-          // const user = getUser(email);
-          // if (!user) return null;
-          // const passwordsMatch = password === user.password;
-
-          // if (passwordsMatch) return user;
         }
         return null;
       },

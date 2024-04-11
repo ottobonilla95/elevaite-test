@@ -11,6 +11,7 @@
     "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\elevaite\\Dockerfile\" -t elevaite:latest \".\""
   },
   "dependencies": {
+    "@auth/core": "^0.28.2",
     "@repo/ui": "*",
     "dayjs": "^1.11.10",
     "next": "^14.1.4",
