@@ -3,7 +3,6 @@ import type { CommonSelectOption } from "@repo/ui/components";
 import { CommonButton, CommonInput, CommonSelect } from "@repo/ui/components";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
-import { getApplicationConfigurations } from "../../../../lib/actions/applicationActions";
 import type { ApplicationConfigurationObject, Initializers } from "../../../../lib/interfaces";
 import "./Configurations.scss";
 
@@ -14,17 +13,16 @@ const NO_CONFIGURATION = {label: "None", value: "0"};
 
 
 interface ConfigurationsProps {
-    applicationId: string | null;
     isConfigNameOpen: boolean;
+    savedConfigurations: ApplicationConfigurationObject[];
+    isLoading: boolean;
     onCancel: () => void;
     onConfirm: (name: string, updateId?: string) => void;
     onSelectedConfigurationChange: (config: Initializers, configId: string) => void;
 }
 
-export function Configurations(props: ConfigurationsProps): JSX.Element {
-    const [isLoading, setIsLoading] = useState(false);
+export function Configurations({savedConfigurations, ...props}: ConfigurationsProps): JSX.Element {
     const [name, setName] = useState("");
-    const [savedConfigurations, setSavedConfigurations] = useState<ApplicationConfigurationObject[]>([]);
     const [selectedConfiguration, setSelectedConfiguration] = useState<ApplicationConfigurationObject|undefined>();
     const [configurationOptions, setConfigurationOptions] = useState<CommonSelectOption[]>([NO_CONFIGURATION]);
 
@@ -41,26 +39,7 @@ export function Configurations(props: ConfigurationsProps): JSX.Element {
         setConfigurationOptions(configOptions);
     }, [savedConfigurations]);
 
-    useEffect(() => {
-        void (async () => {
-            if (props.applicationId === null) return;
-            await fetchConfigurations(props.applicationId);
-        })();
-    }, [props.applicationId]);
 
-
-    async function fetchConfigurations(applicationId: string): Promise<void> {
-        try {
-            setIsLoading(true);
-            const configList = await getApplicationConfigurations(applicationId);
-            setSavedConfigurations(configList ? configList : []);
-        } catch (error) {
-            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
-            console.error("Error:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }
 
     function handleSelectedConfig(id: string): void {
         if (id === NO_CONFIGURATION.value) return;
@@ -93,7 +72,7 @@ export function Configurations(props: ConfigurationsProps): JSX.Element {
                             onChange={setName}
                         />
                         <div className="configuration-notes">
-                            Keep the name unchanged to update the selected configuration.
+                            {selectedConfiguration?.name ? "Keep the name unchanged to update the selected configuration." : ""}
                         </div>
                         <div className="configuration-controls-container">
                             <CommonButton
@@ -123,7 +102,7 @@ export function Configurations(props: ConfigurationsProps): JSX.Element {
                     defaultValue={NO_CONFIGURATION.value}
                     anchor="right"
                     showTitles
-                    isLoading={isLoading}
+                    isLoading={props.isLoading}
                 />
             </div>
 

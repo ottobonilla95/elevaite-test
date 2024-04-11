@@ -1,7 +1,7 @@
 import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 import "./ModelsDetailsHeader.scss";
-import { useModels } from "../../../../lib/contexts/ModelsContext";
-import { StatusCell } from "./ModelsListRow";
+import { useModels } from "../../../../../lib/contexts/ModelsContext";
+import { StatusCell } from "../ModelsListRow";
 
 
 
@@ -35,7 +35,7 @@ export function ModelsDetailsHeader(): JSX.Element {
                 <div className="models-stack">
 
                     <div className="models-details-line spread">
-                        <span>My Model</span>
+                        <span>{modelsContext.selectedModel?.name}</span>
 
                         <div className="models-details-controls-container">
                             <CommonButton
@@ -62,6 +62,9 @@ export function ModelsDetailsHeader(): JSX.Element {
                             <div className="status-container">
                                 <StatusCell status={modelsContext.selectedModel.status} />
                             </div>
+                        }
+                        {!modelsContext.selectedModel?.task ? undefined :
+                            <div className="task-container">{modelsContext.selectedModel.task.split("-").join(" ")}</div>
                         }
                         <div className="id-container">ID</div>
                         <span>{modelsContext.selectedModel?.id}</span>

@@ -24,7 +24,7 @@ interface ModelsListTableProps {
 
 export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
     const modelsContext = useModels();
-    const [dataset, setDataset] = useState("");
+    const [datasetId, setDatasetId] = useState("");
     const [pendingAction, setPendingAction] = useState< undefined | 
         { title: string, action: MENU_ACTIONS, model: ModelObject, label?: string; icon?: React.ReactNode } >();
 
@@ -51,6 +51,10 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
 
     function getModelsListMenu(status?: ModelsStatus): CommonMenuItem<ModelObject>[] {
         if (!status || status === ModelsStatus.REGISTERING) return [];
+        else if (status === ModelsStatus.DEPLOYED) return [
+            { label: "Remove Model", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.DELETE); } },
+            { label: "Evaluate Model", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.EVALUATE); } },
+        ];
         else if (status === ModelsStatus.FAILED) return [
             { label: "Remove Model", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.DELETE); } },
         ]
@@ -81,8 +85,8 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
     function handleDialogConfirm(): void {
         if (!pendingAction) return;
         switch (pendingAction.action) {
-            case MENU_ACTIONS.DEPLOY: break;
-            case MENU_ACTIONS.EVALUATE: modelsContext.evaluateModel(pendingAction.model.id, dataset); break;
+            case MENU_ACTIONS.DEPLOY: void modelsContext.deployModel(pendingAction.model.id); break;
+            case MENU_ACTIONS.EVALUATE: void modelsContext.evaluateModel(pendingAction.model.id, datasetId); break;
             case MENU_ACTIONS.DELETE: void modelsContext.deleteModel(pendingAction.model.id.toString()); break;
             default: break;
         }
@@ -146,8 +150,8 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
                     onCancel={handleDialogClose}
                     confirmLabel={pendingAction.label}
                     dangerSubmit={pendingAction.action === MENU_ACTIONS.DELETE}
-                    disableConfirm={pendingAction.action === MENU_ACTIONS.EVALUATE && !dataset}
-                    confirmTooltip={pendingAction.action === MENU_ACTIONS.EVALUATE && !dataset ? "Please select a dataset" : ""}
+                    disableConfirm={pendingAction.action === MENU_ACTIONS.EVALUATE && !datasetId}
+                    confirmTooltip={pendingAction.action === MENU_ACTIONS.EVALUATE && !datasetId ? "Please select a dataset" : ""}
                 >
                     {pendingAction.action !== MENU_ACTIONS.EVALUATE ? undefined :
                         <div className="evaluation-dialog-container">
@@ -161,8 +165,8 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
                             >
                                 <CommonSelect
                                     className="evaluate-dialog-dataset"
-                                    options={modelsContext.modelTasks.map(item => { return {value: item}})}
-                                    onSelectedValueChange={setDataset}
+                                    options={modelsContext.modelDatasets.map(item => { return {value: item.id.toString(), label: item.name}; })}
+                                    onSelectedValueChange={setDatasetId}
                                 />
                             </CommonFormLabels>
                         </div>

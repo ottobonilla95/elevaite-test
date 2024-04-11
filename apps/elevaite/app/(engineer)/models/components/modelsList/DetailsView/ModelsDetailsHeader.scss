@@ -55,7 +55,13 @@
         background-color: var(--ev-colors-primary);
         padding: 0 10px;
         border-radius: 4px;
-        & .status-cell { padding: 0; }
+        & .status-cell { padding: 0; background-color: transparent; }
+    }
+    & .task-container {        
+        background-color: var(--ev-colors-primary);
+        padding: 0 5px;
+        border-radius: 4px;
+        text-transform: capitalize;
     }
     & .id-container {
         background-color: var(--ev-colors-primary);

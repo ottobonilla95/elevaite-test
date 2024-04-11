@@ -1,4 +1,4 @@
-import type { AvailableModelObject, ModelDatasetObject, ModelObject, ModelParametersObject } from "../interfaces";
+import type { AvailableModelObject, EvaluationObject, InferMessageDto, ModelDatasetObject, ModelEndpointCreationObject, ModelEndpointObject, ModelEvaluationLogObject, ModelObject, ModelParametersObject, ModelRegistrationLogObject } from "../interfaces";
 import { isObject } from "./generalDiscriminators";
 
 
@@ -21,8 +21,40 @@ export function isGetModelByIdResponse(data: unknown): data is ModelObject {
     return isModelObject(data);
 }
 
+export function isGetModelLogsResponse(data: unknown): data is ModelRegistrationLogObject[] {
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (!isModelLogObject(item)) return false;
+    }
+    return true;
+}
+
+export function isGetEvaluationLogsResponse(data: unknown): data is ModelEvaluationLogObject[] {
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (!isEvaluationLogObject(item)) return false;
+    }
+    return true;
+}
+
 export function isGetModelParametersResponse(data: unknown): data is ModelParametersObject {
     return isModelParametersObject(data);
+}
+
+export function isGetModelEndpointsResponse(data: unknown): data is ModelEndpointObject[] {    
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (!isModelEndpointObject(item)) return false;
+    }
+    return true;
+}
+
+export function isDeployModelResponse(data: unknown): data is ModelEndpointCreationObject {
+    return isModelEndpointCreationObject(data);
+}
+
+export function isInferEndpointByUrlResponse(data: unknown): data is InferMessageDto {
+    return isInferMessageDto(data);
 }
 
 export function isGetDatasetsResponse(data: unknown): data is ModelDatasetObject[] {    
@@ -37,6 +69,14 @@ export function isGetModelsResponse(data: unknown): data is ModelObject[] {
     if (!Array.isArray(data)) return false;
     for (const item of data) {
         if (!isModelObject(item)) return false;
+    }
+    return true;
+}
+
+export function isGetModelEvaluationsResponse(data: unknown): data is EvaluationObject[] {
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (!isEvaluationObject(item)) return false;
     }
     return true;
 }
@@ -65,6 +105,43 @@ export function isModelObject(item: unknown): item is ModelObject {
         "huggingface_repo" in item;
 }
 
+export function isModelLogObject(item: unknown): item is ModelRegistrationLogObject {
+    return isObject(item) &&
+        "id" in item &&
+        "model_id" in item &&
+        "message" in item &&
+        "stream" in item &&
+        "time" in item ;
+}
+
+export function isEvaluationLogObject(item: unknown): item is ModelEvaluationLogObject {
+    return isObject(item) &&
+        "id" in item &&
+        "evaluation_id" in item &&
+        "message" in item &&
+        "stream" in item &&
+        "time" in item ;
+}
+
+export function isModelEndpointObject(item: unknown): item is ModelEndpointObject {
+    return isObject(item) &&    
+    "endpoint_id" in item &&
+    "model_id" in item &&
+    "url" in item;
+}
+
+export function isModelEndpointCreationObject(item: unknown): item is ModelEndpointCreationObject {
+    return isObject(item) &&    
+    "endpoint_id" in item;
+}
+
+export function isInferMessageDto(item: unknown): item is InferMessageDto {
+    return isObject(item) &&    
+    "results" in item &&
+    Array.isArray(item.results) &&
+    item.results.length >= 1;
+}
+
 export function isModelDatasetObject(item: unknown): item is ModelDatasetObject {
     return isObject(item) &&    
     "id" in item &&
@@ -78,4 +155,13 @@ export function isModelParametersObject(item: unknown): item is ModelParametersO
     return isObject(item) &&
         "architectures" in item &&
         "model_type" in item;
+}
+
+export function isEvaluationObject(item: unknown): item is EvaluationObject {
+    return isObject(item) &&    
+    "id" in item &&
+    "model_id" in item &&
+    "dataset_id" in item &&
+    "status" in item &&
+    "results" in item;
 }

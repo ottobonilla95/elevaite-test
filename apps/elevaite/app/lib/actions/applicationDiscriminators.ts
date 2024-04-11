@@ -1,4 +1,4 @@
-import type { AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "../interfaces";
+import type { AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, ChartDataObject, CollectionObject, Initializers, PipelineObject } from "../interfaces";
 import { isObject } from "./generalDiscriminators";
 
 
@@ -24,6 +24,14 @@ export function isGetApplicationconfigurationsResponse(data: unknown): data is A
     if (!Array.isArray(data)) return false;
     for (const item of data) {
         if (!isApplicationConfigurationObject(item)) return false;
+    }
+    return true;
+}
+
+export function isGetCollectionsOfProjectResponse(data: unknown): data is CollectionObject[] {
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (!isCollectionObject(item)) return false;
     }
     return true;
 }
@@ -54,6 +62,10 @@ export function isGetInstanceResponse(data: unknown): data is AppInstanceObject 
 
 export function isCreateInstanceResponse(data: unknown): data is AppInstanceObject {
     return isInstanceObject(data);
+}
+
+export function isCreateCollectioneResponse(data: unknown): data is CollectionObject {
+    return isCollectionObject(data);
 }
 
 export function isCreateConfigurationResponse(data: unknown): data is ApplicationConfigurationObject {
@@ -121,5 +133,12 @@ export function isApplicationConfigurationObject(item: unknown): item is Applica
         "createDate" in item &&
         "updateDate" in item &&
         "raw" in item;
+}
+
+export function isCollectionObject(item: unknown): item is CollectionObject {
+    return isObject(item) &&
+        "id" in item &&
+        "projectId" in item &&
+        "name" in item;
 }
 

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useModels } from "../../../lib/contexts/ModelsContext";
 import "./ModelsList.scss";
-import { ModelsDetailsView } from "./modelsList/ModelsDetailsView";
+import { ModelsDetailsView } from "./modelsList/DetailsView/ModelsDetailsView";
 import { MODELS_LIST_TABS, ModelsListHeader } from "./modelsList/ModelsListHeader";
 import { ModelsListTable } from "./modelsList/ModelsListTable";
 

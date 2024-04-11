@@ -18,6 +18,7 @@ export interface CommonSelectOption {
 export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> {
     options: CommonSelectOption[];
     defaultValue?: string;
+    controlledValue?: string; // Use this to control the value externally
     callbackOnDefaultValue?: boolean;
     noSelectionMessage?: string;
     anchor?: "left" | "right";
@@ -31,25 +32,43 @@ export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> 
 }
 
 
-export function CommonSelect({options, defaultValue, callbackOnDefaultValue, noSelectionMessage, anchor, showTitles, emptyListLabel, onSelectedValueChange, onAdd, addLabel, isLoading, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
+export function CommonSelect({options, defaultValue, controlledValue, callbackOnDefaultValue, noSelectionMessage, anchor, showTitles, emptyListLabel, onSelectedValueChange, onAdd, addLabel, isLoading, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
     const [selectedOption, setSelectedOption] = useState<CommonSelectOption>();
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement|null>(null);
 
 
     useEffect(() => {
+        if (controlledValue === undefined && selectedOption !== undefined) setSelectedOption(undefined);
+        else if (controlledValue !== undefined && controlledValue !== selectedOption?.value) {
+            findAndSelectOption(controlledValue, true);
+        }
+    }, [controlledValue]);
+
+    useEffect(() => {
         if (defaultValue) {
-            const defaultOption = options.find((item) => { return item.value === defaultValue;})
-            if (defaultOption) {
-                setSelectedOption(defaultOption);
-                if (callbackOnDefaultValue) onSelectedValueChange(defaultOption.value, defaultOption.label ? defaultOption.label : defaultOption.value);
-            }
-            else {
-                setSelectedOption(options[0]);
-                if (callbackOnDefaultValue) onSelectedValueChange(options[0].value, options[0].label ? options[0].label : options[0].value);
-            }
+            findAndSelectOption(defaultValue);
         }
     }, [defaultValue]);
+
+
+    function findAndSelectOption(value: string, checkCallback?: boolean): void {
+        if (options.length === 0) {
+            setSelectedOption(undefined);
+            return;
+        }
+        const foundOption = options.find((item) => { return item.value === value;})
+            if (foundOption) {
+                setSelectedOption(foundOption);
+                if (checkCallback || callbackOnDefaultValue) onSelectedValueChange(foundOption.value, foundOption.label ? foundOption.label : foundOption.value);
+            }
+            else {
+                if (options[0]) {
+                    setSelectedOption(options[0]);
+                    if (checkCallback || callbackOnDefaultValue) onSelectedValueChange(options[0].value, options[0].label ? options[0].label : options[0].value);
+                }
+            }
+    }
 
 
     function handleClick(option: CommonSelectOption): void {
@@ -70,6 +89,13 @@ export function CommonSelect({options, defaultValue, callbackOnDefaultValue, noS
         if (onAdd) onAdd();
     }
 
+    function handleToggle(): void {
+        setIsOpen((currentValue) => !currentValue);
+    }
+    function handleClose(): void {
+        setIsOpen(false)
+    }
+
 
 
     return (
@@ -83,7 +109,7 @@ export function CommonSelect({options, defaultValue, callbackOnDefaultValue, noS
             <CommonButton 
                 passedRef={buttonRef}
                 className="common-select-display"
-                onClick={() => { setIsOpen((currentValue) => !currentValue); }}
+                onClick={handleToggle}
                 onDoubleClick={handleDoubleClick}
                 noBackground
                 title={selectedOption && (selectedOption?.selectedLabel || showTitles) ? (selectedOption.label ? selectedOption.label : selectedOption.value) : ""}
@@ -102,7 +128,7 @@ export function CommonSelect({options, defaultValue, callbackOnDefaultValue, noS
                 }
             </CommonButton>
 
-            <ClickOutsideDetector onOutsideClick={() => setIsOpen(false)} ignoredRefs={[buttonRef]} >
+            <ClickOutsideDetector onOutsideClick={handleClose} ignoredRefs={[buttonRef]} >
                 <div className={[
                     "common-select-options-container",
                     anchor ? `anchor-${anchor}` : undefined,

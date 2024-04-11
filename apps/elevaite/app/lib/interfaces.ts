@@ -4,6 +4,13 @@
 import type { CommonInputProps, CommonCheckboxProps } from "@repo/ui/components";
 
 
+// STATICS
+
+export const NEW_DATASET = "NEW_DATASET_NAME:";
+
+
+
+
 // ENUMS
 ////////////////
 
@@ -54,6 +61,12 @@ export enum ModelsStatus {
     ACTIVE = "registered",
     FAILED = "failed",
     DEPLOYED = "deployed",
+}
+
+export enum EvaluationStatus {
+    EVALUATING = "allocating_compute",
+    FAILED = "failed",
+    SUCCESS = "success",
 }
 
 
@@ -111,6 +124,12 @@ export interface AppInstanceConfigurationObject {
     applicationId: string | number;
     instanceId: string;
     raw: Initializers;
+}
+
+export interface CollectionObject {
+    id: string;
+    name: string;
+    projectId: string;
 }
 
 export interface PipelineObject {
@@ -172,6 +191,7 @@ export interface ModelObject {
     task?: string;
     created_at?: string;
     endpointUrl?: string;
+    endpointId?: string;
     ramToRun?: string | number;
     ramToTrain?: string | number;
 }
@@ -251,17 +271,58 @@ interface MemoryLayers {
  }
 interface MemoryBit { value_bytes: number; value_str: string; }
 
+export type ModelLogObject = ModelRegistrationLogObject | ModelEvaluationLogObject;
 
+export interface ModelRegistrationLogObject {
+    id: string|number;
+    model_id: string|number;
+    message: string;
+    stream: string;
+    time: string;
+}
+
+export interface ModelEvaluationLogObject {
+    id: string|number;
+    evaluation_id: string|number;
+    message: string;
+    stream: string;
+    time: string;
+}
 
 export interface EvaluationObject {
-    name: string;
-    modelId: string|number;
-    datasetName: string;
-    date?: string;
-    userName?: string;
-    latency?: string;
-    processor?: string;
-    costPerToken?: string;
+    id: string|number;
+    model_id: string|number;
+    dataset_id: string|number;
+    status: EvaluationStatus;
+    results: unknown;
+}
+
+// Old local
+// export interface EvaluationObject {
+//     name: string;
+//     modelId: string|number;
+//     datasetName: string;
+//     date?: string;
+//     userName?: string;
+//     latency?: string;
+//     processor?: string;
+//     costPerToken?: string;
+// }
+
+export interface ModelEndpointObject {
+    endpoint_id: string|number;
+    model_id: string|number;
+    url: string;
+}
+
+export interface ModelEndpointCreationObject {
+    endpoint_id: string|number;
+}
+
+export interface InferMessageDto {
+    results: {
+        generated_text: string;
+    }[]
 }
 
 export interface ModelDatasetObject {
@@ -369,6 +430,15 @@ export type Initializers =
 ;
 
 
+export interface ApplicationDto {
+    creator: string;
+    configurationId: string;
+    projectId: string;
+    selectedPipelineId: string;
+    instanceName: string;
+}
+
+
 export interface ApplicationConfigurationDto {    
     applicationId: string;
     name: string;
@@ -385,29 +455,25 @@ export interface S3IngestFormDTO {
     url: string;
     useEC2: boolean;
     roleARN: string;
-    datasetId: string;
-    datasetName: string;
+    datasetId?: string;
+    datasetName?: string;
     projectId: string;
-    version: string;
     parent: string;
     outputURI: string;
 }
 
 export interface S3PreprocessFormDTO {
-    projectId: string;
+    type: ApplicationType.PREPROCESS;
+    selectedPipelineId: string;
     creator: string;
-    name: string;
-    datasetId: string;
-    datasetName: string;
-    datasetProject: string;
+    datasetId?: string;
+    datasetName?: string;
+    projectId: string;
+    parent: string;
     datasetVersion: string;
-    datasetOutputURI: string;
+    collectionId: string;
     queue: string;
     maxIdleTime: string;
-    selectedPipelineId: string;
-    configurationName: string;
-    isTemplate: boolean;
-    type: ApplicationType.PREPROCESS;
 }
 
 

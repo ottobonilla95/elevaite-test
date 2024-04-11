@@ -4,7 +4,8 @@
 
 .main-details-widget-container {
     flex-grow: 1;
-    padding: 20px;
+    height: 80px; // Equal to the first row's height in the grid parent.
+    padding: 15px 20px;
     border-radius: 8px;
     background-color: var(--ev-colors-backgroundHighContrast);
 

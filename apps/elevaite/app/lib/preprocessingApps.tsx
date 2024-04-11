@@ -6,20 +6,18 @@ import { AppInstanceFieldTypes, ApplicationType } from "./interfaces";
 
 
 export const S3PreprocessFormInitializer: S3PreprocessFormDTO = {
-    projectId: "7f66ade4-2bf0-4d46-a2dc-c2aee9e9e043",
+    type: ApplicationType.PREPROCESS,
+    selectedPipelineId: "",
     creator: "",
-    name: "",
+    // ^ Hidden    
     datasetId: "",
     datasetName: "",
-    datasetProject: "",
+    projectId: "",
+    parent: "",
     datasetVersion: "",
-    datasetOutputURI: "",
+    collectionId: "",
     queue: "Default",
     maxIdleTime: "Default",
-    selectedPipelineId: "",
-    configurationName: "",
-    isTemplate: false,
-    type: ApplicationType.PREPROCESS,
 }
 
 
@@ -36,25 +34,12 @@ export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3Preproce
             required: true,
             type: AppInstanceFieldTypes.INPUT,
         },
-        {
-            field: "datasetId",
-            label: "elevAIte Dataset ID",
-            info: "Dataset id",
-            type: AppInstanceFieldTypes.INPUT,
-        },
 
         // GROUP - Output Dataset
         {
             type: AppInstanceFieldTypes.GROUP,
-            label: "Output Dataset",
+            label: "Input Dataset",
             fields: [
-                {
-                    field: "datasetName",
-                    info: "The name of the dataset",
-                    label: "Dataset Name",
-                    required: true,
-                    type: AppInstanceFieldTypes.INPUT,
-                },
                 {
                     field: "datasetProject",
                     label: "Dataset Project",
@@ -63,16 +48,32 @@ export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3Preproce
                     type: AppInstanceFieldTypes.INPUT,
                 },
                 {
+                    field: "datasetName",
+                    info: "The name of the dataset",
+                    label: "Dataset Name",
+                    required: true,
+                    type: AppInstanceFieldTypes.INPUT,
+                },
+                {
                     field: "datasetVersion",
                     label: "Dataset Version",
                     type: AppInstanceFieldTypes.INPUT,
                 },
+            ],
+        },
+
+
+        // GROUP - Output Dataset
+        {
+            type: AppInstanceFieldTypes.GROUP,
+            label: "Output Dataset",
+            fields: [
                 {
-                    field: "datasetOutputURI",
-                    label: "Dataset Output URI",
+                    field: "collectionId",
+                    label: "Collection",
                     type: AppInstanceFieldTypes.INPUT,
                 },
-            ],
+            ]
         },
 
         {

@@ -1,10 +1,10 @@
 "use client";
-import type { CommonSelectOption} from "@repo/ui/components";
-import { CommonButton, CommonCheckbox, CommonFormLabels, CommonInput, CommonSelect, ElevaiteIcons } from "@repo/ui/components";
+import type { CommonSelectOption } from "@repo/ui/components";
+import { CommonButton, CommonCheckbox, CommonDialog, CommonFormLabels, CommonInput, CommonSelect, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { useRoles } from "../../../../lib/contexts/RolesContext";
 import type { S3IngestFormDTO } from "../../../../lib/interfaces";
-import { formDataType } from "../../../../lib/interfaces";
+import { NEW_DATASET, formDataType } from "../../../../lib/interfaces";
 import "./AddInstanceIngest.scss";
 
 
@@ -20,15 +20,15 @@ const fields: Record<keyof S3IngestFormDTO, keyof S3IngestFormDTO> = {
     datasetId: "datasetId",
     datasetName: "datasetName",
     projectId: "projectId",
-    version: "version",
     parent: "parent",
     outputURI: "outputURI"
 }
 
 
 
-
 interface AddInstanceIngestProps {
+    instanceName: string;
+    onInstanceNameChange: (value: string) => void;
     formData: S3IngestFormDTO;
     onFormChange: (value: string|boolean, field: string, type: formDataType) => void;
 }
@@ -37,6 +37,8 @@ export function AddInstanceIngest({formData, ...props}: AddInstanceIngestProps):
     const rolesContext = useRoles();
     const [projectsOptions, setProjectsOptions] = useState<CommonSelectOption[]>([]);
     const [datasetOptions, setDatasetOptions] = useState<CommonSelectOption[]>([]);
+    const [isCreateDatasetOpen, setIsCreateDatasetOpen] = useState(false);
+    const [createDatasetName, setCreateDatasetName] = useState("");
 
     
     useEffect(() => {
@@ -61,24 +63,60 @@ export function AddInstanceIngest({formData, ...props}: AddInstanceIngestProps):
             setDatasetOptions(selectedProject.datasets.map(dataset => { return { value: dataset.id, label: dataset.name }; }));
         }
     }
-    function handleDatasetChange(value: string, label?: string): void {
-        console.log("dataset:", value, label);
+
+    function handleDatasetChange(value: string): void {
         props.onFormChange(value, fields.datasetId, formDataType.STRING);
     }
+
     function handleDatasetAdd(): void {
-        console.log("Adding dataset");
+        setIsCreateDatasetOpen(true);
     }
+
+    function closeDatasetCreation(): void {
+        setIsCreateDatasetOpen(false);
+    }
+
+    function handleEnter(key: string): void {
+        if (key === "Enter") handleCreateDataset();
+    }
+
+    function handleCreateDataset(): void {
+        if (!createDatasetName) return;
+        closeDatasetCreation();
+        const newDataset: CommonSelectOption = { value: `${NEW_DATASET}${createDatasetName}`, label: createDatasetName };
+        setDatasetOptions(current => {return [...current,newDataset]; })
+        handleDatasetChange(newDataset.value);
+        setCreateDatasetName("");
+    }
+
 
 
     return (
         <div className="add-instance-ingest-container">
-            {/* <CommonInput
+
+            {!isCreateDatasetOpen ? undefined : 
+                <CommonDialog
+                    title="Create New Dataset"
+                    confirmLabel="Create"
+                    onConfirm={handleCreateDataset}
+                    onCancel={closeDatasetCreation}
+                    disableConfirm={!createDatasetName}
+                >
+                    <CommonInput
+                        onChange={setCreateDatasetName}
+                        onKeyDown={handleEnter}
+                    />
+                </CommonDialog>
+            }
+
+
+            <CommonInput
                 label="Instance Name"
                 info="This will be the display name of the instance"
                 required
-                initialValue={}
-                onChange={handleChange}
-            /> */}
+                initialValue={props.instanceName}
+                onChange={props.onInstanceNameChange}
+            />
             <CommonInput
                 field={fields.description}
                 label="Description"
@@ -91,6 +129,7 @@ export function AddInstanceIngest({formData, ...props}: AddInstanceIngestProps):
                 label="S3 URL"
                 info="The link to the bucket"
                 placeholder="s3://training-data-webex/uncompressed/data/"
+                required
                 initialValue={formData.url}
                 onChange={handleStringChange}
             />
@@ -103,13 +142,14 @@ export function AddInstanceIngest({formData, ...props}: AddInstanceIngestProps):
             <CommonInput
                 field={fields.roleARN}
                 label="IAM Role ARN"
+                required
                 initialValue={formData.roleARN}
                 onChange={handleStringChange}
             />
 
 
             <div className="configurations test-connection" key="testConnections">
-                <CommonButton noBackground>
+                <CommonButton noBackground disabled>
                     <ElevaiteIcons.SVGConnect/>
                     Test Connection
                 </CommonButton>
@@ -117,7 +157,7 @@ export function AddInstanceIngest({formData, ...props}: AddInstanceIngestProps):
 
 
             <div className="group-information">
-                <span>Dataset Info</span>
+                <span>Output Dataset Information</span>
                 
                 <CommonFormLabels
                     label="Dataset Project"
@@ -138,17 +178,12 @@ export function AddInstanceIngest({formData, ...props}: AddInstanceIngestProps):
                 >
                     <CommonSelect
                         options={datasetOptions}
+                        controlledValue={formData.datasetId}
                         onSelectedValueChange={handleDatasetChange}
                         onAdd={handleDatasetAdd}
                         addLabel="Create New Dataset"
                     />
                 </CommonFormLabels>
-                <CommonInput
-                    field={fields.version}
-                    label="Dataset Version"
-                    initialValue={formData.version}
-                    onChange={handleStringChange}
-                />
                 <CommonInput
                     field={fields.parent}
                     label="Dataset Parent"

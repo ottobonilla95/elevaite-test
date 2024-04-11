@@ -71,7 +71,7 @@ export function CondensedListRow(props: ModelListNormalRow): JSX.Element {
 
                 <div className="condensed-across">
                     {!props.model.status ? undefined : 
-                        <StatusCell status={props.model.status} url={props.model.endpointUrl} />
+                        <StatusCell status={props.model.status} url={props.model.endpointUrl} toastLeft />
                     }
                 </div>
             </div>

@@ -11,6 +11,16 @@ import { S3PreprocessingAppPipelineStructure } from "./preprocessingApps";
 // EXPORTED FUNCTIONS
 
 
+export function areShallowObjectsEqual(object1: Initializers | Record<string, unknown>, object2: Initializers | Record<string, unknown>, ignoreField?: string | string[]): boolean {
+    for (const [key, value] of Object.entries(object1)) {
+        if ((typeof ignoreField === "string" && key === ignoreField) ||
+            (Array.isArray(ignoreField) && ignoreField.includes(key))) continue;
+        else if (!object2[key] || object2[key] !== value) return false;
+    }
+    return true;
+}
+
+
 export function attachSideInfoToPipelineSteps(pipelines: PipelineObject[], appId: string|null): PipelineObject[] {
     if (appId === null) return pipelines;
     const structure = getStepStructure(appId);

@@ -1,0 +1,20 @@
+
+
+.models-details-logs-tab-container {
+    flex-grow: 1;
+    margin-right: 0;
+    // overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    transition: gap 200ms ease-in-out;
+
+    &.selected {
+        overflow: hidden;
+        gap: 0;
+    }
+
+   
+}

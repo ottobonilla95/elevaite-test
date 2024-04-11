@@ -1,4 +1,4 @@
-import { KeyboardEvent } from "react";
+import { KeyboardEvent, MutableRefObject } from "react";
 import "./SimpleInput.scss";
 
 
@@ -10,12 +10,13 @@ interface SimpleInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEleme
     hideLeftIcon?: boolean;
     rightIcon?: React.ReactNode;
     hideRightIcon?: boolean;
+    passedRef?: MutableRefObject<HTMLInputElement|null>;
     value: string;
     onChange: (value: string) => void;
     onKeyDown?: (key: string) => void;
 }
 
-export function SimpleInput({wrapperClassName, useCommonStyling, leftIcon, hideLeftIcon, rightIcon, hideRightIcon, value, onChange, onKeyDown, ...props}: SimpleInputProps): JSX.Element {
+export function SimpleInput({wrapperClassName, useCommonStyling, leftIcon, hideLeftIcon, rightIcon, hideRightIcon, passedRef, value, onChange, onKeyDown, ...props}: SimpleInputProps): JSX.Element {
 
     function handleChange(event: React.FormEvent<HTMLInputElement>): void {
         onChange(event.currentTarget.value);
@@ -34,6 +35,7 @@ export function SimpleInput({wrapperClassName, useCommonStyling, leftIcon, hideL
         ].filter(Boolean).join(" ")}>
             {leftIcon && !hideLeftIcon ? leftIcon : undefined}
             <input
+                ref={passedRef}
                 value={value}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}

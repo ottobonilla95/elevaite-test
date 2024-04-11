@@ -1,9 +1,8 @@
 "use client";
 import dayjs from "dayjs";
 import { createContext, useContext, useEffect, useState } from "react";
-import { deleteModel, getAvailableModels, getModelDatasets, getModelById, getModelParametersById, getModels, getModelsTasks, registerModel, getAvailableModelsByName } from "../actions/modelActions";
-import type { AvailableModelObject, EvaluationObject, ModelDatasetObject, ModelObject, ModelParametersObject } from "../interfaces";
-import { ModelsStatus } from "../interfaces";
+import { deleteModel, deployModel, getAvailableModels, getAvailableModelsByName, getEvaluationLogsById, getModelById, getModelDatasets, getModelEndpoints, getModelEvaluations, getModelLogs, getModelParametersById, getModels, getModelsTasks, registerModel, requestModelEvaluation } from "../actions/modelActions";
+import { type ModelEndpointObject, ModelsStatus, type AvailableModelObject, type EvaluationObject, type ModelDatasetObject, type ModelObject, type ModelParametersObject, type ModelRegistrationLogObject, type ModelEvaluationLogObject } from "../interfaces";
 
 
 
@@ -28,10 +27,14 @@ export enum specialHandlingModelFields {
 const defaultLoadingList: LoadingListObject = {
     models: false,
     modelTasks: false,
+    modelLogs: false,
+    modelEvaluations: false,
+    endpoints: false,
     datasets: false,
     availableModels: false,
     currentModelParameters: false,
     registerModel: false,
+    evaluateModel: false,
     deleteModel: false,
     model: undefined,
 };
@@ -48,10 +51,14 @@ interface SortingObject {
 interface LoadingListObject {
     models: boolean;
     modelTasks: boolean;
+    modelLogs: boolean;
+    modelEvaluations: boolean;
+    endpoints: boolean;
     datasets: boolean;
     availableModels: boolean;
     currentModelParameters: boolean;
     registerModel: boolean;
+    evaluateModel: boolean;
     deleteModel: boolean;
     model: string|number|undefined;
 }
@@ -69,13 +76,17 @@ export interface ModelsContextStructure {
     selectedModelParameters: ModelParametersObject|undefined,
     refreshSelectedModel: () => void;
     refreshModelById: (modelId: string|number) => Promise<void>;
+    getModelLogs: (modelId: string|number) => Promise<ModelRegistrationLogObject[]>;
+    getModelEvaluations: (modelId: string|number) => Promise<EvaluationObject[]>;
+    getEvaluationLogs: (evaluationId: string|number) => Promise<ModelEvaluationLogObject[]>;
     sortModels: (field: string, specialHandling?: string) => void;
     getAvailableRemoteModels: (task: string) => void;
     getAvailableRemoteModelsByName: (task: string) => void;
     registerModel: (modelName: string, modelRepo: string, tags?: string[]) => Promise<void>;
+    deployModel: (modelId: string|number) => Promise<void>;
     deleteModel: (modelId: string|number) => Promise<void>;
-    evaluations: EvaluationObject[],
-    evaluateModel: (modelId: string|number, dataset: ModelDatasetObject) => void;
+    modelDatasets: ModelDatasetObject[],
+    evaluateModel: (modelId: string|number, datasetId: string) => Promise<EvaluationObject|undefined>;
     loading: LoadingListObject;
 }
 
@@ -90,13 +101,21 @@ export const ModelsContext = createContext<ModelsContextStructure>({
     selectedModelParameters: undefined,
     refreshSelectedModel: () => {/**/},
     refreshModelById: async () => {/**/},
+    // eslint-disable-next-line @typescript-eslint/require-await -- We don't need to await for the core structure.
+    getModelLogs: async () => { return []; },
+    // eslint-disable-next-line @typescript-eslint/require-await -- We don't need to await for the core structure.
+    getModelEvaluations: async () => { return []; },
+    // eslint-disable-next-line @typescript-eslint/require-await -- We don't need to await for the core structure.
+    getEvaluationLogs: async () => { return []; },
     sortModels: () => {/**/},
     getAvailableRemoteModels: () => {/**/},
     getAvailableRemoteModelsByName: () => {/**/},
     registerModel: async () => {/**/},
+    deployModel: async () => {/**/},
     deleteModel: async () => {/**/},
-    evaluations: [],
-    evaluateModel: () => {/**/},
+    modelDatasets: [],
+    // eslint-disable-next-line @typescript-eslint/require-await -- We don't need to await for the core structure.
+    evaluateModel: async () => { return undefined; },
     loading: defaultLoadingList,
 });
 
@@ -154,28 +173,36 @@ interface ModelsContextProviderProps {
 
 export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.Element {
     const [models, setModels] = useState<ModelObject[]>([]);
+    const [displayModels, setDisplayModels] = useState<ModelObject[]>([]);
     const [selectedModel, setSelectedModel] = useState<ModelObject|undefined>();
     const [selectedModelParameters, setSelectedModelParameters] = useState<ModelParametersObject|undefined>();
     const [modelTasks, setModelTasks] = useState<string[]>([]);
-    const [datasets, setDatasets] = useState<ModelDatasetObject[]>([]);
+    const [modelEndpoints, setModelEndpoints] = useState<ModelEndpointObject[]>([]);
+    const [modelDatasets, setModelDatasets] = useState<ModelDatasetObject[]>([]);
     const [availableModels, setAvailableModels] = useState<AvailableModelObject[]>([]);
-    const [displayModels, setDisplayModels] = useState<ModelObject[]>([]);
     const [sorting, setSorting] = useState<SortingObject>({field: undefined});
-    const [evaluations, setEvaluations] = useState<EvaluationObject[]>([]);
     const [loading, setLoading] = useState<LoadingListObject>(defaultLoadingList);
 
 
     useEffect(() => {
         void fetchModels();
         void fetchModelTasks();
+        void fetchModelEndpoints();
         void fetchDatasets();
     }, []);
 
     useEffect(() => {
-        console.log("models", models);
         const modelsClone = JSON.parse(JSON.stringify(models)) as ModelObject[];
-        setDisplayModels(sortDisplayModels(modelsClone, sorting));
-    }, [models]);
+        const adjustedModels = modelsClone.map(model => {
+            const foundEndpoint = modelEndpoints.find(endpoint => endpoint.model_id === model.id);
+            if (foundEndpoint) {
+                return {...model, status: ModelsStatus.DEPLOYED, endpointUrl: foundEndpoint.url, endpointId: foundEndpoint.endpoint_id.toString()};
+            }
+            return model;
+        });
+        setDisplayModels(sortDisplayModels(adjustedModels, sorting));
+        // console.log("models", adjustedModels);
+    }, [models, modelEndpoints]);
 
 
 
@@ -209,7 +236,7 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
         if (loading.model === modelId) return;
         const fetchedModel = await fetchModelById(modelId);
         if (!fetchedModel) return;
-        console.log("Refreshed model", fetchedModel);
+        // console.log("Refreshed model", fetchedModel);
     }
 
     function refreshSelectedModel(): void {
@@ -255,12 +282,66 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
         }
     }
 
+    async function fetchModelLogs(modelId: string|number): Promise<ModelRegistrationLogObject[]> {
+        try {
+            setLoading(current => {return {...current, modelLogs: true}} );
+            const fetchedModelLogs = await getModelLogs(modelId);
+            return fetchedModelLogs;
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching model logs:", error);
+            return [];
+        } finally {                
+            setLoading(current => {return {...current, modelLogs: false}} );
+        }
+    }
+
+    async function fetchEvaluationLogs(evaluationId: string|number): Promise<ModelEvaluationLogObject[]> {
+        try {
+            setLoading(current => {return {...current, modelLogs: true}} );
+            const fetchedEvaluationLogs = await getEvaluationLogsById(evaluationId);
+            return fetchedEvaluationLogs;
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching evaluation logs:", error);
+            return [];
+        } finally {                
+            setLoading(current => {return {...current, modelLogs: false}} );
+        }
+    }
+
+    async function fetchModelEvaluations(modelId: string|number): Promise<EvaluationObject[]> {
+        try {
+            setLoading(current => {return {...current, modelLogs: true}} );
+            const fetchedModelEvaluations = await getModelEvaluations(modelId);
+            return fetchedModelEvaluations;
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching model evaluations:", error);
+            return [];
+        } finally {                
+            setLoading(current => {return {...current, modelLogs: false}} );
+        }
+    }
+
+    async function fetchModelEndpoints(): Promise<void> {
+        try {
+            setLoading(current => {return {...current, endpoints: true}} );
+            const fetchedEndpoints = await getModelEndpoints();
+            setModelEndpoints(fetchedEndpoints);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching model endpoints:", error);
+        } finally {                
+            setLoading(current => {return {...current, endpoints: false}} );
+        }
+    }
+
     async function fetchDatasets(): Promise<void> {
         try {
             setLoading(current => {return {...current, datasets: true}} );
             const fetchedDatasets = await getModelDatasets();
-            setDatasets(fetchedDatasets);
-            // console.log("Fetched datasets", fetchedDatasets);
+            setModelDatasets(fetchedDatasets);
         } catch(error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in fetching datasets:", error);
@@ -335,16 +416,33 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
         }
     }
 
-    function evaluateModel(modelId: string|number, dataset: ModelDatasetObject): void {
-        const evaluation: EvaluationObject = {
-            modelId,
-            datasetName: dataset.name,
-            name: `Model Evaluation #${(evaluations.length+1).toString()}`,
-            processor: "CPU",
-            latency: `${Math.floor(Math.random() * 300).toString()} ms`,
-            costPerToken: `${Math.floor(Math.random() * 3).toString()}.${Math.floor(Math.random() * 9).toString()} ¢`,
+
+    async function actionDeployModel(modelId: string|number): Promise<void> {
+        try {
+            setLoading(current => {return {...current, registerModel: true}} );
+            await deployModel(modelId);
+            await fetchModelEndpoints();
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching selected model parameters:", error);
+        } finally {
+            setLoading(current => {return {...current, registerModel: false}} );
         }
-        setEvaluations(current => [evaluation, ...current]);
+    }
+
+
+
+    async function actionEvaluateModel(modelId: string|number, datasetId: string): Promise<EvaluationObject|undefined> {
+        try {
+            setLoading(current => {return {...current, evaluateModel: true}} );
+            const requestResponse = await requestModelEvaluation(modelId, datasetId);
+            return requestResponse;
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching selected model parameters:", error);
+        } finally {
+            setLoading(current => {return {...current, evaluateModel: false}} );
+        }
     }
 
     async function actionDeleteModel(modelId: string|number): Promise<void> {
@@ -377,12 +475,16 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
                 refreshSelectedModel,
                 refreshModelById,
                 sortModels,
+                getModelLogs: fetchModelLogs,
+                getModelEvaluations: fetchModelEvaluations,
+                getEvaluationLogs: fetchEvaluationLogs,
                 getAvailableRemoteModels,
                 getAvailableRemoteModelsByName,
                 registerModel: actionRegisterModel,
+                deployModel: actionDeployModel,
                 deleteModel: actionDeleteModel,
-                evaluations,
-                evaluateModel,
+                modelDatasets,
+                evaluateModel: actionEvaluateModel,
                 loading,
             } }
         >

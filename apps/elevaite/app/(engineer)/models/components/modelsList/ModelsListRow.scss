@@ -115,6 +115,8 @@
     align-items: center;
     gap: 5px;
     padding: 2px 5px;
+    position: relative;
+    user-select: none;
 
     & > svg {
         height: 14px;
@@ -132,4 +134,27 @@
     }
 
     & > div { color: var(--ev-colors-secondaryText); }
+
+    & .toast-container {
+        position: absolute;
+        bottom: 110%;
+        z-index: 50;
+        background-color: var(--ev-colors-primary);
+        border: 1px solid var(--ev-colors-borderColor);
+        border-radius: 4px;
+        padding: 2px 5px;
+        pointer-events: none;
+        animation: 1s ease 2s normal 1 forwards fadeOut;
+        
+        font-size: 12px;
+        color: var(--ev-colors-text);
+
+        &.left { right: 0; }
+        & > span { white-space: nowrap; }
+    }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
 }

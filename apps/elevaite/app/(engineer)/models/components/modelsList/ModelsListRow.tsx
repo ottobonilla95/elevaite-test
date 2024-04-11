@@ -1,6 +1,7 @@
 import type { CommonMenuItem } from "@repo/ui/components";
 import { CommonButton, CommonMenu, ElevaiteIcons } from "@repo/ui/components";
 import dayjs from "dayjs";
+import { useState } from "react";
 import { specialHandlingModelFields, useModels } from "../../../../lib/contexts/ModelsContext";
 import type { ModelObject } from "../../../../lib/interfaces";
 import { ModelsStatus } from "../../../../lib/interfaces";
@@ -146,10 +147,12 @@ export function ModelsListRow(props: ModelsListRowProps): JSX.Element {
 
 
 
-export function StatusCell({status, url}: {status: ModelsStatus, url?: string;}): JSX.Element {
+export function StatusCell({status, url, toastLeft}: {status: ModelsStatus, url?: string; toastLeft?: boolean}): JSX.Element {
+    const [toastCounter, setToastCounter] = useState(0);
 
     function onEndpointClick(): void {
         if (!url) return;
+        setToastCounter(current => current < 2 ? 2 : 1);
         void navigator.clipboard.writeText(url);
     }
 
@@ -157,7 +160,6 @@ export function StatusCell({status, url}: {status: ModelsStatus, url?: string;})
         <div
             className={[
                 "status-cell",
-                status === ModelsStatus.DEPLOYED ? "deployed" : undefined,
                 status,
             ].join(" ")}
             title={url ? "Click to copy the endpoing url to clipboard" : ""}
@@ -176,6 +178,12 @@ export function StatusCell({status, url}: {status: ModelsStatus, url?: string;})
 
             {status !== ModelsStatus.DEPLOYED || !url ? undefined :
                 <CommonButton title={url} onClick={onEndpointClick}><ElevaiteIcons.SVGCopy/></CommonButton>
+            }
+
+            {!url || toastCounter === 0 ? undefined :
+                <div key={toastCounter} className={["toast-container", toastLeft ? "left" : undefined].filter(Boolean).join(" ")}>
+                    <span>Endpoint URL copied to clipboard.</span>
+                </div>
             }
         </div>
     );

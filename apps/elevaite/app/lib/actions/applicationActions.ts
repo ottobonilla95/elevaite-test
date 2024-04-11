@@ -1,8 +1,8 @@
 "use server";
 import { revalidateTag } from "next/cache";
-import type { AppInstanceObject, ApplicationConfigurationDto, ApplicationConfigurationObject, ApplicationObject, ChartDataObject, Initializers, PipelineObject } from "../interfaces";
-import { isCreateConfigurationResponse, isCreateInstanceResponse, isGetApplicationListReponse, isGetApplicationPipelinesResponse, isGetApplicationResponse, isGetApplicationconfigurationsResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceResponse } from "./applicationDiscriminators";
+import type { AppInstanceObject, ApplicationConfigurationDto, ApplicationConfigurationObject, ApplicationDto, ApplicationObject, ChartDataObject, CollectionObject, PipelineObject } from "../interfaces";
 import { APP_REVALIDATION_TIME, INSTANCE_REVALIDATION_TIME, cacheTags } from "./actionConstants";
+import { isCollectionObject, isCreateCollectioneResponse, isCreateConfigurationResponse, isCreateInstanceResponse, isGetApplicationListReponse, isGetApplicationPipelinesResponse, isGetApplicationResponse, isGetApplicationconfigurationsResponse, isGetCollectionsOfProjectResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceResponse } from "./applicationDiscriminators";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -88,6 +88,17 @@ export async function getApplicationConfigurations(id: string): Promise<Applicat
   throw new Error("Invalid data type");
 }
 
+export async function getCollectionsOfProject(projectId: string): Promise<CollectionObject[] | undefined> {
+  if (!BACKEND_URL) throw new Error("Missing base url");
+  const url = new URL(`${BACKEND_URL}/project/${projectId}/collection`);
+  const response = await fetch(url, { cache: "no-store" });
+
+  if (!response.ok) throw new Error("Failed to fetch collections of project");
+  const data: unknown = await response.json();
+  if (isGetCollectionsOfProjectResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
 
 
 
@@ -96,7 +107,7 @@ export async function getApplicationConfigurations(id: string): Promise<Applicat
 //////////////////
 
 
-export async function createApplicationInstance(id: string, dto: Initializers): Promise<AppInstanceObject> {
+export async function createApplicationInstance(id: string, dto: ApplicationDto): Promise<AppInstanceObject> {
   if (!BACKEND_URL) throw new Error("Missing base url");
   const headers = new Headers();
   headers.append("Content-Type", "application/json");
@@ -164,6 +175,30 @@ export async function updateApplicationConfiguration(appId: string, configId: st
   }
   const data: unknown = await response.json();
   if (isCreateConfigurationResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+
+export async function createCollection(projectId: string, collectionName: string): Promise<CollectionObject> {
+  if (!BACKEND_URL) throw new Error("Missing base url");
+  const dto = { name: collectionName };
+  const headers = new Headers();
+  headers.append("Content-Type", "application/json");
+  const response = await fetch(`${BACKEND_URL}/project/${projectId}/collection`, {
+    method: "POST",
+    body: JSON.stringify(dto),
+    headers,
+  });
+  if (!response.ok) {
+    if (response.status === 422) {
+      const errorData: unknown = await response.json();
+      // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+      console.dir(errorData, { depth: null });
+    }
+    throw new Error("Failed to create collection");
+  }
+  const data: unknown = await response.json();
+  if (isCreateCollectioneResponse(data)) return data;
   throw new Error("Invalid data type");
 }
 

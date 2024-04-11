@@ -9,5 +9,7 @@ export enum cacheTags {
   pipeline = "PIPELINE",
   configuration = "CONFIGURATION",
   models = "MODELS",
+  endpoints = "ENDPOINTS",
   datasets = "DATASETS",
+  evaluations = "EVALUATIONS",
 };

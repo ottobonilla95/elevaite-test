@@ -1,15 +1,16 @@
 "use client";
 import type { CommonSelectOption } from "@repo/ui/components";
-import { CommonButton, CommonCheckbox, CommonInput, ElevaiteIcons } from "@repo/ui/components";
+import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
+import dayjs from "dayjs";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { createApplicationConfiguration, createApplicationInstance, updateApplicationConfiguration } from "../../../../lib/actions/applicationActions";
-import { AppInstanceConfigurationObject, AppInstanceFieldStructure, AppInstanceFormStructure, ApplicationConfigurationDto, Initializers, S3IngestFormDTO, formDataType } from "../../../../lib/interfaces";
-import { AppInstanceFieldTypes } from "../../../../lib/interfaces";
+import { createApplicationConfiguration, createApplicationInstance, getApplicationConfigurations, updateApplicationConfiguration } from "../../../../lib/actions/applicationActions";
+import { areShallowObjectsEqual } from "../../../../lib/helpers";
+import { AppInstanceFieldTypes, NEW_DATASET, formDataType, type AppInstanceConfigurationObject, type AppInstanceFieldStructure, type AppInstanceFormStructure, type ApplicationConfigurationDto, type ApplicationConfigurationObject, type ApplicationDto, type Initializers, type S3IngestFormDTO, type S3PreprocessFormDTO } from "../../../../lib/interfaces";
 import "./AddInstanceForm.scss";
-import { Configurations } from "./Configurations";
 import { AddInstanceIngest } from "./AddInstanceIngest";
-
+import { AddInstancePreprocess } from "./AddInstancePreprocess";
+import { Configurations } from "./Configurations";
 
 
 
@@ -35,11 +36,15 @@ interface AddInstanceFormProps {
 
 export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
     const session = useSession();
+    const [instanceName, setInstanceName] = useState("");
+    const [connectionName, setConnectionName] = useState("");
     const [formData, setFormData] = useState(props.addInstanceStructure?.initializer);
     const [isConfirmDisabled, setIsConfirmDisabled] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isConfigurationsLoading, setIsConfigurationsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [isConfigNameOpen, setIsConfigNameOpen] = useState(false);
+    const [savedConfigurations, setSavedConfigurations] = useState<ApplicationConfigurationObject[]>([]);
     const [selectedConfigurationId, setSelectedConfigurationId] = useState("");
 
 
@@ -51,17 +56,42 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
     }, []);
 
     useEffect(() => {
-        console.log("Formdata changed", formData);
+        void (async () => {
+            if (props.applicationId === null) return;
+            await fetchConfigurations(props.applicationId);
+        })();
+    }, [props.applicationId]);
+
+    useEffect(() => {
+        // console.log("Formd ata changed", formData);
         if (!props.addInstanceStructure || !formData) return;        
         setIsConfirmDisabled(getIsRequiredFieldEmptyInList(formData, props.addInstanceStructure.fields));
     }, [formData]);
 
 
 
+    async function fetchConfigurations(applicationId: string): Promise<void> {
+        try {
+            setIsConfigurationsLoading(true);
+            const configList = await getApplicationConfigurations(applicationId);
+            setSavedConfigurations(configList ? configList : []);
+        } catch (error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error:", error);
+        } finally {
+            setIsConfigurationsLoading(false);
+        }
+    }
+
     function getIsRequiredFieldEmptyInList(passedFormData: Initializers, fields: AppInstanceFieldStructure[]): boolean {
         for (const item of fields) {
             if ("required" in item && Boolean(item.required) && item.field) {
-                if (!passedFormData[item.field]) {
+                if (item.field === "datasetId" || item.field === "datasetName") {
+                    if (!passedFormData.datasetId && !passedFormData.datasetName) {                        
+                        setIsConfirmDisabled(true);
+                        return true;
+                    }
+                } else if (!passedFormData[item.field]) {
                     setIsConfirmDisabled(true);
                     return true;
                 }
@@ -90,32 +120,50 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
             if (!currentValues) return;
             return { ...currentValues, [field]: value}
         });
-     }
+    }
 
-     function handleFormDataBooleanChange(value: boolean, field: string): void {
+    function handleFormDataBooleanChange(value: boolean, field: string): void {
         setFormData( (currentValues) => {
             if (!currentValues) return;
             return { ...currentValues, [field]: value}
         });
-     }
+    }
 
-     function handleErrorMessageClick(): void {
+    function handleErrorMessageClick(): void {
         setErrorMessage("");
-     }
+    }
 
 
-     function setUser(data: Initializers): void {
+    function setUser(data: Initializers): void {
         if (session.data?.user?.name) {
             data.creator = session.data.user.name;
         } else data.creator = "Unknown User";
-     }
+    }
 
-     function setSelectedPipeline(data: Initializers, flow?: CommonSelectOption): void {
+    function setSelectedPipeline(data: Initializers, flow?: CommonSelectOption): void {
         if (!flow?.value) return;
         if ("selectedPipelineId" in data) {
             data.selectedPipelineId = flow.value;
         }
-     }
+    }
+
+    function setDataset(data: Initializers): void {
+        if (!data.datasetId) return;
+        if (data.datasetId.includes(NEW_DATASET)) {
+            const datasetName = data.datasetId.replace(NEW_DATASET, "");
+            data.datasetId = undefined;
+            data.datasetName = datasetName;
+        } else data.datasetName = undefined;
+    }
+
+
+    function isConfigurationChanged(data: Initializers, configs: ApplicationConfigurationObject[], configId: string): boolean {
+        if (!configId) return true;
+        const selectedConfig = configs.find(item => item.id === configId);
+        if (!selectedConfig) return true;
+        const ignoredProperties = ["creator"];
+        return !areShallowObjectsEqual(data, selectedConfig.raw, ignoredProperties);
+    }
 
 
     function handleClose(): void {
@@ -146,7 +194,7 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
         }
     }
 
-    async function createConf(configData: Initializers, configName: string): Promise<void> {
+    async function createConf(configData: Initializers, configName: string): Promise<ApplicationConfigurationObject|undefined> {
         if (!props.applicationId) return;
 
         const dto: ApplicationConfigurationDto = {
@@ -157,8 +205,8 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
         };
         try {
             setIsProcessing(true);
-            await createApplicationConfiguration(props.applicationId, dto);
             props.onClose();
+            return await createApplicationConfiguration(props.applicationId, dto);
         } catch (error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error:", error);
@@ -168,7 +216,7 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
         }
     }
 
-    async function updateConf(configData: Initializers, configName: string, updateId: string): Promise<void> {        
+    async function updateConf(configData: Initializers, configName: string, updateId: string): Promise<ApplicationConfigurationObject|undefined> {        
         if (!props.applicationId) return;
 
         const dto: Omit<ApplicationConfigurationDto, "applicationId"> = {
@@ -178,8 +226,8 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
         };
         try {
             setIsProcessing(true);
-            await updateApplicationConfiguration(props.applicationId, updateId, dto);
             props.onClose();
+            await updateApplicationConfiguration(props.applicationId, updateId, dto);
         } catch (error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error:", error);
@@ -197,15 +245,51 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
         setUser(formData);
         // Attach selected pipeline if relevant
         setSelectedPipeline(formData, props.selectedFlow);
+        // Check if the dataset is existing or new
+        setDataset(formData);
 
+        // console.log("Final Form data:", formData);
         // Check all required data.
         if (getIsRequiredFieldEmptyInList(formData, props.addInstanceStructure.fields)) return;
+
+        const instanceDto: ApplicationDto = {
+            creator: formData.creator,
+            instanceName,
+            configurationId: "",
+            projectId: formData.projectId,
+            selectedPipelineId: formData.selectedPipelineId
+        }
 
         // Commit to server
         try {
             setIsProcessing(true);
-            const response = await createApplicationInstance(props.applicationId, formData);
-            props.onClose(response.id);
+            if (selectedConfigurationId) {
+                if (isConfigurationChanged(formData, savedConfigurations, selectedConfigurationId)) {
+                    // Offer to update?
+                    // SAVE NEW non-template
+                    const configName = `CONFIG_${formData.projectId}_${dayjs().toISOString()}`;
+                    const newConfig = await createConf(formData, configName);
+                    if (newConfig) {
+                        instanceDto.configurationId = newConfig.id;
+                        const response = await createApplicationInstance(props.applicationId, instanceDto);
+                        props.onClose(response.id);
+                    }
+                } else {
+                    // SAVE with config id.
+                    instanceDto.configurationId = selectedConfigurationId;
+                    const response = await createApplicationInstance(props.applicationId, instanceDto);
+                    props.onClose(response.id);
+                }
+            } else {
+                // SAVE NEW non-template
+                const configName = `CONFIG_${formData.projectId}_${dayjs().toISOString()}`;
+                const newConfig = await createConf(formData, configName);
+                if (newConfig) {
+                    instanceDto.configurationId = newConfig.id;
+                    const response = await createApplicationInstance(props.applicationId, instanceDto);
+                    props.onClose(response.id);
+                }
+            }
         } catch (error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error:", error);
@@ -213,55 +297,6 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
         } finally {
             setIsProcessing(false);
         }
-    }
-
-
-    function mapFields(fields: AppInstanceFieldStructure[]): JSX.Element {
-        const components = fields.map((field) => {            
-            if ("import" in field || "export" in field) {
-                return (
-                    <div className="configurations" key="inputOutput">
-                        {!field.import ? null :
-                        <CommonButton noBackground>
-                            <ElevaiteIcons.SVGImport/>
-                            {commonLabels.importConf}
-                        </CommonButton>}
-                        {!field.export ? null:
-                        <CommonButton noBackground>
-                            <ElevaiteIcons.SVGExport/>
-                            {commonLabels.exportConf}
-                        </CommonButton>}
-                    </div>
-                )
-            } else if ("testConnection" in field && field.testConnection) {
-                return (
-                    <div className="configurations test-connection" key="testConnections">
-                        <CommonButton noBackground>
-                            <ElevaiteIcons.SVGConnect/>
-                            {commonLabels.testConnection}
-                        </CommonButton>
-                    </div>
-                )
-            } else if ("type" in field) {
-                if (field.type === AppInstanceFieldTypes.GROUP) {
-                    return (
-                        <div className="group-information" key={`group${field.label}`}>
-                            <span>Dataset Info</span>
-                            {mapFields(field.fields)}
-                        </div>
-                    )
-                } else if (field.type === AppInstanceFieldTypes.CHECKBOX) {
-                    let initialCheckbox = false;
-                    if (field.field && formData?.[field.field] && typeof formData[field.field] === "boolean") initialCheckbox = formData[field.field] as boolean;
-                    return <CommonCheckbox {...field} defaultTrue={initialCheckbox} onChange={handleFormDataBooleanChange} key={field.field} />
-                } 
-                let initialValue = "";
-                if (field.field && formData?.[field.field] && typeof formData[field.field] === "string") initialValue = formData[field.field] as string;
-                return <CommonInput {...field} initialValue={initialValue} onChange={handleFormDataChange} key={field.field} />                
-            }
-            return null;
-        })
-        return <>{components}</>;
     }
 
 
@@ -287,7 +322,8 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
                 </CommonButton>
             </div>
             <Configurations
-                applicationId={props.applicationId}
+                isLoading={isConfigurationsLoading}
+                savedConfigurations={savedConfigurations}
                 isConfigNameOpen={isConfigNameOpen}
                 onCancel={() => { setIsConfigNameOpen(false); }}
                 onConfirm={finalizeSave}
@@ -299,12 +335,20 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
                     {!formData ? undefined :
                         props.applicationId === "1" ? 
                         <AddInstanceIngest
+                            instanceName={instanceName}
+                            onInstanceNameChange={setInstanceName}
                             formData={formData as S3IngestFormDTO}
                             onFormChange={handleFormDataChange}
                         />
                         :
-                        !props.addInstanceStructure ? null :
-                        mapFields(props.addInstanceStructure.fields)
+                        props.applicationId === "2" ? 
+                        <AddInstancePreprocess
+                            connectionName={connectionName}
+                            onConnectionNameChange={setConnectionName}
+                            formData={formData as S3PreprocessFormDTO}
+                            onFormChange={handleFormDataChange}
+                        />
+                        : undefined
                     }                    
 
                     <div className="controls-container">

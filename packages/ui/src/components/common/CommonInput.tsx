@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, KeyboardEvent } from "react";
 import { ElevaiteIcons } from "../icons";
 import "./CommonInput.scss";
 
@@ -21,6 +21,7 @@ export interface CommonInputProps {
     controlledValue?: string; // Use this to control the value externally
     className?: string;
     onChange?: (value: string, field?: string) => void;
+    onKeyDown?: (key: string, field?: string) => void;
 }
 
 export function CommonInput(props: CommonInputProps): JSX.Element {
@@ -54,6 +55,10 @@ export function CommonInput(props: CommonInputProps): JSX.Element {
         setValue(event.currentTarget.value);
     }
 
+    function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
+        if (props.onKeyDown) props.onKeyDown(event.key, props.field);
+    }
+
 
     return (
         <div className={[
@@ -77,6 +82,7 @@ export function CommonInput(props: CommonInputProps): JSX.Element {
             <input
                 onBlur={handleBlur}
                 onChange={handleChange}
+                onKeyDown={handleKeyDown}
                 placeholder={props.placeholder}
                 value={value}
                 disabled={props.disabled}
