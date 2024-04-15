@@ -11,10 +11,11 @@
     "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\elevaite\\Dockerfile\" -t elevaite:latest \".\""
   },
   "dependencies": {
-    "@auth/core": "^0.28.2",
+    "@auth/core": "^0.29.0",
+    "@repo/lib": "*",
     "@repo/ui": "*",
     "dayjs": "^1.11.10",
-    "next": "^14.1.4",
+    "next": "^14.2.1",
     "next-auth": "5.0.0-beta.16",
     "react": "^18",
     "react-dom": "^18",
@@ -22,7 +23,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "^14.1.4",
+    "@next/eslint-plugin-next": "^14.2.1",
     "@repo/eslint-config": "*",
     "@repo/sass-config": "*",
     "@repo/tailwind-config": "*",

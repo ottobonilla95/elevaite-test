@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  transpilePackages: ["@repo/ui", "@repo/sass-config"],
+  transpilePackages: ["@repo/ui", "@repo/sass-config", "@repo/lib"],
   async redirects() {
     return [
       {

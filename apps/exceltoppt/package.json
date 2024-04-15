@@ -13,9 +13,10 @@
   "dependencies": {
     "@headlessui/react": "^1.7.17",
     "@headlessui/tailwindcss": "^0.2.0",
+    "@repo/lib": "*",
     "@repo/ui": "*",
     "dayjs": "^1.11.10",
-    "next": "14.1.4",
+    "next": "14.2.1",
     "next-auth": "5.0.0-beta.16",
     "prismjs": "^1.29.0",
     "react": "^18",
@@ -23,10 +24,10 @@
     "react-dropzone": "^14.2.3",
     "react-simple-code-editor": "^0.13.1",
     "react-tabs": "^6.0.2",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.1/xlsx-0.20.1.tgz"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.2/xlsx-0.20.2.tgz"
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "^14.1.4",
+    "@next/eslint-plugin-next": "^14.2.1",
     "@repo/eslint-config": "*",
     "@repo/sass-config": "*",
     "@repo/tailwind-config": "*",
