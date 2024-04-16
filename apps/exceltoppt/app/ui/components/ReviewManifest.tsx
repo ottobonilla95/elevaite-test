@@ -24,18 +24,32 @@ interface ReviewManifestProps {
   originalFile?: File;
 }
 
-function ReviewManifest({ onSubmit, onCancel, sheetNames, fileName, originalFile }: ReviewManifestProps): JSX.Element {
-  const [loadedManifest, setLoadedManifest] = useState<Manifest | undefined>(undefined);
-  const [selectedSheet, setSelectedSheet] = useState<string | undefined>(undefined);
+function ReviewManifest({
+  onSubmit,
+  onCancel,
+  sheetNames,
+  fileName,
+  originalFile,
+}: ReviewManifestProps): JSX.Element {
+  const [loadedManifest, setLoadedManifest] = useState<Manifest | undefined>(
+    undefined
+  );
+  const [selectedSheet, setSelectedSheet] = useState<string | undefined>(
+    undefined
+  );
 
-  async function handleViewClick(sheetName: string, selected: boolean): Promise<void> {
+  async function handleViewClick(
+    sheetName: string,
+    selected: boolean
+  ): Promise<void> {
     if (selected) {
       setLoadedManifest(undefined);
       setSelectedSheet(undefined);
     } else {
       setSelectedSheet(sheetName);
       const content = await getYamlContent({ fileName, sheetName });
-      if (typeof content === "string") setLoadedManifest({ content, name: sheetName });
+      if (typeof content === "string")
+        setLoadedManifest({ content, name: sheetName });
     }
   }
 
@@ -47,7 +61,9 @@ function ReviewManifest({ onSubmit, onCancel, sheetNames, fileName, originalFile
     <div className="flex flex-grow p-2 justify-center items-start gap-2 self-stretch bg-white rounded-b-xl">
       <div className="flex w-2/3 flex-col items-start flex-grow self-stretch rounded-lg border border-solid border-[#E5E5E5]">
         <div className="flex p-4 justify-between items-start self-stretch">
-          <span className="font text-[#171717] text-sm font-semibold">File Viewer</span>
+          <span className="font text-[#171717] text-sm font-semibold">
+            File Viewer
+          </span>
         </div>
 
         {loadedManifest && originalFile ? (
@@ -60,9 +76,12 @@ function ReviewManifest({ onSubmit, onCancel, sheetNames, fileName, originalFile
       </div>
       <div className="flex w-1/3 flex-col items-start flex-grow self-stretch rounded-lg border border-solid border-[#E5E5E5]">
         <div className="flex p-4 flex-col items-start gap-2 self-stretch">
-          <span className="text text-[#171717] font-semibold text-sm">Manifest List</span>
+          <span className="text text-[#171717] font-semibold text-sm">
+            Manifest List
+          </span>
           <span className="text text-[#171717] opacity-75 text-sm">
-            Generated manifest files from your spreadsheet, select to view and edit.
+            Generated manifest files from your spreadsheet, select to view and
+            edit.
           </span>
         </div>
         <div className="flex px-2 pb-4 flex-col items-start gap-2 flex-grow self-stretch border-b border-solid border-[#E5E5E5] bg-white">
@@ -108,11 +127,19 @@ function ReviewManifest({ onSubmit, onCancel, sheetNames, fileName, originalFile
 
 export default ReviewManifest;
 
-function FileViewer({ manifest, originalFile }: { manifest: Manifest; originalFile: File }): JSX.Element {
+function FileViewer({
+  manifest,
+  originalFile,
+}: {
+  manifest: Manifest;
+  originalFile: File;
+}): JSX.Element {
   const [code, setCode] = useState(manifest.content);
   const [worksheet, setWorksheet] = useState<XLSX.WorkSheet>();
   const [tableData, setTableData] = useState<StringOrUndefined[][]>([]);
-  const [tableCols, setTableCols] = useState<{ name: string; key: number }[]>([]);
+  const [tableCols, setTableCols] = useState<{ name: string; key: number }[]>(
+    []
+  );
 
   /* Fetch and update the state once */
   useEffect(() => {
@@ -123,7 +150,9 @@ function FileViewer({ manifest, originalFile }: { manifest: Manifest; originalFi
       const wb = read(ab);
       const _sheetName = manifest.name.split(".")[0];
       if (!wb.SheetNames.includes(_sheetName))
-        throw new Error("Something went wrong", { cause: "Sheet name not found" });
+        throw new Error("Something went wrong", {
+          cause: "Sheet name not found",
+        });
       const ws = wb.Sheets[_sheetName]; // get the worksheet
       setWorksheet(ws);
       const { rows: _data, cols: _cols } = ExcelWorkSheetRenderer(ws);
@@ -132,7 +161,7 @@ function FileViewer({ manifest, originalFile }: { manifest: Manifest; originalFi
       //TODO: We should probably notify the user for unsaved changes
       setCode(manifest.content);
       // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression, no-console -- TEMPORARY
-    })().catch((e) => console.error(e));
+    })().catch((e: unknown) => console.error(e));
   }, [manifest, originalFile]);
 
   return (
@@ -146,7 +175,9 @@ function FileViewer({ manifest, originalFile }: { manifest: Manifest; originalFi
             Original File
           </Tab>
         </Tab.List>
-        <Tab.Panel className={` ${sourceCodePro.className} flex flex-grow h-full max-h-full bg-[#FAFAFA]`}>
+        <Tab.Panel
+          className={` ${sourceCodePro.className} flex flex-grow h-full max-h-full bg-[#FAFAFA]`}
+        >
           <div className="h-[calc(100vh-376px)] w-full overflow-y-scroll">
             <Editor
               // className="h-full"
@@ -193,7 +224,12 @@ interface ManifestCardProps {
   index: number;
 }
 
-function ManifestCard({ selected, onClick, sheetName, index }: ManifestCardProps): JSX.Element {
+function ManifestCard({
+  selected,
+  onClick,
+  sheetName,
+  index,
+}: ManifestCardProps): JSX.Element {
   function handleViewClick(): void {
     onClick(sheetName, selected);
   }
@@ -224,7 +260,13 @@ function ManifestCard({ selected, onClick, sheetName, index }: ManifestCardProps
 
 function Clipboard(props: SVGProps<SVGSVGElement>): JSX.Element {
   return (
-    <svg fill="none" height={25} width={24} xmlns="http://www.w3.org/2000/svg" {...props}>
+    <svg
+      fill="none"
+      height={25}
+      width={24}
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
       <path
         d="M14 2.77V6.9c0 .56 0 .84.109 1.054a1 1 0 0 0 .437.437c.214.11.494.11 1.054.11h4.13M16 13.5H8m8 4H8m2-8H8m6-7H8.8c-1.68 0-2.52 0-3.162.327a3 3 0 0 0-1.311 1.311C4 4.78 4 5.62 4 7.3v10.4c0 1.68 0 2.52.327 3.162a3 3 0 0 0 1.311 1.311c.642.327 1.482.327 3.162.327h6.4c1.68 0 2.52 0 3.162-.327a3 3 0 0 0 1.311-1.311C20 20.22 20 19.38 20 17.7V8.5l-6-6Z"
         stroke="currentColor"

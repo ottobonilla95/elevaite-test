@@ -6,11 +6,19 @@ import {
   isGetYamlContentResponse,
   isUploadResponse,
 } from "./discriminators";
-import type { GenPPTResponse, GenerateManifestResponse, GetYamlContentResponse, UploadResponse } from "./interfaces";
+import type {
+  GenPPTResponse,
+  GenerateManifestResponse,
+  GetYamlContentResponse,
+  UploadResponse,
+} from "./interfaces";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-export async function uploadToServer(formData: FormData): Promise<UploadResponse> {
+export async function uploadToServer(
+  formData: FormData
+): Promise<UploadResponse> {
+  if (!BACKEND_URL) throw new Error("Missing base url");
   const response = await fetch(`${BACKEND_URL}/upload/`, {
     method: "POST",
     body: formData,
@@ -28,6 +36,7 @@ export async function generateManifest({
   fileName: string;
   filePath: string;
 }): Promise<GenerateManifestResponse> {
+  if (!BACKEND_URL) throw new Error("Missing base url");
   const url = new URL(`${BACKEND_URL}/generateManifest/`);
   url.searchParams.append("file_name", fileName);
   url.searchParams.append("file_path", `data/Excel/${filePath}`);
@@ -52,6 +61,7 @@ export async function getYamlContent({
   fileName: string;
   sheetName: string;
 }): Promise<GetYamlContentResponse> {
+  if (!BACKEND_URL) throw new Error("Missing base url");
   const url = new URL(`${BACKEND_URL}/getYamlContent/`);
   url.searchParams.append("file_name", encodeURIComponent(fileName));
   url.searchParams.append("yaml_file", sheetName);
@@ -71,7 +81,11 @@ export async function getYamlContent({
   throw new Error("Data malformed", { cause: _data });
 }
 
-export async function generatePPT(fileName: string, activeSheet: string): Promise<GenPPTResponse> {
+export async function generatePPT(
+  fileName: string,
+  activeSheet: string
+): Promise<GenPPTResponse> {
+  if (!BACKEND_URL) throw new Error("Missing base url");
   const encodedExcelFile: string = encodeURIComponent(`${fileName}.xlsx`);
   const encodedSheetName = activeSheet.split(".")[0];
   const url = new URL(`${BACKEND_URL}/genPPT/`);
@@ -94,7 +108,12 @@ export async function generatePPT(fileName: string, activeSheet: string): Promis
   throw new Error("Data malformed", { cause: _data });
 }
 
-export async function ask(query: string, workbookName: string, sheetName: string): Promise<string> {
+export async function ask(
+  query: string,
+  workbookName: string,
+  sheetName: string
+): Promise<string> {
+  if (!BACKEND_URL) throw new Error("Missing base url");
   const url = new URL(`${BACKEND_URL}/askagent/`);
   url.searchParams.append("question", query);
   url.searchParams.append("workbook_name", workbookName);
@@ -115,6 +134,7 @@ export async function ask(query: string, workbookName: string, sheetName: string
 }
 
 export async function downloadPPT(pptPath: string): Promise<Blob> {
+  if (!BACKEND_URL) throw new Error("Missing base url");
   const validPptFile = pptPath ? pptPath : "";
   const url = new URL(`${BACKEND_URL}/downloadPPT/`);
   url.searchParams.append("ppt_path", validPptFile);

@@ -30,7 +30,7 @@ export function OutTable({
         <tbody>
           <tr>
             {withZeroColumn && !withoutRowNum ? (
-              <th className={tableHeaderRowClass || ""} />
+              <th className={tableHeaderRowClass ?? ""} />
             ) : null}
             {columns.map((c) => (
               <th
@@ -42,9 +42,12 @@ export function OutTable({
             ))}
           </tr>
           {data.map((r, i) => (
-            <tr key={`row${i + 1}`}>
+            <tr key={`row${(i + 1).toString()}`}>
               {!withoutRowNum && (
-                <td className={tableHeaderRowClass} key={`rowHeader${i + 1}`}>
+                <td
+                  className={tableHeaderRowClass}
+                  key={`rowHeader${(i + 1).toString()}`}
+                >
                   {renderRowNum ? renderRowNum(r, i) : i}
                 </td>
               )}
