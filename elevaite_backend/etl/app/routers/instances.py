@@ -1,10 +1,9 @@
-from fastapi import APIRouter
 from typing import Annotated
 from fastapi import APIRouter, Body, Depends
 import pika
 from sqlalchemy.orm import Session
-from app.services import applications as app_service, instances as instance_service
-from app.routers.deps import get_rabbitmq_connection, get_db
+from ..services import instances as instance_service
+from .deps import get_rabbitmq_connection, get_db
 from elevaitedb.schemas import (
     instance as instance_schemas,
     configuration as configuration_schemas,
@@ -69,20 +68,6 @@ def getApplicationInstanceLogs(
     return instance_service.getApplicationInstanceLogs(
         instance_id=instance_id, offset=skip, limit=limit
     )
-
-
-# @router.post(
-#     "/{instance_id}/approve",
-#     response_model=instance_schemas.Instance,
-# )
-# def approveApplicationInstance(
-#     application_id: int,
-#     instance_id: str,
-#     db: Session = Depends(get_db),
-# ) -> instance_schemas.Instance:
-#     return service.approveApplicationInstance(
-#         db, application_id=application_id, instance_id=instance_id
-#     )
 
 
 @router.post("/", response_model=instance_schemas.Instance)

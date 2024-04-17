@@ -6,6 +6,8 @@ from sqlalchemy.orm import sessionmaker
 
 load_dotenv()
 SQLALCHEMY_DATABASE_URL = os.getenv("SQLALCHEMY_DATABASE_URL")
+if SQLALCHEMY_DATABASE_URL is None:
+    raise Exception("SQLALCHEMY_DATABASE_URL not found")
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL  # , connect_args={"check_same_thread": False}

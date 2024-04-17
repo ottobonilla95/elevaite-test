@@ -1,9 +1,8 @@
-from pprint import pprint
 from typing import Annotated
 from fastapi import APIRouter, Body, Depends
 from sqlalchemy.orm import Session
-from app.services import configurations as conf_service
-from app.routers.deps import get_db
+from ..services import configurations as conf_service
+from .deps import get_db
 from elevaitedb.schemas import (
     configuration as configuration_schemas,
 )
@@ -19,7 +18,7 @@ def getApplicationConfigurations(application_id: int, db: Session = Depends(get_
 
 
 @router.get("/{configuration_id}", response_model=configuration_schemas.Configuration)
-def getApplicationConfigurations(
+def getApplicationConfigurationById(
     application_id: int, configuration_id: str, db: Session = Depends(get_db)
 ):
     return conf_service.getConfigurationById(

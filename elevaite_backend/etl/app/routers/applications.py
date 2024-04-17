@@ -1,26 +1,28 @@
-from pprint import pprint
-from typing import Annotated, Any
-from fastapi import APIRouter, Body, Depends
+from typing import List, Sequence
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from app.services import applications as service
-from app.routers.deps import get_db
-from elevaitedb.schemas import ( 
+from ..services import applications as service
+from .deps import get_db
+from elevaitedb.schemas import (
     application as application_schemas,
     pipeline as pipeline_schemas,
 )
+
 # from rbac_api import validators
 router = APIRouter(prefix="/application", tags=["applications"])
+
 
 @router.get("", response_model=list[application_schemas.Application])
 def getApplicationList(
     db: Session = Depends(get_db),
-) -> list[application_schemas.Application]:
+) -> Sequence[application_schemas.Application]:
     return service.getApplicationList(db)
+
 
 @router.get("/{application_id}", response_model=application_schemas.Application)
 def getApplicationById(
     application_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
     # validation_info:dict[str, Any] = Depends(validators.validate_get_connector)
 ) -> application_schemas.Application:
     # db: Session = validation_info.get("db", None)
@@ -51,5 +53,5 @@ def getApplicationById(
 def getApplicationPipelines(
     application_id: int,
     db: Session = Depends(get_db),
-) -> list[pipeline_schemas.Pipeline]:
+) -> Sequence[pipeline_schemas.Pipeline]:
     return service.getApplicationPipelines(db, application_id)

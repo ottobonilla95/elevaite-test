@@ -1,3 +1,4 @@
+from typing import List
 from sqlalchemy.orm import Session
 
 from ..schemas.collection import CollectionCreate
@@ -5,7 +6,9 @@ from ..schemas.collection import CollectionCreate
 from ..db import models
 
 
-def get_collections(db: Session, projectId: str, skip: int = 0, limit: int = 100):
+def get_collections(
+    db: Session, projectId: str, skip: int = 0, limit: int = 100
+) -> List[models.Collection]:
     return (
         db.query(models.Collection)
         .filter(models.Collection.projectId == projectId)
@@ -15,13 +18,15 @@ def get_collections(db: Session, projectId: str, skip: int = 0, limit: int = 100
     )
 
 
-def get_collection_by_id(db: Session, collectionId: str):
+def get_collection_by_id(db: Session, collectionId: str) -> models.Collection:
     return (
         db.query(models.Collection).filter(models.Collection.id == collectionId).first()
     )
 
 
-def create_collection(db: Session, projectId: str, cc: CollectionCreate):
+def create_collection(
+    db: Session, projectId: str, cc: CollectionCreate
+) -> models.Collection:
     _collection = models.Collection(name=cc.name, projectId=projectId)
 
     db.add(_collection)

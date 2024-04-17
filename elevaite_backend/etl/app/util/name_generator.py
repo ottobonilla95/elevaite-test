@@ -429,10 +429,11 @@ right = [
 ]
 
 
-def get_random_name(sep="_"):
+def get_random_name(sep="_") -> str:
     r = random.SystemRandom()
     while 1:
         name = "%s%s%s" % (r.choice(left), sep, r.choice(right))
         if name == "boring" + sep + "wozniak":  # Steve Wozniak is not boring
             continue
         return name
+    return ""

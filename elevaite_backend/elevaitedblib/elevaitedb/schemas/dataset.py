@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TypeGuard
+from typing import Any, TypeGuard
 from pydantic import UUID4, BaseModel
 
 
@@ -55,5 +55,5 @@ class Dataset(DatasetBase):
         orm_mode = True
 
 
-def is_dataset(var: object) -> TypeGuard[Dataset]:
-    return var is not None and var.projectId is not None
+def is_dataset(var: Any) -> TypeGuard[Dataset]:
+    return var is not None and var["projectId"] is not None

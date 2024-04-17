@@ -2,8 +2,8 @@ from fastapi import APIRouter
 from typing import Annotated
 from fastapi import APIRouter, Body, Depends
 from sqlalchemy.orm import Session
-from app.services import collections as collection_service
-from app.routers.deps import get_db
+from ..services import collections as collection_service
+from .deps import get_db
 from elevaitedb.schemas import collection as collection_schemas
 
 

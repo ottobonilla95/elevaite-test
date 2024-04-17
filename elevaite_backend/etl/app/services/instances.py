@@ -1,12 +1,13 @@
 from datetime import datetime
 import json
 from pprint import pprint
+from typing import Any, List
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 import pika
 
-from app.util.name_generatior import get_random_name
+from app.util.name_generator import get_random_name
 from app.util.RedisSingleton import RedisSingleton
 from app.util.ElasticSingleton import ElasticSingleton
 from elevaitedb.util import func as util_func
@@ -41,18 +42,21 @@ from elevaitedb.crud import (
     dataset as dataset_crud,
     collection as collection_crud,
 )
+from elevaitedb.db import models
 
 
-def getApplicationInstances(db: Session, application_id: int) -> list[Instance]:
+def getApplicationInstances(db: Session, application_id: int) -> List[models.Instance]:
     instances = instance_crud.get_instances(db, application_id, limit=100)
     return instances
 
 
 def getApplicationInstanceById(
     db: Session, application_id: int, instance_id: str
-) -> Instance:
-    instances = instance_crud.get_instance_by_id(db, application_id, instance_id)
-    return instances
+) -> models.Instance:
+    _instance = instance_crud.get_instance_by_id(db, application_id, instance_id)
+    if _instance is None:
+        raise HTTPException(404, "Instance not found")
+    return _instance
 
 
 def createApplicationInstance(
@@ -60,7 +64,7 @@ def createApplicationInstance(
     application_id: int,
     createInstanceDto: InstanceCreateDTO,
     rmq: pika.BlockingConnection,
-) -> Instance:
+) -> models.Instance:
 
     # TODO: This will be changed with the pipeline rework
     app = application_crud.get_application_by_id(db, application_id)
@@ -69,14 +73,29 @@ def createApplicationInstance(
         raise HTTPException(status_code=404, detail="Application not found")
 
     _configuration = configuration_crud.get_configuration_by_id(
-        db, application_id=application_id, id=createInstanceDto.configurationId
+        db, application_id=application_id, id=str(createInstanceDto.configurationId)
     )
+
+    if _configuration is None:
+        raise HTTPException(404, "Configuration not found")
 
     _raw_configuration = _configuration.raw
     if _raw_configuration["type"] == "ingest":
         _conf = S3IngestFormDataDTO(**_raw_configuration)
     elif _raw_configuration["type"] == "preprocess":
         _conf = PreProcessFormDTO(**_raw_configuration)
+        if _conf.collectionId is None:
+            _collection = collection_crud.create_collection(
+                db=db,
+                projectId=_conf.projectId,
+                cc=CollectionCreate(name=get_random_name()),
+            )
+        else:
+            _collection = collection_crud.get_collection_by_id(
+                db=db, collectionId=_conf.collectionId
+            )
+        _conf.collectionId = str(_collection.id)
+        _raw_configuration["collectionId"] = str(_collection.id)
     else:
         raise HTTPException(
             status_code=402, detail="Configuration Type must be ingest or preprocess"
@@ -94,7 +113,7 @@ def createApplicationInstance(
             db,
             dataset_create=DatasetCreate(
                 name=datasetName,
-                projectId=str(createInstanceDto.projectId),
+                projectId=createInstanceDto.projectId,
             ),
         )
         tags = dataset_crud.get_dataset_tags(db=db)
@@ -102,7 +121,7 @@ def createApplicationInstance(
         if len(_source_tag) == 1:
             source_tag = _source_tag[0]
             dataset_crud.add_tag_to_dataset(
-                db=db, dataset_id=_dataset.id, tag_id=source_tag.id
+                db=db, dataset_id=str(_dataset.id), tag_id=str(source_tag.id)
             )
 
     else:
@@ -112,20 +131,6 @@ def createApplicationInstance(
 
     _conf.datasetId = str(_dataset.id)
     _raw_configuration["datasetId"] = str(_dataset.id)
-
-    if _conf.type == "preprocess":
-        if _conf.collectionId is None:
-            _collection = collection_crud.create_collection(
-                db=db,
-                projectId=_conf.projectId,
-                cc=CollectionCreate(name=get_random_name()),
-            )
-        else:
-            _collection = collection_crud.get_collection_by_id(
-                db=db, collectionId=_conf.collectionId
-            )
-        _conf.collectionId = str(_collection.id)
-        _raw_configuration["collectionId"] = str(_collection.id)
 
     _instance_create = InstanceCreate(
         applicationId=application_id,
@@ -138,6 +143,8 @@ def createApplicationInstance(
         configurationId=_configuration.id,
         configurationRaw=json.dumps(_raw_configuration),
         projectId=createInstanceDto.projectId,
+        comment=None,
+        endTime=None,
     )
 
     _instance = instance_crud.create_instance(db, _instance_create)
@@ -151,7 +158,7 @@ def createApplicationInstance(
             comment="Pipeline was not found.", status=InstanceStatus.FAILED
         )
         res = instance_crud.update_instance(
-            db, application_id, _instance.id, _instance_update
+            db, application_id, str(_instance.id), _instance_update
         )
         return res
 
@@ -169,7 +176,7 @@ def createApplicationInstance(
             endTime=None,
         )
         _instance_pipeline_step = instance_crud.add_pipeline_step(
-            db, _instance.id, _ipss
+            db, str(_instance.id), _ipss
         )
 
     _data = {
@@ -199,7 +206,7 @@ def createApplicationInstance(
     #     )
 
     __instance = instance_crud.get_instance_by_id(
-        db, applicationId=application_id, id=_instance.id
+        db, applicationId=application_id, id=str(_instance.id)
     )
 
     return __instance
@@ -220,15 +227,17 @@ def approveApplicationInstance(
     if not is_instance(_instance):
         raise HTTPException(500, "Error updating instance.")
 
-    _pipeline = pipeline_crud.get_pipeline_by_id(db, _instance.selectedPipelineId)
+    _pipeline = pipeline_crud.get_pipeline_by_id(
+        db=db, pipeline_id=str(_instance.selectedPipelineId)
+    )
     if not is_pipeline(_pipeline):
         raise HTTPException(500, "Selected Pipeline doesn't exist")
 
     _ipss = instance_crud.update_pipeline_step(
-        db,
-        instance_id,
-        _pipeline.exit,
-        InstancePipelineStepStatusUpdate(
+        db=db,
+        instance_id=instance_id,
+        step_id=str(_pipeline.exit),
+        dto=InstancePipelineStepStatusUpdate(
             endTime=_end_time, status=PipelineStepStatus.COMPLETED
         ),
     )
@@ -241,17 +250,21 @@ def getApplicationInstanceChart(
 ) -> InstanceChartData:
     r = RedisSingleton().connection
 
-    if r.ping():
-        res = r.json().get(instance_id)
+    if not r.ping():
+        raise HTTPException(503, "Redis unavailable")
+    _res = r.json().get(instance_id)
+    if _res is None:
+        raise HTTPException(404, "Instance data not found")
+    res = json.loads(json.dumps(_res))
 
-        return InstanceChartData(
-            avgSize=res["avg_size"],
-            ingestedItems=res["ingested_items"],
-            totalItems=res["total_items"],
-            totalSize=res["total_size"],
-            ingestedSize=res["ingested_size"],
-            ingestedChunks=res["ingested_chunks"],
-        )
+    return InstanceChartData(
+        avgSize=res["avg_size"],
+        ingestedItems=res["ingested_items"],
+        totalItems=res["total_items"],
+        totalSize=res["total_size"],
+        ingestedSize=res["ingested_size"],
+        ingestedChunks=res["ingested_chunks"],
+    )
 
 
 def getApplicationInstanceConfiguration(

@@ -1,3 +1,5 @@
+from typing import List
+from elevaitedb.db import models
 from sqlalchemy.orm import Session
 
 from elevaitedb.schemas.configuration import (
@@ -10,17 +12,23 @@ from elevaitedb.crud import (
 )
 
 
-def getConfigurationsOfApplication(db: Session, application_id: int):
+def getConfigurationsOfApplication(
+    db: Session, application_id: int
+) -> List[models.Configuration]:
     _conf = configuration_crud.get_configurations_of_application(db, application_id)
     return _conf
 
 
-def getConfigurationById(db: Session, application_id: int, conf_id: str):
+def getConfigurationById(
+    db: Session, application_id: int, conf_id: str
+) -> models.Configuration:
     _conf = configuration_crud.get_configuration_by_id(db, application_id, conf_id)
     return _conf
 
 
-def createConfiguration(db: Session, create_configuration: ConfigurationCreate):
+def createConfiguration(
+    db: Session, create_configuration: ConfigurationCreate
+) -> models.Configuration:
     _conf = configuration_crud.create_configuration(db, create_configuration)
     return _conf
 

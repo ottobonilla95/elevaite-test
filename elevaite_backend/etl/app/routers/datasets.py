@@ -1,10 +1,9 @@
-from pprint import pprint
 from typing import Annotated
 from fastapi import APIRouter, Body, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from app.services import datasets as dataset_service
-from app.routers.deps import get_db
+from ..services import datasets as dataset_service
+from .deps import get_db
 from elevaitedb.schemas import (
     dataset as dataset_schemas,
 )
