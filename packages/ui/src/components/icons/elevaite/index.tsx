@@ -37,6 +37,7 @@ import SVGRefresh from "./svgRefresh";
 import SVGEvaluate from "./svgEvaluate";
 import SVGSend from "./svgSend";
 import SVGToggleSize from "./svgToggleSize";
+import SVGDatasets from "./svgDatasets";
 
 
 export const ElevaiteIcons = {
@@ -79,4 +80,5 @@ export const ElevaiteIcons = {
     SVGEvaluate,
     SVGSend,
     SVGToggleSize,
+    SVGDatasets,
 };

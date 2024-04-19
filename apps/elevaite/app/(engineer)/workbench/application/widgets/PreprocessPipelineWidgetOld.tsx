@@ -106,7 +106,7 @@ export function PreprocessPipelineWidgetOld(props: PreprocessPipelineWidgetProps
 
                     <div className="separator"/>
                     <div className="flow-type-title">
-                        {`Pre-process ${props.flowLabel} Flow`}
+                        {`Pre-process ${props.flowLabel ?? ""} Flow`}
                     </div>
 
                     <div className="flow-scroller">
@@ -172,7 +172,7 @@ function StepBlock(props: (PipelineStep & PipelineStepData) & { stepNumber?: num
         <div className="step-block-container">
             <div className="step-block-header">
                 {getRelevantIcon(props.status)}
-                <span>{props.stepNumber ? `Step ${props.stepNumber}` : ""}</span>
+                <span>{props.stepNumber ? `Step ${props.stepNumber.toString()}` : ""}</span>
                 {!props.startTime ? null :
                     <div className="time-info-wrapper">
                         <div className="time-info" title={getTimeTooltip(props.startTime, props.endTime, props.status)}>

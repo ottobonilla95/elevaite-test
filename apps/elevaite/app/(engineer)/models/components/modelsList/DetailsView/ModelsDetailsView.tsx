@@ -13,36 +13,36 @@ import { ModelsDetailsInferenceTab } from "./ModelsDetailsInferenceTab";
 
 
 
-const PARAMETERS_COLUMN_1 = [
-    { label: "Architectures:", value: "MixtrailForCausalLM" },
-    { label: "Max Position Embeddings:", value: "32678" },
-    { label: "Attention Dropout:", value: "0.0" },
-    { label: "Hidden Act:", value: "Silu" },
-    { label: "Hidden Size:", value: "4096" },
-    { label: "Intermediate Size:", value: "14336" },
-    { label: "Initializer Range:", value: "0.02" },
-    { label: "Model Type:", value: "Mixtrail" },
-    { label: "Num Attention Heads:", value: "32" },
-    { label: "Num Experts per tok:", value: "2" },
-    { label: "Num Hidden Layers:", value: "32" },
-    { label: "Num Key Value Heads:", value: "8" },
-    { label: "Num Local Experts:", value: "8" },
-];
+// const PARAMETERS_COLUMN_1 = [
+//     { label: "Architectures:", value: "MixtrailForCausalLM" },
+//     { label: "Max Position Embeddings:", value: "32678" },
+//     { label: "Attention Dropout:", value: "0.0" },
+//     { label: "Hidden Act:", value: "Silu" },
+//     { label: "Hidden Size:", value: "4096" },
+//     { label: "Intermediate Size:", value: "14336" },
+//     { label: "Initializer Range:", value: "0.02" },
+//     { label: "Model Type:", value: "Mixtrail" },
+//     { label: "Num Attention Heads:", value: "32" },
+//     { label: "Num Experts per tok:", value: "2" },
+//     { label: "Num Hidden Layers:", value: "32" },
+//     { label: "Num Key Value Heads:", value: "8" },
+//     { label: "Num Local Experts:", value: "8" },
+// ];
 
-const PARAMETERS_COLUMN_2 = [
-    { label: "BOS Token ID:", value: "1" },
-    { label: "EOS Token ID:", value: "2" },
-    { label: "Output Router Logits:", value: "false" },
-    { label: "RMS Norm Eps:", value: "1e-05" },
-    { label: "Rope Theta:", value: "1000000.0" },
-    { label: "Router aux Loss:", value: "0.02" },
-    { label: "Sliding Window:", value: "null" },
-    { label: "Tie Word Embeddings:", value: "false" },
-    { label: "Torch DType:", value: "bfloat16" },
-    { label: "Transformers Version:", value: "4.36.0.dev0" },
-    { label: "User Cache:", value: "true" },
-    { label: "Vocab Size:", value: "32000" },
-];
+// const PARAMETERS_COLUMN_2 = [
+//     { label: "BOS Token ID:", value: "1" },
+//     { label: "EOS Token ID:", value: "2" },
+//     { label: "Output Router Logits:", value: "false" },
+//     { label: "RMS Norm Eps:", value: "1e-05" },
+//     { label: "Rope Theta:", value: "1000000.0" },
+//     { label: "Router aux Loss:", value: "0.02" },
+//     { label: "Sliding Window:", value: "null" },
+//     { label: "Tie Word Embeddings:", value: "false" },
+//     { label: "Torch DType:", value: "bfloat16" },
+//     { label: "Transformers Version:", value: "4.36.0.dev0" },
+//     { label: "User Cache:", value: "true" },
+//     { label: "Vocab Size:", value: "32000" },
+// ];
 
 
 
@@ -90,14 +90,14 @@ export function ModelsDetailsView(): JSX.Element {
         if (modelsContext.selectedModel?.status !== ModelsStatus.DEPLOYED && selectedTab === MODELS_DETAILS_TABS.INFERENCE) {
             setSelectedTab(MODELS_DETAILS_TABS.GENERAL);
         }
-        if (modelsContext.selectedModel?.status === ModelsStatus.FAILED && selectedTab !== MODELS_DETAILS_TABS.GENERAL) {
-            setSelectedTab(MODELS_DETAILS_TABS.GENERAL);
+        if (modelsContext.selectedModel?.status === ModelsStatus.FAILED && selectedTab !== MODELS_DETAILS_TABS.LOGS) {
+            setSelectedTab(MODELS_DETAILS_TABS.LOGS);
         }
     }, [modelsContext.selectedModel]);
 
 
     function getIsTabDisabled(tab: MODELS_DETAILS_TABS, modelStatus: ModelsStatus|undefined): boolean {
-        if (tab !== MODELS_DETAILS_TABS.GENERAL &&
+        if (tab !== MODELS_DETAILS_TABS.GENERAL && tab !== MODELS_DETAILS_TABS.LOGS &&
             (modelStatus === ModelsStatus.REGISTERING || modelStatus === ModelsStatus.FAILED))
             return true;
         

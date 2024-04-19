@@ -11,13 +11,13 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 // eslint-disable-next-line @typescript-eslint/require-await -- Server actions must be async functions
 export async function logOut(): Promise<void> {
-  redirect(`${process.env.NEXTAUTH_URL_INTERNAL}/api/signout`);
+  redirect(`${process.env.NEXTAUTH_URL_INTERNAL ?? ""}/api/signout`);
 }
 
 
 
 export async function fetchChatbotResponse(userId: string, messageText: string, sessionId: string, chatbotV: ChatbotV, chatbotGenAi: ChatBotGenAI): Promise<ChatMessageResponse> {
-  const url = new URL(`${BACKEND_URL}${chatbotV}?query=${messageText}&uid=${userId}&sid=${sessionId}&collection=${chatbotGenAi}`);
+  const url = new URL(`${BACKEND_URL ?? ""}${chatbotV}?query=${messageText}&uid=${userId}&sid=${sessionId}&collection=${chatbotGenAi}`);
   const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to fetch");
   const data: unknown = await response.json();
@@ -28,7 +28,7 @@ export async function fetchChatbotResponse(userId: string, messageText: string, 
 
 
 export async function fetchSessionSummary(userId: string, sessionId: string): Promise<SessionSummaryObject> {
-  const url = new URL(`${BACKEND_URL}summarization?uid=${userId}&sid=${sessionId}`);
+  const url = new URL(`${BACKEND_URL ?? ""}summarization?uid=${userId}&sid=${sessionId}`);
   const response = await fetch(url);  
   if (!response.ok) throw new Error("Failed to fetch");
   const data: unknown = await response.json();

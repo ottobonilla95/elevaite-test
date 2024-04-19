@@ -12,8 +12,8 @@ export function getTestSessionsList(amount: number): SessionObject[] {
     const list: SessionObject[] = [];
     for (let i=0; i<amount; i++) {
         list.push({
-            id: `id_${i}`,
-            label: `Session ${i+1}`,
+            id: `id_${i.toString()}`,
+            label: `Session ${(i+1).toString()}`,
             messages: [],
             creationDate: new Date().toISOString(),
         })
@@ -28,7 +28,7 @@ export function getTestMessagesList(amount: number): ChatMessageObject[] {
     const list: ChatMessageObject[] = [];
     for (let i=0; i<amount; i++) {
         list.push({
-            id: `id_${i}`,
+            id: `id_${i.toString()}`,
             isBot: i % 2 !== 0,
             date: new Date().toISOString(),
             text: LOREM.slice(0, getRandomInRange(200, LOREM.length)),
@@ -45,8 +45,8 @@ export function getTestMessageFiles(): ChatMessageFileObject[] {
     const files: ChatMessageFileObject[] = [];
     for (let i=0; i <= getRandomInRange(0, 6); i++) {
         files.push({
-            id: `file_id_${i+1}`,
-            filename: `Test file ${i+1}`,
+            id: `file_id_${(i+1).toString()}`,
+            filename: `Test file ${(i+1).toString()}`,
             isViewable: getRandomInRange(0, 1) > 0,
             isDownloadable: getRandomInRange(0, 1) > 0,
             fileType: ChatMessageFileTypes.DOC,

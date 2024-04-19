@@ -54,7 +54,7 @@ function AppLayout({
         handleSearchInput={handleSearchInput}
         logOut={logOut}
         searchResults={results}
-        user={{ icon: session?.user?.image || "" }}
+        user={{ icon: session?.user?.image ?? "" }}
       />
       <Sidebar sidebarIcons={sidebarIcons} />
       <div className="children-container">

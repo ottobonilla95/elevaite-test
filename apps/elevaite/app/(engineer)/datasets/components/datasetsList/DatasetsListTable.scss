@@ -1,0 +1,77 @@
+
+
+
+.datasets-list-table-container {
+    grid-area: 2 / 1;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease-in-out;
+    overflow: hidden;
+
+    &.is-visible {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    & .table-span {
+        border: 1px solid var(--ev-colors-borderColor);
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        padding: 50px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+
+        & > svg {
+            height: 20px;
+            width: 20px;
+        }
+    }
+
+
+    & .datasets-list-table-grid {
+        max-height: 100%;
+        display: grid;
+        grid-template-columns: 30px 4fr 4fr 2fr 3fr 100px 100px 4fr 3fr 4fr;
+        grid-template-rows: min-content;
+        
+        overflow-y: auto;
+        @include scrollbar();
+
+        & .empty {
+            grid-column: 1 / -1;
+            color: var(--ev-colors-secondaryText);
+        }
+    }
+
+    & .condensed-grid {
+        height: 100%;
+        overflow-y: auto;
+        @include scrollbar();
+    }
+}
+
+
+
+
+.evaluation-dialog-container {
+    width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    & .evaluate-dialog-dataset {
+        
+        & > button.common-button {
+            flex-grow: 1;
+            background-color: var(--ev-colors-background);
+            padding: 10px;
+        }
+        & .common-select-options-container .common-select-options-contents {
+            max-height: 30vh;
+            gap: 5px;
+        }
+    }
+}
+

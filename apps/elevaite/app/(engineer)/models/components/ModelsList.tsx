@@ -15,6 +15,11 @@ export function ModelsList(): JSX.Element {
     const modelsContext = useModels();
     const [selectedTab, setSelectedTab] = useState<MODELS_LIST_TABS>(MODELS_LIST_TABS.MODELS);
 
+    function handleTabChange(tab: MODELS_LIST_TABS): void {
+        if (tab !== selectedTab) modelsContext.setSelectedModel(undefined);
+        setSelectedTab(tab);
+    }
+
     return (
         <div
             className={[
@@ -25,10 +30,14 @@ export function ModelsList(): JSX.Element {
             <div className="models-list-table">
                 <ModelsListHeader
                     selectedTab={selectedTab}
-                    onTabSelected={setSelectedTab}
+                    onTabSelected={handleTabChange}
                 />
                 <ModelsListTable
                     isVisible={selectedTab === MODELS_LIST_TABS.MODELS}
+                />
+                <ModelsListTable
+                    isEmbedding
+                    isVisible={selectedTab === MODELS_LIST_TABS.EMBEDDING}
                 />
             </div>
             <ModelsDetailsView/>

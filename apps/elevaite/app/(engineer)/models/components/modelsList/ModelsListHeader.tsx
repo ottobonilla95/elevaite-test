@@ -10,7 +10,7 @@ export enum MODELS_LIST_TABS {
 
 const ModelsListTabsArray: {label: MODELS_LIST_TABS, isDisabled?: boolean}[] = [
     { label: MODELS_LIST_TABS.MODELS },
-    { label: MODELS_LIST_TABS.EMBEDDING, isDisabled: true },
+    { label: MODELS_LIST_TABS.EMBEDDING },
 ];
 
 

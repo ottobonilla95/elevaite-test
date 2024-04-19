@@ -30,11 +30,15 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
         label: "Applications",
         link: "/",
     },
+    homepage: {
+        label: "Applications",
+        link: "/",
+    },
 };
 
 const sidebarIcons: SidebarIconObject[] = [
-    // { icon: <ElevaiteIcons.Datasets />, link: "/datasets" },
     // { icon: <ElevaiteIcons.WorkersQueues />, link: "/workers_queues" },
+    { icon: <ElevaiteIcons.Datasets />, link: "/datasets", description: "Datasets" },
     { icon: <ElevaiteIcons.SVGModels />, link: "/models", description: "Models" },
     { icon: <ElevaiteIcons.Workbench />, link: "/workbench", description: "Workbench" },
     { icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" },

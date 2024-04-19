@@ -7,7 +7,7 @@ import "./page.scss";
 
 
 
-export default function Page():JSX.Element {
+export default function Page(): JSX.Element {
   return (
     <ModelsContextProvider>
       <div className="models-main-container">

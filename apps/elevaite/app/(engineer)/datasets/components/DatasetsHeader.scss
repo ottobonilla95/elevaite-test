@@ -1,0 +1,57 @@
+
+
+
+.datasets-header-container {
+    max-height: 45px;
+    height: 10vh;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+
+    & .part-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+
+        & .title {
+            color: var(--ev-colors-text);
+            font-size: 20px;
+            font-weight: 400;
+            cursor: default;
+        }
+
+        
+        & .register-button {
+            background-color: var(--ev-colors-primary);
+            border: 1px solid var(--ev-colors-borderColor);
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+
+            & > svg {
+                color: var(--ev-colors-highlight);
+                height: 18px;
+                width: 18px;
+            }
+        }
+
+        & .icon-button {
+            height: 30px;
+            width: 30px;
+            padding: 5px;
+            color: var(--ev-colors-secondaryText);
+
+            & > svg {
+                height: 100%;
+                width: 100%;
+            }
+
+            &.play {
+                color: var(--ev-colors-highlight);
+            }
+        }
+    }
+
+}

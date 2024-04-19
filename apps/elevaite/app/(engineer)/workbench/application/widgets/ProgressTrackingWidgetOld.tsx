@@ -110,7 +110,7 @@ function ProgressBit(props: {
     isLoading?: boolean;
     disabled?: boolean;
 }): JSX.Element {
-    const isDisabled = props.disabled || props.isLoading || props.value === -1;
+    const isDisabled = (props.disabled ?? props.isLoading) ?? props.value === -1;
 
     return (
         <div className={[
@@ -131,7 +131,7 @@ function ProgressBit(props: {
                         <div className="bit-units">{props.units}</div>
                     </div>
                     <div className="progress-bar">
-                        <div className="fill-bar" style={{width: `${isDisabled ? "0" : props.value}%`}} />
+                        <div className="fill-bar" style={{width: `${isDisabled ? "0" : props.value.toString()}%`}} />
                     </div>
                 </div>
             :

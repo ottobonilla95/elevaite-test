@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { S3DataRetrievalAppPipelineStructure } from "./dataRetrievalApps";
 import { isInitializerDto } from "./actions/applicationDiscriminators";
-import type { AppInstanceObject, ApplicationType, ChartDataObject, Initializers, PipelineObject, PipelineStep, PipelineStepAddedInfo } from "./interfaces";
+import type { AppInstanceObject, ApplicationType, ChartDataObject, Initializers, ModelDatasetObject, ModelObject, PipelineObject, PipelineStep, PipelineStepAddedInfo } from "./interfaces";
 import { StepDataSource, StepDataType } from "./interfaces";
 import { S3PreprocessingAppPipelineStructure } from "./preprocessingApps";
 
@@ -48,6 +48,13 @@ export function getConfigurationObjectFromRaw(raw?: unknown): Initializers|undef
     const parsedConfiguration = typeof raw === "string" ? JSON.parse(raw) as unknown : raw;
     if (!isInitializerDto(parsedConfiguration)) return;
     return parsedConfiguration;
+}
+
+
+export function getUniqueTagsFromList(list: ModelObject[]|ModelDatasetObject[]): string[] {
+    const tagsSet = new Set<string>();
+    list.flatMap((listItem: { tags?: string[]; }) => listItem.tags ?? []).forEach(tag => tagsSet.add(tag));
+    return Array.from(tagsSet).sort();
 }
 
 

@@ -3,7 +3,7 @@
 .models-main-container {    
     height: 100%;
     display: grid;
-    grid-template-rows: 80px 1fr;
+    grid-template-rows: auto 1fr;
     gap: 20px;
     padding: 20px;
 

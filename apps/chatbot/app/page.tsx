@@ -5,7 +5,7 @@ import "./page.scss";
 
 
 
-export default function Chatbot() {
+export default function Chatbot(): JSX.Element {
 
 
 

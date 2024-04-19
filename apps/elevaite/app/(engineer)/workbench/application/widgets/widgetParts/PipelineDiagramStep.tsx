@@ -68,7 +68,7 @@ export function PipelineDiagramStep({stepNumber, endStep, selectedStepId, onSele
         if (current === undefined) return "";
         if (current === 0) return "Start";
         if (current === end) return "End";
-        return `Step ${current}`;
+        return `Step ${current.toString()}`;
     }
 
     // function getTimeTooltip(startTime: string, endTime?: string, status?: PipelineStatus): string {

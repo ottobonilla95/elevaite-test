@@ -31,8 +31,8 @@ export function ChatMessageFeedback(props: ChatMessageFeedbackProps): JSX.Elemen
         setFiles((current) => [
             ...current,
             {
-                id: `testId${current.length}1`,
-                filename: `Test_file_${current.length + 1}.doc`,
+                id: `testId${current.length.toString()}1`,
+                filename: `Test_file_${(current.length + 1).toString()}.doc`,
             },
         ]);
     }

@@ -86,6 +86,7 @@ export default function WidgetDocker(props: WidgetDockerProps): JSX.Element {
                         <ProgressTrackingWidget
                             applicationId={props.applicationId}
                             instance={props.selectedInstance}
+                            pipelineName={props.selectedFlow?.label}
                             type={props.applicationDetails?.applicationType}
                         />
                     </>

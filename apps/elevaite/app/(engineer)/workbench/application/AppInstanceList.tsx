@@ -116,6 +116,7 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
         const filteredInstances = [...allInstances].filter(instance => {
             // Check scope
             if (filters.scope === ScopeInstances.AllInstances ||
+                // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- This does not convert to ?? without issues. Leave it as it is.
                 (session.data?.user?.name && instance.creator === session.data.user.name) ||
                 (!session.data?.user?.name && instance.creator === "Unknown User")) {
                 // Check Flow
@@ -125,7 +126,7 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
                         // Check search term
                         if (!filters.searchTerm ||
                             instance.id.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-                            (instance.name && instance.name.toLowerCase().includes(filters.searchTerm.toLowerCase()))
+                            (instance.name?.toLowerCase().includes(filters.searchTerm.toLowerCase()))
                         ) {
                             return instance;
                         }

@@ -2,11 +2,11 @@
 
 
 .models-list-table-container {
+    grid-area: 2 / 1;
     opacity: 0;
     pointer-events: none;
     transition: opacity 200ms ease-in-out;
-    overflow-y: auto;
-    @include scrollbar();
+    overflow: hidden;
 
     &.is-visible {
         opacity: 1;
@@ -31,13 +31,24 @@
 
 
     & .models-list-table-grid {
+        max-height: 100%;
         display: grid;
-        grid-template-columns: 30px 2fr 3fr 5fr 3fr 115px 115px 4fr 3fr;
+        grid-template-columns: 30px 2fr 3fr 5fr 3fr 115px 115px 4fr 4fr;
+        grid-template-rows: min-content;
+        
+        overflow-y: auto;
+        @include scrollbar();
 
         & .empty {
             grid-column: 1 / -1;
             color: var(--ev-colors-secondaryText);
         }
+    }
+
+    & .condensed-grid {
+        height: 100%;
+        overflow-y: auto;
+        @include scrollbar();
     }
 }
 

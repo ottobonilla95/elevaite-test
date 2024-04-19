@@ -12,9 +12,21 @@ export const metadata: Metadata = {
 };
 
 const breadcrumbLabels: Record<string, { label: string; link: string }> = {
-  appDrawer: {
-    label: "Applications",
-    link: "/appDrawer",
+  models: {
+    label: "Models",
+    link: "/models",
+  },
+  datasets: {
+    label: "Datasets",
+    link: "/datasets",
+  },
+  workbench: {
+    label: "Workbench",
+    link: "/workbench",
+  },
+  application: {
+    label: "Application",
+    link: "/application",
   },
   home: {
     label: "Applications",
@@ -27,8 +39,7 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
 };
 
 const sidebarIcons: SidebarIconObject[] = [
-  // { icon: <ElevaiteIcons.Datasets />, link: "/datasets" },
-  // { icon: <ElevaiteIcons.WorkersQueues />, link: "/workers_queues" },
+  { icon: <ElevaiteIcons.Datasets />, link: "/datasets", description: "Datasets" },
   { icon: <ElevaiteIcons.SVGModels />, link: "/models", description: "Models" },
   { icon: <ElevaiteIcons.Workbench />, link: "/workbench", description: "Workbench" },
   { icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" },

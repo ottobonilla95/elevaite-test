@@ -87,7 +87,7 @@ const appLinks: Record<string, { development: string; production: string; test: 
   },
   excletoppt: {
     development: "http://localhost:3003/homepage",
-    production: "https://elevaite-apps.iopex.ai/askdocs ",
+    production: "https://elevaite-test.iopex.ai/homepage",
     test: "",
   },
   insights: {

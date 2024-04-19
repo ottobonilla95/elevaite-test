@@ -72,6 +72,35 @@ export enum EvaluationStatus {
 
 
 
+
+
+// SYSTEM INTERFACES
+////////////////
+
+
+export interface FiltersStructure {
+    label?: string;
+    filters: (FilterUnitStructure|FilterGroupStructure)[];
+}
+
+export interface FilterUnitStructure {
+    label: string;
+    isSelected?: boolean;
+    isActive?: boolean;
+}
+
+export interface FilterGroupStructure {
+    label: string;
+    isClosed?: boolean;
+    filters: FilterUnitStructure[];
+}
+
+
+
+
+
+
+
 // COMMON INTERFACES
 ////////////////
 
@@ -179,21 +208,23 @@ export interface PipelineStatusItem {
 
 
 
-// MODELS
+// MODELS & DATASETS
 ////////////////
 
 export interface ModelObject {
     id: number | string;
     huggingface_repo?: string;
     name: string;
-    status?: ModelsStatus; // enum? "registered", "failed"
+    status: ModelsStatus; // enum? "registered", "failed"
     tags?: string[];
     task?: string;
     created_at?: string;
     endpointUrl?: string;
     endpointId?: string;
-    ramToRun?: string | number;
-    ramToTrain?: string | number;
+    memory_requirements?: {
+        float16: MemoryLayers;
+        float32: MemoryLayers;
+    };
 }
 
 
@@ -297,18 +328,6 @@ export interface EvaluationObject {
     results: unknown;
 }
 
-// Old local
-// export interface EvaluationObject {
-//     name: string;
-//     modelId: string|number;
-//     datasetName: string;
-//     date?: string;
-//     userName?: string;
-//     latency?: string;
-//     processor?: string;
-//     costPerToken?: string;
-// }
-
 export interface ModelEndpointObject {
     endpoint_id: string|number;
     model_id: string|number;
@@ -333,7 +352,14 @@ export interface ModelDatasetObject {
     tags: string[];
 }
 
-
+export interface HuggingfaceDatasetObject {
+    id: string;
+    author?: string;
+    sha: string;
+    created_at: string;
+    last_modified: string;
+    gated: boolean;
+}
 
 
 

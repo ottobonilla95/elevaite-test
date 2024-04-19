@@ -103,11 +103,11 @@ function ModelDetailsEvaluationBlock(props: EvaluationObject): JSX.Element {
                 :
                     <>
                         <div className="label">Latency:</div>
-                        <div className="value">{"Test"}</div>
+                        <div className="value">Test</div>
                         <div className="label">Processor:</div>
-                        <div className="value">{"Test"}</div>
+                        <div className="value">Test</div>
                         <div className="label">Cost per Token:</div>
-                        <div className="value">{"Test"}</div>
+                        <div className="value">Test</div>
                     </>
                 }
             </div>

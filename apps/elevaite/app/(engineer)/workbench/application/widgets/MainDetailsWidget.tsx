@@ -11,7 +11,12 @@ export default function MainDetailsWidget({ instance }: MainDetailsWidgetProps):
     return (
         <div className={["main-details-widget-container", !instance ? "inert" : undefined].filter(Boolean).join(" ")}>
             <div className="main-details-text">
-                <div className="dataset">{instance ? `Dataset Created: ${instance.datasetId ? instance.datasetId : "None"}` : ""}</div>
+                <div className="dataset">{!instance ? "" :
+                    <>
+                        <span>Dataset Created: </span>
+                        <span>{instance.datasetId ? instance.datasetId : "None"}</span>
+                    </>}
+                </div>
                 <div className="creator">{instance ? `Created by: ${instance.creator}` : ""}</div>
             </div>
 

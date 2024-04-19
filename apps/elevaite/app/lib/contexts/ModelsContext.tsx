@@ -16,6 +16,8 @@ export enum specialHandlingModelFields {
     STATUS = "status",
     TAGS = "tags",
     DATE = "date",
+    RAM_TO_RUN = "ramToRun",
+    RAM_TO_TRAIN = "ramToTrain",
 }
 
 
@@ -81,7 +83,7 @@ export interface ModelsContextStructure {
     getEvaluationLogs: (evaluationId: string|number) => Promise<ModelEvaluationLogObject[]>;
     sortModels: (field: string, specialHandling?: string) => void;
     getAvailableRemoteModels: (task: string) => void;
-    getAvailableRemoteModelsByName: (task: string) => void;
+    getAvailableRemoteModelsByName: (name: string) => void;
     registerModel: (modelName: string, modelRepo: string, tags?: string[]) => Promise<void>;
     deployModel: (modelId: string|number) => Promise<void>;
     deleteModel: (modelId: string|number) => Promise<void>;
@@ -130,7 +132,7 @@ function sortDisplayModels(models: ModelObject[], sorting: SortingObject, specia
 
     switch (specialHandling) {
         case specialHandlingModelFields.STATUS: 
-            models.sort((a,b) => !a.status || !b.status ? 0 : statusSortOrder.indexOf(a.status) - statusSortOrder.indexOf(b.status));
+            models.sort((a,b) => statusSortOrder.indexOf(a.status) - statusSortOrder.indexOf(b.status));
             break;
         case specialHandlingModelFields.DATE:
             models.sort((a,b) => dayjs(a.created_at).valueOf() - dayjs(b.created_at).valueOf());
@@ -201,7 +203,7 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
             return model;
         });
         setDisplayModels(sortDisplayModels(adjustedModels, sorting));
-        // console.log("models", adjustedModels);
+        console.log("models", adjustedModels);
     }, [models, modelEndpoints]);
 
 
@@ -341,6 +343,7 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
         try {
             setLoading(current => {return {...current, datasets: true}} );
             const fetchedDatasets = await getModelDatasets();
+            console.log("Datasets:", fetchedDatasets);
             setModelDatasets(fetchedDatasets);
         } catch(error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)

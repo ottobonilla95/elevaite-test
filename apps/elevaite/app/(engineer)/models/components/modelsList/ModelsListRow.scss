@@ -14,6 +14,9 @@
 
         & > .models-list-row-cell {
             background-color: var(--ev-colors-primary);
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
     }
 

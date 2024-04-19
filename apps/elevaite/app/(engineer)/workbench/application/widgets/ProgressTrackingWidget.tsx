@@ -31,6 +31,7 @@ interface ProgressTrackingWidgetProps {
     applicationId: string | null;
     type?: ApplicationType;
     instance?: AppInstanceObject;
+    pipelineName?: string;
 }
 
 export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.Element {
@@ -97,6 +98,7 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
                 type={props.type}
                 configuration={selectedInstanceConfiguration}
                 isSkeleton={!props.instance}
+                pipelineName={props.pipelineName}
             />
             {displayBits.map((bit) => (
                 <ProgressBit
@@ -114,6 +116,7 @@ export function ProgressTrackingWidget(props: ProgressTrackingWidgetProps): JSX.
 
 
 function ProgressBitInfo(props: {
+    pipelineName?: string;
     configuration?: Initializers;
     type?: ApplicationType;
     isSkeleton?: boolean;
@@ -133,7 +136,7 @@ function ProgressBitInfo(props: {
             const conf: S3IngestFormDTO | undefined = props.configuration ? props.configuration as S3IngestFormDTO : undefined;
             setDetails({
                 mainLabel: "Dataset Name:",
-                mainValue: conf ? conf.name : "",
+                mainValue: conf?.datasetName ? conf.datasetName : "",
                 secondaryLabel: "S3 URI:",
                 secondaryValue: conf ? conf.url : "",
                 lastProgress: "New Instance",
@@ -142,9 +145,9 @@ function ProgressBitInfo(props: {
             const conf: S3PreprocessFormDTO | undefined = props.configuration ? props.configuration as S3PreprocessFormDTO : undefined;
             setDetails({
                 mainLabel: "Pipeline Name:",
-                mainValue: conf ? conf.name : "",
+                mainValue: props.pipelineName ? props.pipelineName : "",
                 secondaryLabel: "Input Dataset:",
-                secondaryValue: conf ? conf.datasetName : "",
+                secondaryValue: conf?.datasetName ? conf.datasetName : "",
                 lastProgress: "New Instance",
             });
         }
@@ -186,7 +189,7 @@ function ProgressBit(props: {
     isLoading?: boolean;
     disabled?: boolean;
 }): JSX.Element {
-    const isDisabled = props.disabled || props.isLoading || props.value === -1;
+    const isDisabled = (props.disabled ?? props.isLoading) ?? props.value === -1;
 
     return (
         <div className={[

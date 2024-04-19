@@ -50,13 +50,13 @@ export function PipelineInfoConfiguration(props: PipelineInfoConfigurationProps)
                 )
             } else if (field.type === AppInstanceFieldTypes.CHECKBOX) {
                 return  <ConfigBlockCheckbox
-                            key={`checkbox_${field.label}`}
+                            key={`checkbox_${field.label ?? ""}`}
                             label={field.label ? field.label : ""}
                             value={field.field && configValues?.[field.field] ? configValues[field.field] as boolean : undefined}
                         />
             } 
             return  <ConfigBlock
-                        key={`block_${field.label}`}
+                        key={`block_${field.label ?? ""}`}
                         label={field.label ? field.label : ""}
                         value={field.field && configValues?.[field.field] ? configValues[field.field] as string : undefined}
                         info={field.info ? field.info : ""}
@@ -70,7 +70,7 @@ export function PipelineInfoConfiguration(props: PipelineInfoConfigurationProps)
 
     return (
         <div className="pipeline-info-configuration-container">
-            {props.isSkeleton || !configStructure ? 
+            {props.isSkeleton ?? !configStructure ? 
                 <SkeletonBlock/>
             :
                 mapFields(configStructure.fields)

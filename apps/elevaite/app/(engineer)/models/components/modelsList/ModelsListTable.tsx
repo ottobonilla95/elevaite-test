@@ -1,6 +1,6 @@
 "use client";
 import { ElevaiteIcons, type CommonMenuItem, CommonDialog, CommonInput, CommonSelect, CommonFormLabels } from "@repo/ui/components";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { specialHandlingModelFields, useModels } from "../../../../lib/contexts/ModelsContext";
 import { ModelsStatus, type ModelObject } from "../../../../lib/interfaces";
 import { CondensedListRow } from "./CondensedListRow";
@@ -9,6 +9,9 @@ import { ModelsListRow } from "./ModelsListRow";
 import "./ModelsListTable.scss";
 
 
+const embeddingTasksArray = [
+    "sentence-similarity",
+];
 
 
 enum MENU_ACTIONS {
@@ -20,10 +23,12 @@ enum MENU_ACTIONS {
 
 interface ModelsListTableProps {
     isVisible?: boolean;
+    isEmbedding?: boolean;
 }
 
 export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
     const modelsContext = useModels();
+    const [displayModels, setDisplayModels] = useState<ModelObject[]>([]);
     const [datasetId, setDatasetId] = useState("");
     const [pendingAction, setPendingAction] = useState< undefined | 
         { title: string, action: MENU_ACTIONS, model: ModelObject, label?: string; icon?: React.ReactNode } >();
@@ -34,10 +39,10 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
         { header: "Model Name", field: "name", isSortable: true, onClick: handleModelClick },
         { header: "Model Repo", field: "huggingface_repo", isSortable: true },
         { header: "Model Task", field: "task", isSortable: true },
-        { header: "RAM to run", field: "ramToRun", isSortable: true, align: "center", style: "block" },
-        { header: "RAM to train", field: "ramToTrain", isSortable: true, align: "center", style: "block" },
+        { header: "RAM to run", field: "memory_requirements|run", isSortable: true, align: "center", style: "block", specialHandling: specialHandlingModelFields.RAM_TO_RUN },
+        { header: "RAM to train", field: "memory_requirements|train", isSortable: true, align: "center", style: "block", specialHandling: specialHandlingModelFields.RAM_TO_TRAIN },
         { header: "Tags", field: "tags", isSortable: true, specialHandling: specialHandlingModelFields.TAGS },
-        { header: "Created at", field: "date_created", isSortable: true, specialHandling: specialHandlingModelFields.DATE, align: "right" },
+        { header: "Created at", field: "created", isSortable: true, specialHandling: specialHandlingModelFields.DATE, align: "right" },
     ];
     
     
@@ -47,6 +52,17 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
         { label: "Evaluate Model", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.EVALUATE); } },
     ]
     
+
+
+    useEffect(() => {
+        setDisplayModels(modelsContext.models.filter(model => 
+            !model.task ? !props.isEmbedding :
+            props.isEmbedding ? embeddingTasksArray.includes(model.task) :
+            !embeddingTasksArray.includes(model.task)
+        ));
+    }, [modelsContext.models]);
+
+
 
 
     function getModelsListMenu(status?: ModelsStatus): CommonMenuItem<ModelObject>[] {
@@ -109,33 +125,40 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
             
             modelsContext.selectedModel ? 
                 <div className="condensed-grid">
-                    {modelsContext.models.map((model, index) => 
+                    
+                    {displayModels.length === 0 ? 
+                        <div className="table-span empty">
+                            There are no models to display.
+                        </div>
+
+                    :
+                    displayModels.map((model, index) => 
                         <CondensedListRow
                             key={model.id}
                             model={model}
                             structure={modelsListStructure}
                             menu={getModelsListMenu(model.status)}
-                            menuToTop={modelsContext.models.length > 4 && index > (modelsContext.models.length - 4) }
+                            menuToTop={displayModels.length > 4 && index > (displayModels.length - 4) }
                         />
                     )}
                 </div>
             :
                 <div className="models-list-table-grid">
                     <ModelsListRow isHeader structure={modelsListStructure} menu={getModelsListMenu()} />
-                    {modelsContext.models.length === 0 ? 
+                    {displayModels.length === 0 ? 
                         <div className="table-span empty">
                             There are no models to display.
                         </div>
 
                     :
 
-                    modelsContext.models.map((model, index) => 
+                    displayModels.map((model, index) => 
                         <ModelsListRow
                             key={model.id}
                             model={model}
                             structure={modelsListStructure}
                             menu={getModelsListMenu(model.status)}
-                            menuToTop={modelsContext.models.length > 4 && index > (modelsContext.models.length - 4) }
+                            menuToTop={displayModels.length > 4 && index > (displayModels.length - 4) }
                         />
                     )}
                 </div>
