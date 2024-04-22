@@ -1,0 +1,19 @@
+{
+   "insufficient_permissions_1": {
+      "summary": "logged-in user is not assigned to account",
+      "value": {
+         "detail": "you are not assigned to account - '789e4567-e89b-12d3-a456-426614174000'"    }
+   },
+   "insufficient_permissions_2": {
+      "summary": "logged-in user does not have superadmin/account-admin privileges to update account admin status",
+      "value": {
+         "detail": "you do not have superadmin/account-admin privileges to update user admin status in account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "insufficient_permissions_3": {
+      "summary": "logged-in user does not have permission to modify account admin status of self",
+      "value": {
+         "detail": "you do not have permission to modify account admin status of self"
+      }
+   }
+}

@@ -282,7 +282,7 @@ wmi = ["wmi (>=1.5.1)"]
 
 [[package]]
 name = "elevaitedb"
-version = "0.2.00"
+version = "0.2.09"
 description = ""
 optional = false
 python-versions = "~3.11"

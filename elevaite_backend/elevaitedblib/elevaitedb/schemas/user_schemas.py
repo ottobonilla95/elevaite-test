@@ -6,8 +6,9 @@ from datetime import datetime
 from .role_schemas import (
    RoleResponseDTO,
    RoleSummaryDTO,
-   ProjectScopedPermissions
+   ProjectScopedPermission
 )
+from .common_schemas import StatusUpdateAction
 
 class UserCreationRequestDTO(BaseModel):
    org_id: UUID = Field(..., description="The ID of the org to be assigned to the user")
@@ -44,7 +45,6 @@ class UserPatchRequestDTO(BaseModel):
    
 class UserListDTO(BaseModel):
    user_ids: List[UUID] = Field(..., description="The IDs of the users in a list to be assigned/deassigned to/from a project/account")
-   action: Literal["Add", "Remove"] = Field(..., description="Action to perform on the user list: Add or Remove")
 
    class Config:
       extra = Extra.forbid
@@ -149,16 +149,10 @@ class AccountUserProfileDTO(OrgUserListItemDTO):
    roles: List[RoleResponseDTO] = Field(..., description = "List of RoleResponseDTO objects scoped to account")
    
 class ProjectUserListItemDTO(AccountUserListItemDTO):
-   pass
+   is_project_admin: bool = Field(...)
 
 class ProjectUserProfileDTO(AccountUserProfileDTO):
-   permission_overrides: ProjectScopedPermissions
+   permission_overrides: ProjectScopedPermission
 
-class SuperAdminStatusUpdateDTO(BaseModel):
-   action: Literal["Grant", "Revoke"] = Field(..., description="Action to perform")
-   class Config:
-      schema_extra = {
-         "example": {
-               "action": "Grant"
-         }
-      }
+class SuperadminStatusUpdateDTO(StatusUpdateAction):
+   pass

@@ -1,0 +1,35 @@
+{
+   "payload_field_type_validation_error": {
+      "summary": "Field-Type payload validation error - account_id/project_id/user_id has invalid UUID format",
+      "value": {
+         "detail": [
+            {
+            "loc": [
+               "string",
+               0
+            ],
+            "msg": "string",
+            "type": "string"
+            }
+         ]
+      }
+   },
+   "project_not_associated_to_account": {
+      "summary": "Project not associated to account",
+      "value": {
+         "detail": "Project - '789e4567-e89b-12d3-a456-426614174000' - is not associated to account_id - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   },
+   "not_found_user_account_association": {
+      "summary": "user is not assigned to account",
+      "value": {
+         "detail": "user - '5b8d6492-f85f-48a6-9cd2-a347480dd372' - is not assigned to account - '5b8d6492-f85f-48a6-9cd2-a347480dd373'"
+      }
+   },
+   "not_found_user_project_association": {
+      "summary": "user is not assigned to project",
+      "value": {
+         "detail": "user - '5b8d6492-f85f-48a6-9cd2-a347480dd372' - is not assigned to account - '5b8d6492-f85f-48a6-9cd2-a347480dd373'"
+      }
+   }
+}

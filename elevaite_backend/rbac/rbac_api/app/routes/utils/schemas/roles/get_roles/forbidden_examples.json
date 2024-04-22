@@ -1,8 +1,8 @@
 {
    "insufficient_permissions": {
-      "summary": "logged-in user does not have superadmin/admin privileges to read all roles",
+      "summary": "logged-in user does not have superadmin/account-admin privileges to read all roles",
       "value": {
-         "detail": "you do not have superadmin/admin privileges to read all roles"
+         "detail": "you do not have superadmin/account-admin privileges to read all roles"
       }
    }
 }

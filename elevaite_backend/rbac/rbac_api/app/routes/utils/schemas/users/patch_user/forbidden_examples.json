@@ -1,8 +1,8 @@
 {
    "insufficient_permissions": {
-      "summary": "logged-in user does not have superadmin/admin privileges to update other users",
+      "summary": "logged-in user does not have superadmin/account-admin privileges to update other users",
       "value": {
-         "detail": "you do not have superadmin/admin privileges to update user - '789e4567-e89b-12d3-a456-426614174000'"
+         "detail": "you do not have superadmin/account-admin privileges to update user - '789e4567-e89b-12d3-a456-426614174000'"
       }
    }
 }

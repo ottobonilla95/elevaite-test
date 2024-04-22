@@ -27,9 +27,9 @@
       }
    },
    "business_logic_validation_error": {
-      "summary": "Attempting to read project permission overrides for superadmin/admin/project-owner",
+      "summary": "Attempting to read project permission overrides for superadmin/account-admin/project-admin",
       "value": {
-         "detail": "Invalid action - Attempting to read project permission overrides for user - '789e4567-e89b-12d3-a456-426614174000' - who is admin/superadmin/project-owner"
+         "detail": "Invalid action - Attempting to read project permission overrides for user - '789e4567-e89b-12d3-a456-426614174000' - who is admin/superadmin/project-admin"
       }
    }
 }

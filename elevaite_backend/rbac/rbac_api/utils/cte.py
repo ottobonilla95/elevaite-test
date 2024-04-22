@@ -13,7 +13,6 @@ def is_user_project_association_till_root(db: Session, starting_project_id: UUID
          models.Project.id.label('project_id'),
          models.Project.parent_project_id,
          literal_column('1', Integer).label('height'),  # Start height at 1
-         # read_permission_case.label('read_permission_count') # count read permissions total in hierarchy 
       ).join(models.User_Project, and_(
          models.User_Project.project_id == models.Project.id,
          models.User_Project.user_id == user_id
@@ -72,7 +71,13 @@ def is_user_project_association_till_root(db: Session, starting_project_id: UUID
       db.rollback()  # Roll back the transaction on any unexpected error
       print(f"INSIDE is_user_project_association_till_root method, unexpected error : {e}")
       raise e
-   
+
+def delete_user_project_associations_for_subprojects_of_user_list(db: Session, starting_project_id: UUID, user_ids: List[UUID]):
+   delete_user_project_associations_for_subprojects(db, starting_project_id, user_ids)
+
+def delete_user_project_associations_for_subprojects_of_user(db: Session, starting_project_id: UUID, user_id: UUID):
+   delete_user_project_associations_for_subprojects(db, starting_project_id, user_id)
+
 def delete_user_project_associations_for_subprojects(db: Session, starting_project_id: UUID, user_id_or_user_ids: Union[List[UUID], UUID]):
    try:
       # Define the base part of the CTE
@@ -107,7 +112,7 @@ def delete_user_project_associations_for_subprojects(db: Session, starting_proje
                models.User_Project.project_id.in_(db.query(cte.c.project_id))
          )
       delete_count = delete_query.delete(synchronize_session=False)
-      print(f'deleted User_Project count = {delete_count}')
+      # print(f'deleted User_Project count = {delete_count}')
       db.commit()
    except SQLAlchemyError as e:
       db.rollback()  
@@ -118,9 +123,15 @@ def delete_user_project_associations_for_subprojects(db: Session, starting_proje
       print(f"INSIDE delete_user_project_associations_for_subprojects method, unexpected error : {e}")
       raise e
 
-def delete_unrooted_user_project_associations(db: Session, user_id: UUID, list_of_starting_project_ids: List[UUID], account_id: UUID):
+
+def delete_unrooted_user_project_associations_in_account(db: Session, user_id: UUID, list_of_starting_project_ids: List[UUID], account_id: UUID):
+   delete_unrooted_user_project_associations(db, user_id, list_of_starting_project_ids, account_id)
+
+def delete_unrooted_user_project_associations_in_all_non_admin_accounts(db: Session, user_id: UUID, list_of_starting_project_ids: List[UUID]):
+   delete_unrooted_user_project_associations(db, user_id, list_of_starting_project_ids)
+
+def delete_unrooted_user_project_associations(db: Session, user_id: UUID, list_of_starting_project_ids: List[UUID], account_id: Union[UUID, None] = None):
    try:
-      print(f'inside delete_unrooted_user_project_associations')
       # Define the base part of the CTE with multiple starting projects
       cte = select(
          models.Project.id.label("project_id"),
@@ -130,26 +141,46 @@ def delete_unrooted_user_project_associations(db: Session, user_id: UUID, list_o
       descendant_alias = aliased(cte, name="d")
       project_alias = aliased(models.Project, name="p")
 
-      # Recursive part of the CTE: find all direct children of the current projects
+      # Recursive part of the CTE: find all direct children of the current projects which user is associated with
       union_query = select(
          project_alias.id.label("project_id"),
       ).select_from(
          descendant_alias.join(project_alias, project_alias.parent_project_id == descendant_alias.c.project_id)
+                           .join(models.User_Project, and_(
+                                 models.User_Project.project_id == project_alias.id,
+                                 models.User_Project.user_id == user_id  
+                           ))
       )
 
       # Combine base and recursive parts
       cte = cte.union_all(union_query)
 
+      #debug
+      associated_project_ids_from_top_level = db.query(cte.c.project_id).all()
+      # print("Rooted Project IDs:", [pid[0] for pid in associated_project_ids_from_top_level])
+
       # Perform a bulk delete for User_Project entries which are not a part of rooted user_project associations
       
-      # Query to get IDs of User_Project entries to delete
-      subquery = db.query(models.User_Project.id)\
-         .join(models.Project, models.User_Project.project_id == models.Project.id)\
-         .filter(models.User_Project.user_id == user_id,
-                  models.Project.account_id == account_id,
-                  models.User_Project.project_id.notin_(db.query(cte.c.project_id)))\
-         .subquery()
-         
+      if account_id: # if account_id exists, find the unrooted project associations in account
+         subquery = db.query(models.User_Project.id)\
+            .join(models.Project, models.User_Project.project_id == models.Project.id)\
+            .filter(models.User_Project.user_id == user_id,
+                     models.Project.account_id == account_id,
+                     models.User_Project.project_id.notin_(db.query(cte.c.project_id)))\
+            .subquery()
+      else: # if account_id does not exist, find the unrooted project associations in all non admin accounts
+         subquery = db.query(models.User_Project.id)\
+            .join(models.Project, models.User_Project.project_id == models.Project.id)\
+            .join(models.User_Account, ((models.User_Account.user_id == models.User_Project.user_id) & (models.User_Account.account_id == models.Project.account_id)))\
+            .filter(models.User_Project.user_id == user_id,
+                     models.User_Account.is_admin == False,
+                     models.User_Project.project_id.notin_(db.query(cte.c.project_id)))\
+            .subquery()
+      
+      # Debug subquery
+      unrooted_project_association_ids = db.query(subquery.c.id).all()
+      # print("Unrooted User-Project Association IDs to be deleted:", [upid[0] for upid in unrooted_project_association_ids])
+
       # Delete those User_Project entries using the IDs obtained above
       deleted_unrooted_user_project_association_count = db.query(models.User_Project)\
          .filter(models.User_Project.id.in_(db.query(subquery.c.id)))\
@@ -157,7 +188,7 @@ def delete_unrooted_user_project_associations(db: Session, user_id: UUID, list_o
       
       db.commit()
 
-      print(f'deleted unrooted_user_project_association count = {deleted_unrooted_user_project_association_count}')
+      # print(f'deleted unrooted_user_project_association count = {deleted_unrooted_user_project_association_count}')
    except SQLAlchemyError as e:
       db.rollback()
       print(f"Inside delete_unrooted_user_project_associations - Error during bulk delete of User_Project entries : {e}")
@@ -166,86 +197,3 @@ def delete_unrooted_user_project_associations(db: Session, user_id: UUID, list_o
       db.rollback()
       print(f"Inside delete_unrooted_user_project_associations - Unexpected error: {e}")
       raise e
-    
-# def get_all_descendant_projects_query(db: Session, list_of_starting_project_ids: List[UUID]):
-#    try:
-#       # Define the base part of the CTE with multiple starting projects
-#       cte = select(
-#          Project.id.label("project_id"),
-#       ).where(Project.id.in_(list_of_starting_project_ids)).cte(name="descendants", recursive=True)
-
-#       # Define aliases for recursive part
-#       descendant_alias = aliased(cte, name="d")
-#       project_alias = aliased(Project, name="p")
-
-#       # Recursive part of the CTE: find all direct children of the current projects
-#       union_query = select(
-#          project_alias.id.label("project_id"),
-#       ).select_from(
-#          project_alias.join(descendant_alias, project_alias.parent_project_id == descendant_alias.c.project_id)
-#       )
-
-#       # Combine base and recursive parts
-#       cte = cte.union_all(union_query)
-
-#       # Prepare a subquery for further joins and filtering
-#       descendants_subquery = select(cte.c.project_id).subquery()
-
-#       final_query = db.query(Project).join(descendants_subquery, descendants_subquery.c.project_id == Project.id)
-#       return final_query
-#       # # Execute the CTE query to fetch all descendants
-#       # result = db.execute(select(cte.c.project_id)).fetchall()
-#       # return [row[0] for row in result]
-#    except SQLAlchemyError as e:
-#       db.rollback()
-#       print(f"Error retrieving descendant projects: {e}")
-#       raise e
-#    except Exception as e:
-#       db.rollback()
-#       print(f"Unexpected error: {e}")
-#       raise e
-    
-# def check_user_association_with_ancestor_projects(db: Session, starting_project_id: UUID, user_id: UUID):
-#    try:
-#       # Define the base part of the CTE
-#       cte = select(
-#          Project.id.label("project_id"),
-#          Project.parent_project_id
-#       ).where(Project.id == starting_project_id).cte(name="ancestors", recursive=True)
-
-#       # Define aliases for recursive part
-#       ancestor_alias = aliased(cte, name="a")
-#       project_alias = aliased(Project, name="p")
-
-#       # Recursive part of the CTE: go up to the parent project
-#       union_query = select(
-#          project_alias.id.label("project_id"),
-#          project_alias.parent_project_id
-#       ).select_from(
-#          project_alias.join(ancestor_alias, project_alias.id == ancestor_alias.c.parent_project_id)
-#       )
-
-#       # Combine base and recursive parts
-#       cte = cte.union_all(union_query)
-
-#       # Query to check if the user is associated with all ancestor projects
-#       ancestor_projects_count = db.query(cte.c.project_id).count()
-#       user_associated_projects_count = db.query(User_Project.project_id).filter(
-#          User_Project.user_id == user_id,
-#          User_Project.project_id.in_(db.query(cte.c.project_id))
-#       ).count()
-#       print(f'ancestor_projects_count = {ancestor_projects_count}')
-#       print(f'user_associated_projects_count = {user_associated_projects_count}')
-#       # If counts are equal, the user is associated with all ancestor projects
-#       is_user_associated_with_all_ancestors = ancestor_projects_count == user_associated_projects_count
-
-#       return is_user_associated_with_all_ancestors
-
-#    except SQLAlchemyError as e:
-#       db.rollback()
-#       print(f"INSIDE check_user_association_with_ancestor_projects, DB Error : {e}")
-#       raise e
-#    except Exception as e:
-#       db.rollback()
-#       print(f"INSIDE check_user_association_with_ancestor_projects, unexpected Error : {e}")
-#       raise e

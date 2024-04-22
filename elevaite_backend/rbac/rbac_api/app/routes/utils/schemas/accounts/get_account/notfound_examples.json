@@ -1,8 +1,8 @@
 {
    "not_found": {
-      "summary": "Organization of account not found",
+      "summary": "Account not found",
       "value": {
-         "detail": "Organization - '789e4567-e89b-12d3-a456-426614174000' - not found"
+         "detail": "Account - '789e4567-e89b-12d3-a456-426614174000' - not found"
       }
    }
 }

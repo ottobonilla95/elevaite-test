@@ -7,7 +7,6 @@
              "organization_id": "789e4567-e89b-12d3-a456-426614174001",
              "name": "Account 4",
              "description": "Account 4 desc",
-             "is_disabled": false,
              "created_at": "2024-03-14T12:39:00.758000",
              "updated_at": "2024-03-14T12:39:00.758000"
          },
@@ -16,7 +15,6 @@
              "organization_id": "789e4567-e89b-12d3-a456-426614174001",
              "name": "Account 3",
              "description": "Account 3 desc",
-             "is_disabled": false,
              "created_at": "2024-03-14T05:11:36.703354",
              "updated_at": "2024-03-14T05:11:36.703354"
          },
@@ -25,7 +23,6 @@
              "organization_id": "789e4567-e89b-12d3-a456-426614174001",
              "name": "Account_akb1",
              "description": "Account akb_1 desc",
-             "is_disabled": false,
              "created_at": "2024-03-14T15:25:15.668331",
              "updated_at": "2024-03-14T15:25:15.668331"
          }

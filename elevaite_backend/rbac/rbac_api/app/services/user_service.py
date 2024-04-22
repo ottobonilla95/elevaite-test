@@ -1,6 +1,6 @@
 from fastapi import status, HTTPException
 from fastapi.responses import JSONResponse
-from sqlalchemy import func
+from sqlalchemy import func,exists, and_
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from typing import List, Optional, cast
@@ -8,22 +8,33 @@ from uuid import UUID
 from datetime import datetime
 from fastapi.encoders import jsonable_encoder
 from pprint import pprint
+import os
 
 from elevaitedb.schemas import (
    user_schemas,
    role_schemas,
 )
+from .utils.project_helpers import (
+   get_top_level_associated_project_ids_for_user_in_all_non_admin_accounts,
+)
+from rbac_api.utils.cte import (
+   delete_unrooted_user_project_associations_in_all_non_admin_accounts
+)
 from elevaitedb.db import models
-
 from ..errors.api_error import ApiError
 
 def create_user(db: Session, 
                 user_creation_payload: user_schemas.UserCreationRequestDTO) -> JSONResponse:
    try:
+      org_exists = db.query(exists().where(
+         models.Organization.id == user_creation_payload.org_id
+      )).scalar()
+      if not org_exists:
+         raise ApiError.notfound(f"Organization - '{user_creation_payload.org_id}' - not found")
+      
       # Verify that the specified user does not exist already; if so, return existing user
       db_user = db.query(models.User).filter(models.User.email == user_creation_payload.email, models.User.organization_id == user_creation_payload.org_id).first()
       if db_user:
-         pprint(f"in POST /auth/register - A user with email - '{user_creation_payload.email}' - already exists in organization - '{user_creation_payload.org_id}'")
          return JSONResponse(content=jsonable_encoder(db_user), status_code=status.HTTP_200_OK)
 
       # Create the new user instance
@@ -54,9 +65,15 @@ def create_user(db: Session,
 def get_user_profile(
    user_to_profile: models.User,
    logged_in_user: models.User,
+   account_id: Optional[UUID],
    db: Session
 ) -> user_schemas.UserProfileDTO:
    try:
+      if account_id:
+         user_account_association_exists = db.query(exists().where(and_(models.User_Account.user_id == user_to_profile.id, models.User_Account.account_id == account_id))).scalar()
+         if not user_account_association_exists: 
+            raise ApiError.validationerror(f"User - '{user_to_profile.id}' - is not assigned to account - '{account_id}'")
+      
       # Initialize the user data structure
       user_data = {
          "id": user_to_profile.id,
@@ -104,19 +121,12 @@ def get_user_profile(
       user_accounts = user_accounts_query.all()
       
       for user_account, account_name in user_accounts:
-         # if user is superadmin, do not fetch roles
-         if user_to_profile.is_superadmin:
+         # if user is superadmin or account-admin, do not fetch roles
+         if user_to_profile.is_superadmin or user_account.is_admin:
             account_membership = {
                "account_id": user_account.account_id,
                "account_name": account_name,  
-               "is_admin": False,
-               "roles": []
-            }
-         elif user_account.is_admin:
-            account_membership = {
-               "account_id": user_account.account_id,
-               "account_name": account_name,  
-               "is_admin": True,
+               "is_admin": user_account.is_admin,
                "roles": []
             }
          else:
@@ -130,7 +140,7 @@ def get_user_profile(
             account_membership = {
                "account_id": user_account.account_id,
                "account_name": account_name,  
-               "is_admin": False,
+               "is_admin": user_account.is_admin,
                "roles": role_summary_dto
             }
          user_data["account_memberships"].append(account_membership)
@@ -198,35 +208,37 @@ def patch_user(
       return user_to_patch
    except HTTPException as e:
       db.rollback()
-      pprint(f'API Error in PATCH /users/{user_to_patch.id} : {e}')
+      pprint(f'API Error in PATCH /users/{user_to_patch.id} service method: {e}')
       raise e
    except SQLAlchemyError as e:
       db.rollback()
-      pprint(f'Error in PATCH /users/{user_to_patch.id} : {e}')
+      pprint(f'Error in PATCH /users/{user_to_patch.id} service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
-      pprint(f'Unexpected error in PATCH /users/{user_to_patch.id} : {e}')
+      pprint(f'Unexpected error in PATCH /users/{user_to_patch.id} service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def patch_user_account_roles(
    user_to_patch: models.User,
-   user_to_patch_account_association: models.User_Account,
-   account: models.Account,
-   # user_id: UUID,
-   # account_id: UUID,
+   account_id: UUID,
    role_list_dto: role_schemas.RoleListDTO,
    db: Session,
 ) -> JSONResponse:
    try:
+      if user_to_patch.is_superadmin:
+         raise ApiError.validationerror(f"Invalid action : cannot patch account roles for superadmin user - {user_to_patch.id}")
+         
+      # Check User_Account association
+      user_to_patch_account_association = db.query(models.User_Account).filter(models.User_Account.user_id == user_to_patch.id, models.User_Account.account_id == account_id).first()
+      if not user_to_patch_account_association:
+         raise ApiError.validationerror(f"User - '{user_to_patch.id}' - is not assigned to account - '{account_id}'")
+      
+      if user_to_patch_account_association.is_admin:
+         raise ApiError.validationerror(f"Invalid action : cannot patch account roles for admin user - {user_to_patch.id}")
+      
       RoleUserAccountAlias = aliased(models.Role_User_Account)
       UserAccountAlias = aliased(models.User_Account)
-      # Subquery to check for the existence of a user-account association and retrieve its ID
-      # user_account_subquery = (
-      #    db.query(User_Account.id.label("user_account_id"))
-      #    .filter(User_Account.user_id == user_id, User_Account.account_id == account_id)
-      #    .subquery()
-      # )
 
       # Scalar subquery to count the number of roles found in the database matching the provided role_ids
       roles_count_check = (
@@ -234,13 +246,6 @@ def patch_user_account_roles(
          .filter(models.Role.id.in_(role_list_dto.role_ids))
          .as_scalar()
       )
-
-      # # Check for the presence of Project_Scoped roles in the provided role_ids
-      # project_scoped_roles_check = (
-      #    db.query(func.count(Role.id))
-      #    .filter(Role.id.in_(role_list_dto.role_ids), Role.type == "Project_Scoped")
-      #    .as_scalar()
-      # )
 
       # Check for the count of existing roles in Role_User_Account for the provided role_ids and user_account_id
       existing_roles_check = (
@@ -260,17 +265,15 @@ def patch_user_account_roles(
       (count_existing_roles, count_found_roles)  = result
       
       if count_found_roles != len(role_list_dto.role_ids):
-         print(f"in PATCH /{user_to_patch.id}/accounts/{account.id}/roles service method: one or more roles not found")
+         print(f"in PATCH /{user_to_patch.id}/accounts/{account_id}/roles service method: one or more roles not found")
          raise ApiError.notfound("one or more roles not found")
-      # if count_project_scoped_roles > 0:
-      #    print(f"in PATCH /{user_id}/accounts/{account_id}/roles service method: Project_Scoped roles cannot be added/removed to/from account roles")
-      #    raise ApiError.badRequest("Project_Scoped roles cannot be added/removed to/from account roles")
+      
       if role_list_dto.action == "Add" and count_existing_roles > 0:
-         print(f"in PATCH /{user_to_patch.id}/accounts/{account.id}/roles service method: One or more account-scoped roles are already assigned to the user -'{user_to_patch.id}'- in account -'{account.id}'")
-         raise ApiError.conflict(f"One or more account-scoped roles are already assigned to user - '{user_to_patch.id}' - in account - '{account.id}'")
+         print(f"in PATCH /{user_to_patch.id}/accounts/{account_id}/roles service method: One or more account-scoped roles are already assigned to the user -'{user_to_patch.id}'- in account -'{account_id}'")
+         raise ApiError.conflict(f"One or more account-scoped roles are already assigned to user - '{user_to_patch.id}' - in account - '{account_id}'")
       if role_list_dto.action == "Remove" and count_existing_roles != len(role_list_dto.role_ids):
-         print(f"in PATCH /{user_to_patch.id}/accounts/{account.id}/roles service method: One or more roles to remove were not found for the user -'{user_to_patch.id}'- in account -'{account.id}'")
-         raise ApiError.notfound(f"One or more roles to remove were not found for the user - '{user_to_patch.id}' - in account - '{account.id}'")      
+         print(f"in PATCH /{user_to_patch.id}/accounts/{account_id}/roles service method: One or more roles to remove were not found for the user -'{user_to_patch.id}'- in account -'{account_id}'")
+         raise ApiError.notfound(f"One or more roles to remove were not found for the user - '{user_to_patch.id}' - in account - '{account_id}'")      
       if role_list_dto.action == "Add":
          new_role_user_accounts = [
             models.Role_User_Account(user_account_id=user_to_patch_account_association.id, role_id=role_id)
@@ -289,15 +292,15 @@ def patch_user_account_roles(
    
    except HTTPException as e:
       db.rollback()
-      pprint(f'API Error in PATCH /users/{user_to_patch.id}/accounts/{account.id}/roles : {e}')
+      pprint(f'API Error in PATCH /users/{user_to_patch.id}/accounts/{account_id}/roles service method: {e}')
       raise e
    except IntegrityError as e : # Database-side uniqueness check 
         db.rollback()
-        pprint(f'Error in PATCH /users/{user_to_patch.id}/accounts/{account.id}/roles : {e}')
+        pprint(f'Error in PATCH /users/{user_to_patch.id}/accounts/{account_id}/roles service method: {e}')
         raise ApiError.conflict(f"One or more account-scoped roles for user already exists in account")
    except SQLAlchemyError as e:
       db.rollback()
-      pprint(f'Error in PATCH /users/{user_to_patch.id}/accounts/{account.id}/roles : {e}')
+      pprint(f'Error in PATCH /users/{user_to_patch.id}/accounts/{account_id}/roles service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
@@ -305,43 +308,119 @@ def patch_user_account_roles(
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def update_user_project_permission_overrides(
-    user_id: UUID,
-    project_id: UUID,
-    permission_overrides_payload: role_schemas.ProjectScopedPermissions,
-    db: Session,
-    user_project_association: models.User_Account
+   user_id: UUID,
+   user_to_patch: models.User,
+   account_id: UUID,
+   project_id: UUID,
+   permission_overrides_payload: role_schemas.ProjectScopedPermission,
+   db: Session,
 ) -> JSONResponse:
    try:
+      user_account_association = db.query(models.User_Account).filter(models.User_Account.user_id == user_id, models.User_Account.account_id == account_id).first()
+      if not user_account_association:
+         raise ApiError.validationerror(f"user - '{user_id}' - is not assigned to account - '{account_id}")
+      
+      user_project_association = db.query(models.User_Project).filter(models.User_Project.user_id == user_id, models.User_Project.project_id == project_id).first()
+      if not user_project_association:
+         raise ApiError.validationerror(f"user - '{user_id}' - is not assigned to project - '{project_id}'")
+      
+      if user_project_association.is_admin or user_account_association.is_admin or user_to_patch.is_superadmin:
+         raise ApiError.validationerror(f"Invalid action - Attempting to update project permission overrides for user - '{user_id}' - who is admin/superadmin/project-admin")
+
       # user_project_association.permission_overrides = permission_overrides_payload.model_dump()
       user_project_association.permission_overrides = permission_overrides_payload.dict()
       db.commit()
       return JSONResponse(content={"message": f"Project permission overrides successfully updated for user"}, status_code=status.HTTP_200_OK)
    except HTTPException as e:
       db.rollback()
-      pprint(f'API Error in PUT users/{user_id}/projects/{project_id}/permission-overrides : {e}')
+      pprint(f'API Error in PUT users/{user_id}/projects/{project_id}/permission-overrides service method: {e}')
       raise e
    except SQLAlchemyError as e:
       db.rollback()
-      pprint(f'Error in PUT users/{user_id}/projects/{project_id}/permission-overrides : {e}')
+      pprint(f'Error in PUT users/{user_id}/projects/{project_id}/permission-overrides service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
-      pprint(f'Unexpected error in PUT users/{user_id}/projects/{project_id}/permission-overrides : {e}')
+      pprint(f'Unexpected error in PUT users/{user_id}/projects/{project_id}/permission-overrides service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def get_user_project_permission_overrides(
-    user_id: UUID,
-    project_id: UUID,
-    db: Session,
-    user_project_association: models.User_Account
-) -> role_schemas.ProjectScopedPermissions:
+   user_to_patch: models.User,
+   user_id: UUID,
+   account_id: UUID,
+   project_id: UUID,
+   db: Session,
+   user_project_association: models.User_Account
+) -> role_schemas.ProjectScopedPermission:
    try:
-      return user_project_association.permission_overrides
+      user_account_association = db.query(models.User_Account).filter(models.User_Account.user_id == user_id, models.User_Account.account_id == account_id).first()
+      if not user_account_association:
+         raise ApiError.validationerror(f"user - '{user_id}' - is not assigned to account - '{account_id}")
+      
+      user_project_association = db.query(models.User_Project).filter(models.User_Project.user_id == user_id, models.User_Project.project_id == project_id).first()
+      if not user_project_association:
+         raise ApiError.validationerror(f"user - '{user_id}' - is not assigned to project - '{project_id}'")
+      
+      if user_project_association.is_admin or user_account_association.is_admin or user_to_patch.is_superadmin:
+         raise ApiError.validationerror(f"Invalid action - Attempting to get project permission overrides for user - '{user_id}' - who is admin/superadmin/project-admin")
+      
+      return cast(role_schemas.ProjectScopedPermission, user_project_association.permission_overrides)
+   except HTTPException as e:
+      db.rollback()
+      pprint(f'API Error in GET users/{user_id}/projects/{project_id}/permission-overrides service method: {e}')
+      raise e
    except SQLAlchemyError as e:
       db.rollback()
-      pprint(f'Error in GET users/{user_id}/projects/{project_id}/permission-overrides : {e}')
+      pprint(f'Error in GET users/{user_id}/projects/{project_id}/permission-overrides service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
-      pprint(f'Unexpected error in GET users/{user_id}/projects/{project_id}/permission-overrides : {e}')
+      pprint(f'Unexpected error in GET users/{user_id}/projects/{project_id}/permission-overrides service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   
+def patch_user_superadmin_status(
+   user_id: UUID,
+   superadmin_status_update_dto: user_schemas.SuperadminStatusUpdateDTO,
+   db: Session,
+   logged_in_user_id: UUID
+   )-> JSONResponse:
+   try:
+      if user_id == logged_in_user_id:
+         raise ApiError.validationerror(f"Invalid action - cannot update superadmin status of self")
+      
+      # Check if user in payload exists
+      user_in_payload = db.query(models.User).filter(models.User.id == user_id).first()
+      if not user_in_payload:
+         raise ApiError.notfound(f"User - '{user_id}' - not found")
+      
+      ROOT_SUPERADMIN_EMAIL = os.getenv("ROOT_SUPERADMIN_EMAIL", None)
+      if ROOT_SUPERADMIN_EMAIL == user_in_payload.email: # cannot update root superadmin's status
+         raise ApiError.forbidden(f"you cannot update superadmin status of root superadmin user - '{user_id}'")
+      
+      match superadmin_status_update_dto.action:
+         case "Grant":
+            if not user_in_payload.is_superadmin:
+               user_in_payload.is_superadmin = True
+
+         case "Revoke":
+            if user_in_payload.is_superadmin:
+               top_level_associated_projects_in_non_admin_accounts: List[UUID] = get_top_level_associated_project_ids_for_user_in_all_non_admin_accounts(db, user_id)
+               delete_unrooted_user_project_associations_in_all_non_admin_accounts(db,user_id, top_level_associated_projects_in_non_admin_accounts)
+               user_in_payload.is_superadmin = False
+         case _:
+            raise ApiError.validationerror(f"unknown action - '{superadmin_status_update_dto.action}'")
+
+      db.commit()
+      return JSONResponse(content={"message": f"superadmin status successfully {'revoked' if superadmin_status_update_dto.action.lower() == 'revoke' else 'granted'}"}, status_code=status.HTTP_200_OK)
+   except HTTPException as e:
+      db.rollback()
+      pprint(f'API error in PATCH /users/{user_id}/superadmin service method: {e}')
+      raise e
+   except SQLAlchemyError as e:
+      db.rollback()
+      pprint(f'DB error in PATCH /users/{user_id}/superadmin service method: Error updating superadmin status: {e}')
+      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   except Exception as e:
+      db.rollback()
+      pprint(f'Unexpected error in PATCH /users/{user_id}/superadmin service method: Error updating superadmin status: {e}')
+      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")  

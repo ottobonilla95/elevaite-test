@@ -1,0 +1,8 @@
+{
+   "deassign_success": {
+      "summary": "User deassigned successfully",
+      "value": {
+            "message": "Successfully deassigned user - '789e4567-e89b-12d3-a456-426614174000' - from account - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   }
+}

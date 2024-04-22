@@ -1,11 +1,18 @@
 from sqlalchemy.orm import Session
-
+from typing import Optional
 from ..db import models
 from ..schemas import application
 
 
-def get_applications(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Application).offset(skip).limit(limit).all()
+def get_applications(
+        db: Session,
+        # authorized_app_types: list[application.ApplicationType], # uncomment this when using validator
+        skip: int = 0,
+        limit: int = 100
+    ):
+    query = db.query(models.Application)
+    # query = query.filter(models.Application.applicationType.in_(authorized_app_types)) # uncomment this when using validator
+    return query.offset(skip).limit(limit).all()
 
 
 def get_application_by_id(db: Session, id: int):

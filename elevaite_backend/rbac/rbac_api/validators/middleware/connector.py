@@ -1,199 +1,427 @@
-from fastapi import Path, Depends, Header, HTTPException
+from fastapi import Path, Depends, Header, Query, Request, HTTPException
 from uuid import UUID
 from .header import validate_token
+from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from rbac_api.utils.deps import get_db  
 from rbac_api.app.errors.api_error import ApiError
 from pprint import pprint
-from typing import Any
+from typing import Any, Optional, Type, Callable, Coroutine
 
 from elevaitedb.db import models
 from elevaitedb.schemas import (
-   role_schemas
-)
-from elevaitedb.schemas import (
-   application as connector_schemas
+   application as application_schemas,
 )
 
-async def validate_get_connector(
-   user_email: str = Depends(validate_token),
-   account_id: UUID = Header(None, alias="X-elevAIte-accountId"),
-   application_id: int = Path(..., description="id of application to retrieve"),
-   db: Session = Depends(get_db)
-) -> dict[str, Any]:
-   try:
-      if account_id is None:
-         print(f"in GET /application/{application_id} - validate_get_connector dependency : Request header must contain account id for this endpoint")
-         raise ApiError.validationerror("Request header must contain 'X-elevAIte-accountId' for this endpoint")
-      
-      # Fetch user by email
-      logged_in_user = db.query(models.User).filter(models.User.email == user_email).first()
-      if not logged_in_user:
-         print(f"in GET /application/{application_id} - validate_get_connector dependency : logged in user with email - '{user_email}' - not found in user table")
-         raise ApiError.unauthorized("user is unauthenticated") # decide whether to expose user not found
+from ..rbac import rbac_instance
 
-      account = db.query(models.Account).filter(models.Account.id == account_id).first()
-      if not account:
-         print(f"in GET /application/{application_id} - validate_get_connector dependency : account - '{account_id}' - not found")
-         raise ApiError.notfound(f"account - '{account_id}' - not found")
-      
-      if account.is_disabled:
-         print(f"in GET /application/{application_id} - validate_get_connector dependency : account - '{account_id}' - is disabled")
-         raise ApiError.forbidden(f"account - '{account_id}' - is disabled")
-      
-      application: models.Application = db.query(models.Application).filter(models.Application.id == application_id).first()
-      if not application:
-         print(f"in GET /application/{application_id} - validate_get_connector dependency : connector - '{application_id}' - not found")
-         raise ApiError.notfound(f"connector - '{application_id}' - not found")
-      
-      validation_info = {"logged_in_user_id" : logged_in_user.id,
-                           "account_id" : account_id,
-                           "db" : db}
-      
-      # Check if user is a superadmin and validate early
-      if logged_in_user.is_superadmin:
-         return validation_info
+def validate_get_connector_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   async def validate_get_connector(
+      request: Request,
+      user_email: str = Depends(validate_token),
+      # The params below are required for pydantic validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector application is queried"),
+      application_id: int = Path(..., description="id of connector application to be retrieved"),
+      db: Session = Depends(get_db)
+   ) -> dict[str, Any]:
+      try:
+         return await rbac_instance.validate_rbac(
+            request=request,
+            db=db,
+            target_model_action_sequence=target_model_action_sequence,
+            user_email=user_email,
+            target_model_class=target_model_class
+         )
+      except HTTPException as e:
+         db.rollback()
+         pprint(f'API error in GET /application/{application_id} - validate_get_connector dependency : {e}')
+         raise e
+      except SQLAlchemyError as e:
+         pprint(f'DB error in GET /application/{application_id} - validate_get_connector dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+      except Exception as e:
+         db.rollback()
+         print(f'Unexpected error in GET /application/{application_id} - validate_get_connector dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   return validate_get_connector
 
-      logged_in_user_account_association = db.query(models.User_Account).filter(
-         models.User_Account.user_id == logged_in_user.id, models.User_Account.account_id == account.id
-      ).first()
+def validate_get_connectors_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   async def validate_get_connectors(
+      request: Request,
+      user_email: str = Depends(validate_token),
+      # The params below are required for pydantic validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connectors are queried"),
+      db: Session = Depends(get_db)
+   ) -> dict[str, Any]:
+      try:
+         return await rbac_instance.validate_rbac(
+            request=request,
+            db=db,
+            target_model_action_sequence=target_model_action_sequence,
+            user_email=user_email,
+            target_model_class=target_model_class
+         )
+      except HTTPException as e:
+         db.rollback()
+         pprint(f'API error in GET /application - validate_get_connectors dependency : {e}')
+         raise e
+      except SQLAlchemyError as e:
+         pprint(f'DB error in GET /application - validate_get_connectors dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+      except Exception as e:
+         db.rollback()
+         print(f'Unexpected error in GET /application - validate_get_connectors dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   return validate_get_connectors
 
-      if not logged_in_user_account_association:
-         print(f"in GET /application/{application_id} - validate_get_connector dependency : logged-in user - '{logged_in_user.id}' - is not assigned to account - '{account_id}'")
-         raise ApiError.forbidden(f"you are not assigned to account - '{account_id}'")
-
-      if logged_in_user_account_association.is_admin: # check if user is admin and validate early
-         return validation_info
-      
-      applicationType = application.applicationType
-      # print(f'applicationType = {applicationType}')
-      if applicationType not in connector_schemas.ApplicationType.__members__.values():
-         print(f"In GET /application/{application_id} - validate_get_connector: Unsupported connector type - '{application.applicationType}'")
-         raise ApiError.validationerror(f"Unsupported connector type - '{application.applicationType}'")
-      
-      # print(f'applicationType.lower().capitalize() = {applicationType.lower().capitalize()}')
-      applicationType = applicationType.lower().capitalize()
-      if applicationType not in role_schemas.AccountScopedPermissions.__fields__.keys():
-         print(f"In GET /application/{application_id} - validate_get_connector: RBAC Validation for connector type - '{application.applicationType}' - not implemented.")
-         raise ApiError.validationerror(f"RBAC Validation for connector type - '{application.applicationType}' - not implemented.")
-      
-      role_based_access_exists = db.query(
-         db.query(models.Role)
-            .join(models.Role_User_Account,
-                  (models.Role_User_Account.role_id == models.Role.id) &
-            (models.Role_User_Account.user_account_id == logged_in_user_account_association.id))
-            .filter(
-               models.Role.permissions[applicationType]['READ']['action'].astext == 'Allow'
-            )
-            .exists()
-      ).scalar()
-
-      if not role_based_access_exists:
-         print(f"INSIDE GET /application/{application_id} - validate_get_connector: logged-in user - '{logged_in_user.id}' - is not a superadmin/admin and does not have account-specific role-based access permissions to read connector resources in account - '{account.id}'")
-         raise ApiError.forbidden(f"you do not have superadmin/admin privileges and you do not have account-specific role-based access permissions to read connector resources in account - '{account.id}'")
-      
-      return validation_info
-   except HTTPException as e:
-      db.rollback()
-      pprint(f'API error in GET /application/{application_id} - validate_get_connector dependency : {e}')
-      raise e
-   except SQLAlchemyError as e:
-      pprint(f'DB error in GET /application/{application_id} - validate_get_connector dependency : {e}')
-      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   except Exception as e:
-      db.rollback()
-      print(f'Unexpected error in GET /application/{application_id} - validate_get_connector dependency : {e}')
-      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+def validate_get_connector_pipelines_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   async def validate_get_connector_pipelines(
+      request: Request,
+      user_email: str = Depends(validate_token),
+      # The params below are required for pydantic validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector pipelines are queried"),
+      application_id: int = Path(..., description="id of connector application"),
+      db: Session = Depends(get_db)
+   ) -> dict[str, Any]:
+      try:
+         return await rbac_instance.validate_rbac(
+            request=request,
+            db=db,
+            target_model_action_sequence=target_model_action_sequence,
+            user_email=user_email,
+            target_model_class=target_model_class
+         )
+      except HTTPException as e:
+         db.rollback()
+         pprint(f'API error in GET /application/{application_id}/pipelines - validate_get_connector_pipelines dependency : {e}')
+         raise e
+      except SQLAlchemyError as e:
+         pprint(f'DB error in GET /application/{application_id}/pipelines - validate_get_connector_pipelines dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+      except Exception as e:
+         db.rollback()
+         print(f'Unexpected error in GET /application/{application_id}/pipelines - validate_get_connector_pipelines dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
+   return validate_get_connector_pipelines
 
-async def validate_get_connectors(
-   user_email: str = Depends(validate_token),
-   account_id: UUID = Header(None, alias="X-elevAIte-accountId"),
-   application_id: int = Path(..., description="id of application to retrieve"),
-   db: Session = Depends(get_db)
-) -> dict[str, Any]:
-   try:
-      if account_id is None:
-         print(f"in GET /application/{application_id} - validate_get_connector dependency : Request header must contain account id for this endpoint")
-         raise ApiError.validationerror("Request header must contain 'X-elevAIte-accountId' for this endpoint")
-      
-      # Fetch user by email
-      logged_in_user = db.query(models.User).filter(models.User.email == user_email).first()
-      if not logged_in_user:
-         print(f"in GET /application/{application_id} - validate_get_connector dependency : logged in user with email - '{user_email}' - not found in user table")
-         raise ApiError.unauthorized("user is unauthenticated") # decide whether to expose user not found
+def validate_get_connector_configurations_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   async def validate_get_connector_configurations(
+      request: Request,
+      user_email: str = Depends(validate_token),
+      # The params below are required for pydantic validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector appication configurations are queried"),
+      application_id: int = Path(..., description="id of connector application"),
+      db: Session = Depends(get_db)
+   ) -> dict[str, Any]:
+      try:
+         return await rbac_instance.validate_rbac(
+            request=request,
+            db=db,
+            target_model_action_sequence=target_model_action_sequence,
+            user_email=user_email,
+            target_model_class=target_model_class
+         )
+      except HTTPException as e:
+         db.rollback()
+         pprint(f'API error in GET /application/{application_id}/configuration - validate_get_connector_configurations dependency : {e}')
+         raise e
+      except SQLAlchemyError as e:
+         pprint(f'DB error in GET /application/{application_id}/configuration - validate_get_connector_configurations dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+      except Exception as e:
+         db.rollback()
+         print(f'Unexpected error in GET /application/{application_id}/configuration - validate_get_connector_configurations dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   
+   return validate_get_connector_configurations
 
-      account = db.query(models.Account).filter(models.Account.id == account_id).first()
-      if not account:
-         print(f"in GET /application/{application_id} - validate_get_connector dependency : account - '{account_id}' - not found")
-         raise ApiError.notfound(f"account - '{account_id}' - not found")
-      
-      if account.is_disabled:
-         print(f"in GET /application/{application_id} - validate_get_connector dependency : account - '{account_id}' - is disabled")
-         raise ApiError.forbidden(f"account - '{account_id}' - is disabled")
-      
-      application: models.Application = db.query(models.Application).filter(models.Application.id == id).first()
-      if not application:
-         print(f"in GET /application/{application_id} - validate_get_connector dependency : application - '{application_id}' - not found")
-         raise ApiError.notfound(f"application - '{application_id}' - not found")
-      
-      validation_info = {"logged_in_user_id" : logged_in_user.id,
-                           "account_id" : account_id,
-                           "db" : db}
-      
-      # Check if user is a superadmin and validate early
-      if logged_in_user.is_superadmin:
-         return validation_info
+def validate_get_connector_configuration_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   async def validate_get_connector_configuration(
+      request: Request,
+      user_email: str = Depends(validate_token),
+      # The params below are required for pydantic validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector appication configuration is queried"),
+      application_id: int = Path(..., description="id of connector application"),
+      configuration_id: UUID = Path(..., description="id of connector application configuration"),
+      db: Session = Depends(get_db)
+   ) -> dict[str, Any]:
+      try:
+         return await rbac_instance.validate_rbac(
+            request=request,
+            db=db,
+            target_model_action_sequence=target_model_action_sequence,
+            user_email=user_email,
+            target_model_class=target_model_class
+         )
+      except HTTPException as e:
+         db.rollback()
+         pprint(f'API error in GET /application/{application_id}/configuration/{configuration_id} - validate_get_connector_configuration dependency : {e}')
+         raise e
+      except SQLAlchemyError as e:
+         pprint(f'DB error in GET /application/{application_id}/configuration/{configuration_id} - validate_get_connector_configuration dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+      except Exception as e:
+         db.rollback()
+         print(f'Unexpected error in GET /application/{application_id}/configuration/{configuration_id} - validate_get_connector_configuration dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   
+   return validate_get_connector_configuration
 
-      logged_in_user_account_association = db.query(models.User_Account).filter(
-         models.User_Account.user_id == logged_in_user.id, models.User_Account.account_id == account.id
-      ).first()
+def validate_update_connector_configuration_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   async def validate_update_connector_configuration(
+      request: Request,
+      user_email: str = Depends(validate_token),
+      # The params below are required for pydantic validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector appication configuration is queried"),
+      application_id: int = Path(..., description="id of connector application"),
+      configuration_id: UUID = Path(..., description="id of connector application configuration"),
+      db: Session = Depends(get_db)
+   ) -> dict[str, Any]:
+      try:
+         return await rbac_instance.validate_rbac(
+            request=request,
+            db=db,
+            target_model_action_sequence=target_model_action_sequence,
+            user_email=user_email,
+            target_model_class=target_model_class
+         )
+      except HTTPException as e:
+         db.rollback()
+         pprint(f'API error in PUT /application/{application_id}/configuration/{configuration_id} - validate_update_connector_configuration dependency : {e}')
+         raise e
+      except SQLAlchemyError as e:
+         pprint(f'DB error in PUT /application/{application_id}/configuration/{configuration_id} - validate_update_connector_configuration dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+      except Exception as e:
+         db.rollback()
+         print(f'Unexpected error in PUT /application/{application_id}/configuration/{configuration_id} - validate_update_connector_configuration dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   
+   return validate_update_connector_configuration
 
-      if not logged_in_user_account_association:
-         print(f"in GET /application/{application_id} - validate_get_connector dependency : logged-in user - '{logged_in_user.id}' - is not assigned to account - '{account_id}'")
-         raise ApiError.forbidden(f"you are not assigned to account - '{account_id}'")
+def validate_create_connector_configuration_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   async def validate_create_connector_configuration(
+      request: Request,
+      user_email: str = Depends(validate_token),
+      # The params below are required for pydantic validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector appication configurations are queried"),
+      application_id: int = Path(..., description="id of connector application"),
+      db: Session = Depends(get_db)
+   ) -> dict[str, Any]:
+      try:
+         return await rbac_instance.validate_rbac(
+            request=request,
+            db=db,
+            target_model_action_sequence=target_model_action_sequence,
+            user_email=user_email,
+            target_model_class=target_model_class
+         )
+      except HTTPException as e:
+         db.rollback()
+         pprint(f'API error in POST /application/{application_id}/configuration - validate_create_connector_configuration dependency : {e}')
+         raise e
+      except SQLAlchemyError as e:
+         pprint(f'DB error in POST /application/{application_id}/configuration - validate_create_connector_configuration dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+      except Exception as e:
+         db.rollback()
+         print(f'Unexpected error in POST /application/{application_id}/configuration - validate_create_connector_configuration dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   
+   return validate_create_connector_configuration
 
-      if logged_in_user_account_association.is_admin: # check if user is admin and validate early
-         return validation_info
-      
-      applicationType = application.applicationType
-      # print(f'applicationType = {applicationType}')
-      if applicationType not in connector_schemas.ApplicationType.__members__.values():
-         print(f"In GET /application/{application_id} - validate_get_connector: Unsupported application type - '{application.applicationType}'")
-         raise ApiError.validationerror(f"Unsupported application type - '{application.applicationType}'")
-      
-      print(f'applicationType.lower().capitalize() = {applicationType.lower().capitalize()}')
-      applicationType = applicationType.lower().capitalize()
-      if applicationType not in role_schemas.AccountScopedPermissions.__fields__.keys():
-         print(f"In GET /application/{application_id} - validate_get_connector: RBAC Validation for application type - '{application.applicationType}' - not implemented.")
-         raise ApiError.validationerror(f"RBAC Validation for application type - '{application.applicationType}' - not implemented.")
-      
-      # Checking account-scoped role-based access here for applicationType.READ:
-      role_based_access_exists = db.query(
-         db.query(models.Role)
-            .join(models.Role_User_Account,
-                  (models.Role_User_Account.role_id == models.Role.id) &
-            (models.Role_User_Account.user_account_id == logged_in_user_account_association.id))
-            .filter(
-               models.Role.permissions[applicationType]['READ'].astext == 'Allow'
-            )
-            .exists()
-      ).scalar()
+def validate_get_connector_instances_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   async def validate_get_connector_instances(
+      request: Request,
+      user_email: str = Depends(validate_token),
+      # The params below are required for pydantic validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector instances are queried"),
+      project_id: UUID = Header(..., alias = "X-elevAIte-ProjectId", description="project_id under which connector instances are queried"),
+      application_id: int = Path(..., description="id of connector application"),
+      db: Session = Depends(get_db)
+   ) -> dict[str, Any]:
+      try:
+         return await rbac_instance.validate_rbac(
+            request=request,
+            db=db,
+            target_model_action_sequence=target_model_action_sequence,
+            user_email=user_email,
+            target_model_class=target_model_class
+         )
+      except HTTPException as e:
+         db.rollback()
+         pprint(f'API error in GET /application/{application_id}/instance - validate_get_connector_instances dependency : {e}')
+         raise e
+      except SQLAlchemyError as e:
+         pprint(f'DB error in GET /application/{application_id}/instance - validate_get_connector_instances dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+      except Exception as e:
+         db.rollback()
+         print(f'Unexpected error in GET /application/{application_id}/instance - validate_get_connector_instances dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   
+   return validate_get_connector_instances
 
-      if not role_based_access_exists:
-         print(f"INSIDE GET /application/{application_id} - validate_get_connector: logged-in user - '{logged_in_user.id}' - is not a superadmin/admin and does not have account-specific role-based access permissions to read connector resources in account - '{account.id}'")
-         raise ApiError.forbidden(f"you do not have superadmin/admin privileges and you do not have account-specific role-based access permissions to read connector resources in account - '{account.id}'")
-      
-      return validation_info
-   except HTTPException as e:
-      db.rollback()
-      pprint(f'API error in GET /application/{application_id} - validate_get_connector dependency : {e}')
-      raise e
-   except SQLAlchemyError as e:
-      pprint(f'DB error in GET /application/{application_id} - validate_get_connector dependency : {e}')
-      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   except Exception as e:
-      db.rollback()
-      print(f'Unexpected error in GET /application/{application_id} - validate_get_connector dependency : {e}')
-      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+def validate_get_connector_instance_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   async def validate_get_connector_instance(
+      request: Request,
+      user_email: str = Depends(validate_token),
+      # The params below are required for pydantic validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector instances are queried"),
+      project_id: UUID = Header(..., alias = "X-elevAIte-ProjectId", description="project_id under which connector instances are queried"),
+      application_id: int = Path(..., description="id of connector application"),
+      instance_id: UUID = Path(..., description="id of connector instance"),
+      db: Session = Depends(get_db)
+   ) -> dict[str, Any]:
+      try:
+         return await rbac_instance.validate_rbac(
+            request=request,
+            db=db,
+            target_model_action_sequence=target_model_action_sequence,
+            user_email=user_email,
+            target_model_class=target_model_class
+         )
+      except HTTPException as e:
+         db.rollback()
+         pprint(f'API error in GET /application/{application_id}/instance - validate_get_connector_instances dependency : {e}')
+         raise e
+      except SQLAlchemyError as e:
+         pprint(f'DB error in GET /application/{application_id}/instance - validate_get_connector_instances dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+      except Exception as e:
+         db.rollback()
+         print(f'Unexpected error in GET /application/{application_id}/instance - validate_get_connector_instances dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   
+   return validate_get_connector_instance
+
+def validate_get_connector_instance_chart_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   async def validate_get_connector_instance_chart(
+      request: Request,
+      user_email: str = Depends(validate_token),
+      # The params below are required for pydantic validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector instances are queried"),
+      project_id: UUID = Header(..., alias = "X-elevAIte-ProjectId", description="project_id under which connector instances are queried"),
+      application_id: int = Path(..., description="id of connector application"),
+      instance_id: UUID = Path(..., description="id of connector instance"),
+      db: Session = Depends(get_db)
+   ) -> dict[str, Any]:
+      try:
+         return await rbac_instance.validate_rbac(
+            request=request,
+            db=db,
+            target_model_action_sequence=target_model_action_sequence,
+            user_email=user_email,
+            target_model_class=target_model_class
+         )
+      except HTTPException as e:
+         db.rollback()
+         pprint(f'API error in GET /application/{application_id}/instance/{instance_id}/chart - validate_get_connector_instance_chart dependency : {e}')
+         raise e
+      except SQLAlchemyError as e:
+         pprint(f'DB error in GET /application/{application_id}/instance/{instance_id}/chart - validate_get_connector_instance_chart dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+      except Exception as e:
+         db.rollback()
+         print(f'Unexpected error in GET /application/{application_id}/instance/{instance_id}/chart - validate_get_connector_instance_chart dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   return validate_get_connector_instance_chart
+
+def validate_get_connector_instance_configuration_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   async def validate_get_connector_instance_configuration(
+      request: Request,
+      user_email: str = Depends(validate_token),
+      # The params below are required for pydantic validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector instance configuration is queried"),
+      project_id: UUID = Header(..., alias = "X-elevAIte-ProjectId", description="project_id under which connector instance configuration is queried"),
+      application_id: int = Path(..., description="id of connector application"),
+      instance_id: UUID = Path(..., description="id of connector instance"),
+      db: Session = Depends(get_db)
+   ) -> dict[str, Any]:
+      try:
+         return await rbac_instance.validate_rbac(
+            request=request,
+            db=db,
+            target_model_action_sequence=target_model_action_sequence,
+            user_email=user_email,
+            target_model_class=target_model_class
+         )
+      except HTTPException as e:
+         db.rollback()
+         pprint(f'API error in GET /application/{application_id}/instance/{instance_id}/configuration - validate_get_connector_instance_configuration dependency : {e}')
+         raise e
+      except SQLAlchemyError as e:
+         pprint(f'DB error in GET /application/{application_id}/instance/{instance_id}/configuration - validate_get_connector_instance_configuration dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+      except Exception as e:
+         db.rollback()
+         print(f'Unexpected error in GET /application/{application_id}/instance/{instance_id}/configuration - validate_get_connector_instance_configuration dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   
+   return validate_get_connector_instance_configuration
+
+def validate_get_connector_instance_logs_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   async def validate_get_connector_instance_logs(
+      request: Request,
+      user_email: str = Depends(validate_token),
+      # The params below are required for pydantic validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector instance logs are queried"),
+      project_id: UUID = Header(..., alias = "X-elevAIte-ProjectId", description="project_id under which connector instance logs are queried"),
+      application_id: int = Path(..., description="id of connector application"),
+      instance_id: UUID = Path(..., description="id of connector instance"),
+      db: Session = Depends(get_db)
+   ) -> dict[str, Any]:
+      try:
+         return await rbac_instance.validate_rbac(
+            request=request,
+            db=db,
+            target_model_action_sequence=target_model_action_sequence,
+            user_email=user_email,
+            target_model_class=target_model_class
+         )
+      except HTTPException as e:
+         db.rollback()
+         pprint(f'API error in GET /application/{application_id}/instance/{instance_id}/log - validate_get_connector_instance_logs dependency : {e}')
+         raise e
+      except SQLAlchemyError as e:
+         pprint(f'DB error in GET /application/{application_id}/instance/{instance_id}/log - validate_get_connector_instance_logs dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+      except Exception as e:
+         db.rollback()
+         print(f'Unexpected error in GET /application/{application_id}/instance/{instance_id}/log - validate_get_connector_instance_logs dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   
+   return validate_get_connector_instance_logs
+
+def validate_create_connector_instance_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   async def validate_create_connector_instance(
+      request: Request,
+      user_email: str = Depends(validate_token),
+      # The params below are required for pydantic validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector instance logs are queried"),
+      project_id: UUID = Header(..., alias = "X-elevAIte-ProjectId", description="project_id under which connector instance logs are queried"),
+      application_id: int = Path(..., description="id of connector application"),
+      db: Session = Depends(get_db)
+   ) -> dict[str, Any]:
+      try:
+         return await rbac_instance.validate_rbac(
+            request=request,
+            db=db,
+            target_model_action_sequence=target_model_action_sequence,
+            user_email=user_email,
+            target_model_class=target_model_class
+         )
+      except HTTPException as e:
+         db.rollback()
+         pprint(f'API error in POST /application/{application_id}/instance/ - validate_create_connector_instance dependency : {e}')
+         raise e
+      except SQLAlchemyError as e:
+         pprint(f'DB error in POST /application/{application_id}/instance/ - validate_create_connector_instance dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+      except Exception as e:
+         db.rollback()
+         print(f'Unexpected error in POST /application/{application_id}/instance/ - validate_create_connector_instance dependency : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   return validate_create_connector_instance

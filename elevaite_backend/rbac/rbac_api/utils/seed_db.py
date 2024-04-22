@@ -102,16 +102,16 @@ def seed_db(db: Session):
 
 
     # Create Projects and tie them to accounts and owners
-    project_1 = models.Project(id=uuid.uuid4(), account_id=account_1.id, project_owner_id=superadmin_1.id, name="Project 1")
-    project_2 = models.Project(id=uuid.uuid4(), account_id=account_2.id, project_owner_id=superadmin_2.id, name="Project 2")
-    project_3 = models.Project(id=uuid.uuid4(), account_id=account_3.id, project_owner_id=regular_users[2].id, name="Project 3")
-    project_1_child1 = models.Project(id=uuid.uuid4(), account_id=account_1.id, project_owner_id=superadmin_1.id, parent_project_id = project_1.id, name="Project-1_Child-1")
-    project_1_child2 = models.Project(id=uuid.uuid4(), account_id=account_1.id, project_owner_id=superadmin_1.id, parent_project_id = project_1.id, name="Project-1_Child-2")
-    project_2_child1 = models.Project(id=uuid.uuid4(), account_id=account_2.id, project_owner_id=superadmin_2.id, parent_project_id = project_2.id, name="Project-2_Child-1")
-    project_2_child2 = models.Project(id=uuid.uuid4(), account_id=account_2.id, project_owner_id=superadmin_2.id, parent_project_id = project_2.id, name="Project-2_Child-2")
-    project_3_child1 = models.Project(id=uuid.uuid4(), account_id=account_3.id, project_owner_id=regular_users[0].id, parent_project_id = project_3.id, name="Project-3_Child-1")
-    project_3_child2 = models.Project(id=uuid.uuid4(), account_id=account_3.id, project_owner_id=regular_users[1].id, parent_project_id = project_3.id, name="Project-3_Child-2")
-    project_3_child3 = models.Project(id=uuid.uuid4(), account_id=account_3.id, project_owner_id=regular_users[1].id, parent_project_id = project_3.id, name="Project-3_Child-3")
+    project_1 = models.Project(id=uuid.uuid4(), account_id=account_1.id, creator=superadmin_1.email, name="Project 1")
+    project_2 = models.Project(id=uuid.uuid4(), account_id=account_2.id, creator=superadmin_2.email, name="Project 2")
+    project_3 = models.Project(id=uuid.uuid4(), account_id=account_3.id, creator=regular_users[2].email, name="Project 3")
+    project_1_child1 = models.Project(id=uuid.uuid4(), account_id=account_1.id, creator=superadmin_1.email, parent_project_id = project_1.id, name="Project-1_Child-1")
+    project_1_child2 = models.Project(id=uuid.uuid4(), account_id=account_1.id, creator=superadmin_1.email, parent_project_id = project_1.id, name="Project-1_Child-2")
+    project_2_child1 = models.Project(id=uuid.uuid4(), account_id=account_2.id, creator=superadmin_2.email, parent_project_id = project_2.id, name="Project-2_Child-1")
+    project_2_child2 = models.Project(id=uuid.uuid4(), account_id=account_2.id, creator=superadmin_2.email, parent_project_id = project_2.id, name="Project-2_Child-2")
+    project_3_child1 = models.Project(id=uuid.uuid4(), account_id=account_3.id, creator=regular_users[0].email, parent_project_id = project_3.id, name="Project-3_Child-1")
+    project_3_child2 = models.Project(id=uuid.uuid4(), account_id=account_3.id, creator=regular_users[1].email, parent_project_id = project_3.id, name="Project-3_Child-2")
+    project_3_child3 = models.Project(id=uuid.uuid4(), account_id=account_3.id, creator=regular_users[1].email, parent_project_id = project_3.id, name="Project-3_Child-3")
 
     db.add(project_1)
     db.commit()
@@ -154,15 +154,15 @@ def seed_db(db: Session):
     db.refresh(project_3_child3)
 
     # # User_Project entries
-    user_project_1 = models.User_Project(user_id=superadmin_1.id, project_id=project_1.id, )
-    user_project_1_child1 = models.User_Project(user_id=superadmin_1.id, project_id=project_1_child1.id)
-    user_project_1_child2 = models.User_Project(user_id=superadmin_1.id, project_id=project_1_child2.id)
+    user_project_1 = models.User_Project(user_id=superadmin_1.id, project_id=project_1.id, is_admin=True)
+    user_project_1_child1 = models.User_Project(user_id=superadmin_1.id, project_id=project_1_child1.id, is_admin=True)
+    user_project_1_child2 = models.User_Project(user_id=superadmin_1.id, project_id=project_1_child2.id, is_admin=True)
 
-    user_project_2 = models.User_Project(user_id=superadmin_2.id, project_id=project_2.id)
-    user_project_2_child1 = models.User_Project(user_id=superadmin_2.id, project_id=project_2_child1.id)
-    user_project_2_child2 = models.User_Project(user_id=superadmin_2.id, project_id=project_2_child2.id)
+    user_project_2 = models.User_Project(user_id=superadmin_2.id, project_id=project_2.id, is_admin=True)
+    user_project_2_child1 = models.User_Project(user_id=superadmin_2.id, project_id=project_2_child1.id, is_admin=True)
+    user_project_2_child2 = models.User_Project(user_id=superadmin_2.id, project_id=project_2_child2.id, is_admin=True)
 
-    user_project_3 = models.User_Project(user_id=regular_users[2].id, project_id=project_3.id)
+    user_project_3 = models.User_Project(user_id=regular_users[2].id, project_id=project_3.id, is_admin=True)
     user_project_3_for_user_0 = models.User_Project(user_id=regular_users[0].id, project_id=project_3.id)
     user_project_3_child1_for_user_0 = models.User_Project(user_id=regular_users[0].id, project_id=project_3_child1.id)
     user_project_3_child2_for_user_0 = models.User_Project(user_id=regular_users[0].id, project_id=project_3_child2.id)
@@ -187,48 +187,51 @@ def seed_db(db: Session):
     # # Permissions setup :
 
     # # Data scientist account-scoped permissions:
-    data_scientist_permissions = role_schemas.AccountScopedPermissions()
+    data_scientist_permissions = role_schemas.AccountScopedPermission()
 
-    data_scientist_permissions.Project.CREATE.action = 'Allow'
+    data_scientist_permissions.ENTITY_Project.ACTION_CREATE = 'Allow'
 
-    data_scientist_permissions.Ingest.READ.action = 'Allow'
-    data_scientist_permissions.Ingest.CONFIGURATIONS.READ.action = 'Allow'
-    data_scientist_permissions.Ingest.CONFIGURATIONS.CREATE.action = 'Allow'
-    data_scientist_permissions.Ingest.CONFIGURATIONS.UPDATE.action = 'Allow'
+    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ACTION_READ = 'Allow'
+    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_READ = 'Allow'
+    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_CREATE = 'Allow'
+    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_UPDATE = 'Allow'
 
-    data_scientist_permissions.Preprocess.READ.action = 'Allow'
-    data_scientist_permissions.Preprocess.CONFIGURATIONS.READ.action = 'Allow'
-    data_scientist_permissions.Preprocess.CONFIGURATIONS.CREATE.action = 'Allow'
-    data_scientist_permissions.Preprocess.CONFIGURATIONS.UPDATE.action = 'Allow'
+    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ACTION_READ = 'Allow'
+    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_READ = 'Allow'
+    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_CREATE = 'Allow'
+    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_UPDATE = 'Allow'
 
     # ML Engineer account-scoped permissions:
-    ml_engineer_permissions = role_schemas.AccountScopedPermissions()
+    ml_engineer_permissions = role_schemas.AccountScopedPermission()
 
-    ml_engineer_permissions.Project.READ.action = 'Allow'
-    ml_engineer_permissions.Project.CREATE.action = 'Allow'
+    ml_engineer_permissions.ENTITY_Project.ACTION_READ = 'Allow'
+    ml_engineer_permissions.ENTITY_Project.ACTION_CREATE = 'Allow'
 
-    ml_engineer_permissions.Train.READ.action = 'Allow'
-    ml_engineer_permissions.Train.DOWNLOAD.READ.action = 'Allow'
-    ml_engineer_permissions.Train.DOWNLOAD.CREATE.action = 'Allow'
-    ml_engineer_permissions.Train.DOWNLOAD.RUN.action = 'Allow'
-    ml_engineer_permissions.Train.EVALUATE.READ.action = 'Allow'
-    ml_engineer_permissions.Train.EVALUATE.CREATE.action = 'Allow'
-    ml_engineer_permissions.Train.EVALUATE.RUN.action = 'Allow'
-    ml_engineer_permissions.Train.FINE_TUNING.READ.action = 'Allow'
-    ml_engineer_permissions.Train.FINE_TUNING.CREATE.action = 'Allow'
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ACTION_READ = 'Allow'
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_READ = 'Allow'
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_CREATE = 'Allow'
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_UPDATE = 'Allow'
+
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ACTION_READ = 'Allow'
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_READ = 'Allow'
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_CREATE = 'Allow'
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_UPDATE = 'Allow'
 
     # ML OPS account-scoped permissions:
-    ml_ops_permissions = role_schemas.AccountScopedPermissions()
+    ml_ops_permissions = role_schemas.AccountScopedPermission()
 
-    ml_ops_permissions.Project.READ.action = 'Allow'
-    ml_ops_permissions.Project.CREATE.action = 'Allow'
+    ml_engineer_permissions.ENTITY_Project.ACTION_READ = 'Allow'
+    ml_engineer_permissions.ENTITY_Project.ACTION_CREATE = 'Allow'
 
-    ml_ops_permissions.Deploy.READ.action = 'Allow'
-    ml_ops_permissions.Deploy.RUN.action = 'Allow'
-    ml_ops_permissions.Deploy.CREATE.action = 'Allow'
-    ml_ops_permissions.Deploy.CONFIGURE.READ.action = 'Allow'
-    ml_ops_permissions.Deploy.CONFIGURE.CREATE.action = 'Allow'
-    ml_ops_permissions.Deploy.CONFIGURE.RUN.action = 'Allow'
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ACTION_READ = 'Allow'
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_READ = 'Allow'
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_CREATE = 'Allow'
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_UPDATE = 'Allow'
+
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ACTION_READ = 'Allow'
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_READ = 'Allow'
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_CREATE = 'Allow'
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_UPDATE = 'Allow'
 
     # # Create Roles
     data_scientist_role = models.Role(name="Data Scientist", permissions=data_scientist_permissions.dict())
@@ -254,13 +257,12 @@ def seed_db(db: Session):
 
     # # Adding Project-specific permission overrides:
 
-    project_permissions_overrides = role_schemas.ProjectScopedPermissions()
-    project_permissions_overrides.Project.CREATE.action = 'Allow'
+    project_permissions_overrides = role_schemas.ProjectScopedPermission()
+    project_permissions_overrides.ENTITY_Project.ACTION_CREATE = 'Allow'
 
-    project_permissions_overrides.Preprocess.READ.action = 'Allow'
-    project_permissions_overrides.Preprocess.CONFIGURATIONS.READ.action = 'Allow'
-    project_permissions_overrides.Preprocess.CONFIGURATIONS.CREATE.action = 'Allow'
-    project_permissions_overrides.Preprocess.CONFIGURATIONS.UPDATE.action = 'Allow'
+    project_permissions_overrides.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_READ = 'Allow'
+    project_permissions_overrides.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_CREATE = 'Allow'
+    project_permissions_overrides.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_UPDATE = 'Allow'
 
     user_project_id_to_update = user_project_3_for_user_0.id
 

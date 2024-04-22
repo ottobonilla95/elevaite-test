@@ -1,0 +1,14 @@
+{
+   "account_not_found": {
+      "summary": "account not found",
+      "value": {
+         "detail": "account - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   },
+   "user_not_found": {
+      "summary": "user not found",
+      "value": {
+         "detail": "User - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   }
+}

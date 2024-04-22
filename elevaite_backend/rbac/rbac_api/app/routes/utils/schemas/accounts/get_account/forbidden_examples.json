@@ -1,11 +1,5 @@
 {
-   "insufficient_permissions_1": {
-      "summary": "logged-in user is not assigned to organization",
-      "value": {
-         "detail": "you are not assigned to organization - '789e4567-e89b-12d3-a456-426614174000'"
-      }
-   },
-   "insufficient_permissions_2": {
+   "insufficient_permissions": {
       "summary": "logged-in user is not assigned to account",
       "value": {
          "detail": "you are not assigned to account - '789e4567-e89b-12d3-a456-426614174000'"

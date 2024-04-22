@@ -92,41 +92,7 @@ def patch_organization(
       db.rollback()
       pprint(f'Unexpected error in PATCH /organization service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   
-def get_organization(
-   org_id: UUID,
-   db: Session
-   ) -> organization_schemas.OrganizationResponseDTO:
-   """
-   Retrieves an organization based on given org_id path param
-
-   Args:
-      org_id (UUID) : The id of the organization to be retrieved.
-      db (Session): The db session object for db operations.
-
-   Raises: 
-      404: Organization not found.
-      503: Any db related error.
-   Returns: 
-      OrganizationResponseDTO : The response containing retrieved OrganizationResponseDTO object. 
-   
-   Notes:
-      - logged-in user is assumed to exist in user table. 
-   """
-   try:
-      db_org = db.query(models.Organization).filter(models.Organization.id == org_id).first() # existence checked in dependency
-      return db_org
-   except HTTPException as e:
-      db.rollback()
-      pprint(f'API error in GET /organization service method : {e}')
-      raise e
-   except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
-      pprint(f'DB error in GET /organization service method : {e}')
-      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   except Exception as e:
-      pprint(f'Unexpected error in GET /organization service method : {e}')
-      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   
+      
 def get_org_users(
    db: Session,
    org_id: UUID,
@@ -159,33 +125,3 @@ def get_org_users(
       pprint(f'Unexpected error in GET /users service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
-# def get_user_by_email_and_org_id(db: Session, email: str, org_id: UUID) -> OrgUserListItemDTO:
-#    """
-#    Queries the database for a user by their email and organization ID.
-
-#    Parameters:
-#    - db: The SQLAlchemy database session.
-#    - email: The user's email address.
-#    - org_id: The ID of the organization.
-
-#    Returns:
-#    - A OrgUserListItemDTO object
-#    """
-#    try:
-#       user = db.query(User).filter(
-#          User.email == email,
-#          User.organization_id == org_id
-#       ).first()
-#       if not user:
-#          print(f"in GET /organization/users/me - service method : user with email - '{email}' - not found in organization - '{org_id}'")
-#          raise ApiError.notfound(f"user with email - '{email}' - not found in organization - '{org_id}'")
-#       return user
-#    except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
-#       db.rollback()
-#       pprint(f'DB error in GET /organization/users/me - service method : {e}')
-#       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-#    except Exception as e:
-#       db.rollback()
-#       pprint(f'Unexpected error in GET /organization/users/me - service method : {e}')
-#       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   

@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 import pika
-
+from uuid import UUID
 from app.util.name_generator import get_random_name
 from app.util.RedisSingleton import RedisSingleton
 from app.util.ElasticSingleton import ElasticSingleton
@@ -45,8 +45,16 @@ from elevaitedb.crud import (
 from elevaitedb.db import models
 
 
-def getApplicationInstances(db: Session, application_id: int) -> List[models.Instance]:
-    instances = instance_crud.get_instances(db, application_id, limit=100)
+def getApplicationInstances(
+        db: Session, application_id: int,
+        # project_id: UUID # uncomment this when using validator
+    ) -> List[models.Instance]:
+    instances = instance_crud.get_instances(
+        db, 
+        application_id,
+        # project_id, # uncomment this when using validator
+        limit=100
+    )
     return instances
 
 

@@ -7,6 +7,7 @@ from typing import List, Optional, cast
 from uuid import UUID
 from datetime import datetime
 from pprint import pprint
+import os
 from ..errors.api_error import ApiError
 
 from elevaitedb.schemas import (
@@ -18,10 +19,11 @@ from elevaitedb.schemas import (
 from elevaitedb.db import models
 
 from .utils.project_helpers import (
-   get_top_level_project_ids_for_user_in_account,
+   get_top_level_associated_project_ids_for_user_in_account,
+   delete_all_associated_user_projects_in_account
 )
 from rbac_api.utils.cte import (
-   delete_unrooted_user_project_associations,
+   delete_unrooted_user_project_associations_in_account,
 )
 
 def create_account(
@@ -153,15 +155,13 @@ def patch_account(
 def get_accounts( 
    logged_in_user_id: UUID,
    logged_in_user_is_superadmin: bool,
-   org_id: UUID,
    name: Optional[str],
    db: Session
 ) -> List[account_schemas.AccountResponseDTO]:
    """
-   Retrieves accounts for a user with optional name query param based on superadmin or non-superadmin role.
+   Retrieves accounts for a user with optional name query param.
 
    Args:
-      org_id (UUID): The org_id pointing to the organization that the account belongs to.
       name (Optional[str]): Optional query param of account name .
       db (Session): The db session object for db operations.
 
@@ -179,14 +179,13 @@ def get_accounts(
    try:
       # Start with all accounts if the user is superadmin, else filter by user's accounts (so that superadmin can still view accounts if association removed)
       if logged_in_user_is_superadmin: 
-         query = db.query(models.Account).filter(models.Account.organization_id == org_id)
+         query = db.query(models.Account)
       else:
-         # For non-superadmins: get accounts they are admin of or which are not disabled
-         query = (db.query(models.Account)
-                  .join(models.User_Account, models.Account.id == models.User_Account.account_id)
-                  .filter(models.User_Account.user_id == logged_in_user_id,
-                           models.Account.organization_id == org_id)
-                  .filter((models.User_Account.is_admin == True) | (models.Account.is_disabled == False)))
+         # For non-superadmins: get accounts they are associated with
+         query = db.query(models.Account)\
+                  .join(models.User_Account, models.Account.id == models.User_Account.account_id)\
+                  .filter(models.User_Account.user_id == logged_in_user_id)
+                  
       # Apply filters based on account name
       if name:
          query = query.filter(models.Account.name.ilike(f"%{name}%"))
@@ -195,13 +194,13 @@ def get_accounts(
       return cast(List[account_schemas.AccountResponseDTO], accounts)
    except HTTPException as e:
       db.rollback()
-      pprint(f'API error in GET /accounts?org_id={org_id} service method: {e}')
+      pprint(f'API error in GET /accounts service method: {e}')
       raise e
-   except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
-      pprint(f'DB error in GET /accounts?org_id={org_id} service method: {e}')
+   except SQLAlchemyError as e: 
+      pprint(f'DB error in GET /accounts service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
-      pprint(f'Unexpected error in GET /accounts?org_id={org_id} service method: {e}')
+      pprint(f'Unexpected error in GET /accounts service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
 def get_account_user_profile(
@@ -243,15 +242,15 @@ def get_account_user_profile(
 
    except HTTPException as e:
       db.rollback()
-      pprint(f'API error in GET /accounts/{account_id}/profile : {e}')
+      pprint(f'API error in GET /accounts/{account_id}/profile service method: {e}')
       raise e
    except SQLAlchemyError as e:
       db.rollback()
-      pprint(f'Error in GET /accounts/{account_id}/profile : {e}')
+      pprint(f'Error in GET /accounts/{account_id}/profile service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
-      pprint(f'Unexpected error in GET /accounts/{account_id}/profile : {e}')
+      pprint(f'Unexpected error in GET /accounts/{account_id}/profile service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
 def get_account_user_list(
@@ -282,16 +281,10 @@ def get_account_user_list(
       account_users_with_roles = []
 
       for user, is_admin, user_account_id in account_users:
-         if user.is_superadmin:
+         if user.is_superadmin or is_admin:
             account_user_with_roles_dto = user_schemas.AccountUserListItemDTO(
                **user.__dict__,
-               is_account_admin = False,
-               roles = []
-            )
-         elif is_admin:
-            account_user_with_roles_dto = user_schemas.AccountUserListItemDTO(
-               **user.__dict__,
-               is_account_admin = True,
+               is_account_admin = is_admin,
                roles = []
             )
          else:
@@ -317,137 +310,120 @@ def get_account_user_list(
       return account_users_with_roles
    except HTTPException as e:
       db.rollback()
-      pprint(f'API error in GET /users/account-level?account_id={account_id} : {e}')
+      pprint(f'API error in GET /accounts/{account_id}/users service method : {e}')
       raise e
    except SQLAlchemyError as e:
       db.rollback()
-      pprint(f'Error in GET /users/account-level?account_id={account_id} : {e}')
+      pprint(f'Error in GET /accounts/{account_id}/users service method : {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
-      pprint(f'Unexpected error in GET /users/account-level?account_id={account_id} : {e}')
+      pprint(f'Unexpected error in GET /accounts/{account_id}/users service method : {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
-def assign_or_deassign_users_in_account(
+def assign_users_to_account(
    account_id: UUID,
    user_list_dto: user_schemas.UserListDTO,
    db: Session,
-   logged_in_user_id: UUID,
-   logged_in_user_is_superadmin: bool
    ) -> JSONResponse:
    try:
       user_ids = user_list_dto.user_ids
-      action = user_list_dto.action
+      # if action == "Add":
+      query_result = db.query(# Check for the existence of all users in the list, and their account association
+         func.count(models.User.id).label("total_users_found"),  # Count all users matched by user_ids
+         func.count(models.User_Account.user_id).label("total_user_account_associations"),  # Count only non-NULL associations (existing associations)
+      ).outerjoin(models.User_Account, and_(models.User.id == models.User_Account.user_id, models.User_Account.account_id == account_id)) \
+      .filter(models.User.id.in_(user_ids)) \
+      .one() # outerjoin to get User, User_Account counts separately in one query
 
-      if action == "Add":
-         query_result = db.query(# Check for the existence of all users in the list, and their account association
-            func.count(models.User.id).label("total_users_found"),  # Count all users matched by user_ids
-            func.count(models.User_Account.user_id).label("total_user_account_associations"),  # Count only non-NULL associations (existing associations)
-         ).outerjoin(models.User_Account, and_(models.User.id == models.User_Account.user_id, models.User_Account.account_id == account_id)) \
-         .filter(models.User.id.in_(user_ids)) \
-         .one() # outerjoin to get User, User_Account counts separately in one query
+      # Extracting the results
+      (total_users_found, total_user_account_associations) = query_result
 
-         # Extracting the results
-         (total_users_found, total_user_account_associations) = query_result
+      # print(f'total_users_found = {total_users_found},\n'
+      #       f'total_user_account_associations = {total_user_account_associations},\n')
+   
+      if total_users_found != len(user_ids):
+         print(f"in PATCH /accounts/{account_id}/users service method: One or more users not found in user table")
+         raise ApiError.notfound("One or more users not found")
+                                             
+      if total_user_account_associations > 0:
+         print(f"in PATCH /accounts/{account_id}/users service method: One or more users are already assigned to the account")
+         raise ApiError.conflict(f"One or more users are already assigned to account - '{account_id}'")
 
-         # print(f'total_users_found = {total_users_found},\n'
-         #       f'total_user_account_associations = {total_user_account_associations},\n')
-      
-         if total_users_found != len(user_ids):
-            print(f"in PATCH /accounts/{account_id}/users service method: One or more users not found in user table")
-            raise ApiError.notfound("One or more users not found")
-                                                
-         if total_user_account_associations > 0:
-            print(f"in PATCH /accounts/{account_id}/users service method: One or more users are already assigned to the account")
-            raise ApiError.conflict(f"One or more users are already assigned to account - '{account_id}'")
-
-         # Create new User_Account associations
-         new_user_accounts = [
-            models.User_Account(user_id=UUID(str(user_id)), account_id=account_id)
-            for user_id in user_ids
-         ]
-         db.bulk_save_objects(new_user_accounts)
-         db.commit()
-         return JSONResponse(content={"message": f"Successfully assigned {len(new_user_accounts)} user/(s) to the account"}, status_code= status.HTTP_200_OK)
-      else: # action == "Remove"
-         query_result = db.query(
-         func.count(models.User.id).label("total_users_found_in_list"),  # Count all users matched by user_ids
-         func.count(models.User_Account.user_id).label("total_user_account_associations_in_list"),  # Count only non-NULL associations
-         func.sum(case((models.User.is_superadmin == True, 1), else_=0)).label("superadmin_count_in_list"),  # count = 0 or 1 : represents if superadmin is present in list 
-         # select(User.is_superadmin).where(User.id == logged_in_user_id).as_scalar().label("logged_in_user_is_superadmin"), # boolean flag - logged_in_user is superadmin  | Have logged_in_user_is_superadmin flag avaialable
-         func.sum(case((models.User_Account.user_id == logged_in_user_id, 1), else_=0)).label("logged_in_user_association_count_in_list") # count = 0 or 1 : represents if logged_in_user_id is a part of the list and is associated to account
-         ).outerjoin(models.User_Account, and_(models.User.id == models.User_Account.user_id, models.User_Account.account_id == account_id)) \
-         .filter(models.User.id.in_(user_ids)) \
-         .one() # outerjoin to get User, User_Account counts separately in one query
-
-         # Extracting the results
-         (total_users_found_in_list,
-         total_user_account_associations_in_list,
-         superadmin_count_in_list,
-         logged_in_user_association_count_in_list) = query_result
-
-         # print(f'total_users_found = {total_users_found},\n'
-         #       f'total_user_account_associations = {total_user_account_associations},\n'
-         #       f'total_is_superadmin = {total_is_superadmin},\n'
-         #       f'logged_in_user_is_superadmin = {logged_in_user_is_superadmin},\n'
-         #       f'logged_in_user_association_count_in_list = {logged_in_user_association_count_in_list}')
-
-         if total_users_found_in_list != len(user_ids): # all users in input must exist
-            print(f'In PATCH /accounts/{account_id}/users service method : One or more users not found')
-            raise ApiError.notfound("One or more users not found")
-         
-         if total_user_account_associations_in_list != len(user_ids): # all users in input must be associated to account
-            print(f"In PATCH /accounts/{account_id}/users service method : Not all users are assigned to the account '{account_id}'")
-            raise ApiError.validationerror(f"Not all users are assigned to account - '{account_id}'")
-
-         if logged_in_user_association_count_in_list == 1: # logged-in user cannot deassign self
-            print(f"In PATCH /accounts/{account_id}/users service method : user does not have permissions to deassign self from account")
-            raise ApiError.validationerror(f"invalid action - you cannot deassign self from account - '{account_id}'")
-         
-         if superadmin_count_in_list > 0 and not logged_in_user_is_superadmin:
-            print(f"In PATCH /accounts/{account_id}/users service method : user does not have permissions to deassign superadmin-user from account")
-            raise ApiError.forbidden(f"you do not have permissions to deassign superadmin-user from account - '{account_id}'")
-         
-         # First obtain all User_Project association id's to delete based on projects under specified account
-         user_project_ids_query = db.query(models.User_Project.id) \
-            .join(models.Project, models.Project.id == models.User_Project.project_id) \
-            .filter(
-               models.User_Project.user_id.in_(user_ids),
-               models.Project.account_id == account_id
-            )
-
-         # Perform the deletion on these user-project association id's
-         user_project_delete_count = db.query(models.User_Project) \
-            .filter(models.User_Project.id.in_(user_project_ids_query)) \
-            .delete(synchronize_session=False)
-         
-         # Log the number of User_Project entries deleted for auditing
-         print(f"Deleted {user_project_delete_count} User_Project entries for users in account {account_id}")
-
-         # Then, delete User_Account entries
-         user_account_delete_count = db.query(models.User_Account).filter(
-               models.User_Account.user_id.in_(user_ids),
-               models.User_Account.account_id == account_id
-         ).delete(synchronize_session=False)
-      
-
-         db.commit()
-         return JSONResponse(content={"message": f"Successfully deassigned {user_account_delete_count} user" + ("s" if user_account_delete_count > 1 else "") + " from the account"}, status_code=status.HTTP_200_OK)
+      # Create new User_Account associations
+      new_user_accounts = [
+         models.User_Account(user_id=UUID(str(user_id)), account_id=account_id)
+         for user_id in user_ids
+      ]
+      db.bulk_save_objects(new_user_accounts)
+      db.commit()
+      return JSONResponse(content={"message": f"Successfully assigned {len(new_user_accounts)} user/(s) to account - '{account_id}'"}, status_code= status.HTTP_200_OK)
    except HTTPException as e:
       db.rollback()
-      pprint(f'API error in PATCH /accounts/{account_id}/users : {e}')
+      pprint(f'API error in POST /accounts/{account_id}/users service method: {e}')
       raise e
    except SQLAlchemyError as e:
       db.rollback()
-      pprint(f'DB Error in PATCH /accounts/{account_id}/users : {e}')
+      pprint(f'DB Error in POST /accounts/{account_id}/users service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later")
    except Exception as e:
       db.rollback()
-      pprint(f'Unexpected error in PATCH /accounts/{account_id}/users : {e}')
+      pprint(f'Unexpected error in POST /accounts/{account_id}/users service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
-def patch_account_user_admin_status(
+def deassign_user_from_account(
    account_id: UUID,
+   user_id: UUID,
+   logged_in_user: models.User,
+   db: Session,
+   ) -> JSONResponse:
+   try:
+      user_to_deassign = db.query(models.User).filter(models.User.id == user_id).first()
+      if not user_to_deassign:
+         raise ApiError.notfound(f"User - '{user_id}' - not found")
+      
+      if logged_in_user.id == user_to_deassign.id:
+         raise ApiError.validationerror("Invalid action - cannot deassign self from account")
+      
+      # Check User_Account association
+      user_to_deassign_account_association = db.query(models.User_Account).filter(models.User_Account.user_id == user_to_deassign.id, models.User_Account.account_id == account_id).first()
+      if not user_to_deassign_account_association:
+         raise ApiError.validationerror(f"User - '{user_to_deassign.id}' - is not assigned to account - '{account_id}'")
+      
+      if user_to_deassign.is_superadmin: # if user to deassign is superadmin
+         ROOT_SUPERADMIN_EMAIL = os.getenv("ROOT_SUPERADMIN_EMAIL", None)
+         if ROOT_SUPERADMIN_EMAIL != logged_in_user.email: # only root superadmin user can deassign other superadmins
+            raise ApiError.forbidden(f"you do not have root superadmin permissions to deassign superadmin user - '{user_to_deassign.id}' from account - '{account_id}'")
+      
+      
+      if not user_to_deassign.is_superadmin: #only deassociate projects under account if user to deassign is not superadmin
+         delete_all_associated_user_projects_in_account(user_id = user_to_deassign.id, account_id=account_id, db=db)
+      
+      # delete User_Account entry
+      user_account_delete_count = db.query(models.User_Account).filter(
+            models.User_Account.user_id == user_to_deassign.id,
+            models.User_Account.account_id == account_id
+      ).delete(synchronize_session=False)
+      db.commit()
+
+      return JSONResponse(content={"message": f"Successfully deassigned user - '{user_id}' - from account - '{account_id}'"}, status_code=status.HTTP_200_OK)
+   
+   except HTTPException as e:
+      db.rollback()
+      pprint(f'API error in DELETE /accounts/{account_id}/users/{user_id} service method: {e}')
+      raise e
+   except SQLAlchemyError as e:
+      db.rollback()
+      pprint(f'DB Error in DELETE /accounts/{account_id}/users/{user_id} service method: {e}')
+      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later")
+   except Exception as e:
+      db.rollback()
+      pprint(f'Unexpected error in DELETE /accounts/{account_id}/users/{user_id} service method: {e}')
+      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   
+def patch_user_account_admin_status(
+   account_id: UUID,
+   user_id: UUID,
    logged_in_user_is_superadmin: bool,
    account_admin_status_update_dto: account_schemas.AccountAdminStatusUpdateDTO,
    db: Session,
@@ -455,96 +431,54 @@ def patch_account_user_admin_status(
    )-> JSONResponse:
    try:
       # Check if user in payload exists
-      user_in_payload = db.query(models.User).filter(models.User.id == account_admin_status_update_dto.user_id).first()
+      user_in_payload = db.query(models.User).filter(models.User.id == user_id).first()
 
       if not user_in_payload:
-         print(f'In PATCH /accounts/{account_id}/admin service method - : user with id {account_admin_status_update_dto.user_id} not found')
-         raise ApiError.notfound(f"user - '{account_admin_status_update_dto.user_id}' - not found")
+         raise ApiError.notfound(f"User - '{user_id}' - not found")
 
       # Fetch the User_Account association if it exists
       user_account_association = db.query(models.User_Account).filter(
-         models.User_Account.user_id == account_admin_status_update_dto.user_id,
+         models.User_Account.user_id == user_id,
          models.User_Account.account_id == account_id
       ).first()
 
       if not user_account_association:
-         print(f'In PATCH /accounts/{account_id}/admin service method - : user -"{account_admin_status_update_dto.user_id}"- is not a member of account -"{account_id}"')
-         raise ApiError.validationerror(f"user - '{account_admin_status_update_dto.user_id}' - is not assigned to account - '{account_id}'")
+         raise ApiError.validationerror(f"user - '{user_id}' - is not assigned to account - '{account_id}'")
 
-
-      if account_admin_status_update_dto.user_id == logged_in_user_id:
+      if user_id == logged_in_user_id:
          if not logged_in_user_is_superadmin:
-            print(f'In PATCH /accounts/{account_id}/admin service method - : you do not have permission to modify account admin status of self')
             raise ApiError.forbidden('you do not have permission to modify account admin status of self')
-      
-      if user_in_payload.is_superadmin:
-         print(f'In PATCH /accounts/{account_id}/admin service method - : Invalid action - cannot update account admin status of superadmin user')
-         raise ApiError.validationerror(f"Invalid action - cannot update account admin status of superadmin user - '{user_in_payload.id}'")
       
       match account_admin_status_update_dto.action:
          case "Grant":
-            if user_account_association.is_admin:
-               print(f'In PATCH /accounts/{account_id}/admin service method - : User with id {account_admin_status_update_dto.user_id} is already an admin; cannot grant admin status.')
-               raise ApiError.conflict(f"user - '{account_admin_status_update_dto.user_id}' - is already an admin of account - '{account_id}'")
-            else:
+            if not user_account_association.is_admin:
                user_account_association.is_admin = True
 
          case "Revoke":
-            if not user_account_association.is_admin:
-               print(f'In PATCH /accounts/{account_id}/admin service method - : User with id {account_admin_status_update_dto.user_id} is not an admin; cannot revoke admin status.')
-               raise ApiError.validationerror(f"user - '{account_admin_status_update_dto.user_id}' - is not an admin of account - '{account_id}'")
-            else:
-               top_level_projects_in_account: List[UUID] = get_top_level_project_ids_for_user_in_account(db, account_admin_status_update_dto.user_id, account_id)
-               print(f'top_level_projects_in_account = {top_level_projects_in_account}')
-               if top_level_projects_in_account:
-                  delete_unrooted_user_project_associations(db, account_admin_status_update_dto.user_id, top_level_projects_in_account, account_id)
+            if user_account_association.is_admin:
+               if not user_in_payload.is_superadmin:
+                  top_level_associated_projects_in_account: List[UUID] = get_top_level_associated_project_ids_for_user_in_account(db, user_id, account_id)
+
+                  # if top_level_associated_projects_in_account:
+                  delete_unrooted_user_project_associations_in_account(db, user_id, top_level_associated_projects_in_account, account_id)
                user_account_association.is_admin = False
 
          case _:
-            print(f'In PATCH /accounts/{account_id}/admin - : Unknown action {account_admin_status_update_dto.action}')
             raise ApiError.validationerror(f"unknown action - '{account_admin_status_update_dto.action}'")
 
       db.commit()
       return JSONResponse(content={"message": f"Admin status successfully {'revoked' if account_admin_status_update_dto.action.lower() == 'revoke' else 'granted'}"}, status_code=status.HTTP_200_OK)
    except HTTPException as e:
       db.rollback()
-      pprint(f'API error in PATCH /accounts/{account_id}/users : {e}')
+      pprint(f'API error in PATCH /accounts/{account_id}/users/{user_id}/admin service method : {e}')
       raise e
    except SQLAlchemyError as e:
       db.rollback()
-      pprint(f'DB error in PATCH /accounts/{account_id}/admin : Error updating admin status: {e}')
+      pprint(f'DB error in PATCH /accounts/{account_id}/users/{user_id}/admin service method')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
-      pprint(f'Unexpected error in PATCH /accounts/{account_id}/admin : Error updating admin status: {e}')
+      pprint(f'Unexpected error in PATCH /accounts/{account_id}/users/{user_id}/admin service method')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")  
 
-def patch_account_status(
-   account: models.Account,
-   account_disabled_status_update_dto: common_schemas.ResourceStatusUpdateDTO,
-   db: Session,
-)-> JSONResponse:
-   try:
-      # Check for redundant status updates
-      if (account_disabled_status_update_dto.action == "Disable" and account.is_disabled) or \
-         (account_disabled_status_update_dto.action == "Enable" and not account.is_disabled):
-         print(f"in PATCH /accounts/{account.id}/status service method: Account - '{account.id}' - is already {'disabled' if account.is_disabled else 'enabled'}.")
-         raise ApiError.validationerror(f"account - '{account.id}' - is already {'disabled' if account.is_disabled else 'enabled'}.")
 
-      # Update account status
-      account.is_disabled = account_disabled_status_update_dto.action == "Disable"
-      db.commit()
-
-      return JSONResponse(content= {"message": f"Account successfully {'disabled' if account.is_disabled else 'enabled'}."} ,status_code=status.HTTP_200_OK)
-   except HTTPException as e:
-      db.rollback()
-      pprint(f'API error in PATCH /accounts/{account.id}/status : {e}')
-      raise e
-   except SQLAlchemyError as e:
-      db.rollback()
-      pprint(f'DB error in PATCH /accounts/{account.id}/status : {e}')
-      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   except Exception as e:
-      db.rollback()
-      pprint(f'Unexpected error in PATCH /accounts/{account.id}/status : {e}')
-      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")  

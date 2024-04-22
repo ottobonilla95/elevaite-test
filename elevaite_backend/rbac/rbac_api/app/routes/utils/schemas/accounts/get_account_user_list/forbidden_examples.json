@@ -1,10 +1,4 @@
 {
-   "account_disabled": {
-      "summary": "account is disabled",
-      "value": {
-         "detail": "account - '789e4567-e89b-12d3-a456-426614174000' - is disabled"
-      }
-   },
    "insufficient_permissions": {
       "summary": "logged-in user is not assigned to account",
       "value": {

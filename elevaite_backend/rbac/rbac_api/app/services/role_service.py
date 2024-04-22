@@ -56,7 +56,6 @@ def get_role(
    try:
       role = db.query(models.Role).filter(models.Role.id == role_id).first()
       if not role:
-         print(f"in GET /roles/{role_id} - validate_get_role dependency : role -'{role_id}'- not found in role table")
          raise ApiError.notfound(f"role - '{role_id}' - not found")
       return role
    except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client

@@ -1,5 +1,5 @@
-from datetime import datetime, timezone
-from typing import Any, List, Optional
+from datetime import datetime
+from typing import Any, List, Optional, Annotated
 import uuid
 from pydantic import UUID4, Json
 from sqlalchemy import (
@@ -21,7 +21,7 @@ from ..util.func import get_utc_datetime
 from ..schemas.instance import InstanceStatus
 from ..schemas.pipeline import PipelineStepStatus
 from ..schemas.application import ApplicationType
-from ..schemas.role_schemas import ProjectScopedPermissions
+from ..schemas.role_schemas import ProjectScopedPermission
 
 from .database import Base
 
@@ -40,10 +40,7 @@ from sqlalchemy.dialects.postgresql import (
 )
 
 from sqlalchemy import Uuid
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.sql import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 
 class Application(Base):
     __tablename__ = "applications"
@@ -282,15 +279,12 @@ class Project(Base):
     account_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("accounts.id"), nullable=False
     )  # Project can only be created inside an account
-    project_owner_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("users.id"), nullable=False
-    )  # Project is always created by a user
+    creator: Mapped[str] = mapped_column(String(254), nullable=False)
     parent_project_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("projects.id"), nullable=True
     )  # Projects can have null parents when created directly from account
     name: Mapped[str] = mapped_column(String(60), nullable=False)
     description: Mapped[str] = mapped_column(String(500), nullable=True)
-    is_disabled: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=get_utc_datetime, onupdate=get_utc_datetime
@@ -300,9 +294,6 @@ class Project(Base):
     account = relationship(
         "Account", back_populates="projects", foreign_keys=[account_id]
     )  # many-to-one: many projects can belong to 1 account
-    project_owner = relationship(
-        "User", back_populates="owned_projects", foreign_keys=[project_owner_id]
-    )  # many-to-one: many project can have 1 project owner
     parent = relationship(
         "Project", remote_side=[id], back_populates="children", uselist=False
     )  # Self-referential many-to-one ; many children to one parent
@@ -340,7 +331,7 @@ class User_Account(Base):
     account_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("accounts.id")
     )
-    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=get_utc_datetime, onupdate=get_utc_datetime
@@ -360,19 +351,13 @@ class User_Account(Base):
 # Association table for the many-to-many relationship between User and Project; used for targeting a user in a project
 # Defined as a class and not a Table to allow for use of Mapped[] annotation for compatibility with static type checkers in orm-to-python conversions.
 class User_Project(Base):
-    __tablename__ = "user_project"
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("users.id")
-    )
-    project_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("projects.id")
-    )
-    permission_overrides = Column(
-        type_=JSONB, default=lambda: ProjectScopedPermissions().dict()
-    )  # Use JSONB for filterable and indexable JSON structure
+
+    __tablename__ = 'user_project'
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey('users.id'))
+    project_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey('projects.id'))
+    permission_overrides: Mapped[Annotated[dict[str, Any], Column(JSONB)]] = mapped_column(type_=JSONB, default=lambda: ProjectScopedPermission().dict())  # Use JSONB for filterable and indexable JSON structure
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=get_utc_datetime, onupdate=get_utc_datetime
@@ -437,7 +422,6 @@ class Account(Base):
     )  # Adding FK to Organization
     name: Mapped[str] = mapped_column(String(60), nullable=False)
     description: Mapped[str] = mapped_column(String(500), nullable=True)
-    is_disabled: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=get_utc_datetime, onupdate=get_utc_datetime
@@ -483,9 +467,6 @@ class User(Base):
     accounts = relationship(
         "Account", secondary="user_account", back_populates="users"
     )  # many-to-many: A user can belong to multiple accounts, an account can have multiple users
-    owned_projects = relationship(
-        "Project", back_populates="project_owner"
-    )  # one-to-many: a user can own many projects
     projects = relationship(
         "Project", secondary="user_project", back_populates="users"
     )  # many-to-many: many users can have many projects

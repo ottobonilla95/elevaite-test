@@ -1,0 +1,14 @@
+{
+   "superadmin_status_granted": {
+      "summary": "Superadmin status granted successfully",
+      "value": {
+         "message" : "superadmin status successfully granted."
+      }
+   },
+   "superadmin_status_revoked": {
+      "summary": "Superadmin status successfully revoked",
+      "value": {
+         "message" : "superadmin status successfully revoked."
+      }
+   }
+}

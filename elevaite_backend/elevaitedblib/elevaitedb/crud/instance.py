@@ -1,13 +1,20 @@
 from sqlalchemy.orm import Session
-
+from uuid import UUID
 from elevaitedb.db import models
 from elevaitedb.schemas import instance as schema
 
 
-def get_instances(db: Session, applicationId: int, skip: int = 0, limit: int = 0):
+def get_instances(
+        db: Session,
+        applicationId: int,
+        # project_id: UUID, # uncomment this when using validator
+        skip: int = 0,
+        limit: int = 0
+):
     return (
         db.query(models.Instance)
         .filter(models.Instance.applicationId == applicationId)
+        # .filter(models.Instance.projectId == project_id) # uncomment this when using validator
         .offset(skip)
         .limit(limit)
         .all()

@@ -8,17 +8,11 @@ from elevaitedb.schemas import (
    role_schemas,
 )
 
-from rbac_api.validators import (
-   validate_post_roles,
-   validate_patch_roles,
-   validate_delete_roles,
-   validate_get_roles,
-   validate_get_role
-)
+from rbac_api import validators
 from ..services import role_service as service
 from .utils.helpers import load_schema
 
-role_router = APIRouter(prefix="/roles", tags=["roles"])
+role_router = APIRouter(prefix="/roles", tags=["roles"]) 
 
 @role_router.post("/", status_code=status.HTTP_201_CREATED, responses={
    status.HTTP_201_CREATED: {
@@ -68,7 +62,7 @@ role_router = APIRouter(prefix="/roles", tags=["roles"])
 })
 async def create_role(
    role_creation_dto: role_schemas.RoleCreationRequestDTO = Body(description= "role creation payload"),
-   validation_info: dict[str, Any] = Depends(validate_post_roles)
+   validation_info: dict[str, Any] = Depends(validators.validate_post_roles)
 ) -> role_schemas.RoleResponseDTO :
    db: Session = validation_info.get("db", None)
    return service.create_role(role_creation_dto, db)
@@ -113,7 +107,7 @@ async def create_role(
 })
 async def get_role(
    role_id: UUID = Path(..., description= "role ID to retrieve role object"),
-   validation_info: dict[str, Any] = Depends(validate_get_role)
+   validation_info: dict[str, Any] = Depends(validators.validate_get_role)
 ) -> List[role_schemas.RoleResponseDTO]:
    db: Session = validation_info.get("db", None)
    return service.get_role(db = db, role_id = role_id)
@@ -153,7 +147,7 @@ async def get_role(
    }
 })
 async def get_roles(
-   validation_info: dict[str, Any] = Depends(validate_get_roles)
+   validation_info: dict[str, Any] = Depends(validators.validate_get_roles)
 ) -> List[role_schemas.RoleResponseDTO]:
    db: Session = validation_info.get("db", None)
    return service.get_roles(db)
@@ -207,7 +201,7 @@ async def get_roles(
 async def patch_role(
    role_id: UUID = Path(..., description="The ID of the role to update"),
    role_patch_req_payload: role_schemas.RoleUpdateRequestDTO = Body(description= "Role patch payload"),
-   validation_info:dict[str, Any] = Depends(validate_patch_roles)
+   validation_info:dict[str, Any] = Depends(validators.validate_patch_roles)
 ) -> role_schemas.RoleResponseDTO:
    db: Session = validation_info.get("db", None)
    return service.patch_role(role_id, role_patch_req_payload, db)
@@ -257,7 +251,7 @@ async def patch_role(
    }
 })
 async def delete_role(
-   validation_info:dict[str, Any] = Depends(validate_delete_roles),
+   validation_info:dict[str, Any] = Depends(validators.validate_delete_roles),
    role_id: UUID = Path(..., description="role id to delete", examples = ['11111111-1111-1111-1111-111111111111']) 
 ) -> JSONResponse:
    db: Session = validation_info.get("db", None)

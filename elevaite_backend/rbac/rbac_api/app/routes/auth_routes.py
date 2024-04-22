@@ -10,7 +10,7 @@ from rbac_api.validators import validate_post_user
 from ..services import user_service as service
 from .utils.helpers import load_schema
 
-auth_router = APIRouter(prefix="/register", tags=["auth"])
+auth_router = APIRouter(prefix="/register", tags=["auth"]) 
 
 @auth_router.post("/", responses={
    status.HTTP_201_CREATED: {

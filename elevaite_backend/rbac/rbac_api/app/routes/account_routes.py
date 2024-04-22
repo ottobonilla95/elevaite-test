@@ -10,20 +10,11 @@ from elevaitedb.schemas import (
     common_schemas,
 )
 from elevaitedb.db import models 
-from rbac_api.validators import (
-   validate_post_account,
-   validate_patch_account,
-   validate_get_account,
-   validate_get_accounts,
-   validate_get_account_user_list_or_profile,
-   validate_assign_or_deassign_users_in_account,
-   validate_patch_account_admin_status,
-   validate_patch_account_status
-)
+from rbac_api import validators 
 from ..services import account_service as service
 from .utils.helpers import load_schema
 
-account_router = APIRouter(prefix="/accounts", tags=["accounts"])
+account_router = APIRouter(prefix="/accounts", tags=["accounts"]) 
 
 @account_router.post("/", status_code=status.HTTP_201_CREATED, responses={
    status.HTTP_201_CREATED: {
@@ -81,11 +72,11 @@ account_router = APIRouter(prefix="/accounts", tags=["accounts"])
 })
 async def create_account(
    account_creation_payload: account_schemas.AccountCreationRequestDTO = Body(..., description = "account creation request payload"),
-   validation_info: dict[str, Any] = Depends(validate_post_account) # Assuming the dependency function extracts the user ID from the access token, and performs all required validations.
+   validation_info: dict[str, Any] = Depends(validators.validate_post_account) # Assuming the dependency function extracts the user ID from the access token, and performs all required validations.
    ) -> account_schemas.AccountResponseDTO: 
-      logged_in_user_id: UUID = validation_info.get("logged_in_user_id", None)
+      logged_in_user: models.User = validation_info.get("logged_in_user", None)
       db: Session = validation_info.get("db", None)
-      return service.create_account(account_creation_payload, db, logged_in_user_id)
+      return service.create_account(account_creation_payload, db, logged_in_user.id)
   
    
 @account_router.patch("/{account_id}", responses={
@@ -140,35 +131,11 @@ async def create_account(
 })
 async def patch_account(
    account_patch_req_payload: account_schemas.AccountPatchRequestDTO = Body(...),
-   validation_info: dict[str, Any] = Depends(validate_patch_account) # Assuming the dependency function extracts the user ID from the access token, and performs all required validations.
+   validation_info: dict[str, Any] = Depends(validators.validate_patch_account) # Assuming the dependency function extracts the user ID from the access token, and performs all required validations.
    ) -> account_schemas.AccountResponseDTO: 
-      account_to_patch: models.Account = validation_info.get("account_to_patch", None)
+      account_to_patch: models.Account = validation_info.get("Account", None)
       db: Session = validation_info.get("db", None)
       return service.patch_account(account_to_patch, account_patch_req_payload, db)
-  
-# no use case
-# @account_router.get("/{account_id}", response_model=AccountResponseDTO, status_code=status.HTTP_200_OK, tags=["Account"], responses={
-#    status.HTTP_401_UNAUTHORIZED: {"description": "No access token or invalid access token"},
-#    status.HTTP_403_FORBIDDEN: {"description": "User does not have permissions to this resource"},
-#    status.HTTP_404_NOT_FOUND: {"description": "Not found - The account with the specified ID was not found"},
-#    status.HTTP_503_SERVICE_UNAVAILABLE: {"description": "The server is currently unable to handle the request due to a temporary overloading or maintenance of the server"}
-# })
-# async def get_account( # Need to add validation dependency for get_account in signature; not role-based, just User_Account check
-#    account_id: UUID = Path(..., description="The ID of the account to retrieve"),
-#    db: Session = Depends(get_db),
-#    _= Depends(validate_get_account) # Assuming the dependency function extracts the user ID from the access token, and performs all required validations.
-# ) -> AccountResponseDTO:
-#    try:
-#       db_account = db.query(Account).filter(Account.id == account_id).first()
-#       if not db_account:
-#          pprint(f'in GET /accounts/{account_id} - Account not found')
-#          raise ApiError.notfound("Account not found")
-#       return AccountResponseDTO.model_validate(db_account)
-#       # return AccountResponseDTO.model_validate(db_account)
-#    except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
-#       db.rollback()
-#       pprint(f'Error in GET /accounts/{account_id} : {e}')
-#       raise ApiError.serviceunavailable("The database is currently unavailable, please try again later.")
    
 @account_router.get("/", responses={
    status.HTTP_200_OK: {
@@ -187,30 +154,6 @@ async def patch_account(
          }
       },
    },
-   status.HTTP_403_FORBIDDEN: {
-      "description": "User does not have privileges to read accounts in unassigned organizations",
-      "content": {
-         "application/json": {
-            "examples": load_schema('accounts/get_accounts/forbidden_examples.json')
-         }
-      },
-   },
-   status.HTTP_404_NOT_FOUND: {
-      "description": "Not found - The org with the specified ID was not found",
-      "content": {
-         "application/json": {
-            "examples": load_schema('accounts/get_accounts/notfound_examples.json')
-         }
-      },
-   },
-   status.HTTP_422_UNPROCESSABLE_ENTITY: {
-      "description": "Payload validation error",
-      "content": {
-         "application/json": {
-            "examples": load_schema('accounts/get_accounts/validationerror_examples.json')
-         }
-      },
-   },
    status.HTTP_503_SERVICE_UNAVAILABLE: {
       "description": "The server is currently unable to handle the request due to a server-side error, temporary overloading, or maintenance of the server",
       "content": {
@@ -221,14 +164,12 @@ async def patch_account(
    }
 })
 async def get_accounts( 
-   validation_info: dict[str, Any] = Depends(validate_get_accounts), 
-   org_id: UUID = Query(description = "org_id under which accounts are queried"),
+   validation_info: dict[str, Any] = Depends(validators.validate_get_accounts), 
    name: Optional[str] = Query(None, description="Filter accounts by account name"),
 ) -> List[account_schemas.AccountResponseDTO]:
-      logged_in_user_id: UUID  = validation_info.get("logged_in_user_id", None)
-      logged_in_user_is_superadmin: bool = validation_info.get("logged_in_user_is_superadmin", False)
+      logged_in_user: models.User  = validation_info.get("logged_in_user", None)
       db: Session = validation_info.get("db", None)
-      return service.get_accounts(logged_in_user_id,logged_in_user_is_superadmin, org_id, name, db)
+      return service.get_accounts(logged_in_user.id,logged_in_user.is_superadmin, name, db)
 
 @account_router.get("/{account_id}", responses={
    status.HTTP_200_OK: {
@@ -277,72 +218,10 @@ async def get_accounts(
    }
 })
 async def get_account( 
-   validation_info: dict[str, Any] = Depends(validate_get_account), 
+   validation_info: dict[str, Any] = Depends(validators.validate_get_account), 
 ) -> account_schemas.AccountResponseDTO:
-      account: models.Account = validation_info.get("account", None)
+      account: models.Account = validation_info.get("Account", None)
       return account
-
-# @account_router.get("/{account_id}/profile", status_code=status.HTTP_200_OK, responses={
-#     status.HTTP_200_OK: {
-#       "description": "Successfully retrieved account user profile",
-#       "content": {
-#          "application/json": {
-#             "examples": load_schema('accounts/get_account_user_profile/ok_examples.json')
-#          }
-#       },
-#    },
-#    status.HTTP_401_UNAUTHORIZED: {
-#       "description": "Invalid, expired or no access token",
-#       "content": {
-#          "application/json": {
-#             "examples": load_schema('common/unauthorized_examples.json')
-#          }
-#       },
-#    },
-#    status.HTTP_403_FORBIDDEN: {
-#       "description": "User does not have permissions to this resource",
-#       "content": {
-#          "application/json": {
-#             "examples": load_schema('accounts/get_account_user_profile/forbidden_examples.json')
-#          }
-#       },
-#    },
-#    status.HTTP_404_NOT_FOUND: {
-#       "description": "Account not found",
-#       "content": {
-#          "application/json": {
-#             "examples": load_schema('accounts/get_account_user_profile/notfound_examples.json')
-#          }
-#       },
-#    },
-#    status.HTTP_422_UNPROCESSABLE_ENTITY: {
-#       "description": "Payload validation error",
-#       "content": {
-#          "application/json": {
-#             "examples": load_schema('accounts/get_account_user_profile/validationerror_examples.json')
-#          }
-#       },
-#    },
-#    status.HTTP_503_SERVICE_UNAVAILABLE: {
-#       "description": "The server is currently unable to handle the request due to a temporary overloading or maintenance of the server",
-#       "content": {
-#          "application/json": {
-#             "examples": load_schema('common/serviceunavailable_examples.json')
-#          }
-#       },
-#    }
-# })
-# async def get_account_user_profile(
-#    account_id: UUID = Path(..., description="Account id under which user is queried"),
-#    validation_info: dict[str,Any] = Depends(validate_get_account_user_list_or_profile),
-# ) -> user_schemas.AccountUserProfileDTO:
-#    logged_in_user: models.User = validation_info.get("logged_in_user", None)
-#    db: Session = validation_info.get("db", None)
-#    user_account_association: models.User_Account = validation_info.get("user_account_association", None)
-#    return service.get_account_user_profile(db,
-#                                           account_id,
-#                                           logged_in_user,
-#                                           user_account_association)
 
 @account_router.get("/{account_id}/users", response_model=List[user_schemas.AccountUserListItemDTO], status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -395,7 +274,7 @@ async def get_account(
    }
 })
 async def get_account_user_list(
-   validation_info: dict[str, Any] = Depends(validate_get_account_user_list_or_profile),
+   validation_info: dict[str, Any] = Depends(validators.validate_get_account_user_list),
    account_id: UUID = Path(..., description="Account id under which users are queried"), # when not provided, its only valid for admins and superadmins. 
    firstname: Optional[str] = Query(None, description="Filter users by first name"),
    lastname: Optional[str] = Query(None, description="Filter users by last name"),
@@ -407,10 +286,10 @@ async def get_account_user_list(
 
 @account_router.post("/{account_id}/users", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
-      "description": "Users successfully assigned/deassigned to/from account",
+      "description": "Users successfully assigned to account",
       "content": {
          "application/json": {
-            "examples": load_schema('accounts/assign_or_deassign_users_in_account/ok_examples.json')
+            "examples": load_schema('accounts/assign_users_to_account/ok_examples.json')
             }
          },
    },
@@ -423,10 +302,10 @@ async def get_account_user_list(
       },
    },
    status.HTTP_403_FORBIDDEN: {
-      "description": "User does not have permissions to assign/deassign users in list",
+      "description": "User does not have permissions to assign users in list",
       "content": {
          "application/json": {
-            "examples": load_schema('accounts/assign_or_deassign_users_in_account/forbidden_examples.json')
+            "examples": load_schema('accounts/assign_users_to_account/forbidden_examples.json')
          }
       },
    },
@@ -434,7 +313,7 @@ async def get_account_user_list(
       "description": "Not found - account or user resources not found",
       "content": {
          "application/json": {
-            "examples": load_schema('accounts/assign_or_deassign_users_in_account/notfound_examples.json')
+            "examples": load_schema('accounts/assign_users_to_account/notfound_examples.json')
          }
       },
    },
@@ -442,7 +321,7 @@ async def get_account_user_list(
         "description": "User-Account association already exists when trying to assign users to account",
         "content": {
          "application/json": {
-            "examples": load_schema('accounts/assign_or_deassign_users_in_account/conflict_examples.json')
+            "examples": load_schema('accounts/assign_users_to_account/conflict_examples.json')
          }
       },
    },
@@ -450,7 +329,7 @@ async def get_account_user_list(
       "description": "Payload validation error",
       "content": {
          "application/json": {
-            "examples": load_schema('accounts/assign_or_deassign_users_in_account/validationerror_examples.json')
+            "examples": load_schema('accounts/assign_users_to_account/validationerror_examples.json')
          }
       },
    },
@@ -463,26 +342,81 @@ async def get_account_user_list(
       },
    }
 })
-async def assign_or_deassign_users_in_account(
+async def assign_users_to_account(
    account_id: UUID = Path(..., description="The ID of the account"),
-   user_list_dto: user_schemas.UserListDTO = Body(description = "payload containing user_id's to assign/deassign to/from account"),
-   validation_info: dict[str, Any] = Depends(validate_assign_or_deassign_users_in_account)
+   user_list_dto: user_schemas.UserListDTO = Body(description = "payload containing user_id's to assign to account"),
+   validation_info: dict[str, Any] = Depends(validators.validate_assign_users_to_account)
 ) -> JSONResponse:
-   logged_in_user_id: UUID = validation_info.get("logged_in_user_id", None)
-   logged_in_user_is_superadmin: bool = validation_info.get("logged_in_user_is_superadmin", None)
    db: Session = validation_info.get("db", None)
-   return service.assign_or_deassign_users_in_account(account_id,
-                                                      user_list_dto,
-                                                      db,
-                                                      logged_in_user_id,
-                                                      logged_in_user_is_superadmin)
+   return service.assign_users_to_account(account_id, user_list_dto, db)
+
+@account_router.delete("/{account_id}/users/{user_id}", status_code=status.HTTP_200_OK, responses={
+   status.HTTP_200_OK: {
+      "description": "user successfully deassigned from account",
+      "content": {
+         "application/json": {
+            "examples": load_schema('accounts/deassign_user_from_account/ok_examples.json')
+            }
+         },
+   },
+   status.HTTP_401_UNAUTHORIZED: {
+      "description": "Invalid, expired or no access token",
+      "content": {
+         "application/json": {
+            "examples": load_schema('common/unauthorized_examples.json')
+         }
+      },
+   },
+   status.HTTP_403_FORBIDDEN: {
+      "description": "User does not have permissions to deassign user",
+      "content": {
+         "application/json": {
+            "examples": load_schema('accounts/deassign_user_from_account/forbidden_examples.json')
+         }
+      },
+   },
+   status.HTTP_404_NOT_FOUND: {
+      "description": "Not found - account or user resource not found",
+      "content": {
+         "application/json": {
+            "examples": load_schema('accounts/deassign_user_from_account/notfound_examples.json')
+         }
+      },
+   },
+   status.HTTP_422_UNPROCESSABLE_ENTITY: {
+      "description": "Payload validation error",
+      "content": {
+         "application/json": {
+            "examples": load_schema('accounts/deassign_user_from_account/validationerror_examples.json')
+         }
+      },
+   },
+   status.HTTP_503_SERVICE_UNAVAILABLE: {
+      "description": "The server is currently unable to handle the request due to a server-side error, temporary overloading, or maintenance of the server",
+      "content": {
+         "application/json": {
+            "examples": load_schema('common/serviceunavailable_examples.json')
+         }
+      },
+   }
+})
+async def deassign_user_from_account(
+   account_id: UUID = Path(..., description="The ID of the account"),
+   user_id:UUID = Path(..., description = "user id to deassign from account"),
+   validation_info: dict[str, Any] = Depends(validators.validate_deassign_user_from_account)
+) -> JSONResponse:
+   db: Session = validation_info.get("db", None)
+   logged_in_user = validation_info.get('logged_in_user', None)
+   return service.deassign_user_from_account(account_id, user_id, logged_in_user, db)
+
+
    
-@account_router.patch("/{account_id}/admin", status_code=status.HTTP_200_OK, responses={
+@account_router.patch("/{account_id}/users/{user_id}/admin", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
       "description": "Successfully patched the account admin status for user",
       "content": {
          "application/json": {
-            "examples": load_schema('accounts/patch_account_user_admin_status/ok_examples.json')
+            "examples": load_schema('accounts/patch_user_account_admin_status/ok_examples.json')
          }
       }
    },
@@ -498,7 +432,7 @@ async def assign_or_deassign_users_in_account(
       "description": "User does not have permissions to this resource",
       "content": {
          "application/json": {
-            "examples": load_schema('accounts/patch_account_user_admin_status/forbidden_examples.json')
+            "examples": load_schema('accounts/patch_user_account_admin_status/forbidden_examples.json')
          }
       }
    },
@@ -506,15 +440,7 @@ async def assign_or_deassign_users_in_account(
       "description": "Not found - user_id or account_id not found",
       "content": {
          "application/json": {
-            "examples": load_schema('accounts/patch_account_user_admin_status/notfound_examples.json')
-         }
-      }
-   },
-   status.HTTP_409_CONFLICT: {
-      "description": "user is already an admin of account",
-      "content": {
-         "application/json": {
-            "examples": load_schema('accounts/patch_account_user_admin_status/conflict_examples.json')
+            "examples": load_schema('accounts/patch_user_account_admin_status/notfound_examples.json')
          }
       }
    },
@@ -522,7 +448,7 @@ async def assign_or_deassign_users_in_account(
       "description": "Payload validation error",
       "content": {
          "application/json": {
-            "examples": load_schema('accounts/patch_account_user_admin_status/validationerror_examples.json')
+            "examples": load_schema('accounts/patch_user_account_admin_status/validationerror_examples.json')
          }
       }
    },
@@ -535,76 +461,17 @@ async def assign_or_deassign_users_in_account(
       }
    }
 })
-async def patch_account_user_admin_status(
+async def patch_user_account_admin_status(
    account_id: UUID = Path(..., description="The ID of the account"),
+   user_id: UUID = Path(..., description="ID of user"),
    account_admin_status_update_dto: account_schemas.AccountAdminStatusUpdateDTO = Body(...),
-   validation_info:dict[str, Any] = Depends(validate_patch_account_admin_status)  
+   validation_info:dict[str, Any] = Depends(validators.validate_patch_account_admin_status)  
 ) -> JSONResponse:
-   logged_in_user_id = validation_info.get("logged_in_user_id", None)
-   logged_in_user_is_superadmin = validation_info.get("logged_in_user_is_superadmin", False)
+   logged_in_user = validation_info.get("logged_in_user", None)
    db: Session = validation_info.get("db", None)
-   # user_account_association: User_Account = validation_info.get("user_account_association", None)
-   return service.patch_account_user_admin_status(account_id, 
-                                                   logged_in_user_is_superadmin,
+   return service.patch_user_account_admin_status(account_id,  
+                                                  user_id,
+                                                   logged_in_user.is_superadmin,
                                                    account_admin_status_update_dto,
                                                    db,
-                                                   logged_in_user_id)
-
-@account_router.patch("/{account_id}/status", status_code=status.HTTP_200_OK, responses={
-   status.HTTP_200_OK: {
-      "description": "Successfully enabled/disabled the account",
-      "content": {
-         "application/json": {
-            "examples": load_schema('accounts/patch_account_status/ok_examples.json')
-            }
-         },
-   },
-   status.HTTP_401_UNAUTHORIZED: {
-      "description": "Invalid, expired or no access token",
-      "content": {
-         "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
-            }
-         },
-   },
-   status.HTTP_403_FORBIDDEN: {
-      "description": "User does not have permissions to this resource",
-      "content": {
-         "application/json": {
-            "examples": load_schema('accounts/patch_account_status/forbidden_examples.json')
-            }
-         },
-   },
-   status.HTTP_404_NOT_FOUND: {
-      "description": "Not found - account resource not found",
-      "content": {
-         "application/json": {
-            "examples": load_schema('accounts/patch_account_status/notfound_examples.json')
-            }
-         },
-   },
-   status.HTTP_422_UNPROCESSABLE_ENTITY: {
-      "description": "Payload validation error",
-      "content": {
-         "application/json": {
-            "examples": load_schema('accounts/patch_account_status/validationerror_examples.json')
-            }
-         },
-   },
-   status.HTTP_503_SERVICE_UNAVAILABLE: {
-      "description": "The server is currently unable to handle the request due to a server-side error, temporary overloading, or maintenance of the server",
-      "content": {
-         "application/json": {
-            "examples": load_schema('common/serviceunavailable_examples.json')
-            }
-         },
-   }
-})
-async def patch_account_status(
-   account_disabled_status_update_dto: common_schemas.ResourceStatusUpdateDTO = Body(...),
-   validation_info: dict[str, Any] = Depends(validate_patch_account_status)  
-)-> JSONResponse:
-   account: models.Account = validation_info.get("account", None)
-   db: Session = validation_info.get("db", None)
-   return service.patch_account_status(account, account_disabled_status_update_dto, db) 
-  
+                                                   logged_in_user.id)

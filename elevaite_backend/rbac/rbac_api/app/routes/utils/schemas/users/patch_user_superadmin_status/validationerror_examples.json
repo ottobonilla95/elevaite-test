@@ -1,0 +1,23 @@
+{
+   "payload_field_type_validation_error": {
+      "summary": "Field-Type payload validation error - user_id has invalid UUID format",
+      "value": {
+         "detail": [
+            {
+            "loc": [
+               "string",
+               0
+            ],
+            "msg": "string",
+            "type": "string"
+            }
+         ]
+      }
+   },
+   "invalid_action": {
+      "summary": "cannot update superadmin status of self",
+      "value": {
+         "detail": "cannot update superadmin status of self"
+      }
+   }
+}

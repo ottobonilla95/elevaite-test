@@ -1,0 +1,41 @@
+{
+   "payload_field_type_validation_error": {
+      "summary": "Field-Type payload validation error - project_id or some user_id in user_ids has invalid UUID format; extra fields present",
+      "value": {
+         "detail": [
+            {
+            "loc": [
+               "string",
+               0
+            ],
+            "msg": "string",
+            "type": "string"
+            }
+         ]
+      }
+   },
+   "payload_business_logic_validation_error_1": {
+      "summary": "Business-logic payload validation error - Duplicate user IDs are not allowed",
+      "value": {
+         "detail": "Duplicate user IDs are not allowed"
+      }
+   },
+   "payload_business_logic_validation_error_2": {
+      "summary": "Business-logic payload validation error - The list of user IDs must have length between 1 and 50 (inclusive)",
+      "value": {
+         "detail": "The list of user IDs must have length between 1 and 50 (inclusive)"
+      }
+   },
+   "not_found_user_account_association": {
+      "summary": "One or more users are not assigned to account",
+      "value": {
+         "detail": "One or more users are not assigned to account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "not_found_user_parent_project_association": {
+      "summary": "One or more users are not assigned to parent project",
+      "value": {
+         "detail": "One or more users are not assigned to parent project - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   }
+}
