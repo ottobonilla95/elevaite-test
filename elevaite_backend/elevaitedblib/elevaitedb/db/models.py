@@ -151,7 +151,9 @@ class PipelineStep(Base):
     pipelineId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("pipelines.id"))
     # parent_id = Column(String, ForeignKey("pipeline_steps.id"))
 
-    data: Mapped["PipelineStepData"] = relationship(back_populates="step")
+    data: Mapped[List["PipelineStepData"]] = relationship(
+        back_populates="step", uselist=True
+    )
     pipeline: Mapped[Pipeline] = relationship(
         back_populates="steps", foreign_keys=[pipelineId]
     )
@@ -208,7 +210,9 @@ class InstancePipelineStepStatus(Base):
     status: Mapped[PipelineStepStatus] = mapped_column(Enum(PipelineStepStatus))
     startTime: Mapped[Optional[str]]
     endTime: Mapped[Optional[str]]
-    meta: Mapped[list[InstancePipelineStepData]] = mapped_column(MutableJson)
+    meta: Mapped[list[InstancePipelineStepData]] = mapped_column(
+        MutableJson, default=[]
+    )
 
     instance = relationship("Instance", back_populates="pipelineStepStatuses")
 

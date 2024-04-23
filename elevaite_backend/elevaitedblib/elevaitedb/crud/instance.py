@@ -5,11 +5,11 @@ from elevaitedb.schemas import instance as schema
 
 
 def get_instances(
-        db: Session,
-        applicationId: int,
-        # project_id: UUID, # uncomment this when using validator
-        skip: int = 0,
-        limit: int = 0
+    db: Session,
+    applicationId: int,
+    # project_id: UUID, # uncomment this when using validator
+    skip: int = 0,
+    limit: int = 0,
 ):
     return (
         db.query(models.Instance)
@@ -112,6 +112,7 @@ def add_pipeline_step(
         status=dto.status,
         startTime=dto.startTime,
         endTime=dto.endTime,
+        meta=dto.meta,
     )
     db.add(_ipss)
     db.commit()

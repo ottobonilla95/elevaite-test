@@ -47,14 +47,15 @@ from elevaitedb.db import models
 
 
 def getApplicationInstances(
-        db: Session, application_id: int,
-        # project_id: UUID # uncomment this when using validator
-    ) -> List[models.Instance]:
+    db: Session,
+    application_id: int,
+    # project_id: UUID # uncomment this when using validator
+) -> List[models.Instance]:
     instances = instance_crud.get_instances(
-        db, 
+        db,
         application_id,
         # project_id, # uncomment this when using validator
-        limit=100
+        limit=100,
     )
     return instances
 
@@ -182,6 +183,7 @@ def createApplicationInstance(
             status=_status,
             startTime=_start_time,
             endTime=None,
+            meta=[],
         )
         _instance_pipeline_step = instance_crud.add_pipeline_step(
             db, str(_instance.id), _ipss
