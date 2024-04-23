@@ -2,7 +2,7 @@ from elevaitedb.schemas.configuration import S3IngestFormDataDTO, PreProcessForm
 
 
 class S3IngestData(S3IngestFormDataDTO):
-    applicationId: str
+    applicationId: int
     instanceId: str
 
 

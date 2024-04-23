@@ -1,3 +1,5 @@
+from typing import List
+from elevaitedb.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.models import Batch
 from qdrant_client.http.models import Distance, VectorParams
@@ -6,6 +8,11 @@ import openai
 import time
 import tiktoken
 import uuid
+from sqlalchemy.orm import Session
+
+from elevaite_backend.workers.app.util.func import set_pipeline_step_meta
+
+from .preprocess import ChunkAsJson
 
 
 def get_qdrant_connection(qdrant_url, api_key):
@@ -35,7 +42,7 @@ def get_vector_params(size, distance):
     return VectorParams(size=size, distance=distance)
 
 
-def get_token_size(content):
+def get_token_size(content) -> int | None:
     if content:
         encoding = tiktoken.get_encoding("cl100k_base")
         num_tokens = len(encoding.encode(content))
@@ -44,15 +51,23 @@ def get_token_size(content):
         return None
 
 
-async def recreate_collection(collection=None, size=1536, distance=Distance.COSINE):
+async def recreate_collection(
+    collection_name: str, size=1536, distance=Distance.COSINE
+):
     qdrant_conn = get_qdrant_connection(get_qdrant_url(), None)
     await qdrant_conn.recreate_collection(
-        collection_name=collection,
+        collection_name=collection_name,
         vectors_config=get_vector_params(size=size, distance=distance),
     )
 
 
-async def insert_records(collection=None, payload_with_contents=None):
+async def insert_records(
+    db: Session,
+    instance_id: str,
+    step_id: str,
+    collection=None,
+    payload_with_contents: List[ChunkAsJson] | None = None,
+):
     if not payload_with_contents or not collection:
         return
 
@@ -61,18 +76,29 @@ async def insert_records(collection=None, payload_with_contents=None):
     payloads = []
     vectors = []
     ids = []
+    total_token_size = 0
+    avg_token_size = 0
+    max_token_size = 0
+    p_index = 0
     qdrant_client = get_qdrant_connection(get_qdrant_url(), None)
     start_time = time.time()
     for payload in payload_with_contents:
-        if payload["page_content"]:
-            token_size = get_token_size(payload["page_content"])
+        p_index += 1
+        if payload.page_content:
+            token_size = get_token_size(payload.page_content)
+            if token_size is not None:
+                if token_size > max_token_size:
+                    max_token_size = token_size
+                total_token_size += token_size
+                avg_token_size = total_token_size / p_index
             print(str(token_size))
-            payload["metadata"]["tokenSize"] = token_size if token_size else 0
+            payload.metadata["tokenSize"] = token_size if token_size else 0
             response = create_embedding(
-                input=payload["page_content"], embedding_model=embedding_model
+                input=payload.page_content, embedding_model=embedding_model
             )
             payloads.append(payload)
-            vectors.append(response["data"][0]["embedding"])
+            _emb = response["data"][0]["embedding"]  # type: ignore | It works
+            vectors.append(_emb)
             ids.append(str(uuid.uuid4()))
         if len(payloads) >= 50:
             print("Print Embeddings Created " + str(len(vectors)))
@@ -84,12 +110,68 @@ async def insert_records(collection=None, payload_with_contents=None):
             payloads.clear()
             vectors.clear()
             ids.clear()
+
+            set_pipeline_step_meta(
+                db=db,
+                instance_id=instance_id,
+                step_id=step_id,
+                meta=[
+                    InstancePipelineStepData(
+                        label=InstanceStepDataLabel.TOTAL_SEGMENTS_TOKENIZED,
+                        value=p_index,
+                    ),
+                    InstancePipelineStepData(
+                        label=InstanceStepDataLabel.LRGST_TOKEN_SIZE,
+                        value=max_token_size,
+                    ),
+                    InstancePipelineStepData(
+                        label=InstanceStepDataLabel.AVG_TOKEN_SIZE,
+                        value=str(avg_token_size),
+                    ),
+                    InstancePipelineStepData(
+                        label=InstanceStepDataLabel.EMB_MODEL,
+                        value=embedding_model,
+                    ),
+                    InstancePipelineStepData(
+                        label=InstanceStepDataLabel.EMB_MODEL_DIM,
+                        value=1536,
+                    ),
+                ],
+            )
     if len(payloads) > 0:
         print("Last Embeddings Created " + str(len(vectors)))
         print("Last Payloads Created " + str(len(payloads)))
         await qdrant_client.upsert(
             collection_name=collection,
             points=Batch(ids=ids, payloads=payloads, vectors=vectors),
+        )
+
+        set_pipeline_step_meta(
+            db=db,
+            instance_id=instance_id,
+            step_id=step_id,
+            meta=[
+                InstancePipelineStepData(
+                    label=InstanceStepDataLabel.TOTAL_SEGMENTS_TOKENIZED,
+                    value=p_index,
+                ),
+                InstancePipelineStepData(
+                    label=InstanceStepDataLabel.LRGST_TOKEN_SIZE,
+                    value=max_token_size,
+                ),
+                InstancePipelineStepData(
+                    label=InstanceStepDataLabel.AVG_TOKEN_SIZE,
+                    value=str(avg_token_size),
+                ),
+                InstancePipelineStepData(
+                    label=InstanceStepDataLabel.EMB_MODEL,
+                    value=embedding_model,
+                ),
+                InstancePipelineStepData(
+                    label=InstanceStepDataLabel.EMB_MODEL_DIM,
+                    value=1536,
+                ),
+            ],
         )
     end_time = time.time()
     print("Qdrant insert time " + str(end_time - start_time))

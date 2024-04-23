@@ -19,4 +19,4 @@ async def insert_vectors(collection=None, BASE_DIR: str = None):
 
 
 async def create_qdrant_collection(collection_name: str):
-    await vectordb.recreate_collection(collection=collection_name)
+    await vectordb.recreate_collection(collection_name=collection_name)

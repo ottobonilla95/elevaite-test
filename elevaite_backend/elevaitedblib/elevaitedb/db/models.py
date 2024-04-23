@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, List, Optional, Annotated
+from typing import Any, Dict, List, Optional, Annotated
 import uuid
 from pydantic import UUID4, Json
 from sqlalchemy import (
@@ -16,9 +16,13 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy_json import MutableJson
 
 from ..util.func import get_utc_datetime
-from ..schemas.instance import InstanceStatus
+from ..schemas.instance import (
+    InstancePipelineStepData,
+    InstanceStatus,
+)
 from ..schemas.pipeline import PipelineStepStatus
 from ..schemas.application import ApplicationType
 from ..schemas.role_schemas import ProjectScopedPermission
@@ -41,6 +45,7 @@ from sqlalchemy.dialects.postgresql import (
 
 from sqlalchemy import Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 
 class Application(Base):
     __tablename__ = "applications"
@@ -141,7 +146,7 @@ pipeline_step_deps = Table(
 
 class PipelineStep(Base):
     __tablename__ = "pipeline_steps"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID4] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     title: Mapped[str]
     pipelineId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("pipelines.id"))
     # parent_id = Column(String, ForeignKey("pipeline_steps.id"))
@@ -152,7 +157,7 @@ class PipelineStep(Base):
     )
 
     @hybrid_property
-    def previousStepIds(self) -> list[UUID4]:
+    def previousStepIds(self) -> List[UUID4]:
         return [x.id for x in self._dependsOn]
 
     @hybrid_property
@@ -203,6 +208,7 @@ class InstancePipelineStepStatus(Base):
     status: Mapped[PipelineStepStatus] = mapped_column(Enum(PipelineStepStatus))
     startTime: Mapped[Optional[str]]
     endTime: Mapped[Optional[str]]
+    meta: Mapped[list[InstancePipelineStepData]] = mapped_column(MutableJson)
 
     instance = relationship("Instance", back_populates="pipelineStepStatuses")
 
@@ -264,7 +270,7 @@ class DatasetVersion(Base):
     commitId: Mapped[str] = mapped_column()
     version: Mapped[int] = mapped_column()
     datasetId = mapped_column(ForeignKey("datasets.id"))
-    createDate = Column(DateTime, default=get_utc_datetime)
+    createDate: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
 
     dataset: Mapped[Dataset] = relationship(back_populates="versions")
 
@@ -352,11 +358,19 @@ class User_Account(Base):
 # Defined as a class and not a Table to allow for use of Mapped[] annotation for compatibility with static type checkers in orm-to-python conversions.
 class User_Project(Base):
 
-    __tablename__ = 'user_project'
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey('users.id'))
-    project_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey('projects.id'))
-    permission_overrides: Mapped[Annotated[dict[str, Any], Column(JSONB)]] = mapped_column(type_=JSONB, default=lambda: ProjectScopedPermission().dict())  # Use JSONB for filterable and indexable JSON structure
+    __tablename__ = "user_project"
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id")
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("projects.id")
+    )
+    permission_overrides: Mapped[Annotated[dict[str, Any], Column(JSONB)]] = (
+        mapped_column(type_=JSONB, default=lambda: ProjectScopedPermission().dict())
+    )  # Use JSONB for filterable and indexable JSON structure
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
     updated_at: Mapped[datetime] = mapped_column(

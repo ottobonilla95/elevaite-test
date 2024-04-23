@@ -38,6 +38,7 @@ class DatasetTag(DatasetTagBase):
 class DatasetBase(BaseModel):
     name: str
     projectId: UUID4
+    description: str | None
 
 
 class DatasetCreate(DatasetBase):
@@ -56,4 +57,4 @@ class Dataset(DatasetBase):
 
 
 def is_dataset(var: Any) -> TypeGuard[Dataset]:
-    return var is not None and var["projectId"] is not None
+    return var is not None and var.projectId is not None

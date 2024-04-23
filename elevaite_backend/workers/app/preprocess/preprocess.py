@@ -1,11 +1,19 @@
+from typing import Any, Dict, List
 import docx
+from pydantic import BaseModel
 from unstructured.partition.html import partition_html
 from unstructured.partition.docx import partition_docx
 from unstructured.partition.auto import partition
 from unstructured.chunking.title import chunk_by_title
+from unstructured.documents.elements import Element
 from pprint import pprint
 import sys, glob, os
 import json
+
+
+class ChunkAsJson(BaseModel):
+    metadata: Dict[str, Any]
+    page_content: str
 
 
 def get_file_elements(filepath=None, filedir=None):
@@ -32,12 +40,14 @@ def get_file_elements(filepath=None, filedir=None):
     # print(k, v)
 
 
-def get_file_elements_internal(file, filepath, content_type: str | None = None):
+def get_file_elements_internal(
+    file, filepath, content_type: str | None = None
+) -> List[ChunkAsJson]:
     elements = partition_html(file=file, content_type=content_type)
     # elements = partition(file=file, content_type=content_type)
     source = get_filename(filepath)
     chunks = chunk_by_title(elements=elements, max_characters=2000)
-    chunks_as_json = []
+    chunks_as_json: List[ChunkAsJson] = []
     for idx, chunk in enumerate(chunks):
         chunk_as_json = get_chunk_as_json(source=source, chunk=chunk)
         chunks_as_json.append(chunk_as_json)
@@ -66,7 +76,8 @@ def get_docx_elements(filepath=None, filedir=None):
     current_chunk_charaters = 0
     documnet_chunks = []
     for idx, element in enumerate(elements):
-        if element.category == "Title" and idx == 0:
+        # TODO: Figure this one out
+        if element.category == "Title" and idx == 0:  # type: ignore
             document_title = element.text
         current_chunks.append(element.text)
         current_chunk_charaters += len(element.text)
@@ -142,8 +153,8 @@ def process_file_dir(directory=None, output_directory=None):
     chunks_as_json = []
     page_as_json = []
     findex = 0
-    print("Output Directory " + output_directory)
-    for filename in glob.glob(directory + "/*.html"):
+    print(f"Output Directory {output_directory}")
+    for filename in glob.glob(f"{directory}/*.html"):
         print("Filename :" + filename)
         chunks_as_json.append(get_file_elements(filename))
         print("Number of chunks " + str(len(chunks_as_json)))
@@ -155,22 +166,20 @@ def process_file_dir(directory=None, output_directory=None):
             chunks_as_json.clear()
 
 
-def get_chunk_as_json(source: str, chunk: str):
+def get_chunk_as_json(source: str, chunk: Element) -> ChunkAsJson:
     chunk_with_no_tabs = str(chunk).replace("\t", "")
-    page_metadata = {"metadata": {}}
-    page_metadata["metadata"]["source"] = source
-    page_metadata["metadata"]["document_title"] = get_document_title(source)
-    page_metadata["metadata"]["page_title"] = page_metadata["metadata"][
-        "document_title"
-    ]
+    page_metadata = ChunkAsJson(metadata={}, page_content="")
+    page_metadata.metadata["source"] = source
+    page_metadata.metadata["document_title"] = get_document_title(source)
+    page_metadata.metadata["page_title"] = page_metadata.metadata["document_title"]
 
     page_content_title = []
-    if page_metadata["metadata"]["document_title"]:
-        page_content_title.append(str(page_metadata["metadata"]["document_title"]))
-    if page_metadata["metadata"]["page_title"]:
-        page_content_title.append(str(page_metadata["metadata"]["page_title"]))
+    if page_metadata.metadata["document_title"]:
+        page_content_title.append(str(page_metadata.metadata["document_title"]))
+    if page_metadata.metadata["page_title"]:
+        page_content_title.append(str(page_metadata.metadata["page_title"]))
     content_title = " ".join(page_content_title)
-    page_metadata["page_content"] = content_title + " " + str(chunk_with_no_tabs)
+    page_metadata.page_content = content_title + " " + str(chunk_with_no_tabs)
     return page_metadata
 
 

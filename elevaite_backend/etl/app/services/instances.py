@@ -16,6 +16,7 @@ from elevaitedb.schemas.instance import (
     Instance,
     InstanceChartData,
     InstanceCreate,
+    InstancePipelineStepData,
     InstancePipelineStepStatus,
     InstancePipelineStepStatusUpdate,
     InstanceStatus,
@@ -120,8 +121,7 @@ def createApplicationInstance(
         _dataset = dataset_crud.create_dataset(
             db,
             dataset_create=DatasetCreate(
-                name=datasetName,
-                projectId=createInstanceDto.projectId,
+                name=datasetName, projectId=createInstanceDto.projectId, description=""
             ),
         )
         tags = dataset_crud.get_dataset_tags(db=db)
@@ -272,6 +272,9 @@ def getApplicationInstanceChart(
         totalSize=res["total_size"],
         ingestedSize=res["ingested_size"],
         ingestedChunks=res["ingested_chunks"],
+        currentDoc=res["current_file"] if res["currentFile"] else None,
+        largestChunk=res["largest_chunk"] if res["currentFile"] else None,
+        avgChunk=res["avg_chunk"] if res["currentFile"] else None,
     )
 
 

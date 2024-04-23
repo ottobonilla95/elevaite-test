@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import TypeGuard
+from typing import Any, TypeGuard
 
 from pydantic import UUID4, BaseModel
 
@@ -65,5 +65,5 @@ class Pipeline(PipelineBase):
         orm_mode = True
 
 
-def is_pipeline(var: object) -> TypeGuard[Pipeline]:
+def is_pipeline(var: Any) -> TypeGuard[Pipeline]:
     return var is not None and var.id is not None

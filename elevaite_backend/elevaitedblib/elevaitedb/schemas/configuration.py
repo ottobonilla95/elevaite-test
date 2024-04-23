@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TypeGuard
+from typing import Any, TypeGuard
 from pydantic import UUID4, BaseModel, Json
 
 
@@ -55,5 +55,5 @@ class Configuration(ConfigurationBase):
         orm_mode = True
 
 
-def is_configuration(var: object) -> TypeGuard[Configuration]:
+def is_configuration(var: Any) -> TypeGuard[Configuration]:
     return var is not None and var.id
