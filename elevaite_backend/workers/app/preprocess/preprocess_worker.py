@@ -273,7 +273,7 @@ async def preprocess(data: PreProcessForm) -> None:
         for object in ref.objects():
             # print(object)
             with ref.object(object.path).reader(pre_sign=False, mode="rb") as fd:
-                r.json().set(data.instanceId, ".current_file", path_leaf(object.path))
+                r.json().set(data.instanceId, ".current_doc", path_leaf(object.path))
                 # while fd.tell() < file_size:
                 #     print(fd.read(10))
                 #     fd.seek(10, os.SEEK_CUR)

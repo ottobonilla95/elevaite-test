@@ -2,6 +2,7 @@ from datetime import datetime
 import json
 from pprint import pprint
 from typing import Any, List
+import elasticsearch
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -16,13 +17,13 @@ from elevaitedb.schemas.instance import (
     Instance,
     InstanceChartData,
     InstanceCreate,
-    InstancePipelineStepData,
     InstancePipelineStepStatus,
     InstancePipelineStepStatusUpdate,
     InstanceStatus,
     InstanceUpdate,
     InstanceCreateDTO,
     InstanceLogs,
+    chart_data_from_redis,
     is_instance,
 )
 from elevaitedb.schemas.pipeline import Pipeline, PipelineStepStatus, is_pipeline
@@ -267,17 +268,7 @@ def getApplicationInstanceChart(
         raise HTTPException(404, "Instance data not found")
     res = json.loads(json.dumps(_res))
 
-    return InstanceChartData(
-        avgSize=res["avg_size"],
-        ingestedItems=res["ingested_items"],
-        totalItems=res["total_items"],
-        totalSize=res["total_size"],
-        ingestedSize=res["ingested_size"],
-        ingestedChunks=res["ingested_chunks"],
-        currentDoc=res["current_file"] if res["currentFile"] else None,
-        largestChunk=res["largest_chunk"] if res["currentFile"] else None,
-        avgChunk=res["avg_chunk"] if res["currentFile"] else None,
-    )
+    return chart_data_from_redis(res)
 
 
 def getApplicationInstanceConfiguration(
@@ -293,9 +284,15 @@ def getApplicationInstanceConfiguration(
 def getApplicationInstanceLogs(instance_id: str, limit: int = 100, offset: int = 0):
     es = ElasticSingleton()
     result: list[InstanceLogs] = []
-    _entries = es.getAllInIndexPaginated(
-        index=instance_id, offset=offset, pagesize=limit
-    )
-    for entry in _entries:
-        result.append(InstanceLogs(**entry["_source"]))
-    return result
+    try:
+        _entries = es.getAllInIndexPaginated(
+            index=instance_id, offset=offset, pagesize=limit
+        )
+        for entry in _entries:
+            result.append(InstanceLogs(**entry["_source"]))
+    except elasticsearch.NotFoundError:
+        print("logs not found")
+    except Exception as e:
+        print(f"{type(e)} occured: {e}")
+    finally:
+        return result

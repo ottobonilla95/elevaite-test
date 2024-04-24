@@ -10,7 +10,7 @@ import tiktoken
 import uuid
 from sqlalchemy.orm import Session
 
-from elevaite_backend.workers.app.util.func import set_pipeline_step_meta
+from ..util.func import set_pipeline_step_meta
 
 from .preprocess import ChunkAsJson
 
@@ -178,11 +178,13 @@ async def insert_records(
 
 
 def create_embedding(input, embedding_model, depth=0):
-    if depth > 3:
+    if depth > 10:
         raise Exception("Too many retries")
     try:
         time.sleep((5 * depth) + (6 / 1000))
         response = openai.Embedding.create(input=input, engine=embedding_model)
         return response
-    except:
+    except Exception as e:
+        print(e)
+        print(f"Depth: {depth}")
         return create_embedding(input, embedding_model, depth=depth + 1)

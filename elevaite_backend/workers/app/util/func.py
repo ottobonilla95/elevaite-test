@@ -16,6 +16,7 @@ from elevaitedb.schemas.instance import (
     InstanceChartData,
     PipelineStepStatus,
     InstancePipelineStepStatusUpdate,
+    chart_data_from_redis,
 )
 from elevaitedb.util import func as util_func
 
@@ -94,17 +95,7 @@ def set_instance_chart_data(r: redis.Redis, db: Session, instance_id: str):
     res = json.loads(json.dumps(_res))
 
     instance_crud.update_instance_chart_data(
-        db=db,
-        instance_id=instance_id,
-        updateChartData=InstanceChartData(
-            totalItems=res["total_items"],
-            ingestedItems=res["ingested_items"],
-            avgSize=res["avg_size"],
-            totalSize=res["total_size"],
-            ingestedSize=res["ingested_size"],
-            ingestedChunks=res["ingested_chunks"],
-            currentDoc=res["currentFile"],
-        ),
+        db=db, instance_id=instance_id, updateChartData=chart_data_from_redis(res)
     )
 
 

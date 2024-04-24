@@ -1,3 +1,4 @@
+import json
 from sqlalchemy.orm import Session
 from uuid import UUID
 from elevaitedb.db import models
@@ -140,7 +141,10 @@ def update_pipeline_step(
         return None
 
     for var, value in vars(dto).items():
-        setattr(_ipss, var, value) if value else None
+        if var == "meta" and value:
+            setattr(_ipss, var, list(map(lambda v: json.loads(v.json()), value)))
+        else:
+            setattr(_ipss, var, value) if value else None
 
     db.add(_ipss)
     db.commit()

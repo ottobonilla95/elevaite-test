@@ -47,18 +47,80 @@ class InstanceBase(BaseModel):
 
 
 class InstanceChartData(BaseModel):
-    totalItems: int
-    ingestedItems: int
-    avgSize: int
-    totalSize: int
-    ingestedSize: int
-    ingestedChunks: int
-    avgChunk: Union[str, None] = None
-    largestChunk: Union[str, None] = None
+    totalItems: Union[int, None] = None
+    ingestedItems: Union[int, None] = None
+    avgSize: Union[int, None] = None
+    totalSize: Union[int, None] = None
+    ingestedSize: Union[int, None] = None
+    ingestedChunks: Union[int, None] = None
+    avgChunk: Union[float, None] = None
+    largestChunk: Union[int, None] = None
     currentDoc: Union[str, None] = None
 
     class Config:
         orm_mode = True
+
+
+def chart_data_from_redis(input: Any) -> InstanceChartData:
+
+    _avgSize = None
+    _ingestedItems = None
+    _totalItems = None
+    _totalSize = None
+    _ingestedSize = None
+    _ingestedChunks = None
+    _currentDoc = None
+    _largestChunk = None
+    _avgChunk = None
+
+    try:
+        _avgSize = input["avg_size"]
+    except KeyError as e:
+        pass
+    try:
+        _ingestedItems = input["ingested_items"]
+    except KeyError as e:
+        pass
+    try:
+        _totalItems = input["total_items"]
+    except KeyError as e:
+        pass
+    try:
+        _totalSize = input["total_size"]
+    except KeyError as e:
+        pass
+    try:
+        _ingestedSize = input["ingested_size"]
+    except KeyError as e:
+        pass
+    try:
+        _ingestedChunks = input["ingested_chunks"]
+    except KeyError as e:
+        pass
+    try:
+        _currentDoc = input["current_doc"]
+    except KeyError as e:
+        pass
+    try:
+        _largestChunk = input["largest_chunk"]
+    except KeyError as e:
+        pass
+    try:
+        _avgChunk = input["avg_chunk"]
+    except KeyError as e:
+        pass
+
+    return InstanceChartData(
+        avgSize=_avgSize,
+        ingestedItems=_ingestedItems,
+        totalItems=_totalItems,
+        totalSize=_totalSize,
+        ingestedSize=_ingestedSize,
+        ingestedChunks=_ingestedChunks,
+        currentDoc=_currentDoc,
+        largestChunk=_largestChunk,
+        avgChunk=_avgChunk,
+    )
 
 
 class InstancePipelineStepData(BaseModel):
@@ -72,7 +134,7 @@ class InstancePipelineStepStatus(BaseModel):
     status: PipelineStepStatus
     startTime: Union[str, None]
     endTime: Union[str, None]
-    meta: List[InstancePipelineStepData] = []
+    meta: list[InstancePipelineStepData] = []
 
     class Config:
         orm_mode = True
@@ -82,7 +144,7 @@ class InstancePipelineStepStatusUpdate(BaseModel):
     status: PipelineStepStatus | None = None
     startTime: str | None = None
     endTime: str | None = None
-    meta: List[InstancePipelineStepData] = []
+    meta: list[InstancePipelineStepData] = []
 
 
 class InstanceCreate(InstanceBase):

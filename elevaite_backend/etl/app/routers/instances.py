@@ -1,3 +1,4 @@
+from pprint import pprint
 from fastapi import APIRouter, Query
 from typing import Annotated, Any, Sequence
 from fastapi import APIRouter, Body, Depends
@@ -43,9 +44,10 @@ def getApplicationInstanceById(
     # return instance # uncomment this when using validator
 
     # comment lines below when using validator
-    return instance_service.getApplicationInstanceById(
+    res = instance_service.getApplicationInstanceById(
         db, application_id=application_id, instance_id=instance_id
     )
+    return res
 
 
 @router.get(
