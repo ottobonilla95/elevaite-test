@@ -1,8 +1,8 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 import { getAvailableDatasets, getDatasetTasks, getDatasets, registerDataset } from "../actions/datasetActions";
-import { getUniqueTagsFromList } from "../helpers";
-import { type FiltersStructure, type HuggingfaceDatasetObject, type ModelDatasetObject } from "../interfaces";
+import { countActiveFilters, getUniqueActiveFiltersFromGroup, getUniqueTagsFromList } from "../helpers";
+import { type FilterGroupStructure, type FiltersStructure, type HuggingfaceDatasetObject, type ModelDatasetObject } from "../interfaces";
 
 
 
@@ -11,6 +11,11 @@ import { type FiltersStructure, type HuggingfaceDatasetObject, type ModelDataset
 export enum specialHandlingDatasetFields {
     TAGS = "tags",
     DATE = "date",
+}
+
+export enum FilterStructureLabels {
+    TAGS = "Tags",
+    TASKS = "Tasks",
 }
 
 
@@ -57,7 +62,8 @@ export interface DatasetsContextStructure {
     getAvailableDatasetsByTask: (task: string) => void;
     registerDataset: (datasetName: string, datasetRepo: string, tags?: string[]) => Promise<void>;
     filtering: FiltersStructure;
-    toggleFilter: (filter: string) => void,
+    activeFiltersCount: number;
+    toggleFilter: (filterName: string) => void,
     toggleFilterGroup: (group: string) => void,
     loading: LoadingListObject;
 }
@@ -72,6 +78,7 @@ export const DatasetsContext = createContext<DatasetsContextStructure>({
     getAvailableDatasetsByTask: () => {/**/},
     registerDataset: async () => {/**/},
     filtering: {filters:[]},
+    activeFiltersCount: 0,
     toggleFilter: () => {/**/},
     toggleFilterGroup: () => {/**/},
     loading: defaultLoadingList,
@@ -118,11 +125,6 @@ function sortDisplayDatasets(datasets: ModelDatasetObject[], sorting: SortingObj
 
 
 
-
-
-
-
-
 // PROVIDER
 
 interface DatasetsContextProviderProps {
@@ -136,12 +138,13 @@ export function DatasetsContextProvider(props: DatasetsContextProviderProps): JS
     const [datasetTasks, setDatasetTasks] = useState<string[]>([]);
     const [availableDatasets, setAvailableDatasets] = useState<HuggingfaceDatasetObject[]>([]);
     const [filtering, setFiltering] = useState<FiltersStructure>({filters: []});
+    const [activeFiltersCount, setActiveFiltersCount] = useState(0);
     const [sorting, setSorting] = useState<SortingObject>({field: undefined});
     const [loading, setLoading] = useState<LoadingListObject>(defaultLoadingList);
     
     
     
-    useEffect(() => {        
+    useEffect(() => {
         setLoading(current => {return {...current, filtersStructure: true}} );
         void fetchDatasets();
         void fetchDatasetTasks();
@@ -149,21 +152,56 @@ export function DatasetsContextProvider(props: DatasetsContextProviderProps): JS
     }, []);
 
     useEffect(() => {
-        if (loading.datasets === false && loading.datasetTasks === false) constructFilters(displayDatasets, datasetTasks);
+        if (loading.datasets === false && loading.datasetTasks === false && loading.filtersStructure) constructFilters(displayDatasets, datasetTasks);
     }, [displayDatasets, datasetTasks, loading.datasets, loading.datasetTasks]);
 
+    useEffect(() => {     
+        setDisplayDatasets(formatDisplayDatasets());
+    }, [datasets]);
+
     useEffect(() => {
+        setActiveFiltersCount(countActiveFilters(filtering));
+        filterDatasets();
+    }, [filtering]);
+
+
+
+    function formatDisplayDatasets(): ModelDatasetObject[] {
         const datasetsClone = JSON.parse(JSON.stringify(datasets)) as ModelDatasetObject[];
         const adjustedDatasets = datasetsClone.map(model => {
             // Use this to modify the display datasets as needed
             return model;
         });
-        setDisplayDatasets(sortDisplayDatasets(adjustedDatasets, sorting));
-        console.log("datasets", adjustedDatasets);
-    }, [datasets]);
+        return sortDisplayDatasets(adjustedDatasets, sorting);
+    }
 
 
+    function filterDatasets(): void {
+        const allDatasets = formatDisplayDatasets();
+        const filteredDatasets: ModelDatasetObject[] = [];
 
+        // If there are no active filters, reset the list
+        if (countActiveFilters(filtering) === 0) {
+            setDisplayDatasets(allDatasets);
+            return;
+        }
+
+        // Get all active tasks
+        const activeTasks = getUniqueActiveFiltersFromGroup(filtering, FilterStructureLabels.TASKS);
+        // // Get all active tags
+        const activeTags = getUniqueActiveFiltersFromGroup(filtering, FilterStructureLabels.TAGS);
+
+        // // For each item decide if to add it or not.
+        for (const dataset of allDatasets) {
+            let show = false;
+            // console.log("Has task matches?", activeTasks.includes(dataset.task))
+            // if (activeTasks.includes(dataset.task)) show = true;
+            if (/** !show && */ dataset.tags.some(item => activeTags.includes(item))) show = true;
+
+            if (show) filteredDatasets.push(dataset);
+        }
+        setDisplayDatasets(filteredDatasets);
+    }
 
 
     function sortDatasets(field: keyof ModelDatasetObject, specialHandling?: specialHandlingDatasetFields): void {
@@ -183,15 +221,15 @@ export function DatasetsContextProvider(props: DatasetsContextProviderProps): JS
     function constructFilters(passedDatasets: ModelDatasetObject[], tasks: string[]): void {
         const constructedFilters: FiltersStructure = { label: "Filters", filters: []};
         // Tags
-        const uniqueTags = getUniqueTagsFromList(passedDatasets);        
+        const uniqueTags = getUniqueTagsFromList(passedDatasets);
         constructedFilters.filters.push({
-            label: "Tags",
+            label: FilterStructureLabels.TAGS,
             filters: uniqueTags.map(tag => { return { label: tag }; })
         })
         // Tasks
         constructedFilters.filters.push({
-            label: "Tasks",
-            filters: tasks.map(task => { return { label: task.split("-").join(" ") }; })
+            label: FilterStructureLabels.TASKS,
+            filters: tasks.map(task => { return { label: task }; })
         })        
         setFiltering(constructedFilters);
         setLoading(current => {return {...current, filtersStructure: false}} );
@@ -212,8 +250,32 @@ export function DatasetsContextProvider(props: DatasetsContextProviderProps): JS
         }));
     }
 
-    function toggleFilter(filter: string): void {
-        //
+    function toggleFilter(filterName: string): void {
+        setFiltering(prevSorting => ({
+            ...prevSorting,
+            filters: prevSorting.filters.map(foundFilter => {
+              if ('filters' in foundFilter) {  // Check if it's a group
+                return {
+                  ...foundFilter,
+                  filters: foundFilter.filters.map(subFilter => {
+                    if (subFilter.label === filterName) {
+                      return {
+                        ...subFilter,
+                        isActive: !subFilter.isActive
+                      };
+                    }
+                    return subFilter;
+                  })
+                };
+              } else if (foundFilter.label === filterName) {  // If it's a single filter
+                return {
+                  ...foundFilter,
+                  isActive: !foundFilter.isActive
+                };
+              }
+              return foundFilter;
+            })
+        }));
     }
 
 
@@ -301,6 +363,7 @@ export function DatasetsContextProvider(props: DatasetsContextProviderProps): JS
                 getAvailableDatasetsByTask: fetchAvailableDatasetsByTask,
                 registerDataset: actionRegisterDataset,
                 filtering,
+                activeFiltersCount,
                 toggleFilter,
                 toggleFilterGroup,
                 loading,

@@ -1,9 +1,10 @@
-import { CommonButton, ElevaiteIcons, LoadingBar, SimpleInput } from "@repo/ui/components";
+import { CommonButton, ElevaiteIcons, LoadingBar, SimpleInput, SimpleTextarea } from "@repo/ui/components";
 import { useEffect, useRef, useState } from "react";
 import "./ModelsDetailsInferenceTab.scss";
 import dayjs from "dayjs";
-import { inferEndpointByUrl } from "../../../../../lib/actions/modelActions";
+import { inferEndpointEmbedding, inferEndpointSummarization, inferEndpointTextGeneration } from "../../../../../lib/actions/modelActions";
 import { useModels } from "../../../../../lib/contexts/ModelsContext";
+import { useAutosizeTextArea } from "../../../../../lib/hooks";
 
 
 
@@ -22,6 +23,8 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
     const modelsContext = useModels();
     const scrollRef = useRef<HTMLDivElement|null>(null);
     const [text, setText] = useState("");
+    const textAreaRef = useRef<HTMLTextAreaElement>(null);
+    useAutosizeTextArea(textAreaRef.current, text);
     const [isLoading, setIsLoading] = useState(false);
     const [messages, setMessages] = useState<InferMessageObject[]>([]);
 
@@ -71,14 +74,29 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
         if (!modelsContext.selectedModel?.endpointId) return;
         try {
             setIsLoading(true);
-            const inferredMessage = await inferEndpointByUrl(modelsContext.selectedModel.endpointId, message);
-            if (inferredMessage.results[0]?.generated_text) {
-                addMessage(inferredMessage.results[0]?.generated_text, false);
+            // Embedding models
+            if (modelsContext.selectedModel.task === "sentence-similarity") {
+                const inferredSummary = await inferEndpointEmbedding(modelsContext.selectedModel.endpointId, message);
+                addMessage(inferredSummary.results.join("\n"), false);
+
+            // Summary
+            } else if (modelsContext.selectedModel.task === "summarization") {
+                const inferredSummary = await inferEndpointSummarization(modelsContext.selectedModel.endpointId, message);
+                if (inferredSummary.results[0]?.summary_text) {
+                    addMessage(inferredSummary.results[0]?.summary_text, false);
+                }
+            
+            // Text generation
+            } else {
+                const inferredText = await inferEndpointTextGeneration(modelsContext.selectedModel.endpointId, message);
+                if (inferredText.results[0]?.generated_text) {
+                    addMessage(inferredText.results[0]?.generated_text, false);
+                }
             }
 
         } catch(error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
-            console.error("Error in fetching models:", error);
+            console.error("Error in inferring endpoint:", error);
         } finally {                
             setIsLoading(false);
         }
@@ -93,8 +111,8 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
             
             <div className="messages-container">
                 <div className="messages-header">
-                    <div className="name">Name</div>
-                    <div className="model">question-asnweringTEST</div>
+                    <div className="name">Model Testing</div>
+                    <div className="model">{modelsContext.selectedModel?.task}</div>
                 </div>
                 <div className="messages-contents">
                     <div className="messages-scroller" ref={scrollRef}>
@@ -114,25 +132,52 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
             </div>
 
             <div className={["chat-input-container", isLoading ? "loading" : undefined].filter(Boolean).join(" ")}>
-                <SimpleInput
-                    wrapperClassName="chat-input-field"
-                    value={text}
-                    onChange={handleTextChange}
-                    onKeyDown={handleKeyDown}
-                    placeholder={isLoading ? "Please wait..." : "Enter text and press ENTER"}
-                    disabled={isLoading}
-                    rightIcon={
-                        <CommonButton
-                            onClick={handleSend}
-                            disabled={isLoading}
-                        >
-                            {isLoading ?
-                                <ElevaiteIcons.SVGSpinner/> :
-                                <ElevaiteIcons.SVGSend/>
-                            }
-                        </CommonButton>                    
-                    }
-                />
+                {modelsContext.selectedModel?.task === "summarization" ? 
+                
+                    <SimpleTextarea
+                        passedRef={textAreaRef}
+                        wrapperClassName="chat-input-field"
+                        value={text}
+                        onChange={handleTextChange}
+                        onKeyDown={handleKeyDown}
+                        placeholder={isLoading ? "Please wait..." : "Enter text and press ENTER"}
+                        disabled={isLoading}
+                        rightIcon={
+                            <CommonButton
+                                onClick={handleSend}
+                                disabled={isLoading}
+                            >
+                                {isLoading ?
+                                    <ElevaiteIcons.SVGSpinner/> :
+                                    <ElevaiteIcons.SVGSend/>
+                                }
+                            </CommonButton>                    
+                        }
+                    />
+
+                    :
+
+                    <SimpleInput
+                        wrapperClassName="chat-input-field"
+                        value={text}
+                        onChange={handleTextChange}
+                        onKeyDown={handleKeyDown}
+                        placeholder={isLoading ? "Please wait..." : "Enter text and press ENTER"}
+                        disabled={isLoading}
+                        rightIcon={
+                            <CommonButton
+                                onClick={handleSend}
+                                disabled={isLoading}
+                            >
+                                {isLoading ?
+                                    <ElevaiteIcons.SVGSpinner/> :
+                                    <ElevaiteIcons.SVGSend/>
+                                }
+                            </CommonButton>                    
+                        }
+                    />
+                }
+                
             </div>
 
         </div>

@@ -51,7 +51,6 @@ export function isAccountObject(item: unknown): item is AccountObject {
         "organization_id" in item &&
         "name" in item &&
         "description" in item &&
-        "is_disabled" in item &&
         "created_at" in item &&
         "updated_at" in item;
 }
@@ -62,7 +61,7 @@ export function isProjectObject(item: unknown): item is AccountObject {
     "account_id" in item &&
     "name" in item &&
     "description" in item &&
-    "project_owner_id" in item &&
+    "creator" in item &&
     "datasets" in item &&
     "created_at" in item &&
     "updated_at" in item;

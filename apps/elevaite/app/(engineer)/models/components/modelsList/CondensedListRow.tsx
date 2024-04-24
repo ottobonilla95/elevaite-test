@@ -1,7 +1,9 @@
 import { CommonButton, CommonMenu } from "@repo/ui/components";
 import dayjs from "dayjs";
-import "./CondensedListRow.scss";
+import { useEffect } from "react";
 import { useModels } from "../../../../lib/contexts/ModelsContext";
+import { ModelsStatus, REGISTERING_MODELS_REFRESH_PERIOD } from "../../../../lib/interfaces";
+import "./CondensedListRow.scss";
 import { StatusCell, type ModelListNormalRow } from "./ModelsListRow";
 
 
@@ -9,6 +11,15 @@ import { StatusCell, type ModelListNormalRow } from "./ModelsListRow";
 
 export function CondensedListRow(props: ModelListNormalRow): JSX.Element {
     const modelsContext = useModels();
+
+    useEffect(() => {
+        if (props.model.status === ModelsStatus.REGISTERING) {
+            const refreshInterval = setInterval(() => {
+                void modelsContext.refreshModelById(props.model.id);
+            }, REGISTERING_MODELS_REFRESH_PERIOD);
+            return () => { clearInterval(refreshInterval); };
+        }
+    }, [props.model]);
 
 
     function handleNameClick(): void {

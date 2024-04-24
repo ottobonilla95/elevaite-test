@@ -1,26 +1,34 @@
 "use client";
 import { ClickOutsideDetector, CommonButton, ElevaiteIcons } from "@repo/ui/components";
-import { useRef, useState } from "react";
-import { useDatasets } from "../../contexts/DatasetsContext";
-import { type FilterUnitStructure, type FilterGroupStructure, type FiltersStructure } from "../../interfaces";
+import { useEffect, useRef, useState } from "react";
+import { getUniqueActiveFiltersFromGroup } from "../../helpers";
+import { type FilterGroupStructure, type FilterUnitStructure, type FiltersStructure } from "../../interfaces";
 import "./TableFilters.scss";
 
 
 
 
+interface TableFiltersProps {
+    filtering: FiltersStructure;
+    onToggleFilter?: (filter: string) => void;
+    onToggleGroup?: (group: string) => void;
+    activeFiltersCount?: number;
+    isLoading?: boolean;
+    showPills?: boolean;
+}
 
-
-export function TableFilters(): JSX.Element {
-    const datasetContext = useDatasets();
+export function TableFilters(props: TableFiltersProps): JSX.Element {
     const filterButtonRef = useRef<HTMLButtonElement|null>(null);
     const [isFiltersPanelOpen, setIsFiltersPanelOpen] = useState(false);
-    const [activeFilters, setActiveFilters] = useState(0);
+    const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
 
+    useEffect(() => {
+        setActiveFilters(getUniqueActiveFiltersFromGroup(props.filtering));
+    }, [props.filtering]);
 
 
     function toggleFiltersPanel(): void {
-        // setActiveFilters(current => current === 4 ? 0 : current+1);
         setIsFiltersPanelOpen(current => !current);
     }
 
@@ -29,17 +37,29 @@ export function TableFilters(): JSX.Element {
     }
 
     function handleFilterClick(filter: string): void {
-        console.log("Filter clicked:", filter);
+        if (props.onToggleFilter) props.onToggleFilter(filter);
+    }
+
+    function handleClosePill(filter: string): void {
+        if (props.onToggleFilter) props.onToggleFilter(filter);
     }
 
     function handleGroupClick(group: string): void {
-        datasetContext.toggleFilterGroup(group);
+        if (props.onToggleGroup) props.onToggleGroup(group);
     }
 
 
 
     return (
         <div className="table-filters-container">
+
+            {!props.showPills ? undefined :
+                <div className="active-filters-list">
+                    {activeFilters.map(filter => 
+                        <FilterPill key={filter} label={filter} onClick={handleClosePill} />
+                    )}
+                </div>
+            }
 
             <div className="filters-button-anchor">
 
@@ -50,9 +70,11 @@ export function TableFilters(): JSX.Element {
                 >
                     <ElevaiteIcons.SVGFilter/>
                     <span>Filters</span>
-                    <div className={["active-filters-count", activeFilters === 0 ? "hidden" : undefined].filter(Boolean).join(" ")}>
-                        {activeFilters}
-                    </div>
+                    {props.activeFiltersCount === undefined ? undefined :
+                        <div className={["active-filters-count", props.activeFiltersCount === 0 ? "hidden" : undefined].filter(Boolean).join(" ")}>
+                            {props.activeFiltersCount}
+                        </div>
+                    }
                 </CommonButton>
 
                 <ClickOutsideDetector 
@@ -63,8 +85,8 @@ export function TableFilters(): JSX.Element {
                         isOpen={isFiltersPanelOpen}
                         onFilterClick={handleFilterClick}
                         onGroupClick={handleGroupClick}
-                        structure={datasetContext.filtering}
-                        isLoading={datasetContext.loading.filtersStructure}
+                        structure={props.filtering}
+                        isLoading={props.isLoading}
                     />
                 </ClickOutsideDetector>
                 
@@ -159,6 +181,7 @@ function FiltersGroupBox(props: FiltersGroupBoxProps): JSX.Element {
                                 key={filter.label}
                                 {...filter}
                                 onClick={props.onFilterClick}
+                                prettifyText={props.group.label === "Tasks"}
                             />
                         )
                     }
@@ -173,9 +196,40 @@ function FiltersGroupBox(props: FiltersGroupBoxProps): JSX.Element {
 
 
 
+interface FilterPillProps {
+    label: string;
+    onClick: (filter: string) => void;
+    prettifyText?: boolean;
+}
+
+function FilterPill(props: FilterPillProps): JSX.Element {
+
+    function handleClick(): void {
+        props.onClick(props.label);
+    }
+
+    return (
+        <div className={["filter-pill-container", props.prettifyText ? "capitalize" : undefined].filter(Boolean).join(" ")}>
+            <span>
+                {props.prettifyText ? props.label.split("-").join(" ") : props.label}
+            </span>
+            <CommonButton
+                className="filter-pill-button"
+                onClick={handleClick}
+            >
+                <ElevaiteIcons.SVGXmark/>
+            </CommonButton>
+        </div>
+    );
+}
+
+
+
 
 type FilterUnitProps = FilterUnitStructure & {
     onClick: (filter: string) => void;
+    isActive?: boolean;
+    prettifyText?: boolean;
 }
 
 function FilterUnit(props: FilterUnitProps): JSX.Element {
@@ -185,12 +239,12 @@ function FilterUnit(props: FilterUnitProps): JSX.Element {
     }
 
     return (
-        <div className="filter-unit-container">
+        <div className={["filter-unit-container", props.prettifyText ? "capitalize" : undefined].filter(Boolean).join(" ")}>
             <CommonButton
-                className="filter-unit-button"
+                className={["filter-unit-button", props.isActive ? "active" : undefined].filter(Boolean).join(" ")}
                 onClick={handleClick}
             >
-                {props.label}
+                {props.prettifyText ? props.label.split("-").join(" ") : props.label}
             </CommonButton>
         </div>
     );

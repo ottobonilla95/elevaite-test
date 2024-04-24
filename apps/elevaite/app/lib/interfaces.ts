@@ -7,8 +7,7 @@ import type { CommonInputProps, CommonCheckboxProps } from "@repo/ui/components"
 // STATICS
 
 export const NEW_DATASET = "NEW_DATASET_NAME:";
-
-
+export const REGISTERING_MODELS_REFRESH_PERIOD = 5000; // 5 seconds
 
 
 // ENUMS
@@ -24,6 +23,11 @@ export enum AppInstanceStatus {
     RUNNING = "running",
     FAILED = "failed",
     COMPLETED = "completed",
+}
+
+export enum AppInstanceLogLevel {
+    INFO = "info",
+    ERROR = "error",
 }
 
 export enum PipelineStatus {
@@ -153,6 +157,12 @@ export interface AppInstanceConfigurationObject {
     applicationId: string | number;
     instanceId: string;
     raw: Initializers;
+}
+
+export interface AppInstanceLogObject {
+    timestamp: string;
+    message: string;
+    level: AppInstanceLogLevel;
 }
 
 export interface CollectionObject {
@@ -290,13 +300,9 @@ export interface AvailableModelObject {
     gated: boolean | string;
     library_name: string;
     sha: string;
-    memory_requirements?: {
-        float16: MemoryLayers;
-        float32: MemoryLayers;
-    };
+    memory_requirements?: MemoryLayers;
 }
 interface MemoryLayers { 
-    largest_layer: MemoryBit;
     total_size: MemoryBit;
     training_using_adam: MemoryBit;
  }
@@ -338,10 +344,20 @@ export interface ModelEndpointCreationObject {
     endpoint_id: string|number;
 }
 
-export interface InferMessageDto {
+export interface InferTextGenerationDto {
     results: {
         generated_text: string;
     }[]
+}
+
+export interface InferSummarizationDto {
+    results: {
+        summary_text: string;
+    }[]
+}
+
+export interface InferEmbeddingDto {
+    results: number[];
 }
 
 export interface ModelDatasetObject {
@@ -380,7 +396,7 @@ export interface AccountObject {
     organization_id: string;
     name: string;
     description: string;
-    is_disabled: boolean;
+    is_disabled?: boolean;
     created_at: string;
     updated_at: string;
 }
@@ -390,7 +406,7 @@ export interface ProjectObject {
     account_id: string;
     name: string;
     description: string;
-    project_owner_id: string;
+    creator: string;
     parent_project_id?: string;
     is_disabled?: boolean;
     datasets: RbacDatasetObject[],

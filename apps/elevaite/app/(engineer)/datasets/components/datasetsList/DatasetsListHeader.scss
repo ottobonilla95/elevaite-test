@@ -22,6 +22,7 @@
             font-size: 14px;
             font-weight: 500;
             text-transform: uppercase;
+            white-space: nowrap;
             color: var(--ev-colors-secondaryText);
 
             &.active {
@@ -33,6 +34,7 @@
 
 
     & .controls-container {
+        min-width: 0;
         display: flex;
         align-items: center;
         gap: 10px;

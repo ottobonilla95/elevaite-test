@@ -16,4 +16,12 @@ export function isArrayOfStrings(data: unknown): data is string[] {
     return true;
 }
 
+export function isArrayOfNumbers(data: unknown): data is string[] {
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (typeof item !== "number") return false;
+    }
+    return true;
+}
+
 

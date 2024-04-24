@@ -1,5 +1,5 @@
-import type { AvailableModelObject, EvaluationObject, InferMessageDto, ModelDatasetObject, ModelEndpointCreationObject, ModelEndpointObject, ModelEvaluationLogObject, ModelObject, ModelParametersObject, ModelRegistrationLogObject } from "../interfaces";
-import { isObject } from "./generalDiscriminators";
+import type { AvailableModelObject, EvaluationObject, InferEmbeddingDto, InferSummarizationDto, InferTextGenerationDto, ModelDatasetObject, ModelEndpointCreationObject, ModelEndpointObject, ModelEvaluationLogObject, ModelObject, ModelParametersObject, ModelRegistrationLogObject } from "../interfaces";
+import { isArrayOfNumbers, isArrayOfStrings, isObject } from "./generalDiscriminators";
 
 
 
@@ -53,8 +53,16 @@ export function isDeployModelResponse(data: unknown): data is ModelEndpointCreat
     return isModelEndpointCreationObject(data);
 }
 
-export function isInferEndpointByUrlResponse(data: unknown): data is InferMessageDto {
-    return isInferMessageDto(data);
+export function isInferEndpointTextGenerationResponse(data: unknown): data is InferTextGenerationDto {
+    return isInferTextGenerationDto(data);
+}
+
+export function isInferEndpointSummarizationResponse(data: unknown): data is InferSummarizationDto {
+    return isInferSummarizationDto(data);
+}
+
+export function isInferEndpointEmbeddingResponse(data: unknown): data is InferEmbeddingDto {
+    return isInferEmbeddingDto(data);
 }
 
 export function isGetDatasetsResponse(data: unknown): data is ModelDatasetObject[] {    
@@ -124,26 +132,41 @@ export function isEvaluationLogObject(item: unknown): item is ModelEvaluationLog
 }
 
 export function isModelEndpointObject(item: unknown): item is ModelEndpointObject {
-    return isObject(item) &&    
+    return isObject(item) &&
     "endpoint_id" in item &&
     "model_id" in item &&
     "url" in item;
 }
 
 export function isModelEndpointCreationObject(item: unknown): item is ModelEndpointCreationObject {
-    return isObject(item) &&    
+    return isObject(item) &&
     "endpoint_id" in item;
 }
 
-export function isInferMessageDto(item: unknown): item is InferMessageDto {
-    return isObject(item) &&    
+export function isInferTextGenerationDto(item: unknown): item is InferTextGenerationDto {
+    return isObject(item) &&
     "results" in item &&
-    Array.isArray(item.results) &&
-    item.results.length >= 1;
+    Array.isArray(item.results) && 
+    item.results.length >= 1 &&
+    doesEachItemInArrayHaveField(item.results, "generated_text");
+}
+
+export function isInferSummarizationDto(item: unknown): item is InferSummarizationDto {
+    return isObject(item) &&
+    "results" in item &&
+    Array.isArray(item.results) && 
+    item.results.length >= 1 &&
+    doesEachItemInArrayHaveField(item.results, "summary_text");
+}
+
+export function isInferEmbeddingDto(item: unknown): item is InferEmbeddingDto {
+    return isObject(item) &&
+    "results" in item &&
+    isArrayOfNumbers(item.results);
 }
 
 export function isModelDatasetObject(item: unknown): item is ModelDatasetObject {
-    return isObject(item) &&    
+    return isObject(item) &&
     "id" in item &&
     "name" in item &&
     "status" in item &&
@@ -165,3 +188,19 @@ export function isEvaluationObject(item: unknown): item is EvaluationObject {
     "status" in item &&
     "results" in item;
 }
+
+
+
+
+// OBJECT FUNCTIONS
+////////////////////
+
+function doesEachItemInArrayHaveField(array: unknown[], field: string): boolean {
+    for (const item of array) {
+        if (!isObject(item) || !(field in item)) return false;
+    }
+    return true;
+}
+
+
+

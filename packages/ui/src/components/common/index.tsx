@@ -9,3 +9,4 @@ export * from "./CommonSelect";
 export * from "./ClickOutsideDetector";
 export * from "./LoadingBar";
 export * from "./SimpleInput";
+export * from "./SimpleTextarea";

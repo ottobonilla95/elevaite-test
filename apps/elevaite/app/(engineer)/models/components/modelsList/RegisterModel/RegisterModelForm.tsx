@@ -123,8 +123,8 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
             let label = model.id;
             label = `${label} (${model.gated ? "gated" :"not gated"}`;
             if (model.memory_requirements) {
-                label = `${label} / ${model.memory_requirements.float32.total_size.value_str}`;
-                label = `${label} / ${model.memory_requirements.float32.training_using_adam.value_str}`;
+                label = `${label} / ${model.memory_requirements.total_size.value_str}`;
+                label = `${label} / ${model.memory_requirements.training_using_adam.value_str}`;
             }
             label = `${label})`;
             return label;

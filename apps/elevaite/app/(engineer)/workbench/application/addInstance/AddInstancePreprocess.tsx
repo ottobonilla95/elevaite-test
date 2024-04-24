@@ -3,8 +3,9 @@ import { CommonDialog, CommonFormLabels, CommonInput, CommonSelect, type CommonS
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { createCollection, getCollectionsOfProject } from "../../../../lib/actions/applicationActions";
+import { getModelEndpoints, getModels } from "../../../../lib/actions/modelActions";
 import { useRoles } from "../../../../lib/contexts/RolesContext";
-import { formDataType, type CollectionObject, type S3PreprocessFormDTO } from "../../../../lib/interfaces";
+import { ModelsStatus, formDataType, type CollectionObject, type S3PreprocessFormDTO } from "../../../../lib/interfaces";
 import "./AddInstancePreprocess.scss";
 
 
@@ -42,6 +43,9 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
     const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
     const [createCollectionName, setCreateCollectionName] = useState("");
 
+    useEffect(() => {
+        void fetchModels();
+    }, []);
     
     useEffect(() => {
         setProjectsOptions(rolesContext.projects.map(project => { 
@@ -103,6 +107,60 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
             setIsCollectionsLoading(false);
         }        
     }
+
+
+    ////////// DEMO DATA
+
+    const [loading, setLoading] = useState(false);
+    const [embeddingModelOptions, setEmbeddingModelOptions] = useState<CommonSelectOption[]>([]);
+
+    const vectorDBOptions: CommonSelectOption[] = [
+        {value: "Qdrant"},
+        {value: "Elasticsearch v8.13", disabled: true},
+        {value: "Weaviate", disabled: true},
+        {value: "Faiss", disabled: true},
+        {value: "MongoDB Atlas", disabled: true},
+    ];
+
+    async function fetchModels(): Promise<void> {
+        try {
+            setLoading(true);
+            const fetchedModels = await getModels();
+            const modelEndpoints = await getModelEndpoints();
+            const adjustedModels = fetchedModels.map(model => {
+                const foundEndpoint = modelEndpoints.find(endpoint => endpoint.model_id === model.id);
+                if (foundEndpoint) {
+                    return {...model, status: ModelsStatus.DEPLOYED, endpointUrl: foundEndpoint.url, endpointId: foundEndpoint.endpoint_id.toString()};
+                }
+                return model;
+            });
+            const options: CommonSelectOption[] = [
+                {
+                    value: "default",
+                    label: "text-embedding-ada-002 | OpenAI",
+                }
+            ];
+            for (const model of adjustedModels) {
+                if (model.status === ModelsStatus.DEPLOYED && model.task === "sentence-similarity") options.push({
+                    value: model.id.toString(), label: `${model.name} | Local`
+                })
+            }
+            setEmbeddingModelOptions(options);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching models:", error);
+        } finally {                
+            setLoading(false);
+        }
+    }
+
+    function handleEmptyChange(): void {
+        // We shouldn't do anything here (for now?)
+    }
+
+    //^^^^^^^^^^^^^^^ DEMO DATA 
+
+
 
     function resetVersionOptions(): void {
         setVersionOptions([]);
@@ -184,6 +242,18 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
                 onChange={props.onConnectionNameChange}
             />
 
+            <CommonFormLabels
+                label="Embedding Model"
+                required
+            >
+                <CommonSelect
+                    options={embeddingModelOptions}
+                    defaultValue="default"
+                    onSelectedValueChange={handleEmptyChange}
+                    isLoading={loading}
+                    noDoubleClick
+                />
+            </CommonFormLabels>
 
 
             <div className="group-information">
@@ -230,6 +300,7 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
 
                 <CommonFormLabels
                     label="Collection"
+                    required
                 >
                     <CommonSelect
                         options={collectionOptions}
@@ -238,6 +309,17 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
                         onAdd={handleCollectionAdd}
                         addLabel="Create New Collection"
                         isLoading={isCollectionsLoading}
+                    />
+                </CommonFormLabels>
+
+                <CommonFormLabels
+                    label="Vector DB"
+                    required
+                >
+                    <CommonSelect
+                        options={vectorDBOptions}
+                        defaultValue={vectorDBOptions[0]?.value}
+                        onSelectedValueChange={handleEmptyChange}
                     />
                 </CommonFormLabels>
 

@@ -1,10 +1,10 @@
 import { ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { S3DataRetrievalAppInstanceForm } from "../../../../../lib/dataRetrievalApps";
+import { getConfigurationObjectFromRaw } from "../../../../../lib/helpers";
 import type { AppInstanceConfigurationObject, AppInstanceFieldStructure, AppInstanceFormStructure, Initializers } from "../../../../../lib/interfaces";
 import { AppInstanceFieldTypes, ApplicationType } from "../../../../../lib/interfaces";
 import "./PipelineInfoConfiguration.scss";
-import { getConfigurationObjectFromRaw } from "../../../../../lib/helpers";
 
 
 
@@ -27,8 +27,6 @@ export function PipelineInfoConfiguration(props: PipelineInfoConfigurationProps)
             setConfigStructure(S3DataRetrievalAppInstanceForm);
         }
     }, [props.type, props.configuration, props.isSkeleton]);
-
-
 
 
 
@@ -70,10 +68,10 @@ export function PipelineInfoConfiguration(props: PipelineInfoConfigurationProps)
 
     return (
         <div className="pipeline-info-configuration-container">
-            {props.isSkeleton ?? !configStructure ? 
-                <SkeletonBlock/>
-            :
+            {configStructure && !props.isSkeleton ?
                 mapFields(configStructure.fields)
+                :
+                <SkeletonBlock/>
             }
         </div>
     );

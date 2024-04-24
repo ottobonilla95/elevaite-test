@@ -1,5 +1,6 @@
 import { CommonButton } from "@repo/ui/components";
 import { TableFilters } from "../../../../lib/components/TableFilters/TableFilters";
+import { useDatasets } from "../../../../lib/contexts/DatasetsContext";
 import "./DatasetsListHeader.scss";
 
 
@@ -21,7 +22,7 @@ interface DatasetsListHeaderProps {
 }
 
 export function DatasetsListHeader(props: DatasetsListHeaderProps): JSX.Element {
-
+    const datasetContext = useDatasets();
 
     return (
         <div className="datasets-list-header-container">
@@ -44,7 +45,12 @@ export function DatasetsListHeader(props: DatasetsListHeaderProps): JSX.Element 
 
             <div className="controls-container">
                 <TableFilters
-                    
+                    filtering={datasetContext.filtering}
+                    onToggleFilter={datasetContext.toggleFilter}
+                    onToggleGroup={datasetContext.toggleFilterGroup}
+                    activeFiltersCount={datasetContext.activeFiltersCount}
+                    isLoading={datasetContext.loading.filtersStructure}
+                    showPills
                 />
             </div>
 

@@ -1,4 +1,6 @@
-import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
+import { CommonButton } from "@repo/ui/components";
+import { TableFilters } from "../../../../lib/components/TableFilters/TableFilters";
+import { useModels } from "../../../../lib/contexts/ModelsContext";
 import "./ModelsListHeader.scss";
 
 
@@ -20,7 +22,7 @@ interface ModelsListHeaderProps {
 }
 
 export function ModelsListHeader(props: ModelsListHeaderProps): JSX.Element {
-
+    const modelsContext = useModels();
 
     return (
         <div className="models-list-header-container">
@@ -42,11 +44,14 @@ export function ModelsListHeader(props: ModelsListHeaderProps): JSX.Element {
             </div>
 
             <div className="controls-container">
-                <CommonButton
-                    noBackground
-                >
-                    <ElevaiteIcons.SVGFilter/>
-                </CommonButton>
+                <TableFilters
+                    filtering={modelsContext.filtering}
+                    onToggleFilter={modelsContext.toggleFilter}
+                    onToggleGroup={modelsContext.toggleFilterGroup}
+                    activeFiltersCount={modelsContext.activeFiltersCount}
+                    isLoading={modelsContext.loading.filtersStructure}
+                    showPills={!modelsContext.selectedModel}
+                />
             </div>
 
         </div>

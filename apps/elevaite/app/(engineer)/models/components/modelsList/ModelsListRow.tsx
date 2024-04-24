@@ -1,10 +1,10 @@
 import type { CommonMenuItem } from "@repo/ui/components";
 import { CommonButton, CommonMenu, ElevaiteIcons } from "@repo/ui/components";
 import dayjs from "dayjs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { specialHandlingModelFields, useModels } from "../../../../lib/contexts/ModelsContext";
 import type { ModelObject } from "../../../../lib/interfaces";
-import { ModelsStatus } from "../../../../lib/interfaces";
+import { ModelsStatus, REGISTERING_MODELS_REFRESH_PERIOD } from "../../../../lib/interfaces";
 import "./ModelsListRow.scss";
 
 
@@ -38,6 +38,15 @@ type ModelsListRowProps = ModelListNormalRow | ModelListHeaderRow;
 
 export function ModelsListRow(props: ModelsListRowProps): JSX.Element {
     const modelsContext = useModels();
+
+    useEffect(() => {
+        if (props.model && props.model.status === ModelsStatus.REGISTERING) {
+            const refreshInterval = setInterval(() => {
+                void modelsContext.refreshModelById(props.model.id);
+            }, REGISTERING_MODELS_REFRESH_PERIOD);
+            return () => { clearInterval(refreshInterval); };
+        }
+    }, [props.model]);
 
 
     function getSpecialItem(item: RowStructure): React.ReactNode {

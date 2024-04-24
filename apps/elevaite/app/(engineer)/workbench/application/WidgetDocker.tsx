@@ -98,7 +98,7 @@ export default function WidgetDocker(props: WidgetDockerProps): JSX.Element {
                     initialStep={initialStep}
                     selectedInstance={props.selectedInstance}
                 />
-                <ConsoleLogWidget instance={props.selectedInstance} />
+                <ConsoleLogWidget applicationId={props.applicationId} instance={props.selectedInstance} />
             </div>
         </div>
     );

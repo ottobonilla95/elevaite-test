@@ -1,4 +1,4 @@
-import type { AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, ChartDataObject, CollectionObject, Initializers, PipelineObject } from "../interfaces";
+import type { AppInstanceLogObject, AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, ChartDataObject, CollectionObject, Initializers, PipelineObject } from "../interfaces";
 import { isObject } from "./generalDiscriminators";
 
 
@@ -46,6 +46,14 @@ export function isGetApplicationPipelinesResponse(data: unknown): data is Pipeli
 
 export function isGetInstanceChartDataResponse(data: unknown): data is ChartDataObject {
     return isInstanceChartObject(data);
+}
+
+export function isGetInstanceLogDataResponse(data: unknown): data is AppInstanceLogObject[] {
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (!isInstanceLogObject(item)) return false;
+    }
+    return true;
 }
 
 export function isGetInstanceListResponse(data: unknown): data is AppInstanceObject[] {
@@ -99,6 +107,13 @@ export function isInstanceChartObject(item: unknown): item is ChartDataObject {
         "avgSize" in item &&
         "totalSize" in item &&
         "ingestedSize" in item;
+}
+
+export function isInstanceLogObject(item: unknown): item is AppInstanceLogObject {
+    return isObject(item) &&
+        "timestamp" in item &&
+        "message" in item &&
+        "level" in item;
 }
 
 export function isInstanceObject(item: unknown): item is AppInstanceObject {

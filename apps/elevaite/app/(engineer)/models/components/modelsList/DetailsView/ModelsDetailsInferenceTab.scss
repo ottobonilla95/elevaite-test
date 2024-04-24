@@ -78,7 +78,8 @@
 
     & .chat-input-container {
         flex-shrink: 0;
-        height: 100px;
+        min-height: 100px;
+        max-height: 300px;
 
         display: flex;
         align-items: center;
@@ -113,6 +114,10 @@
 
             & svg {
                 color: var(--ev-colors-highlight);
+            }
+
+            & > textarea {                
+                max-height: 250px;
             }
         }
     }                    
@@ -149,8 +154,8 @@
         }
     }
 
-    & .inference-message-contents {
+    // & .inference-message-contents {
 
-    }
+    // }
 }
 

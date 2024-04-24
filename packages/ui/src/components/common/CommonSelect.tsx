@@ -12,6 +12,7 @@ export interface CommonSelectOption {
     value: string;
     selectedLabel?: string; // Use this instead of label when it is the selected item
     icon?: React.ReactElement;
+    disabled?: boolean;
 }
 
 
@@ -29,10 +30,11 @@ export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> 
     onSelectedValueChange: (value: string, label: string) => void;
     onAdd?: () => void;
     addLabel?: string;
+    noDoubleClick?: boolean;
 }
 
 
-export function CommonSelect({options, defaultValue, controlledValue, callbackOnDefaultValue, noSelectionMessage, anchor, showTitles, emptyListLabel, onSelectedValueChange, onAdd, addLabel, isLoading, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
+export function CommonSelect({options, defaultValue, controlledValue, callbackOnDefaultValue, noSelectionMessage, anchor, showTitles, emptyListLabel, onSelectedValueChange, onAdd, addLabel, noDoubleClick, isLoading, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
     const [selectedOption, setSelectedOption] = useState<CommonSelectOption>();
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement|null>(null);
@@ -49,7 +51,7 @@ export function CommonSelect({options, defaultValue, controlledValue, callbackOn
         if (defaultValue) {
             findAndSelectOption(defaultValue);
         }
-    }, [defaultValue]);
+    }, [isLoading, defaultValue]);
 
 
     function findAndSelectOption(value: string, checkCallback?: boolean): void {
@@ -58,16 +60,16 @@ export function CommonSelect({options, defaultValue, controlledValue, callbackOn
             return;
         }
         const foundOption = options.find((item) => { return item.value === value;})
-            if (foundOption) {
-                setSelectedOption(foundOption);
-                if (checkCallback || callbackOnDefaultValue) onSelectedValueChange(foundOption.value, foundOption.label ? foundOption.label : foundOption.value);
+        if (foundOption) {
+            setSelectedOption(foundOption);
+            if (checkCallback || callbackOnDefaultValue) onSelectedValueChange(foundOption.value, foundOption.label ? foundOption.label : foundOption.value);
+        }
+        else {
+            if (options[0]) {
+                setSelectedOption(options[0]);
+                if (checkCallback || callbackOnDefaultValue) onSelectedValueChange(options[0].value, options[0].label ? options[0].label : options[0].value);
             }
-            else {
-                if (options[0]) {
-                    setSelectedOption(options[0]);
-                    if (checkCallback || callbackOnDefaultValue) onSelectedValueChange(options[0].value, options[0].label ? options[0].label : options[0].value);
-                }
-            }
+        }
     }
 
 
@@ -80,6 +82,7 @@ export function CommonSelect({options, defaultValue, controlledValue, callbackOn
     }
 
     function handleDoubleClick(): void {
+        if (noDoubleClick) return;
         if (options.length === 2 && selectedOption?.value === options[0].value) handleClick(options[1]);
         else if (options.length === 2 && selectedOption?.value === options[1].value) handleClick(options[0]);
         else setIsOpen((currentValue) => !currentValue);
@@ -147,6 +150,7 @@ export function CommonSelect({options, defaultValue, controlledValue, callbackOn
                                     key={option.value}
                                     onClick={() => { handleClick(option); } }
                                     noBackground
+                                    disabled={option.disabled}
                                     title={showTitles ? (option.label ? option.label : option.value) : ""}
                                 >
                                     <span>{option.label ? option.label : option.value}</span>

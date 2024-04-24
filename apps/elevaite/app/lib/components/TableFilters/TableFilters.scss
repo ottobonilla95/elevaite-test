@@ -2,6 +2,23 @@
 
 
 .table-filters-container {
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    user-select: none;
+
+
+
+    & .active-filters-list {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-bottom: -5px;
+        padding: 0 5px 5px;
+        overflow-x: auto;
+        @include scrollbar();
+    }
 
 
     & .filters-button-anchor {
@@ -172,15 +189,39 @@
     }
 
 
+    & .filter-pill-container {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+        font-size: 14px;
+        background-color: var(--ev-colors-secondaryText);
+        border-radius: 12px;
+        padding: 0 5px;
+
+        &.capitalize {
+            text-transform: capitalize;
+        }
+
+        & .filter-pill-button {
+            background-color: var(--ev-colors-secondaryText);
+            height: 20px;
+            width: 20px;
+        }
+    }
+
 
     & .filter-unit-container {
         font-size: 14px;
         font-weight: 500;
 
+        &.capitalize .filter-unit-button {
+            text-transform: capitalize;
+        }
+
         & .filter-unit-button {
             padding: 0 10px;
             border-radius: 8px;
-            text-transform: capitalize;
             background-color: var(--ev-colors-primary);
 
             &:not(.active):hover {

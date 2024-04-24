@@ -1,8 +1,8 @@
 "use server";
 import { revalidateTag } from "next/cache";
-import type { AppInstanceObject, ApplicationConfigurationDto, ApplicationConfigurationObject, ApplicationDto, ApplicationObject, ChartDataObject, CollectionObject, PipelineObject } from "../interfaces";
+import type { AppInstanceLogObject, AppInstanceObject, ApplicationConfigurationDto, ApplicationConfigurationObject, ApplicationDto, ApplicationObject, ChartDataObject, CollectionObject, PipelineObject } from "../interfaces";
 import { APP_REVALIDATION_TIME, INSTANCE_REVALIDATION_TIME, cacheTags } from "./actionConstants";
-import { isCreateCollectioneResponse, isCreateConfigurationResponse, isCreateInstanceResponse, isGetApplicationListReponse, isGetApplicationPipelinesResponse, isGetApplicationResponse, isGetApplicationconfigurationsResponse, isGetCollectionsOfProjectResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceResponse } from "./applicationDiscriminators";
+import { isCreateCollectioneResponse, isCreateConfigurationResponse, isCreateInstanceResponse, isGetApplicationListReponse, isGetApplicationPipelinesResponse, isGetApplicationResponse, isGetApplicationconfigurationsResponse, isGetCollectionsOfProjectResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceLogDataResponse, isGetInstanceResponse } from "./applicationDiscriminators";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -74,6 +74,17 @@ export async function getInstanceChartData(appId: string, instanceId: string): P
   if (!response.ok) throw new Error("Failed to fetch instance chart data");
   const data: unknown = await response.json();
   if (isGetInstanceChartDataResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+export async function getInstanceLogtData(appId: string, instanceId: string): Promise<AppInstanceLogObject[]> {
+  if (!BACKEND_URL) throw new Error("Missing base url");
+  const url = new URL(`${BACKEND_URL}/application/${appId}/instance/${instanceId}/log`);
+  const response = await fetch(url, { cache: "no-store" });
+
+  if (!response.ok) throw new Error("Failed to fetch instance log data");
+  const data: unknown = await response.json();
+  if (isGetInstanceLogDataResponse(data)) return data;
   throw new Error("Invalid data type");
 }
 

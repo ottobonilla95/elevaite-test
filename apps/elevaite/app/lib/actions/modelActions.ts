@@ -1,9 +1,9 @@
 "use server";
 import { revalidateTag } from "next/cache";
-import type { AvailableModelObject, EvaluationObject, InferMessageDto, ModelDatasetObject, ModelEndpointCreationObject, ModelEndpointObject, ModelEvaluationLogObject, ModelObject, ModelParametersObject, ModelRegistrationLogObject } from "../interfaces";
+import type { AvailableModelObject, EvaluationObject, InferEmbeddingDto, InferSummarizationDto, InferTextGenerationDto, ModelDatasetObject, ModelEndpointCreationObject, ModelEndpointObject, ModelEvaluationLogObject, ModelObject, ModelParametersObject, ModelRegistrationLogObject } from "../interfaces";
 import { APP_REVALIDATION_TIME, DEFAULT_AVAILABLE_MODELS_LIMIT, MODEL_REVALIDATION_TIME, cacheTags } from "./actionConstants";
 import { isArrayOfStrings, isObject } from "./generalDiscriminators";
-import { isDeployModelResponse, isEvaluationObject, isGetAvailableModelsResponse, isGetDatasetsResponse, isGetEvaluationLogsResponse, isGetModelByIdResponse, isGetModelEndpointsResponse, isGetModelEvaluationsResponse, isGetModelLogsResponse, isGetModelParametersResponse, isGetModelsResponse, isInferEndpointByUrlResponse, isModelObject } from "./modelDiscriminators";
+import { isDeployModelResponse, isEvaluationObject, isGetAvailableModelsResponse, isGetDatasetsResponse, isGetEvaluationLogsResponse, isGetModelByIdResponse, isGetModelEndpointsResponse, isGetModelEvaluationsResponse, isGetModelLogsResponse, isGetModelParametersResponse, isGetModelsResponse, isInferEndpointEmbeddingResponse, isInferEndpointSummarizationResponse, isInferEndpointTextGenerationResponse, isModelObject } from "./modelDiscriminators";
 
 const MODELS_URL = process.env.NEXT_MODELS_API_URL;
 
@@ -204,10 +204,13 @@ export async function deployModel(modelId: string|number): Promise<ModelEndpoint
 }
 
 
-export async function inferEndpointByUrl(endpointId: string, message: string): Promise<InferMessageDto> {
+export async function inferEndpointTextGeneration(endpointId: string, message: string): Promise<InferTextGenerationDto> {
   if (!MODELS_URL) throw new Error("Missing base url");
   const dto = {
-    inputs: message
+    kwargs: {
+      text_inputs: message,
+      // return_full_text: false,
+    }
   };
 
   const headers = new Headers();
@@ -226,10 +229,70 @@ export async function inferEndpointByUrl(endpointId: string, message: string): P
       // eslint-disable-next-line no-console -- Need this in case this breaks like that.
       console.dir(errorData, { depth: null });
     }
-    throw new Error("Failed to infer model endpoint");
+    throw new Error("Failed to infer text generation endpoint");
   }
   const data: unknown = await response.json();
-  if (isInferEndpointByUrlResponse(data)) return data;
+  if (isInferEndpointTextGenerationResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+export async function inferEndpointSummarization(endpointId: string, message: string): Promise<InferSummarizationDto> {
+  if (!MODELS_URL) throw new Error("Missing base url");
+  const dto = {
+    args: [message],
+  };
+
+  const headers = new Headers();
+  headers.append("Content-Type", "application/json");
+  const url = new URL(`${MODELS_URL}/endpoints/${endpointId}/infer`);
+
+  const response = await fetch(url, {
+    method: "POST",
+    body: JSON.stringify(dto),
+    headers,
+  });
+
+  if (!response.ok) {
+    if (response.status === 422) {
+      const errorData: unknown = await response.json();
+      // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+      console.dir(errorData, { depth: null });
+    }
+    throw new Error("Failed to infer summarization endpoint");
+  }
+  const data: unknown = await response.json();
+  if (isInferEndpointSummarizationResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+export async function inferEndpointEmbedding(endpointId: string, message: string): Promise<InferEmbeddingDto> {
+  if (!MODELS_URL) throw new Error("Missing base url");
+  const dto = {
+    kwargs: {
+      sentences: message,
+    }
+  };
+
+  const headers = new Headers();
+  headers.append("Content-Type", "application/json");
+  const url = new URL(`${MODELS_URL}/endpoints/${endpointId}/infer`);
+
+  const response = await fetch(url, {
+    method: "POST",
+    body: JSON.stringify(dto),
+    headers,
+  });
+
+  if (!response.ok) {
+    if (response.status === 422) {
+      const errorData: unknown = await response.json();
+      // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+      console.dir(errorData, { depth: null });
+    }
+    throw new Error("Failed to infer embedding endpoint");
+  }
+  const data: unknown = await response.json();
+  if (isInferEndpointEmbeddingResponse(data)) return data;
   throw new Error("Invalid data type");
 }
 
@@ -239,7 +302,11 @@ export async function requestModelEvaluation(modelId: string|number, datasetId: 
   const dto = {
     model_id: modelId,
     dataset_id: datasetId,
-    evaluate_params: {},
+    // evaluate_params: {},
+    // split: "test",
+    // selected_rows: [
+    //   0
+    // ],
   };
 
   const headers = new Headers();

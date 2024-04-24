@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
-import { S3DataRetrievalAppPipelineStructure } from "./dataRetrievalApps";
 import { isInitializerDto } from "./actions/applicationDiscriminators";
-import type { AppInstanceObject, ApplicationType, ChartDataObject, Initializers, ModelDatasetObject, ModelObject, PipelineObject, PipelineStep, PipelineStepAddedInfo } from "./interfaces";
+import { S3DataRetrievalAppPipelineStructure } from "./dataRetrievalApps";
+import type { AppInstanceObject, ApplicationType, ChartDataObject, FilterGroupStructure, FiltersStructure, Initializers, ModelDatasetObject, ModelObject, PipelineObject, PipelineStep, PipelineStepAddedInfo } from "./interfaces";
 import { StepDataSource, StepDataType } from "./interfaces";
 import { S3PreprocessingAppPipelineStructure } from "./preprocessingApps";
 
@@ -57,6 +57,36 @@ export function getUniqueTagsFromList(list: ModelObject[]|ModelDatasetObject[]):
     return Array.from(tagsSet).sort();
 }
 
+export function getUniqueActiveFiltersFromGroup (filtering: FiltersStructure, groupName?: string): string[] {
+    const activeTags = new Set<string>();  
+    filtering.filters.forEach(filter => {
+        if ('filters' in filter && (!groupName || filter.label === groupName)) {
+            filter.filters.forEach(item => {
+                if (item.isActive) {
+                    activeTags.add(item.label);
+                }
+            });
+        }
+    });  
+    return Array.from(activeTags);
+};
+
+export function countActiveFilters(filtering: FiltersStructure): number {
+    let activeCount = 0;  
+    function countActiveInGroup (group: FilterGroupStructure): number {
+        return group.filters.reduce((count, filter) => {
+            return count + (filter.isActive ? 1 : 0);
+        }, 0);
+    };  
+    filtering.filters.forEach(filter => {
+        if ('filters' in filter) {  // If it's a group
+            activeCount += countActiveInGroup(filter);
+        } else {
+            activeCount += filter.isActive ? 1 : 0;
+        }
+    });  
+    return activeCount;
+};
 
 
 export function getDisplayValueFromStepDetail(detail: PipelineStepAddedInfo, step?: PipelineStep, instance?: AppInstanceObject, appType?: ApplicationType): string {

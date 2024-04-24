@@ -63,10 +63,10 @@ export async function getAccounts(organizationId: string, authToken: string): Pr
 export async function getProjects(accountId: string, authToken: string): Promise<ProjectObject[]> {
     if (!RBAC_URL) throw new Error("Missing base url");
     const url = new URL(`${RBAC_URL}/projects/`);
-    url.searchParams.set("account_id", accountId);
     const headers = new Headers();
     headers.append("Content-Type", "application/json");
     headers.append("Authorization", `Bearer ${authToken}`);
+    headers.append("X-elevAIte-AccountId", accountId);
     const response = await fetch(url, {        
         method: "GET",
         headers,

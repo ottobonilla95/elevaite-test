@@ -7,14 +7,13 @@ import { ModelsDetailsLogBlock } from "./ModelsDetailsLogBlock";
 import "./ModelsDetailsLogsTab.scss";
 
 
+const DEFAULT_MODEL_BLOCK = "registration";
 
 interface EvaluationLog {
     id: string;
     logs: ModelEvaluationLogObject[],
     date: string;
 }
-
-
 
 interface ModelsDetailsLogsProps {
     evaluations: EvaluationObject[];
@@ -26,6 +25,7 @@ export function ModelsDetailsLogsTab(props: ModelsDetailsLogsProps): JSX.Element
     const [modelLogs, setModelLogs] = useState<ModelRegistrationLogObject[]>([]);
     const [evaluationIds, setEvaluationIds] = useState<string[]>([]);
     const [evaluationLogs, setEvaluationLogs] = useState<EvaluationLog[]>([]);
+    const [initialLoading, setInitialLoading] = useState(0);
 
 
     useEffect(() => {
@@ -43,10 +43,17 @@ export function ModelsDetailsLogsTab(props: ModelsDetailsLogsProps): JSX.Element
         }
     }, [evaluationIds.length]);
 
+    useEffect(() => {
+        if (initialLoading < 2) return;
+        if (modelLogs.length > 0 && evaluationLogs.length === 0) setSelectedBlock(DEFAULT_MODEL_BLOCK);
+        else if (modelLogs.length === 0 && evaluationLogs.length === 1) setSelectedBlock(evaluationLogs[0].id);
+    }, [initialLoading]);
+
 
     async function getModelLogs(modelId: string|number): Promise<void> {
         const logs = await modelsContext.getModelLogs(modelId);
         setModelLogs(logs.reverse());
+        setInitialLoading(current => current+1);
     }
 
     async function getEvaluationLogs(evaluationId: string|number): Promise<void> {
@@ -56,6 +63,7 @@ export function ModelsDetailsLogsTab(props: ModelsDetailsLogsProps): JSX.Element
             logs: evalLogs.reverse(),
             date: dayjs().toISOString(),
         }]);
+        setInitialLoading(current => current+1);
     }
 
 
@@ -87,11 +95,11 @@ export function ModelsDetailsLogsTab(props: ModelsDetailsLogsProps): JSX.Element
 
             {modelLogs.length === 0 ? undefined :
                 <ModelsDetailsLogBlock
-                    id="registration"
+                    id={DEFAULT_MODEL_BLOCK}
                     logs={modelLogs}
                     isLoading={modelsContext.loading.modelLogs}
-                    isHidden={Boolean(selectedBlock) && selectedBlock !== "registration"}
-                    isOpen={selectedBlock === "registration"}
+                    isHidden={Boolean(selectedBlock) && selectedBlock !== DEFAULT_MODEL_BLOCK}
+                    isOpen={selectedBlock === DEFAULT_MODEL_BLOCK}
                     onToggleSize={handleSelect}
                 />
             }
