@@ -1,5 +1,6 @@
 "use server";
 import type { AccountObject, OrganizationObject, ProjectObject } from "../interfaces";
+import { RBAC_REVALIDATION_TIME, cacheTags } from "./actionConstants";
 import { isGetAccountsResponse, isGetOrganizationResponse, isGetProjectsResponse } from "./rbacDiscriminators";
 
 
@@ -18,6 +19,7 @@ export async function getOrganization(authToken: string): Promise<OrganizationOb
     const response = await fetch(url, {        
         method: "GET",
         headers,
+        next: { revalidate: RBAC_REVALIDATION_TIME, tags: [cacheTags.rbac] }
     });
     if (!response.ok) {
         if (response.status === 422) {
@@ -34,16 +36,16 @@ export async function getOrganization(authToken: string): Promise<OrganizationOb
 
 
 
-export async function getAccounts(organizationId: string, authToken: string): Promise<AccountObject[]> {
+export async function getAccounts(authToken: string): Promise<AccountObject[]> {
     if (!RBAC_URL) throw new Error("Missing base url");
     const url = new URL(`${RBAC_URL}/accounts/`);
-    url.searchParams.set("org_id", organizationId);
     const headers = new Headers();
     headers.append("Content-Type", "application/json");
     headers.append("Authorization", `Bearer ${authToken}`);
     const response = await fetch(url, {        
         method: "GET",
         headers,
+        next: { revalidate: RBAC_REVALIDATION_TIME, tags: [cacheTags.rbac] }
     });
     if (!response.ok) {
         if (response.status === 422) {
@@ -70,6 +72,7 @@ export async function getProjects(accountId: string, authToken: string): Promise
     const response = await fetch(url, {        
         method: "GET",
         headers,
+        next: { revalidate: RBAC_REVALIDATION_TIME, tags: [cacheTags.rbac] }
     });
     if (!response.ok) {
         if (response.status === 422) {

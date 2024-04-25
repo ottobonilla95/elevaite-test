@@ -1,9 +1,9 @@
 "use server";
 import { revalidateTag } from "next/cache";
-import type { AvailableModelObject, EvaluationObject, InferEmbeddingDto, InferSummarizationDto, InferTextGenerationDto, ModelDatasetObject, ModelEndpointCreationObject, ModelEndpointObject, ModelEvaluationLogObject, ModelObject, ModelParametersObject, ModelRegistrationLogObject } from "../interfaces";
+import type { AvailableModelObject, EvaluationObject, InferEmbeddingDto, InferQuestionAnsweringDto, InferSummarizationDto, InferTextGenerationDto, ModelDatasetObject, ModelEndpointCreationObject, ModelEndpointObject, ModelEvaluationLogObject, ModelObject, ModelParametersObject, ModelRegistrationLogObject } from "../interfaces";
 import { APP_REVALIDATION_TIME, DEFAULT_AVAILABLE_MODELS_LIMIT, MODEL_REVALIDATION_TIME, cacheTags } from "./actionConstants";
 import { isArrayOfStrings, isObject } from "./generalDiscriminators";
-import { isDeployModelResponse, isEvaluationObject, isGetAvailableModelsResponse, isGetDatasetsResponse, isGetEvaluationLogsResponse, isGetModelByIdResponse, isGetModelEndpointsResponse, isGetModelEvaluationsResponse, isGetModelLogsResponse, isGetModelParametersResponse, isGetModelsResponse, isInferEndpointEmbeddingResponse, isInferEndpointSummarizationResponse, isInferEndpointTextGenerationResponse, isModelObject } from "./modelDiscriminators";
+import { isDeployModelResponse, isEvaluationObject, isGetAvailableModelsResponse, isGetDatasetsResponse, isGetEvaluationLogsResponse, isGetModelByIdResponse, isGetModelEndpointsResponse, isGetModelEvaluationsResponse, isGetModelLogsResponse, isGetModelParametersResponse, isGetModelsResponse, isInferEndpointEmbeddingResponse, isInferEndpointQuestionAnsweringResponse, isInferEndpointSummarizationResponse, isInferEndpointTextGenerationResponse, isModelObject } from "./modelDiscriminators";
 
 const MODELS_URL = process.env.NEXT_MODELS_API_URL;
 
@@ -196,7 +196,7 @@ export async function deployModel(modelId: string|number): Promise<ModelEndpoint
       // eslint-disable-next-line no-console -- Need this in case this breaks like that.
       console.dir(errorData, { depth: null });
     }
-    throw new Error("Failed to upload model");
+    throw new Error("Failed to deploy model");
   }
   const data: unknown = await response.json();
   if (isDeployModelResponse(data)) return data;
@@ -265,11 +265,43 @@ export async function inferEndpointSummarization(endpointId: string, message: st
   throw new Error("Invalid data type");
 }
 
-export async function inferEndpointEmbedding(endpointId: string, message: string): Promise<InferEmbeddingDto> {
+export async function inferEndpointQuestionAnswering(endpointId: string, message: string, secondaryMessage?: string): Promise<InferQuestionAnsweringDto> {
   if (!MODELS_URL) throw new Error("Missing base url");
   const dto = {
     kwargs: {
-      sentences: message,
+      question: message,
+      context: secondaryMessage,
+    },
+  };
+
+  const headers = new Headers();
+  headers.append("Content-Type", "application/json");
+  const url = new URL(`${MODELS_URL}/endpoints/${endpointId}/infer`);
+
+  const response = await fetch(url, {
+    method: "POST",
+    body: JSON.stringify(dto),
+    headers,
+  });
+
+  if (!response.ok) {
+    if (response.status === 422) {
+      const errorData: unknown = await response.json();
+      // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+      console.dir(errorData, { depth: null });
+    }
+    throw new Error("Failed to infer question answering endpoint");
+  }
+  const data: unknown = await response.json();
+  if (isInferEndpointQuestionAnsweringResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+export async function inferEndpointEmbedding(endpointId: string, message: string, secondaryMessage?: string): Promise<InferEmbeddingDto> {
+  if (!MODELS_URL) throw new Error("Missing base url");
+  const dto = {
+    kwargs: {
+      sentences: [message, secondaryMessage ?? ""],
     }
   };
 

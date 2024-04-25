@@ -1,14 +1,19 @@
 import { CommonButton, ElevaiteIcons, LoadingBar, SimpleInput, SimpleTextarea } from "@repo/ui/components";
-import { useEffect, useRef, useState } from "react";
-import "./ModelsDetailsInferenceTab.scss";
 import dayjs from "dayjs";
-import { inferEndpointEmbedding, inferEndpointSummarization, inferEndpointTextGeneration } from "../../../../../lib/actions/modelActions";
+import { useEffect, useRef, useState } from "react";
+import { inferEndpointEmbedding, inferEndpointQuestionAnswering, inferEndpointSummarization, inferEndpointTextGeneration } from "../../../../../lib/actions/modelActions";
 import { useModels } from "../../../../../lib/contexts/ModelsContext";
+import { getPearsonCorrelation } from "../../../../../lib/helpers";
 import { useAutosizeTextArea } from "../../../../../lib/hooks";
+import "./ModelsDetailsInferenceTab.scss";
 
 
 
-
+enum SpecialHandlingTasks {
+    SentenceSimilarity = "sentence-similarity",
+    Summarization = "summarization",
+    QuestionAnswering = "question-answering",
+};
 
 interface InferMessageObject {
     id: number;
@@ -23,6 +28,7 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
     const modelsContext = useModels();
     const scrollRef = useRef<HTMLDivElement|null>(null);
     const [text, setText] = useState("");
+    const [secondaryText, setSecondaryText] = useState("");
     const textAreaRef = useRef<HTMLTextAreaElement>(null);
     useAutosizeTextArea(textAreaRef.current, text);
     const [isLoading, setIsLoading] = useState(false);
@@ -39,13 +45,20 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
         setText(value);
     }
 
+    function handleSecondaryTextChange(value: string): void {
+        if (isLoading) return;
+        setSecondaryText(value);
+    }
+
     function handleSend(): void {
         if (isLoading) return;
         const workingText = text;
+        const workingSecondaryText = secondaryText;
         setText("");
+        setSecondaryText("");
         if (!workingText.trim()) return;
-        addMessage(workingText, true);
-        void inferMessage(workingText);
+        addMessage(workingText, true, workingSecondaryText);
+        void inferMessage(workingText, workingSecondaryText);
     }
 
     function handleKeyDown(key: string): void {
@@ -60,31 +73,50 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
         })
     }
 
-    function addMessage(passedMessage: string, isUser?: boolean): void {
+    function addMessage(passedMessage: string, isUser?: boolean, secondaryMessage?: string): void {
         setMessages(current => { return [...current, {
             id: current.length + 1,
             isUser: Boolean(isUser),
             creationDate: dayjs().toISOString(),
-            message: passedMessage,
+            message: 
+                secondaryMessage ? 
+                modelsContext.selectedModel?.task === SpecialHandlingTasks.SentenceSimilarity ? 
+                    `Source sentence: ${secondaryMessage}\nTesting sentence: ${passedMessage}`
+                : modelsContext.selectedModel?.task === SpecialHandlingTasks.QuestionAnswering ? 
+                    `Context: ${secondaryMessage}\nQuestion: ${passedMessage}`
+                : ""
+                : passedMessage,
         }]; })
     }
 
 
-    async function inferMessage(message: string): Promise<void> {
+    async function inferMessage(message: string, secondaryMessage?: string): Promise<void> {
         if (!modelsContext.selectedModel?.endpointId) return;
         try {
             setIsLoading(true);
             // Embedding models
-            if (modelsContext.selectedModel.task === "sentence-similarity") {
-                const inferredSummary = await inferEndpointEmbedding(modelsContext.selectedModel.endpointId, message);
-                addMessage(inferredSummary.results.join("\n"), false);
+            if (modelsContext.selectedModel.task === SpecialHandlingTasks.SentenceSimilarity) {
+                const inferredSimilarity = await inferEndpointEmbedding(modelsContext.selectedModel.endpointId, message, secondaryMessage);
+                let similarityIndex: number|undefined;
+                if (inferredSimilarity.results.length === 2) {
+                    similarityIndex = getPearsonCorrelation(inferredSimilarity.results[0], inferredSimilarity.results[1]);
+                }
+                const result = similarityIndex !== undefined ? 
+                        `The similarity index of the sentences is ${similarityIndex.toString()}`
+                    : `The evaluation of sentence similarity has failed.`;
+                addMessage(result, false);
 
             // Summary
-            } else if (modelsContext.selectedModel.task === "summarization") {
+            } else if (modelsContext.selectedModel.task === SpecialHandlingTasks.Summarization) {
                 const inferredSummary = await inferEndpointSummarization(modelsContext.selectedModel.endpointId, message);
                 if (inferredSummary.results[0]?.summary_text) {
                     addMessage(inferredSummary.results[0]?.summary_text, false);
                 }
+                
+            // Question answering
+            } else if (modelsContext.selectedModel.task === SpecialHandlingTasks.QuestionAnswering) {
+                const inferredQA = await inferEndpointQuestionAnswering(modelsContext.selectedModel.endpointId, message, secondaryMessage);
+                addMessage(inferredQA.results.answer);
             
             // Text generation
             } else {
@@ -132,7 +164,7 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
             </div>
 
             <div className={["chat-input-container", isLoading ? "loading" : undefined].filter(Boolean).join(" ")}>
-                {modelsContext.selectedModel?.task === "summarization" ? 
+                {modelsContext.selectedModel?.task === SpecialHandlingTasks.Summarization ? 
                 
                     <SimpleTextarea
                         passedRef={textAreaRef}
@@ -140,7 +172,7 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
                         value={text}
                         onChange={handleTextChange}
                         onKeyDown={handleKeyDown}
-                        placeholder={isLoading ? "Please wait..." : "Enter text and press ENTER"}
+                        placeholder={isLoading ? "Please wait..." : "Enter text to be summarized"}
                         disabled={isLoading}
                         rightIcon={
                             <CommonButton
@@ -156,26 +188,45 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
                     />
 
                     :
-
-                    <SimpleInput
-                        wrapperClassName="chat-input-field"
-                        value={text}
-                        onChange={handleTextChange}
-                        onKeyDown={handleKeyDown}
-                        placeholder={isLoading ? "Please wait..." : "Enter text and press ENTER"}
-                        disabled={isLoading}
-                        rightIcon={
-                            <CommonButton
-                                onClick={handleSend}
-                                disabled={isLoading}
-                            >
-                                {isLoading ?
-                                    <ElevaiteIcons.SVGSpinner/> :
-                                    <ElevaiteIcons.SVGSend/>
+                    <>
+                        {modelsContext.selectedModel?.task !== SpecialHandlingTasks.SentenceSimilarity 
+                            && modelsContext.selectedModel?.task !== SpecialHandlingTasks.QuestionAnswering ? undefined :
+                            <SimpleInput
+                                wrapperClassName="chat-input-field"
+                                value={secondaryText}
+                                onChange={handleSecondaryTextChange}
+                                placeholder={isLoading ? "Please wait..." : 
+                                    modelsContext.selectedModel.task === SpecialHandlingTasks.SentenceSimilarity ? "Enter source sentence"
+                                    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- we may apply more conditionals here
+                                    : modelsContext.selectedModel.task === SpecialHandlingTasks.QuestionAnswering ? "Enter context"
+                                    : "Enter secondary text"
                                 }
-                            </CommonButton>                    
+                                disabled={isLoading}
+                            />
                         }
-                    />
+                        <SimpleInput
+                            wrapperClassName="chat-input-field"
+                            value={text}
+                            onChange={handleTextChange}
+                            onKeyDown={handleKeyDown}
+                            placeholder={isLoading ? "Please wait..." : 
+                            modelsContext.selectedModel?.task === SpecialHandlingTasks.SentenceSimilarity ? "Enter testing sentence"
+                                : modelsContext.selectedModel?.task === SpecialHandlingTasks.QuestionAnswering ? "Enter question"
+                                : "Enter text"}
+                            disabled={isLoading}
+                            rightIcon={
+                                <CommonButton
+                                    onClick={handleSend}
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ?
+                                        <ElevaiteIcons.SVGSpinner/> :
+                                        <ElevaiteIcons.SVGSend/>
+                                    }
+                                </CommonButton>                    
+                            }
+                        />
+                    </>
                 }
                 
             </div>

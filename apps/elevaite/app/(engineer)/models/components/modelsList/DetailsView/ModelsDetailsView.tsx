@@ -1,15 +1,15 @@
 "use client";
 import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 import dayjs from "dayjs";
-import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useModels } from "../../../../../lib/contexts/ModelsContext";
-import { type EvaluationObject, ModelsStatus } from "../../../../../lib/interfaces";
+import { useRoles } from "../../../../../lib/contexts/RolesContext";
+import { ModelsStatus, type EvaluationObject, type ModelObject } from "../../../../../lib/interfaces";
 import { ModelsDetailsHeader } from "./ModelsDetailsHeader";
+import { ModelsDetailsInferenceTab } from "./ModelsDetailsInferenceTab";
 import { ModelsDetailsLogsTab } from "./ModelsDetailsLogsTab";
 import { ModelsDetailsPerformanceTab } from "./ModelsDetailsPerformanceTab";
 import "./ModelsDetailsView.scss";
-import { ModelsDetailsInferenceTab } from "./ModelsDetailsInferenceTab";
 
 
 
@@ -54,6 +54,16 @@ enum MODELS_DETAILS_TABS {
     INFERENCE = "Inference",
 };
 
+enum GENERAL_FIELDS_LABELS {
+    CREATED_AT = "CREATED AT:",
+    MODEL_TASK = "MODEL TASK:",
+    RAM_TO_RUN = "RAM TO RUN:",
+    RAM_TO_TRAIN = "RAM TO TRAIN:",
+    MODEL_URL = "MODEL URL:",
+    PROJECT = "PROJECT:",
+    DESCRIPTION = "DESCRIPTION:",
+};
+
 
 const ModelsDetailsTabsArray: MODELS_DETAILS_TABS[] = [
     MODELS_DETAILS_TABS.GENERAL,
@@ -66,27 +76,16 @@ const ModelsDetailsTabsArray: MODELS_DETAILS_TABS[] = [
 
 
 export function ModelsDetailsView(): JSX.Element {
-    const session = useSession();
+    const rolesContext = useRoles();
     const modelsContext = useModels();
     const [selectedTab, setSelectedTab] = useState(MODELS_DETAILS_TABS.GENERAL);
     const [evaluations, setEvaluations] = useState<EvaluationObject[]>([]);
+    const [generalFields, setGeneralFields] = useState<{label: GENERAL_FIELDS_LABELS, value: string}[]>([]);
     
-
-    const GENERAL_FIELDS = [
-        { label: "CREATED AT:", value: dayjs().format("MMM-DD-YYYY, hh:mm A") },
-        { label: "UPDATED AT:", value: dayjs().format("MMM-DD-YYYY, hh:mm A") },
-        { label: "MODEL TASK:", value: "question-answering" },
-        { label: "RAM TO RUN:", value: "24 GB" },
-        { label: "RAM TO TRAIN:", value: "80 GB" },
-        { label: "FRAMEWORK:", value: "PyTorch" },
-        { label: "MODEL URL:", value: "s3://suspendise-lorem-dictum/test-data" },
-        { label: "USER:", value: session.data?.user?.name ? session.data.user.name : "Unknown User" },
-        { label: "PROJECT:", value: "Elevaite Test Runs" },
-        { label: "DESCRIPTION:", value: "Test Data" },
-    ];
 
 
     useEffect(() => {
+        formatGeneralFields(modelsContext.selectedModel);
         if (modelsContext.selectedModel?.status !== ModelsStatus.DEPLOYED && selectedTab === MODELS_DETAILS_TABS.INFERENCE) {
             setSelectedTab(MODELS_DETAILS_TABS.GENERAL);
         }
@@ -95,6 +94,22 @@ export function ModelsDetailsView(): JSX.Element {
         }
     }, [modelsContext.selectedModel]);
 
+
+    function formatGeneralFields(model?: ModelObject): void {
+        if (!model) {
+            setGeneralFields([]);
+            return;
+        }
+        setGeneralFields([
+            { label: GENERAL_FIELDS_LABELS.CREATED_AT, value: dayjs(model.created).format("MMM-DD-YYYY, hh:mm A") },
+            { label: GENERAL_FIELDS_LABELS.MODEL_TASK, value: model.task ?? "—" },
+            { label: GENERAL_FIELDS_LABELS.RAM_TO_RUN, value: model.memory_requirements?.total_size.value_str ?? "Unknown" },
+            { label: GENERAL_FIELDS_LABELS.RAM_TO_TRAIN, value: model.memory_requirements?.training_using_adam.value_str ?? "Unknown" },
+            { label: GENERAL_FIELDS_LABELS.MODEL_URL, value: model.endpointUrl ?? "No endpoint created" },
+            { label: GENERAL_FIELDS_LABELS.PROJECT, value: rolesContext.selectedProject?.name ?? "—" },
+            { label: GENERAL_FIELDS_LABELS.DESCRIPTION, value: model.huggingface_repo ?? "—" },
+        ]);
+    }
 
     function getIsTabDisabled(tab: MODELS_DETAILS_TABS, modelStatus: ModelsStatus|undefined): boolean {
         if (tab !== MODELS_DETAILS_TABS.GENERAL && tab !== MODELS_DETAILS_TABS.LOGS &&
@@ -142,9 +157,9 @@ export function ModelsDetailsView(): JSX.Element {
 
                         <>
                         <div className={["model-details-page-contents general", selectedTab === MODELS_DETAILS_TABS.GENERAL ? "visible" : undefined].filter(Boolean).join(" ")}>
-                            {GENERAL_FIELDS.map(item =>
+                            {generalFields.map(item =>
                                 <ModelBit key={item.label} label={item.label} general
-                                    value={item.label === "MODEL TASK:" && modelsContext.selectedModel?.task ? modelsContext.selectedModel.task : item.value}
+                                    value={item.label === GENERAL_FIELDS_LABELS.MODEL_TASK && modelsContext.selectedModel?.task ? modelsContext.selectedModel.task : item.value}
                                 />
                             )}
                         </div>

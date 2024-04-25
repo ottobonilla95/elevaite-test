@@ -44,7 +44,9 @@ export function ModelsDetailsHeader(): JSX.Element {
                                 noBackground
                                 title="Refresh model details"
                             >
-                                <ElevaiteIcons.SVGRefresh/>
+                                <div className={["refresh-icon", modelsContext.loading.currentModelParameters ? "loading" : undefined].filter(Boolean).join(" ")}>
+                                    <ElevaiteIcons.SVGRefresh/>
+                                </div>
                             </CommonButton>
                             
                             <CommonButton

@@ -56,8 +56,8 @@ export function ModelsListRow(props: ModelsListRowProps): JSX.Element {
             case specialHandlingModelFields.TAGS: return (props.model?.[item.field] ? <>{(props.model[item.field] as string[]).map((tag: string) => 
                     <div className="tag" key={tag}>{tag}</div>
                 )}</> : "");
-            case specialHandlingModelFields.RAM_TO_RUN: return (props.model?.memory_requirements?.float32.total_size.value_str ?? "—");
-            case specialHandlingModelFields.RAM_TO_TRAIN: return (props.model?.memory_requirements?.float32.training_using_adam.value_str ?? "—");
+            case specialHandlingModelFields.RAM_TO_RUN: return (props.model?.memory_requirements?.total_size.value_str ?? "—");
+            case specialHandlingModelFields.RAM_TO_TRAIN: return (props.model?.memory_requirements?.training_using_adam.value_str ?? "—");
             case specialHandlingModelFields.DATE: return (props.model?.[item.field] ? dayjs(props.model[item.field] as string).format("DD-MMM-YYYY hh:mm a") : "");
             default: return "";
         }

@@ -77,7 +77,7 @@ export function CondensedListRow(props: ModelListNormalRow): JSX.Element {
                 <span>•</span>
 
                 <div className="models-list-row-cell created_at">
-                    {props.model.created_at ? dayjs(props.model.created_at).format("DD-MMM-YYYY hh:mm a") : "Unknown date"}
+                    {props.model.created ? dayjs(props.model.created).format("DD-MMM-YYYY hh:mm a") : "Unknown date"}
                 </div>
 
                 <div className="condensed-across">

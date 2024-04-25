@@ -70,14 +70,9 @@ export function RolesContextProvider(props: RolesContextProviderProps): JSX.Elem
     useEffect(() => {
         if (session.data?.authToken) {
             void fetchOrganization(session.data.authToken);
+            void fetchAccounts(session.data.authToken);
         }
     }, []);
-
-    useEffect(() => {
-        if (session.data?.authToken && organization && !accounts) {
-            void fetchAccounts(organization.id, session.data.authToken);
-        }
-    }, [organization]);
 
     useEffect(() => {
         if (session.data?.authToken && accounts?.[0]) {
@@ -110,10 +105,10 @@ export function RolesContextProvider(props: RolesContextProviderProps): JSX.Elem
         }
     }
 
-    async function fetchAccounts(organizationId: string, authToken: string): Promise<void> {
+    async function fetchAccounts(authToken: string): Promise<void> {
         try {
             setLoading(current => {return {...current, accounts: true}} );
-            const fetchedAccounts = await getAccounts(organizationId, authToken);
+            const fetchedAccounts = await getAccounts(authToken);
             setAccounts(fetchedAccounts);
         } catch (error) {            
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)

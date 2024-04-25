@@ -2,7 +2,7 @@
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useModels } from "../../../../../lib/contexts/ModelsContext";
-import { type EvaluationObject, type ModelEvaluationLogObject, type ModelRegistrationLogObject } from "../../../../../lib/interfaces";
+import { ModelsStatus, REGISTERING_MODELS_LOG_REFRESH_PERIOD, type EvaluationObject, type ModelEvaluationLogObject, type ModelRegistrationLogObject } from "../../../../../lib/interfaces";
 import { ModelsDetailsLogBlock } from "./ModelsDetailsLogBlock";
 import "./ModelsDetailsLogsTab.scss";
 
@@ -30,7 +30,16 @@ export function ModelsDetailsLogsTab(props: ModelsDetailsLogsProps): JSX.Element
 
     useEffect(() => {
         if (!modelsContext.selectedModel) return;
-        void getModelLogs(modelsContext.selectedModel.id);
+        void getModelLogs(modelsContext.selectedModel.id, true);
+        let refreshInterval: string | number | NodeJS.Timeout | undefined;
+        
+        if (modelsContext.selectedModel.status === ModelsStatus.REGISTERING) {
+            const model = modelsContext.selectedModel;
+            refreshInterval = setInterval(() => {
+                void getModelLogs(model.id);
+            }, REGISTERING_MODELS_LOG_REFRESH_PERIOD);
+        } else clearInterval(refreshInterval);
+        return () => { clearInterval(refreshInterval); };
     }, [modelsContext.selectedModel]);
 
     useEffect(() => {
@@ -50,10 +59,10 @@ export function ModelsDetailsLogsTab(props: ModelsDetailsLogsProps): JSX.Element
     }, [initialLoading]);
 
 
-    async function getModelLogs(modelId: string|number): Promise<void> {
+    async function getModelLogs(modelId: string|number, isInitial?: boolean): Promise<void> {
         const logs = await modelsContext.getModelLogs(modelId);
         setModelLogs(logs.reverse());
-        setInitialLoading(current => current+1);
+        if (isInitial) setInitialLoading(current => current+1);
     }
 
     async function getEvaluationLogs(evaluationId: string|number): Promise<void> {
@@ -97,7 +106,7 @@ export function ModelsDetailsLogsTab(props: ModelsDetailsLogsProps): JSX.Element
                 <ModelsDetailsLogBlock
                     id={DEFAULT_MODEL_BLOCK}
                     logs={modelLogs}
-                    isLoading={modelsContext.loading.modelLogs}
+                    isLoading={modelLogs.length === 0 && modelsContext.loading.modelLogs}
                     isHidden={Boolean(selectedBlock) && selectedBlock !== DEFAULT_MODEL_BLOCK}
                     isOpen={selectedBlock === DEFAULT_MODEL_BLOCK}
                     onToggleSize={handleSelect}

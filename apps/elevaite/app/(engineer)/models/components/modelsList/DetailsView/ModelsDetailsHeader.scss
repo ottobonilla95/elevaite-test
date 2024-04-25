@@ -47,8 +47,14 @@
         display: flex;
         align-items: center;
         gap: 10px;
-
         color: var(--ev-colors-secondaryText);
+
+        & .refresh-icon {
+            &.loading {
+                @include rotate();
+                animation-direction: reverse;
+            }
+        }
     }
 
     & .status-container {

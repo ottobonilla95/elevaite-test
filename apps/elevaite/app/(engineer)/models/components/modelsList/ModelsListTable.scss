@@ -31,10 +31,11 @@
 
 
     & .models-list-table-grid {
-        max-height: 100%;
+        height: 100%;
         display: grid;
         grid-template-columns: 30px 2fr 3fr 5fr 3fr 115px 115px 4fr 4fr;
-        grid-template-rows: min-content;
+        grid-auto-rows: min-content;
+        align-content: flex-start;
         
         overflow-y: auto;
         @include scrollbar();

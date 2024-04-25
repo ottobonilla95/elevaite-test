@@ -53,7 +53,7 @@ export function getConfigurationObjectFromRaw(raw?: unknown): Initializers|undef
 
 export function getUniqueTagsFromList(list: ModelObject[]|ModelDatasetObject[]): string[] {
     const tagsSet = new Set<string>();
-    list.flatMap((listItem: { tags?: string[]; }) => listItem.tags ?? []).forEach(tag => tagsSet.add(tag));
+    list.flatMap((listItem: { tags: string[]|null; }) => listItem.tags ?? []).forEach(tag => tagsSet.add(tag));
     return Array.from(tagsSet).sort();
 }
 
@@ -111,7 +111,29 @@ export function getDisplayValueFromStepDetail(detail: PipelineStepAddedInfo, ste
 }
 
 
-
+export function getPearsonCorrelation(x: number[], y: number[]): number {
+    if (x.length !== y.length) { return NaN; }
+    const n = x.length;  
+    // Calculate means
+    const meanX = x.reduce((sum, val) => sum + val, 0) / n;
+    const meanY = y.reduce((sum, val) => sum + val, 0) / n;  
+    // Calculate the numerators and denominators for the correlation coefficient
+    let numerator = 0;
+    let denominatorX = 0;
+    let denominatorY = 0;  
+    for (let i = 0; i < n; i++) {
+      const diffX = x[i] - meanX;
+      const diffY = y[i] - meanY;  
+      numerator += diffX * diffY;
+      denominatorX += diffX ** 2;
+      denominatorY += diffY ** 2;
+    }  
+    const denominator = Math.sqrt(denominatorX) * Math.sqrt(denominatorY);  
+    if (denominator === 0) {
+        return NaN;
+    }  
+    return numerator / denominator;
+  }
 
 
 

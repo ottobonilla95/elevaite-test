@@ -82,8 +82,8 @@
         max-height: 300px;
 
         display: flex;
-        align-items: center;
-        gap: 20px;
+        flex-direction: column;
+        gap: 5px 20px;
         padding: 20px;
 
         background-color: var(--ev-colors-primary);
@@ -154,8 +154,8 @@
         }
     }
 
-    // & .inference-message-contents {
-
-    // }
+    & .inference-message-contents {
+        white-space: pre-wrap;
+    }
 }
 

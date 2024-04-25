@@ -152,7 +152,7 @@ function sortDisplayModels(models: ModelObject[], sorting: SortingObject, specia
             models.sort((a,b) => statusSortOrder.indexOf(a.status) - statusSortOrder.indexOf(b.status));
             break;
         case specialHandlingModelFields.DATE:
-            models.sort((a,b) => dayjs(a.created_at).valueOf() - dayjs(b.created_at).valueOf());
+            models.sort((a,b) => dayjs(a.created).valueOf() - dayjs(b.created).valueOf());
             break;
         case specialHandlingModelFields.TAGS:
             models.sort((a,b) => (!a.tags || !b.tags || a.tags.length > 0 === b.tags.length > 0) ? 0 : a.tags.length > 0 ? -1 : 1);
@@ -165,7 +165,7 @@ function sortDisplayModels(models: ModelObject[], sorting: SortingObject, specia
                     return 0;
                 })
             } else {
-                models.sort((a,b) => dayjs(a.created_at).valueOf() - dayjs(b.created_at).valueOf());
+                models.sort((a,b) => dayjs(a.created).valueOf() - dayjs(b.created).valueOf());
             }
     }
 
@@ -237,6 +237,10 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
             }
             return model;
         });
+        if (selectedModel?.id) {
+            const updatingSelectedModel = adjustedModels.find(item => item.id === selectedModel.id);
+            if (updatingSelectedModel) setSelectedModel(updatingSelectedModel);
+        }
         return sortDisplayModels(adjustedModels, sorting);
     }
 
@@ -529,8 +533,9 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
     async function actionRegisterModel(modelName: string, modelRepo: string, tags?: string[]): Promise<void> {
         try {
             setLoading(current => {return {...current, registerModel: true}} );
-            const result = await registerModel(modelName, modelRepo, tags);
-            setModels(current => [...current, result]);
+            const registeredModel = await registerModel(modelName, modelRepo, tags);
+            setModels(current => [...current, registeredModel]);
+            if (selectedModel?.id === registeredModel.id) setSelectedModel(registeredModel);
         } catch(error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in fetching selected model parameters:", error);
@@ -543,8 +548,9 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
     async function actionDeployModel(modelId: string|number): Promise<void> {
         try {
             setLoading(current => {return {...current, registerModel: true}} );
-            await deployModel(modelId);
+            const deployedModel = await deployModel(modelId);
             await fetchModelEndpoints();
+            if (selectedModel?.id === modelId) await refreshModelById(modelId);
         } catch(error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in fetching selected model parameters:", error);
@@ -573,7 +579,8 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
             setLoading(current => {return {...current, deleteModel: true}} );
             const result = await deleteModel(modelId.toString());
             if (result) {
-                setModels(current => current.filter(item => item.id.toString() !== modelId));
+                setModels(current => current.filter(item => item.id.toString() !== modelId));                
+                if (selectedModel?.id === modelId) setSelectedModel(undefined);
             }
         } catch(error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)

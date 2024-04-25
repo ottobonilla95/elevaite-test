@@ -8,6 +8,7 @@ import type { CommonInputProps, CommonCheckboxProps } from "@repo/ui/components"
 
 export const NEW_DATASET = "NEW_DATASET_NAME:";
 export const REGISTERING_MODELS_REFRESH_PERIOD = 5000; // 5 seconds
+export const REGISTERING_MODELS_LOG_REFRESH_PERIOD = 2000; // 2 seconds
 
 
 // ENUMS
@@ -64,7 +65,7 @@ export enum ModelsStatus {
     REGISTERING = "registering",
     ACTIVE = "registered",
     FAILED = "failed",
-    DEPLOYED = "deployed",
+    DEPLOYED = "deployed", // This is locally applied
 }
 
 export enum EvaluationStatus {
@@ -225,16 +226,31 @@ export interface ModelObject {
     id: number | string;
     huggingface_repo?: string;
     name: string;
-    status: ModelsStatus; // enum? "registered", "failed"
-    tags?: string[];
-    task?: string;
-    created_at?: string;
-    endpointUrl?: string;
-    endpointId?: string;
-    memory_requirements?: {
-        float16: MemoryLayers;
-        float32: MemoryLayers;
-    };
+    status: ModelsStatus;
+    tags: string[] | null;
+    task: string | null;
+    created: string;
+    endpointUrl?: string; // This is applied locally
+    endpointId?: string; // This is applied locally
+    memory_requirements?: MemoryLayers & (ParametersCountObject | undefined);
+    running_evaluations: number[];
+}
+interface MemoryLayers { 
+    total_size: MemoryBit;
+    training_using_adam: MemoryBit;
+ }
+interface MemoryBit { value_bytes: number; value_str: string; }
+interface ParametersCountObject {
+    F64?: number,
+    F32?: number,
+    F16?: number,
+    BF16?: number,
+    I64?: number,
+    I32?: number,
+    I16?: number,
+    I8?: number,
+    U8?: number,
+    BOOL?: number,
 }
 
 
@@ -302,11 +318,6 @@ export interface AvailableModelObject {
     sha: string;
     memory_requirements?: MemoryLayers;
 }
-interface MemoryLayers { 
-    total_size: MemoryBit;
-    training_using_adam: MemoryBit;
- }
-interface MemoryBit { value_bytes: number; value_str: string; }
 
 export type ModelLogObject = ModelRegistrationLogObject | ModelEvaluationLogObject;
 
@@ -357,7 +368,16 @@ export interface InferSummarizationDto {
 }
 
 export interface InferEmbeddingDto {
-    results: number[];
+    results: number[][];
+}
+
+export interface InferQuestionAnsweringDto {
+    results: {
+        answer: string;
+        start: number;
+        end: number;
+        score: number;
+    }
 }
 
 export interface ModelDatasetObject {

@@ -1,5 +1,5 @@
-import type { AvailableModelObject, EvaluationObject, InferEmbeddingDto, InferSummarizationDto, InferTextGenerationDto, ModelDatasetObject, ModelEndpointCreationObject, ModelEndpointObject, ModelEvaluationLogObject, ModelObject, ModelParametersObject, ModelRegistrationLogObject } from "../interfaces";
-import { isArrayOfNumbers, isArrayOfStrings, isObject } from "./generalDiscriminators";
+import type { AvailableModelObject, EvaluationObject, InferEmbeddingDto, InferQuestionAnsweringDto, InferSummarizationDto, InferTextGenerationDto, ModelDatasetObject, ModelEndpointCreationObject, ModelEndpointObject, ModelEvaluationLogObject, ModelObject, ModelParametersObject, ModelRegistrationLogObject } from "../interfaces";
+import { isObject } from "./generalDiscriminators";
 
 
 
@@ -59,6 +59,10 @@ export function isInferEndpointTextGenerationResponse(data: unknown): data is In
 
 export function isInferEndpointSummarizationResponse(data: unknown): data is InferSummarizationDto {
     return isInferSummarizationDto(data);
+}
+
+export function isInferEndpointQuestionAnsweringResponse(data: unknown): data is InferQuestionAnsweringDto {
+    return isInferQuestionAnsweringDto(data);
 }
 
 export function isInferEndpointEmbeddingResponse(data: unknown): data is InferEmbeddingDto {
@@ -159,10 +163,20 @@ export function isInferSummarizationDto(item: unknown): item is InferSummarizati
     doesEachItemInArrayHaveField(item.results, "summary_text");
 }
 
+export function isInferQuestionAnsweringDto(item: unknown): item is InferQuestionAnsweringDto {
+    return isObject(item) &&
+    "results" in item &&
+    isObject(item.results) &&
+    "answer" in item.results &&
+    "start" in item.results &&
+    "end" in item.results &&
+    "score" in item.results;
+}
+
 export function isInferEmbeddingDto(item: unknown): item is InferEmbeddingDto {
     return isObject(item) &&
     "results" in item &&
-    isArrayOfNumbers(item.results);
+    Array.isArray(item.results);
 }
 
 export function isModelDatasetObject(item: unknown): item is ModelDatasetObject {
