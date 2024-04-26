@@ -548,7 +548,7 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
     async function actionDeployModel(modelId: string|number): Promise<void> {
         try {
             setLoading(current => {return {...current, registerModel: true}} );
-            const deployedModel = await deployModel(modelId);
+            await deployModel(modelId);
             await fetchModelEndpoints();
             if (selectedModel?.id === modelId) await refreshModelById(modelId);
         } catch(error) {

@@ -77,7 +77,7 @@ export async function getInstanceChartData(appId: string, instanceId: string): P
   throw new Error("Invalid data type");
 }
 
-export async function getInstanceLogtData(appId: string, instanceId: string): Promise<AppInstanceLogObject[]> {
+export async function getInstanceLogData(appId: string, instanceId: string): Promise<AppInstanceLogObject[]> {
   if (!BACKEND_URL) throw new Error("Missing base url");
   const url = new URL(`${BACKEND_URL}/application/${appId}/instance/${instanceId}/log`);
   const response = await fetch(url, { cache: "no-store" });

@@ -1,5 +1,6 @@
 "use client";
 import type { AppInstanceObject, ApplicationType, PipelineStep, PipelineStepData } from "../../../../../lib/interfaces";
+import { PipelineChunks } from "./PipelineChunks";
 import { PipelineDataLake } from "./PipelineDataLake";
 import "./PipelineInfo.scss";
 import { PipelineInfoConfiguration } from "./PipelineInfoConfiguration";
@@ -51,13 +52,19 @@ export function PipelineInfo(props: PipelineInfoProps): JSX.Element {
                 <PipelineWebhook link={props.selectedStep.sideDetails.webhook} />
             }
 
-            {!props.selectedStep?.sideDetails?.datalake? undefined :
+            {!props.selectedStep?.sideDetails?.datalake ? undefined :
                 <PipelineDataLake 
                     totalFiles={props.selectedStep.sideDetails.datalake.totalFiles}
                     doc={props.selectedStep.sideDetails.datalake.doc}
                     zip={props.selectedStep.sideDetails.datalake.zip}
                 />
             }
+
+            {/* {!props.selectedStep?.sideDetails?.chunks ? undefined :
+                <PipelineChunks
+                    selectedInstance={props.selectedInstance}
+                />
+            } */}
 
         </div>
     );

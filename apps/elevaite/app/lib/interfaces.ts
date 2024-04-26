@@ -143,6 +143,7 @@ export interface AppInstanceObject {
     selectedPipelineId?: string;
     pipelineStepStatuses?: PipelineStatusItem[];
     configuration?: AppInstanceConfigurationObject;
+    configurationRaw?: string;
 }
 
 export interface ChartDataObject {
@@ -206,6 +207,7 @@ export interface PipelineStepSideDetails {
     details?: PipelineStepAddedInfo[];
     configuration?: string;
     webhook?: string;
+    chunks?: boolean;
     datalake?: { totalFiles: number; doc?: number; zip?: number};
 }
 

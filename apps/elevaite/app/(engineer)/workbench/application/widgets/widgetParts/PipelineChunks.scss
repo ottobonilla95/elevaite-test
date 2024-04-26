@@ -1,0 +1,14 @@
+
+
+
+.pipeline-chunks-container {
+
+
+    & .chunks-button {
+        background-color: var(--ev-colors-primary);
+        color: var(--ev-colors-highlight);
+        font-size: 12px;
+        font-weight: 400;
+        padding: 5px 10px;
+    }
+}

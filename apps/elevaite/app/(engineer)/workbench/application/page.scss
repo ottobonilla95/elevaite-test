@@ -1,7 +1,6 @@
 
 
 
-
 .ingest-container {
     height: 100%;
     display: grid;
@@ -16,14 +15,8 @@
     color: var(--ev-colors-text);
 
 
-
-
     & .details-container {
         grid-area: details;
-        // position: sticky;
-        // top: 72px;
-        // z-index: 10;
-        // box-shadow: 0 -9px 5px 12px var(--ev-colors-background);
     }
 
     & .instances-container {

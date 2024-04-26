@@ -1,7 +1,7 @@
 import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
-import { getInstanceLogtData } from "../../../../lib/actions/applicationActions";
+import { getInstanceLogData } from "../../../../lib/actions/applicationActions";
 import type { AppInstanceLogObject, AppInstanceObject } from "../../../../lib/interfaces";
 import { AppInstanceLogLevel, AppInstanceStatus } from "../../../../lib/interfaces";
 import "./ConsoleLogWidget.scss";
@@ -40,7 +40,7 @@ export function ConsoleLogWidget(props: ConsoleLogWidgetProps): JSX.Element {
     async function fetchInstanceLog(appId: string, instanceId: string): Promise<void> {
         try {
             setLoading(true);
-            const fetchedLog = await getInstanceLogtData(appId, instanceId);
+            const fetchedLog = await getInstanceLogData(appId, instanceId);
             if (fetchedLog.length > 0) {
                 setEntries(sortLogEntries(fetchedLog));
             } else {

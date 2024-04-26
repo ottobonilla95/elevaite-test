@@ -45,7 +45,7 @@ export function PipelineWidget(props: PipelineWidgetProps): JSX.Element {
 
 
     function handleSelectedStep(step: PipelineStep & PipelineStepData, stepOrder?: string): void {
-        // console.log("Selected step:", step);
+        console.log("Selected step:", step);
         setSelectedStep(step.id === selectedStep?.id ? undefined : step);
         setSelectedStepOrder(step.id === selectedStep?.id ? "" : stepOrder ?? "");
     }

@@ -31,7 +31,6 @@ export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3Preproce
             field: "name",
             label: "Pipeline Name",
             info: "Main identifier",
-            required: true,
             type: AppInstanceFieldTypes.INPUT,
         },
 
@@ -41,7 +40,7 @@ export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3Preproce
             label: "Input Dataset",
             fields: [
                 {
-                    field: "datasetProject",
+                    field: "projectId",
                     label: "Dataset Project",
                     info: "The project the dataset is attached to",
                     required: true,
@@ -185,6 +184,7 @@ export const S3PreprocessingAppPipelineStructure: PipelineStep[][] = [
                 {label: "Languages", field: ""},
                 {label: "Page Number", field: ""},
             ],
+            chunks: true,
         }
     }],
 ];

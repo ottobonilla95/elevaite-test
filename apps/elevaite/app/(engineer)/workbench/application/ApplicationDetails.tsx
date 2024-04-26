@@ -1,4 +1,4 @@
-
+"use client";
 import { CommonButton, ElevaiteIcons, Logos } from "@repo/ui/components";
 import type { ApplicationObject } from "../../../lib/interfaces";
 import "./ApplicationDetails.scss";

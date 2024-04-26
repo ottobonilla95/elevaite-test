@@ -84,15 +84,15 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
     }
 
     function getIsRequiredFieldEmptyInList(passedFormData: Initializers, fields: AppInstanceFieldStructure[]): boolean {
+        console.log("Checking,", passedFormData, fields);
         for (const item of fields) {
             if ("required" in item && Boolean(item.required) && item.field) {
                 if (item.field === "datasetId" || item.field === "datasetName") {
-                    if (!passedFormData.datasetId && !passedFormData.datasetName) {                        
-                        setIsConfirmDisabled(true);
+                    if (!passedFormData.datasetId && !passedFormData.datasetName) {
                         return true;
                     }
                 } else if (!passedFormData[item.field]) {
-                    setIsConfirmDisabled(true);
+                    console.log("empty field", item.field);
                     return true;
                 }
             } else if ("type" in item && item.type === AppInstanceFieldTypes.GROUP) {
