@@ -30,15 +30,24 @@ def getCollectionChunks(
     db: Session,
     collectionId: str,
     qdrant_client: AsyncQdrantClient,
-    limit: int = 10,
+    limit: int | None = 10,
     offset: str | None = None,
+    with_vectors: bool | None = False,
+    with_payload: bool | None = False,
 ):
     _collection = collection_crud.get_collection_by_id(db=db, collectionId=collectionId)
+    if limit is None:
+        limit = 10
+    if with_vectors is None:
+        with_vectors = False
+    if with_payload is None:
+        with_payload = True
     try:
         res = asyncio.run(
             qdrant_client.scroll(
                 collection_name=to_kebab_case(_collection.name),
-                with_vectors=True,
+                with_vectors=with_vectors,
+                with_payload=with_payload,
                 limit=limit,
                 offset=offset,
             )

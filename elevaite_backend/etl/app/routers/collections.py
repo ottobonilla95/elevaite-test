@@ -56,7 +56,9 @@ def getCollectionScroll(
     project_id: str,
     collection_id: str,
     after: str | None = None,
-    limit: int = 100,
+    limit: int | None = None,
+    with_vectors: bool | None = None,
+    with_payload: bool | None = None,
     db: Session = Depends(get_db),
     qdrant_connection=Depends(get_qdrant_connection),
 ):
@@ -66,4 +68,6 @@ def getCollectionScroll(
         qdrant_client=qdrant_connection,
         limit=limit,
         offset=after,
+        with_payload=with_payload,
+        with_vectors=with_vectors,
     )
