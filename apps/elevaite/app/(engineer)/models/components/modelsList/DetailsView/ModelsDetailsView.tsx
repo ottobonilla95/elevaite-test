@@ -94,6 +94,10 @@ export function ModelsDetailsView(): JSX.Element {
         }
     }, [modelsContext.selectedModel]);
 
+    useEffect(() => {
+        console.log("parameters", modelsContext.selectedModelParameters);
+    }, [modelsContext.selectedModelParameters]);
+
 
     function formatGeneralFields(model?: ModelObject): void {
         if (!model) {
@@ -169,7 +173,12 @@ export function ModelsDetailsView(): JSX.Element {
                                 <ModelBit label="Model Type:" value={modelsContext.selectedModelParameters ? modelsContext.selectedModelParameters.model_type : ""} />
                                 {!modelsContext.selectedModelParameters ? undefined :
                                     Object.keys(modelsContext.selectedModelParameters).map(key => {
-                                        if (typeof modelsContext.selectedModelParameters?.[key] === "string" && key !== "model_type")
+                                        if (key !== "model_type" && (
+                                            typeof modelsContext.selectedModelParameters?.[key] === "string" ||
+                                            typeof modelsContext.selectedModelParameters?.[key] === "number" ||
+                                            typeof modelsContext.selectedModelParameters?.[key] === "boolean" ||
+                                            modelsContext.selectedModelParameters?.[key] === null
+                                        ))
                                             return (
                                                 <ModelBit
                                                     key={key}
@@ -213,7 +222,7 @@ export function ModelsDetailsView(): JSX.Element {
 
 interface ModelBitProps {
     label: string;
-    value: string;
+    value: string | number | boolean | null;
     general?: boolean;
 }
 
@@ -221,7 +230,7 @@ function ModelBit(props: ModelBitProps): JSX.Element {
     return (
         <div className={["model-bit", props.general ? "general" : undefined].filter(Boolean).join(" ")}>
             <span className="label">{props.label}</span>
-            <span>{props.value}</span>
+            <span>{props.value ? props.value.toString() : "null" }</span>
         </div>
     );
 }

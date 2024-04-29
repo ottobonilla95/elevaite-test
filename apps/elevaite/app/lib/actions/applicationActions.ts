@@ -1,10 +1,11 @@
 "use server";
 import { revalidateTag } from "next/cache";
-import type { AppInstanceLogObject, AppInstanceObject, ApplicationConfigurationDto, ApplicationConfigurationObject, ApplicationDto, ApplicationObject, ChartDataObject, CollectionObject, PipelineObject } from "../interfaces";
+import type { AppInstanceLogObject, AppInstanceObject, ApplicationConfigurationDto, ApplicationConfigurationObject, ApplicationDto, ApplicationObject, ChartDataObject, CollectionChunkWrapper, CollectionObject, PipelineObject } from "../interfaces";
 import { APP_REVALIDATION_TIME, INSTANCE_REVALIDATION_TIME, cacheTags } from "./actionConstants";
-import { isCreateCollectioneResponse, isCreateConfigurationResponse, isCreateInstanceResponse, isGetApplicationListReponse, isGetApplicationPipelinesResponse, isGetApplicationResponse, isGetApplicationconfigurationsResponse, isGetCollectionsOfProjectResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceLogDataResponse, isGetInstanceResponse } from "./applicationDiscriminators";
+import { isCreateCollectioneResponse, isCreateConfigurationResponse, isCreateInstanceResponse, isGetApplicationListReponse, isGetApplicationPipelinesResponse, isGetApplicationResponse, isGetApplicationconfigurationsResponse, isGetCollectionScrollResponse, isGetCollectionsOfProjectResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceLogDataResponse, isGetInstanceResponse } from "./applicationDiscriminators";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const COLLECTION_SCROLL_PAGE_LIMIT = 10;
 
 
 // GETS
@@ -109,6 +110,22 @@ export async function getCollectionsOfProject(projectId: string): Promise<Collec
   if (isGetCollectionsOfProjectResponse(data)) return data;
   throw new Error("Invalid data type");
 }
+
+export async function getCollectionScroll(projectId: string, collectionId: string, nextEntryId?: string): Promise<CollectionChunkWrapper> {
+  if (!BACKEND_URL) throw new Error("Missing base url");
+  const url = new URL(`${BACKEND_URL}/project/${projectId}/collection/${collectionId}/scroll`);
+  url.searchParams.set("limit", COLLECTION_SCROLL_PAGE_LIMIT.toString());
+  url.searchParams.set("with_payload", "true");
+  url.searchParams.set("with_vectors", "true");
+  if (nextEntryId) url.searchParams.set("after", nextEntryId);
+  const response = await fetch(url, { cache: "no-store" });
+
+  if (!response.ok) throw new Error("Failed to fetch collection scroll");
+  const data: unknown = await response.json();
+  if (isGetCollectionScrollResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
 
 
 

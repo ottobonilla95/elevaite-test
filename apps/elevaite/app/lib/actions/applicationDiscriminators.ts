@@ -1,4 +1,4 @@
-import type { AppInstanceLogObject, AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, ChartDataObject, CollectionObject, Initializers, PipelineObject } from "../interfaces";
+import type { AppInstanceLogObject, AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, ChartDataObject, CollectionChunkObject, CollectionChunkWrapper, CollectionObject, Initializers, PipelineObject } from "../interfaces";
 import { isObject } from "./generalDiscriminators";
 
 
@@ -32,6 +32,18 @@ export function isGetCollectionsOfProjectResponse(data: unknown): data is Collec
     if (!Array.isArray(data)) return false;
     for (const item of data) {
         if (!isCollectionObject(item)) return false;
+    }
+    return true;
+}
+
+export function isGetCollectionScrollResponse(data: unknown): data is CollectionChunkWrapper {
+    if (!Array.isArray(data)) return false;
+    if (data.length === 0) return true; // Empty array, there are no results
+    if (data.length !== 2) return false;
+    if (data[1] !== null && typeof data[1] !== "string") return false;
+    if (!Array.isArray(data[0])) return false;
+    for (const item of data[0]) {
+        if (!isCollectionChunkObject(item)) return false;
     }
     return true;
 }
@@ -157,3 +169,10 @@ export function isCollectionObject(item: unknown): item is CollectionObject {
         "name" in item;
 }
 
+export function isCollectionChunkObject(item: unknown): item is CollectionChunkObject {
+    return isObject(item) &&
+        "id" in item &&
+        "shard_key" in item &&
+        "payload" in item &&
+        "vector" in item;
+}

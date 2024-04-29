@@ -173,6 +173,23 @@ export interface CollectionObject {
     projectId: string;
 }
 
+export type CollectionChunkWrapper = [] | [CollectionChunkObject[], string|null];
+
+export interface CollectionChunkObject {
+    id: string;
+    shard_key: unknown;
+    vector?: number[];
+    payload?: {
+        page_content?: string;
+        metadata?: {
+            document_title?: string;
+            page_title?: string;
+            source?: string;
+            tokenSize?: number;
+        }
+    }
+}
+
 export interface PipelineObject {
     id: string;
     entry: string; 

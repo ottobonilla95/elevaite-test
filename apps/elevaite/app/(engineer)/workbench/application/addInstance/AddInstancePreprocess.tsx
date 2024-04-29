@@ -75,7 +75,7 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
         const versionList = selectedDataset.versions;
         // Sort versions
         versionList.sort((a,b) => a.version.toString().localeCompare(b.version.toString()));
-        setVersionOptions(versionList.map(version => { return {value: version.id, label: getVersionLabel(version)}; } ));
+        setVersionOptions(versionList.map(version => { return {value: version.version.toString(), label: getVersionLabel(version)}; } ));
         // Select most recent version
         if (versionList.length > 0) handleVersionChange(versionList[0].id);
     }, [formData.datasetId]);
@@ -105,6 +105,7 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
             console.error("Error:", error);
         } finally {
             setIsCollectionsLoading(false);
+            closeCollectionCreation();
         }        
     }
 
@@ -224,6 +225,7 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
                 <CommonDialog
                     title="Create New Collection"
                     confirmLabel="Create"
+                    disableConfirm={isCollectionsLoading}
                     onConfirm={handleCreateCollection}
                     onCancel={closeCollectionCreation}
                 >

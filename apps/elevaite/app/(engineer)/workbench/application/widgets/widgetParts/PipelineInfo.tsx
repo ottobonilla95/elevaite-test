@@ -60,11 +60,11 @@ export function PipelineInfo(props: PipelineInfoProps): JSX.Element {
                 />
             }
 
-            {/* {!props.selectedStep?.sideDetails?.chunks ? undefined :
+            {!props.selectedStep?.sideDetails?.chunks ? undefined :
                 <PipelineChunks
                     selectedInstance={props.selectedInstance}
                 />
-            } */}
+            }
 
         </div>
     );
