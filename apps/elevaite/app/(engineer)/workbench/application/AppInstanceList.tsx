@@ -62,6 +62,7 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
     }, [allInstances, filters, selectedFlowId]);
 
     useEffect(() => {
+        // console.log("selected instance", selectedInstance);
         props.onSelectedInstanceChange(selectedInstance);
     }, [selectedInstance]);
 

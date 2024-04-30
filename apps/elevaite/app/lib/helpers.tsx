@@ -90,7 +90,7 @@ export function countActiveFilters(filtering: FiltersStructure): number {
 
 
 export function getDisplayValueFromStepDetail(detail: PipelineStepAddedInfo, step?: PipelineStep, instance?: AppInstanceObject, appType?: ApplicationType): string {
-    if (!detail.field || !instance || !appType) return "";
+    if (!detail.field || !instance || !appType) return "—";
 
     let source: PipelineStep | Initializers | AppInstanceObject | ChartDataObject | undefined;
     switch (detail.source) {
@@ -104,11 +104,50 @@ export function getDisplayValueFromStepDetail(detail: PipelineStepAddedInfo, ste
     if (source?.[detail.field] && (typeof source[detail.field] === "string" || typeof source[detail.field] === "number")) {
         const result = source[detail.field] as string;
         if (detail.type === StepDataType.DATE) return dayjs(result).format("DD-MMM-YYYY, hh:mm:ss a");
-        return result;
+        if (detail.type === StepDataType.DURATION) {
+            if (!detail.secondaryField) return "—";
+            const end = source[detail.secondaryField] as string;
+            const startDate = dayjs(result);
+            const endDate = dayjs(end);
+            if (startDate.isValid() && endDate.isValid()) {
+                return getElapsedTime(result, end);
+            }
+        }
+        return result ? result : "—";
     }
 
-    return "";
+    return "—";
 }
+
+
+
+
+export function getElapsedTime(start: string, end?: string): string {
+    let duration = dayjs(end ?? undefined).diff(dayjs(start)) / 1000;
+    const result: string[] = [];
+
+    const days = Math.floor(duration / 86400);
+    duration -= days * 86400;
+    if (days > 0) {
+        result.push(`${days.toString()}d`);
+    }
+    const hours = Math.floor(duration / 3600) % 24;
+    duration -= hours * 3600;
+    if (days > 0 || hours > 0) {
+        result.push(`${hours.toString().padStart(2, '0')}h`);
+    }
+    const minutes = Math.floor(duration / 60) % 60;
+    duration -= minutes * 60;
+    if (days > 0 || hours > 0 || minutes > 0) {
+        result.push(`${minutes.toString().padStart(2, '0')}m`);
+    }
+    const seconds = Math.floor(duration % 60);
+    result.push(`${seconds.toString().padStart(2, '0')}s`);
+
+    return result.filter(Boolean).join(" ");
+}
+
+
 
 
 export function getPearsonCorrelation(x: number[], y: number[]): number {
@@ -133,7 +172,7 @@ export function getPearsonCorrelation(x: number[], y: number[]): number {
         return NaN;
     }  
     return numerator / denominator;
-  }
+}
 
 
 

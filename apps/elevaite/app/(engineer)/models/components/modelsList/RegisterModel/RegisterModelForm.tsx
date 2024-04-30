@@ -92,7 +92,7 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
     }
 
     function handleKeyDown(key: string): void {
-        if (key !== "Enter") return;
+        if (key !== "Enter" || !currentTag) return;
         if (!tags.includes(currentTag)) {
             const newTags = [...tags, currentTag].sort();
             setTags(newTags);
@@ -226,6 +226,7 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
                                     value={currentTag}
                                     onChange={setCurrentTag}
                                     onKeyDown={handleKeyDown}
+                                    placeholder="Type tag and press enter"
                                 />
                             </div>
                         </CommonFormLabels>

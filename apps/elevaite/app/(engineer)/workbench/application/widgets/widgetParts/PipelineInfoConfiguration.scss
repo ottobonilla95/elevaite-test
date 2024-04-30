@@ -33,6 +33,7 @@
 
         & .info-config-value {
             position: relative;
+            word-break: break-all;
 
             &.skeleton {
                 @include skeleton($backgroundColor: var(--ev-colors-secondaryText), $width: 70%);

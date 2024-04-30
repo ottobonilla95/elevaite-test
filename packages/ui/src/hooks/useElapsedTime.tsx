@@ -45,7 +45,7 @@ export function useElapsedTime(startTime: string, endTime?: string): UseElapsedT
         const days = Math.floor(duration / 86400);
         duration -= days * 86400;
         if (days > 0) {
-            result.push(`${days}d`);
+            result.push(`${days.toString()}d`);
             setElapsedDays(days.toString());
         }
 

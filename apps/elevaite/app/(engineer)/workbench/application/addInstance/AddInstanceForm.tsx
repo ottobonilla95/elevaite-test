@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { createApplicationConfiguration, createApplicationInstance, getApplicationConfigurations, updateApplicationConfiguration } from "../../../../lib/actions/applicationActions";
 import { areShallowObjectsEqual } from "../../../../lib/helpers";
-import { AppInstanceFieldTypes, NEW_DATASET, formDataType, type AppInstanceConfigurationObject, type AppInstanceFieldStructure, type AppInstanceFormStructure, type ApplicationConfigurationDto, type ApplicationConfigurationObject, type ApplicationDto, type Initializers, type S3IngestFormDTO, type S3PreprocessFormDTO } from "../../../../lib/interfaces";
+import { NEW_DATASET, formDataType, type AppInstanceConfigurationObject, type AppInstanceFormStructure, type ApplicationConfigurationDto, type ApplicationConfigurationObject, type ApplicationDto, type Initializers, type S3IngestFormDTO, type S3PreprocessFormDTO } from "../../../../lib/interfaces";
 import "./AddInstanceForm.scss";
 import { AddInstanceIngest } from "./AddInstanceIngest";
 import { AddInstancePreprocess } from "./AddInstancePreprocess";
@@ -63,9 +63,8 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
     }, [props.applicationId]);
 
     useEffect(() => {
-        // console.log("Formd ata changed", formData);
         if (!props.addInstanceStructure || !formData) return;        
-        setIsConfirmDisabled(getIsRequiredFieldEmptyInList(formData, props.addInstanceStructure.fields));
+        setIsConfirmDisabled(getIsRequiredFieldEmptyInForm(formData, props.addInstanceStructure.requiredFields));
     }, [formData]);
 
 
@@ -83,18 +82,23 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
         }
     }
 
-    function getIsRequiredFieldEmptyInList(passedFormData: Initializers, fields: AppInstanceFieldStructure[]): boolean {
-        for (const item of fields) {
-            if ("required" in item && Boolean(item.required) && item.field) {
-                if (item.field === "datasetId" || item.field === "datasetName") {
-                    if (!passedFormData.datasetId && !passedFormData.datasetName) {
-                        return true;
+    function getIsRequiredFieldEmptyInForm(passedFormData: Initializers, fields: string[]): boolean {
+        for (const field of fields) {
+            // Check for optional values (only one of those needs to exist)
+            if (field.includes("#")) {
+                const subfields = field.split("#");
+                let allMissing = true;
+                for (const subfield of subfields) {
+                    if (passedFormData[subfield]) {
+                        allMissing = false;
+                        break;
                     }
-                } else if (!passedFormData[item.field]) {
+                }
+                if (allMissing) {
                     return true;
                 }
-            } else if ("type" in item && item.type === AppInstanceFieldTypes.GROUP) {
-                if (getIsRequiredFieldEmptyInList(passedFormData, item.fields)) return true;
+            } else if (!passedFormData[field]) {
+                return true;
             }
         }
         return false;
@@ -183,7 +187,7 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
         setSelectedPipeline(formData, props.selectedFlow);
 
         // Check all required data.
-        if (getIsRequiredFieldEmptyInList(formData, props.addInstanceStructure.fields)) return;
+        if (getIsRequiredFieldEmptyInForm(formData, props.addInstanceStructure.requiredFields)) return;
 
         if (updateId) {
             await updateConf(formData, name, updateId);
@@ -248,7 +252,7 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
 
         // console.log("Final Form data:", formData);
         // Check all required data.
-        if (getIsRequiredFieldEmptyInList(formData, props.addInstanceStructure.fields)) return;
+        if (getIsRequiredFieldEmptyInForm(formData, props.addInstanceStructure.requiredFields)) return;
 
         const instanceDto: ApplicationDto = {
             creator: formData.creator,

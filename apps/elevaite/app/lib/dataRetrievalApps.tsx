@@ -25,6 +25,7 @@ export const S3DataRetrievalAppInstanceForm: AppInstanceFormStructure<S3IngestFo
     title: "AWS S3 Document Ingest",
     icon: <Logos.Aws/>,
     initializer: S3DataRetrievalAppInstanceFormInitializer,
+    requiredFields: ["datasetId#datasetName", "url", "roleARN", "projectId"],
     fields: [
         {
             field: "description",
@@ -95,7 +96,7 @@ export const S3DataRetrievalAppPipelineStructure: PipelineStep[][] = [
         nextStepIds: [],
         data: [],
         addedInfo: [
-            {label: "Dataset Project", field: "project", source: StepDataSource.CONFIG},
+            {label: "Dataset Project", field: "projectId", source: StepDataSource.CONFIG},
         ],
         sideDetails: {
             configuration: "",
@@ -114,9 +115,9 @@ export const S3DataRetrievalAppPipelineStructure: PipelineStep[][] = [
             details: [
                 {label: "Step Started", field: "startTime", source: StepDataSource.STEP, type: StepDataType.DATE},
                 {label: "Step Ended", field: "endTime", source: StepDataSource.STEP, type: StepDataType.DATE},
-                {label: "Time Elapsed", field: ""},
+                {label: "Time Elapsed", field: "startTime", secondaryField: "endTime", source: StepDataSource.STEP, type: StepDataType.DURATION},
                 {label: "Total Files Processed", field: "ingestedItems", source: StepDataSource.CHART},
-                {label: "Current File Processed", field: ""},
+                // {label: "Current File Processed", field: ""},
             ],
             webhook: "http://elevaite-s3docingest.com",
         }
@@ -135,7 +136,6 @@ export const S3DataRetrievalAppPipelineStructure: PipelineStep[][] = [
             details: [
                 {label: "Dataset Name", field: "name"},
                 {label: "Dataset Id", field: "datasetId"},
-                {label: "Dataset Version", field: "version"},
                 {label: "Repo Name", field: "outputURI", source: StepDataSource.CONFIG},
                 {label: "Datasource Location", field: "outputURI", source: StepDataSource.CONFIG},
             ],

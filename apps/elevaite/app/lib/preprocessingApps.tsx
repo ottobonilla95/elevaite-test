@@ -1,6 +1,6 @@
 import { Logos } from "@repo/ui/components";
 import type { AppInstanceFormStructure, PipelineStep, S3PreprocessFormDTO } from "./interfaces";
-import { AppInstanceFieldTypes, ApplicationType } from "./interfaces";
+import { AppInstanceFieldTypes, ApplicationType, StepDataSource, StepDataType } from "./interfaces";
 
 
 
@@ -25,12 +25,12 @@ export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3Preproce
     title: "Preprocess Functions",
     icon: <Logos.Preprocess/>,
     initializer: S3PreprocessFormInitializer,
+    requiredFields: ["datasetId#datasetName", "projectId", "collectionId"],
     fields: [
         // { import: true, export: true },
         {
             field: "name",
             label: "Pipeline Name",
-            info: "Main identifier",
             type: AppInstanceFieldTypes.INPUT,
         },
 
@@ -42,13 +42,11 @@ export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3Preproce
                 {
                     field: "projectId",
                     label: "Dataset Project",
-                    info: "The project the dataset is attached to",
                     required: true,
                     type: AppInstanceFieldTypes.INPUT,
                 },
                 {
                     field: "datasetName",
-                    info: "The name of the dataset",
                     label: "Dataset Name",
                     required: true,
                     type: AppInstanceFieldTypes.INPUT,
@@ -77,14 +75,12 @@ export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3Preproce
 
         {
             field: "queue",
-            info: "Queue order type",
             label: "Queue",
             type: AppInstanceFieldTypes.INPUT,
             disabled: true,
         },
         {
             field: "maxIdleTime",
-            info: "Maximum time before shutting down",
             label: "Maximum Idle Time",
             type: AppInstanceFieldTypes.INPUT,
             disabled: true,
@@ -105,13 +101,13 @@ export const S3PreprocessingAppPipelineStructure: PipelineStep[][] = [
         nextStepIds: [],
         data: [],
         addedInfo: [
-            {label: "Dataset Project", field: ""}
+            {label: "Dataset Project", field: "projectId", source: StepDataSource.CONFIG},
         ],
         sideDetails: {
             details: [
-                {label: "Dataset Name", field: ""},
-                {label: "Dataset Version", field: ""},
-                {label: "Dataset Ingest Date", field: ""},
+                {label: "Dataset Name", field: "datasetId"},
+                {label: "Dataset Version", field: "datasetVersion", source: StepDataSource.CONFIG},
+                {label: "Dataset Ingest Date", field: "startTime", type: StepDataType.DATE},
                 {label: "Repo Name", field: ""},
                 {label: "Datasource Location", field: ""},
             ],
@@ -125,17 +121,17 @@ export const S3PreprocessingAppPipelineStructure: PipelineStep[][] = [
         nextStepIds: [],
         data: [],
         addedInfo: [
-            {label: "Total Files Processed", field: ""}
+            {label: "Total Files Processed", field: "totalItems", source: StepDataSource.CHART}
         ],
         sideDetails: {
             details: [
-                {label: "Step Started", field: ""},
-                {label: "Step Ended", field: ""},
-                {label: "Time Elapsed", field: ""},
-                {label: "Total Files Ingested", field: ""},
-                {label: "Total Files Segments", field: ""},
-                {label: "Average Segment Size", field: ""},
-                {label: "Largest Segmentation Size", field: ""},
+                {label: "Step Started", field: "startTime", source: StepDataSource.STEP, type: StepDataType.DATE},
+                {label: "Step Ended", field: "endTime", source: StepDataSource.STEP, type: StepDataType.DATE},
+                {label: "Time Elapsed", field: "startTime", secondaryField: "endTime", source: StepDataSource.STEP, type: StepDataType.DURATION},
+                {label: "Total Files Ingested", field: "totalItems", source: StepDataSource.CHART},
+                {label: "Total File Segments", field: "ingestedChunks", source: StepDataSource.CHART},
+                {label: "Average Segment Size", field: "avgChunk", source: StepDataSource.CHART},
+                {label: "Largest Segmentation Size", field: "largestChunk", source: StepDataSource.CHART},
             ],
         }
     }],
@@ -150,13 +146,13 @@ export const S3PreprocessingAppPipelineStructure: PipelineStep[][] = [
         ],
         sideDetails: {
             details: [
-                {label: "Step Started", field: ""},
-                {label: "Step Ended", field: ""},
-                {label: "Time Elapsed", field: ""},
-                {label: "Total Files Ingested", field: ""},
-                {label: "Total Files Segments", field: ""},
-                {label: "Average Token Size", field: ""},
-                {label: "Largest Token Size", field: ""},
+                {label: "Step Started", field: "startTime", source: StepDataSource.STEP, type: StepDataType.DATE},
+                {label: "Step Ended", field: "endTime", source: StepDataSource.STEP, type: StepDataType.DATE},
+                {label: "Time Elapsed", field: "startTime", secondaryField: "endTime", source: StepDataSource.STEP, type: StepDataType.DURATION},
+                {label: "Total Files Ingested", field: "totalItems", source: StepDataSource.CHART},
+                {label: "Total File Segments", field: "ingestedChunks", source: StepDataSource.CHART},
+                {label: "Average Token Size", field: "avgChunk", source: StepDataSource.CHART},
+                {label: "Largest Token Size", field: "avgChunk", source: StepDataSource.CHART},
                 {label: "Embedding Model Used", field: ""},
                 {label: "Embedding Model Dimension", field: ""},
             ],

@@ -5,6 +5,7 @@ import { getConfigurationObjectFromRaw } from "../../../../../lib/helpers";
 import type { AppInstanceConfigurationObject, AppInstanceFieldStructure, AppInstanceFormStructure, Initializers } from "../../../../../lib/interfaces";
 import { AppInstanceFieldTypes, ApplicationType } from "../../../../../lib/interfaces";
 import "./PipelineInfoConfiguration.scss";
+import { S3PreprocessingAppInstanceForm } from "../../../../../lib/preprocessingApps";
 
 
 
@@ -24,7 +25,7 @@ export function PipelineInfoConfiguration(props: PipelineInfoConfigurationProps)
         if (props.type === ApplicationType.INGEST) {
             setConfigStructure(S3DataRetrievalAppInstanceForm);
         } else if (props.type === ApplicationType.PREPROCESS) {
-            setConfigStructure(S3DataRetrievalAppInstanceForm);
+            setConfigStructure(S3PreprocessingAppInstanceForm);
         }
     }, [props.type, props.configuration, props.isSkeleton]);
 

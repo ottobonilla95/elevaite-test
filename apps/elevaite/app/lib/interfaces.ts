@@ -54,6 +54,7 @@ export enum StepDataSource {
 export enum StepDataType {
     STRING = "string",
     DATE = "date",
+    DURATION = "duration",
 }
 
 export enum formDataType {
@@ -216,6 +217,7 @@ export interface PipelineStepData {
 export interface PipelineStepAddedInfo {
     label: string;
     field: string;
+    secondaryField?: string;
     source?: StepDataSource;
     type?: StepDataType;
 }
@@ -493,6 +495,7 @@ export interface AppInstanceFormStructure<InitializerType> {
     title: string;
     icon: JSX.Element;
     initializer: InitializerType;
+    requiredFields: string[];
     fields: AppInstanceFieldStructure[];
 }
 

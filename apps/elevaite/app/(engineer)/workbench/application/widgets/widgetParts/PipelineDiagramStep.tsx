@@ -1,10 +1,11 @@
 "use client";
 import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
+import { getDisplayValueFromStepDetail } from "../../../../../lib/helpers";
 import type { AppInstanceObject, ApplicationType, PipelineStep, PipelineStepData } from "../../../../../lib/interfaces";
 import { PipelineStatus } from "../../../../../lib/interfaces";
 import "./PipelineDiagramStep.scss";
-import { getDisplayValueFromStepDetail } from "../../../../../lib/helpers";
 
 
 
@@ -71,15 +72,15 @@ export function PipelineDiagramStep({stepNumber, endStep, selectedStepId, onSele
         return `Step ${current.toString()}`;
     }
 
-    // function getTimeTooltip(startTime: string, endTime?: string, status?: PipelineStatus): string {
-    //     const formatting = "DD MMM, hh:mm a";
-    //     if (!startTime) return "";
-    //     let tooltip = `Initialized on: ${dayjs(startTime).format(formatting)}`;
-    //     if (endTime) {
-    //         tooltip += `\n${status === PipelineStatus.FAILED ? "Failed on" : "Completed on"}: ${dayjs(endTime).format(formatting)}`;
-    //     }
-    //     return tooltip;
-    // }
+    function getTimeTooltip(startTime: string, endTime?: string, status?: PipelineStatus): string {
+        const formatting = "DD MMM, hh:mm a";
+        if (!startTime) return "";
+        let tooltip = `Initialized on: ${dayjs(startTime).format(formatting)}`;
+        if (endTime) {
+            tooltip += `\n${status === PipelineStatus.FAILED ? "Failed on" : "Completed on"}: ${dayjs(endTime).format(formatting)}`;
+        }
+        return tooltip;
+    }
 
     return (
         <CommonButton
@@ -93,13 +94,13 @@ export function PipelineDiagramStep({stepNumber, endStep, selectedStepId, onSele
             <div className="pipeline-diagram-step-header">
                 {icon}
                 <span>{stepLabel}</span>
-                {/* {!props.startTime ? null : (
+                {!props.startTime ? null : (
                     <div className="time-info-wrapper">
                         <div className="time-info" title={getTimeTooltip(props.startTime, props.endTime, props.status)}>
                             <ElevaiteIcons.SVGInfo />
                         </div>
                     </div>
-                )} */}
+                )}
             </div>
             <span className={props.status === PipelineStatus.COMPLETED ? "completed" : ""}>{props.title}</span>
             {!props.addedInfo ? null : 

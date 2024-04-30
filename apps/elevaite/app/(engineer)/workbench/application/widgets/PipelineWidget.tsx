@@ -41,6 +41,9 @@ export function PipelineWidget(props: PipelineWidgetProps): JSX.Element {
         );
     }, [foundationSteps, props.selectedInstance]);
 
+    // useEffect(() => {
+    //     console.log("Selected step", selectedStep);
+    // }, [selectedStep]);
 
 
 

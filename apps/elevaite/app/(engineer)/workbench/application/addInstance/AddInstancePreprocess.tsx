@@ -239,7 +239,7 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
 
             <CommonInput
                 label="Pipeline Name"
-                required
+                // required
                 initialValue={props.connectionName}
                 onChange={props.onConnectionNameChange}
             />
