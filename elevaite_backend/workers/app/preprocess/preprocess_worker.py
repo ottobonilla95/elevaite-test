@@ -272,11 +272,9 @@ async def preprocess(data: PreProcessForm) -> None:
         num_chunk = 0
         for object in ref.objects():
             # print(object)
+            object.physical_address  # type: ignore | Typing seems to be wrong
             with ref.object(object.path).reader(pre_sign=False, mode="rb") as fd:
                 r.json().set(data.instanceId, ".current_doc", path_leaf(object.path))
-                # while fd.tell() < file_size:
-                #     print(fd.read(10))
-                #     fd.seek(10, os.SEEK_CUR)
                 input = fd.read()
                 file_chunks = get_file_elements_internal(
                     file=input,
@@ -298,7 +296,7 @@ async def preprocess(data: PreProcessForm) -> None:
                 )
             findex += 1
             if findex % 10 == 0:
-                print(findex)
+                # print(findex)
 
                 set_pipeline_step_meta(
                     db=db,
@@ -373,10 +371,17 @@ async def preprocess(data: PreProcessForm) -> None:
             db=db, instance_id=data.instanceId, step_id=str(_second_step.id)
         )
 
-        print("Number of chunks " + str(len(chunks_as_json)))
+        # print("Number of chunks " + str(len(chunks_as_json)))
         # payloads = json.load(chunks_as_json)
         logger.info(message="Recreating QDrant Collection")
-        await vectordb.recreate_collection(collection_name=collection_name)
+        await vectordb.recreate_collection(
+            collection_name=collection_name,
+            size=(
+                data.embedding_info.dimensions
+                if data.embedding_info is not None
+                else 1536
+            ),
+        )
         logger.info(message="Starting segment vectorization")
         await vectordb.insert_records(
             db=db,
@@ -384,6 +389,7 @@ async def preprocess(data: PreProcessForm) -> None:
             step_id=str(_second_step.id),
             collection=collection_name,
             payload_with_contents=chunks_as_json,
+            emb_info=data.embedding_info,
         )
         logger.info(message="Completed segment vectorization")
 

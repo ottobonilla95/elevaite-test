@@ -87,10 +87,10 @@ def get_docx_elements(filepath=None, filedir=None):
             current_chunk_charaters = 0
     chunks_as_json = []
     for idx, document in enumerate(documnet_chunks):
-        print("Index : ", idx)
-        print("Document Chunk: ", document)
+        # print("Index : ", idx)
+        # print("Document Chunk: ", document)
         chunk_as_json = get_chunk_as_json(source=source, chunk=document)
-        print(chunk_as_json)
+        # print(chunk_as_json)
         chunks_as_json.append(chunk_as_json)
     print("Total Chunks: ", len(documnet_chunks))
     output_directory = "/home/binu/elevaite/ingest/data/msa/output"

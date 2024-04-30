@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from typing import Annotated, Any
+from typing import Annotated, Any, List, Optional, Tuple
 from fastapi import APIRouter, Body, Depends
 from sqlalchemy.orm import Session
 from ..services import collections as collection_service
@@ -7,6 +7,7 @@ from .deps import get_db, get_qdrant_connection
 from elevaitedb.schemas import collection as collection_schemas
 from rbac_api import validators
 from elevaitedb.db import models
+from qdrant_client.conversions import common_types as types
 
 router = APIRouter(prefix="/project/{project_id}/collection", tags=["collections"])
 
@@ -51,7 +52,10 @@ def createCollection(
     return collection_service.createCollection(db=db, projectId=project_id, dto=dto)
 
 
-@router.get("/{collection_id}/scroll")
+@router.get(
+    "/{collection_id}/scroll",
+    response_model=collection_schemas.QdrantResponse,
+)
 def getCollectionScroll(
     project_id: str,
     collection_id: str,

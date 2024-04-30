@@ -1,4 +1,5 @@
-from typing import List
+from typing import List, Optional
+from elevaitedb.schemas.configuration import EmbeddingType, PreprocessEmbeddingInfo
 from elevaitedb.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.models import Batch
@@ -10,9 +11,19 @@ import tiktoken
 import uuid
 from sqlalchemy.orm import Session
 
+from .embeddings.base_embedding import EMBEDDING_REGISTRY
+
 from ..util.func import set_pipeline_step_meta
 
 from .preprocess import ChunkAsJson
+
+
+DEFAULT_INFO: PreprocessEmbeddingInfo = PreprocessEmbeddingInfo(
+    inference_url=None,
+    name="text-embedding-ada-002",
+    type=EmbeddingType.OPENAI,
+    dimensions=1536,
+)
 
 
 def get_qdrant_connection(qdrant_url, api_key):
@@ -34,8 +45,10 @@ def get_qdrant_url():
     return os.environ["QDRANT_URL"]
 
 
-def get_embedding_model():
-    return "text-embedding-ada-002"
+def get_embedding_model(emb_info: Optional[PreprocessEmbeddingInfo] = None):
+    _info = emb_info if emb_info is not None else DEFAULT_INFO
+    global EMBEDDING_REGISTRY
+    return EMBEDDING_REGISTRY[_info.type](_info)
 
 
 def get_vector_params(size, distance):
@@ -67,12 +80,13 @@ async def insert_records(
     step_id: str,
     collection=None,
     payload_with_contents: List[ChunkAsJson] | None = None,
+    emb_info: Optional[PreprocessEmbeddingInfo] = None,
 ):
     if not payload_with_contents or not collection:
         return
 
     set_openai_api_key()
-    embedding_model = get_embedding_model()
+    embedding = get_embedding_model(emb_info)
     payloads = []
     vectors = []
     ids = []
@@ -91,18 +105,15 @@ async def insert_records(
                     max_token_size = token_size
                 total_token_size += token_size
                 avg_token_size = total_token_size / p_index
-            print(str(token_size))
             payload.metadata["tokenSize"] = token_size if token_size else 0
-            response = create_embedding(
-                input=payload.page_content, embedding_model=embedding_model
-            )
+            response = embedding.embed_documents([payload.page_content])
+            # response = create_embedding(
+            #     input=payload.page_content, embedding_model=embedding_model
+            # )
             payloads.append(payload)
-            _emb = response["data"][0]["embedding"]  # type: ignore | It works
-            vectors.append(_emb)
+            vectors.extend(response)
             ids.append(str(uuid.uuid4()))
-        if len(payloads) >= 50:
-            print("Print Embeddings Created " + str(len(vectors)))
-            print("Print Payloads Created " + str(len(payloads)))
+        if len(payloads) >= 64:
             await qdrant_client.upsert(
                 collection_name=collection,
                 points=Batch(ids=ids, payloads=payloads, vectors=vectors),
@@ -130,17 +141,15 @@ async def insert_records(
                     ),
                     InstancePipelineStepData(
                         label=InstanceStepDataLabel.EMB_MODEL,
-                        value=embedding_model,
+                        value=embedding.info.name,
                     ),
                     InstancePipelineStepData(
                         label=InstanceStepDataLabel.EMB_MODEL_DIM,
-                        value=1536,
+                        value=embedding.info.dimensions,
                     ),
                 ],
             )
     if len(payloads) > 0:
-        print("Last Embeddings Created " + str(len(vectors)))
-        print("Last Payloads Created " + str(len(payloads)))
         await qdrant_client.upsert(
             collection_name=collection,
             points=Batch(ids=ids, payloads=payloads, vectors=vectors),
@@ -165,11 +174,11 @@ async def insert_records(
                 ),
                 InstancePipelineStepData(
                     label=InstanceStepDataLabel.EMB_MODEL,
-                    value=embedding_model,
+                    value=embedding.info.name,
                 ),
                 InstancePipelineStepData(
                     label=InstanceStepDataLabel.EMB_MODEL_DIM,
-                    value=1536,
+                    value=embedding.info.dimensions,
                 ),
             ],
         )

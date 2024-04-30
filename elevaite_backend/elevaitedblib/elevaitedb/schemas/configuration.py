@@ -1,6 +1,20 @@
 from datetime import datetime
-from typing import Any, TypeGuard
+from enum import Enum
+from typing import Any, Optional, TypeGuard
 from pydantic import UUID4, BaseModel, Json
+
+
+class EmbeddingType(str, Enum):
+    OPENAI = "openai"
+    LOCAL = "local"
+    EXTERNAL = "external"
+
+
+class PreprocessEmbeddingInfo(BaseModel):
+    type: EmbeddingType
+    inference_url: Optional[str]
+    name: str
+    dimensions: int
 
 
 class BaseDatasetInformationForm(BaseModel):
@@ -25,6 +39,7 @@ class PreProcessFormDTO(BaseDatasetInformationForm):
     type: str = "preprocess"
     datasetVersion: int | None
     collectionId: str | None
+    embedding_info: Optional[PreprocessEmbeddingInfo]
     queue: str
     maxIdleTime: str
 
