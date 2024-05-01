@@ -9,8 +9,8 @@ from pprint import pprint
 from ..errors.api_error import ApiError
 
 from elevaitedb.schemas import (
-   organization_schemas,
-   user_schemas,
+   organization as organization_schemas,
+   user as user_schemas,
 )
 from elevaitedb.db import models
 

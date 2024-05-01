@@ -90,8 +90,6 @@ class EnableWebHooksPermission(BaseModel):
 class AccountScopedApplicationIngestPermission(BaseModel):
    ENTITY_Configuration: ApplicationConfigurationPermission = Field(default_factory=ApplicationConfigurationPermission)
    ENTITY_Instance: ApplicationInstancePermission = Field(default_factory=ApplicationInstancePermission)
-   # ACTION_SCHEDULE: SchedulePermissionType = Field(default_factory=SchedulePermissionType)
-   # ACTION_ENABLE_WEBHOOKS: EnableWebHooksPermissionType = Field(default_factory=EnableWebHooksPermissionType)
    ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
    class Config:
       extra = Extra.forbid
@@ -99,10 +97,8 @@ class AccountScopedApplicationIngestPermission(BaseModel):
 
 # Account Scoped Permission type for ingest connector 
 class ProjectScopedApplicationIngestPermission(BaseModel):
-   ENTITY_Configuration: ApplicationConfigurationPermission = Field(default_factory=ApplicationConfigurationPermission)
    ENTITY_Instance: ApplicationInstancePermission = Field(default_factory=ApplicationInstancePermission)
-   # SCHEDULE: SchedulePermissionType = Field(default_factory=SchedulePermissionType)
-   # ENABLE_WEBHOOKS: EnableWebHooksPermissionType = Field(default_factory=EnableWebHooksPermissionType)
+
    class Config:
       extra = Extra.forbid
 
@@ -163,16 +159,15 @@ class ProjectScopedApplicationDeployPermission(BaseModel):
 # if generic entity had more than one branching type like 'type1' and 'type2';
 # and each of them have 2 possible values like 'type1value1','type1value2', 'type2value1', 'type2value2',
 # then the values of this class will consider all 4 combinations : ('type1value1', 'type2value1'), ('type1value1', 'type2value2'), ('type1value2', 'type2value1'), ('type1value2', 'type2value2')
-# so the naming convention will be TYPEVALUES_<type1value1>__<type2value1>__...
-# in this case there is only 1 branching type with 2 values, resulting in 2 attributes
+# so the naming convention will be TYPEVALUES_<type1value1>__<type2value1>__... (delimitter between values has 2 underscores)
+# in this case there is only 1 branching type with 2 values, resulting in 2 attributes.
 class AccountScopedApplicationTypeValues(BaseModel): 
    TYPEVALUES_ingest: AccountScopedApplicationIngestPermission = Field(default_factory=AccountScopedApplicationIngestPermission)
    TYPEVALUES_preprocess: AccountScopedApplicationPreprocessPermission = Field(default_factory=AccountScopedApplicationPreprocessPermission)
-   # TYPEVALUES_train: AccountScopedApplicationTrainPermission = Field(default_factory=AccountScopedApplicationTrainPermission)
-   # TYPEVALUES_deploy: AccountScopedApplicationDeployPermission = Field(default_factory=AccountScopedApplicationDeployPermission)
 
    class Config:
       extra = Extra.forbid
+
 
 # this class considers all branching type attribute names for entity: TYPENAMES_<type1name>__<type2name>__...
 class AccountScopedApplicationTypeNames(BaseModel):
@@ -180,12 +175,15 @@ class AccountScopedApplicationTypeNames(BaseModel):
    class Config:
       extra = Extra.forbid
 
-   
+
+# if generic entity had more than one branching type like 'type1' and 'type2';
+# and each of them have 2 possible values like 'type1value1','type1value2', 'type2value1', 'type2value2',
+# then the values of this class will consider all 4 combinations : ('type1value1', 'type2value1'), ('type1value1', 'type2value2'), ('type1value2', 'type2value1'), ('type1value2', 'type2value2')
+# so the naming convention will be TYPEVALUES_<type1value1>__<type2value1>__... (delimitter between values has 2 underscores)
+# in this case there is only 1 branching type with 2 values, resulting in 2 attributes
 class ProjectScopedApplicationTypeValues(BaseModel):
    TYPEVALUES_ingest: ProjectScopedApplicationIngestPermission = Field(default_factory=ProjectScopedApplicationIngestPermission)
    TYPEVALUES_preprocess: ProjectScopedApplicationPreprocessPermission = Field(default_factory=ProjectScopedApplicationPreprocessPermission)
-   # TYPEVALUES_train: ProjectScopedApplicationTrainPermission = Field(default_factory=ProjectScopedApplicationTrainPermission)
-   # TYPEVALUES_deploy: ProjectScopedApplicationDeployPermission = Field(default_factory=ProjectScopedApplicationDeployPermission)
 
    class Config:
       extra = Extra.forbid
@@ -196,30 +194,15 @@ class ProjectScopedApplicationTypeNames(BaseModel):
    class Config:
       extra = Extra.forbid
 
-# class ApplicationPermissionType(BaseModel):
-#    READ: ActionEnumType = Field(default_factory=ActionEnumType)
-#    CONFIGURE: ConfigurePermissionType = Field(default_factory=ConfigurePermissionType)
-#    RUN : ActionEnumType = Field(default_factory=ActionEnumType)
-#    class Config:
-#       extra = Extra.forbid
-
 class APIKeyPermission(BaseModel):
    ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Deny")
    class Config:
       extra = Extra.forbid
 
-class AccountPermission(BaseModel):
-   ACTION_READ: Literal["Allow", "Deny"] = Field(default="Allow")
-   class Config:
-      extra = Extra.forbid
-
 class AccountScopedPermission(BaseModel):
-   ENTITY_Account: AccountPermission = Field(default_factory=AccountPermission)
    ENTITY_Project: AccountScopedProjectPermission = Field(default_factory=AccountScopedProjectPermission)
    ENTITY_Application: AccountScopedApplicationTypeNames = Field(default_factory=AccountScopedApplicationTypeNames)
-   # ENTITY_Model: ModelPermissionType = Field(default_factory=ModelPermissionType)
-   # Application: ApplicationPermissionType = Field(default_factory=ApplicationPermissionType)
-   # ENTITY_ApiKey: APIKeyPermission = Field(default_factory=APIKeyPermission)
+   
    class Config:
       extra = Extra.forbid
       orm_mode = True
@@ -227,7 +210,6 @@ class AccountScopedPermission(BaseModel):
 class ProjectScopedPermission(BaseModel):
    ENTITY_Project: ProjectScopedProjectPermission = Field(default_factory=ProjectScopedProjectPermission)
    ENTITY_Application: ProjectScopedApplicationTypeNames = Field(default_factory=ProjectScopedApplicationTypeNames)
-   # ENTITY_Model: ModelPermissionType = Field(default_factory=ModelPermissionType)
    class Config:
       extra = Extra.forbid
       orm_mode = True

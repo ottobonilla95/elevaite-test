@@ -1,6 +1,6 @@
 from pprint import pprint
 from fastapi import APIRouter, Query
-from typing import Annotated, Any, Sequence
+from typing import Annotated, Any, Sequence, List, Dict
 from fastapi import APIRouter, Body, Depends
 import pika
 from uuid import UUID
@@ -13,6 +13,7 @@ from elevaitedb.schemas import (
     configuration as configuration_schemas,
 )
 from rbac_api import validators
+from rbac_api.validators.rbac import rbac_instance
 
 router = APIRouter(prefix="/application/{application_id}/instance", tags=["instances"])
 
@@ -23,12 +24,20 @@ def getApplicationInstances(
     db: Session = Depends(get_db),  # comment this when using validator
     # validation_info:dict[str, Any] = Depends(validators.validate_get_connector_instances_factory(models.Instance, ("READ",))) # uncomment this when using validator
 ) -> Sequence[instance_schemas.Instance]:
+    
     # db: Session = validation_info.get("db", None) # uncomment this when using validator
     # project = validation_info.get('Project', None) # uncomment this when using validator
+
+    # typenames = validation_info.get("target_entity_typename_combinations", tuple()) # uncomment this when using validator
+    # typevalues = validation_info.get("target_entity_typevalue_combinations", tuple()) # uncomment this when using validator
+
+    # filters_list: List[Dict[str, Any]] = rbac_instance.generate_post_validation_type_filters_for_all_query(models.Instance, typenames, typevalues, validation_info) # uncomment this when using validator
+
     return instance_service.getApplicationInstances(
         db,
         application_id,
-        # project.id # uncomment this when using validator
+        # project.id, # uncomment this when using validator
+        # filters_list=filters_list # uncomment this when using validator
     )
 
 
@@ -107,6 +116,7 @@ def createApplicationInstance(
     # validation_info:dict[str, Any] = Depends(validators.validate_create_connector_instance_factory(models.Instance, ("CREATE",))) # uncomment this to use validator
 ) -> instance_schemas.Instance:
     # db: Session = validation_info.get("db", None) # uncomment this when using validator
+    
     return instance_service.createApplicationInstance(
         db=db,
         application_id=application_id,

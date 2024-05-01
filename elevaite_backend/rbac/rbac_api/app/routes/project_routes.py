@@ -6,8 +6,8 @@ from uuid import UUID
 from pydantic import EmailStr
 
 from elevaitedb.schemas import (
-     project_schemas,
-     user_schemas,
+   project as project_schemas,
+   user as user_schemas,
 )
 from elevaitedb.db import models
 from rbac_api import validators
@@ -245,7 +245,7 @@ async def get_project(
       }
    }
 }) 
-async def get_projects( 
+async def get_projects(  
    validation_info: dict[str,Any] = Depends(validators.validate_get_projects_factory(models.Project, ("READ",))),
    view: Optional[project_schemas.ProjectView] = Query(None, description = "View mode, either - 'Flat' or 'Hierarchical'; default value is 'Flat'. When set to 'Flat', parent_project_id will not be considered"),
    type: Optional[project_schemas.ProjectType] = Query(None, description = "Optional filter for querying projects based on ownership, either - 'My_Projects' or 'Shared_With_Me'; if not provided then this will assume both types (all projects for superadmin/account-admins)"),
@@ -335,19 +335,21 @@ async def get_projects(
 async def get_project_user_list(
    validation_info: dict[str, Any] = Depends(validators.validate_get_project_user_list_factory(models.Project, ("READ",))),
    project_id: UUID = Path(..., description="Project id under which users are queried"),  
-   account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which project users are queried"),
+   # account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which project users are queried"),
    firstname: Optional[str] = Query(None, description="Filter users by first name"),
    lastname: Optional[str] = Query(None, description="Filter users by last name"),
    email: Optional[str] = Query(None, description="Filter users by email")
 ) -> List[user_schemas.ProjectUserListItemDTO]:
    db: Session = validation_info.get("db", None)
+   account: models.Account = validation_info.get('Account', None)
    return service.get_project_user_list(
             db=db,
             project_id=project_id,
-            account_id=account_id,
+            account_id=account.id,
             firstname=firstname,
             lastname=lastname,
-            email=email)
+            email=email
+         )
 
 @project_router.delete("/{project_id}/users/{user_id}", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -524,16 +526,17 @@ async def assign_users_to_project(
    }
 })
 async def patch_user_project_admin_status(
-   account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="The ID of the account"),
+   # account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="The ID of the account"),
    project_id: UUID = Path(..., description = "The ID of the project"),
    user_id: UUID = Path(..., description="ID of user"),
    project_admin_status_update_dto: project_schemas.ProjectAdminStatusUpdateDTO = Body(...),
    validation_info:dict[str, Any] = Depends(validators.validate_update_user_project_admin_status_factory(models.Project, ("READ",)))  
 ) -> JSONResponse:
    db: Session = validation_info.get("db", None)
+   account: models.Account = validation_info.get("Account", None)
    return service.patch_user_project_admin_status(user_id=user_id,
                                                    project_id=project_id,
-                                                   account_id=account_id,
+                                                   account_id=account.id,
                                                    project_admin_status_update_dto=project_admin_status_update_dto,
                                                    db=db)
 

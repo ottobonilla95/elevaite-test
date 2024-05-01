@@ -1,0 +1,44 @@
+{
+   "project_not_associated_to_account": {
+      "summary": "Project not associated to account",
+      "value": {
+         "detail": "Project - '789e4567-e89b-12d3-a456-426614174000' - is not associated to account_id - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   },
+   "instance_not_associated_to_application": {
+      "summary": "Application instance not associated to applicationId",
+      "value": {
+         "detail": "Instance - '789e4567-e89b-12d3-a456-426614174000' - is not associated to applicationId - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   },
+   "instance_not_associated_to_configuration": {
+      "summary": "Application instance not associated to configuration",
+      "value": {
+         "detail": "Instance - '789e4567-e89b-12d3-a456-426614174000' - is not associated to configurationId - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   },
+   "instance_not_associated_to_project": {
+      "summary": "Application instance not associated to project",
+      "value": {
+         "detail": "Instance - '789e4567-e89b-12d3-a456-426614174000' - is not associated to projectId - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   },
+   "configuration_not_associated_to_application": {
+      "summary": "Configuration not associated to application",
+      "value": {
+         "detail": "Configuration - '789e4567-e89b-12d3-a456-426614174000' - is not associated to applicationId - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   },
+   "dataset_not_associated_to_project": {
+      "summary": "Dataset not associated to project",
+      "value": {
+         "detail": "Dataset - '789e4567-e89b-12d3-a456-426614174000' - is not associated to projectId - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   },
+   "collection_not_associated_to_project": {
+      "summary": "Collection not associated to project",
+      "value": {
+         "detail": "Collection - '789e4567-e89b-12d3-a456-426614174000' - is not associated to projectId - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   }
+}

@@ -2,19 +2,19 @@
    "not_found_user": {
       "summary": "user not found",
       "value": {
-         "detail": "user - '789e4567-e89b-12d3-a456-426614174001' - not found"
+         "detail": "User - '789e4567-e89b-12d3-a456-426614174001' - not found"
       }
    },
    "not_found_project": {
       "summary": "project not found",
       "value": {
-         "detail": "project - '789e4567-e89b-12d3-a456-426614174001' - not found"
+         "detail": "Project - '789e4567-e89b-12d3-a456-426614174001' - not found"
       }
    },
    "not_found_account": {
       "summary": "account not found",
       "value": {
-         "detail": "account - '789e4567-e89b-12d3-a456-426614174001' - not found"
+         "detail": "Account - '789e4567-e89b-12d3-a456-426614174001' - not found"
       }
    }
    

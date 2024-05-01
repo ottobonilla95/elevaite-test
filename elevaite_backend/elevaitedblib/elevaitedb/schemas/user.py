@@ -3,29 +3,12 @@ from pydantic import BaseModel, EmailStr, Field, Extra, root_validator, validato
 from typing import Optional, List, Literal
 from uuid import UUID
 from datetime import datetime
-from .role_schemas import (
+from .role import (
    RoleResponseDTO,
    RoleSummaryDTO,
    ProjectScopedPermission
 )
-from .common_schemas import StatusUpdateAction
-
-class UserCreationRequestDTO(BaseModel):
-   org_id: UUID = Field(..., description="The ID of the org to be assigned to the user")
-   firstname: Optional[str] = Field(None, max_length=60, description="First name of user")
-   lastname: Optional[str] = Field(None, max_length=60, description="Last name of user")
-   email: EmailStr = Field(..., description="Immutable user email")
-   
-   class Config:
-      extra = Extra.forbid
-      schema_extra = {
-         "example": {
-               "org_id": "123e4567-e89b-12d3-a456-426614174000",
-               "firstname": "First name",
-               "lastname": "Last name",
-               "email": "john.doe@domain.com"
-         }
-      }
+from .common import StatusUpdateAction
    
 class UserPatchRequestDTO(BaseModel):
    firstname: Optional[str] = Field(None, max_length=60, description="First name of user")

@@ -13,5 +13,11 @@
             }
          ]
       }
+   },
+   "project_not_associated_to_account": {
+      "summary": "Project not associated to account",
+      "value": {
+         "detail": "Project - '789e4567-e89b-12d3-a456-426614174000' - is not associated to account_id - '789e4567-e89b-12d3-a456-426614174001'"
+      }
    }
 }

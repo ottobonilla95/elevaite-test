@@ -10,7 +10,7 @@ def is_user_project_association_till_root(db: Session, starting_project_id: UUID
    try:
       # Base part of the CTE: start from the given project and ensure there's a User_Project association
       base_cte = select(
-         models.Project.id.label('project_id'),
+         models.Project.id.label('project_id'), 
          models.Project.parent_project_id,
          literal_column('1', Integer).label('height'),  # Start height at 1
       ).join(models.User_Project, and_(

@@ -1,14 +1,14 @@
 {
    "not_found_account": {
-      "summary": "project's associated account not found",
+      "summary": "account not found",
       "value": {
-         "detail": "project's associated account - '789e4567-e89b-12d3-a456-426614174000' - not found"
+         "detail": "Account - '789e4567-e89b-12d3-a456-426614174000' - not found"
       }
    },
    "not_found_project": {
       "summary": "project not found",
       "value": {
-         "detail": "project - '789e4567-e89b-12d3-a456-426614174000' - not found"
+         "detail": "Project - '789e4567-e89b-12d3-a456-426614174000' - not found"
       }
    }
 }

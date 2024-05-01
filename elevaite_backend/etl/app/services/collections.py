@@ -1,5 +1,5 @@
 import asyncio
-from typing import List, Optional, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from elevaitedb.db import models
 from elevaitedb.util.func import to_kebab_case
 from qdrant_client import AsyncQdrantClient
@@ -10,10 +10,19 @@ from elevaitedb.crud import collection as collection_crud
 
 
 def getCollectionsOfProject(
-    db: Session, projectId: str, skip: int = 0, limit: int = 100
+    db: Session, 
+    projectId: str,
+    # filters_list: List[Dict[str, Any]], # uncomment this when using validator
+    skip: int = 0,
+    limit: int = 100
 ) -> List[models.Collection]:
+    
     return collection_crud.get_collections(
-        db=db, projectId=projectId, skip=skip, limit=limit
+        db=db, 
+        projectId=projectId,
+        # filters_list=filters_list, # uncomment this when using validator
+        skip=skip,
+        limit=limit
     )
 
 

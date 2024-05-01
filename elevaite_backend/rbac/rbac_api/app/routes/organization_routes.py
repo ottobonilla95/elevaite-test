@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 
 from elevaitedb.schemas import (
-   organization_schemas,
-   user_schemas,
+   organization as organization_schemas,
+   user as user_schemas,
 )
 from elevaitedb.db import models
 from rbac_api import validators
@@ -161,7 +161,7 @@ async def get_organization(
         },
     }
     })
-async def get_org_users(
+async def get_org_users( 
    validation_info: dict[str, Any] = Depends(validators.validate_get_org_users),
    firstname: Optional[str] = Query(None, description="Filter users by first name"),
    lastname: Optional[str] = Query(None, description="Filter users by last name"),

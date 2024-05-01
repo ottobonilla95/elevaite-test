@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException
 from uuid import UUID
 import os
-from .header import validate_token
+from ..auth.token import validate_token
 from sqlalchemy import exists
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError

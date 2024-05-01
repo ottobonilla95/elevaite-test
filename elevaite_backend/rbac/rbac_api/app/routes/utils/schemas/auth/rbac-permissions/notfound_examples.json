@@ -1,0 +1,44 @@
+{
+   "not_found_account": {
+      "summary": "account not found",
+      "value": {
+         "detail": "Account - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   },
+   "not_found_project": {
+      "summary": "project not found",
+      "value": {
+         "detail": "Project - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   },
+   "not_found_application": {
+      "summary": "Application not found",
+      "value": {
+         "detail": "Application - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   },
+   "not_found_instance": {
+      "summary": "instance not found",
+      "value": {
+         "detail": "Instance - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   },
+   "not_found_configuration": {
+      "summary": "configuration not found",
+      "value": {
+         "detail": "Configuration - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   },
+   "not_found_dataset": {
+      "summary": "dataset not found",
+      "value": {
+         "detail": "Dataset - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   },
+   "not_found_collection": {
+      "summary": "collection not found",
+      "value": {
+         "detail": "Collection - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   }
+}

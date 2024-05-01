@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Any
 from elevaitedb.db import models
 from sqlalchemy.orm import Session
 
@@ -16,10 +16,20 @@ from elevaitedb.crud import (
 
 
 def get_datasets_of_project(
-    db: Session, projectId: str, skip: int, limit: int
+    db: Session, 
+    projectId: str,
+    # filters_list: List[Dict[str, Any]], # uncomment this when using validator
+    skip: int,
+    limit: int
 ) -> List[models.Dataset]:
+    
+
     return dataset_crud.get_datasets_of_project(
-        db=db, project_id=projectId, skip=skip, limit=limit
+        db=db, 
+        project_id=projectId,
+        # filters_list=filters_list, # uncomment this when using validator
+        skip=skip,
+        limit=limit
     )
 
 

@@ -50,12 +50,14 @@ from elevaitedb.db import models
 def getApplicationInstances(
     db: Session,
     application_id: int,
-    # project_id: UUID # uncomment this when using validator
+    # project_id: UUID, # uncomment this when using validator
+    # filters_list: List[dict[str,Any]] # uncomment this when using validator
 ) -> List[models.Instance]:
     instances = instance_crud.get_instances(
         db,
         application_id,
         # project_id, # uncomment this when using validator
+        # filters_list, # uncomment this when using validator
         limit=100,
     )
     return instances

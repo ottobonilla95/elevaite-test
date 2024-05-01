@@ -5,7 +5,7 @@ from typing import List, Any
 from uuid import UUID
 
 from elevaitedb.schemas import (
-   role_schemas,
+   role as role_schemas,
 )
 
 from rbac_api import validators

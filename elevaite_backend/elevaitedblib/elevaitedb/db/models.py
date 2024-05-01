@@ -16,7 +16,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy_json import MutableJson
+from sqlalchemy_json import MutableJson 
 
 from ..util.func import get_utc_datetime
 from ..schemas.instance import (
@@ -25,8 +25,7 @@ from ..schemas.instance import (
 )
 from ..schemas.pipeline import PipelineStepStatus
 from ..schemas.application import ApplicationType
-from ..schemas.role_schemas import ProjectScopedPermission
-
+from ..schemas.role import ProjectScopedPermission
 from .database import Base
 
 from sqlalchemy import (

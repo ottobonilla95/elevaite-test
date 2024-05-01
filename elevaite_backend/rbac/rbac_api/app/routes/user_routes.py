@@ -5,8 +5,8 @@ from typing import Any, Optional
 from uuid import UUID
 
 from elevaitedb.schemas import (
-   user_schemas,
-   role_schemas
+   user as user_schemas,
+   role as role_schemas
 )
 from elevaitedb.db import models
 from rbac_api import validators
@@ -119,14 +119,14 @@ async def patch_user(
       "description": "The server is currently unable to handle the request due to a temporary overloading or maintenance of the server",
       "content": {
          "application/json": {
-            "examples": load_schema('common/serviceunavailable_examples.json')
+            "examples": load_schema('common/serviceunavailable_examples.json') 
          }
       }
    }
 })
 async def get_user_profile(
    account_id: Optional[UUID] = Header(None, alias = "X-elevAIte-AccountId", description="optional account_id under which user profile is queried; required by non-superadmins"),
-   validation_info: dict[str, Any] = Depends(validators.validate_get_user_profile_factory(models.Account, ("READ",))),
+   validation_info: dict[str, Any] = Depends(validators.validate_get_user_profile),
 ) -> user_schemas.UserProfileDTO:
    """
     Retrieves user profile with mutual account membership information; superadmins can see all account-memberships of user
@@ -196,7 +196,7 @@ async def get_user_profile(
 async def patch_user_account_roles(
    account_id: UUID = Path(..., description="The ID of the account to scope the user roles to"),
    role_list_dto: role_schemas.RoleListDTO = Body(description = "payload containing account-scoped role_id's and action to patch user"),
-   validation_info:dict[str,Any] = Depends(validators.validate_patch_user_account_roles_factory(models.Account, ("READ",)))
+   validation_info:dict[str,Any] = Depends(validators.validate_patch_user_account_roles)
 ) -> JSONResponse:
    
    db: Session = validation_info.get("db", None)
@@ -259,14 +259,15 @@ async def patch_user_account_roles(
 })
 async def update_user_project_permission_overrides(
    user_id: UUID = Path(..., description="The ID of the user"),
-   account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="The ID of the account that contains the project"),
+   # account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="The ID of the account that contains the project"),
    project_id: UUID = Path(..., description="The ID of the project"),
    permission_overrides_payload: role_schemas.ProjectScopedPermission = Body(...),
    validation_info: dict[str, Any] = Depends(validators.validate_update_project_permission_overrides_factory(models.Project, ("READ", )))
 ) -> JSONResponse:
    db: Session = validation_info.get("db", None)
    user_to_patch = validation_info.get("User", None)
-   return service.update_user_project_permission_overrides(user_id, user_to_patch, account_id, project_id, permission_overrides_payload, db)
+   account = validation_info.get("Account", None)
+   return service.update_user_project_permission_overrides(user_id, user_to_patch, account.id, project_id, permission_overrides_payload, db)
 
 @user_router.get("/{user_id}/projects/{project_id}/permission-overrides", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -320,14 +321,15 @@ async def update_user_project_permission_overrides(
 })
 async def get_user_project_permission_overrides(
    user_id: UUID = Path(..., description="The ID of the user"),
-   account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="The ID of the account that contains the project"),
+   # account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="The ID of the account that contains the project"),
    project_id: UUID = Path(..., description="The ID of the project"),
    validation_info: dict[str, Any] = Depends(validators.validate_get_project_permission_overrides_factory(models.Project, ("READ", )))
 ) -> role_schemas.ProjectScopedPermission:
    db: Session = validation_info.get("db", None)
    user_to_patch = validation_info.get("User", None)
+   account = validation_info.get("Account", None)
    user_project_association: models.User_Account = validation_info.get("user_project_association", None)
-   return service.get_user_project_permission_overrides(user_to_patch, user_id,account_id, project_id, db, user_project_association)
+   return service.get_user_project_permission_overrides(user_to_patch, user_id, account.id, project_id, db, user_project_association)
 
 @user_router.patch("/{user_id}/superadmin", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {

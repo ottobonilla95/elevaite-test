@@ -11,10 +11,15 @@ from elevaitedb.db.database import engine
 from elevaitedb.db import models
 from rbac_api.utils.seed_db import seed_db as seed
 from rbac_api.utils.deps import get_db
+from rbac_api.utils.check_env_vars import check_env_vars
 from sqlalchemy.orm import Session
 
 app = FastAPI()
 models.Base.metadata.create_all(bind=engine)
+
+# Check mandatory env vars presence
+check_env_vars()
+
 # Attach all routes to the app
 attach_routes(app)
 

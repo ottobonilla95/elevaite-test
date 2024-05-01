@@ -17,7 +17,7 @@ export async function registerToBackend({
 }): Promise<DBUser> {
   if (!RBAC_BACKEND_URL)
     throw new Error("RBAC_BACKEND_URL does not exist in the env");
-  const url = new URL(`${RBAC_BACKEND_URL}/register/`);
+  const url = new URL(`${RBAC_BACKEND_URL}/auth/register/`);
   const headers = new Headers();
   headers.append("Content-Type", "application/json");
   headers.append("Authorization", `Bearer ${authToken}`);

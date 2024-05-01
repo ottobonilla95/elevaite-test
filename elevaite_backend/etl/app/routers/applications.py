@@ -1,4 +1,4 @@
-from typing import List, Sequence, Any
+from typing import List, Sequence, Any, Dict
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from ..services import applications as service
@@ -8,8 +8,12 @@ from elevaitedb.schemas import (
     application as application_schemas,
     pipeline as pipeline_schemas,
 )
-from rbac_api import validators
-# from rbac_api.app.errors.api_error import ApiError
+
+from rbac_api import (
+   validators,
+   rbac_instance
+)
+
 router = APIRouter(prefix="/application", tags=["applications"])
 
 
@@ -18,18 +22,17 @@ def getApplicationList(
     db: Session = Depends(get_db), # comment this when using validator
     # validation_info:dict[str, Any] = Depends(validators.validate_get_connectors_factory(models.Application, ("READ",))) # uncomment this to use validator
 ) -> Sequence[application_schemas.Application]:
-    # uncomment lines below when using validator
 
-    # db: Session = validation_info.get("db", None)
-    # authorized_app_types: list[application_schemas.ApplicationType] = []
-    # for app_type in application_schemas.ApplicationType:
-    #     app_type_errors = validation_info.get(f'applicationType_{app_type.value}', None)
-    #     if not app_type_errors:
-    #         authorized_app_types.append(app_type)
+    # db: Session = validation_info.get("db", None) # uncomment this when using validator
+    
+    # typenames = validation_info.get("target_entity_typename_combinations", tuple()) # uncomment this when using validator
+    # typevalues = validation_info.get("target_entity_typevalue_combinations", tuple()) # uncomment this when using validator
+
+    # filters_list: List[Dict[str, Any]] = rbac_instance.generate_post_validation_type_filters_for_all_query(models.Application, typenames, typevalues, validation_info) # uncomment this when using validator
     
     return service.getApplicationList(
         db,
-        # authorized_app_types # uncomment this when using validator
+        # filters_list=filters_list # uncomment this when using validator
     )
 
 
@@ -39,12 +42,11 @@ def getApplicationById(
     db: Session = Depends(get_db) # comment this when using validator
     # validation_info:dict[str, Any] = Depends(validators.validate_get_connector_factory(models.Application, ("READ",))) # uncomment this to use validator
 ) -> application_schemas.Application:
-    # un comment lines below when using validator
 
-    # application = validation_info.get("Application", None)
-    # return application
+    # application = validation_info.get("Application", None) # uncomment this when using validator
+    # return application # uncomment this when using validator
 
-    return service.getApplicationById(db, application_id)
+    return service.getApplicationById(db, application_id) # comment this when using validator
 
 
 # @router.get("/{application_id}/form")

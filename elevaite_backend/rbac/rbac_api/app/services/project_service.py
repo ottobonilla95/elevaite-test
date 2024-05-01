@@ -12,9 +12,9 @@ from pydantic import EmailStr
 from ..errors.api_error import ApiError
 
 from elevaitedb.schemas import (
-   project_schemas,
-   user_schemas,
-   role_schemas,
+   project as project_schemas,
+   user as user_schemas,
+   role as role_schemas,
 )
 from elevaitedb.db import models
 
@@ -58,7 +58,7 @@ def create_project(
       db.add(new_project)
       db.flush()  # Now, new_project.id is available
 
-      # Create the User_Project association with the new project's ID
+      # Create the User_Project association with the new project's ID, project overrides default specified in model definition
       new_user_project = models.User_Project(
          user_id=logged_in_user_id,
          project_id=new_project.id,

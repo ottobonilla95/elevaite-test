@@ -8,11 +8,12 @@ from uuid import UUID
 from datetime import datetime
 from fastapi.encoders import jsonable_encoder
 from pprint import pprint
-import os
+import os 
 
 from elevaitedb.schemas import (
-   user_schemas,
-   role_schemas,
+   user as user_schemas,
+   auth as auth_schemas,
+   role as role_schemas,
 )
 from .utils.project_helpers import (
    get_top_level_associated_project_ids_for_user_in_all_non_admin_accounts,
@@ -22,45 +23,6 @@ from rbac_api.utils.cte import (
 )
 from elevaitedb.db import models
 from ..errors.api_error import ApiError
-
-def create_user(db: Session, 
-                user_creation_payload: user_schemas.UserCreationRequestDTO) -> JSONResponse:
-   try:
-      org_exists = db.query(exists().where(
-         models.Organization.id == user_creation_payload.org_id
-      )).scalar()
-      if not org_exists:
-         raise ApiError.notfound(f"Organization - '{user_creation_payload.org_id}' - not found")
-      
-      # Verify that the specified user does not exist already; if so, return existing user
-      db_user = db.query(models.User).filter(models.User.email == user_creation_payload.email, models.User.organization_id == user_creation_payload.org_id).first()
-      if db_user:
-         return JSONResponse(content=jsonable_encoder(db_user), status_code=status.HTTP_200_OK)
-
-      # Create the new user instance
-      db_user = models.User(
-         firstname=user_creation_payload.firstname,
-         lastname=user_creation_payload.lastname,
-         email=user_creation_payload.email,
-         organization_id=user_creation_payload.org_id,
-      )
-      db.add(db_user)
-      db.commit()
-      db.refresh(db_user)
-
-      return JSONResponse(content=jsonable_encoder(db_user), status_code=status.HTTP_201_CREATED)
-   except HTTPException as e:
-      db.rollback()
-      pprint(f'API error in POST /auth/register create_user service method : {e}')
-      raise e
-   except SQLAlchemyError as e:
-      db.rollback()
-      pprint(f'Error in POST /auth/register create_user service method : {e}')
-      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   except Exception as e:
-      db.rollback()
-      pprint(f'Unexpected error POST /auth/register create_user service method : {e}')
-      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
 def get_user_profile(
    user_to_profile: models.User,

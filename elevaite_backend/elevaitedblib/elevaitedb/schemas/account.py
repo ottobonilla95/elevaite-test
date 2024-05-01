@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, Literal
 from pydantic import BaseModel, Field, root_validator, Extra
 from uuid import UUID
-from . import common_schemas
+from . import common as common_schemas
 
 class AccountCreationRequestDTO(BaseModel):
    organization_id: UUID = Field(..., description="Id of the parent organization")

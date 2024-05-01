@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Any
 from elevaitedb.db import models
 from sqlalchemy.orm import Session
 
@@ -13,9 +13,15 @@ from elevaitedb.crud import (
 
 
 def getConfigurationsOfApplication(
-    db: Session, application_id: int
+    db: Session, 
+    # filters_list: List[dict[str, Any]], # uncomment this when using validator
+    application_id: int
 ) -> List[models.Configuration]:
-    _conf = configuration_crud.get_configurations_of_application(db, application_id)
+    _conf = configuration_crud.get_configurations_of_application(
+        db,
+        application_id,
+        # filters_list # uncomment this when using validator
+    )
     return _conf
 
 

@@ -1,4 +1,8 @@
+from .rbac import rbac_instance
+
 from .middleware import (
+   validate_evaluate_rbac_permissions,
+   validate_register_user,
    validate_token,
 
    validate_patch_organization,
@@ -24,10 +28,9 @@ from .middleware import (
    validate_update_user_project_admin_status_factory,
 
    validate_get_project_permission_overrides_factory,
-   validate_get_user_profile_factory,
+   validate_get_user_profile,
    validate_patch_user,
-   validate_patch_user_account_roles_factory,
-   validate_post_user,
+   validate_patch_user_account_roles,
    validate_update_project_permission_overrides_factory,
    validate_patch_user_superadmin_status,
 

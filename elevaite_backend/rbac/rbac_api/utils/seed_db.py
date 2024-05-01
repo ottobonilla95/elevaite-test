@@ -7,7 +7,7 @@ from uuid import UUID
 from elevaitedb.util.func import get_utc_datetime
 
 from elevaitedb.schemas import (
-    role_schemas,
+    role as role_schemas,
     application as connector_schemas,
     instance as instance_schemas,
 )
@@ -259,10 +259,6 @@ def seed_db(db: Session):
 
     project_permissions_overrides = role_schemas.ProjectScopedPermission()
     project_permissions_overrides.ENTITY_Project.ACTION_CREATE = 'Allow'
-
-    project_permissions_overrides.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_READ = 'Allow'
-    project_permissions_overrides.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_CREATE = 'Allow'
-    project_permissions_overrides.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_UPDATE = 'Allow'
 
     user_project_id_to_update = user_project_3_for_user_0.id
 

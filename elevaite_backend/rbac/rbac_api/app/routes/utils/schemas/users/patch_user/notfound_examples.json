@@ -2,7 +2,7 @@
    "not_found_user": {
       "summary": "user not found",
       "value": {
-         "detail": "user - '789e4567-e89b-12d3-a456-426614174000' - not found"
+         "detail": "User - '789e4567-e89b-12d3-a456-426614174000' - not found"
       }
    }
 }

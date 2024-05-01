@@ -1,6 +1,6 @@
 from fastapi import Path, Depends, HTTPException, Header, Request
 from uuid import UUID
-from .header import validate_token
+from ..auth.token import validate_token
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from pprint import pprint
@@ -9,19 +9,17 @@ from rbac_api.app.errors.api_error import ApiError
 
 from rbac_api.utils.deps import get_db 
 from elevaitedb.db import models
-from ..rbac import rbac_instance
+from ...rbac import rbac_instance
 
 def validate_get_project_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
    async def validate_get_project(
          request: Request,
          user_email: str = Depends(validate_token),
-         # The params below are required for pydantic validation even when unused
-         account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which project is queried"),
          project_id: UUID = Path(..., description="project_id to query"),
          db: Session = Depends(get_db)
       ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -53,7 +51,7 @@ def validate_get_projects_factory(target_model_class : Type[models.Base], target
          db: Session = Depends(get_db)
       ) -> dict[str,Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -79,13 +77,11 @@ def validate_get_project_user_list_factory(target_model_class : Type[models.Base
    async def validate_get_project_user_list(
       request: Request,
       db: Session = Depends(get_db),
-      # The params below are required for pydantic validation even when unused
-      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which project users are queried"),
       project_id: UUID = Path(..., description="Project id under which users are queried"),
       user_email: str = Depends(validate_token)
    ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -109,13 +105,11 @@ def validate_patch_project_factory(target_model_class : Type[models.Base], targe
    async def validate_patch_project(
       request: Request,
       user_email: str = Depends(validate_token),
-      # The params below are required for pydantic validation even when unused
       project_id: UUID = Path(..., description="The ID of the project to patch"),
-      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which project is patched"),
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         validation_info:dict[str, Any] =  await rbac_instance.validate_rbac(
+         validation_info:dict[str, Any] =  await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -167,7 +161,7 @@ def validate_post_project_factory(target_model_class : Type[models.Base], target
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try: 
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -193,11 +187,10 @@ def validate_assign_users_to_project_factory(target_model_class : Type[models.Ba
       request: Request,
       user_email: str = Depends(validate_token), 
       project_id: UUID = Path(..., description ="The ID of the project"),
-      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account in which project is assigned"),
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         validation_info:dict[str, Any] =  await rbac_instance.validate_rbac(
+         validation_info:dict[str, Any] =  await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -246,11 +239,10 @@ def validate_deassign_user_from_project_factory(target_model_class : Type[models
       user_email: str = Depends(validate_token), 
       project_id: UUID = Path(..., description ="The ID of the project"),
       user_id: UUID = Path(..., description = "The ID of the user to deassign from project"),
-      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account in which project is assigned"),
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         validation_info:dict[str, Any] =  await rbac_instance.validate_rbac(
+         validation_info:dict[str, Any] =  await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -298,14 +290,13 @@ def validate_deassign_user_from_project_factory(target_model_class : Type[models
 def validate_update_user_project_admin_status_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
    async def validate_update_user_project_admin_status(
       request: Request,
-      user_email: str = Depends(validate_token), 
+      user_email: str = Depends(validate_token),  
       project_id: UUID = Path(..., description ="The ID of the project"),
       user_id: UUID = Path(..., description = "ID of the user"),
-      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account in which project is assigned"),
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         validation_info:dict[str, Any] =  await rbac_instance.validate_rbac(
+         validation_info:dict[str, Any] =  await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,

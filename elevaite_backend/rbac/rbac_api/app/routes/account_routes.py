@@ -5,9 +5,8 @@ from typing import List, Optional, Any
 from uuid import UUID
 
 from elevaitedb.schemas import (
-    account_schemas,
-    user_schemas,
-    common_schemas,
+   account as account_schemas,
+   user as user_schemas,
 )
 from elevaitedb.db import models 
 from rbac_api import validators 
@@ -163,7 +162,7 @@ async def patch_account(
       },
    }
 })
-async def get_accounts( 
+async def get_accounts(  
    validation_info: dict[str, Any] = Depends(validators.validate_get_accounts), 
    name: Optional[str] = Query(None, description="Filter accounts by account name"),
 ) -> List[account_schemas.AccountResponseDTO]:

@@ -2,7 +2,7 @@
    "insufficient_permissions": {
       "summary": "account id must be provided for non-superadmin users",
       "value": {
-         "detail": "account id must be provided for non-superadmin users"
+         "detail": "you do not have superadmin permissions and must provide an account_id"
       }
    }
 }

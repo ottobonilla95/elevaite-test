@@ -1,5 +1,5 @@
 from pprint import pprint
-from typing import Annotated, Any
+from typing import Annotated, Any, List, Dict
 from fastapi import APIRouter, Body, Depends
 from sqlalchemy.orm import Session
 from ..services import configurations as conf_service
@@ -8,7 +8,10 @@ from elevaitedb.db import models
 from elevaitedb.schemas import (
     configuration as configuration_schemas,
 )
-from rbac_api import validators
+from rbac_api import (
+   validators,
+   rbac_instance
+)
 router = APIRouter(
     prefix="/application/{application_id}/configuration", tags=["configurations"]
 )
@@ -17,11 +20,22 @@ router = APIRouter(
 @router.get("", response_model=list[configuration_schemas.Configuration])
 def getApplicationConfigurations(
     application_id: int,
-    db: Session = Depends(get_db),
-    # validation_info:dict[str, Any] = Depends(validators.validate_get_connector_configurations_factory(models.Configuration, ("READ",))),
+    db: Session = Depends(get_db), # comment this when using validator
+    # validation_info:dict[str, Any] = Depends(validators.validate_get_connector_configurations_factory(models.Configuration, ("READ",))), # uncomment this to use validator
     ):
-    # db: Session = validation_info.get("db", None)
-    return conf_service.getConfigurationsOfApplication(db, application_id)
+
+    # db: Session = validation_info.get("db", None) # uncomment this when using validator
+
+    # typenames = validation_info.get("target_entity_typename_combinations", tuple()) # uncomment this when using validator
+    # typevalues = validation_info.get("target_entity_typevalue_combinations", tuple()) # uncomment this when using validator
+
+    # filters_list: List[Dict[str, Any]] = rbac_instance.generate_post_validation_type_filters_for_all_query(models.Configuration, typenames, typevalues, validation_info) # uncomment this when using validator
+
+    return conf_service.getConfigurationsOfApplication(
+        db=db,
+        # filters_list=filters_list, # uncomment this when using validator
+        application_id=application_id
+    )
 
 
 @router.get("/{configuration_id}", response_model=configuration_schemas.Configuration)
@@ -29,13 +43,14 @@ def getApplicationConfiguration(
     application_id: int,
     configuration_id: str,
     db: Session = Depends(get_db),
-    # validation_info:dict[str, Any] = Depends(validators.validate_get_connector_configuration_factory(models.Configuration, ("READ",))),
+    # validation_info:dict[str, Any] = Depends(validators.validate_get_connector_configuration_factory(models.Configuration, ("READ",))), #uncomment this to use validator
 ):
-    # applicationConfiguration = validation_info.get("Configuration", None)
-    # return applicationConfiguration
+    # applicationConfiguration = validation_info.get("Configuration", None) # uncomment this when using validator
+    # return applicationConfiguration # uncomment this when using validator
+
     return conf_service.getConfigurationById(
         db, application_id, conf_id=configuration_id
-    )
+    ) # comment this when using validator
 
 
 @router.post("/", response_model=configuration_schemas.Configuration)
@@ -44,10 +59,10 @@ def createConfiguration(
     createConfigurationDto: Annotated[
         configuration_schemas.ConfigurationCreate, Body()
     ],
-    db: Session = Depends(get_db),
-    # validation_info:dict[str, Any] = Depends(validators.validate_create_connector_configuration_factory(models.Configuration, ("CREATE",))),
+    db: Session = Depends(get_db), # comment this when using validator
+    # validation_info:dict[str, Any] = Depends(validators.validate_create_connector_configuration_factory(models.Configuration, ("CREATE",))), # uncomment this to use validator
 ):
-    # db: Session = validation_info.get("db", None)
+    # db: Session = validation_info.get("db", None) #comment this when using validator
     return conf_service.createConfiguration(
         db, create_configuration=createConfigurationDto
     )

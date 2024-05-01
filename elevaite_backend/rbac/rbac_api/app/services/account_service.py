@@ -11,10 +11,9 @@ import os
 from ..errors.api_error import ApiError
 
 from elevaitedb.schemas import (
-   account_schemas,
-   role_schemas,
-   user_schemas,
-   common_schemas
+   account as account_schemas,
+   role as role_schemas,
+   user as user_schemas
 )
 from elevaitedb.db import models
 

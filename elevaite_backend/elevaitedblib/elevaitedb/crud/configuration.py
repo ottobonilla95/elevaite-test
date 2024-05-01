@@ -1,10 +1,10 @@
 import json
 from sqlalchemy.orm import Session
-
+from typing import List, Dict, Any
 from ..db import models
 from ..schemas import configuration as schema
 from ..util.func import to_dict
-
+from rbac_api import rbac_instance
 
 def get_configuration_by_id(db: Session, application_id: int, id: str):
     return (
@@ -15,9 +15,16 @@ def get_configuration_by_id(db: Session, application_id: int, id: str):
     )
 
 
-def get_configurations_of_application(db: Session, application_id: int):
+def get_configurations_of_application(
+    db: Session,
+    application_id: int,
+    # filters_list: List[Dict[str, Any]] # uncomment this when using validator
+):
+    query = db.query(models.Configuration)
+    # query = rbac_instance.apply_post_validation_type_filters_for_all_query(model_class=models.Configuration, filters_list=filters_list, query=query) # uncomment this when using validator
+    
     return (
-        db.query(models.Configuration)
+        query
         .filter(models.Configuration.applicationId == application_id)
         .all()
     )

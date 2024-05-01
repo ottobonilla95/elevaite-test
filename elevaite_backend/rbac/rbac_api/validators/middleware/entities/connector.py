@@ -1,6 +1,6 @@
 from fastapi import Path, Depends, Header, Query, Request, HTTPException
 from uuid import UUID
-from .header import validate_token
+from ..auth.token import validate_token
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -14,7 +14,7 @@ from elevaitedb.schemas import (
    application as application_schemas,
 )
 
-from ..rbac import rbac_instance
+from ...rbac import rbac_instance
 
 def validate_get_connector_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
    async def validate_get_connector(
@@ -26,7 +26,7 @@ def validate_get_connector_factory(target_model_class : Type[models.Base], targe
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions( 
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -55,7 +55,7 @@ def validate_get_connectors_factory(target_model_class : Type[models.Base], targ
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -85,7 +85,7 @@ def validate_get_connector_pipelines_factory(target_model_class : Type[models.Ba
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -116,7 +116,7 @@ def validate_get_connector_configurations_factory(target_model_class : Type[mode
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -148,7 +148,7 @@ def validate_get_connector_configuration_factory(target_model_class : Type[model
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -180,7 +180,7 @@ def validate_update_connector_configuration_factory(target_model_class : Type[mo
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -211,7 +211,7 @@ def validate_create_connector_configuration_factory(target_model_class : Type[mo
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -237,13 +237,12 @@ def validate_get_connector_instances_factory(target_model_class : Type[models.Ba
       request: Request,
       user_email: str = Depends(validate_token),
       # The params below are required for pydantic validation even when unused
-      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector instances are queried"),
       project_id: UUID = Header(..., alias = "X-elevAIte-ProjectId", description="project_id under which connector instances are queried"),
       application_id: int = Path(..., description="id of connector application"),
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -269,14 +268,13 @@ def validate_get_connector_instance_factory(target_model_class : Type[models.Bas
       request: Request,
       user_email: str = Depends(validate_token),
       # The params below are required for pydantic validation even when unused
-      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector instances are queried"),
       project_id: UUID = Header(..., alias = "X-elevAIte-ProjectId", description="project_id under which connector instances are queried"),
       application_id: int = Path(..., description="id of connector application"),
       instance_id: UUID = Path(..., description="id of connector instance"),
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -302,14 +300,13 @@ def validate_get_connector_instance_chart_factory(target_model_class : Type[mode
       request: Request,
       user_email: str = Depends(validate_token),
       # The params below are required for pydantic validation even when unused
-      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector instances are queried"),
       project_id: UUID = Header(..., alias = "X-elevAIte-ProjectId", description="project_id under which connector instances are queried"),
       application_id: int = Path(..., description="id of connector application"),
       instance_id: UUID = Path(..., description="id of connector instance"),
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -334,14 +331,13 @@ def validate_get_connector_instance_configuration_factory(target_model_class : T
       request: Request,
       user_email: str = Depends(validate_token),
       # The params below are required for pydantic validation even when unused
-      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector instance configuration is queried"),
       project_id: UUID = Header(..., alias = "X-elevAIte-ProjectId", description="project_id under which connector instance configuration is queried"),
       application_id: int = Path(..., description="id of connector application"),
       instance_id: UUID = Path(..., description="id of connector instance"),
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -367,14 +363,13 @@ def validate_get_connector_instance_logs_factory(target_model_class : Type[model
       request: Request,
       user_email: str = Depends(validate_token),
       # The params below are required for pydantic validation even when unused
-      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector instance logs are queried"),
       project_id: UUID = Header(..., alias = "X-elevAIte-ProjectId", description="project_id under which connector instance logs are queried"),
       application_id: int = Path(..., description="id of connector application"),
       instance_id: UUID = Path(..., description="id of connector instance"),
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -400,13 +395,12 @@ def validate_create_connector_instance_factory(target_model_class : Type[models.
       request: Request,
       user_email: str = Depends(validate_token),
       # The params below are required for pydantic validation even when unused
-      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector instance logs are queried"),
       project_id: UUID = Header(..., alias = "X-elevAIte-ProjectId", description="project_id under which connector instance logs are queried"),
       application_id: int = Path(..., description="id of connector application"),
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
-         return await rbac_instance.validate_rbac(
+         return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,

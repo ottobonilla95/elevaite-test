@@ -1,7 +1,7 @@
 from fastapi import Header
-from rbac_api.app.errors.api_error import ApiError
-from ..idp.google import get_google_user
 from pprint import pprint
+from rbac_api.app.errors.api_error import ApiError
+from ...idp.google import get_google_user
 from rbac_api.utils.RedisSingleton import RedisSingleton
 
 async def validate_token(auth_header: str = Header(None, alias='Authorization', description = "google access token with email and profile scope")):

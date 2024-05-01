@@ -1,5 +1,5 @@
 from pprint import pprint
-from typing import Annotated, Any
+from typing import Annotated, Any, Dict, List
 from fastapi import APIRouter, Body, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -8,7 +8,10 @@ from .deps import get_db
 from elevaitedb.schemas import (
     dataset as dataset_schemas,
 )
-from rbac_api import validators
+from rbac_api import (
+   validators,
+   rbac_instance
+)
 from elevaitedb.db import models
 router = APIRouter(prefix="/project/{project_id}/datasets", tags=["datasets"])
 
@@ -21,9 +24,19 @@ def getProjectDatasets(
     db: Session = Depends(get_db), # comment this when using validator
     # validation_info:dict[str, Any] = Depends(validators.validate_get_project_datasets_factory(models.Dataset, ("READ",))), # uncomment this to use validator
 ):
-    # db: Session = validation_info.get("db", None) # comment this when using validator
+    # db: Session = validation_info.get("db", None) # uncomment this when using validator
+
+    # typenames = validation_info.get("target_entity_typename_combinations", tuple()) # uncomment this when using validator
+    # typevalues = validation_info.get("target_entity_typevalue_combinations", tuple()) # uncomment this when using validator
+
+    # filters_list: List[Dict[str, Any]] = rbac_instance.generate_post_validation_type_filters_for_all_query(models.Dataset, typenames, typevalues, validation_info) # uncomment this when using validator
+
     return dataset_service.get_datasets_of_project(
-        db=db, projectId=project_id, skip=skip, limit=limit
+        db=db, 
+        projectId=project_id,
+        # filters_list=filters_list, # uncomment this when using validator
+        skip=skip,
+        limit=limit
     )
 
 

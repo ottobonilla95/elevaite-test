@@ -1,6 +1,6 @@
 from fastapi import Query, Path, Depends, HTTPException
 from uuid import UUID
-from .header import validate_token
+from ..auth.token import validate_token
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, select, exists
 from sqlalchemy.exc import SQLAlchemyError

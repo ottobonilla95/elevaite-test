@@ -2,13 +2,13 @@
    "not_found_account": {
       "summary": "account not found",
       "value": {
-         "detail": "account - '789e4567-e89b-12d3-a456-426614174000' - not found"
+         "detail": "Account - '789e4567-e89b-12d3-a456-426614174000' - not found"
       }
    },
    "not_found_connector": {
-      "summary": "connector not found",
+      "summary": "Application not found",
       "value": {
-         "detail": "connector - '789e4567-e89b-12d3-a456-426614174000' - not found"
+         "detail": "Application - '789e4567-e89b-12d3-a456-426614174000' - not found"
       }
    }
 }

@@ -8,7 +8,7 @@ from datetime import datetime
 from pprint import pprint
 
 from elevaitedb.schemas import (
-   role_schemas,
+   role as role_schemas,
 )
 from elevaitedb.db import models
 
