@@ -393,7 +393,7 @@ class Role_User_Account(Base):
         Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4()
     )
     role_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("roles.id"), nullable=False
+        Uuid(as_uuid=True), ForeignKey("roles.id", ondelete="CASCADE"), nullable=False
     )
     user_account_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True),

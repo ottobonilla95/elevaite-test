@@ -103,8 +103,12 @@ async def register_user(
 
 @auth_router.post("/rbac-permissions", responses={
    status.HTTP_200_OK: {
-      "description": "RBAC permissions successfully retrieved",
-      "model": auth_schemas.PermissionsValidationResponse
+      "description": "Successfully evaluated rbac_permissions",
+      "content": {
+         "application/json": {
+            "examples": load_schema('auth/rbac-permissions/ok_examples.json')
+         }
+      },
    },
    status.HTTP_401_UNAUTHORIZED: {
       "description": "No access token or invalid access token",

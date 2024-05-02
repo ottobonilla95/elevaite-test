@@ -34,7 +34,6 @@ class RBACPermissionScope(str, Enum):
 class PermissionsValidationRequest(BaseModel):
    IS_ACCOUNT_ADMIN: Optional[BaseParamsWithoutAccountAndProject]
    IS_PROJECT_ADMIN: Optional[BaseParamsWithoutAccountAndProject]
-   ACCOUNT_READ: Optional[BaseParamsWithoutAccountAndProject]
    PROJECT_READ: Optional[BaseParamsWithoutAccountAndProject]
    PROJECT_CREATE: Optional[BaseParamsWithoutAccountAndProject]
    DATASET_READ: Optional[BaseParamsWithoutAccountAndProject]
@@ -70,8 +69,6 @@ class PermissionsValidationRequest(BaseModel):
    @staticmethod
    def validate_permission_scope(field_name: str, rbac_permission_scope: RBACPermissionScope) -> bool:
       match field_name:
-         case "ACCOUNT_READ":
-            return rbac_permission_scope == RBACPermissionScope.ACCOUNT_SCOPE 
          case "PROJECT_READ":
             return rbac_permission_scope == RBACPermissionScope.ACCOUNT_SCOPE
          case "PROJECT_CREATE":
@@ -102,7 +99,6 @@ class PermissionsValidationRequest(BaseModel):
 class PermissionsValidationResponse(BaseModel):
    IS_ACCOUNT_ADMIN: Union[bool, Literal['NOT_EVALUATED']] = Field(default='NOT_EVALUATED')
    IS_PROJECT_ADMIN: Union[bool, Literal['NOT_EVALUATED']] = Field(default='NOT_EVALUATED')
-   ACCOUNT_READ: Union[bool, Literal['NOT_EVALUATED']] = Field(default='NOT_EVALUATED')
    PROJECT_READ: Union[bool, Literal['NOT_EVALUATED']] = Field(default='NOT_EVALUATED')
    PROJECT_CREATE: Union[bool, Literal['NOT_EVALUATED']] = Field(default='NOT_EVALUATED')
    DATASET_READ: Union[bool, Literal['NOT_EVALUATED']] = Field(default='NOT_EVALUATED')

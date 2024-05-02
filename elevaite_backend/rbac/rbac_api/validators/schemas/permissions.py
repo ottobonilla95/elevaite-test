@@ -3,12 +3,13 @@
 
 # The nested structure of the schema reflects the nested structure of the endpoints:
 
-# ENDPOINTS : /accounts/...
+# ENDPOINTS : /projects/
 #             /projects/<...>/datasets
 #             /projects/<...>/collections
 #             /application/<...>/configuration
 #             /application/<...>/instance
-#
+ 
+# Account, User, Role resources only have rbac decided by superadmin/account-admin/project-admin status and hence are not part of the schema 
 
 # Resources are prefixed by 'ENTITY_', actions on these entities are prefixed by 'ACTION_' (actions can be a leaf action, or have other nested actions) 
 # If an entity has 1 or more types, the types which require rbac validation are considered 'branching types'.

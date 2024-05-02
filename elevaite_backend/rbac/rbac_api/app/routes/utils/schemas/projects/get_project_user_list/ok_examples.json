@@ -1,70 +1,47 @@
 {
-   "patched_project": {
-      "summary": "Successfully patched project response",
+   "project_user_list": {
+      "summary": "Successfully retrieved project user list",
       "value": 
       [
-         {
-             "id": "ea775375-38a6-4bae-8e91-5bd51618eb71",
-             "organization_id": "789e4567-e89b-12d3-a456-426614174001",
-             "firstname": "First name",
-             "lastname": "Last name",
-             "email": "xyz@gmail.com",
-             "is_superadmin": false,
-             "created_at": "2024-03-14T12:21:31.277153",
-             "updated_at": "2024-03-14T12:21:31.277153",
-             "is_account_admin": true,
-             "roles": [
-                 {
-                     "id": "7be333cf-09ef-4f09-9249-d4edc22206a7",
-                     "name": "Data Scientist"
-                 },
-                 {
-                     "id": "8a526965-1a51-4903-ae9b-3738e035dc3d",
-                     "name": "ML OPS"
-                 }
-             ]
-         },
-         {
-             "id": "5b8d6492-f85f-48a6-9cd2-a347480dd372",
-             "organization_id": "789e4567-e89b-12d3-a456-426614174001",
-             "firstname": "John",
-             "lastname": "Doe",
-             "email": "john@example.com",
-             "is_superadmin": false,
-             "created_at": "2024-03-14T16:25:21.006095",
-             "updated_at": "2024-03-14T16:25:21.006095",
-             "is_account_admin": false,
-             "roles": [
-                 {
-                     "id": "a7c917a5-2131-4015-a885-39926c86c95f",
-                     "name": "ML Engineer"
-                 }
-             ]
-         },
-         {
-             "id": "5b8d6492-f85f-48a6-9cd2-a347480dd373",
-             "organization_id": "789e4567-e89b-12d3-a456-426614174001",
-             "firstname": "Alice",
-             "lastname": "Smith",
-             "email": "alice@example.com",
-             "is_superadmin": false,
-             "created_at": "2024-03-14T16:25:21.006095",
-             "updated_at": "2024-03-14T16:25:21.006095",
-             "is_account_admin": false,
-             "roles": []
-         },
-         {
-             "id": "5b8d6492-f85f-48a6-9cd2-a347480dd374",
-             "organization_id": "789e4567-e89b-12d3-a456-426614174001",
-             "firstname": "Bob",
-             "lastname": "Johnson",
-             "email": "bob@example.com",
-             "is_superadmin": false,
-             "created_at": "2024-03-14T16:25:21.006095",
-             "updated_at": "2024-03-14T16:25:21.006095",
-             "is_account_admin": false,
-             "roles": []
-         }
-     ]  
+        {
+            "id": "ab19f8d0-b384-453f-ac90-d53e9d5c684b",
+            "organization_id": "123e4567-e89b-12d3-a456-426614174000",
+            "firstname": "adsad",
+            "lastname": null,
+            "email": "dasd@gmail.com",
+            "is_superadmin": true,
+            "created_at": "2024-04-02T11:48:21.762023",
+            "updated_at": "2024-04-02T11:48:21.762023",
+            "is_account_admin": false,
+            "roles": [],
+            "is_project_admin": true
+        },
+        {
+            "id": "4d4a59fd-f2c4-478e-a2ad-e30ac5b624be",
+            "organization_id": "123e4567-e89b-12d3-a456-426614174000",
+            "firstname": "asdas",
+            "lastname": "dasd",
+            "email": "xyz@gmail.com",
+            "is_superadmin": false,
+            "created_at": "2024-04-02T11:51:51.187492",
+            "updated_at": "2024-04-22T01:58:50.098994",
+            "is_account_admin": false,
+            "roles": [
+                {
+                    "id": "482f314c-ce36-4740-ab7f-81bbe157c042",
+                    "name": "Data Scientist"
+                },
+                {
+                    "id": "a1df1a9e-4c01-4302-a74d-fe1ec9db7339",
+                    "name": "ML Engineer"
+                },
+                {
+                    "id": "e4f2b540-6ae6-407b-8436-26795f641557",
+                    "name": "ML OPS"
+                }
+            ],
+            "is_project_admin": false
+        }
+    ] 
    }
 }

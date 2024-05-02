@@ -1,0 +1,21 @@
+{
+   "evaluated_permissions": {
+      "summary": "evaluated permissions",
+      "value": {
+         "IS_ACCOUNT_ADMIN": false,
+         "IS_PROJECT_ADMIN": false,
+         "PROJECT_READ": true,
+         "PROJECT_CREATE": false,
+         "DATASET_READ": false,
+         "DATASET_TAG": false,
+         "COLLECTION_READ": "NOT_EVALUATED",
+         "COLLECTION_CREATE": "NOT_EVALUATED",
+         "CONFIGURATION_READ": true,
+         "CONFIGURATION_CREATE": true,
+         "CONFIGURATION_UPDATE": true,
+         "INSTANCE_READ": false,
+         "INSTANCE_CREATE": false,
+         "INSTANCE_CONFIGURATION_READ": false
+     }
+   }
+}
