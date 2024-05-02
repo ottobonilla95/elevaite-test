@@ -3,20 +3,22 @@ from sqlalchemy import func, select
 from typing import List, Dict, Any
 from ..db import models
 from ..schemas.dataset import DatasetCreate, DatasetTagCreate, DatasetVersionCreate
-from rbac_api import rbac_instance
+
+# from rbac_api import rbac_instance
+
 
 def get_datasets_of_project(
-    db: Session, 
+    db: Session,
     project_id: str,
     # filters_list: List[Dict[str, Any]], # uncomment this when using validator
-    skip: int = 0, limit: int = 100
+    skip: int = 0,
+    limit: int = 100,
 ):
     query = db.query(models.Dataset)
     # query = rbac_instance.apply_post_validation_type_filters_for_all_query(model_class=models.Dataset, filters_list=filters_list, query=query) # uncomment this when using validator
 
     return (
-        query
-        .filter(models.Dataset.projectId == project_id)
+        query.filter(models.Dataset.projectId == project_id)
         .offset(skip)
         .limit(limit)
         .all()
@@ -57,6 +59,8 @@ def create_dataset_tag(db: Session, dstc: DatasetTagCreate):
 def add_tag_to_dataset(db: Session, dataset_id: str, tag_id: str):
     _tag = get_dataset_tag_by_id(db, tag_id)
     _dataset = get_dataset_by_id(db, dataset_id)
+    if _dataset is None:
+        raise Exception("Dataset not found")
 
     _dataset.tags.append(_tag)
     db.add(_dataset)

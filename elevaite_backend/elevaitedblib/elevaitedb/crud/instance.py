@@ -4,7 +4,9 @@ from uuid import UUID
 from elevaitedb.db import models
 from elevaitedb.schemas import instance as schema
 from typing import Any, List, Dict
-from rbac_api import rbac_instance
+
+# from rbac_api import rbac_instance
+
 
 def get_instances(
     db: Session,
@@ -14,13 +16,12 @@ def get_instances(
     skip: int = 0,
     limit: int = 0,
 ):
-    
+
     query = db.query(models.Instance)
     # query = rbac_instance.apply_post_validation_type_filters_for_all_query(model_class=models.Instance, filters_list=filters_list, query=query) # uncomment this when using validator
 
     return (
-        query
-        .filter(models.Instance.applicationId == applicationId)
+        query.filter(models.Instance.applicationId == applicationId)
         # .filter(models.Instance.projectId == project_id) # uncomment this when using validator
         .offset(skip)
         .limit(limit)

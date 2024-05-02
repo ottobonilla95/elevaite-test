@@ -2,23 +2,20 @@ from sqlalchemy.orm import Session
 from typing import Optional, Any, List, Dict
 from ..db import models
 from ..schemas import application
-from rbac_api import rbac_instance
+
+# from rbac_api import rbac_instance
+
 
 def get_applications(
-        db: Session,
-        # filters_list: List[Dict[str, Any]] = [], # uncomment this when using validator
-        skip: int = 0,
-        limit: int = 100
-    ):
-        query = db.query(models.Application)
-        # query = rbac_instance.apply_post_validation_type_filters_for_all_query(model_class=models.Application, filters_list=filters_list, query=query) # uncomment this when using validator
+    db: Session,
+    # filters_list: List[Dict[str, Any]] = [], # uncomment this when using validator
+    skip: int = 0,
+    limit: int = 100,
+):
+    query = db.query(models.Application)
+    # query = rbac_instance.apply_post_validation_type_filters_for_all_query(model_class=models.Application, filters_list=filters_list, query=query) # uncomment this when using validator
 
-        return (
-            query
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+    return query.offset(skip).limit(limit).all()
 
 
 def get_application_by_id(db: Session, id: int):

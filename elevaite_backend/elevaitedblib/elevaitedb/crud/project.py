@@ -23,4 +23,6 @@ from ..db import models
 
 def get_project_name(db: Session, project_id: str):
     _project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if _project is None:
+        raise Exception("Project not found")
     return _project.name
