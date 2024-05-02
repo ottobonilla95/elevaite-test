@@ -1,48 +1,34 @@
 import asyncio
-from datetime import datetime
-import io
 import json
 import os
-from pprint import pprint
-import sys
 import threading
 from elasticsearch import Elasticsearch
-import lakefs
 import redis
-from unstructured.partition.html import partition_html
-from unstructured.chunking.title import chunk_by_title
 
 from elevaitedb.db.database import SessionLocal
 from elevaitedb.crud import (
     instance as instance_crud,
     pipeline as pipeline_crud,
-    collection as collection_crud,
-    dataset as dataset_crud,
 )
 from elevaitedb.util import func as util_func
-from elevaitedb.util.s3url import S3Url
 from elevaitedb.schemas.instance import (
-    InstancePipelineStepData,
     InstanceStatus,
-    InstanceStepDataLabel,
     InstanceUpdate,
-    InstanceChartData,
 )
 from elevaitedb.util.logger import ESLogger
 
-from .preprocess import get_file_elements_from_url, get_file_elements_internal
-from . import vectordb
+from .steps.base_step import (
+    STEP_REGISTRY,
+    RESOURCE_REGISTRY,
+    get_initialized_step,
+    register_resource_registry,
+)
 
 from ..util.func import (
-    get_repo_name,
-    path_leaf,
     set_instance_running,
     set_pipeline_step_completed,
-    set_pipeline_step_meta,
-    set_redis_stats,
     set_pipeline_step_running,
     set_instance_completed,
-    set_instance_chart_data,
 )
 from ..interfaces import PreProcessForm
 
@@ -67,15 +53,6 @@ def preprocess_callback(ch, method, properties, body):
 
 
 async def preprocess(data: PreProcessForm) -> None:
-    LAKEFS_ACCESS_KEY_ID = os.getenv("LAKEFS_ACCESS_KEY_ID")
-    if LAKEFS_ACCESS_KEY_ID is None:
-        raise Exception("LAKEFS_ACCESS_KEY_ID is null")
-    LAKEFS_SECRET_ACCESS_KEY = os.getenv("LAKEFS_SECRET_ACCESS_KEY")
-    if LAKEFS_SECRET_ACCESS_KEY is None:
-        raise Exception("LAKEFS_SECRET_ACCESS_KEY is null")
-    LAKEFS_ENDPOINT_URL = os.getenv("LAKEFS_ENDPOINT_URL")
-    if LAKEFS_ENDPOINT_URL is None:
-        raise Exception("LAKEFS_ENDPOINT_URL is null")
     REDIS_HOST = os.getenv("REDIS_HOST")
     if REDIS_HOST is None:
         raise Exception("REDIS_HOST is null")
@@ -101,18 +78,15 @@ async def preprocess(data: PreProcessForm) -> None:
     ELASTIC_HOST = os.getenv("ELASTIC_HOST")
     if ELASTIC_HOST is None:
         raise Exception("ELASTIC_HOST is null")
+    global STEP_REGISTRY
+    global RESOURCE_REGISTRY
     try:
+        _instance_registry = register_resource_registry(instance_id=data.instanceId)
 
         db = SessionLocal()
 
         set_instance_running(
             db=db, application_id=data.applicationId, instance_id=data.instanceId
-        )
-
-        clt = lakefs.Client(
-            host=LAKEFS_ENDPOINT_URL,
-            username=LAKEFS_ACCESS_KEY_ID,
-            password=LAKEFS_SECRET_ACCESS_KEY,
         )
 
         r = redis.Redis(
@@ -140,60 +114,6 @@ async def preprocess(data: PreProcessForm) -> None:
 
         if data.datasetId is None:
             raise Exception("No datasetId recieved")
-
-        repo = None
-
-        repo_name = get_repo_name(
-            db=db, dataset_id=data.datasetId, project_id=data.projectId
-        )
-
-        for _repo in lakefs.repositories(client=clt):
-            if _repo.id == repo_name:
-                repo = _repo
-                break
-        if repo is None:
-            raise Exception("LakeFS Repository not found")
-
-        _version = (
-            data.datasetVersion
-            if data.datasetVersion
-            else dataset_crud.get_max_version_of_dataset(
-                db=db, datasetId=data.datasetId
-            )
-        )
-
-        dataset_version = dataset_crud.get_dataset_version(
-            db=db, datasetId=data.datasetId, version=_version
-        )
-        if dataset_version is None:
-            raise Exception("Dataset Version not found.")
-        ref = lakefs.Reference(repo.id, dataset_version.commitId, client=clt)
-
-        logger.info(message="Dataset found")
-
-        _collection = collection_crud.get_collection_by_id(
-            db=db, collectionId=data.collectionId
-        )
-        collection_name = util_func.to_kebab_case(_collection.name)
-
-        count = 0
-        size = 0
-        for o in ref.objects():
-            count += 1
-            size += o.size_bytes  # type: ignore | Typing seems to be wrong
-
-        # size = sum(1 for _ in src_bucket.objects.all())
-
-        avg_size = 0
-
-        try:
-            avg_size = size / count
-        except:
-            avg_size = 0
-
-        set_redis_stats(
-            r=r, instance_id=data.instanceId, count=count, avg_size=avg_size, size=size
-        )
 
         _pipeline = pipeline_crud.get_pipeline_by_id(db, data.selectedPipelineId)
         _entry_step = None
@@ -233,182 +153,32 @@ async def preprocess(data: PreProcessForm) -> None:
         if _final_step is None:
             raise Exception("Pipeline Exit step not found in steps")
 
-        set_pipeline_step_completed(
-            db=db, instance_id=data.instanceId, step_id=str(_entry_step.id)
+        entry_step_runner = get_initialized_step(
+            data=data, db=db, logger=logger, r=r, step_id=_entry_step.id
+        )
+        entry_step_runner.run()
+
+        _step_runner_1 = get_initialized_step(
+            data=data, db=db, logger=logger, r=r, step_id=_first_step.id
+        )
+        _step_runner_1.run()
+
+        _step_runner_2 = get_initialized_step(
+            data=data, db=db, logger=logger, r=r, step_id=_second_step.id
         )
 
-        set_pipeline_step_meta(
-            db=db,
-            instance_id=data.instanceId,
-            step_id=str(_entry_step.id),
-            meta=[
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.REPO_NAME, value=repo_name
-                ),
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.DATASET_VERSION,
-                    value=dataset_version.version,
-                ),
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.INGEST_DATE,
-                    value=dataset_version.createDate.isoformat(),
-                ),
-            ],
-        )
+        _step_runner_2.run()
 
         set_pipeline_step_running(
-            db=db, instance_id=data.instanceId, step_id=str(_first_step.id)
+            db=db, instance_id=data.instanceId, step_id=str(_final_step.id)
         )
-
-        logger.info(message="Completed Initialization")
-
-        chunks_as_json = []
-        page_as_json = []
-        findex = 0
-        logger.info(message="Starting file segmentation")
-        total_chunk_size = 0
-        avg_chunk_size = 0
-        max_chunk_size = 0
-        num_chunk = 0
-        for object in ref.objects():
-            # print(object)
-            object.physical_address  # type: ignore | Typing seems to be wrong
-            with ref.object(object.path).reader(pre_sign=False, mode="rb") as fd:
-                r.json().set(data.instanceId, ".current_doc", path_leaf(object.path))
-                input = fd.read()
-                file_chunks = get_file_elements_internal(
-                    file=input,
-                    filepath=object.path,
-                    content_type=object.content_type,  # type: ignore | Typing seems to be wrong
-                )
-                chunks_as_json.extend(file_chunks)
-                for chunk in file_chunks:
-                    _chunk_size = sys.getsizeof(chunk.page_content)
-                    num_chunk += 1
-                    total_chunk_size += _chunk_size
-                    avg_chunk_size = str(total_chunk_size / num_chunk)
-                    if _chunk_size > max_chunk_size:
-                        max_chunk_size = _chunk_size
-                r.json().numincrby(data.instanceId, ".ingested_size", object.size_bytes)  # type: ignore | Typing seems to be wrong
-                r.json().numincrby(data.instanceId, ".ingested_items", 1)
-                r.json().numincrby(
-                    data.instanceId, ".ingested_chunks", len(file_chunks)
-                )
-            findex += 1
-            if findex % 10 == 0:
-                # print(findex)
-
-                set_pipeline_step_meta(
-                    db=db,
-                    instance_id=data.instanceId,
-                    step_id=str(_first_step.id),
-                    meta=[
-                        InstancePipelineStepData(
-                            label=InstanceStepDataLabel.REPO_NAME, value=repo_name
-                        ),
-                        InstancePipelineStepData(
-                            label=InstanceStepDataLabel.DATASET_VERSION,
-                            value=dataset_version.version,
-                        ),
-                        InstancePipelineStepData(
-                            label=InstanceStepDataLabel.INGEST_DATE,
-                            value=dataset_version.createDate.isoformat(),
-                        ),
-                        InstancePipelineStepData(
-                            label=InstanceStepDataLabel.TOTAL_CHUNK_SIZE,
-                            value=total_chunk_size,
-                        ),
-                        InstancePipelineStepData(
-                            label=InstanceStepDataLabel.AVG_CHUNK_SIZE,
-                            value=avg_chunk_size,
-                        ),
-                        InstancePipelineStepData(
-                            label=InstanceStepDataLabel.LRGST_CHUNK_SIZE,
-                            value=max_chunk_size,
-                        ),
-                    ],
-                )
-        logger.info(message="Completed file segmentation")
-
-        set_instance_chart_data(r=r, db=db, instance_id=data.instanceId)
 
         set_pipeline_step_completed(
-            db=db, instance_id=data.instanceId, step_id=str(_first_step.id)
+            db=db, instance_id=data.instanceId, step_id=str(_final_step.id)
         )
-
-        set_pipeline_step_meta(
-            db=db,
-            instance_id=data.instanceId,
-            step_id=str(_first_step.id),
-            meta=[
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.REPO_NAME, value=repo_name
-                ),
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.DATASET_VERSION,
-                    value=dataset_version.version,
-                ),
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.INGEST_DATE,
-                    value=dataset_version.createDate.isoformat(),
-                ),
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.TOTAL_CHUNK_SIZE,
-                    value=total_chunk_size,
-                ),
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.AVG_CHUNK_SIZE,
-                    value=avg_chunk_size,
-                ),
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.LRGST_CHUNK_SIZE,
-                    value=max_chunk_size,
-                ),
-            ],
-        )
-
-        set_pipeline_step_running(
-            db=db, instance_id=data.instanceId, step_id=str(_second_step.id)
-        )
-
-        # print("Number of chunks " + str(len(chunks_as_json)))
-        # payloads = json.load(chunks_as_json)
-        logger.info(message="Recreating QDrant Collection")
-        await vectordb.recreate_collection(
-            collection_name=collection_name,
-            size=(
-                data.embedding_info.dimensions
-                if data.embedding_info is not None
-                else 1536
-            ),
-        )
-        logger.info(message="Starting segment vectorization")
-        await vectordb.insert_records(
-            db=db,
-            instance_id=data.instanceId,
-            step_id=str(_second_step.id),
-            collection=collection_name,
-            payload_with_contents=chunks_as_json,
-            emb_info=data.embedding_info,
-        )
-        logger.info(message="Completed segment vectorization")
-
-        set_instance_chart_data(r=r, db=db, instance_id=data.instanceId)
 
         set_instance_completed(
             db=db, application_id=data.applicationId, instance_id=data.instanceId
-        )
-
-        set_pipeline_step_completed(
-            db=db, instance_id=data.instanceId, step_id=str(_second_step.id)
-        )
-
-        set_pipeline_step_running(
-            db=db, instance_id=data.instanceId, step_id=str(_final_step.id)
-        )
-
-        set_pipeline_step_completed(
-            db=db, instance_id=data.instanceId, step_id=str(_final_step.id)
         )
         logger.info(message="Worker completed pre-process pipeline")
     except Exception as e:

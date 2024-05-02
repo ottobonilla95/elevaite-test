@@ -1,6 +1,7 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional, TypeGuard
+from typing import Any, List, Optional, TypeGuard
+from .service_now import ServiceNowIngestBody, ServiceNowTicket
 from pydantic import UUID4, BaseModel, Json
 
 
@@ -44,9 +45,14 @@ class PreProcessFormDTO(BaseDatasetInformationForm):
     maxIdleTime: str
 
 
+class ServiceNowIngestDataDTO(BaseDatasetInformationForm):
+    type: str = "service-now"
+    tickets: List[ServiceNowTicket]
+
+
 class ConfigurationBase(BaseModel):
     applicationId: int
-    raw: S3IngestFormDataDTO | PreProcessFormDTO
+    raw: S3IngestFormDataDTO | PreProcessFormDTO | ServiceNowIngestDataDTO
     name: str
     isTemplate: bool
 

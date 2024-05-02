@@ -1,18 +1,16 @@
 from datetime import datetime
 import json
-from pprint import pprint
-from typing import Any, List
+from typing import List
 import elasticsearch
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 import pika
-from uuid import UUID
 from app.util.name_generator import get_random_name
 from app.util.RedisSingleton import RedisSingleton
 from app.util.ElasticSingleton import ElasticSingleton
 from elevaitedb.util import func as util_func
-from elevaitedb.schemas.application import Application, is_application
+from elevaitedb.schemas.application import is_application
 from elevaitedb.schemas.instance import (
     Instance,
     InstanceChartData,
@@ -28,7 +26,6 @@ from elevaitedb.schemas.instance import (
 )
 from elevaitedb.schemas.pipeline import Pipeline, PipelineStepStatus, is_pipeline
 from elevaitedb.schemas.configuration import (
-    ConfigurationCreate,
     Configuration,
     PreProcessFormDTO,
     S3IngestFormDataDTO,
@@ -45,6 +42,8 @@ from elevaitedb.crud import (
     collection as collection_crud,
 )
 from elevaitedb.db import models
+
+from app.util.func import get_routing_key
 
 
 def getApplicationInstances(
@@ -101,7 +100,7 @@ def createApplicationInstance(
             _collection = collection_crud.create_collection(
                 db=db,
                 projectId=_conf.projectId,
-                cc=CollectionCreate(name=get_random_name()),
+                cc=CollectionCreate(name=get_random_name(), size=1536),
             )
         else:
             _collection = collection_crud.get_collection_by_id(
@@ -199,15 +198,6 @@ def createApplicationInstance(
         "application_id": application_id,
     }
 
-    def get_routing_key(application_id: int) -> str:
-        match application_id:
-            case 1:
-                return "s3_ingest"
-            case 2:
-                return "preprocess"
-            case _:
-                return "default"
-
     rmq.channel().basic_publish(
         exchange="",
         body=json.dumps(_data, default=vars),
@@ -270,7 +260,7 @@ def getApplicationInstanceChart(
         raise HTTPException(404, "Instance data not found")
     res = json.loads(json.dumps(_res))
 
-    return chart_data_from_redis(res)
+    return chart_data_from_redis(input=res)
 
 
 def getApplicationInstanceConfiguration(

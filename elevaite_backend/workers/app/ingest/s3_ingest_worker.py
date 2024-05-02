@@ -30,7 +30,9 @@ from elevaitedb.schemas.instance import (
 )
 from elevaitedb.schemas.dataset import DatasetVersionCreate
 
-from ..interfaces import S3IngestData
+from .steps.base_step import get_initialized_step, register_resource_registry
+
+from ..interfaces import S3IngestData, ServiceNowIngestData
 from ..util.func import (
     path_leaf,
     set_instance_chart_data,
@@ -49,16 +51,23 @@ def s3_ingest_callback(ch, method, properties, body):
 
     print(f" [x] Received {_data}")
 
-    _formData = S3IngestData(
-        **_data["dto"],
-        instanceId=_data["id"],
-        applicationId=_data["application_id"],
-    )
+    if _data["dto"]["type"] == "ingest":
+        _formData = S3IngestData(
+            **_data["dto"],
+            instanceId=_data["id"],
+            applicationId=_data["application_id"],
+        )
+    elif _data["dto"]["type"] == "service-now":
+        _formData = ServiceNowIngestData(
+            **_data["dto"],
+            instanceId=_data["id"],
+            applicationId=_data["application_id"],
+        )
     t = threading.Thread(target=s3_lakefs_cp_stream, args=(_formData,))
     t.start()
 
 
-def s3_lakefs_cp_stream(data: S3IngestData) -> None:
+def s3_lakefs_cp_stream(data: S3IngestData | ServiceNowIngestData) -> None:
     load_dotenv()
     db = SessionLocal()
     AWS_EXTERNAL_ID = os.getenv("AWS_ASSUME_ROLE_EXTERNAL_ID")
@@ -123,9 +132,6 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
     LAKEFS_ENDPOINT_URL = os.getenv("LAKEFS_ENDPOINT_URL")
     if LAKEFS_ENDPOINT_URL is None:
         raise Exception("LAKEFS_ENDPOINT_URL is null")
-    LAKEFS_STORAGE_NAMESPACE = os.getenv("LAKEFS_STORAGE_NAMESPACE")
-    if LAKEFS_STORAGE_NAMESPACE is None:
-        raise Exception("LAKEFS_STORAGE_NAMESPACE is null")
     S3_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID")
     if S3_ACCESS_KEY_ID is None:
         raise Exception("S3_ACCESS_KEY_ID is null")
@@ -158,18 +164,11 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
     if ELASTIC_HOST is None:
         raise Exception("ELASTIC_HOST is null")
 
-    # Create the client instance
-    client = Elasticsearch(
-        ELASTIC_HOST,
-        ssl_assert_fingerprint=ELASTIC_SSL_FINGERPRINT,
-        basic_auth=("elastic", ELASTIC_PASSWORD),
-    )
-
     logger = ESLogger(key=data.instanceId)
     logger.info(message="Initialized worker")
 
     try:
-
+        _intance_registry = register_resource_registry(data.instanceId)
         set_instance_running(
             db=db, application_id=data.applicationId, instance_id=data.instanceId
         )
@@ -182,24 +181,10 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
             password=REDIS_PASSWORD,
         )
 
-        # Create Repository
-
-        clt = lakefs.Client(
-            host=LAKEFS_ENDPOINT_URL,
-            username=LAKEFS_ACCESS_KEY_ID,
-            password=LAKEFS_SECRET_ACCESS_KEY,
-        )
         _pipeline = pipeline_crud.get_pipeline_by_id(db, data.selectedPipelineId)
         _entry_step = None
         _first_step = None
         _final_step = None
-
-        if data.datasetId is None:
-            raise Exception("No datasetId recieved")
-
-        repo_name = get_repo_name(
-            db=db, dataset_id=data.datasetId, project_id=data.projectId
-        )
 
         for s in _pipeline.steps:
             if s.id == _pipeline.entry:
@@ -224,104 +209,39 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
 
         if _final_step is None:
             raise Exception("Pipeline Exit step not found in steps")
+        if data.datasetId is None:
+            raise Exception("No datasetId recieved")
 
-        repo = None
-
-        for _repo in lakefs.repositories(client=clt):
-            if _repo.id == repo_name:
-                repo = _repo
-
-        if not repo:
-            repo = lakefs.Repository(repo_name, client=clt).create(
-                storage_namespace=f"s3://{LAKEFS_STORAGE_NAMESPACE}/{repo_name}"
-            )
-        logger.info(message="Initialized lake repository")
-
-        lakefs_branch = repo.branch("main")
-
-        lakefs_s3 = boto3.client(
-            "s3",
-            aws_access_key_id=LAKEFS_ACCESS_KEY_ID,
-            aws_secret_access_key=LAKEFS_SECRET_ACCESS_KEY,
-            endpoint_url=LAKEFS_ENDPOINT_URL,
+        _entry_step_runner = get_initialized_step(
+            step_id=_entry_step.id,
+            data=data,
+            db=db,
+            logger=logger,
+            r=r,
         )
+        _entry_step_runner.run()
 
-        # src_bucket = _get_iam_s3_client(role_arn=formData.roleARN, endpoint=None).Bucket(
-        #     formData.url
-        # )
-
-        s3url = S3Url(data.url)
-
-        src_bucket = (
-            boto3.Session(
-                aws_access_key_id=S3_ACCESS_KEY_ID,
-                aws_secret_access_key=S3_SECRET_ACCESS_KEY,
-            )
-            .resource("s3")
-            .Bucket(s3url.bucket)
+        _first_step_runner = get_initialized_step(
+            step_id=_first_step.id,
+            data=data,
+            db=db,
+            logger=logger,
+            r=r,
         )
-
-        count = 0
-        size = 0
-        for o in src_bucket.objects.filter(Prefix=s3url.key):
-            count += 1
-            size += o.size
-
-        avg_size = 0
-
-        try:
-            avg_size = size / count
-        except:
-            avg_size = 0
-
-        set_redis_stats(
-            r=r, instance_id=data.instanceId, count=count, avg_size=avg_size, size=size
-        )
-
-        set_pipeline_step_completed(
-            db=db, instance_id=data.instanceId, step_id=str(_entry_step.id)
-        )
-
-        logger.info(message="Completed Initialization")
-
-        set_pipeline_step_running(
-            db=db, instance_id=data.instanceId, step_id=str(_first_step.id)
-        )
-
-        logger.info(message="Starting file ingestion")
-
-        # branch = repo.branch("main")
-
-        for summary in src_bucket.objects.filter(Prefix=s3url.key):
-            # print(f"Copying {summary.key} with size {summary.size}...")
-            # pprint(summary)
-            if not summary.key.endswith("/"):
-                r.json().set(data.instanceId, ".current_file", path_leaf(summary.key))
-                s3_object = src_bucket.Object(summary.key).get()
-                stream = s3_object["Body"]
-                lakefs_s3.upload_fileobj(
-                    Fileobj=stream, Bucket=repo_name, Key=f"main/{summary.key}"
-                )
-            r.json().numincrby(data.instanceId, ".ingested_size", summary.size)
-            r.json().numincrby(data.instanceId, ".ingested_items", 1)
-
-        set_instance_chart_data(r=r, db=db, instance_id=data.instanceId)
-
-        set_instance_completed(
-            db=db, application_id=data.applicationId, instance_id=data.instanceId
-        )
-
-        logger.info(message="Completed file ingestion")
-
-        set_pipeline_step_completed(
-            db=db, instance_id=data.instanceId, step_id=str(_first_step.id)
-        )
+        _first_step_runner.run()
 
         set_pipeline_step_running(
             db=db, instance_id=data.instanceId, step_id=str(_final_step.id)
         )
 
         __commit_flag__ = False
+        lakefs_branch = _intance_registry.lakefs_branch
+        if lakefs_branch is None:
+            raise Exception("LakeFS Branch Object has not been initialized")
+
+        repo_name = _intance_registry.lakefs_repo_name
+        if repo_name is None:
+            raise Exception("LakeFS Repository Name has not been initialized.")
 
         for diff in lakefs_branch.uncommitted():
             if diff is not None:
@@ -353,6 +273,10 @@ def s3_lakefs_cp_stream(data: S3IngestData) -> None:
         else:
             logger.info(message="Dataset is identical, will not commit")
             print("Dataset is identical")
+
+        set_instance_completed(
+            db=db, application_id=data.applicationId, instance_id=data.instanceId
+        )
 
         set_pipeline_step_meta(
             db=db,

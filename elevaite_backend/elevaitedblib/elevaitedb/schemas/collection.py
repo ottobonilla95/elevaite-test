@@ -1,9 +1,12 @@
 from typing import List, NamedTuple, Tuple, Union
 from pydantic import BaseModel, UUID4
+from qdrant_client.http.models import Distance
 
 
 class CollectionBase(BaseModel):
     name: str
+    size: int
+    distance: Distance = Distance.COSINE
 
 
 class CollectionCreate(CollectionBase):

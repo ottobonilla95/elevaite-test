@@ -16,7 +16,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy_json import MutableJson 
+from sqlalchemy_json import MutableJson
+from qdrant_client.http.models import Distance
 
 from ..util.func import get_utc_datetime
 from ..schemas.instance import (
@@ -58,7 +59,7 @@ class Application(Base):
     applicationType: Mapped[ApplicationType] = mapped_column(Enum(ApplicationType))
 
     instances: Mapped[List["Instance"]] = relationship(back_populates="application")
-    pipelines: Mapped["Pipeline"] = relationship("Pipeline")
+    pipelines: Mapped[List["Pipeline"]] = relationship("Pipeline")
 
 
 class Instance(Base):
@@ -127,7 +128,9 @@ class Pipeline(Base):
     entry: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipeline_steps.id"))
     exit: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipeline_steps.id"))
     label: Mapped[str] = mapped_column()
-    applicationId: Mapped[int] = mapped_column(ForeignKey("applications.id"))
+    applicationId: Mapped[int] = mapped_column(
+        ForeignKey("applications.id"), nullable=True
+    )
 
     steps: Mapped[list["PipelineStep"]] = relationship(
         back_populates="pipeline",
@@ -147,7 +150,9 @@ class PipelineStep(Base):
     __tablename__ = "pipeline_steps"
     id: Mapped[UUID4] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     title: Mapped[str]
-    pipelineId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("pipelines.id"))
+    pipelineId: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("pipelines.id"), nullable=True
+    )
     # parent_id = Column(String, ForeignKey("pipeline_steps.id"))
 
     data: Mapped[List["PipelineStepData"]] = relationship(
@@ -322,6 +327,8 @@ class Collection(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     name: Mapped[str]
+    size: Mapped[int]
+    distance: Mapped[Distance] = mapped_column(Enum(Distance))
     projectId = mapped_column(ForeignKey("projects.id"))
 
     project: Mapped[Project] = relationship(back_populates="collections")

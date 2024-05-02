@@ -4,25 +4,27 @@ from elevaitedb.db import models
 from elevaitedb.util.func import to_kebab_case
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.conversions import common_types as types
+from qdrant_client.http.models import Distance, VectorParams
 from sqlalchemy.orm import Session
 from elevaitedb.schemas.collection import Collection, CollectionCreate
 from elevaitedb.crud import collection as collection_crud
+from elevaitedb.util import func as util_func
 
 
 def getCollectionsOfProject(
-    db: Session, 
+    db: Session,
     projectId: str,
     # filters_list: List[Dict[str, Any]], # uncomment this when using validator
     skip: int = 0,
-    limit: int = 100
+    limit: int = 100,
 ) -> List[models.Collection]:
-    
+
     return collection_crud.get_collections(
-        db=db, 
+        db=db,
         projectId=projectId,
         # filters_list=filters_list, # uncomment this when using validator
         skip=skip,
-        limit=limit
+        limit=limit,
     )
 
 
@@ -31,8 +33,16 @@ def getCollectionById(db: Session, collectionId: str) -> models.Collection:
 
 
 def createCollection(
-    db: Session, projectId: str, dto: CollectionCreate
+    db: Session,
+    projectId: str,
+    dto: CollectionCreate,
+    qdrant_client: AsyncQdrantClient,
 ) -> models.Collection:
+    collection_name = util_func.to_kebab_case(dto.name)
+    vector_params = VectorParams(size=dto.size, distance=dto.distance)
+    _res = qdrant_client.create_collection(
+        collection_name=collection_name, vectors_config=vector_params
+    )
     return collection_crud.create_collection(db=db, projectId=projectId, cc=dto)
 
 

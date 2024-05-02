@@ -5,10 +5,7 @@ from sqlalchemy.orm import Session
 from ..services import collections as collection_service
 from .deps import get_db, get_qdrant_connection
 from elevaitedb.schemas import collection as collection_schemas
-from rbac_api import (
-   validators,
-   rbac_instance
-)
+from rbac_api import validators, rbac_instance
 from elevaitedb.db import models
 from qdrant_client.conversions import common_types as types
 
@@ -18,7 +15,7 @@ router = APIRouter(prefix="/project/{project_id}/collection", tags=["collections
 @router.get("", response_model=list[collection_schemas.Collection])
 def getCollectionsOfProject(
     project_id: str,
-    db: Session = Depends(get_db), # comment when using validator 
+    db: Session = Depends(get_db),  # comment when using validator
     skip: int = 0,
     limit: int = 100,
     # validation_info:dict[str, Any] = Depends(validators.validate_get_project_collections_factory(models.Collection, ("READ",))),
@@ -31,11 +28,11 @@ def getCollectionsOfProject(
     # filters_list: List[Dict[str, Any]] = rbac_instance.generate_post_validation_type_filters_for_all_query(models.Collection, typenames, typevalues, validation_info) # uncomment this when using validator
 
     return collection_service.getCollectionsOfProject(
-        db=db, 
+        db=db,
         projectId=project_id,
         # filters_list=filters_list, # uncomment this when using validator
         skip=skip,
-        limit=limit
+        limit=limit,
     )
 
 
@@ -58,11 +55,14 @@ def getCollectionById(
 def createCollection(
     project_id: str,
     dto: Annotated[collection_schemas.CollectionCreate, Body()],
+    qdrant_connection=Depends(get_qdrant_connection),
     db: Session = Depends(get_db),  # comment this when using validator
     # validation_info:dict[str, Any] = Depends(validators.validate_create_project_collection_factory(models.Collection, ("CREATE",))), # uncomment this to use validator
 ):
     # db: Session = validation_info.get("db", None) # uncomment this when using validator
-    return collection_service.createCollection(db=db, projectId=project_id, dto=dto)
+    return collection_service.createCollection(
+        db=db, projectId=project_id, dto=dto, qdrant_client=qdrant_connection
+    )
 
 
 @router.get(

@@ -10,6 +10,7 @@ from app.routers.instances import router as instances_router
 from app.routers.configurations import router as configuration_router
 from app.routers.datasets import router as datasets_router
 from app.routers.collections import router as collections_router
+from app.routers.service_now import router as service_now_router
 
 from app.util.RedisSingleton import RedisSingleton
 from app.util.ElasticSingleton import ElasticSingleton
@@ -40,6 +41,7 @@ app.include_router(configuration_router)
 app.include_router(datasets_router)
 # app.include_router(projects_router)
 app.include_router(collections_router)
+app.include_router(service_now_router)
 
 
 @app.get("/hc")
