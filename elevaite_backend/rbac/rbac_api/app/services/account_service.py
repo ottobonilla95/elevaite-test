@@ -30,25 +30,7 @@ def create_account(
    db: Session,
    logged_in_user_id: UUID 
    ) -> account_schemas.AccountResponseDTO: 
-   """
-   Creates an account based on given account_creation_payload body param and validity and permission checks.
-
-   Args:
-      account_creation_payload (AccountCreationRequestDTO): The payload containing details of 'organization_id', 'name' and optionally 'description' for account creation
-      logged_in_user_id (UUID): logged-in users' id
-      db (Session): The db session object for db operations.
-
-   Raises: 
-      404: Organization not found.
-      409: Account with same name in specified organization already exists.
-      503: Any db related error.
-   Returns: 
-      AccountResponseDTO : The response containing created AccountResponseDTO object. 
    
-   Notes:
-      - logged-in user is assumed to be either admin or superadmin. 
-      - the req body has either non-empty 'name' field, or non-empty 'description' field, or both fields are non-empty.
-   """
    try:
       # Check if the organization exists and if an account with the same name does not exist in the organization
       organization_exists_subquery = select(exists().where(models.Organization.id == account_creation_payload.organization_id))
@@ -157,24 +139,7 @@ def get_accounts(
    name: Optional[str],
    db: Session
 ) -> List[account_schemas.AccountResponseDTO]:
-   """
-   Retrieves accounts for a user with optional name query param.
 
-   Args:
-      name (Optional[str]): Optional query param of account name .
-      db (Session): The db session object for db operations.
-
-   Raises: 
-      401: If logged-in user is not found in db.
-      503: Any db related error.
-
-   Returns: 
-      List[AccountResponseDTO] : A list of retrieved AccountResponseDTO objects, which may be empty. 
-   
-   Notes:
-      - Superadmin users can get all the accounts in the specified organization, with optional filtering based on query param 'name'
-      - non-superadmin users can get all the accounts that they are associated with in the specified organization, with optional filtering based on query param 'name'
-   """
    try:
       # Start with all accounts if the user is superadmin, else filter by user's accounts (so that superadmin can still view accounts if association removed)
       if logged_in_user_is_superadmin: 
@@ -381,24 +346,32 @@ def deassign_user_from_account(
       if not user_to_deassign:
          raise ApiError.notfound(f"User - '{user_id}' - not found")
       
-      if logged_in_user.id == user_to_deassign.id:
-         raise ApiError.validationerror("Invalid action - cannot deassign self from account")
-      
-      # Check User_Account association
       user_to_deassign_account_association = db.query(models.User_Account).filter(models.User_Account.user_id == user_to_deassign.id, models.User_Account.account_id == account_id).first()
       if not user_to_deassign_account_association:
          raise ApiError.validationerror(f"User - '{user_to_deassign.id}' - is not assigned to account - '{account_id}'")
+      
+      if logged_in_user.id == user_to_deassign.id:
+         if not logged_in_user.is_superadmin:
+            raise ApiError.validationerror("Invalid action - cannot deassign self from account")
+         # delete associated projects in account
+         delete_all_associated_user_projects_in_account(user_id = user_to_deassign.id, account_id=account_id, db=db)
+         # delete User_Account association
+         user_account_delete_count = db.query(models.User_Account).filter(
+               models.User_Account.user_id == user_to_deassign.id,
+               models.User_Account.account_id == account_id
+         ).delete(synchronize_session=False)
+         db.commit()
+
+         return JSONResponse(content={"message": f"Successfully deassigned user - '{user_id}' - from account - '{account_id}'"}, status_code=status.HTTP_200_OK)
       
       if user_to_deassign.is_superadmin: # if user to deassign is superadmin
          ROOT_SUPERADMIN_EMAIL = os.getenv("ROOT_SUPERADMIN_EMAIL", None)
          if ROOT_SUPERADMIN_EMAIL != logged_in_user.email: # only root superadmin user can deassign other superadmins
             raise ApiError.forbidden(f"you do not have root superadmin permissions to deassign superadmin user - '{user_to_deassign.id}' from account - '{account_id}'")
       
+      delete_all_associated_user_projects_in_account(user_id = user_to_deassign.id, account_id=account_id, db=db)
       
-      if not user_to_deassign.is_superadmin: #only deassociate projects under account if user to deassign is not superadmin
-         delete_all_associated_user_projects_in_account(user_id = user_to_deassign.id, account_id=account_id, db=db)
-      
-      # delete User_Account entry
+      # delete User_Account association
       user_account_delete_count = db.query(models.User_Account).filter(
             models.User_Account.user_id == user_to_deassign.id,
             models.User_Account.account_id == account_id

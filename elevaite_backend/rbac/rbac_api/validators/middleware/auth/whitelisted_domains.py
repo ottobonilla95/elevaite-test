@@ -1,0 +1,1 @@
+white_listed_domains = ('iopex.ai', 'iopex.com')

@@ -70,6 +70,20 @@ async def patch_user(
    user_patch_payload: user_schemas.UserPatchRequestDTO = Body(description= "User patch payload"),
    validation_info: dict[str, Any] = Depends(validators.validate_patch_user)
 ) -> user_schemas.OrgUserListItemDTO:
+   """
+   Patch User resource
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - user_patch_payload (UUID) : payload containing atleast 1 of user firstname/lastname information for update
+
+   Returns: 
+      -OrgUserListItemDTO : Patched User resource response object
+   
+   Notes:
+      - superadmin users can patch any user
+      - non-superadmin users can only patch self
+   """
    user_to_patch: models.User = validation_info.get("User", None)
    db: Session = validation_info.get("db", None)
    return service.patch_user(user_to_patch, user_patch_payload, db)
@@ -129,14 +143,18 @@ async def get_user_profile(
    validation_info: dict[str, Any] = Depends(validators.validate_get_user_profile),
 ) -> user_schemas.UserProfileDTO:
    """
-    Retrieves user profile with mutual account membership information; superadmins can see all account-memberships of user
+   Retrieve User profile with mutual account membership information
 
-    Parameters:
-    - account_id (UUID): . The ID of the account in which user is being profiled; mandatory parameter for non-superadmin users
-    - user_id (UUID): ID of user being profiled.
+   Parameters:
+      - X-elevAIte-AccountId (UUID): The ID of the account in which user is being profiled; mandatory parameter for non-superadmin users
+      - user_id (UUID): ID of user being profiled.
 
-    Returns:
-    - User profile with User model attributes, along with account membership and account-based role information; superadmi
+   Returns:
+      - UserProfileDTO: User profile containing user information along with account membership information
+   
+   Notes:
+      - superadmin users can see all account-memberships of user 
+      - non-superadmin users can see only mutual account membership information
    """
    user_to_profile = validation_info.get("User", None)
    logged_in_user = validation_info.get("logged_in_user", None)
@@ -198,7 +216,20 @@ async def patch_user_account_roles(
    role_list_dto: role_schemas.RoleListDTO = Body(description = "payload containing account-scoped role_id's and action to patch user"),
    validation_info:dict[str,Any] = Depends(validators.validate_patch_user_account_roles)
 ) -> JSONResponse:
+   """
+   Patch user's account scoped roles
+
+   Parameters:
+      - account_id (UUID): The ID of the account in which user's account scoped roles are being updated
+      - role_list_dto: payload containing list of role_id's and action - 'Add' or 'Remove'
+
+   Returns:
+      - JSONResponse: 200 success message for successfull addition or removal of account-scoped roles for user
    
+   Notes:
+      - Authorized for use only by superadmin/account-admin users
+      - cannot patch account-scoped roles of superadmin/account-admin users
+   """
    db: Session = validation_info.get("db", None)
    user_to_patch: models.User = validation_info["User"]
 
@@ -264,6 +295,22 @@ async def update_user_project_permission_overrides(
    permission_overrides_payload: role_schemas.ProjectScopedPermission = Body(...),
    validation_info: dict[str, Any] = Depends(validators.validate_update_project_permission_overrides_factory(models.Project, ("READ", )))
 ) -> JSONResponse:
+   """
+   Update user's project permission overrides 
+
+   Parameters:
+      - project_id (UUID): The ID of the project in which user's project permission overrides are being updated
+      - user_id (UUID): The ID of the user whose project permission overrides are being updated
+      - permission_overrides_payload: payload containing ProjectScopedPermission JSON with 'Allow' and 'Deny' values against resource actions 
+
+   Returns:
+      - JSONResponse: 200 success message for successful updation of user's project permission overrides
+   
+   Notes:
+      - Authorized for use only by superadmin/account-admin/project-admin users
+      - cannot patch project permission overrides for superadmin/account-admin/project-admin users
+      - users who are only project-admins can patch project permission overrides for other regular users if they have Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be associated to all projects in the parent project hierarchy of the project (inclusive of project)
+   """
    db: Session = validation_info.get("db", None)
    user_to_patch = validation_info.get("User", None)
    account = validation_info.get("Account", None)
@@ -325,6 +372,21 @@ async def get_user_project_permission_overrides(
    project_id: UUID = Path(..., description="The ID of the project"),
    validation_info: dict[str, Any] = Depends(validators.validate_get_project_permission_overrides_factory(models.Project, ("READ", )))
 ) -> role_schemas.ProjectScopedPermission:
+   """
+   Get user's project permission overrides 
+
+   Parameters:
+      - project_id (UUID): The ID of the project in which user's project permission overrides are being retrieved
+      - user_id (UUID): The ID of the user whose project permission overrides are being retrieved
+      
+   Returns:
+      - ProjectScopedPermission:  user's project permission overrides
+   
+   Notes:
+      - Authorized for use only by superadmin/account-admin/project-admin users, or by regular users only for their own project permission overrides
+      - cannot retrieve project permission overrides for superadmin/account-admin/project-admin users
+      - users who are only project-admins can retrieve project permission overrides for other regular users if they have Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be associated to all projects in the parent project hierarchy of the project (inclusive of project)
+   """
    db: Session = validation_info.get("db", None)
    user_to_patch = validation_info.get("User", None)
    account = validation_info.get("Account", None)
@@ -386,6 +448,22 @@ async def patch_user_superadmin_status(
    superadmin_status_update_dto: user_schemas.SuperadminStatusUpdateDTO = Body(...),
    validation_info: dict[str, Any] = Depends(validators.validate_patch_user_superadmin_status)
 ) -> JSONResponse:
+   """
+   Update user's superadmin status
+
+   Parameters:
+      - user_id (UUID): The ID of the user whose project permission overrides are being updated
+      - superadmin_status_update_dto: payload containing action with 'Grant' or 'Revoke' values for superadmin status update of user
+
+   Returns:
+      - JSONResponse: 200 success message for successful superadmin status update of user
+   
+   Notes:
+      - Authorized for use only by superadmin users
+      - Cannot modify superadmin status of self
+      - Cannot modify superadmin status of root superadmin user
+      - Revoking superadmin status will result in dissociation of user from all projects in non-admin accounts which are not connected to their respective account's top level projects through associations 
+   """
    db: Session = validation_info.get("db", None)
    logged_in_user = validation_info.get("logged_in_user", None)
    return service.patch_user_superadmin_status(db=db,

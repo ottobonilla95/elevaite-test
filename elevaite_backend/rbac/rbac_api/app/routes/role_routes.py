@@ -64,6 +64,20 @@ async def create_role(
    role_creation_dto: role_schemas.RoleCreationRequestDTO = Body(description= "role creation payload"),
    validation_info: dict[str, Any] = Depends(validators.validate_post_roles)
 ) -> role_schemas.RoleResponseDTO :
+   """
+   Create Role resource
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - role_creation_dto : req body containing role creation details
+      
+   Returns: 
+      - RoleResponseDTO  : Role response object 
+   
+   Notes:
+      - only authorized for use by superadmin users
+      - role contains a JSONB permissions fields which has AccountScopedPermissions object
+   """
    db: Session = validation_info.get("db", None)
    return service.create_role(role_creation_dto, db)
 
@@ -109,6 +123,19 @@ async def get_role(
    role_id: UUID = Path(..., description= "role ID to retrieve role object"),
    validation_info: dict[str, Any] = Depends(validators.validate_get_role)
 ) -> List[role_schemas.RoleResponseDTO]:
+   """
+   Retrieve Role resource
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - role_id (UUID) : id of role to retrieve
+      
+   Returns: 
+      - RoleResponseDTO  : Role response object 
+   
+   Notes:
+      - authorized for use by all authenticated users
+   """
    db: Session = validation_info.get("db", None)
    return service.get_role(db = db, role_id = role_id)
    
@@ -149,6 +176,19 @@ async def get_role(
 async def get_roles(
    validation_info: dict[str, Any] = Depends(validators.validate_get_roles)
 ) -> List[role_schemas.RoleResponseDTO]:
+   """
+   Retrieve Role resources
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      
+   Returns: 
+      - List[RoleResponseDTO]  : Role response objects 
+   
+   Notes:
+      - Authorized for use only by superadmin and account-admin users (in atleast 1 account)
+      - Usecase is to display role list from which superadmin/admin users can select roles to append to user's account-scoped roles
+   """
    db: Session = validation_info.get("db", None)
    return service.get_roles(db)
    
@@ -203,6 +243,20 @@ async def patch_role(
    role_patch_req_payload: role_schemas.RoleUpdateRequestDTO = Body(description= "Role patch payload"),
    validation_info:dict[str, Any] = Depends(validators.validate_patch_roles)
 ) -> role_schemas.RoleResponseDTO:
+   """
+   Patch Role resource
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - role_id (UUID) : id of role to update
+      - role_patch_req_payload: req body containing role patch details; must provide atleast 1 field
+
+   Returns: 
+      - RoleResponseDTO  : Patched Role response object 
+   
+   Notes:
+      - Authorized for use only by superadmin users
+   """
    db: Session = validation_info.get("db", None)
    return service.patch_role(role_id, role_patch_req_payload, db)
 
@@ -254,6 +308,19 @@ async def delete_role(
    validation_info:dict[str, Any] = Depends(validators.validate_delete_roles),
    role_id: UUID = Path(..., description="role id to delete", examples = ['11111111-1111-1111-1111-111111111111']) 
 ) -> JSONResponse:
+   """
+   Delete Role resource
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - role_id (UUID) : id of role to delete
+
+   Returns: 
+      - JSONResponse : 200 success message for successful role object deletion
+   
+   Notes:
+      - Authorized for use only by superadmin users
+   """
    db: Session = validation_info.get("db", None)
    return service.delete_role(db, role_id)
 

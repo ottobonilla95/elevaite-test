@@ -1,8 +1,0 @@
-{
-   "insufficient_permissions": {
-       "summary": "organization with the same name already exists",
-       "value": {
-           "detail": "organization with name - 'org_1' - already exists"
-       }
-   }
-}

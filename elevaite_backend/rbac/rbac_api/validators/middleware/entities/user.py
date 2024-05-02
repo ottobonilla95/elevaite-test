@@ -87,7 +87,7 @@ async def validate_patch_user(
          return {"User" : user_to_patch, "db" : db}
 
       # If the flow reaches here, the user does not have superadmin/account-admin permissions
-      raise ApiError.forbidden(f"you do not have superadmin/account-admin privileges to update User - '{user_id}'")
+      raise ApiError.forbidden(f"you do not have superadmin privileges to update User - '{user_id}'")
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in PATCH: /users/{user_id} - validate_patch_user middleware : {e}')

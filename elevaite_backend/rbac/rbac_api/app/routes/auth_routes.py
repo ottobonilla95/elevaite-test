@@ -83,6 +83,21 @@ async def register_user(
    register_user_payload: auth_schemas.RegisterUserRequestDTO = Body(description= "user creation payload"),
    validation_info: dict[str, Any] = Depends(validators.validate_register_user)
 ) -> JSONResponse:
+   """
+   Register/Sign-in User resource to Organization resource 
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - register_user_payload : Contains mandatory params - 'org_id' and 'email' - as well as optional params - 'firstname' , 'lastname'
+      
+   Returns: 
+      - JSONResponse : A JSON with 200 success message containing existing user in org corresponding to email 
+      - JSONResponse : A JSON with 201 success message containing newly registered user in org corresponding to payload params provided
+   
+   Notes:
+      - only authorized for users who provide email in payload identical to the email in access token passed in header 
+   """
+
    db: Session = validation_info.get("db", None)
    return service.register_user(db=db, register_user_payload=register_user_payload)
 
@@ -139,7 +154,7 @@ async def evaluate_rbac_permissions(
    validation_info: dict[str, Any] = Depends(validators.validate_evaluate_rbac_permissions)
 ) -> auth_schemas.PermissionsValidationResponse:
    """
-    Retrieves an evaluated list of rbac permissions for requested resource actions, and additionally can also retrieve account/project admin status.
+    Retrieve an evaluated list of rbac permissions for requested resource actions, and additionally can also retrieve account/project admin status.
 
     Parameters:
     - X-elevAIte-AccountId (UUID): Optional. The ID of the account under which permissions are to be evaluated; This is optional if 'X-elevAIte-projectId' is provided since it can be derived from the project. In case both 'X-elevAIte-AccountId' and 'X-elevAIte-ProjectId' are provided, then they must be associated. 
@@ -148,6 +163,9 @@ async def evaluate_rbac_permissions(
 
     Returns:
     - json containing 'True' or 'False' boolean value denoting evaluated rbac permissions for requested input fields, along with other omitted fields containing 'NOT_EVALUATED' string value
+
+    Notes:
+    - If the scope of this api call is within a project context, X-elevAIte-ProjectId should always be passed to reflect accurate rbac permissions within that project.
    """
    db: Session = validation_info.get("db", None)
    logged_in_user = validation_info.get("logged_in_user", None)

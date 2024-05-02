@@ -20,7 +20,6 @@ async def validate_post_account(
       # Fetch user by email
       logged_in_user = db.query(models.User).filter(models.User.email == user_email).first()
       if not logged_in_user:
-         print(f"in POST /accounts/ - validate_post_account middleware : logged in user with email -'{user_email}'- not found in user table")
          raise ApiError.unauthorized("User is unauthenticated") # decide whether to expose user not found
 
       # Check if user is a superadmin
@@ -28,7 +27,6 @@ async def validate_post_account(
          return {"logged_in_user" : logged_in_user, "db" : db}
 
       # If not a superadmin, deny access
-      print(f"in POST /accounts/ - validate_post_account middleware : logged in user -'{logged_in_user.id}'- does not have superadmin privileges to create accounts")
       raise ApiError.forbidden("you do not have superadmin privileges to create accounts")
    except HTTPException as e:
       db.rollback()

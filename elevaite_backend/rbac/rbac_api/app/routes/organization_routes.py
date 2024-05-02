@@ -67,12 +67,25 @@ organization_router = APIRouter(prefix="/organization", tags=["organizations"])
 async def patch_organization(
     organization_patch_req_payload: organization_schemas.OrganizationPatchRequestDTO = Body(...),
     validation_info: dict[str, Any] = Depends(validators.validate_patch_organization)
-    ) -> organization_schemas.OrganizationResponseDTO:
-            db: Session = validation_info.get("db", None)
-            org_to_patch : models.Organization = validation_info.get("Organization", None)
-            return service.patch_organization(db=db, 
-                                              org_to_patch=org_to_patch,
-                                              organization_patch_req_payload=organization_patch_req_payload)
+) -> organization_schemas.OrganizationResponseDTO:
+    """
+    Patch elevAIte organization resource.
+    
+    Parameters:
+    - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+    - Organization patch req body: Mandatory. Must contain 1 or more fields
+
+    Returns:
+    - OrganizationResponseDTO : The patched elevAIte organization response object
+
+    Notes:
+    - Only authorized for use by superadmin users.
+    """
+    db: Session = validation_info.get("db", None)
+    org_to_patch : models.Organization = validation_info.get("Organization", None)
+    return service.patch_organization(db=db, 
+                                        org_to_patch=org_to_patch,
+                                        organization_patch_req_payload=organization_patch_req_payload)
         
 @organization_router.get("/", responses={
             status.HTTP_200_OK: {
@@ -106,9 +119,18 @@ async def patch_organization(
         })
 async def get_organization(
     validation_info: dict[str, Any] = Depends(validators.validate_get_organization)
-    ) -> organization_schemas.OrganizationResponseDTO:
-        org = validation_info.get("Organization", None)
-        return org
+) -> organization_schemas.OrganizationResponseDTO:
+    """
+    Retrieve elevAIte organization resource
+
+    Parameters:
+    - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+
+    Returns:
+    - OrganizationResponseDTO : elevAIte organization response object 
+    """
+    org = validation_info.get("Organization", None)
+    return org
 
 
 @organization_router.get("/users", response_model=List[user_schemas.OrgUserListItemDTO], status_code=status.HTTP_200_OK, responses={
@@ -167,6 +189,24 @@ async def get_org_users(
    lastname: Optional[str] = Query(None, description="Filter users by last name"),
    email: Optional[str] = Query(None, description="Filter users by email")
 ) -> List[user_schemas.OrgUserListItemDTO]:
-   db: Session = validation_info.get("db", None)
-   org_id: UUID = validation_info.get("org_id" , None)
-   return service.get_org_users(db, org_id, firstname, lastname, email)
+    """
+    Retrieve elevAIte organization user resources. 
+
+    Parameters:
+    - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+    - Filter query params for user firstname, lastname and email 
+    - firstname (str): Optional filter query param for user firstname with case-insensitive pattern matching
+    - lastname (str): Optional filter query param for user lastname with case-insensitive pattern matching
+    - email (str): Optional filter query param for user email with case-insensitive pattern matching
+
+    Returns:
+    - List[OrgUserListItemDTO] : elevAIte organization users response objects
+
+    Notes:
+    - Only authorized for use by superadmins/account-admins.
+    - Use case for superadmins/admins to add users to accounts
+
+    """
+    db: Session = validation_info.get("db", None)
+    org_id: UUID = validation_info.get("org_id" , None)
+    return service.get_org_users(db, org_id, firstname, lastname, email)

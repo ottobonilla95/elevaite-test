@@ -72,10 +72,23 @@ account_router = APIRouter(prefix="/accounts", tags=["accounts"])
 async def create_account(
    account_creation_payload: account_schemas.AccountCreationRequestDTO = Body(..., description = "account creation request payload"),
    validation_info: dict[str, Any] = Depends(validators.validate_post_account) # Assuming the dependency function extracts the user ID from the access token, and performs all required validations.
-   ) -> account_schemas.AccountResponseDTO: 
-      logged_in_user: models.User = validation_info.get("logged_in_user", None)
-      db: Session = validation_info.get("db", None)
-      return service.create_account(account_creation_payload, db, logged_in_user.id)
+) -> account_schemas.AccountResponseDTO: 
+   """
+   Create an Account resource based on given body param.
+
+   Parameters:
+      - account_creation_payload (AccountCreationRequestDTO): The payload containing details of 'organization_id', 'name' and optionally 'description' for account creation
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+
+   Returns: 
+      - AccountResponseDTO : The response containing created AccountResponseDTO object. 
+   
+   Notes:
+      - only authorized for use by superadmin users. 
+   """
+   logged_in_user: models.User = validation_info.get("logged_in_user", None)
+   db: Session = validation_info.get("db", None)
+   return service.create_account(account_creation_payload, db, logged_in_user.id)
   
    
 @account_router.patch("/{account_id}", responses={
@@ -131,10 +144,23 @@ async def create_account(
 async def patch_account(
    account_patch_req_payload: account_schemas.AccountPatchRequestDTO = Body(...),
    validation_info: dict[str, Any] = Depends(validators.validate_patch_account) # Assuming the dependency function extracts the user ID from the access token, and performs all required validations.
-   ) -> account_schemas.AccountResponseDTO: 
-      account_to_patch: models.Account = validation_info.get("Account", None)
-      db: Session = validation_info.get("db", None)
-      return service.patch_account(account_to_patch, account_patch_req_payload, db)
+) -> account_schemas.AccountResponseDTO: 
+   """
+   Patch an Account resource based on given body param.
+
+   Parameters:
+      - account_patch_req_payload (AccountPatchRequestDTO): The payload containing account patch details; atleast 1 field from 'name', 'description' must be provided
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+
+   Returns: 
+     - AccountResponseDTO : The response containing patched AccountResponseDTO object. 
+   
+   Notes:
+      - only authorized for use by superadmin/account-admin users. 
+   """
+   account_to_patch: models.Account = validation_info.get("Account", None)
+   db: Session = validation_info.get("db", None)
+   return service.patch_account(account_to_patch, account_patch_req_payload, db)
    
 @account_router.get("/", responses={
    status.HTTP_200_OK: {
@@ -166,9 +192,22 @@ async def get_accounts(
    validation_info: dict[str, Any] = Depends(validators.validate_get_accounts), 
    name: Optional[str] = Query(None, description="Filter accounts by account name"),
 ) -> List[account_schemas.AccountResponseDTO]:
-      logged_in_user: models.User  = validation_info.get("logged_in_user", None)
-      db: Session = validation_info.get("db", None)
-      return service.get_accounts(logged_in_user.id,logged_in_user.is_superadmin, name, db)
+   """
+   Retrieve Account resources accessible by user.
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+
+   Returns: 
+      - List[AccountResponseDTO] : The response containing list of AccountResponseDTO objects that are accessible by user. 
+   
+   Notes:
+      - superadmin users can retrieve all organization accounts regardless of assignment. 
+      - non-superadmin users can only retrieve accounts to which they are assigned. 
+   """
+   logged_in_user: models.User  = validation_info.get("logged_in_user", None)
+   db: Session = validation_info.get("db", None)
+   return service.get_accounts(logged_in_user.id,logged_in_user.is_superadmin, name, db)
 
 @account_router.get("/{account_id}", responses={
    status.HTTP_200_OK: {
@@ -219,8 +258,22 @@ async def get_accounts(
 async def get_account( 
    validation_info: dict[str, Any] = Depends(validators.validate_get_account), 
 ) -> account_schemas.AccountResponseDTO:
-      account: models.Account = validation_info.get("Account", None)
-      return account
+   """
+   Retrieve Account resource
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - account_id (UUID) : Path variable. id of account to be queried
+   
+   Returns: 
+      - AccountResponseDTO : The response containing AccountResponseDTO object specified by account_id. 
+   
+   Notes:
+      - superadmin users can retrieve any organization account regardless of assignment
+      - non-superadmin users can only retrieve the account if assigned to account
+   """
+   account: models.Account = validation_info.get("Account", None)
+   return account
 
 @account_router.get("/{account_id}/users", response_model=List[user_schemas.AccountUserListItemDTO], status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -279,6 +332,25 @@ async def get_account_user_list(
    lastname: Optional[str] = Query(None, description="Filter users by last name"),
    email: Optional[str] = Query(None, description="Filter users by email")
 ) -> List[user_schemas.AccountUserListItemDTO]:
+   """
+   Retrieve Account resource's user list
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - account_id (UUID) : Path variable. id of account under which users are queried
+      - firstname (str): Optional filter query param for user firstname with case-insensitive pattern matching
+      - lastname (str): Optional filter query param for user lastname with case-insensitive pattern matching
+      - email (str): Optional filter query param for user email with case-insensitive pattern matching
+
+   Returns: 
+      - List[AccountUserListItemDTO] : The response containing AccountUserListItemDTO objects under account specified by account_id. 
+   
+   Notes:
+      - superadmin users can retrieve any account user list regardless of account assignment
+      - non-superadmin users can only retrieve the account user list if assigned to account
+      - Each list item displays User resource information along with account-admin status and account-scoped roles
+      - superadmin/account-admin users will always display an empty list for their account-scoped roles 
+   """
    db: Session = validation_info.get("db", None)
    return service.get_account_user_list(db,account_id, firstname, lastname, email)
    
@@ -346,6 +418,21 @@ async def assign_users_to_account(
    user_list_dto: user_schemas.UserListDTO = Body(description = "payload containing user_id's to assign to account"),
    validation_info: dict[str, Any] = Depends(validators.validate_assign_users_to_account)
 ) -> JSONResponse:
+   """
+   Assign list of User resources to an Account resource
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - account_id (UUID) : Path variable. id of account to which users are assigned
+      - user_list_dto  : List of user id's specifying users to assign to account
+      
+   Returns: 
+      - JSONResponse : A JSON with 200 success message for the user list assignment to account. 
+   
+   Notes:
+      - only authorized for use by superadmin/account-admin users
+
+   """
    db: Session = validation_info.get("db", None)
    return service.assign_users_to_account(account_id, user_list_dto, db)
 
@@ -404,6 +491,23 @@ async def deassign_user_from_account(
    user_id:UUID = Path(..., description = "user id to deassign from account"),
    validation_info: dict[str, Any] = Depends(validators.validate_deassign_user_from_account)
 ) -> JSONResponse:
+   """
+   Deassign User resource from Account resource
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - account_id (UUID) : Path variable. id of account from which user is to be deassigned
+      - user_id (UUID) : ID of user to deassign
+      
+   Returns: 
+      - JSONResponse : A JSON with 200 success message for the user deassignment from account. 
+   
+   Notes:
+      - only authorized for use by superadmin/account-admin users
+      - users who are only account-admins cannot deassign themselves from account
+      - superadmin users can only be deassigned from account by root superadmin user or by themselves
+      - deassignment from account deletes all project associations within that account for the deassigned user as well
+   """
    db: Session = validation_info.get("db", None)
    logged_in_user = validation_info.get('logged_in_user', None)
    return service.deassign_user_from_account(account_id, user_id, logged_in_user, db)
@@ -466,6 +570,23 @@ async def patch_user_account_admin_status(
    account_admin_status_update_dto: account_schemas.AccountAdminStatusUpdateDTO = Body(...),
    validation_info:dict[str, Any] = Depends(validators.validate_patch_account_admin_status)  
 ) -> JSONResponse:
+   """
+   Patch User resources' account admin status
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - account_id (UUID) : Path variable. id of account in which user admin status is patched
+      - user_id (UUID) : ID of user to modify account admin status
+      - account_admin_status_update_dto: req body containing action - 'Grant', 'Revoke' - to perform on user's account admin status
+      
+   Returns: 
+      - JSONResponse : A JSON with 200 success message for the user account admin status update. 
+   
+   Notes:
+      - only authorized for use by superadmin/account-admin users
+      - users who are only account-admins cannot modify account admin status of self
+      - revoking account admin status of non-superadmin users also results in deassignment of those users from all of those account's projects which are not connected to any of account's top level projects through associations 
+   """
    logged_in_user = validation_info.get("logged_in_user", None)
    db: Session = validation_info.get("db", None)
    return service.patch_user_account_admin_status(account_id,  

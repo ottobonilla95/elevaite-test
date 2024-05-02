@@ -77,6 +77,27 @@ async def create_project(
    account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id in which project is posted"),
    validation_info: dict[str, Any]= Depends(validators.validate_post_project_factory(models.Project, ("CREATE",)))
 ) -> project_schemas.ProjectResponseDTO:
+   """
+   Create a Project resource
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - account_id (UUID) : Mandatory. id of account in which project is to be created
+      - project_id( UUID) : Optional. id of parent project under which project is to be created
+      - project_creation_payload : payload containing project creation details
+      
+   Returns: 
+      - ProjectResponseDTO : Project response object 
+   
+   Notes:
+      - When 'X-elevAIte-ProjectId' is not provided, the created project is a top level project in the account with parent_project_id = null
+      - Creating a project makes the creator a project admin for that project
+      - superadmin users can create projects in any account and under any parent project
+      - users who are only account-admins can create projects under their admin accounts under any parent project
+      - users who are only project-admins can create projects under their admin projects, if they are also associated to all projects in the parent project hierarchy of the admin project - 'X-elevAIte-ProjectId'(inclusive of 'X-elevAIte-ProjectId') - to be able to create a project under 'X-elevAIte-ProjectId'
+      - Users who are not superadmin and not account-admin and not project-admin must have Project - 'READ' and 'CREATE' permission in any of their account-scoped roles under the account where project is created, (with no project permission overrides denying Project - 'READ' and 'CREATE' in case action performed inside a parent project) to create a project
+      - Users who are not superadmin and not account-admin and not project-admin, who have the necessary permissions to create a project, must also be associated to all projects in the parent project hierarchy of 'X-elevAIte-ProjectId' (inclusive of 'X-elevAIte-ProjectId') to be able to create a project under 'X-elevAIte-ProjectId'
+   """
    db: Session = validation_info.get("db", None)
    logged_in_user = validation_info.get("logged_in_user", None)
    
@@ -142,10 +163,27 @@ async def create_project(
 async def patch_project(
    project_patch_payload: project_schemas.ProjectPatchRequestDTO = Body(...),
    validation_info: dict[str, Any] = Depends(validators.validate_patch_project_factory(models.Project, ("READ",)))
-   ) -> project_schemas.ProjectResponseDTO: 
-      project_to_patch: models.Project = validation_info.get("Project", None)
-      db: Session = validation_info.get("db", None)
-      return service.patch_project(project_to_patch, project_patch_payload, db)
+) -> project_schemas.ProjectResponseDTO: 
+   """
+   Patch a Project resource
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - project_id( UUID) : Path variable. id of project to patch
+      - project_patch_payload : payload containing project patch details; atleast 1 field must be provided
+      
+   Returns: 
+      - ProjectResponseDTO : Patched Project response object 
+   
+   Notes:
+      - Authorized for use only for superadmin/account-admin/project-admin users 
+      - superadmin users can patch any project
+      - users who are only account-admins can patch any project in their admin accounts
+      - users who are only project-admins must also have Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be be associated to all projects in the parent project hierarchy of the admin project (inclusive of admin project) to be patched in order to patch the project
+   """
+   project_to_patch: models.Project = validation_info.get("Project", None)
+   db: Session = validation_info.get("db", None)
+   return service.patch_project(project_to_patch, project_patch_payload, db)
 
 @project_router.get("/{project_id}", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -195,9 +233,24 @@ async def patch_project(
 })
 async def get_project( 
    validation_info: dict[str, Any] = Depends(validators.validate_get_project_factory(models.Project, ("READ",))) 
-   ) -> project_schemas.ProjectResponseDTO: 
-      project: models.Project = validation_info.get("Project", None)
-      return project
+) -> project_schemas.ProjectResponseDTO: 
+   """
+   Retrieve a Project resource
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - project_id( UUID) : Path variable. id of project to retrieve
+      
+   Returns: 
+      - ProjectResponseDTO : Retrieved Project response object 
+   
+   Notes:
+      - superadmin users can retrieve any project
+      - users who are only account-admins can retrieve any project under their admin accounts
+      - users who are not superadmin and not account-admin must have Project - 'READ' permissions in any of their account-scoped roles under the account where project is to be retrieved, and must be be associated to all projects in the parent project hierarchy of the project to be retrieved (invlusive of project to be retrieved) in order to retrieve the project
+   """
+   project: models.Project = validation_info.get("Project", None)
+   return project
 
 @project_router.get("/", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -253,16 +306,22 @@ async def get_projects(
    name: Optional[str] = Query(None, description = "Optional filter for querying projects based on project name"),
 ) -> List[project_schemas.ProjectResponseDTO]:
    """
-    Retrieves a list of projects based on the provided criteria.
+    Retrieves a list of Project resources based on the provided criteria.
 
     Parameters:
-    - account_id (UUID): Mandatory. The ID of the account to filter projects by.
-    - project_id (UUID, optional): The parent project under which projects are queried.
-    - view (Literal["Flat", Hierarchical], optional): Optional. When view is set to 'Hierarchical', immediate children projects corresponding to parent project id from header will be displayed (null value for project_id header represents top-level projects in account). When view is set to 'Flat', parent_project_id value from header is ignored and all user associated projects in account are displayed.
-    - type (Literal["My_Projects", "Shared_With_Me", "All"], optional): Optional. Determines the type of projects to return. Can be 'My_Projects' for projects created by the logged-in user, or 'shared_with_me' for projects that the logged-in user has access to but did not create. When omitted, behavior defaults to returning 'All' projects accessible to the user; superadmins/admins can see all projects in account when 'All' is selected
+      - X-elevAIte-AccountId (UUID): Mandatory. The ID of the account to filter projects by.
+      - X-elevAIte-ProjectId (UUID, optional): The parent project under which projects are queried.
+      - view (Literal["Flat", Hierarchical], optional): Optional. When view is set to 'Hierarchical', immediate children projects corresponding to parent project id from header will be displayed (null value for project_id header represents top-level projects in account). When view is set to 'Flat', parent_project_id value from header is ignored and all user associated projects in account are displayed.
+      - type (Literal["My_Projects", "Shared_With_Me", "All"], optional): Optional. Determines the type of projects to return. Can be 'My_Projects' for projects created by the logged-in user, or 'Shared_With_Me' for projects that the logged-in user has access to but did not create. When omitted, behavior defaults to returning 'All' projects accessible to the user; superadmins/admins can see all projects in account when 'All' is selected
 
     Returns:
-    - A list of projects or subprojects matching the specified criteria. The structure of the returned projects is defined by the application model.
+      - List[ProjectResponseDTO] - A list of Project resources matching the specified criteria
+
+    Notes:
+      - superadmin users can retrieve projects in any account under any parent project
+      - users who are only account-admins can retrieve projects in their admin accounts under any parent project 
+      - users who are not superadmin and account admin 
+      - users who are not superadmin and not account-admin must have Project - 'READ' permissions in any of their account-scoped roles under the account where projects are to be retrieved, and must be be associated to all projects in the parent project hierarchy of 'X-elevAIte-ProjectId' (inclusive of 'X-elevAIte-ProjectId') if provided, in order to retrieve projects under 'X-elevAIte-ProjectId'
    """
    db: Session = validation_info.get("db", None)
    logged_in_user = validation_info.get("logged_in_user", None)
@@ -340,6 +399,26 @@ async def get_project_user_list(
    lastname: Optional[str] = Query(None, description="Filter users by last name"),
    email: Optional[str] = Query(None, description="Filter users by email")
 ) -> List[user_schemas.ProjectUserListItemDTO]:
+   """
+   Retrieve Project resource's user list
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - project_id (UUID) : Path variable. id of project under which users are queried
+      - firstname (str): Optional filter query param for user firstname with case-insensitive pattern matching
+      - lastname (str): Optional filter query param for user lastname with case-insensitive pattern matching
+      - email (str): Optional filter query param for user email with case-insensitive pattern matching
+      
+   Returns: 
+      - List[ProjectResponseDTO] : Retrieved Project user list response objects 
+   
+   Notes:
+      - superadmin users can retrieve any project's user list regardless of project assignment
+      - users who are only account-admins users can retrieve any project's user list under their admin accounts regardless of project assignment
+      - users who are not superadmin and not account-admin must have Project - 'READ' permissions in any of their account-scoped roles under the account where project's user list is to be retrieved, and must be be associated to all projects in the parent project hierarchy of the project (inclusive of project) in order to retrieve the project's user list
+      - Each list item displays User resource information along with account-admin, project-admin status and account-scoped roles
+      - superadmin/account-admin users will always display an empty list for their account-scoped roles 
+   """
    db: Session = validation_info.get("db", None)
    account: models.Account = validation_info.get('Account', None)
    return service.get_project_user_list(
@@ -405,9 +484,27 @@ async def deassign_user_from_project(
    user_id: UUID = Path(..., description = "The ID of the user to deassign from project"),
    validation_info: dict[str, Any] = Depends(validators.validate_deassign_user_from_project_factory(models.Project, ("READ",)))
 ) -> JSONResponse:
-      db: Session = validation_info.get("db", None)
-      project = validation_info.get("Project", None)
-      return service.deassign_user_from_project(user_id=user_id, db=db, project=project)
+   """
+   Deassign User resource from Project resource
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - project_id (UUID) : Path variable. id of project from which user is to be deassigned
+      - user_id (UUID): Path variable. id of user who is to be deassigned from project
+      
+   Returns: 
+      - JSONResponse : 200 success message for successful user deassignment from project
+   
+   Notes:
+      - superadmin users can deassign any user from any project
+      - users who are only account-admins can deassign any user from any project within admin account
+      - users who are only project-admins can deassign any user from admin project if they have Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be be associated to all projects in the parent project hierarchy of the project (inclusive of project) in order to deassign user from the project
+      - users who are not superadmin and not account-admin and not project-admin can only deassign self from project if they have Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be be associated to all projects in the parent project hierarchy of the project (inclusive of project) in order to deassign self from the project
+      - project deassignment results in deassociation from all subproject associations of the project as well for deassigned user
+   """
+   db: Session = validation_info.get("db", None)
+   project = validation_info.get("Project", None)
+   return service.deassign_user_from_project(user_id=user_id, db=db, project=project)
 
 @project_router.post("/{project_id}/users", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -471,9 +568,27 @@ async def assign_users_to_project(
    user_list_dto: user_schemas.UserListDTO = Body(description = "payload containing user_id's to assign to project"),
    validation_info: dict[str, Any] = Depends(validators.validate_assign_users_to_project_factory(models.Project, ("READ",)))
 ) -> JSONResponse:
-      project : models.Project = validation_info.get("Project", None)
-      db: Session = validation_info.get("db", None)
-      return service.assign_users_to_project(user_list_dto,db,project)
+   """
+   Assign User resources to Project resource
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - project_id (UUID) : Path variable. id of project to which users are assigned
+      - user_list_dto (UUID): List of user id's to assign to project
+      
+   Returns: 
+      - JSONResponse : 200 success message for successful assignment of users to project
+   
+   Notes
+      - Authorized for use by superadmin/account-admin/project-admin users
+      - all of the users to be assigned must be associated to parent project of assigning project (if it exists)
+      - superadmins can assign users to any project
+      - users who are only account-admins can assign users to any project within admin accounts
+      - users who are only project-admins can assign any user from account containing admin projects if they have Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be associated to all projects in the parent project hierarchy of the project (inclusive of project) in order to assign users to project
+   """
+   project : models.Project = validation_info.get("Project", None)
+   db: Session = validation_info.get("db", None)
+   return service.assign_users_to_project(user_list_dto,db,project)
 
 @project_router.patch("/{project_id}/users/{user_id}/admin", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -532,6 +647,24 @@ async def patch_user_project_admin_status(
    project_admin_status_update_dto: project_schemas.ProjectAdminStatusUpdateDTO = Body(...),
    validation_info:dict[str, Any] = Depends(validators.validate_update_user_project_admin_status_factory(models.Project, ("READ",)))  
 ) -> JSONResponse:
+   """
+   Patch project admin status of user
+
+   Parameters:
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - project_id (UUID) : Path variable. id of project in which user's admin status is modified
+      - user_id (UUID) : ID of user to modify project admin status
+      - project_admin_status_update_dto: req body containing action - 'Grant', 'Revoke' - to perform on user's project admin status
+      
+   Returns: 
+      - JSONResponse : A JSON with 200 success message for the user project admin status update. 
+   
+   Notes:
+      - only authorized for use by superadmin/account-admin/project-admin users
+      - superadmin users can update project admin status of any user in any project
+      - users who are only account-admins can update project admin status of any user in any project within admin accounts
+      - users who are only project-admins can update project admin status of any user in admin projects if they have Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be associated to all projects in the parent project hierarchy of the project (inclusive of project) in order to modify user project admin status
+   """
    db: Session = validation_info.get("db", None)
    account: models.Account = validation_info.get("Account", None)
    return service.patch_user_project_admin_status(user_id=user_id,
