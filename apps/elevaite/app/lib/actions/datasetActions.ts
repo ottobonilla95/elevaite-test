@@ -52,7 +52,7 @@ export async function getAvailableDatasets(input: availableDatasetInput): Promis
   if ("author" in input && input.author) url.searchParams.set("author", input.author);
   const response = await fetch(url, { next: { revalidate: DATASET_REVALIDATION_TIME, tags: [cacheTags.datasets] } });
 
-  if (!response.ok) throw new Error("Failed to fetch datasets");
+  if (!response.ok) throw new Error("Failed to fetch available datasets");
   const data: unknown = await response.json();
   if (isGetAvailableDatasetsResponse(data)) return data;
   throw new Error("Invalid data type");

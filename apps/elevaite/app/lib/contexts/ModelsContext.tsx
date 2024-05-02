@@ -56,6 +56,7 @@ const defaultLoadingList: LoadingListObject = {
 interface SortingObject {
     field?: keyof ModelObject;
     isDesc?: boolean;
+    specialHandling?: specialHandlingModelFields;
 }
 
 interface LoadingListObject {
@@ -144,35 +145,36 @@ export const ModelsContext = createContext<ModelsContextStructure>({
 
 // FUNCTIONS
 
-function sortDisplayModels(models: ModelObject[], sorting: SortingObject, specialHandling?: specialHandlingModelFields): ModelObject[] {    
+function sortDisplayModels(models: ModelObject[], sorting: SortingObject): ModelObject[] {
+    const sortingModels = JSON.parse(JSON.stringify(models)) as ModelObject[];
     const statusSortOrder = [ModelsStatus.REGISTERING, ModelsStatus.FAILED, ModelsStatus.DEPLOYED, ModelsStatus.ACTIVE];
 
-    switch (specialHandling) {
+    switch (sorting.specialHandling) {
         case specialHandlingModelFields.STATUS: 
-            models.sort((a,b) => statusSortOrder.indexOf(a.status) - statusSortOrder.indexOf(b.status));
+            sortingModels.sort((a,b) => statusSortOrder.indexOf(a.status) - statusSortOrder.indexOf(b.status));
             break;
         case specialHandlingModelFields.DATE:
-            models.sort((a,b) => dayjs(a.created).valueOf() - dayjs(b.created).valueOf());
+            sortingModels.sort((a,b) => dayjs(a.created).valueOf() - dayjs(b.created).valueOf());
             break;
         case specialHandlingModelFields.TAGS:
-            models.sort((a,b) => (!a.tags || !b.tags || a.tags.length > 0 === b.tags.length > 0) ? 0 : a.tags.length > 0 ? -1 : 1);
+            sortingModels.sort((a,b) => (!a.tags || !b.tags || a.tags.length > 0 === b.tags.length > 0) ? 0 : a.tags.length > 0 ? -1 : 1);
             break;
         default:
             if (sorting.field) {
-                models.sort((a,b) => {
+                sortingModels.sort((a,b) => {
                     if (sorting.field && typeof a[sorting.field] === "string" && typeof b[sorting.field] === "string" && !Array.isArray(a[sorting.field]) && !Array.isArray(b[sorting.field]))
                     return (a[sorting.field] as string).localeCompare(b[sorting.field] as string);
                     return 0;
                 })
             } else {
-                models.sort((a,b) => dayjs(a.created).valueOf() - dayjs(b.created).valueOf());
+                sortingModels.sort((a,b) => dayjs(a.created).valueOf() - dayjs(b.created).valueOf());
             }
     }
 
     if (sorting.isDesc) {
-        models.reverse();
+        sortingModels.reverse();
     }
-    return models;
+    return sortingModels;
 }
 
 
@@ -226,6 +228,12 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
         filterModels();
     }, [filtering]);
 
+    useEffect(() => {        
+        if (displayModels.length === 0) return;
+        const sortedModels = sortDisplayModels(displayModels, sorting);
+        setDisplayModels(sortedModels);
+    }, [sorting]);
+
 
 
     function formatDisplayModels(): ModelObject[] {
@@ -273,15 +281,12 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
 
     function sortModels(field: keyof ModelObject, specialHandling?: specialHandlingModelFields): void {
         let sortingResult: SortingObject = {};
-        if (sorting.field !== field) sortingResult = {field};
+        if (sorting.field !== field) sortingResult = {field, specialHandling};
         if (sorting.field === field) {
-            if (sorting.isDesc) sortingResult = {field: undefined};
-            else sortingResult = {field, isDesc: true};
+            if (sorting.isDesc) sortingResult = {field: undefined, specialHandling};
+            else sortingResult = {field, isDesc: true, specialHandling};
         }
         setSorting(sortingResult);
-        
-        if (displayModels.length === 0) return;
-        setDisplayModels(sortDisplayModels(displayModels, sortingResult, specialHandling));
     }
 
 

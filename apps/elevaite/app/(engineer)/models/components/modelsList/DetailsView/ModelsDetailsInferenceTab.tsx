@@ -120,7 +120,17 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
             
             // Text generation
             } else {
-                const inferredText = await inferEndpointTextGeneration(modelsContext.selectedModel.endpointId, message);
+                // console.log("parameters", modelsContext.selectedModelParameters);
+                const maxPositionEmbeddings = modelsContext.selectedModelParameters?.max_position_embeddings;
+                let maxNewTokens = 0;
+                if (maxPositionEmbeddings) {
+                    const numberOfInputTokens = message.length / 3;
+                    maxNewTokens = maxPositionEmbeddings - numberOfInputTokens;
+                }
+                // TODO: Adjust this when the issue is resolved.
+                maxNewTokens = 0; // Reset for testing;
+                // console.log("maxNewTokens", maxNewTokens);
+                const inferredText = await inferEndpointTextGeneration(modelsContext.selectedModel.endpointId, message, maxNewTokens);
                 if (inferredText.results[0]?.generated_text) {
                     addMessage(inferredText.results[0]?.generated_text, false);
                 }
