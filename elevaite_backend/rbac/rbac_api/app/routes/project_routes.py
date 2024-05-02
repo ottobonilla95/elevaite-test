@@ -585,6 +585,7 @@ async def assign_users_to_project(
       - superadmins can assign users to any project
       - users who are only account-admins can assign users to any project within admin accounts
       - users who are only project-admins can assign any user from account containing admin projects if they have Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be associated to all projects in the parent project hierarchy of the project (inclusive of project) in order to assign users to project
+      - users who are successfully assigned to projects will initially have project permission overrides with denied permissions on all ProjectScopedPermission resource actions (see 'ProjectScopedPermission' model for schema info). 
    """
    project : models.Project = validation_info.get("Project", None)
    db: Session = validation_info.get("db", None)

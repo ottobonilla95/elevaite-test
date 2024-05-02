@@ -310,6 +310,7 @@ async def update_user_project_permission_overrides(
       - Authorized for use only by superadmin/account-admin/project-admin users
       - cannot patch project permission overrides for superadmin/account-admin/project-admin users
       - users who are only project-admins can patch project permission overrides for other regular users if they have Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be associated to all projects in the parent project hierarchy of the project (inclusive of project)
+      - Usecase - to update user project permission overrides from the default all 'Deny' permissions after they have been added to a project 
    """
    db: Session = validation_info.get("db", None)
    user_to_patch = validation_info.get("User", None)

@@ -3,7 +3,6 @@ from pprint import pprint
 from rbac_api.app.errors.api_error import ApiError
 from ...idp.google import get_google_user
 from rbac_api.utils.RedisSingleton import RedisSingleton
-from .whitelisted_domains import white_listed_domains
 
 async def validate_token(auth_header: str = Header(None, alias='Authorization', description = "google access token with email and profile scope")):
    # Validate header bearer token
@@ -26,10 +25,6 @@ async def validate_token(auth_header: str = Header(None, alias='Authorization', 
          raise ApiError.unauthorized("invalid or expired auth credentials")
    
       email = google_user_info_response.get("email")
-      # Validate domain
-      domain = email.split('@')[1] if '@' in email else ''
-      if domain not in white_listed_domains:
-         raise ApiError.unauthorized("Unauthorized email domain")
       
       RedisSingleton().connection.setex(token, 60*60, email)
       # .setex(key, expiration, value)
