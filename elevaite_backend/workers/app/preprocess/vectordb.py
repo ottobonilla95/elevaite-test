@@ -93,6 +93,7 @@ async def insert_records(
     total_token_size = 0
     avg_token_size = 0
     max_token_size = 0
+    min_token_size = 2 ^ 32 - 1
     p_index = 0
     qdrant_client = get_qdrant_connection(get_qdrant_url(), None)
     start_time = time.time()
@@ -103,6 +104,8 @@ async def insert_records(
             if token_size is not None:
                 if token_size > max_token_size:
                     max_token_size = token_size
+                if token_size < min_token_size:
+                    min_token_size = token_size
                 total_token_size += token_size
                 avg_token_size = total_token_size / p_index
             payload.metadata["tokenSize"] = token_size if token_size else 0
@@ -146,6 +149,10 @@ async def insert_records(
                     InstancePipelineStepData(
                         label=InstanceStepDataLabel.EMB_MODEL_DIM,
                         value=embedding.info.dimensions,
+                    ),
+                    InstancePipelineStepData(
+                        label=InstanceStepDataLabel.MIN_TOKEN_SIZE,
+                        value=min_token_size,
                     ),
                 ],
             )

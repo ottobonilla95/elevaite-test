@@ -67,7 +67,7 @@ def createCollection(
 
 @router.get(
     "/{collection_id}/scroll",
-    response_model=collection_schemas.QdrantResponse,
+    # response_model=collection_schemas.QdrantResponse,
 )
 def getCollectionScroll(
     project_id: str,

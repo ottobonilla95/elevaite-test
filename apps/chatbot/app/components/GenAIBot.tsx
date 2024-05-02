@@ -13,6 +13,7 @@ const genAIBotOptions: CommonSelectOption[] = [
     { value: ChatBotGenAI.Cisco, label: "Collaboration Provider", selectedLabel: "Collab" },
     { value: ChatBotGenAI.CiscoClo, label: "CLO" },
     { value: ChatBotGenAI.Arlo, label: "Arlo" },
+    { value: ChatBotGenAI.ServiceNow, label: "Service Now" },
     // { value: ChatBotGenAI.JUNIPER, label: "" },
 ];
 

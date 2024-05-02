@@ -204,11 +204,12 @@ export async function deployModel(modelId: string|number): Promise<ModelEndpoint
 }
 
 
-export async function inferEndpointTextGeneration(endpointId: string, message: string): Promise<InferTextGenerationDto> {
+export async function inferEndpointTextGeneration(endpointId: string, message: string, maxNewTokens?: number): Promise<InferTextGenerationDto> {
   if (!MODELS_URL) throw new Error("Missing base url");
   const dto = {
     kwargs: {
       text_inputs: message,
+      max_new_tokens : maxNewTokens ? maxNewTokens : undefined,
       // return_full_text: false,
     }
   };
