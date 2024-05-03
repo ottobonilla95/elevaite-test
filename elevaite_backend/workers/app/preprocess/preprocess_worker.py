@@ -156,18 +156,18 @@ async def preprocess(data: PreProcessForm) -> None:
         entry_step_runner = get_initialized_step(
             data=data, db=db, logger=logger, r=r, step_id=_entry_step.id
         )
-        entry_step_runner.run()
+        await entry_step_runner.run()
 
         _step_runner_1 = get_initialized_step(
             data=data, db=db, logger=logger, r=r, step_id=_first_step.id
         )
-        _step_runner_1.run()
+        await _step_runner_1.run()
 
         _step_runner_2 = get_initialized_step(
             data=data, db=db, logger=logger, r=r, step_id=_second_step.id
         )
 
-        _step_runner_2.run()
+        await _step_runner_2.run()
 
         set_pipeline_step_running(
             db=db, instance_id=data.instanceId, step_id=str(_final_step.id)

@@ -66,7 +66,7 @@ class BasePreprocessStep(ABC):
         self.step_id = str(step_id)
 
     @abstractmethod
-    def run(self) -> List[ChunkAsJson]:
+    async def run(self):
         """Step code"""
 
 

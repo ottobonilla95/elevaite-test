@@ -26,7 +26,7 @@ class SegmentVectorization(BasePreprocessStep):
     ) -> None:
         super().__init__(data, db, r, logger, step_id)
 
-    def run(self):
+    async def run(self):
         set_pipeline_step_running(
             db=self.db, instance_id=self.data.instanceId, step_id=self.step_id
         )
@@ -44,7 +44,7 @@ class SegmentVectorization(BasePreprocessStep):
             )
 
         self.logger.info(message="Starting segment vectorization")
-        _res = vectordb.insert_records(
+        await vectordb.insert_records(
             db=self.db,
             instance_id=self.data.instanceId,
             step_id=self.step_id,

@@ -3,9 +3,7 @@ from typing import List
 from redis import Redis
 from pydantic import UUID4
 from sqlalchemy.orm import Session
-from lakefs import Reference
 
-from elevaitedb.schemas.dataset import DatasetVersion
 from elevaitedb.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
 from elevaitedb.util.logger import ESLogger
 
@@ -36,7 +34,7 @@ class DocumentSegmentation(BasePreprocessStep):
     ) -> None:
         super().__init__(data=data, db=db, logger=logger, r=r, step_id=step_id)
 
-    def run(self):
+    async def run(self):
         set_pipeline_step_running(
             db=self.db, instance_id=self.data.instanceId, step_id=self.step_id
         )

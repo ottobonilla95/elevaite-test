@@ -1,21 +1,15 @@
 import json
 import sys
 from typing import List
-from elevaitedb.schemas.configuration import ServiceNowIngestDataDTO
-from elevaitedb.schemas.service_now import ServiceNowIngestBody, ServiceNowTicket
+from elevaitedb.schemas.service_now import ServiceNowTicket
 from redis import Redis
 from pydantic import UUID4
 from sqlalchemy.orm import Session
-from lakefs import Reference
 
-from elevaitedb.schemas.dataset import DatasetVersion
 from elevaitedb.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
 from elevaitedb.util.logger import ESLogger
 
-from ..preprocess import (
-    ChunkAsJson,
-    get_file_elements_internal,
-)
+from ..preprocess import ChunkAsJson
 from ...util.func import (
     path_leaf,
     set_instance_chart_data,
@@ -39,7 +33,7 @@ class ServiceNowSegmentation(BasePreprocessStep):
     ) -> None:
         super().__init__(data=data, db=db, logger=logger, r=r, step_id=step_id)
 
-    def run(self):
+    async def run(self):
         set_pipeline_step_running(
             db=self.db, instance_id=self.data.instanceId, step_id=self.step_id
         )

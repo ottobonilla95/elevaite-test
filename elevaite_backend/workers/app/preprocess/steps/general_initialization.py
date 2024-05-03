@@ -35,7 +35,7 @@ class GeneralInitialization(BasePreprocessStep):
     ) -> None:
         super().__init__(data, db, r, logger, step_id)
 
-    def run(self):
+    async def run(self):
         global RESOURCE_REGISTRY
         _instance_registry = RESOURCE_REGISTRY[self.data.instanceId]
         LAKEFS_ACCESS_KEY_ID = os.getenv("LAKEFS_ACCESS_KEY_ID")
