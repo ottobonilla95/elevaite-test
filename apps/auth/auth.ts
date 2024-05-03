@@ -61,8 +61,6 @@ export const authOptions: NextAuthConfig = {
             const res = await fusionClient.login(loginRequest);
             const _user = res.response.user;
             if (!_user?.id) return null;
-            // eslint-disable-next-line no-console -- temporary
-            console.log(_user);
             return {
               id: _user.id,
               email: _user.email,
@@ -70,8 +68,6 @@ export const authOptions: NextAuthConfig = {
               name: _user.fullName,
             } satisfies User;
           } catch (error) {
-            // eslint-disable-next-line no-console -- temporary
-            console.error(error);
             return null;
           }
         }

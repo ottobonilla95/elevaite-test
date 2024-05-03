@@ -75,6 +75,19 @@ export enum EvaluationStatus {
     SUCCESS = "success",
 }
 
+export enum CollectionDistanceType {
+    COSINE = "Cosine",
+    EUCLID = "Euclid",
+    DOT = "Dot",
+    MANHATTAN = "Manhattan",
+}
+
+export enum EmbeddingModelType {
+    OPEN_AI = "openai",
+    LOCAL = "local",
+    EXTERNAL = "external",
+}
+
 
 
 
@@ -172,6 +185,8 @@ export interface CollectionObject {
     id: string;
     name: string;
     projectId: string;
+    size: number;
+    distance: CollectionDistanceType;
 }
 
 export type CollectionChunkWrapper = [] | [CollectionChunkObject[], string|null];
@@ -558,6 +573,14 @@ export interface S3PreprocessFormDTO {
     collectionId: string;
     queue: string;
     maxIdleTime: string;
+    embedding_info?: S3PreprocessFormEmbeddingInfo;
+}
+
+export interface S3PreprocessFormEmbeddingInfo {
+    name: string;
+    type: EmbeddingModelType;
+    dimensions: string; // positive integer only
+    inference_url?: string;
 }
 
 

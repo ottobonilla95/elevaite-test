@@ -1,6 +1,6 @@
 import { Logos } from "@repo/ui/components";
 import type { AppInstanceFormStructure, PipelineStep, S3PreprocessFormDTO } from "./interfaces";
-import { AppInstanceFieldTypes, ApplicationType, StepDataSource, StepDataType } from "./interfaces";
+import { AppInstanceFieldTypes, ApplicationType, EmbeddingModelType, StepDataSource, StepDataType } from "./interfaces";
 
 
 
@@ -18,6 +18,12 @@ export const S3PreprocessFormInitializer: S3PreprocessFormDTO = {
     collectionId: "",
     queue: "Default",
     maxIdleTime: "Default",
+    embedding_info: {
+        name: "text-embedding-ada-002",
+        type: EmbeddingModelType.OPEN_AI,
+        dimensions: "1536",
+        inference_url: "",
+    }
 }
 
 

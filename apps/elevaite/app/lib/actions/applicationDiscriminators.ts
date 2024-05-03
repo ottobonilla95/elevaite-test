@@ -166,7 +166,9 @@ export function isCollectionObject(item: unknown): item is CollectionObject {
     return isObject(item) &&
         "id" in item &&
         "projectId" in item &&
-        "name" in item;
+        "name" in item &&
+        "size" in item &&
+        "distance" in item;
 }
 
 export function isCollectionChunkObject(item: unknown): item is CollectionChunkObject {

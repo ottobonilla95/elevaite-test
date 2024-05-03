@@ -6,7 +6,8 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { createApplicationConfiguration, createApplicationInstance, getApplicationConfigurations, updateApplicationConfiguration } from "../../../../lib/actions/applicationActions";
 import { areShallowObjectsEqual } from "../../../../lib/helpers";
-import { NEW_DATASET, formDataType, type AppInstanceConfigurationObject, type AppInstanceFormStructure, type ApplicationConfigurationDto, type ApplicationConfigurationObject, type ApplicationDto, type Initializers, type S3IngestFormDTO, type S3PreprocessFormDTO } from "../../../../lib/interfaces";
+import { ApplicationType, NEW_DATASET, type S3PreprocessFormEmbeddingInfo, formDataType, type AppInstanceConfigurationObject, type AppInstanceFormStructure, type ApplicationConfigurationDto, type ApplicationConfigurationObject, type ApplicationDto, type Initializers, type S3IngestFormDTO, type S3PreprocessFormDTO } from "../../../../lib/interfaces";
+import { S3PreprocessFormInitializer } from "../../../../lib/preprocessingApps";
 import "./AddInstanceForm.scss";
 import { AddInstanceIngest } from "./AddInstanceIngest";
 import { AddInstancePreprocess } from "./AddInstancePreprocess";
@@ -46,6 +47,7 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
     const [isConfigNameOpen, setIsConfigNameOpen] = useState(false);
     const [savedConfigurations, setSavedConfigurations] = useState<ApplicationConfigurationObject[]>([]);
     const [selectedConfigurationId, setSelectedConfigurationId] = useState("");
+    const [embeddingInfo, setEmbeddingInfo] = useState<S3PreprocessFormEmbeddingInfo|undefined>();
 
 
     useEffect(() => {
@@ -66,7 +68,6 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
         if (!props.addInstanceStructure || !formData) return;        
         setIsConfirmDisabled(getIsRequiredFieldEmptyInForm(formData, props.addInstanceStructure.requiredFields));
     }, [formData]);
-
 
 
     async function fetchConfigurations(applicationId: string): Promise<void> {
@@ -156,6 +157,14 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
             data.datasetId = undefined;
             data.datasetName = datasetName;
         } else data.datasetName = undefined;
+    }
+
+    function attachEmbeddingInfo(data: Initializers): void {
+        if (data.type !== ApplicationType.PREPROCESS) return;
+        if (embeddingInfo) data.embedding_info = embeddingInfo;
+        else {
+            data.embedding_info = S3PreprocessFormInitializer.embedding_info;
+        }
     }
 
 
@@ -249,6 +258,8 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
         setSelectedPipeline(formData, props.selectedFlow);
         // Check if the dataset is existing or new
         setDataset(formData);
+        // Attach embedding_info
+        attachEmbeddingInfo(formData);
 
         // console.log("Final Form data:", formData);
         // Check all required data.
@@ -261,6 +272,7 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
             projectId: formData.projectId,
             selectedPipelineId: formData.selectedPipelineId
         }
+
 
         // Commit to server
         try {
@@ -349,6 +361,7 @@ export function AddInstanceForm(props: AddInstanceFormProps): JSX.Element {
                             onConnectionNameChange={setConnectionName}
                             formData={formData as S3PreprocessFormDTO}
                             onFormChange={handleFormDataChange}
+                            onEmbeddingInfoChange={setEmbeddingInfo}
                         />
                         : undefined
                     }                    

@@ -120,6 +120,10 @@ export function getDisplayValueFromStepDetail(detail: PipelineStepAddedInfo, ste
 }
 
 
+export function getIsPositiveIntegerOrZero(token: string|number): boolean {
+    return /^\+?\d+$/.test(token.toString());
+}
+
 
 
 export function getElapsedTime(start: string, end?: string): string {

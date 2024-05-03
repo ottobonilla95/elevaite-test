@@ -5,7 +5,7 @@ import { APP_REVALIDATION_TIME, DATASET_REVALIDATION_TIME, cacheTags } from "./a
 import { isGetAvailableDatasetsResponse, isGetDatasetsResponse, isModelDatasetObject } from "./datasetDiscriminators";
 import { isArrayOfStrings } from "./generalDiscriminators";
 
-const MODELS_URL = process.env.NEXT_MODELS_API_URL;
+const MODELS_URL = process.env.NEXT_PUBLIC_MODELS_API_URL;
 
 
 

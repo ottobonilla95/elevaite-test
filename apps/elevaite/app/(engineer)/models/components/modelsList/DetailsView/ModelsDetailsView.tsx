@@ -94,10 +94,6 @@ export function ModelsDetailsView(): JSX.Element {
         }
     }, [modelsContext.selectedModel]);
 
-    useEffect(() => {
-        console.log("parameters", modelsContext.selectedModelParameters);
-    }, [modelsContext.selectedModelParameters]);
-
 
     function formatGeneralFields(model?: ModelObject): void {
         if (!model) {

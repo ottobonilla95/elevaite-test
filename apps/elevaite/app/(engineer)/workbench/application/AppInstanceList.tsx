@@ -121,7 +121,7 @@ export default function AppInstanceList(props: AppInstanceListProps): JSX.Elemen
                 (session.data?.user?.name && instance.creator === session.data.user.name) ||
                 (!session.data?.user?.name && instance.creator === "Unknown User")) {
                 // Check Flow
-                if (!selectedFlowId || instance.selectedPipelineId === selectedFlowId) {
+                if (!selectedFlowId || props.applicationId === "1" || instance.selectedPipelineId === selectedFlowId) {
                     // Check status
                     if (Object.values(filters.showStatus).every(item => !item) || filters.showStatus[instance.status]) {
                         // Check search term

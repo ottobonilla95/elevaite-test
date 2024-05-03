@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { createCollection, getCollectionsOfProject } from "../../../../lib/actions/applicationActions";
 import { getModelEndpoints, getModels } from "../../../../lib/actions/modelActions";
 import { useRoles } from "../../../../lib/contexts/RolesContext";
-import { ModelsStatus, formDataType, type CollectionObject, type S3PreprocessFormDTO } from "../../../../lib/interfaces";
+import { getIsPositiveIntegerOrZero } from "../../../../lib/helpers";
+import { EmbeddingModelType, ModelsStatus, formDataType, type CollectionObject, type ModelObject, type S3PreprocessFormDTO, type S3PreprocessFormEmbeddingInfo } from "../../../../lib/interfaces";
 import "./AddInstancePreprocess.scss";
 
 
@@ -22,6 +23,7 @@ const fields: Record<keyof S3PreprocessFormDTO, keyof S3PreprocessFormDTO> = {
     collectionId: "collectionId",
     queue: "queue",
     maxIdleTime: "maxIdleTime",
+    embedding_info: "embedding_info",
 }
 
 
@@ -30,6 +32,7 @@ interface AddInstancePreprocessProps {
     onConnectionNameChange: (value: string) => void;
     formData: S3PreprocessFormDTO;
     onFormChange: (value: string|boolean, field: string, type: formDataType) => void;
+    onEmbeddingInfoChange: (info: S3PreprocessFormEmbeddingInfo|undefined) => void;
 }
 
 export function AddInstancePreprocess({formData, ...props}: AddInstancePreprocessProps): JSX.Element {
@@ -42,6 +45,12 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
     const [isCollectionsLoading, setIsCollectionsLoading] = useState(false);
     const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
     const [createCollectionName, setCreateCollectionName] = useState("");
+    const [createCollectionDimensions, setCreateCollectionDimensions] = useState("");
+    const [models, setModels] = useState<ModelObject[]>([]);
+    const [embeddingModelOptions, setEmbeddingModelOptions] = useState<CommonSelectOption[]>([]);
+    const [loading, setLoading] = useState(false);
+
+
 
     useEffect(() => {
         void fetchModels();
@@ -62,7 +71,7 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
     }, [formData.projectId]);
 
     useEffect(() => {
-        setCollectionOptions(collections.map(item => { return {value: item.id, label: item.name}; }));
+        setCollectionOptions(collections.map(item => { return {value: item.id, label: `${item.name} (${item.size.toString()})`}; }));
     }, [collections]);
 
     useEffect(() => {
@@ -81,10 +90,12 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
     }, [formData.datasetId]);
 
 
+
     async function fetchCollectionsOfProject(projectId: string): Promise<void> {
         try {
             setIsCollectionsLoading(true);
             const collectionsList = await getCollectionsOfProject(projectId);
+            
             setCollections(collectionsList ? collectionsList : []);
         } catch (error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
@@ -94,10 +105,11 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
         }
     }
 
-    async function requestCreateCollection(projectId: string, collectionName: string): Promise<void> {
+    async function requestCreateCollection(projectId: string, collectionName: string, collectionDimensions: string): Promise<void> {
+        if (!getIsPositiveIntegerOrZero(collectionDimensions)) return;
         try {
             setIsCollectionsLoading(true);
-            const newCollection = await createCollection(projectId, collectionName);
+            const newCollection = await createCollection(projectId, collectionName, collectionDimensions);
             setCollections(current => [...current, newCollection]);
             props.onFormChange(newCollection.id, fields.collectionId, formDataType.STRING);
         } catch (error) {
@@ -108,20 +120,6 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
             closeCollectionCreation();
         }        
     }
-
-
-    ////////// DEMO DATA
-
-    const [loading, setLoading] = useState(false);
-    const [embeddingModelOptions, setEmbeddingModelOptions] = useState<CommonSelectOption[]>([]);
-
-    const vectorDBOptions: CommonSelectOption[] = [
-        {value: "Qdrant"},
-        {value: "Elasticsearch v8.13", disabled: true},
-        {value: "Weaviate", disabled: true},
-        {value: "Faiss", disabled: true},
-        {value: "MongoDB Atlas", disabled: true},
-    ];
 
     async function fetchModels(): Promise<void> {
         try {
@@ -135,6 +133,7 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
                 }
                 return model;
             });
+            setModels(adjustedModels);
             const options: CommonSelectOption[] = [
                 {
                     value: "default",
@@ -150,10 +149,38 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
         } catch(error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in fetching models:", error);
-        } finally {                
+        } finally {
             setLoading(false);
         }
     }
+
+    function handleEmbeddingModelChange(value: string): void {
+        const selectedModel = models.find(item => item.id.toString() === value);
+        if (!selectedModel){
+            props.onEmbeddingInfoChange(undefined);
+            return;
+        }
+
+        const baseUrl = process.env.NEXT_PUBLIC_MODELS_API_URL;
+        props.onEmbeddingInfoChange({
+            name: selectedModel.name,
+            type: EmbeddingModelType.LOCAL,
+            dimensions: "0",
+            inference_url: selectedModel.endpointUrl && baseUrl ? `${baseUrl}${selectedModel.endpointUrl}` : undefined,
+        });
+    }
+
+
+    ////////// DEMO DATA
+
+
+    const vectorDBOptions: CommonSelectOption[] = [
+        {value: "Qdrant"},
+        {value: "Elasticsearch v8.13", disabled: true},
+        {value: "Weaviate", disabled: true},
+        {value: "Faiss", disabled: true},
+        {value: "MongoDB Atlas", disabled: true},
+    ];
 
     function handleEmptyChange(): void {
         // We shouldn't do anything here (for now?)
@@ -208,7 +235,7 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
 
     function handleCreateCollection(): void {
         if (!formData.projectId || !createCollectionName) return;
-        void requestCreateCollection(formData.projectId, createCollectionName);
+        void requestCreateCollection(formData.projectId, createCollectionName, createCollectionDimensions);
     }
 
 
@@ -225,14 +252,29 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
                 <CommonDialog
                     title="Create New Collection"
                     confirmLabel="Create"
-                    disableConfirm={isCollectionsLoading}
+                    disableConfirm={isCollectionsLoading || !createCollectionName || !getIsPositiveIntegerOrZero(createCollectionDimensions)}
                     onConfirm={handleCreateCollection}
                     onCancel={closeCollectionCreation}
                 >
-                    <CommonInput
-                        onChange={setCreateCollectionName}
-                        onKeyDown={handleEnter}
-                    />
+                    <CommonFormLabels
+                        label="Collection Name"
+                        required
+                    >
+                        <CommonInput
+                            onChange={setCreateCollectionName}
+                            onKeyDown={handleEnter}
+                        />
+                    </CommonFormLabels>
+                    <CommonFormLabels
+                        label="Dimensions"
+                        required
+                        errorMessage={!createCollectionDimensions || getIsPositiveIntegerOrZero(createCollectionDimensions) ? "" : "Positive integer or 0"}
+                    >
+                        <CommonInput
+                            onChange={setCreateCollectionDimensions}
+                            onKeyDown={handleEnter}
+                        />
+                    </CommonFormLabels>
                 </CommonDialog>
             }
 
@@ -251,7 +293,7 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
                 <CommonSelect
                     options={embeddingModelOptions}
                     defaultValue="default"
-                    onSelectedValueChange={handleEmptyChange}
+                    onSelectedValueChange={handleEmbeddingModelChange}
                     isLoading={loading}
                     noDoubleClick
                 />

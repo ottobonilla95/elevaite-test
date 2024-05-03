@@ -5,7 +5,7 @@ import { APP_REVALIDATION_TIME, DEFAULT_AVAILABLE_MODELS_LIMIT, MODEL_REVALIDATI
 import { isArrayOfStrings, isObject } from "./generalDiscriminators";
 import { isDeployModelResponse, isEvaluationObject, isGetAvailableModelsResponse, isGetDatasetsResponse, isGetEvaluationLogsResponse, isGetModelByIdResponse, isGetModelEndpointsResponse, isGetModelEvaluationsResponse, isGetModelLogsResponse, isGetModelParametersResponse, isGetModelsResponse, isInferEndpointEmbeddingResponse, isInferEndpointQuestionAnsweringResponse, isInferEndpointSummarizationResponse, isInferEndpointTextGenerationResponse, isModelObject } from "./modelDiscriminators";
 
-const MODELS_URL = process.env.NEXT_MODELS_API_URL;
+const MODELS_URL = process.env.NEXT_PUBLIC_MODELS_API_URL;
 
 
 // GETS

@@ -207,9 +207,9 @@ export async function updateApplicationConfiguration(appId: string, configId: st
 }
 
 
-export async function createCollection(projectId: string, collectionName: string): Promise<CollectionObject> {
+export async function createCollection(projectId: string, collectionName: string, collectionDimensions: string): Promise<CollectionObject> {
   if (!BACKEND_URL) throw new Error("Missing base url");
-  const dto = { name: collectionName };
+  const dto = { name: collectionName, size: collectionDimensions };
   const headers = new Headers();
   headers.append("Content-Type", "application/json");
   const response = await fetch(`${BACKEND_URL}/project/${projectId}/collection`, {
