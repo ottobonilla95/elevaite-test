@@ -52,7 +52,7 @@ def getCollectionById(
 
 
 @router.post("", response_model=collection_schemas.Collection)
-def createCollection(
+async def createCollection(
     project_id: str,
     dto: Annotated[collection_schemas.CollectionCreate, Body()],
     qdrant_connection=Depends(get_qdrant_connection),
@@ -60,7 +60,7 @@ def createCollection(
     # validation_info:dict[str, Any] = Depends(validators.validate_create_project_collection_factory(models.Collection, ("CREATE",))), # uncomment this to use validator
 ):
     # db: Session = validation_info.get("db", None) # uncomment this when using validator
-    return collection_service.createCollection(
+    return await collection_service.createCollection(
         db=db, projectId=project_id, dto=dto, qdrant_client=qdrant_connection
     )
 

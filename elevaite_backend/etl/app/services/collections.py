@@ -32,7 +32,7 @@ def getCollectionById(db: Session, collectionId: str) -> models.Collection:
     return collection_crud.get_collection_by_id(db=db, collectionId=collectionId)
 
 
-def createCollection(
+async def createCollection(
     db: Session,
     projectId: str,
     dto: CollectionCreate,
@@ -40,7 +40,7 @@ def createCollection(
 ) -> models.Collection:
     collection_name = util_func.to_kebab_case(dto.name)
     vector_params = VectorParams(size=dto.size, distance=dto.distance)
-    _res = qdrant_client.create_collection(
+    await qdrant_client.create_collection(
         collection_name=collection_name, vectors_config=vector_params
     )
     return collection_crud.create_collection(db=db, projectId=projectId, cc=dto)

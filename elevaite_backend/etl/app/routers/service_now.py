@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from typing import Annotated
 import uuid
 from dotenv import load_dotenv
@@ -44,6 +45,8 @@ def ingestServiceNowTickets(
     rmq: pika.BlockingConnection = Depends(get_rabbitmq_connection),
 ):
     load_dotenv()
+    if not bool(re.match("/^[a-z0-9][a-z0-9-]{2,62}$/", dto.dataset_name)):
+        raise HTTPException(400, "Dataset Name must match /^[a-z0-9][a-z0-9-]{2,62}$/")
     projectId = os.getenv("SERVICE_NOW_PROJECT")
     if projectId is None:
         raise Exception("ServiceNow Project ID has not been set in the environment")

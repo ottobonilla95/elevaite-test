@@ -101,10 +101,10 @@ def set_instance_chart_data(r: redis.Redis, db: Session, instance_id: str):
 
 def get_repo_name(db: Session, project_id: str, dataset_id: str) -> str:
     _project_name = project_crud.get_project_name(db=db, project_id=project_id)
-    project_name = util_func.to_kebab_case(_project_name)
     dataset = dataset_crud.get_dataset_by_id(db=db, dataset_id=dataset_id)
     if dataset is None:
         raise Exception("Dataset not found")
+    project_name = util_func.to_kebab_case(_project_name)
     dataset_name = util_func.to_kebab_case(dataset.name)
     repo_name = project_name + "-" + dataset_name
     return repo_name

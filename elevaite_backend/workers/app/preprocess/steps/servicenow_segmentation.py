@@ -68,8 +68,15 @@ class ServiceNowSegmentation(BasePreprocessStep):
                 self.r.json().set(
                     self.data.instanceId, ".current_doc", path_leaf(object.path)
                 )
-                input = fd.read()
-                ticket = ServiceNowTicket.parse_obj(json.loads(input))
+                input = json.load(fd)
+                if isinstance(input, str):
+                    input = json.loads(input)
+                ticket = ServiceNowTicket(
+                    problem_description=input["problem_description"],
+                    resolution=input["resolution"],
+                    source_ref_id=input["source_ref_id"],
+                    source_url=input["source_url"],
+                )
                 file_chunks: List[ChunkAsJson] = [
                     ChunkAsJson(
                         metadata={
