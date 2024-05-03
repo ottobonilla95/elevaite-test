@@ -8,8 +8,13 @@ from elevaitedb.schemas.configuration import (
     ServiceNowIngestDataDTO,
 )
 from elevaitedb.schemas.dataset import DatasetCreate
-from elevaitedb.schemas.instance import InstanceCreate, InstanceStatus
-from fastapi import APIRouter, Body, Depends
+from elevaitedb.schemas.instance import (
+    InstanceCreate,
+    InstancePipelineStepStatus,
+    InstanceStatus,
+)
+from elevaitedb.schemas.pipeline import PipelineStepStatus
+from fastapi import APIRouter, Body, Depends, HTTPException
 import pika
 from rbac_api.utils.deps import get_db
 from sqlalchemy.orm import Session
@@ -46,12 +51,23 @@ def ingestServiceNowTickets(
     if pipelineId is None:
         raise Exception("ServiceNow Pipeline ID has not been set in the environment")
 
+    _existing_dataset = dataset_crud.get_dataset_by_name(db=db, name=dto.dataset_name)
+    if _existing_dataset is not None:
+        raise HTTPException(
+            403,
+            f"Dataset with name {dto.dataset_name} already exists. Dataset names must be unique.",
+        )
+
     _dataset = dataset_crud.create_dataset(
         db=db,
         dataset_create=DatasetCreate(
             name=dto.dataset_name, projectId=uuid.UUID(projectId), description=""
         ),
     )
+
+    _pipeline = pipeline_crud.get_pipeline_by_id(db=db, pipeline_id=pipelineId)
+    if _pipeline is None:
+        raise Exception("Pipeline not found")
 
     _conf_raw = ServiceNowIngestDataDTO(
         creator="ServiceNow",
@@ -90,6 +106,24 @@ def ingestServiceNowTickets(
             endTime=None,
         ),
     )
+
+    for ps in _pipeline.steps:
+        _status = PipelineStepStatus.IDLE
+        _start_time = None
+        if ps.id == _pipeline.entry:
+            _status = PipelineStepStatus.RUNNING
+            _start_time = util_func.get_iso_datetime()
+        _ipss = InstancePipelineStepStatus(
+            stepId=ps.id,
+            instanceId=_instance.id,
+            status=_status,
+            startTime=_start_time,
+            endTime=None,
+            meta=[],
+        )
+        _instance_pipeline_step = instance_crud.add_pipeline_step(
+            db, str(_instance.id), _ipss
+        )
 
     _data = {
         "id": str(_instance.id),

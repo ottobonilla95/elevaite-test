@@ -39,6 +39,10 @@ def create_dataset(db: Session, dataset_create: DatasetCreate):
     return _dataset
 
 
+def get_dataset_by_name(db: Session, name: str) -> models.Dataset | None:
+    return db.query(models.Dataset).filter(models.Dataset.name == name).first()
+
+
 def get_dataset_tags(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.DatasetTag).offset(skip).limit(limit).all()
 

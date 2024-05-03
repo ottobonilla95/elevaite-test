@@ -51,9 +51,11 @@ class ServiceNowWorker(BaseIngestStep):
             self.r.json().set(
                 self.data.instanceId, ".current_file", path_leaf(ticket.source_ref_id)
             )
-            lakefs_branch.object(f"{ticket.source_ref_id}.json").upload(
-                content_type="application/json", data=json.dumps(ticket.json())
-            )
+            obj = lakefs_branch.object(f"{ticket.source_ref_id}.json")
+            with obj.writer(
+                mode="w", pre_sign=True, content_type="application/json"
+            ) as fd:
+                json.dump(ticket, fd, ensure_ascii=False, indent=4)
             self.r.json().numincrby(
                 self.data.instanceId, ".ingested_size", sys.getsizeof(ticket.json())
             )
