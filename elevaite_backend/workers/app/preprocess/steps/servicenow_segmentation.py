@@ -81,7 +81,7 @@ class ServiceNowSegmentation(BasePreprocessStep):
                     ChunkAsJson(
                         metadata={
                             "source_ref_id": ticket.source_ref_id,
-                            "source_url": ticket.source_url,
+                            "source": ticket.source_url,
                             "resolution": ticket.resolution,
                         },
                         page_content=ticket.problem_description,
