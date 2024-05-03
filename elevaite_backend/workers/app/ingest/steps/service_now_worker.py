@@ -55,7 +55,7 @@ class ServiceNowWorker(BaseIngestStep):
             with obj.writer(
                 mode="w", pre_sign=True, content_type="application/json"
             ) as fd:
-                json.dump(ticket, fd, ensure_ascii=False, indent=4)
+                json.dump(ticket.dict(), fd, ensure_ascii=False, indent=4)
             self.r.json().numincrby(
                 self.data.instanceId, ".ingested_size", sys.getsizeof(ticket.json())
             )
