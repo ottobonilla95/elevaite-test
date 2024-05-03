@@ -45,7 +45,7 @@ def ingestServiceNowTickets(
     rmq: pika.BlockingConnection = Depends(get_rabbitmq_connection),
 ):
     load_dotenv()
-    if not bool(re.match("/^[a-z0-9][a-z0-9-]{2,62}$/", dto.dataset_name)):
+    if not bool(re.match("^[a-z0-9][a-z0-9-]{2,62}$", dto.dataset_name)):
         raise HTTPException(400, "Dataset Name must match /^[a-z0-9][a-z0-9-]{2,62}$/")
     projectId = os.getenv("SERVICE_NOW_PROJECT")
     if projectId is None:
