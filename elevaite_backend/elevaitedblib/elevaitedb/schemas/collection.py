@@ -40,5 +40,5 @@ class QdrantScroll(BaseModel):
     shard_key: Union[str, None]
 
 
-class QdrantResponse(BaseModel):
-    __root__: Tuple[QdrantScroll, Union[str, None]]
+# class QdrantResponse(BaseModel):
+#     __root__: Tuple[QdrantScroll, Union[str, None]]

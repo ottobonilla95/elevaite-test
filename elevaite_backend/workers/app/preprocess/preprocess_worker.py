@@ -181,6 +181,7 @@ async def preprocess(data: PreProcessForm) -> None:
             db=db, application_id=data.applicationId, instance_id=data.instanceId
         )
         logger.info(message="Worker completed pre-process pipeline")
+        db.close()
     except Exception as e:
         print("Error")
         print(e)

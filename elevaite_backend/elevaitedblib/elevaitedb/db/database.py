@@ -10,7 +10,9 @@ if SQLALCHEMY_DATABASE_URL is None:
     raise Exception("SQLALCHEMY_DATABASE_URL not found")
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL  # , connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL,
+    pool_size=20,
+    max_overflow=10,  # , connect_args={"check_same_thread": False}
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

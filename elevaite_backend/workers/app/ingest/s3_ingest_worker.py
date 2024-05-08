@@ -295,6 +295,8 @@ def s3_lakefs_cp_stream(data: S3IngestData | ServiceNowIngestData) -> None:
         set_pipeline_step_completed(
             db=db, instance_id=data.instanceId, step_id=str(_final_step.id)
         )
+        logger.info(message="Worker completed ingest pipeline")
+        db.close()
 
     except BadRequestException as e:
         print("Dataset is identical")
