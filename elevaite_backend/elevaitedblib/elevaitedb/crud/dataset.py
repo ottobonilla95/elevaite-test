@@ -1,21 +1,20 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
 from sqlalchemy import func, select
-from typing import List, Dict, Any
+from typing import Type, Callable
 from ..db import models
 from ..schemas.dataset import DatasetCreate, DatasetTagCreate, DatasetVersionCreate
-
-# from rbac_api import rbac_instance
-
 
 def get_datasets_of_project(
     db: Session,
     project_id: str,
-    # filters_list: List[Dict[str, Any]], # uncomment this when using validator
+    # filter_function: Callable[[Type[models.Base], Query], Query] | None = None, # uncomment this when using validator
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 100
 ):
     query = db.query(models.Dataset)
-    # query = rbac_instance.apply_post_validation_type_filters_for_all_query(model_class=models.Dataset, filters_list=filters_list, query=query) # uncomment this when using validator
+
+    # if filter_function is not None: # uncomment this when using validator
+    #     query = filter_function(models.Dataset, query)
 
     return (
         query.filter(models.Dataset.projectId == project_id)

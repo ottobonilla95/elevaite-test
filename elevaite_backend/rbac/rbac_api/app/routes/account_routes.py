@@ -71,7 +71,7 @@ account_router = APIRouter(prefix="/accounts", tags=["accounts"])
 })
 async def create_account(
    account_creation_payload: account_schemas.AccountCreationRequestDTO = Body(..., description = "account creation request payload"),
-   validation_info: dict[str, Any] = Depends(validators.validate_post_account) # Assuming the dependency function extracts the user ID from the access token, and performs all required validations.
+   validation_info: dict[str, Any] = Depends(validators.validate_post_account) 
 ) -> account_schemas.AccountResponseDTO: 
    """
    Create an Account resource based on given body param.
@@ -85,6 +85,7 @@ async def create_account(
    
    Notes:
       - only authorized for use by superadmin users. 
+      - creating an account assigns the creator to the account
    """
    logged_in_user: models.User = validation_info.get("logged_in_user", None)
    db: Session = validation_info.get("db", None)
@@ -143,7 +144,7 @@ async def create_account(
 })
 async def patch_account(
    account_patch_req_payload: account_schemas.AccountPatchRequestDTO = Body(...),
-   validation_info: dict[str, Any] = Depends(validators.validate_patch_account) # Assuming the dependency function extracts the user ID from the access token, and performs all required validations.
+   validation_info: dict[str, Any] = Depends(validators.validate_patch_account) 
 ) -> account_schemas.AccountResponseDTO: 
    """
    Patch an Account resource based on given body param.
@@ -327,7 +328,7 @@ async def get_account(
 })
 async def get_account_user_list(
    validation_info: dict[str, Any] = Depends(validators.validate_get_account_user_list),
-   account_id: UUID = Path(..., description="Account id under which users are queried"), # when not provided, its only valid for admins and superadmins. 
+   account_id: UUID = Path(..., description="Account id under which users are queried"),  
    firstname: Optional[str] = Query(None, description="Filter users by first name"),
    lastname: Optional[str] = Query(None, description="Filter users by last name"),
    email: Optional[str] = Query(None, description="Filter users by email")
@@ -431,7 +432,6 @@ async def assign_users_to_account(
    
    Notes:
       - only authorized for use by superadmin/account-admin users
-
    """
    db: Session = validation_info.get("db", None)
    return service.assign_users_to_account(account_id, user_list_dto, db)
@@ -506,7 +506,7 @@ async def deassign_user_from_account(
       - only authorized for use by superadmin/account-admin users
       - users who are only account-admins cannot deassign themselves from account
       - superadmin users can only be deassigned from account by root superadmin user or by themselves
-      - deassignment from account deletes all project associations within that account for the deassigned user as well
+      - deassignment from account also results in user getting deassigned from all assigned projects within that account
    """
    db: Session = validation_info.get("db", None)
    logged_in_user = validation_info.get('logged_in_user', None)
@@ -585,7 +585,7 @@ async def patch_user_account_admin_status(
    Notes:
       - only authorized for use by superadmin/account-admin users
       - users who are only account-admins cannot modify account admin status of self
-      - revoking account admin status of non-superadmin users also results in deassignment of those users from all of those account's projects which are not connected to any of account's top level projects through associations 
+      - revoking account admin status of non-superadmin user also results in deassignment of the user from all of the account's projects where the user is not also assigned to all projects in the respective projects' parent project hierarchy up until the account's top level project (where parent_project_id is null) 
    """
    logged_in_user = validation_info.get("logged_in_user", None)
    db: Session = validation_info.get("db", None)

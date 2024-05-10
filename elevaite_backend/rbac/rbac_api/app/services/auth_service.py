@@ -8,6 +8,7 @@ from pprint import pprint
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
+from pydantic import EmailStr
 
 from elevaitedb.schemas import (
    auth as auth_schemas,
@@ -18,21 +19,24 @@ from ..errors.api_error import ApiError
 from rbac_api.validators.rbac import rbac_instance
 import os
 
-def register_user(db: Session, 
-                register_user_payload: auth_schemas.RegisterUserRequestDTO) -> JSONResponse:
+def register_user(
+      db: Session, 
+      register_user_payload: auth_schemas.RegisterUserRequestDTO,
+      user_email: EmailStr
+) -> JSONResponse:
    try:
+      org_id = os.getenv("ORGANIZATION_ID")
       USER_ALREADY_EXISTS = True
       # Verify if the specified user exists already
-      db_user = db.query(models.User).filter(models.User.email == register_user_payload.email, models.User.organization_id == register_user_payload.org_id).first()
-
+      db_user = db.query(models.User).filter(models.User.email == user_email, models.User.organization_id == org_id).first()
       if not db_user:
          USER_ALREADY_EXISTS = False
          # Create the new user instance
          db_user = models.User(
             firstname=register_user_payload.firstname,
             lastname=register_user_payload.lastname,
-            email=register_user_payload.email,
-            organization_id=register_user_payload.org_id,
+            email=user_email,
+            organization_id=org_id,
          )
          db.add(db_user)
          db.flush()  # Now, db_user.id is available
@@ -41,8 +45,8 @@ def register_user(db: Session,
       default_account = db.query(models.Account).filter(models.Account.id == default_account_id).first()
       if not default_account:
          default_account = models.Account(
-            id=os.getenv("DEFAULT_ACCOUNT_ID"),
-            organization_id=os.getenv("ORGANIZATION_ID"),
+            id=default_account_id,
+            organization_id=org_id,
             name="elevAIte Default Account",
             description="Iopex Default Account desc",
             created_at=datetime.now(),
@@ -72,9 +76,9 @@ def register_user(db: Session,
       if not default_project:
         # Create default project
          default_project = models.Project(
-            id=os.getenv("DEFAULT_PROJECT_ID"),
+            id=default_project_id,
             account_id=default_account.id,
-            creator=register_user_payload.email,
+            creator=user_email,
             name="elevAIte Default Project",
             description="elevAIte Default Project desc",
             created_at=datetime.now(),

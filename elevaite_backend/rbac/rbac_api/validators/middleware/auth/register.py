@@ -21,14 +21,7 @@ async def validate_register_user(
    Returns the user_email and db session for use in service method
    """
    try:
-      if register_user_payload.email != user_email:
-         print(f"in POST /auth/register - validate_register_user middleware: logged-in user does not have permissions to register user with email - '{register_user_payload.email}'")
-         raise ApiError.forbidden(f"you do not have permissions to register user with email - '{register_user_payload.email}'")
-      organization = db.query(models.Organization).filter(models.Organization.id == register_user_payload.org_id).first()
-      if not organization:
-         print(f"in POST /auth/register - validate_register_user middleware: Organization - '{register_user_payload.org_id}' - not found")
-         raise ApiError.notfound(f"Organization - '{register_user_payload.org_id}' - not found")
-      return {"db" : db}
+      return {"db" : db, "user_email" : user_email}
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in POST /auth/register - validate_register_user middleware: {e}')

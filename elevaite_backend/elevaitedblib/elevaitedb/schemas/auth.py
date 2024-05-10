@@ -1,22 +1,18 @@
-from pydantic import BaseModel, EmailStr, Field, Extra, root_validator
+from pydantic import BaseModel, Field, Extra, root_validator
 from typing import Optional, Literal, Union
 from uuid import UUID
 from enum import Enum
 
 class RegisterUserRequestDTO(BaseModel):
-   org_id: UUID = Field(..., description="The ID of the org to be assigned to the user")
    firstname: Optional[str] = Field(None, max_length=60, description="First name of user")
    lastname: Optional[str] = Field(None, max_length=60, description="Last name of user")
-   email: EmailStr = Field(..., description="Immutable user email")
    
    class Config:
       extra = Extra.forbid
       schema_extra = {
          "example": {
-               "org_id": "123e4567-e89b-12d3-a456-426614174000",
                "firstname": "First name",
-               "lastname": "Last name",
-               "email": "john.doe@domain.com"
+               "lastname": "Last name"
          }
       }
 
@@ -31,7 +27,7 @@ class RBACPermissionScope(str, Enum):
    ACCOUNT_SCOPE = "ACCOUNT_SCOPE"
    PROJECT_SCOPE = "PROJECT_SCOPE"
 
-class PermissionsValidationRequest(BaseModel):
+class PermissionsValidationRequest(BaseModel): # the payload for the fields directly corresponds to the path params excluding account/project. The final path param for READ/UPDATE is skipped (for example instance_id is not passed for INSTANCE_READ, collection_id is skipped for COLLECTION_READ etc), since these are permissions which are not specific to a target entity id.
    IS_ACCOUNT_ADMIN: Optional[BaseParamsWithoutAccountAndProject]
    IS_PROJECT_ADMIN: Optional[BaseParamsWithoutAccountAndProject]
    PROJECT_READ: Optional[BaseParamsWithoutAccountAndProject]
@@ -40,7 +36,7 @@ class PermissionsValidationRequest(BaseModel):
    DATASET_TAG: Optional[BaseParamsWithoutAccountAndProject]
    COLLECTION_READ: Optional[BaseParamsWithoutAccountAndProject]
    COLLECTION_CREATE: Optional[BaseParamsWithoutAccountAndProject]
-   CONFIGURATION_READ: Optional[ApplicationDependencyParam]
+   CONFIGURATION_READ: Optional[ApplicationDependencyParam] # this directly corresponds to the path params needed 
    CONFIGURATION_CREATE: Optional[ApplicationDependencyParam] 
    CONFIGURATION_UPDATE: Optional[ApplicationDependencyParam] 
    INSTANCE_READ: Optional[ApplicationDependencyParam] 

@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Callable, Type
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
 from typing import Optional, Any
 from elevaitedb.schemas.application import Application, is_application, ApplicationType
 from elevaitedb.schemas.pipeline import Pipeline, is_pipeline
@@ -13,11 +13,11 @@ from elevaitedb.db import models
 
 def getApplicationList(
     db: Session,
-    # filters_list: List[dict[str, Any]] = [], # uncomment this when using validator
+    # filter_function: Callable[[Type[models.Base], Query], Query] # uncomment this when using validator
 ) -> List[models.Application]:
     apps = application_crud.get_applications(
         db=db, 
-        # filters_list=filters_list # uncomment this when using validator
+        # filter_function=filter_function # uncomment this when using validator
         )
     return apps
 

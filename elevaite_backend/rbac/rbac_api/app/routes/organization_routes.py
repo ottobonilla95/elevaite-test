@@ -205,7 +205,6 @@ async def get_org_users(
     Notes:
     - Only authorized for use by superadmins/account-admins.
     - Use case for superadmins/admins to add users to accounts
-
     """
     db: Session = validation_info.get("db", None)
     org_id: UUID = validation_info.get("org_id" , None)

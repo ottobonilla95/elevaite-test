@@ -1,7 +1,7 @@
 from pprint import pprint
-from typing import Annotated, Any, List, Dict
+from typing import Annotated, Any, List, Dict, Type, Callable
 from fastapi import APIRouter, Body, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
 from ..services import configurations as conf_service
 from .deps import get_db
 from elevaitedb.db import models
@@ -31,9 +31,14 @@ def getApplicationConfigurations(
 
     # filters_list: List[Dict[str, Any]] = rbac_instance.generate_post_validation_type_filters_for_all_query(models.Configuration, typenames, typevalues, validation_info) # uncomment this when using validator
 
+    # Create a filter function closure
+    # def filter_function(model_class : Type[models.Base], query: Query) -> Query:  # uncomment this when using validator
+    #     return rbac_instance.apply_post_validation_type_filters_for_all_query(
+    #         model_class, filters_list, query)
+    
     return conf_service.getConfigurationsOfApplication(
         db=db,
-        # filters_list=filters_list, # uncomment this when using validator
+        # filter_function=filter_function, # uncomment this when using validator
         application_id=application_id
     )
 

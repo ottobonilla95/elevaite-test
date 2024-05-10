@@ -153,8 +153,11 @@ async def get_user_profile(
       - UserProfileDTO: User profile containing user information along with account membership information
    
    Notes:
-      - superadmin users can see all account-memberships of user 
-      - non-superadmin users can see only mutual account membership information
+      - superadmins do not need to pass 'X-elevAIte-AccountId' header, and can view any registered user's profile
+      - non-superadmin users can view only their own profile without passing 'X-elevAIte-AccountId' header
+      - superadmin users can see all account-memberships of user regardless of mutual account assignment
+      - non-superadmin users can see only mutual account membership information of profiled user
+      - profiled users who have an elevated status of superadmin/account-admin will have an empty list for roles field
    """
    user_to_profile = validation_info.get("User", None)
    logged_in_user = validation_info.get("logged_in_user", None)
@@ -290,7 +293,6 @@ async def patch_user_account_roles(
 })
 async def update_user_project_permission_overrides(
    user_id: UUID = Path(..., description="The ID of the user"),
-   # account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="The ID of the account that contains the project"),
    project_id: UUID = Path(..., description="The ID of the project"),
    permission_overrides_payload: role_schemas.ProjectScopedPermission = Body(...),
    validation_info: dict[str, Any] = Depends(validators.validate_update_project_permission_overrides_factory(models.Project, ("READ", )))
@@ -369,7 +371,6 @@ async def update_user_project_permission_overrides(
 })
 async def get_user_project_permission_overrides(
    user_id: UUID = Path(..., description="The ID of the user"),
-   # account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="The ID of the account that contains the project"),
    project_id: UUID = Path(..., description="The ID of the project"),
    validation_info: dict[str, Any] = Depends(validators.validate_get_project_permission_overrides_factory(models.Project, ("READ", )))
 ) -> role_schemas.ProjectScopedPermission:
@@ -463,7 +464,7 @@ async def patch_user_superadmin_status(
       - Authorized for use only by superadmin users
       - Cannot modify superadmin status of self
       - Cannot modify superadmin status of root superadmin user
-      - Revoking superadmin status will result in dissociation of user from all projects in non-admin accounts which are not connected to their respective account's top level projects through associations 
+      - Revoking superadmin status will result in deassignment of user from all projects in non-admin accounts where the user is not also assigned to all projects in the respective projects' parent project hierarchy up until the account's top level project (where parent_project_id is null)
    """
    db: Session = validation_info.get("db", None)
    logged_in_user = validation_info.get("logged_in_user", None)

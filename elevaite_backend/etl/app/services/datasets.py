@@ -1,7 +1,6 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Type, Callable
+from sqlalchemy.orm import Session, Query
 from elevaitedb.db import models
-from sqlalchemy.orm import Session
-
 from app.util.name_generator import get_random_name
 from app.util import func as util_func
 from elevaitedb.schemas.dataset import (
@@ -18,7 +17,7 @@ from elevaitedb.crud import (
 def get_datasets_of_project(
     db: Session, 
     projectId: str,
-    # filters_list: List[Dict[str, Any]], # uncomment this when using validator
+    # filter_function: Callable[[Type[models.Base], Query], Query], # uncomment this when using validator
     skip: int,
     limit: int
 ) -> List[models.Dataset]:
@@ -27,7 +26,7 @@ def get_datasets_of_project(
     return dataset_crud.get_datasets_of_project(
         db=db, 
         project_id=projectId,
-        # filters_list=filters_list, # uncomment this when using validator
+        # filter_function=filter_function, # uncomment this when using validator
         skip=skip,
         limit=limit
     )

@@ -9,13 +9,9 @@ from ..auth.token import validate_token
 
 from rbac_api.utils.deps import get_db
 from elevaitedb.db import models
-from elevaitedb.schemas import (
-   user as user_schemas,
-)
-from rbac_api.utils.cte import (
-   is_user_project_association_till_root,
-)
+
 from ...rbac import rbac_instance
+import inspect
 
 async def validate_get_user_profile(
    user_email: str = Depends(validate_token), 
@@ -34,10 +30,10 @@ async def validate_get_user_profile(
          account = db.query(models.Account).filter(models.Account.id == account_id).first()
          if not account:
             raise ApiError.notfound(f"Account - '{account_id}' - not found")
-      elif not logged_in_user.is_superadmin:
-         raise ApiError.forbidden("you do not have superadmin permissions and must provide an account_id")
+      elif not logged_in_user.is_superadmin and user_id != logged_in_user.id:
+         raise ApiError.forbidden("you do not have superadmin permissions and must provide an account_id to view user profile of other users")
       
-      if not logged_in_user.is_superadmin:
+      if not logged_in_user.is_superadmin and account_id:
          logged_in_user_association = db.query(models.User_Account).filter(models.User_Account.user_id == logged_in_user.id, models.User_Account.account_id == account_id).first()
          if not logged_in_user_association:
             raise ApiError.forbidden(f"you are not assigned to account - '{account_id}'")
@@ -161,6 +157,15 @@ def validate_update_project_permission_overrides_factory(target_model_class : Ty
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
+         # Set the context flags in request.state
+         current_frame = inspect.currentframe()
+         if current_frame and current_frame.f_locals:   
+            frame_locals = current_frame.f_locals
+            request.state.account_context_exists = 'account_id' in frame_locals
+            request.state.project_context_exists = 'project_id' in frame_locals
+         else:
+            request.state.account_context_exists = False
+            request.state.project_context_exists = False
 
          validation_info:dict[str, Any] = await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
@@ -214,6 +219,16 @@ def validate_get_project_permission_overrides_factory(target_model_class : Type[
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
+         # Set the context flags in request.state
+         current_frame = inspect.currentframe()
+         if current_frame and current_frame.f_locals:   
+            frame_locals = current_frame.f_locals
+            request.state.account_context_exists = 'account_id' in frame_locals
+            request.state.project_context_exists = 'project_id' in frame_locals
+         else:
+            request.state.account_context_exists = False
+            request.state.project_context_exists = False
+
          validation_info:dict[str, Any] = await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,

@@ -1,22 +1,22 @@
-from typing import List, Dict, Any
-from sqlalchemy.orm import Session
+from typing import List, Callable, Type
+from sqlalchemy.orm import Session, Query
 
 from ..schemas.collection import CollectionCreate
 
 from ..db import models
 
-# from rbac_api import rbac_instance
-
 
 def get_collections(
     db: Session,
     projectId: str,
-    # filters_list: List[Dict[str, Any]], # uncomment this when using validator
+    # filter_function: Callable[[Type[models.Base], Query], Query] | None = None, # uncomment this when using validator
     skip: int = 0,
     limit: int = 100,
 ) -> List[models.Collection]:
     query = db.query(models.Collection)
-    # query = rbac_instance.apply_post_validation_type_filters_for_all_query(model_class=models.Collection, filters_list=filters_list, query=query) # uncomment this when using validator
+
+    # if filter_function is not None: # uncomment this when using validator
+    #     query = filter_function(models.Collection, query)
 
     return (
         query.filter(models.Collection.projectId == projectId)

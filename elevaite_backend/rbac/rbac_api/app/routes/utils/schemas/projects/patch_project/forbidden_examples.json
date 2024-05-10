@@ -20,16 +20,10 @@
    "insufficient_permissions_4": {
       "summary": "logged-in user does not have superadmin/account-admin privileges and does not have account-specific role-based access permissions to perform the action sequence",
       "value": {
-         "detail": "you do not have superadmin/account-admin privileges and you do not have account-specific role-based access permissions to perform the action sequence - '(READ,)' - on 'Account' resources within account - '789e4567-e89b-12d3-a456-426614174000'"
-      }
-   },
-   "insufficient_permissions_5": {
-      "summary": "logged-in user does not have superadmin/account-admin privileges and does not have account-specific role-based access permissions to perform the action sequence",
-      "value": {
          "detail": "you do not have superadmin/account-admin privileges and you do not have account-specific role-based access permissions to perform the action sequence - '(READ,)' - on 'Project' resources within account - '789e4567-e89b-12d3-a456-426614174000'"
       }
    },
-   "insufficient_permissions_6": {
+   "insufficient_permissions_5": {
       "summary": "logged-in user does not have superadmin/account-admin or project-admin permissions to update project",
       "value": {
          "detail": "you do not have superadmin/account-admin or project-admin permissions to update project - '789e4567-e89b-12d3-a456-426614174000'"

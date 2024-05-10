@@ -10,11 +10,5 @@
       "value": {
          "detail": "invalid or expired auth credentials"
       }
-   },
-   "unauthorized_email_domain": {
-      "summary": "unauthorized email domain",
-      "value": {
-         "detail": "Unauthorized email domain"
-      }
    }
 }

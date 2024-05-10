@@ -1,6 +1,6 @@
-from typing import List, Sequence, Any, Dict
-from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy.orm import Session
+from typing import List, Sequence, Any, Dict, Type
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session, Query
 from ..services import applications as service
 from .deps import get_db
 from elevaitedb.db import models
@@ -30,9 +30,14 @@ def getApplicationList(
 
     # filters_list: List[Dict[str, Any]] = rbac_instance.generate_post_validation_type_filters_for_all_query(models.Application, typenames, typevalues, validation_info) # uncomment this when using validator
     
+    # Create a filter function closure
+    # def filter_function(model_class : Type[models.Base], query: Query) -> Query:  # uncomment this when using validator
+    #     return rbac_instance.apply_post_validation_type_filters_for_all_query(
+    #         model_class, filters_list, query)
+    
     return service.getApplicationList(
         db,
-        # filters_list=filters_list # uncomment this when using validator
+        # filter_function=filter_function # uncomment this when using validator
     )
 
 

@@ -5,7 +5,7 @@ from uuid import UUID
 from datetime import datetime
 from .role import (
    RoleResponseDTO,
-   RoleSummaryDTO,
+   RoleSummaryDTO, 
    ProjectScopedPermission
 )
 from .common import StatusUpdateAction
@@ -27,7 +27,7 @@ class UserPatchRequestDTO(BaseModel):
       return values
    
 class UserListDTO(BaseModel):
-   user_ids: List[UUID] = Field(..., description="The IDs of the users in a list to be assigned/deassigned to/from a project/account")
+   user_ids: List[UUID] = Field(..., description="The IDs of the users in a list")
 
    class Config:
       extra = Extra.forbid

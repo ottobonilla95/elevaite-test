@@ -228,12 +228,12 @@ def get_project_user_list(
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def assign_users_to_project(
-   user_list_dto: user_schemas.UserListDTO,
+   project_assignee_list_dto: project_schemas.ProjectAssigneeListDTO,
    db: Session,
    project : models.Project,
 ) -> JSONResponse:
    try:
-      user_ids = user_list_dto.user_ids
+      user_ids = [assignee.user_id for assignee in project_assignee_list_dto.assignees]
 
       # if action == "Add":
       query_result = db.query(
@@ -245,7 +245,7 @@ def assign_users_to_project(
       ).outerjoin(
          models.User_Project, and_(models.User.id == models.User_Project.user_id, models.User_Project.project_id == project.id)
       ).filter(
-         models.User.id.in_(user_list_dto.user_ids)
+         models.User.id.in_(user_ids)
       ).one()
 
       # Extracting the results
@@ -268,7 +268,7 @@ def assign_users_to_project(
          parent_project_associations_count = db.query(
             func.count(models.User_Project.user_id)
          ).filter(
-            models.User_Project.user_id.in_(user_list_dto.user_ids),
+            models.User_Project.user_id.in_(user_ids),
             models.User_Project.project_id == project.parent_project_id
          ).scalar()
          if parent_project_associations_count != len(user_ids):
@@ -278,8 +278,8 @@ def assign_users_to_project(
          raise ApiError.conflict(f"One or more users are already assigned to project - '{project.id}'")
       
       new_user_projects = [
-         models.User_Project(user_id=user_id, project_id=project.id)
-         for user_id in user_ids
+         models.User_Project(user_id=assignee.user_id, project_id=project.id, permission_overrides=assignee.permission_overrides.dict())
+         for assignee in project_assignee_list_dto.assignees
       ]
       db.bulk_save_objects(new_user_projects)
       db.commit()

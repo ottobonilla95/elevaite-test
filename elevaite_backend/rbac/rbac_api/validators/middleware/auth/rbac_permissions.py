@@ -16,7 +16,7 @@ async def validate_evaluate_rbac_permissions(
    user_email: str = Depends(validate_token),
    # params required for pydantic validation
    account_id: Optional[UUID] = Header(None, alias='X-elevAIte-AccountId', description="account id under which rbac permissions are evaluated"),
-   project_id: Optional[UUID] = Header(None, alias='X-elevAIte-projectId', description="project id under which rbac permissions are evaluated"),
+   project_id: Optional[UUID] = Header(None, alias='X-elevAIte-ProjectId', description="project id under which rbac permissions are evaluated"),
    permissions_validation_request: auth_schemas.PermissionsValidationRequest = Body(...),
    db: Session = Depends(get_db)
 ) -> dict[str, Any]:

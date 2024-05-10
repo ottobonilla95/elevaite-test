@@ -1,19 +1,18 @@
-from sqlalchemy.orm import Session
-from typing import Optional, Any, List, Dict
+from sqlalchemy.orm import Session, Query
+from typing import Callable, Type
 from ..db import models
 from ..schemas import application
 
-# from rbac_api import rbac_instance
-
-
 def get_applications(
     db: Session,
-    # filters_list: List[Dict[str, Any]] = [], # uncomment this when using validator
+    # filter_function: Callable[[Type[models.Base], Query], Query] | None = None, # uncomment this when using validator
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 100
 ):
     query = db.query(models.Application)
-    # query = rbac_instance.apply_post_validation_type_filters_for_all_query(model_class=models.Application, filters_list=filters_list, query=query) # uncomment this when using validator
+
+    # if filter_function is not None: # uncomment this when using validator
+    #     query = filter_function(models.Application, query)
 
     return query.offset(skip).limit(limit).all()
 

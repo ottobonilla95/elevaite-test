@@ -1,7 +1,7 @@
 from fastapi import APIRouter
-from typing import Annotated, Any, List, Dict
+from typing import Annotated, Type, Callable, Dict, List, Any
 from fastapi import APIRouter, Body, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
 from ..services import collections as collection_service
 from .deps import get_db, get_qdrant_connection
 from elevaitedb.schemas import collection as collection_schemas
@@ -26,11 +26,15 @@ def getCollectionsOfProject(
     # typevalues = validation_info.get("target_entity_typevalue_combinations", tuple()) # uncomment this when using validator
 
     # filters_list: List[Dict[str, Any]] = rbac_instance.generate_post_validation_type_filters_for_all_query(models.Collection, typenames, typevalues, validation_info) # uncomment this when using validator
-
+    # Create a filter function closure
+    # def filter_function(model_class : Type[models.Base], query: Query) -> Query:  # uncomment this when using validator 
+    #     return rbac_instance.apply_post_validation_type_filters_for_all_query(
+    #         model_class, filters_list, query)
+    
     return collection_service.getCollectionsOfProject(
         db=db,
         projectId=project_id,
-        # filters_list=filters_list, # uncomment this when using validator
+        # filter_function=filter_function, # uncomment this when using validator
         skip=skip,
         limit=limit,
     )

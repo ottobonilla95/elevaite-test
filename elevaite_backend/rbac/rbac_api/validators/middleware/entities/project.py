@@ -10,6 +10,7 @@ from rbac_api.app.errors.api_error import ApiError
 from rbac_api.utils.deps import get_db 
 from elevaitedb.db import models
 from ...rbac import rbac_instance
+import inspect
 
 def validate_get_project_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
    async def validate_get_project(
@@ -19,6 +20,16 @@ def validate_get_project_factory(target_model_class : Type[models.Base], target_
          db: Session = Depends(get_db)
       ) -> dict[str, Any]:
       try:
+         # Set the context flags in request.state
+         current_frame = inspect.currentframe()
+         if current_frame and current_frame.f_locals:   
+            frame_locals = current_frame.f_locals
+            request.state.account_context_exists = 'account_id' in frame_locals
+            request.state.project_context_exists = 'project_id' in frame_locals
+         else:
+            request.state.account_context_exists = False
+            request.state.project_context_exists = False
+
          return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
@@ -51,6 +62,16 @@ def validate_get_projects_factory(target_model_class : Type[models.Base], target
          db: Session = Depends(get_db)
       ) -> dict[str,Any]:
       try:
+         # Set the context flags in request.state
+         current_frame = inspect.currentframe()
+         if current_frame and current_frame.f_locals:   
+            frame_locals = current_frame.f_locals
+            request.state.account_context_exists = 'account_id' in frame_locals
+            request.state.project_context_exists = 'project_id' in frame_locals
+         else:
+            request.state.account_context_exists = False
+            request.state.project_context_exists = False
+
          return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
@@ -81,6 +102,16 @@ def validate_get_project_user_list_factory(target_model_class : Type[models.Base
       user_email: str = Depends(validate_token)
    ) -> dict[str, Any]:
       try:
+         # Set the context flags in request.state
+         current_frame = inspect.currentframe()
+         if current_frame and current_frame.f_locals:   
+            frame_locals = current_frame.f_locals
+            request.state.account_context_exists = 'account_id' in frame_locals
+            request.state.project_context_exists = 'project_id' in frame_locals
+         else:
+            request.state.account_context_exists = False
+            request.state.project_context_exists = False
+
          return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
@@ -109,6 +140,16 @@ def validate_patch_project_factory(target_model_class : Type[models.Base], targe
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
+         # Set the context flags in request.state
+         current_frame = inspect.currentframe()
+         if current_frame and current_frame.f_locals:   
+            frame_locals = current_frame.f_locals
+            request.state.account_context_exists = 'account_id' in frame_locals
+            request.state.project_context_exists = 'project_id' in frame_locals
+         else:
+            request.state.account_context_exists = False
+            request.state.project_context_exists = False
+
          validation_info:dict[str, Any] =  await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
@@ -161,6 +202,16 @@ def validate_post_project_factory(target_model_class : Type[models.Base], target
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try: 
+         # Set the context flags in request.state
+         current_frame = inspect.currentframe()
+         if current_frame and current_frame.f_locals:   
+            frame_locals = current_frame.f_locals
+            request.state.account_context_exists = 'account_id' in frame_locals
+            request.state.project_context_exists = 'project_id' in frame_locals
+         else:
+            request.state.account_context_exists = False
+            request.state.project_context_exists = False
+
          return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
@@ -190,6 +241,16 @@ def validate_assign_users_to_project_factory(target_model_class : Type[models.Ba
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
+         # Set the context flags in request.state
+         current_frame = inspect.currentframe()
+         if current_frame and current_frame.f_locals:   
+            frame_locals = current_frame.f_locals
+            request.state.account_context_exists = 'account_id' in frame_locals
+            request.state.project_context_exists = 'project_id' in frame_locals
+         else:
+            request.state.account_context_exists = False
+            request.state.project_context_exists = False
+
          validation_info:dict[str, Any] =  await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
@@ -242,6 +303,16 @@ def validate_deassign_user_from_project_factory(target_model_class : Type[models
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
+         # Set the context flags in request.state
+         current_frame = inspect.currentframe()
+         if current_frame and current_frame.f_locals:   
+            frame_locals = current_frame.f_locals
+            request.state.account_context_exists = 'account_id' in frame_locals
+            request.state.project_context_exists = 'project_id' in frame_locals
+         else:
+            request.state.account_context_exists = False
+            request.state.project_context_exists = False
+
          validation_info:dict[str, Any] =  await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
@@ -296,6 +367,16 @@ def validate_update_user_project_admin_status_factory(target_model_class : Type[
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
+         # Set the context flags in request.state
+         current_frame = inspect.currentframe()
+         if current_frame and current_frame.f_locals:   
+            frame_locals = current_frame.f_locals
+            request.state.account_context_exists = 'account_id' in frame_locals
+            request.state.project_context_exists = 'project_id' in frame_locals
+         else:
+            request.state.account_context_exists = False
+            request.state.project_context_exists = False
+            
          validation_info:dict[str, Any] =  await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,

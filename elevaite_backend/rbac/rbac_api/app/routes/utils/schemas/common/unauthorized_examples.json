@@ -11,12 +11,6 @@
          "detail": "invalid or expired auth credentials"
       }
    },
-   "unauthorized_email_domain": {
-      "summary": "unauthorized email domain",
-      "value": {
-         "detail": "Unauthorized email domain"
-      }
-   },
    "no_corresponding_user": {
       "summary": "No corresponding user in db",
       "value": {

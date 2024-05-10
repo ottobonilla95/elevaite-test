@@ -1,9 +1,10 @@
 from datetime import datetime
 import json
-from typing import List
+from pprint import pprint
+from typing import Any, List, Type, Callable
 import elasticsearch
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
 
 import pika
 from app.util.name_generator import get_random_name
@@ -50,13 +51,13 @@ def getApplicationInstances(
     db: Session,
     application_id: int,
     # project_id: UUID, # uncomment this when using validator
-    # filters_list: List[dict[str,Any]] # uncomment this when using validator
+    # filter_function: Callable[[Type[models.Base], Query], Query], # uncomment this when using validator
 ) -> List[models.Instance]:
     instances = instance_crud.get_instances(
         db,
         application_id,
         # project_id, # uncomment this when using validator
-        # filters_list, # uncomment this when using validator
+        # filter_function=filter_function, # uncomment this when using validator
         limit=100,
     )
     return instances

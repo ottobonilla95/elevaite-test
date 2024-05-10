@@ -24,16 +24,7 @@
              "created_at": "2024-03-14T12:21:31.277153",
              "updated_at": "2024-03-14T12:21:31.277153",
              "is_account_admin": true,
-             "roles": [
-                 {
-                     "id": "7be333cf-09ef-4f09-9249-d4edc22206a7",
-                     "name": "Data Scientist"
-                 },
-                 {
-                     "id": "8a526965-1a51-4903-ae9b-3738e035dc3d",
-                     "name": "ML OPS"
-                 }
-             ]
+             "roles": []
          },
          {
              "id": "5b8d6492-f85f-48a6-9cd2-a347480dd372",

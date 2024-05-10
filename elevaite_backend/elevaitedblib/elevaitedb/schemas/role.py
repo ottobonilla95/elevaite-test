@@ -3,16 +3,15 @@ from typing import Optional, Literal, List
 from uuid import UUID
 from datetime import datetime
 
-# ActionEnumType Model : Defines possible enum values for an action on resource type
-class ActionEnumType(BaseModel):
-   action: Literal["Allow", "Deny"] = Field(default="Deny")
-   class Config:
-      extra = Extra.forbid
-
 # 'Dataset' and 'Model' are artifacts
 class ArtifactPermission(BaseModel):
    ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
    ACTION_TAG: Literal["Allow", "Deny"] = Field(default="Deny")
+
+   @classmethod
+   def create(cls, default_action:Literal["Allow", "Deny"] = "Deny"):
+      return cls(ACTION_READ=default_action, ACTION_TAG=default_action)
+   
    class Config:
       extra = Extra.forbid
 
@@ -26,6 +25,10 @@ class CollectionPermission(BaseModel):
    ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Deny")
    ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
 
+   @classmethod
+   def create(cls, default_action:Literal["Allow", "Deny"] = "Deny"):
+      return cls(ACTION_CREATE=default_action, ACTION_READ=default_action)
+   
    class Config:
       extra = Extra.forbid
 
@@ -40,9 +43,9 @@ class AccountScopedProjectPermission(BaseModel):
 
 # Permission type for ProjectScoped Project resource type
 class ProjectScopedProjectPermission(BaseModel):
-   ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Deny")
-   ENTITY_Dataset: DatasetPermission = Field(default_factory=DatasetPermission)
-   ENTITY_Collection: CollectionPermission = Field(default_factory=CollectionPermission)
+   ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Allow")
+   ENTITY_Dataset: DatasetPermission = Field(default_factory=lambda: DatasetPermission.create("Allow"))
+   ENTITY_Collection: CollectionPermission = Field(default_factory=lambda: CollectionPermission.create("Allow"))
    class Config:
       extra = Extra.forbid
 
@@ -58,33 +61,21 @@ class InstanceConfigurationPermission(BaseModel):
    class Config:
       extra = Extra.forbid
 
+   @classmethod
+   def create(cls, default_action:Literal["Allow", "Deny"] = "Deny"):
+      return cls(ACTION_READ=default_action)
+   
 class ApplicationInstancePermission(BaseModel):
    ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
    ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Deny")
    ACTION_CONFIGURATION: InstanceConfigurationPermission = Field(default_factory=InstanceConfigurationPermission)
+   
    class Config:
       extra = Extra.forbid
 
-class ConfigurePermission(BaseModel):
-   ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_RUN: Literal["Allow", "Deny"] = Field(default="Deny")
-   class Config:
-      extra = Extra.forbid
-
-# Permission type for Schedule action on a particular resource type, in role create/patch request
-class SchedulePermission(BaseModel):
-   ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Deny")
-   class Config:
-      extra = Extra.forbid
-
-# Permission type for EnableWebHooks action on a particular resource type in role create/patch request
-class EnableWebHooksPermission(BaseModel):
-   ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Deny")
-   class Config:
-      extra = Extra.forbid
+   @classmethod
+   def create(cls, default_action:Literal["Allow", "Deny"] = "Deny"):
+      return cls(ACTION_READ=default_action, ACTION_CREATE=default_action,ACTION_CONFIGURATION=InstanceConfigurationPermission.create(default_action))
 
 # Account Scoped Permission type for ingest connector 
 class AccountScopedApplicationIngestPermission(BaseModel):
@@ -97,7 +88,7 @@ class AccountScopedApplicationIngestPermission(BaseModel):
 
 # Account Scoped Permission type for ingest connector 
 class ProjectScopedApplicationIngestPermission(BaseModel):
-   ENTITY_Instance: ApplicationInstancePermission = Field(default_factory=ApplicationInstancePermission)
+   ENTITY_Instance: ApplicationInstancePermission = Field(default_factory=lambda: ApplicationInstancePermission.create("Allow"))
 
    class Config:
       extra = Extra.forbid
@@ -108,53 +99,6 @@ class AccountScopedApplicationPreprocessPermission(AccountScopedApplicationInges
 
 class ProjectScopedApplicationPreprocessPermission(ProjectScopedApplicationIngestPermission):
    pass
-
-# DownloadPermissionType Model (similar to ConfigurePermissionType for Train)
-class DownloadPermission(ConfigurePermission):
-   pass
-
-# EvaluatePermissionType Model (similar to ConfigurePermissionType for Train)
-class EvaluatePermission(ConfigurePermission):
-   pass
-
-# FineTuningPermissionType Model (similar to EnableWebHooksPermissionType for Train)
-class FinetuningPermission(EnableWebHooksPermission):
-   pass
-
-# Permission type for Train action
-class AccountScopedApplicationTrainPermission(BaseModel):
-   ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_DOWNLOAD: DownloadPermission = Field(default_factory=DownloadPermission)
-   ACTION_EVALUATE: EvaluatePermission = Field(default_factory=EvaluatePermission)
-   ACTION_FINETUNING: FinetuningPermission = Field(default_factory=FinetuningPermission)
-   class Config:
-      extra = Extra.forbid
-
-class ProjectScopedApplicationTrainPermission(BaseModel):
-   ACTION_DOWNLOAD: DownloadPermission = Field(default_factory=DownloadPermission)
-   ACTION_EVALUATE: EvaluatePermission = Field(default_factory=EvaluatePermission)
-   ACTION_FINETUNING: FinetuningPermission = Field(default_factory=FinetuningPermission)
-   class Config:
-      extra = Extra.forbid
-# permission type for deploy action
-class AccountScopedApplicationDeployPermission(BaseModel):
-   ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_RUN: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_ENABLE_WEBHOOKS: EnableWebHooksPermission = Field(default_factory=EnableWebHooksPermission)
-   ACTION_SCHEDULE: SchedulePermission = Field(default_factory=SchedulePermission)
-   ACTION_CONFIGURE: ConfigurePermission = Field(default_factory=ConfigurePermission)
-   class Config:
-      extra = Extra.forbid
-
-class ProjectScopedApplicationDeployPermission(BaseModel):
-   ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_RUN: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_ENABLE_WEBHOOKS: EnableWebHooksPermission = Field(default_factory=EnableWebHooksPermission)
-   ACTION_SCHEDULE: SchedulePermission = Field(default_factory=SchedulePermission)
-   ACTION_CONFIGURE: ConfigurePermission = Field(default_factory=ConfigurePermission)
-   class Config:
-      extra = Extra.forbid
 
 # if generic entity had more than one branching type like 'type1' and 'type2';
 # and each of them have 2 possible values like 'type1value1','type1value2', 'type2value1', 'type2value2',

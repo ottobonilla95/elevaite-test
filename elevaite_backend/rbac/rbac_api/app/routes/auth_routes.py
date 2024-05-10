@@ -54,14 +54,6 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
          }
       },
    },
-   # status.HTTP_409_CONFLICT: {
-   #    "description": "User with same email already exists in organization",
-   #    "content": {
-   #       "application/json": {
-   #          "examples": load_schema('users/post_user/conflict_examples.json')
-   #       }
-   #    },
-   # },
    status.HTTP_422_UNPROCESSABLE_ENTITY:  {
       "description": "Validation error",
       "content": {
@@ -84,22 +76,21 @@ async def register_user(
    validation_info: dict[str, Any] = Depends(validators.validate_register_user)
 ) -> JSONResponse:
    """
-   Register/Sign-in User resource to Organization resource 
+   Register User resource to Organization resource 
 
    Parameters:
-      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
-      - register_user_payload : Contains mandatory params - 'org_id' and 'email' - as well as optional params - 'firstname' , 'lastname'
+      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope (user will be registered with email corresponding to access token email)
+      - register_user_payload : Contains optional user params - 'firstname' and 'lastname'
       
    Returns: 
       - JSONResponse : A JSON with 200 success message containing existing user in org corresponding to email 
-      - JSONResponse : A JSON with 201 success message containing newly registered user in org corresponding to payload params provided
-   
-   Notes:
-      - only authorized for users who provide email in payload identical to the email in access token passed in header 
+      - JSONResponse : A JSON with 201 success message containing newly registered user in org 
+    
    """
 
    db: Session = validation_info.get("db", None)
-   return service.register_user(db=db, register_user_payload=register_user_payload)
+   user_email = validation_info.get("user_email", None)
+   return service.register_user(db=db, register_user_payload=register_user_payload, user_email=user_email)
 
 @auth_router.post("/rbac-permissions", responses={
    status.HTTP_200_OK: {
@@ -152,24 +143,39 @@ async def register_user(
    }
 })
 async def evaluate_rbac_permissions(
-   account_id: Optional[UUID] = Header(None, alias='X-elevAIte-AccountId', description="account id under which rbac permissions are evaluated"),
-   project_id: Optional[UUID] = Header(None, alias='X-elevAIte-projectId', description="project id under which rbac permissions are evaluated"),
+   account_id: Optional[UUID] = Header(None, alias='X-elevAIte-AccountId', description="account id under which rbac permissions are evaluated"), 
+   project_id: Optional[UUID] = Header(None, alias='X-elevAIte-ProjectId', description="project id under which rbac permissions are evaluated"),
    permissions_validation_request: auth_schemas.PermissionsValidationRequest = Body(...),
    validation_info: dict[str, Any] = Depends(validators.validate_evaluate_rbac_permissions)
 ) -> auth_schemas.PermissionsValidationResponse:
    """
-    Retrieve an evaluated list of rbac permissions for requested resource actions, and additionally can also retrieve account/project admin status.
+   Retrieve an evaluated list of rbac permissions for requested resource actions, and additionally can also retrieve account/project admin status.
 
-    Parameters:
-    - X-elevAIte-AccountId (UUID): Optional. The ID of the account under which permissions are to be evaluated; This is optional if 'X-elevAIte-projectId' is provided since it can be derived from the project. In case both 'X-elevAIte-AccountId' and 'X-elevAIte-ProjectId' are provided, then they must be associated. 
-    - X-elevAIte-ProjectId (UUID): Optional. The ID of the project under which permissions are to be evaluated; This is mandatory for project-only scoped resources and statuses such as Datasets, Collections, Instances and 'IS_PROJECT_ADMIN' 
-    - request_body : The request body which should contain atleast 1 field for rbac permission evaluation.
+   Parameters:
+   - X-elevAIte-AccountId (UUID): Optional. The ID of the account under which permissions are to be evaluated; This is optional if 'X-elevAIte-projectId' is provided since it can be derived from the project. In case both 'X-elevAIte-AccountId' and 'X-elevAIte-ProjectId' are provided, then they must be associated. 
+   - X-elevAIte-ProjectId (UUID): Optional. The ID of the project under which permissions are to be evaluated; This is mandatory for project-only scoped resources and statuses such as Datasets, Collections, Instances and 'IS_PROJECT_ADMIN' 
+   - request_body : The request body which should contain atleast 1 field for rbac permission evaluation.
 
-    Returns:
-    - json containing 'True' or 'False' boolean value denoting evaluated rbac permissions for requested input fields, along with other omitted fields containing 'NOT_EVALUATED' string value
+   Returns:
+   - json containing 'True' or 'False' boolean value denoting evaluated rbac permissions for requested input fields, along with other omitted fields containing 'NOT_EVALUATED' string value
 
-    Notes:
-    - If the scope of this api call is within a project context, X-elevAIte-ProjectId should always be passed to reflect accurate rbac permissions within that project.
+   Notes:
+   - If the scope of this api call is within a project context, X-elevAIte-ProjectId should always be passed to reflect accurate rbac permissions within that project.
+   - IS_ACCOUNT_ADMIN field is account-scoped only and requires 'X-elevAIte-AccountId'
+   - IS_PROJECT_ADMIN field is project-scoped only and requires 'X-elevAIte-ProjectId'
+   - PROJECT_READ field is account-scoped only and requires 'X-elevAIte-ProjectId'
+   - PROJECT_CREATE field is account-scoped and project-scoped and requires atleast one of 'X-elevAIte-AccountId' or 'X-elevAIte-ProjectId'
+   - DATASET_READ field is project-scoped only and requires 'X-elevAIte-ProjectId'
+   - DATASET_TAG field is project-scoped only and requires 'X-elevAIte-ProjectId'
+   - COLLECTION_READ field is project-scoped only and requires 'X-elevAIte-ProjectId'
+   - COLLECTION_CREATE field is project-scoped only and requires 'X-elevAIte-ProjectId'
+   - CONFIGURATION_READ field is account-scoped only and requires 'X-elevAIte-AccountId'
+   - CONFIGURATION_CREATE field is account-scoped only and requires 'X-elevAIte-AccountId'
+   - CONFIGURATION_UPDATE field is account-scoped only and requires 'X-elevAIte-AccountId'
+   - INSTANCE_READ field is project-scoped only and requires 'X-elevAIte-ProjectId'
+   - INSTANCE_CREATE field is project-scoped only and requires 'X-elevAIte-ProjectId'
+   - INSTANCE_CONFIGURATION_READ field is project-scoped only and requires 'X-elevAIte-ProjectId'
+
    """
    db: Session = validation_info.get("db", None)
    logged_in_user = validation_info.get("logged_in_user", None)

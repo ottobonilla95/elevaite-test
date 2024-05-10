@@ -10,17 +10,26 @@ from typing import Any, Type, Callable, Coroutine
 
 from elevaitedb.db import models
 from ...rbac import rbac_instance
+import inspect
 
 def validate_get_project_collections_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
    async def validate_get_project_collections(
       request: Request,
       user_email: str = Depends(validate_token),
-      # The params below are required for pydantic validation even when unused
       project_id: UUID = Path(..., description="project_id under which project collections are queried"),
-      
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
+         # Set the context flags in request.state
+         current_frame = inspect.currentframe()
+         if current_frame and current_frame.f_locals:   
+            frame_locals = current_frame.f_locals
+            request.state.account_context_exists = 'account_id' in frame_locals
+            request.state.project_context_exists = 'project_id' in frame_locals
+         else:
+            request.state.account_context_exists = False
+            request.state.project_context_exists = False
+
          return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
@@ -45,12 +54,21 @@ def validate_get_project_collection_factory(target_model_class : Type[models.Bas
    async def validate_get_project_collection(
       request: Request,
       user_email: str = Depends(validate_token),
-      # The params below are required for pydantic validation even when unused
       project_id: UUID = Path(..., description="project_id under which collection is queried"),
       collection_id: UUID = Path(..., description=" id of collection being queried"),
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
+         # Set the context flags in request.state
+         current_frame = inspect.currentframe()
+         if current_frame and current_frame.f_locals:   
+            frame_locals = current_frame.f_locals
+            request.state.account_context_exists = 'account_id' in frame_locals
+            request.state.project_context_exists = 'project_id' in frame_locals
+         else:
+            request.state.account_context_exists = False
+            request.state.project_context_exists = False
+
          return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
@@ -75,11 +93,20 @@ def validate_create_project_collection_factory(target_model_class : Type[models.
    async def validate_create_project_collection(
       request: Request,
       user_email: str = Depends(validate_token),
-      # The params below are required for pydantic validation even when unused
       project_id: UUID = Path(..., description="project_id under which dataset is tagged"),
       db: Session = Depends(get_db)
    ) -> dict[str, Any]:
       try:
+         # Set the context flags in request.state
+         current_frame = inspect.currentframe()
+         if current_frame and current_frame.f_locals:   
+            frame_locals = current_frame.f_locals
+            request.state.account_context_exists = 'account_id' in frame_locals
+            request.state.project_context_exists = 'project_id' in frame_locals
+         else:
+            request.state.account_context_exists = False
+            request.state.project_context_exists = False
+
          return await rbac_instance.validate_endpoint_rbac_permissions(
             request=request,
             db=db,
