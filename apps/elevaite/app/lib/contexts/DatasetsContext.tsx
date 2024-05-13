@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { getAvailableDatasets, getDatasetTasks, getDatasets, registerDataset } from "../actions/datasetActions";
 import { countActiveFilters, getUniqueActiveFiltersFromGroup, getUniqueTagsFromList } from "../helpers";
-import { type FilterGroupStructure, type FiltersStructure, type HuggingfaceDatasetObject, type ModelDatasetObject } from "../interfaces";
+import { type FiltersStructure, type HuggingfaceDatasetObject, type ModelDatasetObject } from "../interfaces";
 
 
 

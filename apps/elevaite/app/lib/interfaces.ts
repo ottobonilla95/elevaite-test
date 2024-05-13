@@ -473,6 +473,7 @@ export interface ProjectObject {
 export interface RbacDatasetObject {
     id: string;
     projectId: string;
+    description?: string;
     name: string;
     versions: {
         id: string;
@@ -485,7 +486,7 @@ export interface RbacDatasetObject {
         name: string;
     }[];
     createDate: string;
-    updateDate: string;
+    updateDate?: string;
 }
 
 

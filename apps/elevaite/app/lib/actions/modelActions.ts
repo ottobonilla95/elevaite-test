@@ -210,7 +210,7 @@ export async function inferEndpointTextGeneration(endpointId: string, message: s
     kwargs: {
       text_inputs: message,
       max_new_tokens : maxNewTokens ? maxNewTokens : undefined,
-      // return_full_text: false,
+      return_full_text: false,
     }
   };
 

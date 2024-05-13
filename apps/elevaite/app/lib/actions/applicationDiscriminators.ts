@@ -1,4 +1,4 @@
-import type { AppInstanceLogObject, AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, ChartDataObject, CollectionChunkObject, CollectionChunkWrapper, CollectionObject, Initializers, PipelineObject } from "../interfaces";
+import type { AppInstanceLogObject, AppInstanceObject, ApplicationConfigurationObject, ApplicationObject, ChartDataObject, CollectionChunkObject, CollectionChunkWrapper, CollectionObject, Initializers, PipelineObject, RbacDatasetObject } from "../interfaces";
 import { isObject } from "./generalDiscriminators";
 
 
@@ -32,6 +32,14 @@ export function isGetCollectionsOfProjectResponse(data: unknown): data is Collec
     if (!Array.isArray(data)) return false;
     for (const item of data) {
         if (!isCollectionObject(item)) return false;
+    }
+    return true;
+}
+
+export function isGetDatasetsOfProjectResponse(data: unknown): data is RbacDatasetObject[] {
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (!isRbacDatasetObject(item)) return false;
     }
     return true;
 }
@@ -169,6 +177,17 @@ export function isCollectionObject(item: unknown): item is CollectionObject {
         "name" in item &&
         "size" in item &&
         "distance" in item;
+}
+
+export function isRbacDatasetObject(item: unknown): item is RbacDatasetObject {
+    return isObject(item) &&
+        "id" in item &&
+        "projectId" in item &&
+        "name" in item &&
+        "versions" in item &&
+        "tags" in item &&
+        "createDate" in item &&
+        "updateDate" in item;
 }
 
 export function isCollectionChunkObject(item: unknown): item is CollectionChunkObject {

@@ -6,6 +6,7 @@ export * from "./CommonInput";
 export * from "./CommonMenu";
 export * from "./CommonModal";
 export * from "./CommonSelect";
+export * from "./AdvancedSelectOption";
 export * from "./ClickOutsideDetector";
 export * from "./LoadingBar";
 export * from "./SimpleInput";

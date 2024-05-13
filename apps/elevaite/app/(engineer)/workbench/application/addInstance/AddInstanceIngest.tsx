@@ -1,10 +1,11 @@
 "use client";
 import type { CommonSelectOption } from "@repo/ui/components";
-import { CommonButton, CommonCheckbox, CommonDialog, CommonFormLabels, CommonInput, CommonSelect, ElevaiteIcons } from "@repo/ui/components";
+import { AdvancedSelectOption, CommonButton, CommonCheckbox, CommonDialog, CommonFormLabels, CommonInput, CommonSelect, ElevaiteIcons } from "@repo/ui/components";
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
+import { getDatasetsOfProject } from "../../../../lib/actions/applicationActions";
 import { useRoles } from "../../../../lib/contexts/RolesContext";
-import type { S3IngestFormDTO } from "../../../../lib/interfaces";
-import { NEW_DATASET, formDataType } from "../../../../lib/interfaces";
+import { NEW_DATASET, formDataType, type RbacDatasetObject, type S3IngestFormDTO } from "../../../../lib/interfaces";
 import "./AddInstanceIngest.scss";
 
 
@@ -36,6 +37,9 @@ interface AddInstanceIngestProps {
 export function AddInstanceIngest({formData, ...props}: AddInstanceIngestProps): JSX.Element {
     const rolesContext = useRoles();
     const [projectsOptions, setProjectsOptions] = useState<CommonSelectOption[]>([]);
+    const [datasets, setDatasets] = useState<RbacDatasetObject[]>([]);
+    const [newDatasetOptions, setNewDatasetOptions] = useState<CommonSelectOption[]>([]);
+    const [isDatasetsLoading, setIsDatasetsLoading] = useState(false);
     const [datasetOptions, setDatasetOptions] = useState<CommonSelectOption[]>([]);
     const [isCreateDatasetOpen, setIsCreateDatasetOpen] = useState(false);
     const [createDatasetName, setCreateDatasetName] = useState("");
@@ -47,6 +51,38 @@ export function AddInstanceIngest({formData, ...props}: AddInstanceIngestProps):
         }));
     }, [rolesContext.projects]);
 
+    useEffect(() => {
+        handleDatasetChange("");
+        datasets.sort((a, b) => dayjs(a.createDate).isBefore(b.createDate) ? 1 : -1);
+        // const mainOptions = datasets.map(dataset => { return { value: dataset.id, label: dataset.name }; });
+        const mainOptions: CommonSelectOption[] = datasets.map(dataset => { return { 
+            value: dataset.id,
+            label: dataset.name,
+            extras: {
+                postfix: {
+                    label: dayjs(dataset.updateDate ?? dataset.createDate).format("DD-MMM-YYYY, hh:mm a"),
+                    tooltip: dataset.updateDate ? "Latest update date" : "Creation date"
+                },
+            }
+        }; });
+        setDatasetOptions([...newDatasetOptions, ...mainOptions]);
+    }, [datasets, newDatasetOptions]);
+
+
+    async function fetchDatasetsOfProject(projectId: string): Promise<void> {
+        try {
+            setIsDatasetsLoading(true);
+            const fetchedDatasets = await getDatasetsOfProject(projectId);
+            setDatasets(fetchedDatasets);
+        } catch (error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error:", error);
+        } finally {
+            setIsDatasetsLoading(false);
+        }
+    }
+
+
 
     function handleStringChange(value: string, field: string): void {
         props.onFormChange(value, field, formDataType.STRING);
@@ -56,12 +92,7 @@ export function AddInstanceIngest({formData, ...props}: AddInstanceIngestProps):
     }
     function handleProjectChange(value: string): void {
         props.onFormChange(value, fields.projectId, formDataType.STRING);
-        props.onFormChange("", fields.datasetId, formDataType.STRING);
-
-        const selectedProject = rolesContext.projects.find(project => project.id === value);
-        if (selectedProject?.datasets) {
-            setDatasetOptions(selectedProject.datasets.map(dataset => { return { value: dataset.id, label: dataset.name }; }));
-        }
+        void fetchDatasetsOfProject(value);
     }
 
     function handleDatasetChange(value: string): void {
@@ -83,8 +114,8 @@ export function AddInstanceIngest({formData, ...props}: AddInstanceIngestProps):
     function handleCreateDataset(): void {
         if (!createDatasetName) return;
         closeDatasetCreation();
-        const newDataset: CommonSelectOption = { value: `${NEW_DATASET}${createDatasetName}`, label: createDatasetName };
-        setDatasetOptions(current => {return [...current,newDataset]; })
+        const newDataset: CommonSelectOption = { value: `${NEW_DATASET}${createDatasetName}`, label: createDatasetName, extras: { prefix: { label: "New" } } };
+        setNewDatasetOptions(current => {return [newDataset, ...current]; })
         handleDatasetChange(newDataset.value);
         setCreateDatasetName("");
     }
@@ -182,6 +213,8 @@ export function AddInstanceIngest({formData, ...props}: AddInstanceIngestProps):
                         onSelectedValueChange={handleDatasetChange}
                         onAdd={handleDatasetAdd}
                         addLabel="Create New Dataset"
+                        isLoading={isDatasetsLoading}
+                        AdvancedOptionComponent={AdvancedSelectOption}
                     />
                 </CommonFormLabels>
                 <CommonInput

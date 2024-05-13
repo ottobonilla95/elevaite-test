@@ -1,12 +1,12 @@
 "use client";
-import { CommonDialog, CommonFormLabels, CommonInput, CommonSelect, type CommonSelectOption } from "@repo/ui/components";
+import { AdvancedSelectOption, CommonDialog, CommonFormLabels, CommonInput, CommonSelect, type CommonSelectOption } from "@repo/ui/components";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
-import { createCollection, getCollectionsOfProject } from "../../../../lib/actions/applicationActions";
+import { createCollection, getCollectionsOfProject, getDatasetsOfProject } from "../../../../lib/actions/applicationActions";
 import { getModelEndpoints, getModels } from "../../../../lib/actions/modelActions";
 import { useRoles } from "../../../../lib/contexts/RolesContext";
 import { getIsPositiveIntegerOrZero } from "../../../../lib/helpers";
-import { EmbeddingModelType, ModelsStatus, formDataType, type CollectionObject, type ModelObject, type S3PreprocessFormDTO, type S3PreprocessFormEmbeddingInfo } from "../../../../lib/interfaces";
+import { EmbeddingModelType, ModelsStatus, formDataType, type CollectionObject, type ModelObject, type RbacDatasetObject, type S3PreprocessFormDTO, type S3PreprocessFormEmbeddingInfo } from "../../../../lib/interfaces";
 import "./AddInstancePreprocess.scss";
 
 
@@ -38,6 +38,8 @@ interface AddInstancePreprocessProps {
 export function AddInstancePreprocess({formData, ...props}: AddInstancePreprocessProps): JSX.Element {
     const rolesContext = useRoles();
     const [projectsOptions, setProjectsOptions] = useState<CommonSelectOption[]>([]);
+    const [datasets, setDatasets] = useState<RbacDatasetObject[]>([]);
+    const [isDatasetsLoading, setIsDatasetsLoading] = useState(false);
     const [datasetOptions, setDatasetOptions] = useState<CommonSelectOption[]>([]);    
     const [versionOptions, setVersionOptions] = useState<CommonSelectOption[]>([]);
     const [collections, setCollections] = useState<CollectionObject[]>([]);
@@ -71,7 +73,13 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
     }, [formData.projectId]);
 
     useEffect(() => {
-        setCollectionOptions(collections.map(item => { return {value: item.id, label: `${item.name} (${item.size.toString()})`}; }));
+        setCollectionOptions(collections.map(item => { return {
+            value: item.id,
+            label: item.name,
+            extras: {
+                postfix: { label: item.size.toString(), tooltip: "Dimensions" }
+            }
+        };}));
     }, [collections]);
 
     useEffect(() => {
@@ -88,6 +96,23 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
         // Select most recent version
         if (versionList.length > 0) handleVersionChange(versionList[0].id);
     }, [formData.datasetId]);
+
+
+    useEffect(() => {
+        handleDatasetChange("");
+        datasets.sort((a, b) => dayjs(a.createDate).isBefore(b.createDate) ? 1 : -1);
+        const mainOptions: CommonSelectOption[] = datasets.map(dataset => { return { 
+            value: dataset.id,
+            label: dataset.name,
+            extras: {
+                postfix: {
+                    label: dayjs(dataset.updateDate ?? dataset.createDate).format("DD-MMM-YYYY, hh:mm a"),
+                    tooltip: dataset.updateDate ? "Latest update date" : "Creation date"
+                },
+            }
+        }; });
+        setDatasetOptions(mainOptions);
+    }, [datasets]);
 
 
 
@@ -154,6 +179,21 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
         }
     }
 
+
+    async function fetchDatasetsOfProject(projectId: string): Promise<void> {
+        try {
+            setIsDatasetsLoading(true);
+            const fetchedDatasets = await getDatasetsOfProject(projectId);
+            setDatasets(fetchedDatasets);
+        } catch (error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error:", error);
+        } finally {
+            setIsDatasetsLoading(false);
+        }
+    }
+    
+
     function handleEmbeddingModelChange(value: string): void {
         const selectedModel = models.find(item => item.id.toString() === value);
         if (!selectedModel){
@@ -201,12 +241,7 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
 
     function handleProjectChange(value: string): void {
         props.onFormChange(value, fields.projectId, formDataType.STRING);
-        props.onFormChange("", fields.datasetId, formDataType.STRING);
-
-        const selectedProject = rolesContext.projects.find(project => project.id === value);
-        if (selectedProject?.datasets) {
-            setDatasetOptions(selectedProject.datasets.map(dataset => { return { value: dataset.id, label: dataset.name }; }));
-        }
+        void fetchDatasetsOfProject(value);
     }
 
     function handleDatasetChange(value: string): void {
@@ -323,6 +358,8 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
                         options={datasetOptions}
                         controlledValue={formData.datasetId}
                         onSelectedValueChange={handleDatasetChange}
+                        isLoading={isDatasetsLoading}
+                        AdvancedOptionComponent={AdvancedSelectOption}
                     />
                 </CommonFormLabels>
                 <CommonFormLabels
@@ -353,6 +390,7 @@ export function AddInstancePreprocess({formData, ...props}: AddInstancePreproces
                         onAdd={handleCollectionAdd}
                         addLabel="Create New Collection"
                         isLoading={isCollectionsLoading}
+                        AdvancedOptionComponent={AdvancedSelectOption}
                     />
                 </CommonFormLabels>
 

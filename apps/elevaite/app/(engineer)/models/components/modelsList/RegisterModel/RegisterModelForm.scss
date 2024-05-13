@@ -86,6 +86,14 @@
                 font-weight: 500;
                 text-transform: uppercase;
             }
+
+            & .postfix {
+                color: var(--ev-colors-secondaryText);
+            }
+            & .footer-items-container {
+                justify-content: flex-end;
+                column-gap: 30px;
+            }
         }
 
 

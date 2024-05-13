@@ -1,6 +1,6 @@
 "use client";
 import type { CommonSelectOption } from "@repo/ui/components";
-import { CommonButton, CommonFormLabels, CommonInput, CommonSelect, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
+import { AdvancedSelectOption, CommonButton, CommonFormLabels, CommonInput, CommonSelect, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { useDatasets } from "../../../../../lib/contexts/DatasetsContext";
 import type { HuggingfaceDatasetObject } from "../../../../../lib/interfaces";
@@ -115,16 +115,12 @@ export function DownloadDatasetForm(props: DownloadDatasetFormProps): JSX.Elemen
 
     function formatAvailableDatasetOptions(availableDatasets: HuggingfaceDatasetObject[]): CommonSelectOption[] {
         return availableDatasets.map(item => { return {
-            label: getAvailableDatasetLabel(item),
+            label: item.id,
             value: item.id,
-        }; })
-
-        function getAvailableDatasetLabel(dataset: HuggingfaceDatasetObject): string {
-            let label = dataset.id;
-            label = `${label} (${dataset.gated ? "gated" :"not gated"}`;
-            label = `${label})`;
-            return label;
-        }
+            extras: {
+                postfix: { label: item.gated ? "gated" :"not gated" },
+            }
+        }});
     }
 
 
@@ -191,6 +187,7 @@ export function DownloadDatasetForm(props: DownloadDatasetFormProps): JSX.Elemen
                                 disabled={!selectedDatasetTask && !searchName}
                                 isLoading={datasetContext.loading.availableDatasets}
                                 onSelectedValueChange={handleDatasetChange}
+                                AdvancedOptionComponent={AdvancedSelectOption}
                             />
                         </CommonFormLabels>
 

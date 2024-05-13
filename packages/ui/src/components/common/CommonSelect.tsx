@@ -1,19 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import SVGChevron from "../icons/elevaite/svgChevron";
+import SVGSpinner from "../icons/elevaite/svgSpinner";
+import { CommonSelectOption } from "../interfaces";
+import { AdvancedSelectOptionProps } from "./AdvancedSelectOption";
 import { ClickOutsideDetector } from "./ClickOutsideDetector";
 import { CommonButton } from "./CommonButton";
 import "./CommonSelect.scss";
-import SVGSpinner from "../icons/elevaite/svgSpinner";
-
-
-export interface CommonSelectOption {
-    label?: string;
-    value: string;
-    selectedLabel?: string; // Use this instead of label when it is the selected item
-    icon?: React.ReactElement;
-    disabled?: boolean;
-}
 
 
 export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -31,10 +24,14 @@ export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> 
     onAdd?: () => void;
     addLabel?: string;
     noDoubleClick?: boolean;
+    AdvancedOptionComponent?: (props: AdvancedSelectOptionProps) => JSX.Element;
 }
 
 
-export function CommonSelect({options, defaultValue, controlledValue, callbackOnDefaultValue, noSelectionMessage, anchor, showTitles, emptyListLabel, onSelectedValueChange, onAdd, addLabel, noDoubleClick, isLoading, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
+export function CommonSelect({
+    options, defaultValue, controlledValue, callbackOnDefaultValue, noSelectionMessage,
+    anchor, showTitles, emptyListLabel, onSelectedValueChange, onAdd, addLabel,
+    noDoubleClick, isLoading, AdvancedOptionComponent, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
     const [selectedOption, setSelectedOption] = useState<CommonSelectOption>();
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement|null>(null);
@@ -55,7 +52,7 @@ export function CommonSelect({options, defaultValue, controlledValue, callbackOn
 
 
     function findAndSelectOption(value: string, checkCallback?: boolean): void {
-        if (options.length === 0) {
+        if (options.length === 0 || !value) {
             setSelectedOption(undefined);
             return;
         }
@@ -145,6 +142,9 @@ export function CommonSelect({options, defaultValue, controlledValue, callbackOn
                                 </div>
                             :
                             options.map((option) => 
+                                AdvancedOptionComponent ? 
+                                <AdvancedOptionComponent key={option.value} {...option} onOptionClick={handleClick} showTitles={showTitles} />
+                                :
                                 <CommonButton
                                     className="common-select-option"
                                     key={option.value}

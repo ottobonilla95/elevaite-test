@@ -1,8 +1,8 @@
 "use server";
 import { revalidateTag } from "next/cache";
-import type { AppInstanceLogObject, AppInstanceObject, ApplicationConfigurationDto, ApplicationConfigurationObject, ApplicationDto, ApplicationObject, ChartDataObject, CollectionChunkWrapper, CollectionObject, PipelineObject } from "../interfaces";
+import type { AppInstanceLogObject, AppInstanceObject, ApplicationConfigurationDto, ApplicationConfigurationObject, ApplicationDto, ApplicationObject, ChartDataObject, CollectionChunkWrapper, CollectionObject, PipelineObject, RbacDatasetObject } from "../interfaces";
 import { APP_REVALIDATION_TIME, INSTANCE_REVALIDATION_TIME, cacheTags } from "./actionConstants";
-import { isCreateCollectioneResponse, isCreateConfigurationResponse, isCreateInstanceResponse, isGetApplicationListReponse, isGetApplicationPipelinesResponse, isGetApplicationResponse, isGetApplicationconfigurationsResponse, isGetCollectionScrollResponse, isGetCollectionsOfProjectResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceLogDataResponse, isGetInstanceResponse } from "./applicationDiscriminators";
+import { isCreateCollectioneResponse, isCreateConfigurationResponse, isCreateInstanceResponse, isGetApplicationListReponse, isGetApplicationPipelinesResponse, isGetApplicationResponse, isGetApplicationconfigurationsResponse, isGetCollectionScrollResponse, isGetCollectionsOfProjectResponse, isGetDatasetsOfProjectResponse, isGetInstanceChartDataResponse, isGetInstanceListResponse, isGetInstanceLogDataResponse, isGetInstanceResponse } from "./applicationDiscriminators";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 const COLLECTION_SCROLL_PAGE_LIMIT = 10;
@@ -108,6 +108,17 @@ export async function getCollectionsOfProject(projectId: string): Promise<Collec
   if (!response.ok) throw new Error("Failed to fetch collections of project");
   const data: unknown = await response.json();
   if (isGetCollectionsOfProjectResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+export async function getDatasetsOfProject(projectId: string): Promise<RbacDatasetObject[]> {
+  if (!BACKEND_URL) throw new Error("Missing base url");
+  const url = new URL(`${BACKEND_URL}/project/${projectId}/datasets`);
+  const response = await fetch(url, { cache: "no-store" });
+
+  if (!response.ok) throw new Error("Failed to fetch datasets of project");
+  const data: unknown = await response.json();
+  if (isGetDatasetsOfProjectResponse(data)) return data;
   throw new Error("Invalid data type");
 }
 

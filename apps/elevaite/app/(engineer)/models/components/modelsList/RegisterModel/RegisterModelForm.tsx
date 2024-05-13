@@ -1,5 +1,5 @@
 import type { CommonSelectOption } from "@repo/ui/components";
-import { CommonButton, CommonFormLabels, CommonInput, CommonSelect, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
+import { AdvancedSelectOption, CommonButton, CommonFormLabels, CommonInput, CommonSelect, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { useModels } from "../../../../../lib/contexts/ModelsContext";
 import type { AvailableModelObject } from "../../../../../lib/interfaces";
@@ -115,20 +115,16 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
 
     function formatAvailableModelOptions(availableModels: AvailableModelObject[]): CommonSelectOption[] {
         return availableModels.map(item => { return {
-            label: getAvailableModelLabel(item),
+            label: item.id, //getAvailableModelLabel(item),
             value: item.id,
-        }; })
-
-        function getAvailableModelLabel(model: AvailableModelObject): string {
-            let label = model.id;
-            label = `${label} (${model.gated ? "gated" :"not gated"}`;
-            if (model.memory_requirements) {
-                label = `${label} / ${model.memory_requirements.total_size.value_str}`;
-                label = `${label} / ${model.memory_requirements.training_using_adam.value_str}`;
+            extras: {
+                postfix: { label: item.gated ? "gated" :"not gated" },
+                footer: !item.memory_requirements ? undefined : [
+                    { label: item.memory_requirements.total_size.value_str, tooltip: "Size to download" },
+                    { label: item.memory_requirements.training_using_adam.value_str, tooltip: "Size to train" },
+                ]
             }
-            label = `${label})`;
-            return label;
-        }
+        }});
     }
 
 
@@ -195,6 +191,7 @@ export function RegisterModelForm(props: RegisterModelFormProps): JSX.Element {
                                 disabled={!selectedModelTask && !searchName}
                                 isLoading={modelsContext.loading.availableModels}
                                 onSelectedValueChange={handleModelChange}
+                                AdvancedOptionComponent={AdvancedSelectOption}
                             />
                         </CommonFormLabels>
 

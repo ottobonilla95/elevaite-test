@@ -1,7 +1,7 @@
 "use server";
 import { revalidateTag } from "next/cache";
 import { type HuggingfaceDatasetObject, type ModelDatasetObject } from "../interfaces";
-import { APP_REVALIDATION_TIME, DATASET_REVALIDATION_TIME, cacheTags } from "./actionConstants";
+import { DATASET_REVALIDATION_TIME, cacheTags } from "./actionConstants";
 import { isGetAvailableDatasetsResponse, isGetDatasetsResponse, isModelDatasetObject } from "./datasetDiscriminators";
 import { isArrayOfStrings } from "./generalDiscriminators";
 
@@ -30,7 +30,7 @@ export async function getDatasets(): Promise<ModelDatasetObject[]> {
 export async function getDatasetTasks(): Promise<string[]> {
   if (!MODELS_URL) throw new Error("Missing base url");
   const url = new URL(`${MODELS_URL}/tasks`);
-  const response = await fetch(url, { next: { revalidate: APP_REVALIDATION_TIME } });
+  const response = await fetch(url, { next: { revalidate: DATASET_REVALIDATION_TIME, tags: [cacheTags.datasets] } });
 
   if (!response.ok) throw new Error("Failed to fetch model tasks");
   const data: unknown = await response.json();

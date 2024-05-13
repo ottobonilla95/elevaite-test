@@ -13,6 +13,7 @@ enum SpecialHandlingTasks {
     SentenceSimilarity = "sentence-similarity",
     Summarization = "summarization",
     QuestionAnswering = "question-answering",
+    TextGeneration = "text-generation",
 };
 
 interface InferMessageObject {
@@ -29,6 +30,7 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
     const scrollRef = useRef<HTMLDivElement|null>(null);
     const [text, setText] = useState("");
     const [secondaryText, setSecondaryText] = useState("");
+    const [tertiaryText, setTertiaryText] = useState("");
     const textAreaRef = useRef<HTMLTextAreaElement>(null);
     useAutosizeTextArea(textAreaRef.current, text);
     const [isLoading, setIsLoading] = useState(false);
@@ -50,15 +52,22 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
         setSecondaryText(value);
     }
 
+    function handleTertiaryTextChange(value: string): void {
+        if (isLoading) return;
+        setTertiaryText(value);
+    }
+
     function handleSend(): void {
         if (isLoading) return;
-        const workingText = text;
-        const workingSecondaryText = secondaryText;
+        const workingText = text.trim();
+        const workingSecondaryText = secondaryText.trim();
+        const workingTertiaryText = tertiaryText.trim();
         setText("");
         setSecondaryText("");
-        if (!workingText.trim()) return;
-        addMessage(workingText, true, workingSecondaryText);
-        void inferMessage(workingText, workingSecondaryText);
+        setTertiaryText("");
+        if (!workingText) return;
+        addMessage(workingText, true, workingSecondaryText, workingTertiaryText);
+        void inferMessage(workingText, workingSecondaryText, workingTertiaryText);
     }
 
     function handleKeyDown(key: string): void {
@@ -73,7 +82,7 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
         })
     }
 
-    function addMessage(passedMessage: string, isUser?: boolean, secondaryMessage?: string): void {
+    function addMessage(passedMessage: string, isUser?: boolean, secondaryMessage?: string, tertiaryMessage?: string): void {
         setMessages(current => { return [...current, {
             id: current.length + 1,
             isUser: Boolean(isUser),
@@ -84,13 +93,26 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
                     `Source sentence: ${secondaryMessage}\nTesting sentence: ${passedMessage}`
                 : modelsContext.selectedModel?.task === SpecialHandlingTasks.QuestionAnswering ? 
                     `Context: ${secondaryMessage}\nQuestion: ${passedMessage}`
+                : modelsContext.selectedModel?.task === SpecialHandlingTasks.TextGeneration ?
+                    `Prompt: ${passedMessage}
+                    ${secondaryMessage ? ["Query: ", secondaryMessage].join("") : ""}
+                    ${tertiaryMessage ? ["Context: ", tertiaryMessage].join("") : ""}`
                 : ""
                 : passedMessage,
         }]; })
     }
 
+    function getFormattedMessageForTextGeneration(prompt: string, query?: string, context?: string): string {
+        const formattedMessageArray: string[] = ["<s><INST>"];
+        formattedMessageArray.push(prompt);
+        if (query) formattedMessageArray.push(` Query: ${query}`);
+        if (context) formattedMessageArray.push(` Context: ${context}`);
+        formattedMessageArray.push("</INST></s>");
+        return formattedMessageArray.join("");
+    }
 
-    async function inferMessage(message: string, secondaryMessage?: string): Promise<void> {
+
+    async function inferMessage(message: string, secondaryMessage?: string, tertiaryMessage?: string): Promise<void> {
         if (!modelsContext.selectedModel?.endpointId) return;
         try {
             setIsLoading(true);
@@ -119,7 +141,7 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
                 addMessage(inferredQA.results.answer);
             
             // Text generation
-            } else {
+            } else if (modelsContext.selectedModel.task === SpecialHandlingTasks.TextGeneration) {
                 // console.log("parameters", modelsContext.selectedModelParameters);
                 const maxPositionEmbeddings = modelsContext.selectedModelParameters?.max_position_embeddings;
                 let maxNewTokens = 0;
@@ -128,9 +150,16 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
                     maxNewTokens = maxPositionEmbeddings - numberOfInputTokens;
                 }
                 // TODO: Adjust this when the issue is resolved.
-                maxNewTokens = 0; // Reset for testing;
-                // console.log("maxNewTokens", maxNewTokens);
-                const inferredText = await inferEndpointTextGeneration(modelsContext.selectedModel.endpointId, message, maxNewTokens);
+                maxNewTokens = 512; // Reset for testing;
+                const inferredText = await inferEndpointTextGeneration(
+                    modelsContext.selectedModel.endpointId, getFormattedMessageForTextGeneration(message, secondaryMessage, tertiaryMessage), maxNewTokens);
+                if (inferredText.results[0]?.generated_text) {
+                    addMessage(inferredText.results[0]?.generated_text, false);
+                }
+
+            // All other handling
+            } else {
+                const inferredText = await inferEndpointTextGeneration(modelsContext.selectedModel.endpointId, message);
                 if (inferredText.results[0]?.generated_text) {
                     addMessage(inferredText.results[0]?.generated_text, false);
                 }
@@ -199,14 +228,26 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
 
                     :
                     <>
+                        {modelsContext.selectedModel?.task !== SpecialHandlingTasks.TextGeneration ? undefined :
+                            <SimpleInput
+                                wrapperClassName="chat-input-field"
+                                value={tertiaryText}
+                                onChange={handleTertiaryTextChange}
+                                placeholder={isLoading ? "Please wait..." : "Enter context"
+                                }
+                                disabled={isLoading}
+                            />
+                        }
                         {modelsContext.selectedModel?.task !== SpecialHandlingTasks.SentenceSimilarity 
+                            && modelsContext.selectedModel?.task !== SpecialHandlingTasks.TextGeneration
                             && modelsContext.selectedModel?.task !== SpecialHandlingTasks.QuestionAnswering ? undefined :
                             <SimpleInput
                                 wrapperClassName="chat-input-field"
                                 value={secondaryText}
                                 onChange={handleSecondaryTextChange}
                                 placeholder={isLoading ? "Please wait..." : 
-                                    modelsContext.selectedModel.task === SpecialHandlingTasks.SentenceSimilarity ? "Enter source sentence"
+                                modelsContext.selectedModel.task === SpecialHandlingTasks.SentenceSimilarity ? "Enter source sentence"
+                                    : modelsContext.selectedModel.task === SpecialHandlingTasks.TextGeneration ? "Enter query"
                                     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- we may apply more conditionals here
                                     : modelsContext.selectedModel.task === SpecialHandlingTasks.QuestionAnswering ? "Enter context"
                                     : "Enter secondary text"
@@ -222,6 +263,7 @@ export function ModelsDetailsInferenceTab(): JSX.Element {
                             placeholder={isLoading ? "Please wait..." : 
                             modelsContext.selectedModel?.task === SpecialHandlingTasks.SentenceSimilarity ? "Enter testing sentence"
                                 : modelsContext.selectedModel?.task === SpecialHandlingTasks.QuestionAnswering ? "Enter question"
+                                : modelsContext.selectedModel?.task === SpecialHandlingTasks.TextGeneration ? "Enter prompt"
                                 : "Enter text"}
                             disabled={isLoading}
                             rightIcon={
