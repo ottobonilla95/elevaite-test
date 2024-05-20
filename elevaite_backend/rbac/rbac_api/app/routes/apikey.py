@@ -11,7 +11,7 @@ from elevaitedb.db import models
 from rbac_api import routes_to_middleware_imple_map
 
 from ..services import apikey as service
-from .utils.helpers import load_schema, load_multiple_schemas
+from .utils.helpers import load_schema
 
 apikey_router = APIRouter(prefix="/projects/{project_id}/apikeys", tags=["apikeys"]) 
 
@@ -28,9 +28,8 @@ apikey_router = APIRouter(prefix="/projects/{project_id}/apikeys", tags=["apikey
       "description": "No access token or invalid access token OR invalid or expired apikey",
       "content": {
          "application/json": {
-            "examples": load_multiple_schemas(
-               'common/unauthorized_accesstoken_examples.json',
-               'common/unauthorized_apikey_examples.json'
+            "examples": load_schema(
+               'common/unauthorized_accesstoken_examples.json'
             )
          }
       },
@@ -117,9 +116,8 @@ async def create_apikey(
       "description": "No access token or invalid access token OR invalid or expired apikey",
       "content": {
          "application/json": {
-            "examples": load_multiple_schemas(
-               'common/unauthorized_accesstoken_examples.json',
-               'common/unauthorized_apikey_examples.json'
+            "examples": load_schema(
+               'common/unauthorized_accesstoken_examples.json'
             )
          }
       },
@@ -192,9 +190,8 @@ async def get_apikeys(
       "description": "No access token or invalid access token OR invalid or expired apikey",
       "content": {
          "application/json": {
-            "examples": load_multiple_schemas(
-               'common/unauthorized_accesstoken_examples.json',
-               'common/unauthorized_apikey_examples.json'
+            "examples": load_schema(
+               'common/unauthorized_accesstoken_examples.json'
             )
          }
       },
@@ -259,9 +256,8 @@ async def get_apikey(
       "description": "No access token or invalid access token OR invalid or expired apikey",
       "content": {
          "application/json": {
-            "examples": load_multiple_schemas(
-               'common/unauthorized_accesstoken_examples.json',
-               'common/unauthorized_apikey_examples.json'
+            "examples": load_schema(
+               'common/unauthorized_accesstoken_examples.json'
             )
          }
       },

@@ -12,7 +12,7 @@ from elevaitedb.db import models
 from rbac_api import routes_to_middleware_imple_map
 
 from ..services import project as service
-from .utils.helpers import load_schema, load_multiple_schemas
+from .utils.helpers import load_schema
 project_router = APIRouter(prefix="/projects", tags=["projects"]) 
 
 @project_router.post("/", status_code=status.HTTP_201_CREATED, responses={
@@ -24,9 +24,8 @@ project_router = APIRouter(prefix="/projects", tags=["projects"])
       "description": "invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_multiple_schemas(
-               'common/unauthorized_accesstoken_examples.json',
-               'common/unauthorized_apikey_examples.json'
+            "examples": load_schema(
+               'common/unauthorized_accesstoken_examples.json'
             )
          }
       },
@@ -262,9 +261,8 @@ async def get_project(
       "description": "invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_multiple_schemas(
-               'common/unauthorized_accesstoken_examples.json',
-               'common/unauthorized_apikey_examples.json'
+            "examples": load_schema(
+               'common/unauthorized_accesstoken_examples.json'
             )
          }
       },
@@ -355,9 +353,8 @@ async def get_projects(
       "description": "invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_multiple_schemas(
-               'common/unauthorized_accesstoken_examples.json',
-               'common/unauthorized_apikey_examples.json'
+            "examples": load_schema(
+               'common/unauthorized_accesstoken_examples.json'
             )
          }
       },
