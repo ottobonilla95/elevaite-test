@@ -10,22 +10,44 @@ from pprint import pprint
 import os
 from ..errors.api_error import ApiError
 
-from elevaitedb.schemas import (
-   account as account_schemas,
-   role as role_schemas,
-   user as user_schemas
+from elevaitelib.schemas import (
+    account as account_schemas,
+    role as role_schemas,
+    user as user_schemas,
 )
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
 
 from .utils.project_helpers import (
-   get_top_level_associated_project_ids_for_user_in_account,
-   delete_all_associated_user_projects_in_account
+    get_top_level_associated_project_ids_for_user_in_account,
+    delete_all_associated_user_projects_in_account,
 )
 from rbac_api.utils.cte import (
-   delete_unrooted_user_project_associations_in_account,
+    delete_unrooted_user_project_associations_in_account,
 )
 
+
 def create_account(
+    account_creation_payload: account_schemas.AccountCreationRequestDTO,
+    db: Session,
+    logged_in_user_id: UUID,
+) -> account_schemas.AccountResponseDTO:
+
+    try:
+        # Check if the organization exists and if an account with the same name does not exist in the organization
+        organization_exists_subquery = select(
+            exists().where(
+                models.Organization.id == account_creation_payload.organization_id
+            )
+        )
+        account_exists_subquery = select(
+            exists().where(
+                and_(
+                    models.Account.organization_id
+                    == account_creation_payload.organization_id,
+                    models.Account.name == account_creation_payload.name,
+                )
+            )
+        )
    request: Request,
    account_creation_payload: account_schemas.AccountCreationRequestDTO,
    db: Session,
@@ -37,36 +59,46 @@ def create_account(
       organization_exists_subquery = select(exists().where(models.Organization.id == account_creation_payload.organization_id))
       account_exists_subquery = select(exists().where(and_(models.Account.organization_id == account_creation_payload.organization_id, models.Account.name == account_creation_payload.name)))
 
-      # Execute the subqueries in 1 db call
-      organization_exists, account_exists = db.query(
-         organization_exists_subquery.as_scalar(),
-         account_exists_subquery.as_scalar()
-      ).one()
+        # Execute the subqueries in 1 db call
+        organization_exists, account_exists = db.query(
+            organization_exists_subquery.as_scalar(),
+            account_exists_subquery.as_scalar(),
+        ).one()
 
+        if not organization_exists:
+            pprint(
+                f"in POST /accounts/ service method : organization - '{account_creation_payload.organization_id}' - not found'"
+            )
+            raise ApiError.notfound(
+                f"organization - '{account_creation_payload.organization_id}' - not found"
+            )
       if not organization_exists:
          pprint(f"in POST /accounts/ service method : organization - '{account_creation_payload.organization_id}' - not found'")
          raise ApiError.notfound(f"Organization - '{account_creation_payload.organization_id}' - not found")
 
-      if account_exists:
-         pprint(f"in POST /accounts/ service method : An account with name - '{account_creation_payload.name}' - already exists in organization - '{account_creation_payload.organization_id}'")
-         raise ApiError.conflict(f"An account with name - '{account_creation_payload.name}' - already exists in organization - '{account_creation_payload.organization_id}'")
-      # Create new account from req body
-      new_account = models.Account(
-         organization_id=account_creation_payload.organization_id,
-         name=account_creation_payload.name,
-         description=account_creation_payload.description,
-         created_at=datetime.now(),
-         updated_at=datetime.now()
-      )
+        if account_exists:
+            pprint(
+                f"in POST /accounts/ service method : An account with name - '{account_creation_payload.name}' - already exists in organization - '{account_creation_payload.organization_id}'"
+            )
+            raise ApiError.conflict(
+                f"An account with name - '{account_creation_payload.name}' - already exists in organization - '{account_creation_payload.organization_id}'"
+            )
+        # Create new account from req body
+        new_account = models.Account(
+            organization_id=account_creation_payload.organization_id,
+            name=account_creation_payload.name,
+            description=account_creation_payload.description,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
 
-      db.add(new_account)
-      db.flush()  # Now, new_account.id is available
+        db.add(new_account)
+        db.flush()  # Now, new_account.id is available
 
-      # Create the User_Account association with the new account's ID
-      new_user_account = models.User_Account(
-         user_id=logged_in_user_id,
-         account_id=new_account.id
-      )
+        # Create the User_Account association with the new account's ID
+        new_user_account = models.User_Account(
+            user_id=logged_in_user_id, account_id=new_account.id
+        )
 
       db.add(new_user_account) # Add the User_Account association to the session
 
@@ -93,6 +125,12 @@ def create_account(
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def patch_account(
+    account_to_patch: models.Account,
+    account_patch_req_dto: account_schemas.AccountPatchRequestDTO,
+    db: Session,
+) -> account_schemas.AccountResponseDTO:
+    """
+    Patches account based on given account_id path param, and account_patch_req_dto body
    request: Request,
    account_to_patch: models.Account,
    account_patch_req_dto: account_schemas.AccountPatchRequestDTO,
@@ -101,14 +139,14 @@ def patch_account(
    """
    Patches account based on given account_id path param, and account_patch_req_dto body
 
-   Args:
-      account_id (UUID): The account_id pointing to the account that needs to be patched.
-      account_patch_req_dto (AccountPatchRequestDTO): Request body containing optional 'name' and 'description' fields that can be patched.
-      db (Session): The db session object for db operations.
+    Args:
+       account_id (UUID): The account_id pointing to the account that needs to be patched.
+       account_patch_req_dto (AccountPatchRequestDTO): Request body containing optional 'name' and 'description' fields that can be patched.
+       db (Session): The db session object for db operations.
 
-   Raises: 
-      404: Account not found.
-      503: Any db related error.
+    Raises:
+       404: Account not found.
+       503: Any db related error.
 
    Returns: 
       AccountResponseDTO : The response containing patched AccountResponseDTO object. 
@@ -151,19 +189,24 @@ def get_accounts(
    db: Session
 ) -> List[account_schemas.AccountResponseDTO]:
 
-   try:
-      # Start with all accounts if the user is superadmin, else filter by user's accounts (so that superadmin can still view accounts if association removed)
-      if logged_in_user_is_superadmin: 
-         query = db.query(models.Account)
-      else:
-         # For non-superadmins: get accounts they are associated with
-         query = db.query(models.Account)\
-                  .join(models.User_Account, models.Account.id == models.User_Account.account_id)\
-                  .filter(models.User_Account.user_id == logged_in_user_id)
-                  
-      # Apply filters based on account name
-      if name:
-         query = query.filter(models.Account.name.ilike(f"%{name}%"))
+    try:
+        # Start with all accounts if the user is superadmin, else filter by user's accounts (so that superadmin can still view accounts if association removed)
+        if logged_in_user_is_superadmin:
+            query = db.query(models.Account)
+        else:
+            # For non-superadmins: get accounts they are associated with
+            query = (
+                db.query(models.Account)
+                .join(
+                    models.User_Account,
+                    models.Account.id == models.User_Account.account_id,
+                )
+                .filter(models.User_Account.user_id == logged_in_user_id)
+            )
+
+        # Apply filters based on account name
+        if name:
+            query = query.filter(models.Account.name.ilike(f"%{name}%"))
 
       accounts = query.all()
       return [account_schemas.AccountResponseDTO.from_orm(account) for account in accounts]
@@ -195,11 +238,11 @@ def get_account_user_list(
       RoleUserAccountAlias = aliased(models.Role_User_Account)
       UserProjectAlias = aliased(models.User_Project)
 
-      account_users_query = (
-         db.query(models.User, UserAccountAlias.is_admin, UserAccountAlias.id)
-         .join(UserAccountAlias, UserAccountAlias.user_id == models.User.id)
-         .filter(UserAccountAlias.account_id == account_id)
-      )
+        account_users_query = (
+            db.query(models.User, UserAccountAlias.is_admin, UserAccountAlias.id)
+            .join(UserAccountAlias, UserAccountAlias.user_id == models.User.id)
+            .filter(UserAccountAlias.account_id == account_id)
+        )
 
       if firstname:
          account_users_query = account_users_query.filter(models.User.firstname.ilike(f"%{firstname}%"))
@@ -222,25 +265,26 @@ def get_account_user_list(
       account_users = account_users_query.all()
       account_users_with_roles = []
 
-      for user, is_admin, user_account_id in account_users:
-         if user.is_superadmin or is_admin:
-            account_user_with_roles_dto = user_schemas.AccountUserListItemDTO(
-               **user.__dict__,
-               is_account_admin = is_admin,
-               roles = []
-            )
-         else:
-            roles_query = (
-               db.query(models.Role)
-               .join(RoleUserAccountAlias, RoleUserAccountAlias.role_id == models.Role.id)
-               .filter(
-                  RoleUserAccountAlias.user_account_id == user_account_id
-               )
-            )
-            roles = roles_query.all()
-            
-            # role_summary_dto = [RoleSummaryDTO.model_validate(role) for role in roles]
-            role_summary_dto = [role_schemas.RoleSummaryDTO.from_orm(role) for role in roles]
+        for user, is_admin, user_account_id in account_users:
+            if user.is_superadmin or is_admin:
+                account_user_with_roles_dto = user_schemas.AccountUserListItemDTO(
+                    **user.__dict__, is_account_admin=is_admin, roles=[]
+                )
+            else:
+                roles_query = (
+                    db.query(models.Role)
+                    .join(
+                        RoleUserAccountAlias,
+                        RoleUserAccountAlias.role_id == models.Role.id,
+                    )
+                    .filter(RoleUserAccountAlias.user_account_id == user_account_id)
+                )
+                roles = roles_query.all()
+
+                # role_summary_dto = [RoleSummaryDTO.model_validate(role) for role in roles]
+                role_summary_dto = [
+                    role_schemas.RoleSummaryDTO.from_orm(role) for role in roles
+                ]
 
             # Construct AccountUserListItemDTO for each user
             account_user_with_roles_dto = user_schemas.AccountUserListItemDTO(
@@ -281,19 +325,25 @@ def assign_users_to_account(
       .filter(models.User.id.in_(user_ids)) \
       .one() # outerjoin to get User, User_Account counts separately in one query
 
-      # Extracting the results
-      (total_users_found, total_user_account_associations) = query_result
+        # Extracting the results
+        (total_users_found, total_user_account_associations) = query_result
 
-      # print(f'total_users_found = {total_users_found},\n'
-      #       f'total_user_account_associations = {total_user_account_associations},\n')
-   
-      if total_users_found != len(user_ids):
-         print(f"in PATCH /accounts/{account_id}/users service method: One or more users not found in user table")
-         raise ApiError.notfound("One or more users not found")
-                                             
-      if total_user_account_associations > 0:
-         print(f"in PATCH /accounts/{account_id}/users service method: One or more users are already assigned to the account")
-         raise ApiError.conflict(f"One or more users are already assigned to account - '{account_id}'")
+        # print(f'total_users_found = {total_users_found},\n'
+        #       f'total_user_account_associations = {total_user_account_associations},\n')
+
+        if total_users_found != len(user_ids):
+            print(
+                f"in PATCH /accounts/{account_id}/users service method: One or more users not found in user table"
+            )
+            raise ApiError.notfound("One or more users not found")
+
+        if total_user_account_associations > 0:
+            print(
+                f"in PATCH /accounts/{account_id}/users service method: One or more users are already assigned to the account"
+            )
+            raise ApiError.conflict(
+                f"One or more users are already assigned to account - '{account_id}'"
+            )
 
       # Create new User_Account associations
       new_user_accounts = [
@@ -395,17 +445,23 @@ def patch_user_account_admin_status(
       # Check if user in payload exists
       user_in_payload = db.query(models.User).filter(models.User.id == user_id).first()
 
-      if not user_in_payload:
-         raise ApiError.notfound(f"User - '{user_id}' - not found")
+        if not user_in_payload:
+            raise ApiError.notfound(f"User - '{user_id}' - not found")
 
-      # Fetch the User_Account association if it exists
-      user_account_association = db.query(models.User_Account).filter(
-         models.User_Account.user_id == user_id,
-         models.User_Account.account_id == account_id
-      ).first()
+        # Fetch the User_Account association if it exists
+        user_account_association = (
+            db.query(models.User_Account)
+            .filter(
+                models.User_Account.user_id == user_id,
+                models.User_Account.account_id == account_id,
+            )
+            .first()
+        )
 
-      if not user_account_association:
-         raise ApiError.validationerror(f"user - '{user_id}' - is not assigned to account - '{account_id}'")
+        if not user_account_association:
+            raise ApiError.validationerror(
+                f"user - '{user_id}' - is not assigned to account - '{account_id}'"
+            )
 
       if user_id == logged_in_user_id:
          if not logged_in_user_is_superadmin:
@@ -416,17 +472,28 @@ def patch_user_account_admin_status(
             if not user_account_association.is_admin:
                user_account_association.is_admin = True
 
-         case "Revoke":
-            if user_account_association.is_admin:
-               if not user_in_payload.is_superadmin:
-                  top_level_associated_projects_in_account: List[UUID] = get_top_level_associated_project_ids_for_user_in_account(db, user_id, account_id)
+            case "Revoke":
+                if user_account_association.is_admin:
+                    if not user_in_payload.is_superadmin:
+                        top_level_associated_projects_in_account: List[UUID] = (
+                            get_top_level_associated_project_ids_for_user_in_account(
+                                db, user_id, account_id
+                            )
+                        )
 
-                  # if top_level_associated_projects_in_account:
-                  delete_unrooted_user_project_associations_in_account(db, user_id, top_level_associated_projects_in_account, account_id)
-               user_account_association.is_admin = False
+                        # if top_level_associated_projects_in_account:
+                        delete_unrooted_user_project_associations_in_account(
+                            db,
+                            user_id,
+                            top_level_associated_projects_in_account,
+                            account_id,
+                        )
+                    user_account_association.is_admin = False
 
-         case _:
-            raise ApiError.validationerror(f"unknown action - '{account_admin_status_update_dto.action}'")
+            case _:
+                raise ApiError.validationerror(
+                    f"unknown action - '{account_admin_status_update_dto.action}'"
+                )
 
       db.commit()
       return JSONResponse(content={"message": f"Admin status successfully {'revoked' if account_admin_status_update_dto.action.lower() == 'revoke' else 'granted'}"}, status_code=status.HTTP_200_OK)

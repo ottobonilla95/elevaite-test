@@ -1,9 +1,10 @@
 import json
 from sqlalchemy.orm import Session, Query
 from uuid import UUID
-from elevaitedb.db import models
-from elevaitedb.schemas import instance as schema
+from ..db import models
+from ...schemas import instance as schema
 from typing import Type, Callable
+
 
 def get_instances(
     db: Session,
@@ -16,7 +17,7 @@ def get_instances(
 
     query = db.query(models.Instance)
     # if filter_function is not None: # uncomment this when using validator
-    #     query = filter_function(query)
+    # query = filter_function(query)
 
     return (
         query.filter(models.Instance.applicationId == applicationId)

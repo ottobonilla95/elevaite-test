@@ -1,18 +1,18 @@
 
 from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import  SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Optional, cast
 from uuid import UUID
 from datetime import datetime
 from pprint import pprint
 from ..errors.api_error import ApiError
 
-from elevaitedb.schemas import (
-   organization as organization_schemas,
-   user as user_schemas,
+from elevaitelib.schemas import (
+    organization as organization_schemas,
+    user as user_schemas,
 )
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
    
 def patch_organization(
    request: Request,
@@ -23,10 +23,10 @@ def patch_organization(
    """
    Patches an organization based on given org_id path param, and org patch payload
 
-   Args:
-      org_id (UUID) : The id of the organization to be patched.
-      organization_patch_req_payload (OrganizationPatchRequestDTO): The organization patch payload containing optional details of 'name', and 'description' for patch.
-      db (Session): The db session object for db operations.
+    Args:
+       org_id (UUID) : The id of the organization to be patched.
+       organization_patch_req_payload (OrganizationPatchRequestDTO): The organization patch payload containing optional details of 'name', and 'description' for patch.
+       db (Session): The db session object for db operations.
 
    Raises: 
       404: Organization not found.
@@ -70,15 +70,15 @@ def get_org_users(
    account_id: Optional[UUID],
    assigned: Optional[bool] = True,
 ) -> List[user_schemas.OrgUserListItemDTO]:
-   try:
-      query = db.query(models.User).filter(models.User.organization_id == org_id)
+    try:
+        query = db.query(models.User).filter(models.User.organization_id == org_id)
 
-      if firstname:
-         query = query.filter(models.User.firstname.ilike(f"%{firstname}%"))
-      if lastname:
-         query = query.filter(models.User.lastname.ilike(f"%{lastname}%"))
-      if email:
-         query = query.filter(models.User.email.ilike(f"%{email}%"))
+        if firstname:
+            query = query.filter(models.User.firstname.ilike(f"%{firstname}%"))
+        if lastname:
+            query = query.filter(models.User.lastname.ilike(f"%{lastname}%"))
+        if email:
+            query = query.filter(models.User.email.ilike(f"%{email}%"))
 
       if account_id:
          # Outer join with User_Account to have null/non-null values to distinguish account members/non-members

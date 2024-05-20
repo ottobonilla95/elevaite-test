@@ -1,6 +1,6 @@
-from elevaitedb.schemas.application import Application, ApplicationType
-from elevaitedb.schemas.pipeline import Pipeline, PipelineStep
-from elevaitedb.db import models
+from elevaitelib.schemas.application import Application, ApplicationType
+from elevaitelib.schemas.pipeline import Pipeline, PipelineStep
+from elevaitelib.orm.db import models
 
 
 pipeline_step_1 = models.PipelineStep(

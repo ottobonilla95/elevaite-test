@@ -13,15 +13,15 @@ from sqlalchemy.orm import Session
 from typing import Any, Optional, List
 from uuid import UUID
 
-from elevaitedb.schemas import (
-   user as user_schemas,
+from elevaitelib.schemas import (
+   user as user_schemas, 
    role as role_schemas,
    account as account_schemas,
    project as project_schemas,
    permission as permission_schemas,
    api as api_schemas,
 )
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
 from rbac_api import route_validator_map
 
 from ..services import user as service
@@ -29,7 +29,7 @@ from .utils.helpers import load_schema
 from ...audit import AuditorProvider
 auditor = AuditorProvider.get_instance()
 
-user_router = APIRouter(prefix="/users", tags=["users"]) 
+user_router = APIRouter(prefix="/users", tags=["users"])
 
 @user_router.patch("/{user_id}", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -87,12 +87,12 @@ async def patch_user(
    user_patch_payload: user_schemas.UserPatchRequestDTO = Body(description= "User patch payload"),
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_user')]),
 ) -> user_schemas.OrgUserListItemDTO:
-   """
-   Patch User resource
+    """
+    Patch User resource
 
-   Parameters:
-      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
-      - user_patch_payload (UUID) : payload containing atleast 1 of user firstname/lastname information for update
+    Parameters:
+       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+       - user_patch_payload (UUID) : payload containing atleast 1 of user firstname/lastname information for update
 
    Returns: 
       -OrgUserListItemDTO : Patched User resource response object
@@ -161,12 +161,12 @@ async def get_user_profile(
    account_id: Optional[UUID] = Header(None, alias = "X-elevAIte-AccountId", description="optional account_id under which user profile is queried; required by non-superadmins"),
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_user_profile')]),
 ) -> user_schemas.UserProfileDTO:
-   """
-   Retrieve User profile with mutual account membership information
+    """
+    Retrieve User profile with mutual account membership information
 
-   Parameters:
-      - X-elevAIte-AccountId (UUID): The ID of the account in which user is being profiled; mandatory parameter for non-superadmin users
-      - user_id (UUID): ID of user being profiled.
+    Parameters:
+       - X-elevAIte-AccountId (UUID): The ID of the account in which user is being profiled; mandatory parameter for non-superadmin users
+       - user_id (UUID): ID of user being profiled.
 
    Returns:
       - UserProfileDTO: User profile containing user information along with account membership information
@@ -378,12 +378,12 @@ async def patch_user_account_roles(
    role_list_dto: role_schemas.RoleListDTO = Body(description = "payload containing account-scoped role_id's and action to patch user"),
    validation_info:dict[str,Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_user_account_roles')]),
 ) -> JSONResponse:
-   """
-   Patch user's account scoped roles
+    """
+    Patch user's account scoped roles
 
-   Parameters:
-      - account_id (UUID): The ID of the account in which user's account scoped roles are being updated
-      - role_list_dto: payload containing list of role_id's and action - 'Add' or 'Remove'
+    Parameters:
+       - account_id (UUID): The ID of the account in which user's account scoped roles are being updated
+       - role_list_dto: payload containing list of role_id's and action - 'Add' or 'Remove'
 
    Returns:
       - JSONResponse: 200 success message for successfull addition or removal of account-scoped roles for user
@@ -459,8 +459,8 @@ async def update_user_project_permission_overrides(
    permission_overrides_payload: permission_schemas.ProjectScopedRBACPermission = Body(...),
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'update_user_project_permission_overrides')]),
 ) -> JSONResponse:
-   """
-   Update user's project permission overrides 
+    """
+    Update user's project permission overrides
 
    Parameters:
       - project_id (UUID): The ID of the project in which user's project permission overrides are being updated
@@ -614,12 +614,12 @@ async def patch_user_superadmin_status(
    superadmin_status_update_dto: user_schemas.SuperadminStatusUpdateDTO = Body(...),
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_user_superadmin_status')]),
 ) -> JSONResponse:
-   """
-   Update user's superadmin status
+    """
+    Update user's superadmin status
 
-   Parameters:
-      - user_id (UUID): The ID of the user whose project permission overrides are being updated
-      - superadmin_status_update_dto: payload containing action with 'Grant' or 'Revoke' values for superadmin status update of user
+    Parameters:
+       - user_id (UUID): The ID of the user whose project permission overrides are being updated
+       - superadmin_status_update_dto: payload containing action with 'Grant' or 'Revoke' values for superadmin status update of user
 
    Returns:
       - JSONResponse: 200 success message for successful superadmin status update of user

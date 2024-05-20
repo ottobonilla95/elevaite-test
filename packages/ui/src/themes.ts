@@ -1,4 +1,3 @@
-
 export type ColorScheme = ColorSchemeBase & ColorSchemeUI & ColorSchemeSpecial;
 
 interface ColorSchemeBase {
@@ -17,9 +16,9 @@ interface ColorSchemeBase {
   background?: string;
   backgroundSecondary?: string;
   backgroundHighContrast?: string;
-  success?: string,
-  danger?: string,
-  tagBorder?: string,
+  success?: string;
+  danger?: string;
+  tagBorder?: string;
 }
 
 interface ColorSchemeUI {
@@ -43,7 +42,6 @@ interface ColorSchemeSpecial {
   specialTabBackground?: string;
   specialTabHighlight?: string;
 }
-
 
 // Dark
 export const DarkTheme: ColorScheme = {

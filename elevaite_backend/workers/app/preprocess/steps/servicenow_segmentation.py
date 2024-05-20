@@ -1,13 +1,13 @@
 import json
 import sys
 from typing import List
-from elevaitedb.schemas.service_now import ServiceNowTicket
+from elevaitelib.schemas.service_now import ServiceNowTicket
 from redis import Redis
 from pydantic import UUID4
 from sqlalchemy.orm import Session
 
-from elevaitedb.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
-from elevaitedb.util.logger import ESLogger
+from elevaitelib.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
+from elevaitelib.util.logger import ESLogger
 
 from ..preprocess import ChunkAsJson
 from ...util.func import (

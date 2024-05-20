@@ -1,5 +1,5 @@
 from typing import TypeGuard
-from elevaitedb.schemas.configuration import (
+from elevaitelib.schemas.configuration import (
     S3IngestFormDataDTO,
     PreProcessFormDTO,
     ServiceNowIngestDataDTO,

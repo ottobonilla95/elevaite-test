@@ -7,12 +7,13 @@ from uuid import UUID
 from sqlalchemy.orm import Session, Query
 from ..services import instances as instance_service
 from .deps import get_rabbitmq_connection, get_db
-from elevaitedb.db import models
-from elevaitedb.schemas import (
+from elevaitelib.orm.db import models
+from elevaitelib.schemas import (
     instance as instance_schemas,
     configuration as configuration_schemas,
     # api as api_schemas,
 )
+
 # from rbac_api import (
 #    route_validator_map,
 #    RBACValidatorProvider
@@ -29,7 +30,7 @@ def getApplicationInstances(
     # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'getApplicationInstances')]), # uncomment this when using validator
     # project_id: UUID = Header(..., alias = "X-elevAIte-ProjectId", description="project_id under which connector instances are queried"), # uncomment this when using validator
 ) -> Sequence[instance_schemas.Instance]:
-    
+
     # db: Session = request.state.db # uncomment this when using validator
     # all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(models.Instance, validation_info) # uncomment this when using validator
 

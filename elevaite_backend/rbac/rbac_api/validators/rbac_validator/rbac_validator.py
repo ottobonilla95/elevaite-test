@@ -21,6 +21,7 @@ from rbac_api.utils.funcs import (
 from rbac_api.utils.cte import (
    is_user_project_association_till_root,
 )
+<<<<<<<< HEAD:elevaite_backend/rbac/rbac_api/validators/rbac_validator/rbac_validator.py
 # from .config import (
 #    model_classStr_to_class,
 #    validation_precedence_order,
@@ -37,10 +38,29 @@ class RBACValidator:
    #       cls._instance = super().__new__(cls)
    #    return cls._instance
 
+========
+from .config import (
+   model_classStr_to_class,
+   validation_precedence_order,
+   account_scoped_permissions as account_scoped_permissions_schema,
+   project_scoped_permissions as project_scoped_permissions_schema,
+   apikey_scoped_permissions as apikey_scoped_permissions_schema
+)
+
+class RBACProvider:
+   _instance = None
+
+   def __new__(cls, *args, **kwargs):
+      if cls._instance is None:
+         cls._instance = super().__new__(cls)
+      return cls._instance
+
+>>>>>>>> cf44631 (Week's worth of Flyte R&D and monorepo restructuring):elevaite_backend/rbac/rbac_api/validators/providers/rbac.py
    def __init__(
       self,
       model_classStr_to_class: Dict[str, Type[models.Base]],
       validation_precedence_order: List[Type[models.Base]],
+<<<<<<<< HEAD:elevaite_backend/rbac/rbac_api/validators/rbac_validator/rbac_validator.py
       account_scoped_permissions_schema: Dict[str, Any],
       project_scoped_permissions_schema: Dict[str, Any],
       apikey_scoped_permissions_schema: Dict[str, Any]
@@ -69,6 +89,27 @@ class RBACValidator:
          self._apikey_scoped_permissions_valid_entity_actions_map,
          self._entity_actions_to_path_params
       ) = self._initialize_rbac_instance_properties()
+========
+   ):
+      if not hasattr(self, '_initialized'):
+         self._initialized = True
+         self._model_classStr_to_class = model_classStr_to_class
+         self._validation_precedence_order = validation_precedence_order
+         self._account_scoped_permissions_schema = account_scoped_permissions_schema
+         self._project_scoped_permissions_schema = project_scoped_permissions_schema     
+         self._apikey_scoped_permissions_schema = apikey_scoped_permissions_schema
+         
+         (self._account_scoped_permissions_leaf_action_paths_map,
+            self._project_scoped_permissions_leaf_action_paths_map,
+            self._apikey_scoped_permissions_leaf_action_paths_map,
+            self._entity_typenames_list,
+            self._entity_typevalues_list,
+            self._account_scoped_permissions_valid_entity_actions_map,
+            self._project_scoped_permissions_valid_entity_actions_map,
+            self._apikey_scoped_permissions_valid_entity_actions_map,
+            self._entity_actions_to_path_params
+         ) = self._initialize_rbac_instance_properties()
+>>>>>>>> cf44631 (Week's worth of Flyte R&D and monorepo restructuring):elevaite_backend/rbac/rbac_api/validators/providers/rbac.py
       
    def _initialize_rbac_instance_properties(self):
    
@@ -1225,10 +1266,18 @@ class RBACValidator:
          return query
       return filter_function
    
+<<<<<<<< HEAD:elevaite_backend/rbac/rbac_api/validators/rbac_validator/rbac_validator.py
    # @classmethod 
    # def get_instance(cls):
    #    if cls._instance is None:
    #       raise ValueError("RBACProvider not initialized. Call the constructor first.")
    #    return cls._instance
+========
+   @classmethod 
+   def get_instance(cls):
+      if cls._instance is None:
+         raise ValueError("RBACProvider not initialized. Call the constructor first.")
+      return cls._instance
+>>>>>>>> cf44631 (Week's worth of Flyte R&D and monorepo restructuring):elevaite_backend/rbac/rbac_api/validators/providers/rbac.py
 
 

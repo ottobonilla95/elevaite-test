@@ -1,7 +1,7 @@
 from typing import List, Callable, Type
 from sqlalchemy.orm import Session, Query
 import uuid
-from ..schemas.collection import CollectionCreate
+from ...schemas.collection import CollectionCreate
 
 from ..db import models
 
@@ -16,7 +16,7 @@ def get_collections(
     query = db.query(models.Collection)
 
     # if filter_function is not None: # uncomment this when using validator
-        # query = filter_function(query)
+    # query = filter_function(query)
 
     return (
         query.filter(models.Collection.projectId == projectId)

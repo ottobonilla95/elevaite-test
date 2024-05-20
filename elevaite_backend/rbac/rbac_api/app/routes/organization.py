@@ -3,19 +3,19 @@ from typing import Any, Optional, List
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from elevaitedb.schemas import (
-   organization as organization_schemas,
-   user as user_schemas,
-   api as api_schemas,
+from elevaitelib.schemas import (
+    organization as organization_schemas,
+    user as user_schemas,
+    api as api_schemas,
 )
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
 from rbac_api import route_validator_map
 from .utils.helpers import load_schema
 from ..services import organization as service
 from ...audit import AuditorProvider
 auditor = AuditorProvider.get_instance()
 
-organization_router = APIRouter(prefix="/organization", tags=["organizations"]) 
+organization_router = APIRouter(prefix="/organization", tags=["organizations"])
 
 @organization_router.patch("/", responses={
     status.HTTP_200_OK: {
@@ -75,7 +75,7 @@ async def patch_organization(
 ) -> organization_schemas.OrganizationResponseDTO:
     """
     Patch elevAIte organization resource.
-    
+
     Parameters:
     - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
     - Organization patch req body: Mandatory. Must contain 1 or more fields
@@ -135,7 +135,7 @@ async def get_organization(
     - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
 
     Returns:
-    - OrganizationResponseDTO : elevAIte organization response object 
+    - OrganizationResponseDTO : elevAIte organization response object
     """
     org = validation_info.get("Organization", None)
     return org
@@ -157,37 +157,44 @@ async def get_organization(
                 "examples": load_schema('common/unauthorized_accesstoken_examples.json')
                 }
             },
-    },
-    status.HTTP_403_FORBIDDEN: {
-        "description": "User does not have permissions to this resource",
-        "content": {
-            "application/json": {
-                "examples": load_schema('organizations/get_org_users/forbidden_examples.json')
-            }
         },
-    },
-    status.HTTP_404_NOT_FOUND: {
-        "description": "organization not found",
-        "content": {
-            "application/json": {
-                "examples": load_schema('organizations/get_org_users/notfound_examples.json')
-            }
+        status.HTTP_403_FORBIDDEN: {
+            "description": "User does not have permissions to this resource",
+            "content": {
+                "application/json": {
+                    "examples": load_schema(
+                        "organizations/get_org_users/forbidden_examples.json"
+                    )
+                }
+            },
         },
-    },
-    status.HTTP_422_UNPROCESSABLE_ENTITY: {
-        "description": "Payload validation error",
-        "content": {
-            "application/json": {
-                "examples": load_schema('organizations/get_org_users/validationerror_examples.json')
-            }
+        status.HTTP_404_NOT_FOUND: {
+            "description": "organization not found",
+            "content": {
+                "application/json": {
+                    "examples": load_schema(
+                        "organizations/get_org_users/notfound_examples.json"
+                    )
+                }
+            },
         },
-    },
-    status.HTTP_503_SERVICE_UNAVAILABLE: {
-        "description": "The server is currently unable to handle the request due to a server-side error, temporary overloading, or maintenance of the server",
-        "content": {
-            "application/json": {
-                "examples": load_schema('common/serviceunavailable_examples.json')
-            }
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "description": "Payload validation error",
+            "content": {
+                "application/json": {
+                    "examples": load_schema(
+                        "organizations/get_org_users/validationerror_examples.json"
+                    )
+                }
+            },
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "The server is currently unable to handle the request due to a server-side error, temporary overloading, or maintenance of the server",
+            "content": {
+                "application/json": {
+                    "examples": load_schema("common/serviceunavailable_examples.json")
+                }
+            },
         },
     }
 })
@@ -202,11 +209,11 @@ async def get_org_users(
     assigned: Optional[bool] = Query(True, description="Filter users by assignment to the account"),
 ) -> List[user_schemas.OrgUserListItemDTO]:
     """
-    Retrieve elevAIte organization user resources. 
+    Retrieve elevAIte organization user resources.
 
     Parameters:
     - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
-    - Filter query params for user firstname, lastname and email 
+    - Filter query params for user firstname, lastname and email
     - firstname (str): Optional filter query param for user firstname with case-insensitive pattern matching
     - lastname (str): Optional filter query param for user lastname with case-insensitive pattern matching
     - email (str): Optional filter query param for user email with case-insensitive pattern matching

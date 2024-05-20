@@ -19,17 +19,15 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy_json import MutableJson
 from qdrant_client.http.models import Distance
 
-from ..util.func import get_utc_datetime
-from ..schemas.instance import (
+from ...util.func import get_utc_datetime
+from ...schemas.instance import (
     InstancePipelineStepData,
     InstanceStatus,
 )
-from ..schemas.pipeline import PipelineStepStatus
-from ..schemas.application import ApplicationType
-from ..schemas.permission import ProjectScopedRBACPermission
-from ..schemas.apikey import (
-    ApikeyPermissionsType
-)
+from ...schemas.pipeline import PipelineStepStatus
+from ...schemas.application import ApplicationType
+from ...schemas.permission import ProjectScopedRBACPermission
+from ...schemas.apikey import ApikeyPermissionsType
 from .database import Base
 
 from sqlalchemy import (
@@ -295,10 +293,8 @@ class Project(Base):
     )
     account_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("accounts.id"), nullable=False
-    )  
-    creator_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), nullable=False
     )
+    creator_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     parent_project_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("projects.id"), nullable=True
     )  # Projects can have null parents when created directly from account
@@ -524,16 +520,25 @@ class Role(Base):
 class Apikey(Base):
     __tablename__ = "apikeys"
 
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4()
+    )
     name: Mapped[str] = mapped_column(String(20), nullable=False)
-    creator_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    permissions_type: Mapped[ApikeyPermissionsType] = mapped_column(Enum(ApikeyPermissionsType), nullable=False)
-    project_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("projects.id"), nullable=False)
-    key: Mapped[str] = mapped_column(String, unique=True, nullable=False) 
-    permissions: Mapped[Annotated[dict[str, Any], Column(JSONB)]] = ( 
-        mapped_column(type_=JSONB)
-    ) 
+    creator_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    permissions_type: Mapped[ApikeyPermissionsType] = mapped_column(
+        Enum(ApikeyPermissionsType), nullable=False
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("projects.id"), nullable=False
+    )
+    key: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    permissions: Mapped[Annotated[dict[str, Any], Column(JSONB)]] = mapped_column(
+        type_=JSONB, default=lambda: ProjectScopedRBACPermission.create("Deny").dict()
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
 
 # Define all class's such that first letter is uppercase and others are lowercase for rbac validation to work

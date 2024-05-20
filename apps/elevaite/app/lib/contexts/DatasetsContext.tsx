@@ -148,6 +148,7 @@ export function DatasetsContextProvider(props: DatasetsContextProviderProps): JS
     }, []);
 
     useEffect(() => {
+        // console.log("datasets", displayDatasets);
         if (loading.datasets === false && loading.datasetTasks === false && loading.filtersStructure) constructFilters(displayDatasets, datasetTasks);
     }, [displayDatasets, datasetTasks, loading.datasets, loading.datasetTasks]);
 

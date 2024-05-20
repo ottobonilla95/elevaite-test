@@ -4,12 +4,12 @@ from typing import List
 import redis
 from sqlalchemy.orm import Session
 
-from elevaitedb.crud import (
+from elevaitelib.orm.crud import (
     instance as instance_crud,
     project as project_crud,
     dataset as dataset_crud,
 )
-from elevaitedb.schemas.instance import (
+from elevaitelib.schemas.instance import (
     InstancePipelineStepData,
     InstanceStatus,
     InstanceUpdate,
@@ -18,7 +18,7 @@ from elevaitedb.schemas.instance import (
     InstancePipelineStepStatusUpdate,
     chart_data_from_redis,
 )
-from elevaitedb.util import func as util_func
+from elevaitelib.util import func as util_func
 
 
 def set_redis_stats(r: redis.Redis, instance_id: str, count, avg_size, size):

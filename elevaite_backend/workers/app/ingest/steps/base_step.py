@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
-from elevaitedb.schemas.dataset import DatasetVersion
-from elevaitedb.util.logger import ESLogger
-from elevaitedb.util.s3url import S3Url
+from elevaitelib.util.logger import ESLogger
+from elevaitelib.util.s3url import S3Url
 from pydantic import UUID4
 from redis import Redis
 from sqlalchemy.orm import Session

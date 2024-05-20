@@ -1,7 +1,7 @@
 import json
 from typing import List
 
-from elevaitedb.schemas.configuration import PreprocessEmbeddingInfo
+from elevaitelib.schemas.configuration import PreprocessEmbeddingInfo
 import requests
 from .base_embedding import BaseEmbedding
 

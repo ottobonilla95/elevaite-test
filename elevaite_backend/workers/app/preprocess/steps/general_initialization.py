@@ -1,6 +1,6 @@
 import os
-from elevaitedb.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
-from elevaitedb.util.logger import ESLogger
+from elevaitelib.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
+from elevaitelib.util.logger import ESLogger
 from pydantic import UUID4
 from redis import Redis
 import lakefs
@@ -16,11 +16,11 @@ from ...util.func import (
     set_pipeline_step_meta,
     set_redis_stats,
 )
-from elevaitedb.crud import (
+from elevaitelib.orm.crud import (
     collection as collection_crud,
     dataset as dataset_crud,
 )
-from elevaitedb.util import func as util_func
+from elevaitelib.util import func as util_func
 
 
 class GeneralInitialization(BasePreprocessStep):

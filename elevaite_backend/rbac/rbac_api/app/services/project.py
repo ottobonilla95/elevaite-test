@@ -20,11 +20,11 @@ from elevaitedb.schemas import (
    permission as permission_schemas,
    api as api_schemas,
 )
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
 
 from rbac_api.utils.cte import (
-   delete_user_project_associations_for_subprojects_of_user,
-   delete_user_project_associations_for_subprojects_of_user_list
+    delete_user_project_associations_for_subprojects_of_user,
+    delete_user_project_associations_for_subprojects_of_user_list,
 )
 
 def create_project(
@@ -79,9 +79,13 @@ def create_project(
       raise e
    except IntegrityError as e : # Database-side uniqueness check : Check if a project with the same name already exists in the specified account
         db.rollback()
-        pprint(f'Error in POST /projects service method: {e}')
-        raise ApiError.conflict(f"A project with the same name -{project_creation_payload.name}- already exists in the specified account -{account_id}")
-   except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
+        pprint(f"Error in POST /projects service method: {e}")
+        raise ApiError.conflict(
+            f"A project with the same name -{project_creation_payload.name}- already exists in the specified account -{account_id}"
+        )
+    except (
+        SQLAlchemyError
+    ) as e:  # group db side error as 503 to not expose actual error to client
         db.rollback()
         pprint(f'Error in POST /projects service method: {e}')
         request.state.source_error_msg = str(e)
@@ -136,14 +140,25 @@ def get_projects(
    type: Optional[project_schemas.ProjectType] = project_schemas.ProjectType.All,
    view: Optional[project_schemas.ProjectView] = project_schemas.ProjectView.Flat
 ) -> List[project_schemas.ProjectResponseDTO]:
-   try:
-      if (not logged_in_user_is_superadmin and not logged_in_user_is_admin) or type == project_schemas.ProjectType.Shared_With_Me: # When type is 'Shared_With_Me' or when user is non account-admin/superadmin:
-         query = db.query(models.Project).join(models.User_Project, models.User_Project.project_id == models.Project.id).filter( # base query is to show associated projects in account; can be filtered for view : 'Hierarchical', type: 'Shared_With_Me', type: 'My_Projects' later
-            models.Project.account_id == account_id,
-            models.User_Project.user_id == logged_in_user_id,
-         )            
-      else: # When type is not 'Shared_With_Me' and when user is admin/superadmin
-         query = db.query(models.Project).filter(models.Project.account_id == account_id) # base query is to see all projects in account regardless of association, can be filtered for view : 'Hierarchical', type: 'Shared_With_Me', type: 'My_Projects' later
+    try:
+        if (
+            not logged_in_user_is_superadmin and not logged_in_user_is_admin
+        ) or type == project_schemas.ProjectType.Shared_With_Me:  # When type is 'Shared_With_Me' or when user is non account-admin/superadmin:
+            query = (
+                db.query(models.Project)
+                .join(
+                    models.User_Project,
+                    models.User_Project.project_id == models.Project.id,
+                )
+                .filter(  # base query is to show associated projects in account; can be filtered for view : 'Hierarchical', type: 'Shared_With_Me', type: 'My_Projects' later
+                    models.Project.account_id == account_id,
+                    models.User_Project.user_id == logged_in_user_id,
+                )
+            )
+        else:  # When type is not 'Shared_With_Me' and when user is admin/superadmin
+            query = db.query(models.Project).filter(
+                models.Project.account_id == account_id
+            )  # base query is to see all projects in account regardless of association, can be filtered for view : 'Hierarchical', type: 'Shared_With_Me', type: 'My_Projects' later
 
       if view == project_schemas.ProjectView.Hierarchical: # consider subset of projects linked to parent_project_id for 'Hierarchical' view 
          query = query.filter(models.Project.parent_project_id == parent_project_id)
@@ -186,12 +201,23 @@ def get_project_user_list(
       UserProjectAlias = aliased(models.User_Project)
       ChildUserProjectAlias = aliased(models.User_Project)
 
-      project_users_query = (
-      db.query(models.User, UserAccountAlias.is_admin, UserProjectAlias.is_admin, UserAccountAlias.id)
-      .join(UserProjectAlias, UserProjectAlias.user_id == models.User.id)
-      .join(UserAccountAlias, and_(UserAccountAlias.user_id == models.User.id, UserAccountAlias.account_id == account_id))
-      .filter(UserProjectAlias.project_id == project_id)
-      )
+        project_users_query = (
+            db.query(
+                models.User,
+                UserAccountAlias.is_admin,
+                UserProjectAlias.is_admin,
+                UserAccountAlias.id,
+            )
+            .join(UserProjectAlias, UserProjectAlias.user_id == models.User.id)
+            .join(
+                UserAccountAlias,
+                and_(
+                    UserAccountAlias.user_id == models.User.id,
+                    UserAccountAlias.account_id == account_id,
+                ),
+            )
+            .filter(UserProjectAlias.project_id == project_id)
+        )
 
       if firstname:
          project_users_query = project_users_query.filter(models.User.firstname.ilike(f"%{firstname}%"))
@@ -215,26 +241,29 @@ def get_project_user_list(
       project_users = project_users_query.all()
       project_users_with_roles = []
 
-      for user, is_account_admin, is_project_admin, user_account_id in project_users:
-         if user.is_superadmin or is_account_admin:
-            project_user_with_roles_dto = user_schemas.ProjectUserListItemDTO(
-               **user.__dict__,
-               is_account_admin=is_account_admin,
-               is_project_admin=is_project_admin,
-               roles=[]
-            )
-         else:
-            roles_query = (
-               db.query(models.Role)
-               .join(RoleUserAccountAlias, RoleUserAccountAlias.role_id == models.Role.id)
-               .filter(
-                  RoleUserAccountAlias.user_account_id == user_account_id
-               )
-            )
-            roles = roles_query.all()
-            
-            # role_summary_dto = [RoleSummaryDTO.model_validate(role) for role in roles]
-            role_summary_dto = [role_schemas.RoleSummaryDTO.from_orm(role) for role in roles]
+        for user, is_account_admin, is_project_admin, user_account_id in project_users:
+            if user.is_superadmin or is_account_admin:
+                project_user_with_roles_dto = user_schemas.ProjectUserListItemDTO(
+                    **user.__dict__,
+                    is_account_admin=is_account_admin,
+                    is_project_admin=is_project_admin,
+                    roles=[],
+                )
+            else:
+                roles_query = (
+                    db.query(models.Role)
+                    .join(
+                        RoleUserAccountAlias,
+                        RoleUserAccountAlias.role_id == models.Role.id,
+                    )
+                    .filter(RoleUserAccountAlias.user_account_id == user_account_id)
+                )
+                roles = roles_query.all()
+
+                # role_summary_dto = [RoleSummaryDTO.model_validate(role) for role in roles]
+                role_summary_dto = [
+                    role_schemas.RoleSummaryDTO.from_orm(role) for role in roles
+                ]
 
             # Construct AccountUserListItemDTO for each user
             project_user_with_roles_dto = user_schemas.ProjectUserListItemDTO(
@@ -282,12 +311,15 @@ def assign_users_to_project(
          models.User.id.in_(user_ids)
       ).one()
 
-      # Extracting the results
-      (total_users_found_in_list,
-      total_user_account_associations_in_list,
-      total_user_current_project_associations_in_list) = query_result
-      
-      print(f'''total_users_found_in_list = {total_users_found_in_list}
+        # Extracting the results
+        (
+            total_users_found_in_list,
+            total_user_account_associations_in_list,
+            total_user_current_project_associations_in_list,
+        ) = query_result
+
+        print(
+            f"""total_users_found_in_list = {total_users_found_in_list}
             total_user_account_associations_in_list = {total_user_account_associations_in_list}
             total_user_current_project_associations_in_list = {total_user_current_project_associations_in_list}
             ''')
@@ -339,21 +371,39 @@ def deassign_user_from_project(
    db: Session,
    project : models.Project,
 ) -> JSONResponse:
-   try:
-      user_to_deassign = db.query(models.User).filter(models.User.id == user_id).first()
-      if not user_to_deassign:
-         raise ApiError.notfound(f"User - '{user_id}' - not found")
-      
-      user_to_deassign_account_association = db.query(models.User_Account).filter(models.User_Account.user_id == user_to_deassign.id, models.User_Account.account_id == project.account_id).first()
-      if not user_to_deassign_account_association:
-         raise ApiError.validationerror(f"User - '{user_to_deassign.id}' - is not assigned to account - '{project.account_id}'")
-      
-      user_project_association = db.query(models.User_Project).filter(
-          models.User_Project.user_id == user_id, models.User_Project.project_id == project.id
-      ).first()
+    try:
+        user_to_deassign = (
+            db.query(models.User).filter(models.User.id == user_id).first()
+        )
+        if not user_to_deassign:
+            raise ApiError.notfound(f"User - '{user_id}' - not found")
 
-      if not user_project_association:
-         raise ApiError.validationerror(f"User - '{user_id}' - is not assigned to project - '{project.id}'")
+        user_to_deassign_account_association = (
+            db.query(models.User_Account)
+            .filter(
+                models.User_Account.user_id == user_to_deassign.id,
+                models.User_Account.account_id == project.account_id,
+            )
+            .first()
+        )
+        if not user_to_deassign_account_association:
+            raise ApiError.validationerror(
+                f"User - '{user_to_deassign.id}' - is not assigned to account - '{project.account_id}'"
+            )
+
+        user_project_association = (
+            db.query(models.User_Project)
+            .filter(
+                models.User_Project.user_id == user_id,
+                models.User_Project.project_id == project.id,
+            )
+            .first()
+        )
+
+        if not user_project_association:
+            raise ApiError.validationerror(
+                f"User - '{user_id}' - is not assigned to project - '{project.id}'"
+            )
 
       delete_user_project_associations_for_subprojects_of_user(db=db, starting_project_id=project.id, user_id=user_id)
       db.commit()
@@ -397,16 +447,18 @@ def patch_user_project_admin_status(
       if not user_project_association:
          raise ApiError.validationerror(f"User - '{user_id}' - is not assigned to project - '{project_id}'")
 
-      match project_admin_status_update_dto.action:
-         case "Grant":
-            if not user_project_association.is_admin:
-               user_project_association.is_admin = True
+        match project_admin_status_update_dto.action:
+            case "Grant":
+                if not user_project_association.is_admin:
+                    user_project_association.is_admin = True
 
-         case "Revoke":
-            if user_project_association.is_admin:
-               user_project_association.is_admin = False
-         case _:
-            raise ApiError.validationerror(f"unknown action - '{project_admin_status_update_dto.action}'")
+            case "Revoke":
+                if user_project_association.is_admin:
+                    user_project_association.is_admin = False
+            case _:
+                raise ApiError.validationerror(
+                    f"unknown action - '{project_admin_status_update_dto.action}'"
+                )
 
       db.commit()
       return JSONResponse(content={"message": f"project-admin status successfully {'revoked' if project_admin_status_update_dto.action.lower() == 'revoke' else 'granted'}"}, status_code=status.HTTP_200_OK)

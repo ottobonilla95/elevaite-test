@@ -1,18 +1,19 @@
 from sqlalchemy.orm import Session, Query
 from typing import Callable, Type
 from ..db import models
-from ..schemas import application
+from ...schemas import application
+
 
 def get_applications(
     db: Session,
     # filter_function: Callable[[Query], Query], # uncomment this when using validator
     skip: int = 0,
-    limit: int = 100
+    limit: int = 100,
 ):
     query = db.query(models.Application)
 
     # if filter_function is not None: # uncomment this when using validator
-        # query = filter_function(query)
+    # query = filter_function(query)
 
     return query.offset(skip).limit(limit).all()
 

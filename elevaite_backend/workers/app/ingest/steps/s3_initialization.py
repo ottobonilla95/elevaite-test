@@ -1,6 +1,6 @@
 import os
-from elevaitedb.util.logger import ESLogger
-from elevaitedb.util.s3url import S3Url
+from elevaitelib.util.logger import ESLogger
+from elevaitelib.util.s3url import S3Url
 from pydantic import UUID4
 from redis import Redis
 import lakefs

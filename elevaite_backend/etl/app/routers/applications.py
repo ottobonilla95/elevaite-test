@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from sqlalchemy.orm import Session, Query
 from ..services import applications as service
 from .deps import get_db
-from elevaitedb.db import models
-from elevaitedb.schemas import (
+from elevaitelib.orm.db import models
+from elevaitelib.schemas import (
     application as application_schemas,
     pipeline as pipeline_schemas,
     # api as api_schemas
@@ -22,13 +22,13 @@ router = APIRouter(prefix="/application", tags=["applications"])
 @router.get("", response_model=list[application_schemas.Application])
 def getApplicationList(
     # request: Request,  # uncomment this when using validator
-    db: Session = Depends(get_db), # comment this when using validator
+    db: Session = Depends(get_db),  # comment this when using validator
     # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'getApplicationList')]), # uncomment this to use validator
 ) -> Sequence[application_schemas.Application]:
 
     # db: Session = request.state.db # uncomment this when using validator
     # all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(models.Application, validation_info) # uncomment this when using validator
-    
+
     return service.getApplicationList(
         db,
         # filter_function=all_query_authorized_types_filter_function # uncomment this when using validator
@@ -38,14 +38,16 @@ def getApplicationList(
 @router.get("/{application_id}", response_model=application_schemas.Application)
 def getApplicationById(
     application_id: int,
-    db: Session = Depends(get_db) # comment this when using validator
+    db: Session = Depends(get_db),  # comment this when using validator
     # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'getApplicationById')]), # uncomment this to use validator,
 ) -> application_schemas.Application:
 
     # application = validation_info.get("Application", None) # uncomment this when using validator
     # return application # uncomment this when using validator
 
-    return service.getApplicationById(db, application_id) # comment this when using validator
+    return service.getApplicationById(
+        db, application_id
+    )  # comment this when using validator
 
 
 # @router.get("/{application_id}/form")
@@ -72,7 +74,7 @@ def getApplicationById(
 def getApplicationPipelines(
     # request: Request, # uncomment this when using validator
     application_id: int,
-    db: Session = Depends(get_db), # comment this when using validator
+    db: Session = Depends(get_db),  # comment this when using validator
     # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'getApplicationPipelines')]), # uncomment this to use validator
 ) -> Sequence[pipeline_schemas.Pipeline]:
     # db: Session = request.state.db #uncomment this when using validator

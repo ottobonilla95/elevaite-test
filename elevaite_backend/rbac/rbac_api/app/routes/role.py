@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
 
-from elevaitedb.schemas import (
-   role as role_schemas,
+from elevaitelib.schemas import (
+    role as role_schemas,
    api as api_schemas,
 )
 
@@ -15,7 +15,7 @@ from .utils.helpers import load_schema
 from ...audit import AuditorProvider
 auditor = AuditorProvider.get_instance()
 
-role_router = APIRouter(prefix="/roles", tags=["roles"]) 
+role_router = APIRouter(prefix="/roles", tags=["roles"])
 
 @role_router.post("/", status_code=status.HTTP_201_CREATED, responses={
    status.HTTP_201_CREATED: {
@@ -187,8 +187,8 @@ async def get_roles(
    request: Request,
    _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_roles')]),
 ) -> List[role_schemas.RoleResponseDTO]:
-   """
-   Retrieve Role resources
+    """
+    Retrieve Role resources
 
    Parameters:
       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
@@ -264,13 +264,13 @@ async def patch_role(
    role_patch_req_payload: role_schemas.RoleUpdateRequestDTO = Body(description= "Role patch payload"),
    _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_role')]),
 ) -> role_schemas.RoleResponseDTO:
-   """
-   Patch Role resource
+    """
+    Patch Role resource
 
-   Parameters:
-      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
-      - role_id (UUID) : id of role to update
-      - role_patch_req_payload: req body containing role patch details; must provide atleast 1 field
+    Parameters:
+       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+       - role_id (UUID) : id of role to update
+       - role_patch_req_payload: req body containing role patch details; must provide atleast 1 field
 
    Returns: 
       - RoleResponseDTO  : Patched Role response object 
@@ -330,12 +330,12 @@ async def delete_role(
    _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'delete_role')]),
    role_id: UUID = Path(..., description="role id to delete", examples = ['11111111-1111-1111-1111-111111111111']),
 ) -> JSONResponse:
-   """
-   Delete Role resource
+    """
+    Delete Role resource
 
-   Parameters:
-      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
-      - role_id (UUID) : id of role to delete
+    Parameters:
+       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+       - role_id (UUID) : id of role to delete
 
    Returns: 
       - JSONResponse : 200 success message for successful role object deletion

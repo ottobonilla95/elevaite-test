@@ -4,21 +4,23 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Any
 from uuid import UUID
 
-from elevaitedb.schemas import (
-   account as account_schemas,
-   user as user_schemas,
-   api as api_schemas,
+from elevaitelib.schemas import (
+    account as account_schemas,
+    user as user_schemas,
+    api as api_schemas,
 )
-from elevaitedb.db import models 
+from elevaitelib.orm.db import models
 from rbac_api import (
+   (
    route_validator_map
+)
 )
 from ..services import account as service
 from .utils.helpers import load_schema
 from ...audit import AuditorProvider
 auditor = AuditorProvider.get_instance()
 
-account_router = APIRouter(prefix="/accounts", tags=["accounts"]) 
+account_router = APIRouter(prefix="/accounts", tags=["accounts"])
 
 @account_router.post("/", status_code=status.HTTP_201_CREATED, responses={
    status.HTTP_201_CREATED: {
@@ -83,9 +85,9 @@ async def create_account(
    """
    Create an Account resource based on given body param.
 
-   Parameters:
-      - account_creation_payload (AccountCreationRequestDTO): The payload containing details of 'organization_id', 'name' and optionally 'description' for account creation
-      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+    Parameters:
+       - account_creation_payload (AccountCreationRequestDTO): The payload containing details of 'organization_id', 'name' and optionally 'description' for account creation
+       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
 
    Returns: 
       - AccountResponseDTO : The response containing created AccountResponseDTO object. 
@@ -166,9 +168,9 @@ async def patch_account(
    """
    Patch an Account resource based on given body param.
 
-   Parameters:
-      - account_patch_req_payload (AccountPatchRequestDTO): The payload containing account patch details; atleast 1 field from 'name', 'description' must be provided
-      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+    Parameters:
+       - account_patch_req_payload (AccountPatchRequestDTO): The payload containing account patch details; atleast 1 field from 'name', 'description' must be provided
+       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
 
    Returns: 
      - AccountResponseDTO : The response containing patched AccountResponseDTO object. 
@@ -212,8 +214,8 @@ async def get_accounts(
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_accounts')]), 
    name: Optional[str] = Query(None, description="Filter accounts by account name"),
 ) -> List[account_schemas.AccountResponseDTO]:
-   """
-   Retrieve Account resources accessible by user.
+    """
+    Retrieve Account resources accessible by user.
 
    Parameters:
       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
@@ -281,22 +283,22 @@ async def get_account(
    request: Request,
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_account')]),
 ) -> account_schemas.AccountResponseDTO:
-   """
-   Retrieve Account resource
+    """
+    Retrieve Account resource
 
-   Parameters:
-      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
-      - account_id (UUID) : Path variable. id of account to be queried
-   
-   Returns: 
-      - AccountResponseDTO : The response containing AccountResponseDTO object specified by account_id. 
-   
-   Notes:
-      - superadmin users can retrieve any organization account regardless of assignment
-      - non-superadmin users can only retrieve the account if assigned to account
-   """
-   account: models.Account = validation_info.get("Account", None)
-   return account
+    Parameters:
+       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+       - account_id (UUID) : Path variable. id of account to be queried
+
+    Returns:
+       - AccountResponseDTO : The response containing AccountResponseDTO object specified by account_id.
+
+    Notes:
+       - superadmin users can retrieve any organization account regardless of assignment
+       - non-superadmin users can only retrieve the account if assigned to account
+    """
+    account: models.Account = validation_info.get("Account", None)
+    return account
 
 @account_router.get("/{account_id}/users", response_model=List[user_schemas.AccountUserListItemDTO], status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -359,8 +361,8 @@ async def get_account_user_list(
    project_id: Optional[UUID] = Query(None, description="Optional query param to filter account user's by their assignment to account-level project"),
    assigned: Optional[bool] = Query(True, description="Optional query param denoting project assignment status to account-level project"),
 ) -> List[user_schemas.AccountUserListItemDTO]:
-   """
-   Retrieve Account resource's user list
+    """
+    Retrieve Account resource's user list
 
    Parameters:
       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
@@ -450,8 +452,8 @@ async def assign_users_to_account(
    user_list_dto: user_schemas.UserListDTO = Body(description = "payload containing user_id's to assign to account"),
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'assign_users_to_account')]),
 ) -> JSONResponse:
-   """
-   Assign list of User resources to an Account resource
+    """
+    Assign list of User resources to an Account resource
 
    Parameters:
       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
@@ -524,8 +526,8 @@ async def deassign_user_from_account(
    user_id:UUID = Path(..., description = "user id to deassign from account"),
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'deassign_user_from_account')]),
 ) -> JSONResponse:
-   """
-   Deassign User resource from Account resource
+    """
+    Deassign User resource from Account resource
 
    Parameters:
       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
@@ -605,8 +607,8 @@ async def patch_user_account_admin_status(
    account_admin_status_update_dto: account_schemas.AccountAdminStatusUpdateDTO = Body(...),
    validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_user_account_admin_status')]),
 ) -> JSONResponse:
-   """
-   Patch User resources' account admin status
+    """
+    Patch User resources' account admin status
 
    Parameters:
       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.

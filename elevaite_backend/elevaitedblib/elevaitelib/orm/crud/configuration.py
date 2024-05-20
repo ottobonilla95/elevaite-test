@@ -2,8 +2,9 @@ import json
 from sqlalchemy.orm import Session, Query
 from typing import Type, Callable
 from ..db import models
-from ..schemas import configuration as schema
-from ..util.func import to_dict
+from ...schemas import configuration as schema
+from ...util.func import to_dict
+
 
 def get_configuration_by_id(db: Session, application_id: int, id: str):
     return (
@@ -22,10 +23,9 @@ def get_configurations_of_application(
     query = db.query(models.Configuration)
 
     # if filter_function is not None: # uncomment this when using validator
-        # query = filter_function(query)
-    
+    # query = filter_function(query)
+
     return query.filter(models.Configuration.applicationId == application_id).all()
-    
 
 
 def create_configuration(

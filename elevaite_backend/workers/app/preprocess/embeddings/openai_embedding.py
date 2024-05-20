@@ -1,7 +1,7 @@
 import time
 from typing import List
 
-from elevaitedb.schemas.configuration import PreprocessEmbeddingInfo
+from elevaitelib.schemas.configuration import PreprocessEmbeddingInfo
 import openai
 from .base_embedding import BaseEmbedding
 

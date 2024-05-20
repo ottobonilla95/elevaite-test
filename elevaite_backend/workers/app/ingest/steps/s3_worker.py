@@ -1,4 +1,4 @@
-from elevaitedb.util.logger import ESLogger
+from elevaitelib.util.logger import ESLogger
 from pydantic import UUID4
 from redis import Redis
 from sqlalchemy.orm import Session

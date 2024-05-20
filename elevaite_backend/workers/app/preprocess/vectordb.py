@@ -1,6 +1,6 @@
 from typing import List, Optional
-from elevaitedb.schemas.configuration import EmbeddingType, PreprocessEmbeddingInfo
-from elevaitedb.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
+from elevaitelib.schemas.configuration import EmbeddingType, PreprocessEmbeddingInfo
+from elevaitelib.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.models import Batch
 from qdrant_client.http.models import Distance, VectorParams
@@ -198,7 +198,7 @@ def create_embedding(input, embedding_model, depth=0):
         raise Exception("Too many retries")
     try:
         time.sleep((5 * depth) + (6 / 1000))
-        response = openai.Embedding.create(input=input, engine=embedding_model)
+        response = openai.embeddings.create(input=input, model=embedding_model)
         return response
     except Exception as e:
         print(e)

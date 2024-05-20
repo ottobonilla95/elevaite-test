@@ -4,12 +4,12 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Any
 from uuid import UUID
 
-from elevaitedb.schemas import (
-   project as project_schemas,
-   user as user_schemas,
+from elevaitelib.schemas import (
+    project as project_schemas,
+    user as user_schemas,
    api as api_schemas,
 )
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
 from rbac_api import route_validator_map
 
 from ..services import project as service
@@ -82,8 +82,8 @@ async def create_project(
    account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id in which project is posted"),
    validation_info: dict[str, Any]= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'create_project')]),
 ) -> project_schemas.ProjectResponseDTO:
-   """
-   Create a Project resource
+    """
+    Create a Project resource
 
    Parameters:
       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
@@ -316,7 +316,7 @@ async def get_projects(
    type: Optional[project_schemas.ProjectType] = Query(project_schemas.ProjectType.All, description = "Optional filter for querying projects based on ownership, either - 'My_Projects' or 'Shared_With_Me'; if not provided then this will assume both types (all projects for superadmin/account-admins)"),
    name: Optional[str] = Query(None, description = "Optional filter for querying projects based on project name"),
 ) -> List[project_schemas.ProjectResponseDTO]:
-   """
+    """
     Retrieves a list of Project resources based on the provided criteria.
 
     Parameters:
@@ -415,8 +415,8 @@ async def get_project_user_list(
    child_project_id: UUID = Query(None, description="Optional param to filter project user's by their assignment to immediate child project"),
    assigned: Optional[bool] = Query(True, description="Optional query param denoting project assignment status to child project"),
 ) -> List[user_schemas.ProjectUserListItemDTO]:
-   """
-   Retrieve Project resource's user list
+    """
+    Retrieve Project resource's user list
 
    Parameters:
       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
@@ -509,8 +509,8 @@ async def deassign_user_from_project(
    user_id: UUID = Path(..., description = "The ID of the user to deassign from project"),
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'deassign_user_from_project')]),
 ) -> JSONResponse:
-   """
-   Deassign User resource from Project resource
+    """
+    Deassign User resource from Project resource
 
    Parameters:
       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
@@ -595,8 +595,8 @@ async def assign_users_to_project(
    project_assignee_list_dto: project_schemas.ProjectAssigneeListDTO = Body(description = "payload containing project assignees along with optional project permission overrides (default = no project permission overrides)"),
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'assign_users_to_project')]),
 ) -> JSONResponse:
-   """
-   Assign User resources to Project resource
+    """
+    Assign User resources to Project resource
 
    Parameters:
       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
@@ -676,8 +676,8 @@ async def patch_user_project_admin_status(
    project_admin_status_update_dto: project_schemas.ProjectAdminStatusUpdateDTO = Body(...),
    validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_user_project_admin_status')]),
 ) -> JSONResponse:
-   """
-   Patch project admin status of user
+    """
+    Patch project admin status of user
 
    Parameters:
       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.

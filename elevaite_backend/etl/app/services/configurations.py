@@ -1,26 +1,26 @@
 from typing import List, Any, Callable, Type
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
 from sqlalchemy.orm import Session, Query
 
-from elevaitedb.schemas.configuration import (
+from elevaitelib.schemas.configuration import (
     ConfigurationCreate,
     ConfigurationUpdate,
     is_configuration,
 )
-from elevaitedb.crud import (
+from elevaitelib.orm.crud import (
     configuration as configuration_crud,
 )
 
 
 def getConfigurationsOfApplication(
-    db: Session, 
+    db: Session,
     # filter_function: Callable[[Query], Query], # uncomment this when using validator
-    application_id: int
+    application_id: int,
 ) -> List[models.Configuration]:
     _conf = configuration_crud.get_configurations_of_application(
         db,
         application_id,
-        # filter_function=filter_function, # uncomment this when using validator   
+        # filter_function=filter_function, # uncomment this when using validator
     )
     return _conf
 

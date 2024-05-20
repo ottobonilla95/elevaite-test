@@ -11,9 +11,9 @@ import pika
 from app.util.name_generator import get_random_name
 from app.util.RedisSingleton import RedisSingleton
 from app.util.ElasticSingleton import ElasticSingleton
-from elevaitedb.util import func as util_func
-from elevaitedb.schemas.application import is_application
-from elevaitedb.schemas.instance import (
+from elevaitelib.util import func as util_func
+from elevaitelib.schemas.application import is_application
+from elevaitelib.schemas.instance import (
     Instance,
     InstanceChartData,
     InstanceCreate,
@@ -26,16 +26,16 @@ from elevaitedb.schemas.instance import (
     chart_data_from_redis,
     is_instance,
 )
-from elevaitedb.schemas.pipeline import Pipeline, PipelineStepStatus, is_pipeline
-from elevaitedb.schemas.configuration import (
+from elevaitelib.schemas.pipeline import Pipeline, PipelineStepStatus, is_pipeline
+from elevaitelib.schemas.configuration import (
     Configuration,
     PreProcessFormDTO,
     S3IngestFormDataDTO,
     is_configuration,
 )
-from elevaitedb.schemas.dataset import DatasetCreate, is_dataset
-from elevaitedb.schemas.collection import CollectionCreate
-from elevaitedb.crud import (
+from elevaitelib.schemas.dataset import DatasetCreate, is_dataset
+from elevaitelib.schemas.collection import CollectionCreate
+from elevaitelib.orm.crud import (
     pipeline as pipeline_crud,
     application as application_crud,
     instance as instance_crud,
@@ -43,7 +43,7 @@ from elevaitedb.crud import (
     dataset as dataset_crud,
     collection as collection_crud,
 )
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
 
 from app.util.func import get_routing_key
 

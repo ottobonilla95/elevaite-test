@@ -1,4 +1,4 @@
-from elevaitedb.schemas.configuration import EmbeddingType
+from elevaitelib.schemas.configuration import EmbeddingType
 from .base_embedding import (
     register_embedding,
 )

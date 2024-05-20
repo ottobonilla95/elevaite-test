@@ -14,10 +14,10 @@ from app.routers.service_now import router as service_now_router
 
 from app.util.RedisSingleton import RedisSingleton
 from app.util.ElasticSingleton import ElasticSingleton
-from elevaitedb.db import models
-from elevaitedb.db.database import engine
+from elevaitelib.orm.db import models
+from elevaitelib.orm.db.database import engine
 from app.util.db_seed import seed_db
-from elevaitedb.schemas import application as application_schemas
+from elevaitelib.schemas import application as application_schemas
 from app.routers.deps import get_db
 
 

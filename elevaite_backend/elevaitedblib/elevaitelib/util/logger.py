@@ -10,15 +10,37 @@ class ESLogger:
     client: Elasticsearch
     index: str
 
-    def __init__(self, key: str) -> None:
+    def __init__(
+        self,
+        key: str,
+        password: str | None = None,
+        fingerprint: str | None = None,
+        username: str | None = None,
+        host: str | None = None,
+    ) -> None:
         load_dotenv()
-        ELASTIC_PASSWORD = os.getenv("ELASTIC_PASSWORD")
-        ELASTIC_SSL_FINGERPRINT = os.getenv("ELASTIC_SSL_FINGERPRINT")
-        ELASTIC_HOST = os.getenv("ELASTIC_HOST")
+        ELASTIC_PASSWORD = (
+            password if password is not None else os.getenv("ELASTIC_PASSWORD")
+        )
+        if ELASTIC_PASSWORD is None:
+            raise Exception("ELASTIC_PASSWORD is null")
+        ELASTIC_SSL_FINGERPRINT = (
+            fingerprint
+            if fingerprint is not None
+            else os.getenv("ELASTIC_SSL_FINGERPRINT")
+        )
+        if ELASTIC_SSL_FINGERPRINT is None:
+            raise Exception("ELASTIC_SSL_FINGERPRINT is null")
+        ELASTIC_USERNAME = (
+            username if username is not None else os.getenv("ELASTIC_USERNAME")
+        )
+        if ELASTIC_USERNAME is None:
+            raise Exception("ELASTIC_USERNAME is null")
+        ELASTIC_HOST = host if host is not None else os.getenv("ELASTIC_HOST")
         self.client = Elasticsearch(
             ELASTIC_HOST,
             ssl_assert_fingerprint=ELASTIC_SSL_FINGERPRINT,
-            basic_auth=("elastic", ELASTIC_PASSWORD),
+            basic_auth=(ELASTIC_USERNAME, ELASTIC_PASSWORD),
         )
         self.index = key
 
@@ -53,3 +75,6 @@ class ESLogger:
                 "level": "error",
             },
         )
+
+    def destroy(self):
+        self.client.close()

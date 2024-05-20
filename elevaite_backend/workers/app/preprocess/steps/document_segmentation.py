@@ -4,8 +4,8 @@ from redis import Redis
 from pydantic import UUID4
 from sqlalchemy.orm import Session
 
-from elevaitedb.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
-from elevaitedb.util.logger import ESLogger
+from elevaitelib.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
+from elevaitelib.util.logger import ESLogger
 
 from ..preprocess import (
     ChunkAsJson,

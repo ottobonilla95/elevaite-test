@@ -10,12 +10,12 @@ from uuid import UUID
 from datetime import datetime
 from pydantic import EmailStr
 
-from elevaitedb.schemas import (
-   auth as auth_schemas,
-   permission as permission_schemas
+from elevaitelib.schemas import (
+    auth as auth_schemas,
+    permission as permission_schemas
 )
 
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
 from ..errors.api_error import ApiError
 from rbac_api import RBACValidatorProvider
 import os
@@ -67,16 +67,16 @@ def register_user(
          models.User_Account.user_id == db_user.id
       ).first()
 
-      if not db_user_default_account_association:
-         # Create the User_Account association with default account
-         new_user_default_account_association = models.User_Account(
-            user_id=db_user.id,
-            account_id=default_account.id,
-            is_admin=True # for demo purposes so that users can access resources within account and contained projects until UI for roles is developed
-         )
-         db.add(new_user_default_account_association)
-      elif db_user_default_account_association.is_admin == False:
-         db_user_default_account_association.is_admin = True
+        if not db_user_default_account_association:
+            # Create the User_Account association with default account
+            new_user_default_account_association = models.User_Account(
+                user_id=db_user.id,
+                account_id=default_account.id,
+                is_admin=True,  # for demo purposes so that users can access resources within account and contained projects until UI for roles is developed
+            )
+            db.add(new_user_default_account_association)
+        elif db_user_default_account_association.is_admin == False:
+            db_user_default_account_association.is_admin = True
 
       default_project_id = os.getenv("DEFAULT_PROJECT_ID")
       default_project = db.query(models.Project).filter(models.Project.id == default_project_id).first()
@@ -108,8 +108,8 @@ def register_user(
          )
          db.add(new_user_default_project_association)
 
-      db.commit()
-      db.refresh(db_user)
+        db.commit()
+        db.refresh(db_user)
 
       if USER_ALREADY_EXISTS:
          return JSONResponse(content=jsonable_encoder(db_user), status_code=status.HTTP_200_OK)

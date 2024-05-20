@@ -4,31 +4,31 @@ import re
 from typing import Annotated, Any
 import uuid
 from dotenv import load_dotenv
-from elevaitedb.schemas.configuration import (
+from elevaitelib.schemas.configuration import (
     ConfigurationCreate,
     ServiceNowIngestDataDTO,
 )
-from elevaitedb.schemas.dataset import DatasetCreate
-from elevaitedb.schemas.instance import (
+from elevaitelib.schemas.dataset import DatasetCreate
+from elevaitelib.schemas.instance import (
     InstanceCreate,
     InstancePipelineStepStatus,
     InstanceStatus,
 )
-from elevaitedb.schemas.pipeline import PipelineStepStatus
+from elevaitelib.schemas.pipeline import PipelineStepStatus
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 import pika
 from rbac_api.utils.deps import get_db
 from sqlalchemy.orm import Session
 
-from elevaitedb.schemas import (
-   service_now as schemas,
-#    api as api_schemas,
+from elevaitelib.schemas import (
+    service_now as schemas,
+    #    api as api_schemas,
 )
 
 from app.util.service_now_seed import service_now_seed
 from app.util.func import get_routing_key
 from .deps import get_rabbitmq_connection
-from elevaitedb.crud import (
+from elevaitelib.orm.crud import (
     pipeline as pipeline_crud,
     application as application_crud,
     instance as instance_crud,
@@ -37,6 +37,7 @@ from elevaitedb.crud import (
     collection as collection_crud,
 )
 from elevaitedb.util import func as util_func
+
 # from rbac_api import (
 #    route_validator_map,
 # )
@@ -48,7 +49,7 @@ router = APIRouter(prefix="/servicenow", tags=["servicenow"])
 def ingestServiceNowTickets(
     # request: Request, # uncomment when using validator
     dto: Annotated[schemas.ServiceNowIngestBody, Body()],
-    db: Session = Depends(get_db), # comment this when using validator
+    db: Session = Depends(get_db),  # comment this when using validator
     # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'ingestServiceNowTickets')]), # uncomment this to use validator
     rmq: pika.BlockingConnection = Depends(get_rabbitmq_connection),
 ):

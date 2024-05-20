@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 import pika
-from elevaitedb.db.database import SessionLocal
+from elevaitelib.orm.db.database import SessionLocal
 from qdrant_client import AsyncQdrantClient
 
 

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List
 
-from elevaitedb.schemas.configuration import EmbeddingType, PreprocessEmbeddingInfo
+from elevaitelib.schemas.configuration import EmbeddingType, PreprocessEmbeddingInfo
 
 
 EMBEDDING_REGISTRY: Dict[EmbeddingType, type["BaseEmbedding"]] = {}
