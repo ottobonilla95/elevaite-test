@@ -12,6 +12,7 @@ from pydantic import EmailStr
 
 from elevaitedb.schemas import (
    auth as auth_schemas,
+   permission as permission_schemas
 )
 
 from elevaitedb.db import models
@@ -89,14 +90,15 @@ def register_user(
       
       db_user_default_project_association = db.query(models.User_Project).filter(
          models.User_Project.project_id == default_project.id,
-         models.User_Project.user_id == db_user.id
+         models.User_Project.user_id == db_user.id,
       ).first()
       
       if not db_user_default_project_association:
-         # Create the User_Project association with default project
+         # Create the User_Project association with default  with all allowed project scoped permissions (no overrides)
          new_user_default_project_association = models.User_Project(
             user_id=db_user.id,
             project_id=default_project.id,
+            permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Allow").dict()
          )
          db.add(new_user_default_project_association)
 
@@ -124,15 +126,15 @@ async def evaluate_rbac_permissions(
    account_id: Optional[UUID],
    project_id: Optional[UUID],
    logged_in_user: models.User,
-   permissions_validation_request: auth_schemas.PermissionsValidationRequest,
+   permissions_evaluation_request: auth_schemas.PermissionsEvaluationRequest,
    db: Session, 
-) -> auth_schemas.PermissionsValidationResponse:
+) -> auth_schemas.PermissionsEvaluationResponse:
    try:
       return await rbac_instance.evaluate_rbac_permissions(
          logged_in_user=logged_in_user,
          account_id=account_id,
          project_id=project_id,
-         permissions_validation_request=permissions_validation_request,
+         permissions_evaluation_request=permissions_evaluation_request,
          db=db
       )
    except HTTPException as e:

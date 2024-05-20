@@ -1,4 +1,5 @@
 from datetime import datetime
+import uuid
 import json
 from pprint import pprint
 from typing import Any, List, Type, Callable
@@ -50,8 +51,8 @@ from app.util.func import get_routing_key
 def getApplicationInstances(
     db: Session,
     application_id: int,
-    # project_id: UUID, # uncomment this when using validator
-    # filter_function: Callable[[Type[models.Base], Query], Query], # uncomment this when using validator
+    # project_id: uuid.UUID, # uncomment this when using validator
+    # filter_function: Callable[[Query], Query], # uncomment this when using validator
 ) -> List[models.Instance]:
     instances = instance_crud.get_instances(
         db,

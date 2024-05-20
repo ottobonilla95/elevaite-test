@@ -13,11 +13,11 @@ from elevaitedb.db import models
 
 def getApplicationList(
     db: Session,
-    # filter_function: Callable[[Type[models.Base], Query], Query] # uncomment this when using validator
+    # filter_function: Callable[[Query], Query] # uncomment this when using validator
 ) -> List[models.Application]:
     apps = application_crud.get_applications(
         db=db, 
-        # filter_function=filter_function # uncomment this when using validator
+        # filter_function=filter_function # uncomment this when using validator 
         )
     return apps
 

@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Type, Callable
+import uuid
 from sqlalchemy.orm import Session, Query
 from elevaitedb.db import models
 from app.util.name_generator import get_random_name
@@ -17,7 +18,7 @@ from elevaitedb.crud import (
 def get_datasets_of_project(
     db: Session, 
     projectId: str,
-    # filter_function: Callable[[Type[models.Base], Query], Query], # uncomment this when using validator
+    # filter_function: Callable[[Query], Query], # uncomment this when using validator
     skip: int,
     limit: int
 ) -> List[models.Dataset]:

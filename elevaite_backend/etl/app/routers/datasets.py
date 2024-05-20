@@ -1,6 +1,7 @@
 from pprint import pprint
-from typing import Annotated, Any, Dict, List, Type, Callable
-from fastapi import APIRouter, Body, Depends
+import uuid
+from typing import Annotated, Any, Dict, List, Type, Callable, Optional
+from fastapi import APIRouter, Body, Depends, Request, Header
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, Query
 from ..services import datasets as dataset_service
@@ -8,37 +9,30 @@ from .deps import get_db
 from elevaitedb.schemas import (
     dataset as dataset_schemas,
 )
-from rbac_api import (
-   validators,
-   rbac_instance
-)
+# from rbac_api import (
+#    routes_to_middleware_imple_map,
+#    rbac_instance
+# )
 from elevaitedb.db import models
 router = APIRouter(prefix="/project/{project_id}/datasets", tags=["datasets"])
 
 
 @router.get("", response_model=list[dataset_schemas.Dataset])
 def getProjectDatasets(
+    # request: Request, #uncomment when using validator
     project_id: str,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db), # comment this when using validator
-    # validation_info:dict[str, Any] = Depends(validators.validate_get_project_datasets_factory(models.Dataset, ("READ",))), # uncomment this to use validator
+    # validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['getProjectDatasets']), # uncomment this to use validator
 ):
-    # db: Session = validation_info.get("db", None) # uncomment this when using validator
+    # db: Session = request.state.db # uncomment this when using validator
+    # all_query_authorized_types_filter_function = rbac_instance.get_post_validation_types_filter_function_for_all_query(models.Dataset, validation_info) # uncomment this when using validator
 
-    # typenames = validation_info.get("target_entity_typename_combinations", tuple()) # uncomment this when using validator
-    # typevalues = validation_info.get("target_entity_typevalue_combinations", tuple()) # uncomment this when using validator
-
-    # filters_list: List[Dict[str, Any]] = rbac_instance.generate_post_validation_type_filters_for_all_query(models.Dataset, typenames, typevalues, validation_info) # uncomment this when using validator
-    # Create a filter function closure
-    # def filter_function(model_class : Type[models.Base], query: Query) -> Query:  # uncomment this when using validator
-    #     return rbac_instance.apply_post_validation_type_filters_for_all_query(
-    #         model_class, filters_list, query)
-    
     return dataset_service.get_datasets_of_project(
         db=db, 
         projectId=project_id,
-        # filter_function=filter_function, # uncomment this when using validator
+        # filter_function=all_query_authorized_types_filter_function, # uncomment this when using validator
         skip=skip,
         limit=limit
     )
@@ -49,7 +43,7 @@ def getDatasetById(
     project_id: str,
     dataset_id: str,
     db: Session = Depends(get_db), # comment this when using validator
-    # validation_info:dict[str, Any] = Depends(validators.validate_get_project_dataset_factory(models.Dataset, ("READ",))), # uncomment this to use validator
+    # validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['getDatasetById']), # uncomment this to use validator
 ):
     # dataset = validation_info.get('Dataset', None) # uncomment this when using validator
     # return dataset # uncomment this when using validator
@@ -63,13 +57,14 @@ class AddTagToDatasetDto(BaseModel):
 
 @router.post("/{dataset_id}/tags", response_model=dataset_schemas.Dataset)
 def addTagToDataset(
+    # request: Request, #uncomment when using validator
     project_id: str,
     dataset_id: str,
     dto: Annotated[AddTagToDatasetDto, Body()],
     db: Session = Depends(get_db), # comment this when using validator
-    # validation_info:dict[str, Any] = Depends(validators.validate_get_project_dataset_factory(models.Dataset, ("TAG",))), # uncomment this when using validator
+    # validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['addTagToDataset']), # uncomment this when using validator
 ):
-    # db: Session = validation_info.get("db", None) # uncomment this when using validator
+    # db: Session = request.state.db # uncomment this when using validator
     return dataset_service.add_tag_to_dataset(
         db=db, datasetId=dataset_id, tagId=dto.tagId
     )

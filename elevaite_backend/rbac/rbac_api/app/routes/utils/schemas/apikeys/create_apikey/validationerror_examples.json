@@ -1,0 +1,8 @@
+{
+   "apikey_expires_at_validation_error": {
+      "summary": "Invalid expires_at date",
+      "value": {
+         "detail": "expires_at must be a future date."
+      }
+   }
+}

@@ -6,8 +6,8 @@ from datetime import datetime
 from .role import (
    RoleResponseDTO,
    RoleSummaryDTO, 
-   ProjectScopedPermission
 )
+from .permission import ProjectScopedRBACPermission
 from .common import StatusUpdateAction
    
 class UserPatchRequestDTO(BaseModel):
@@ -135,7 +135,7 @@ class ProjectUserListItemDTO(AccountUserListItemDTO):
    is_project_admin: bool = Field(...)
 
 class ProjectUserProfileDTO(AccountUserProfileDTO):
-   permission_overrides: ProjectScopedPermission
+   permission_overrides: ProjectScopedRBACPermission
 
 class SuperadminStatusUpdateDTO(StatusUpdateAction):
    pass

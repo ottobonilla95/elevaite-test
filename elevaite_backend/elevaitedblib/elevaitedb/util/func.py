@@ -30,6 +30,14 @@ def to_dict(obj: Any) -> Dict[str, Any]:
         )
     )
 
+def make_naive_datetime_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
+
+    
+def make_utc_datetime_naive_(dt: datetime) -> datetime:
+    return dt.astimezone(UTC).replace(tzinfo=None)
 
 def get_utc_datetime() -> datetime:
     return datetime.now(UTC)

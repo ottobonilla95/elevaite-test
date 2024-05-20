@@ -365,8 +365,8 @@ def deassign_user_from_account(
          return JSONResponse(content={"message": f"Successfully deassigned user - '{user_id}' - from account - '{account_id}'"}, status_code=status.HTTP_200_OK)
       
       if user_to_deassign.is_superadmin: # if user to deassign is superadmin
-         ROOT_SUPERADMIN_EMAIL = os.getenv("ROOT_SUPERADMIN_EMAIL", None)
-         if ROOT_SUPERADMIN_EMAIL != logged_in_user.email: # only root superadmin user can deassign other superadmins
+         ROOT_SUPERADMIN_ID = os.getenv("ROOT_SUPERADMIN_ID", None)
+         if ROOT_SUPERADMIN_ID != logged_in_user.id: # only root superadmin user can deassign other superadmins
             raise ApiError.forbidden(f"you do not have root superadmin permissions to deassign superadmin user - '{user_to_deassign.id}' from account - '{account_id}'")
       
       delete_all_associated_user_projects_in_account(user_id = user_to_deassign.id, account_id=account_id, db=db)

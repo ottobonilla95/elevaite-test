@@ -9,14 +9,14 @@ def get_instances(
     db: Session,
     applicationId: int,
     # project_id: UUID, # uncomment this when using validator
-    # filter_function: Callable[[Type[models.Base], Query], Query] | None = None, # uncomment this when using validator
+    # filter_function: Callable[[Query], Query], # uncomment this when using validator
     skip: int = 0,
     limit: int = 0,
 ):
 
     query = db.query(models.Instance)
     # if filter_function is not None: # uncomment this when using validator
-    #     query = filter_function(models.Instance, query)
+        # query = filter_function(query)
 
     return (
         query.filter(models.Instance.applicationId == applicationId)

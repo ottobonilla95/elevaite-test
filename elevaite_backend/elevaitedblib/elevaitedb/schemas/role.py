@@ -2,166 +2,15 @@ from pydantic import BaseModel, Field, Extra, root_validator, validator
 from typing import Optional, Literal, List
 from uuid import UUID
 from datetime import datetime
+from .permission import (
+   AccountScopedRBACPermission,
+)
 
-# 'Dataset' and 'Model' are artifacts
-class ArtifactPermission(BaseModel):
-   ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_TAG: Literal["Allow", "Deny"] = Field(default="Deny")
-
-   @classmethod
-   def create(cls, default_action:Literal["Allow", "Deny"] = "Deny"):
-      return cls(ACTION_READ=default_action, ACTION_TAG=default_action)
-   
-   class Config:
-      extra = Extra.forbid
-
-class ModelPermission(ArtifactPermission):
-   pass
-
-class DatasetPermission(ArtifactPermission):
-   pass
-
-class CollectionPermission(BaseModel):
-   ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
-
-   @classmethod
-   def create(cls, default_action:Literal["Allow", "Deny"] = "Deny"):
-      return cls(ACTION_CREATE=default_action, ACTION_READ=default_action)
-   
-   class Config:
-      extra = Extra.forbid
-
-# Permission type for AccountScoped Project resource type
-class AccountScopedProjectPermission(BaseModel):
-   ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
-   ENTITY_Dataset: DatasetPermission = Field(default_factory=DatasetPermission)
-   ENTITY_Collection: CollectionPermission = Field(default_factory=CollectionPermission)
-   class Config:
-      extra = Extra.forbid
-
-# Permission type for ProjectScoped Project resource type
-class ProjectScopedProjectPermission(BaseModel):
-   ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Allow")
-   ENTITY_Dataset: DatasetPermission = Field(default_factory=lambda: DatasetPermission.create("Allow"))
-   ENTITY_Collection: CollectionPermission = Field(default_factory=lambda: CollectionPermission.create("Allow"))
-   class Config:
-      extra = Extra.forbid
-
-class ApplicationConfigurationPermission(BaseModel):
-   ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_UPDATE: Literal["Allow", "Deny"] = Field(default="Deny")
-   class Config:
-      extra = Extra.forbid
-
-class InstanceConfigurationPermission(BaseModel):
-   ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
-   class Config:
-      extra = Extra.forbid
-
-   @classmethod
-   def create(cls, default_action:Literal["Allow", "Deny"] = "Deny"):
-      return cls(ACTION_READ=default_action)
-   
-class ApplicationInstancePermission(BaseModel):
-   ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Deny")
-   ACTION_CONFIGURATION: InstanceConfigurationPermission = Field(default_factory=InstanceConfigurationPermission)
-   
-   class Config:
-      extra = Extra.forbid
-
-   @classmethod
-   def create(cls, default_action:Literal["Allow", "Deny"] = "Deny"):
-      return cls(ACTION_READ=default_action, ACTION_CREATE=default_action,ACTION_CONFIGURATION=InstanceConfigurationPermission.create(default_action))
-
-# Account Scoped Permission type for ingest connector 
-class AccountScopedApplicationIngestPermission(BaseModel):
-   ENTITY_Configuration: ApplicationConfigurationPermission = Field(default_factory=ApplicationConfigurationPermission)
-   ENTITY_Instance: ApplicationInstancePermission = Field(default_factory=ApplicationInstancePermission)
-   ACTION_READ: Literal["Allow", "Deny"] = Field(default="Deny")
-   class Config:
-      extra = Extra.forbid
-
-
-# Account Scoped Permission type for ingest connector 
-class ProjectScopedApplicationIngestPermission(BaseModel):
-   ENTITY_Instance: ApplicationInstancePermission = Field(default_factory=lambda: ApplicationInstancePermission.create("Allow"))
-
-   class Config:
-      extra = Extra.forbid
-
-# PreprocessPermissionType follows the same structure as IngestPermissionType
-class AccountScopedApplicationPreprocessPermission(AccountScopedApplicationIngestPermission):
-   pass
-
-class ProjectScopedApplicationPreprocessPermission(ProjectScopedApplicationIngestPermission):
-   pass
-
-# if generic entity had more than one branching type like 'type1' and 'type2';
-# and each of them have 2 possible values like 'type1value1','type1value2', 'type2value1', 'type2value2',
-# then the values of this class will consider all 4 combinations : ('type1value1', 'type2value1'), ('type1value1', 'type2value2'), ('type1value2', 'type2value1'), ('type1value2', 'type2value2')
-# so the naming convention will be TYPEVALUES_<type1value1>__<type2value1>__... (delimitter between values has 2 underscores)
-# in this case there is only 1 branching type with 2 values, resulting in 2 attributes.
-class AccountScopedApplicationTypeValues(BaseModel): 
-   TYPEVALUES_ingest: AccountScopedApplicationIngestPermission = Field(default_factory=AccountScopedApplicationIngestPermission)
-   TYPEVALUES_preprocess: AccountScopedApplicationPreprocessPermission = Field(default_factory=AccountScopedApplicationPreprocessPermission)
-
-   class Config:
-      extra = Extra.forbid
-
-
-# this class considers all branching type attribute names for entity: TYPENAMES_<type1name>__<type2name>__...
-class AccountScopedApplicationTypeNames(BaseModel):
-   TYPENAMES_applicationType: AccountScopedApplicationTypeValues = Field(default_factory=AccountScopedApplicationTypeValues)
-   class Config:
-      extra = Extra.forbid
-
-
-# if generic entity had more than one branching type like 'type1' and 'type2';
-# and each of them have 2 possible values like 'type1value1','type1value2', 'type2value1', 'type2value2',
-# then the values of this class will consider all 4 combinations : ('type1value1', 'type2value1'), ('type1value1', 'type2value2'), ('type1value2', 'type2value1'), ('type1value2', 'type2value2')
-# so the naming convention will be TYPEVALUES_<type1value1>__<type2value1>__... (delimitter between values has 2 underscores)
-# in this case there is only 1 branching type with 2 values, resulting in 2 attributes
-class ProjectScopedApplicationTypeValues(BaseModel):
-   TYPEVALUES_ingest: ProjectScopedApplicationIngestPermission = Field(default_factory=ProjectScopedApplicationIngestPermission)
-   TYPEVALUES_preprocess: ProjectScopedApplicationPreprocessPermission = Field(default_factory=ProjectScopedApplicationPreprocessPermission)
-
-   class Config:
-      extra = Extra.forbid
-
-# this class considers all branching type attribute names for entity: TYPENAMES_<type1name>__<type2name>__...
-class ProjectScopedApplicationTypeNames(BaseModel):
-   TYPENAMES_applicationType: ProjectScopedApplicationTypeValues = Field(default_factory=ProjectScopedApplicationTypeValues)
-   class Config:
-      extra = Extra.forbid
-
-class APIKeyPermission(BaseModel):
-   ACTION_CREATE: Literal["Allow", "Deny"] = Field(default="Deny")
-   class Config:
-      extra = Extra.forbid
-
-class AccountScopedPermission(BaseModel):
-   ENTITY_Project: AccountScopedProjectPermission = Field(default_factory=AccountScopedProjectPermission)
-   ENTITY_Application: AccountScopedApplicationTypeNames = Field(default_factory=AccountScopedApplicationTypeNames)
-   
-   class Config:
-      extra = Extra.forbid
-      orm_mode = True
-
-class ProjectScopedPermission(BaseModel):
-   ENTITY_Project: ProjectScopedProjectPermission = Field(default_factory=ProjectScopedProjectPermission)
-   ENTITY_Application: ProjectScopedApplicationTypeNames = Field(default_factory=ProjectScopedApplicationTypeNames)
-   class Config:
-      extra = Extra.forbid
-      orm_mode = True
 
 # RoleCreationRequestDTO: Defines the structure for creating a new role with detailed permissions
 class RoleCreationRequestDTO(BaseModel):
    name: str = Field(...)
-   permissions: AccountScopedPermission = Field(...)
+   permissions: AccountScopedRBACPermission = Field(...)
    
    class Config:
       extra = Extra.forbid
@@ -169,7 +18,7 @@ class RoleCreationRequestDTO(BaseModel):
 # RoleUpdateRequestDTO: Defines the structure for updating an existing role's permissions
 class RoleUpdateRequestDTO(BaseModel):
    name: Optional[str] = Field(None)
-   permissions: Optional[AccountScopedPermission] = Field(None)
+   permissions: Optional[AccountScopedRBACPermission] = Field(None)
     
    class Config:
       extra = Extra.forbid
@@ -187,7 +36,7 @@ class RoleUpdateRequestDTO(BaseModel):
 class RoleResponseDTO(BaseModel):
    id: UUID = Field(...)
    name: str = Field(...)
-   permissions: AccountScopedPermission = Field(...)
+   permissions: AccountScopedRBACPermission = Field(...)
    created_at: datetime = Field(...)
    updated_at: datetime = Field(...)
    

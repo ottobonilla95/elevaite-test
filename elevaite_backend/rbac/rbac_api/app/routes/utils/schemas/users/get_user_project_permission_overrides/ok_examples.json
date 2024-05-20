@@ -1,40 +1,49 @@
 {
    "retrieved_project_permission_overrides": {
-      "summary": "Successfully retrieved project permission overrides",
-      "value": {
-        "ENTITY_Project": {
-            "ACTION_CREATE": "Deny",
-            "ENTITY_Dataset": {
-                "ACTION_READ": "Deny",
-                "ACTION_TAG": "Deny"
-            },
-            "ENTITY_Collection": {
+        "summary": "Successfully retrieved project permission overrides",
+        "value": {
+            "ENTITY_Project": {
                 "ACTION_CREATE": "Deny",
-                "ACTION_READ": "Deny"
-            }
-        },
-        "ENTITY_Application": {
-            "TYPENAMES_applicationType": {
-                "TYPEVALUES_ingest": {
-                    "ENTITY_Instance": {
-                        "ACTION_READ": "Deny",
-                        "ACTION_CREATE": "Deny",
-                        "ACTION_CONFIGURATION": {
-                            "ACTION_READ": "Deny"
-                        }
+                "ACTION_SERVICENOW": {
+                    "ACTION_TICKET": {
+                        "ACTION_INGEST": "Allow"
                     }
                 },
-                "TYPEVALUES_preprocess": {
-                    "ENTITY_Instance": {
-                        "ACTION_READ": "Deny",
-                        "ACTION_CREATE": "Deny",
-                        "ACTION_CONFIGURATION": {
-                            "ACTION_READ": "Deny"
+                "ENTITY_Dataset": {
+                    "ACTION_READ": "Allow",
+                    "ACTION_TAG": "Deny"
+                },
+                "ENTITY_Collection": {
+                    "ACTION_CREATE": "Allow",
+                    "ACTION_READ": "Allow"
+                },
+                "ENTITY_Apikey": {
+                    "ACTION_READ": "Allow",
+                    "ACTION_CREATE": "Allow"
+                }
+            },
+            "ENTITY_Application": {
+                "TYPENAMES_applicationType": {
+                    "TYPEVALUES_ingest": {
+                        "ENTITY_Instance": {
+                            "ACTION_READ": "Allow",
+                            "ACTION_CREATE": "Allow",
+                            "ACTION_CONFIGURATION": {
+                                "ACTION_READ": "Allow"
+                            }
+                        }
+                    },
+                    "TYPEVALUES_preprocess": {
+                        "ENTITY_Instance": {
+                            "ACTION_READ": "Allow",
+                            "ACTION_CREATE": "Allow",
+                            "ACTION_CONFIGURATION": {
+                                "ACTION_READ": "Allow"
+                            }
                         }
                     }
                 }
             }
         }
     }
-   }
 }

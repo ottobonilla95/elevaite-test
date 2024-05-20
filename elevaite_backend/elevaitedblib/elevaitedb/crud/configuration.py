@@ -17,12 +17,12 @@ def get_configuration_by_id(db: Session, application_id: int, id: str):
 def get_configurations_of_application(
     db: Session,
     application_id: int,
-    # filter_function: Callable[[Type[models.Base], Query], Query] | None = None, # uncomment this when using validator
+    # filter_function: Callable[[Query], Query], # uncomment this when using validator
 ):
     query = db.query(models.Configuration)
 
     # if filter_function is not None: # uncomment this when using validator
-    #     query = filter_function(models.Configuration, query)
+        # query = filter_function(query)
     
     return query.filter(models.Configuration.applicationId == application_id).all()
     

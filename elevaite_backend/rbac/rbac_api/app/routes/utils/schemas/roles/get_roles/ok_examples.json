@@ -3,66 +3,17 @@
       "summary": "Successfully retrieved role response objects",
       "value": [
         {
-            "id": "a1df1a9e-4c01-4302-a74d-fe1ec9db7339",
-            "name": "ML Engineer",
-            "permissions": {
-                "ENTITY_Project": {
-                    "ACTION_CREATE": "Deny",
-                    "ACTION_READ": "Deny",
-                    "ENTITY_Dataset": {
-                        "ACTION_READ": "Allow",
-                        "ACTION_TAG": "Allow"
-                    },
-                    "ENTITY_Collection": {
-                        "ACTION_CREATE": "Allow",
-                        "ACTION_READ": "Allow"
-                    }
-                },
-                "ENTITY_Application": {
-                    "TYPENAMES_applicationType": {
-                        "TYPEVALUES_ingest": {
-                            "ENTITY_Configuration": {
-                                "ACTION_READ": "Allow",
-                                "ACTION_CREATE": "Allow",
-                                "ACTION_UPDATE": "Allow"
-                            },
-                            "ENTITY_Instance": {
-                                "ACTION_READ": "Allow",
-                                "ACTION_CREATE": "Allow",
-                                "ACTION_CONFIGURATION": {
-                                    "ACTION_READ": "Allow"
-                                }
-                            },
-                            "ACTION_READ": "Deny"
-                        },
-                        "TYPEVALUES_preprocess": {
-                            "ENTITY_Configuration": {
-                                "ACTION_READ": "Deny",
-                                "ACTION_CREATE": "Deny",
-                                "ACTION_UPDATE": "Deny"
-                            },
-                            "ENTITY_Instance": {
-                                "ACTION_READ": "Allow",
-                                "ACTION_CREATE": "Deny",
-                                "ACTION_CONFIGURATION": {
-                                    "ACTION_READ": "Allow"
-                                }
-                            },
-                            "ACTION_READ": "Deny"
-                        }
-                    }
-                }
-            },
-            "created_at": "2024-04-02T11:48:23.929741",
-            "updated_at": "2024-04-02T11:48:23.929741"
-        },
-        {
             "id": "e4f2b540-6ae6-407b-8436-26795f641557",
             "name": "ML OPS",
             "permissions": {
                 "ENTITY_Project": {
                     "ACTION_CREATE": "Deny",
                     "ACTION_READ": "Allow",
+                    "ACTION_SERVICENOW": {
+                        "ACTION_TICKET": {
+                            "ACTION_INGEST": "Deny"
+                        }
+                    },
                     "ENTITY_Dataset": {
                         "ACTION_READ": "Allow",
                         "ACTION_TAG": "Allow"
@@ -70,13 +21,17 @@
                     "ENTITY_Collection": {
                         "ACTION_CREATE": "Allow",
                         "ACTION_READ": "Allow"
+                    },
+                    "ENTITY_Apikey": {
+                        "ACTION_READ": "Deny",
+                        "ACTION_CREATE": "Allow"
                     }
                 },
                 "ENTITY_Application": {
                     "TYPENAMES_applicationType": {
                         "TYPEVALUES_ingest": {
                             "ENTITY_Configuration": {
-                                "ACTION_READ": "Allow",
+                                "ACTION_READ": "Deny",
                                 "ACTION_CREATE": "Allow",
                                 "ACTION_UPDATE": "Allow"
                             },
@@ -117,6 +72,11 @@
                 "ENTITY_Project": {
                     "ACTION_CREATE": "Allow",
                     "ACTION_READ": "Allow",
+                    "ACTION_SERVICENOW": {
+                        "ACTION_TICKET": {
+                            "ACTION_INGEST": "Deny"
+                        }
+                    },
                     "ENTITY_Dataset": {
                         "ACTION_READ": "Allow",
                         "ACTION_TAG": "Allow"
@@ -124,6 +84,73 @@
                     "ENTITY_Collection": {
                         "ACTION_CREATE": "Allow",
                         "ACTION_READ": "Allow"
+                    },
+                    "ENTITY_Apikey": {
+                        "ACTION_READ": "Allow",
+                        "ACTION_CREATE": "Allow"
+                    }
+                },
+                "ENTITY_Application": {
+                    "TYPENAMES_applicationType": {
+                        "TYPEVALUES_ingest": {
+                            "ENTITY_Configuration": {
+                                "ACTION_READ": "Deny",
+                                "ACTION_CREATE": "Allow",
+                                "ACTION_UPDATE": "Allow"
+                            },
+                            "ENTITY_Instance": {
+                                "ACTION_READ": "Allow",
+                                "ACTION_CREATE": "Allow",
+                                "ACTION_CONFIGURATION": {
+                                    "ACTION_READ": "Allow"
+                                }
+                            },
+                            "ACTION_READ": "Deny"
+                        },
+                        "TYPEVALUES_preprocess": {
+                            "ENTITY_Configuration": {
+                                "ACTION_READ": "Deny",
+                                "ACTION_CREATE": "Deny",
+                                "ACTION_UPDATE": "Deny"
+                            },
+                            "ENTITY_Instance": {
+                                "ACTION_READ": "Deny",
+                                "ACTION_CREATE": "Allow",
+                                "ACTION_CONFIGURATION": {
+                                    "ACTION_READ": "Allow"
+                                }
+                            },
+                            "ACTION_READ": "Deny"
+                        }
+                    }
+                }
+            },
+            "created_at": "2024-04-02T11:48:23.868660",
+            "updated_at": "2024-04-02T11:48:23.868660"
+        },
+        {
+            "id": "c881747a-ab3f-43e8-91e4-e454acbf1241",
+            "name": "New test role",
+            "permissions": {
+                "ENTITY_Project": {
+                    "ACTION_CREATE": "Allow",
+                    "ACTION_READ": "Allow",
+                    "ACTION_SERVICENOW": {
+                        "ACTION_TICKET": {
+                            "ACTION_INGEST": "Deny"
+                        }
+                    },
+                    "ENTITY_Dataset": {
+                        "ACTION_READ": "Allow",
+                        "ACTION_TAG": "Allow"
+                    },
+                    "ENTITY_Collection": {
+                        "ACTION_CREATE": "Allow",
+                        "ACTION_READ": "Allow"
+                    },
+                    "ENTITY_Apikey": {
+                        "ACTION_READ": "Deny",
+                        "ACTION_CREATE": "Allow"
                     }
                 },
                 "ENTITY_Application": {
@@ -141,16 +168,16 @@
                                     "ACTION_READ": "Allow"
                                 }
                             },
-                            "ACTION_READ": "Allow"
+                            "ACTION_READ": "Deny"
                         },
                         "TYPEVALUES_preprocess": {
                             "ENTITY_Configuration": {
-                                "ACTION_READ": "Deny",
-                                "ACTION_CREATE": "Deny",
-                                "ACTION_UPDATE": "Deny"
+                                "ACTION_READ": "Allow",
+                                "ACTION_CREATE": "Allow",
+                                "ACTION_UPDATE": "Allow"
                             },
                             "ENTITY_Instance": {
-                                "ACTION_READ": "Deny",
+                                "ACTION_READ": "Allow",
                                 "ACTION_CREATE": "Allow",
                                 "ACTION_CONFIGURATION": {
                                     "ACTION_READ": "Allow"
@@ -161,8 +188,71 @@
                     }
                 }
             },
-            "created_at": "2024-04-02T11:48:23.868660",
-            "updated_at": "2024-04-02T11:48:23.868660"
+            "created_at": "2024-05-16T01:45:03.654860",
+            "updated_at": "2024-05-16T01:45:03.654860"
+        },
+        {
+            "id": "a1df1a9e-4c01-4302-a74d-fe1ec9db7339",
+            "name": "ML Engineer",
+            "permissions": {
+                "ENTITY_Project": {
+                    "ACTION_CREATE": "Deny",
+                    "ACTION_READ": "Deny",
+                    "ACTION_SERVICENOW": {
+                        "ACTION_TICKET": {
+                            "ACTION_INGEST": "Deny"
+                        }
+                    },
+                    "ENTITY_Dataset": {
+                        "ACTION_READ": "Allow",
+                        "ACTION_TAG": "Allow"
+                    },
+                    "ENTITY_Collection": {
+                        "ACTION_CREATE": "Allow",
+                        "ACTION_READ": "Allow"
+                    },
+                    "ENTITY_Apikey": {
+                        "ACTION_READ": "Deny",
+                        "ACTION_CREATE": "Allow"
+                    }
+                },
+                "ENTITY_Application": {
+                    "TYPENAMES_applicationType": {
+                        "TYPEVALUES_ingest": {
+                            "ENTITY_Configuration": {
+                                "ACTION_READ": "Deny",
+                                "ACTION_CREATE": "Allow",
+                                "ACTION_UPDATE": "Allow"
+                            },
+                            "ENTITY_Instance": {
+                                "ACTION_READ": "Allow",
+                                "ACTION_CREATE": "Allow",
+                                "ACTION_CONFIGURATION": {
+                                    "ACTION_READ": "Allow"
+                                }
+                            },
+                            "ACTION_READ": "Deny"
+                        },
+                        "TYPEVALUES_preprocess": {
+                            "ENTITY_Configuration": {
+                                "ACTION_READ": "Deny",
+                                "ACTION_CREATE": "Deny",
+                                "ACTION_UPDATE": "Deny"
+                            },
+                            "ENTITY_Instance": {
+                                "ACTION_READ": "Allow",
+                                "ACTION_CREATE": "Deny",
+                                "ACTION_CONFIGURATION": {
+                                    "ACTION_READ": "Allow"
+                                }
+                            },
+                            "ACTION_READ": "Deny"
+                        }
+                    }
+                }
+            },
+            "created_at": "2024-04-02T11:48:23.929741",
+            "updated_at": "2024-04-02T11:48:23.929741"
         }
     ]
    }

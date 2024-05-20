@@ -27,11 +27,12 @@ attach_routes(app)
 def healthCheck():
     return {"msg": "Hello World"}
 
-@app.post("/seed", tags=["testing"])
-def seed_db(db: Session = Depends(get_db)):
-    load_dotenv()
-    seed(db)
-    return {"msg": "DB seeded"}
+# @app.post("/seed", tags=["testing"])
+# def seed_db(db: Session = Depends(get_db)):
+#     load_dotenv()
+#     seed(db)
+#     return {"msg": "DB seeded"}
+
 # This block is only necessary if you want to run the server with `python main.py`
 # In production, you should use Uvicorn or Gunicorn with Uvicorn workers from the command lineif __name__ == "__main__":
 if __name__ == "__main__":

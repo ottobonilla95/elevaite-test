@@ -1,14 +1,14 @@
  {
    "no_token": {
-      "summary": "no token",
+      "summary": "no access token",
       "value": {
          "detail": "Request header must contain bearer access_token for authentication"
       }
    },
    "invalid_or_expired_token": {
-      "summary": "Invalid or expired token",
+      "summary": "Invalid or expired access token",
       "value": {
-         "detail": "invalid or expired auth credentials"
+         "detail": "invalid or expired access token credentials"
       }
    },
    "no_corresponding_user": {

@@ -20,19 +20,19 @@
    "insufficient_permissions_4": {
       "summary": "logged-in user does not have superadmin/account-admin privileges and does not have account-specific role-based access permissions to perform the action sequence",
       "value": {
-         "detail": "you do not have superadmin/account-admin privileges and you do not have account-specific role-based access permissions to perform the action sequence - '(READ,)' - on 'Project' resources within account - '789e4567-e89b-12d3-a456-426614174000'"
-      }
-   },
-   "insufficient_permissions_5": {
-      "summary": "logged-in user does not have superadmin/account-admin privileges and does not have account-specific role-based access permissions to perform the action sequence",
-      "value": {
          "detail": "you do not have superadmin/account-admin privileges and you do not have account-specific role-based access permissions to perform the action sequence - '(CREATE,)' - on 'Project' resources within account - '789e4567-e89b-12d3-a456-426614174000'"
       }
    },
-   "insufficient_permissions_6": {
+   "insufficient_permissions_5": {
       "summary": "logged-in user is denied permissions to perform the action sequence - '(CREATE, )' - on 'Project' resources due to project-specific permission overrides in project",
       "value": {
          "detail": "you are denied permissions to perform the action sequence - '(CREATE, )' - on 'Project' resources due to project-specific permission overrides in project - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "insufficient_permissions_6": {
+      "summary": "api key's permissions are restricted to resources within project",
+      "value": {
+         "detail": "your permissions are restricted to resources within project - '789e4567-e89b-12d3-a456-426614174000'"
       }
    }
 }

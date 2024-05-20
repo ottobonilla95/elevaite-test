@@ -12,8 +12,8 @@ import os
 
 from elevaitedb.schemas import (
    user as user_schemas,
-   auth as auth_schemas,
    role as role_schemas,
+   permission as permission_schemas,
 )
 from .utils.project_helpers import (
    get_top_level_associated_project_ids_for_user_in_all_non_admin_accounts,
@@ -274,7 +274,7 @@ def update_user_project_permission_overrides(
    user_to_patch: models.User,
    account_id: UUID,
    project_id: UUID,
-   permission_overrides_payload: role_schemas.ProjectScopedPermission,
+   permission_overrides_payload: permission_schemas.ProjectScopedRBACPermission,
    db: Session,
 ) -> JSONResponse:
    try:
@@ -312,8 +312,7 @@ def get_user_project_permission_overrides(
    account_id: UUID,
    project_id: UUID,
    db: Session,
-   user_project_association: models.User_Account
-) -> role_schemas.ProjectScopedPermission:
+) -> permission_schemas.ProjectScopedRBACPermission:
    try:
       user_account_association = db.query(models.User_Account).filter(models.User_Account.user_id == user_id, models.User_Account.account_id == account_id).first()
       if not user_account_association:
@@ -326,7 +325,7 @@ def get_user_project_permission_overrides(
       if user_project_association.is_admin or user_account_association.is_admin or user_to_patch.is_superadmin:
          raise ApiError.validationerror(f"Invalid action - Attempting to get project permission overrides for user - '{user_id}' - who is admin/superadmin/project-admin")
       
-      return cast(role_schemas.ProjectScopedPermission, user_project_association.permission_overrides)
+      return cast(permission_schemas.ProjectScopedRBACPermission, user_project_association.permission_overrides)
    except HTTPException as e:
       db.rollback()
       pprint(f'API Error in GET users/{user_id}/projects/{project_id}/permission-overrides service method: {e}')
@@ -355,8 +354,8 @@ def patch_user_superadmin_status(
       if not user_in_payload:
          raise ApiError.notfound(f"User - '{user_id}' - not found")
       
-      ROOT_SUPERADMIN_EMAIL = os.getenv("ROOT_SUPERADMIN_EMAIL", None)
-      if ROOT_SUPERADMIN_EMAIL == user_in_payload.email: # cannot update root superadmin's status
+      ROOT_SUPERADMIN_ID = UUID(os.getenv("ROOT_SUPERADMIN_ID"))
+      if ROOT_SUPERADMIN_ID == user_id: # cannot update root superadmin's status
          raise ApiError.forbidden(f"you cannot update superadmin status of root superadmin user - '{user_id}'")
       
       match superadmin_status_update_dto.action:

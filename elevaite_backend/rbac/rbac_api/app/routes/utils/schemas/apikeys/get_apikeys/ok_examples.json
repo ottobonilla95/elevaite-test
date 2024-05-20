@@ -1,0 +1,99 @@
+{
+   "get_apikeys": {
+      "summary": "Successfully retrieved apikey response objects",
+      "value": [
+        {
+            "id": "d797ba54-99d2-4674-8892-ef9ba78937b2",
+            "name": "new-Test-3 key",
+            "creator_id": "4d4a59fd-f2c4-478e-a2ad-e30ac5b624be",
+            "project_id": "d1aca774-ccb1-4ec6-8c41-68bc6e088305",
+            "permissions": {
+                "ENTITY_Project": {
+                    "ACTION_SERVICENOW": {
+                        "ACTION_INGEST": "Deny"
+                    },
+                    "ENTITY_Dataset": {
+                        "ACTION_READ": "Deny",
+                        "ACTION_TAG": "Deny"
+                    },
+                    "ENTITY_Collection": {
+                        "ACTION_CREATE": "Deny",
+                        "ACTION_READ": "Deny"
+                    }
+                },
+                "ENTITY_Application": {
+                    "TYPENAMES_applicationType": {
+                        "TYPEVALUES_ingest": {
+                            "ENTITY_Instance": {
+                                "ACTION_READ": "Deny",
+                                "ACTION_CREATE": "Deny",
+                                "ACTION_CONFIGURATION": {
+                                    "ACTION_READ": "Deny"
+                                }
+                            }
+                        },
+                        "TYPEVALUES_preprocess": {
+                            "ENTITY_Instance": {
+                                "ACTION_READ": "Deny",
+                                "ACTION_CREATE": "Deny",
+                                "ACTION_CONFIGURATION": {
+                                    "ACTION_READ": "Deny"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "permissions_type": "custom",
+            "created_at": "2024-05-16T15:38:24.691351",
+            "expires_at": "9999-12-31T23:59:59.999999"
+        },
+        {
+            "id": "d797ba54-99d2-4674-8892-ef9ba78937b2",
+            "name": "new-Test-3 key",
+            "creator_id": "4d4a59fd-f2c4-478e-a2ad-e30ac5b624be",
+            "project_id": "d1aca774-ccb1-4ec6-8c41-68bc6e088305",
+            "permissions": {
+                "ENTITY_Project": {
+                    "ACTION_SERVICENOW": {
+                        "ACTION_INGEST": "Deny"
+                    },
+                    "ENTITY_Dataset": {
+                        "ACTION_READ": "Deny",
+                        "ACTION_TAG": "Deny"
+                    },
+                    "ENTITY_Collection": {
+                        "ACTION_CREATE": "Deny",
+                        "ACTION_READ": "Deny"
+                    }
+                },
+                "ENTITY_Application": {
+                    "TYPENAMES_applicationType": {
+                        "TYPEVALUES_ingest": {
+                            "ENTITY_Instance": {
+                                "ACTION_READ": "Deny",
+                                "ACTION_CREATE": "Deny",
+                                "ACTION_CONFIGURATION": {
+                                    "ACTION_READ": "Deny"
+                                }
+                            }
+                        },
+                        "TYPEVALUES_preprocess": {
+                            "ENTITY_Instance": {
+                                "ACTION_READ": "Deny",
+                                "ACTION_CREATE": "Deny",
+                                "ACTION_CONFIGURATION": {
+                                    "ACTION_READ": "Deny"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "permissions_type": "cloned",
+            "created_at": "2024-05-16T15:38:24.691351",
+            "expires_at": "2024-05-17T15:38:24.691351"
+        }
+      ]
+   }
+}

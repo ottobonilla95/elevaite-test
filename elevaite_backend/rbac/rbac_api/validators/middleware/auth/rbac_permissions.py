@@ -1,11 +1,11 @@
-from fastapi import Depends, Body, Depends, HTTPException, Header
+from fastapi import Depends, Body, Depends, HTTPException, Header, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from uuid import UUID
 from pprint import pprint
 from typing import Any, Optional
 from rbac_api.app.errors.api_error import ApiError
-from .token import validate_token
+from ..auth.authenticate.impl import AccessTokenAuthentication
 from rbac_api.utils.deps import get_db
 from elevaitedb.db import models
 from elevaitedb.schemas import (
@@ -13,18 +13,15 @@ from elevaitedb.schemas import (
 )
 
 async def validate_evaluate_rbac_permissions(
-   user_email: str = Depends(validate_token),
+   request: Request,
+   logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate), 
    # params required for pydantic validation
    account_id: Optional[UUID] = Header(None, alias='X-elevAIte-AccountId', description="account id under which rbac permissions are evaluated"),
    project_id: Optional[UUID] = Header(None, alias='X-elevAIte-ProjectId', description="project id under which rbac permissions are evaluated"),
-   permissions_validation_request: auth_schemas.PermissionsValidationRequest = Body(...),
-   db: Session = Depends(get_db)
 ) -> dict[str, Any]:
+   db: Session = request.state.db
    try:
-      logged_in_user = db.query(models.User).filter(models.User.email == user_email).first()
-      if not logged_in_user:
-         raise ApiError.unauthorized("User is unauthenticated")
-      return {"db": db, "logged_in_user": logged_in_user}
+      return {"authenticated_entity": logged_in_user}
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in POST /auth/permissions - validate_evaluate_rbac_permissions middleware: {e}')

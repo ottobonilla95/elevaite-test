@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 from typing import List, Tuple, Optional, Callable, Type
 from elevaitedb.db import models
 from elevaitedb.util.func import to_kebab_case
@@ -14,7 +15,7 @@ from elevaitedb.util import func as util_func
 def getCollectionsOfProject(
     db: Session,
     projectId: str,
-    # filter_function: Callable[[Type[models.Base], Query], Query], # uncomment this when using validator
+    # filter_function: Callable[[Query], Query], # uncomment this when using validator
     skip: int = 0,
     limit: int = 100,
 ) -> List[models.Collection]:

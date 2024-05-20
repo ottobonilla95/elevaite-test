@@ -1,6 +1,8 @@
 from fastapi import Path, Depends, Header, Request, HTTPException
 from uuid import UUID
-from ..auth.token import validate_token
+from ..auth.authenticate.impl import (
+   AccessTokenOrApikeyAuthentication,
+)
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from rbac_api.utils.deps import get_db  
@@ -15,10 +17,10 @@ import inspect
 def validate_get_project_collections_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
    async def validate_get_project_collections(
       request: Request,
-      user_email: str = Depends(validate_token),
+      authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate),  
       project_id: UUID = Path(..., description="project_id under which project collections are queried"),
-      db: Session = Depends(get_db)
    ) -> dict[str, Any]:
+      db: Session = request.state.db
       try:
          # Set the context flags in request.state
          current_frame = inspect.currentframe()
@@ -30,34 +32,34 @@ def validate_get_project_collections_factory(target_model_class : Type[models.Ba
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_endpoint_rbac_permissions(
+         return await rbac_instance.validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
-            user_email=user_email,
+            authenticated_entity=authenticated_entity,
             target_model_class=target_model_class
          )
       except HTTPException as e:
          db.rollback()
-         pprint(f'API error in GET /project/{project_id}/collection - validate_get_project_collections dependency : {e}')
+         pprint(f'API error in GET /project/{project_id}/collection - validate_get_project_collections middleware : {e}')
          raise e
       except SQLAlchemyError as e:
-         pprint(f'DB error in GET /project/{project_id}/collection - validate_get_project_collections dependency : {e}')
+         pprint(f'DB error in GET /project/{project_id}/collection - validate_get_project_collections middleware : {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
-         print(f'Unexpected error in GET /project/{project_id}/collection - validate_get_project_collections dependency : {e}')
+         print(f'Unexpected error in GET /project/{project_id}/collection - validate_get_project_collections middleware : {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_get_project_collections
 
 def validate_get_project_collection_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
    async def validate_get_project_collection(
       request: Request,
-      user_email: str = Depends(validate_token),
+      authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate),  
       project_id: UUID = Path(..., description="project_id under which collection is queried"),
       collection_id: UUID = Path(..., description=" id of collection being queried"),
-      db: Session = Depends(get_db)
    ) -> dict[str, Any]:
+      db: Session = request.state.db
       try:
          # Set the context flags in request.state
          current_frame = inspect.currentframe()
@@ -69,33 +71,72 @@ def validate_get_project_collection_factory(target_model_class : Type[models.Bas
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_endpoint_rbac_permissions(
+         return await rbac_instance.validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
-            user_email=user_email,
+            authenticated_entity=authenticated_entity,
             target_model_class=target_model_class
          )
       except HTTPException as e:
          db.rollback()
-         pprint(f'API error in GET /project/{project_id}/collection/{collection_id} - validate_get_project_collection dependency : {e}')
+         pprint(f'API error in GET /project/{project_id}/collection/{collection_id} - validate_get_project_collection middleware : {e}')
          raise e
       except SQLAlchemyError as e:
-         pprint(f'DB error in GET /project/{project_id}/collection/{collection_id} - validate_get_project_collection dependency : {e}')
+         pprint(f'DB error in GET /project/{project_id}/collection/{collection_id} - validate_get_project_collection middleware : {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
-         print(f'Unexpected error in GET /project/{project_id}/collection/{collection_id} - validate_get_project_collection dependency : {e}')
+         print(f'Unexpected error in GET /project/{project_id}/collection/{collection_id} - validate_get_project_collection middleware : {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_get_project_collection
+
+def validate_get_project_collection_scroll_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   async def validate_get_project_collection_scroll(
+      request: Request,
+      authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate),  
+      project_id: UUID = Path(..., description="project_id under which collection scroll is queried"),
+      collection_id: UUID = Path(..., description=" id of collection being queried"),
+   ) -> dict[str, Any]:
+      db: Session = request.state.db
+      try:
+         # Set the context flags in request.state
+         current_frame = inspect.currentframe()
+         if current_frame and current_frame.f_locals:   
+            frame_locals = current_frame.f_locals
+            request.state.account_context_exists = 'account_id' in frame_locals
+            request.state.project_context_exists = 'project_id' in frame_locals
+         else:
+            request.state.account_context_exists = False
+            request.state.project_context_exists = False
+
+         return await rbac_instance.validate_rbac_permissions(
+            request=request,
+            db=db,
+            target_model_action_sequence=target_model_action_sequence,
+            authenticated_entity=authenticated_entity,
+            target_model_class=target_model_class
+         )
+      except HTTPException as e:
+         db.rollback()
+         pprint(f'API error in GET /project/{project_id}/collection/{collection_id}/scroll - validate_get_project_collection_scroll middleware : {e}')
+         raise e
+      except SQLAlchemyError as e:
+         pprint(f'DB error in GET /project/{project_id}/collection/{collection_id}/scroll - validate_get_project_collection_scroll middleware : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+      except Exception as e:
+         db.rollback()
+         print(f'Unexpected error in GET /project/{project_id}/collection/{collection_id}/scroll - validate_get_project_collection_scroll middleware : {e}')
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   return validate_get_project_collection_scroll
 
 def validate_create_project_collection_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
    async def validate_create_project_collection(
       request: Request,
-      user_email: str = Depends(validate_token),
+      authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate),  
       project_id: UUID = Path(..., description="project_id under which dataset is tagged"),
-      db: Session = Depends(get_db)
    ) -> dict[str, Any]:
+      db: Session = request.state.db
       try:
          # Set the context flags in request.state
          current_frame = inspect.currentframe()
@@ -107,23 +148,23 @@ def validate_create_project_collection_factory(target_model_class : Type[models.
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_endpoint_rbac_permissions(
+         return await rbac_instance.validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
-            user_email=user_email,
+            authenticated_entity=authenticated_entity,
             target_model_class=target_model_class
          )
       except HTTPException as e:
          db.rollback()
-         pprint(f'API error in POST /project/{project_id}/collection - validate_create_project_collection dependency : {e}')
+         pprint(f'API error in POST /project/{project_id}/collection - validate_create_project_collection middleware : {e}')
          raise e
       except SQLAlchemyError as e:
-         pprint(f'DB error in POST /project/{project_id}/collection - validate_create_project_collection dependency : {e}')
+         pprint(f'DB error in POST /project/{project_id}/collection - validate_create_project_collection middleware : {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
-         print(f'Unexpected error in POST /project/{project_id}/collection - validate_create_project_collection dependency : {e}')
+         print(f'Unexpected error in POST /project/{project_id}/collection - validate_create_project_collection middleware : {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
    return validate_create_project_collection

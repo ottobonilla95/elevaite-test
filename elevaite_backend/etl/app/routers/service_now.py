@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from typing import Annotated
+from typing import Annotated, Any
 import uuid
 from dotenv import load_dotenv
 from elevaitedb.schemas.configuration import (
@@ -15,7 +15,7 @@ from elevaitedb.schemas.instance import (
     InstanceStatus,
 )
 from elevaitedb.schemas.pipeline import PipelineStepStatus
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 import pika
 from rbac_api.utils.deps import get_db
 from sqlalchemy.orm import Session
@@ -33,17 +33,23 @@ from elevaitedb.crud import (
     collection as collection_crud,
 )
 from elevaitedb.util import func as util_func
-
+# from rbac_api import (
+#    routes_to_middleware_imple_map,
+#    rbac_instance
+# )
 
 router = APIRouter(prefix="/servicenow", tags=["servicenow"])
 
 
 @router.post("/ingest")
 def ingestServiceNowTickets(
+    # request: Request, # uncomment when using validator
     dto: Annotated[schemas.ServiceNowIngestBody, Body()],
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db), # comment this when using validator
+    # validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['ingestServiceNowTickets']), # uncomment this to use validator
     rmq: pika.BlockingConnection = Depends(get_rabbitmq_connection),
 ):
+    # db: Session = request.state.db
     load_dotenv()
     if not bool(re.match("^[a-z0-9][a-z0-9-]{2,62}$", dto.dataset_name)):
         raise HTTPException(400, "Dataset Name must match /^[a-z0-9][a-z0-9-]{2,62}$/")

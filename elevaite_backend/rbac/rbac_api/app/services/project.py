@@ -1,6 +1,6 @@
 from fastapi import status, HTTPException
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session, aliased, load_only
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.sql import and_, exists
 from sqlalchemy import func, case
@@ -10,11 +10,14 @@ from datetime import datetime
 from pprint import pprint
 from pydantic import EmailStr
 from ..errors.api_error import ApiError
+from datetime import UTC
+import secrets
 
 from elevaitedb.schemas import (
    project as project_schemas,
    user as user_schemas,
    role as role_schemas,
+   permission as permission_schemas,
 )
 from elevaitedb.db import models
 
@@ -30,7 +33,6 @@ def create_project(
    parent_project_id: Optional[UUID],
    db: Session,
    logged_in_user_id: UUID,
-   logged_in_user_email: EmailStr,
 ) -> project_schemas.ProjectResponseDTO: 
    try:
 
@@ -47,7 +49,7 @@ def create_project(
       # Create new project resource from req body
       new_project = models.Project(
          account_id=account_id,
-         creator=logged_in_user_email,
+         creator_id=logged_in_user_id,
          parent_project_id=parent_project_id,
          name=project_creation_payload.name,
          description=project_creation_payload.description,
@@ -58,13 +60,14 @@ def create_project(
       db.add(new_project)
       db.flush()  # Now, new_project.id is available
 
-      # Create the User_Project association with the new project's ID, project overrides default specified in model definition
+      # Create the User_Project association with the new project's ID, with no project overrides () all Allow'ed permissions)
       new_user_project = models.User_Project(
          user_id=logged_in_user_id,
          project_id=new_project.id,
-         is_admin=True
+         is_admin=True,
+         permission_overrides=permission_schemas.ProjectScopedRBACPermission.create("Allow").dict()
       )
-
+      
       db.add(new_user_project) # Add the User_Project association to the session
       db.commit() # Commit the transaction to persist both the new project and the association
       
@@ -111,10 +114,8 @@ def get_projects(
    logged_in_user_id: UUID,
    logged_in_user_is_superadmin: bool,
    logged_in_user_is_admin: bool,
-   logged_in_user_email: EmailStr,
    account_id: UUID,
    parent_project_id: Optional[UUID],
-   project_creator_email: Optional[str],
    name: Optional[str],
    db: Session,
    type: Optional[project_schemas.ProjectType] = project_schemas.ProjectType.All,
@@ -133,13 +134,10 @@ def get_projects(
          query = query.filter(models.Project.parent_project_id == parent_project_id)
       
       if type == project_schemas.ProjectType.My_Projects: 
-         query = query.filter(models.Project.creator == logged_in_user_email) # show all projects created by user
+         query = query.filter(models.Project.creator_id == logged_in_user_id) # show all projects created by user
       elif type == project_schemas.ProjectType.Shared_With_Me:
-         query = query.filter(models.Project.creator != logged_in_user_email) # show all projects not created by user
+         query = query.filter(models.Project.creator_id != logged_in_user_id) # show all projects not created by user
 
-      if project_creator_email:
-         user_alias = aliased(models.User)
-         query = query.join(user_alias, models.Project.creator == user_alias.email).filter(user_alias.email.ilike(f"%{project_creator_email}%"))
       if name:
          query = query.filter(models.Project.name.ilike(f"%{name}%"))
 
@@ -382,3 +380,5 @@ def patch_user_project_admin_status(
       db.rollback()
       pprint(f'Unexpected error in PATCH /projects/{project_id}/users/{user_id}/admin service method: Error updating project-admin status: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")  
+   
+   

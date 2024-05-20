@@ -132,7 +132,7 @@ def delete_role(
       db.commit()
       return JSONResponse(
          status_code=status.HTTP_200_OK,
-         content={"message": f"Successfully deleted role"},
+         content={"message": f"Successfully deleted role - '{role_id}'"},
       )
    except HTTPException as e:
       db.rollback()

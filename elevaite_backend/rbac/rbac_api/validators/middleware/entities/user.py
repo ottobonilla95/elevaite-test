@@ -5,35 +5,42 @@ from uuid import UUID
 from pprint import pprint
 from typing import Any, Type, Optional
 from rbac_api.app.errors.api_error import ApiError
-from ..auth.token import validate_token
+import os
+from ..auth.authenticate.impl import (
+   AccessTokenAuthentication,
+)
 
-from rbac_api.utils.deps import get_db
 from elevaitedb.db import models
 
 from ...rbac import rbac_instance
 import inspect
 
 async def validate_get_user_profile(
-   user_email: str = Depends(validate_token), 
+   request: Request,
+   logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),   
    user_id: UUID = Path(..., description="user id of user whose profile is retrieved"),
    account_id: Optional[UUID] = Header(None, alias = "X-elevAIte-AccountId", description="account_id under which user profile is queried"),
-   db: Session = Depends(get_db)
 ) -> dict[str, Any]:
+   db: Session = request.state.db
    try:
-
-      # Fetch logged-in user by email
-      logged_in_user = db.query(models.User).filter(models.User.email == user_email).first()
-      if not logged_in_user:
-         raise ApiError.unauthorized("user is unauthenticated")
-      
+      logged_in_user_admin_accounts_exist = None
       if account_id:
          account = db.query(models.Account).filter(models.Account.id == account_id).first()
          if not account:
             raise ApiError.notfound(f"Account - '{account_id}' - not found")
       elif not logged_in_user.is_superadmin and user_id != logged_in_user.id:
-         raise ApiError.forbidden("you do not have superadmin permissions and must provide an account_id to view user profile of other users")
+         # Check for any entries in User_Account for the logged-in user where is_admin is true, and the account belongs to the org
+         logged_in_user_admin_accounts_exist = db.query(models.User_Account).join(
+            models.Account, models.User_Account.account_id == models.Account.id
+         ).filter(
+            models.User_Account.user_id == logged_in_user.id,
+            models.User_Account.is_admin == True,
+            models.Account.organization_id == os.getenv("ORGANIZATION_ID")
+         ).first()
+         if not logged_in_user_admin_accounts_exist:
+            raise ApiError.forbidden("you do not have superadmin/account-admin permissions and must provide an account_id to view user profile of other users")
       
-      if not logged_in_user.is_superadmin and account_id:
+      if not logged_in_user.is_superadmin and not logged_in_user_admin_accounts_exist and account_id:
          logged_in_user_association = db.query(models.User_Account).filter(models.User_Account.user_id == logged_in_user.id, models.User_Account.account_id == account_id).first()
          if not logged_in_user_association:
             raise ApiError.forbidden(f"you are not assigned to account - '{account_id}'")
@@ -42,9 +49,9 @@ async def validate_get_user_profile(
       if not user:
          raise ApiError.notfound(f"User - '{user_id}' - not found")
 
-      return {"logged_in_user": logged_in_user,
+      return {"authenticated_entity": logged_in_user,
                "User": user,
-               "db": db} 
+               } 
  
    except HTTPException as e:
       db.rollback()
@@ -60,27 +67,23 @@ async def validate_get_user_profile(
 
 
 async def validate_patch_user(
-   user_email: str = Depends(validate_token),
+   request: Request,
+   logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate), 
    user_id: UUID = Path(..., description="The ID of the user to patch"),
-   db: Session = Depends(get_db)
 ) -> dict[str, Any]:
+   db: Session = request.state.db
    try:
-      # Fetch user by email
-      logged_in_user = db.query(models.User).filter(models.User.email == user_email).first()
-      if not logged_in_user:
-         raise ApiError.unauthorized("User is unauthenticated")
-
       user_to_patch = db.query(models.User).filter(models.User.id == user_id).first()
       if not user_to_patch:
          raise ApiError.notfound(f"User - '{user_id}' - not found")
          
       # Validate if the current user is a superadmin
       if logged_in_user.is_superadmin: 
-         return {"User" : user_to_patch, "db" : db}
+         return {"User" : user_to_patch}
 
       # Check if the current user is trying to patch their own data
       if logged_in_user.id == user_id: 
-         return {"User" : user_to_patch, "db" : db}
+         return {"User" : user_to_patch}
 
       # If the flow reaches here, the user does not have superadmin/account-admin permissions
       raise ApiError.forbidden(f"you do not have superadmin privileges to update User - '{user_id}'")
@@ -97,17 +100,13 @@ async def validate_patch_user(
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
 async def validate_patch_user_account_roles(
-   user_email: str = Depends(validate_token),
+   request: Request,
+   logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
    user_id: UUID = Path(..., description="The ID of the user to patch"),
    account_id: UUID = Path(..., description="The ID of the account to scope the user roles to"),
-   db: Session = Depends(get_db)
 ) -> dict[str, Any]:
+   db: Session = request.state.db
    try:
-       # Check logged-in user existence
-      logged_in_user = db.query(models.User).filter(models.User.email == user_email).first()
-      if not logged_in_user:
-         raise ApiError.unauthorized("user is unauthenticated")
-      
       # Check existence of account
       account = db.query(models.Account).filter(models.Account.id == account_id).first()
       if not account:
@@ -125,25 +124,23 @@ async def validate_patch_user_account_roles(
       
       # Check superadmin
       if logged_in_user.is_superadmin:
-         return {"User": user_to_patch,
-               "db" : db}
+         return {"User": user_to_patch}
       # check account admin
       if logged_in_user_account_association.is_admin:
-         return {"User": user_to_patch,
-               "db" : db}
+         return {"User": user_to_patch}
 
       raise ApiError.forbidden(f"you do not have superadmin/account-admin privileges to update user-account roles in account - '{account_id}'") 
    except HTTPException as e:
       db.rollback()
-      pprint(f'API error in PATCH /users/{user_id}/accounts/{account_id}/roles validate_patch_user_account_roles dependency: {e}')
+      pprint(f'API error in PATCH /users/{user_id}/accounts/{account_id}/roles validate_patch_user_account_roles middleware: {e}')
       raise e
    except SQLAlchemyError as e:
       db.rollback()
-      pprint(f'DB error in PATCH /users/{user_id}/accounts/{account_id}/roles validate_patch_user_account_roles dependency: {e}')
+      pprint(f'DB error in PATCH /users/{user_id}/accounts/{account_id}/roles validate_patch_user_account_roles middleware: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
-      print(f'Unexpected error in PATCH /users/{user_id}/accounts/{account_id}/roles validate_patch_user_account_roles dependency: {e}')
+      print(f'Unexpected error in PATCH /users/{user_id}/accounts/{account_id}/roles validate_patch_user_account_roles middleware: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 
@@ -151,11 +148,11 @@ async def validate_patch_user_account_roles(
 def validate_update_project_permission_overrides_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
    async def validate_update_project_permission_overrides(
       request: Request,
-      user_email: str = Depends(validate_token),
+      logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),  
       user_id: UUID = Path(..., description="The ID of the user to update project-specific permission-overrides for"),
       project_id: UUID = Path(..., description="The ID of the project to update user-specific permission-overrides on"),
-      db: Session = Depends(get_db)
    ) -> dict[str, Any]:
+      db: Session = request.state.db
       try:
          # Set the context flags in request.state
          current_frame = inspect.currentframe()
@@ -167,27 +164,25 @@ def validate_update_project_permission_overrides_factory(target_model_class : Ty
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] = await rbac_instance.validate_endpoint_rbac_permissions(
+         validation_info:dict[str, Any] = await rbac_instance.validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
-            user_email=user_email,
+            authenticated_entity=logged_in_user,
             target_model_class=target_model_class
          )
 
-         logged_in_user = validation_info.get("logged_in_user", None)
-         
          if logged_in_user:
             if logged_in_user.is_superadmin:
                return validation_info 
          
-         logged_in_user_account_association = validation_info.get("logged_in_user_account_association",None)
+         logged_in_user_account_association = validation_info.get("logged_in_entity_account_association",None)
          
          if logged_in_user_account_association:
             if logged_in_user_account_association.is_admin:
                return validation_info
 
-         logged_in_user_project_association = validation_info.get("logged_in_user_project_association", None)
+         logged_in_user_project_association = validation_info.get("logged_in_entity_project_association", None)
          
          if logged_in_user_project_association:
             if logged_in_user_project_association.is_admin:
@@ -197,15 +192,15 @@ def validate_update_project_permission_overrides_factory(target_model_class : Ty
 
       except HTTPException as e:
          db.rollback()
-         pprint(f'API error in PATCH users/{user_id}/projects/{project_id}/permission-overrides - validate_update_project_permission_overrides dependency: {e}')
+         pprint(f'API error in PATCH users/{user_id}/projects/{project_id}/permission-overrides - validate_update_project_permission_overrides middleware: {e}')
          raise e
       except SQLAlchemyError as e:
          db.rollback()
-         pprint(f'DB error in PATCH users/{user_id}/projects/{project_id}/permission-overrides - validate_update_project_permission_overrides dependency: {e}')
+         pprint(f'DB error in PATCH users/{user_id}/projects/{project_id}/permission-overrides - validate_update_project_permission_overrides middleware: {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
-         print(f'Unexpected error in PATCH users/{user_id}/projects/{project_id}/permission-overrides - validate_update_project_permission_overrides dependency: {e}')
+         print(f'Unexpected error in PATCH users/{user_id}/projects/{project_id}/permission-overrides - validate_update_project_permission_overrides middleware: {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
    return validate_update_project_permission_overrides
@@ -213,11 +208,11 @@ def validate_update_project_permission_overrides_factory(target_model_class : Ty
 def validate_get_project_permission_overrides_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
    async def validate_get_project_permission_overrides(
       request: Request,
-      user_email: str = Depends(validate_token),
+      logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),  
       user_id: UUID = Path(..., description="The ID of the user to get project-specific permission-overrides for"),
       project_id: UUID = Path(..., description="The ID of the project to get user-specific permission-overrides for"),
-      db: Session = Depends(get_db)
    ) -> dict[str, Any]:
+      db: Session = request.state.db
       try:
          # Set the context flags in request.state
          current_frame = inspect.currentframe()
@@ -229,27 +224,25 @@ def validate_get_project_permission_overrides_factory(target_model_class : Type[
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] = await rbac_instance.validate_endpoint_rbac_permissions(
+         validation_info:dict[str, Any] = await rbac_instance.validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
-            user_email=user_email,
+            authenticated_entity=logged_in_user,
             target_model_class=target_model_class
          )
-
-         logged_in_user = validation_info.get("logged_in_user", None)
          
          if logged_in_user:
             if logged_in_user.is_superadmin or logged_in_user.id == user_id:
                return validation_info 
 
-         logged_in_user_account_association = validation_info.get("logged_in_user_account_association",None)
+         logged_in_user_account_association = validation_info.get("logged_in_entity_account_association",None)
          
          if logged_in_user_account_association:
             if logged_in_user_account_association.is_admin:
                return validation_info
 
-         logged_in_user_project_association = validation_info.get("logged_in_user_project_association", None)
+         logged_in_user_project_association = validation_info.get("logged_in_entity_project_association", None)
          
          if logged_in_user_project_association:
             if logged_in_user_project_association.is_admin:
@@ -258,35 +251,31 @@ def validate_get_project_permission_overrides_factory(target_model_class : Type[
          raise ApiError.forbidden(f"you do not have superadmin,admin or project association with project-admin privileges to read project permission overrides for user - '{user_id}' - in project - '{project_id}'")
       except HTTPException as e:
          db.rollback()
-         pprint(f'API error in GET users/{user_id}/projects/{project_id}/permission-overrides - validate_get_project_permission_overrides dependency: {e}')
+         pprint(f'API error in GET users/{user_id}/projects/{project_id}/permission-overrides - validate_get_project_permission_overrides middleware: {e}')
          raise e
       except SQLAlchemyError as e:
          db.rollback()
-         pprint(f'DB error in GET users/{user_id}/projects/{project_id}/permission-overrides - validate_get_project_permission_overrides dependency: {e}')
+         pprint(f'DB error in GET users/{user_id}/projects/{project_id}/permission-overrides - validate_get_project_permission_overrides middleware: {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
-         print(f'Unexpected error in GET users/{user_id}/projects/{project_id}/permission-overrides - validate_get_project_permission_overrides dependency: {e}')
+         print(f'Unexpected error in GET users/{user_id}/projects/{project_id}/permission-overrides - validate_get_project_permission_overrides middleware: {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
    return validate_get_project_permission_overrides
 
 async def validate_patch_user_superadmin_status(
-   user_email: str = Depends(validate_token),
+   request: Request,
+   logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
    user_id: UUID = Path(...),
-   db: Session = Depends(get_db)
 ) -> dict[str, Any]:
+   db: Session = request.state.db
    try:
-      # Fetch user by email
-      logged_in_user = db.query(models.User).filter(models.User.email == user_email).first()
-      if not logged_in_user:
-         raise ApiError.unauthorized("User is unauthenticated")
-      
       # Check if the user is superadmin
       if not logged_in_user.is_superadmin: 
          raise ApiError.forbidden(f"you do not have superadmin privileges to update user superadmin status")
       
-      return {"logged_in_user" : logged_in_user, "db": db}
+      return {"authenticated_entity" : logged_in_user}
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in PATCH /users/{user_id}/superadmin - validate_update_user_superadmin_status middleware: {e}')

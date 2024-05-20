@@ -1,21 +1,100 @@
 {
-   "evaluated_permissions": {
-      "summary": "evaluated permissions",
+   "evaluated_permissions_1": {
+      "summary": "evaluated permissions when all fields are requested",
       "value": {
-         "IS_ACCOUNT_ADMIN": false,
-         "IS_PROJECT_ADMIN": false,
-         "PROJECT_READ": true,
-         "PROJECT_CREATE": false,
-         "DATASET_READ": false,
-         "DATASET_TAG": false,
+         "IS_ACCOUNT_ADMIN": {
+             "OVERALL_PERMISSIONS": false
+         },
+         "IS_PROJECT_ADMIN": {
+             "OVERALL_PERMISSIONS": false
+         },
+         "APPLICATION_READ": {
+             "OVERALL_PERMISSIONS": false,
+             "SPECIFIC_PERMISSIONS": {
+                 "applicationType": {
+                     "preprocess": false,
+                     "ingest": false
+                 }
+             }
+         },
+         "PROJECT_READ": {
+             "OVERALL_PERMISSIONS": true
+         },
+         "PROJECT_CREATE": {
+             "OVERALL_PERMISSIONS": true
+         },
+         "PROJECT_SERVICENOW_TICKET_INGEST": {
+             "OVERALL_PERMISSIONS": false
+         },
+         "APIKEY_READ": {
+             "OVERALL_PERMISSIONS": true
+         },
+         "APIKEY_CREATE": {
+             "OVERALL_PERMISSIONS": true
+         },
+         "DATASET_READ": {
+             "OVERALL_PERMISSIONS": true
+         },
+         "DATASET_TAG": {
+             "OVERALL_PERMISSIONS": true
+         },
+         "COLLECTION_READ": {
+             "OVERALL_PERMISSIONS": true
+         },
+         "COLLECTION_CREATE": {
+             "OVERALL_PERMISSIONS": true
+         },
+         "CONFIGURATION_READ": {
+             "OVERALL_PERMISSIONS": false
+         },
+         "CONFIGURATION_CREATE": {
+             "OVERALL_PERMISSIONS": false
+         },
+         "CONFIGURATION_UPDATE": {
+             "OVERALL_PERMISSIONS": false
+         },
+         "INSTANCE_READ": {
+             "OVERALL_PERMISSIONS": false
+         },
+         "INSTANCE_CREATE": {
+             "OVERALL_PERMISSIONS": false
+         },
+         "INSTANCE_CONFIGURATION_READ": {
+             "OVERALL_PERMISSIONS": false
+         }
+     }
+   },
+   "evaluated_permissions_2": {
+      "summary": "evaluated permissions when only some fields are requested",
+      "value": {
+         "IS_ACCOUNT_ADMIN": {
+             "OVERALL_PERMISSIONS": false
+         },
+         "IS_PROJECT_ADMIN": {
+             "OVERALL_PERMISSIONS": false
+         },
+         "APPLICATION_READ": "NOT_EVALUATED",
+         "PROJECT_READ": {
+             "OVERALL_PERMISSIONS": true
+         },
+         "PROJECT_CREATE": {
+             "OVERALL_PERMISSIONS": true
+         },
+         "PROJECT_SERVICENOW_TICKET_INGEST": {
+             "OVERALL_PERMISSIONS": false
+         },
+         "APIKEY_READ": "NOT_EVALUATED",
+         "APIKEY_CREATE": "NOT_EVALUATED",
+         "DATASET_READ": "NOT_EVALUATED",
+         "DATASET_TAG": "NOT_EVALUATED",
          "COLLECTION_READ": "NOT_EVALUATED",
          "COLLECTION_CREATE": "NOT_EVALUATED",
-         "CONFIGURATION_READ": true,
-         "CONFIGURATION_CREATE": true,
-         "CONFIGURATION_UPDATE": true,
-         "INSTANCE_READ": false,
-         "INSTANCE_CREATE": false,
-         "INSTANCE_CONFIGURATION_READ": false
+         "CONFIGURATION_READ": "NOT_EVALUATED",
+         "CONFIGURATION_CREATE": "NOT_EVALUATED",
+         "CONFIGURATION_UPDATE": "NOT_EVALUATED",
+         "INSTANCE_READ": "NOT_EVALUATED",
+         "INSTANCE_CREATE": "NOT_EVALUATED",
+         "INSTANCE_CONFIGURATION_READ": "NOT_EVALUATED"
      }
    }
 }

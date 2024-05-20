@@ -5,14 +5,14 @@ from ..schemas import application
 
 def get_applications(
     db: Session,
-    # filter_function: Callable[[Type[models.Base], Query], Query] | None = None, # uncomment this when using validator
+    # filter_function: Callable[[Query], Query], # uncomment this when using validator
     skip: int = 0,
     limit: int = 100
 ):
     query = db.query(models.Application)
 
     # if filter_function is not None: # uncomment this when using validator
-    #     query = filter_function(models.Application, query)
+        # query = filter_function(query)
 
     return query.offset(skip).limit(limit).all()
 

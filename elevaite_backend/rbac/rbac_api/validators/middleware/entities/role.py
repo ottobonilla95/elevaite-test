@@ -1,29 +1,25 @@
-from fastapi import Depends, Path, HTTPException
+from fastapi import Depends, Path, HTTPException, Request
 from sqlalchemy import exists, and_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from uuid import UUID
 from pprint import pprint
 from typing import Any
-from ..auth.token import validate_token
+from ..auth.authenticate.impl import AccessTokenAuthentication
 from rbac_api.app.errors.api_error import ApiError
 
 from rbac_api.utils.deps import get_db
 from elevaitedb.db import models
 
 async def validate_post_roles(
-   user_email: str = Depends(validate_token),
-   db: Session = Depends(get_db)
-) -> dict[str, Any]:
+   request: Request,
+   logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
+) -> None:
+   db: Session = request.state.db
    try:
-      # Fetch user by email
-      logged_in_user = db.query(models.User).filter(models.User.email == user_email).first()
-      if not logged_in_user:
-         raise ApiError.unauthorized("User is unauthenticated")
-
       # Validate if the user is a superadmin
       if logged_in_user.is_superadmin: 
-         return {"db" : db}
+         return 
       
       raise ApiError.forbidden("you do not have superadmin privileges to create roles")
    except HTTPException as e:
@@ -39,21 +35,15 @@ async def validate_post_roles(
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 async def validate_delete_roles(
-   user_email: str = Depends(validate_token),
-   db: Session = Depends(get_db)
-) -> dict[str, Any]:
+   request: Request,
+   logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
+) -> None:
+   db: Session = request.state.db
    try:
-      # Fetch user by email
-      logged_in_user = db.query(models.User).filter(models.User.email == user_email).first()
-      if not logged_in_user:
-         print(f"in in validate_delete_roles middleware : logged-in user with email -'{user_email}'- not found in user table")
-         raise ApiError.unauthorized("User is unauthenticated")
-
       # Validate if the user is a superadmin
       if logged_in_user.is_superadmin: 
-         return {"db" : db}
+         return 
       
-      print(f"in validate_delete_roles middleware : logged in user -'{logged_in_user.id}'- does not have super-admin privileges to delete roles")
       raise ApiError.forbidden("you do not have superadmin privileges to delete roles")
    except HTTPException as e:
       db.rollback()
@@ -68,18 +58,14 @@ async def validate_delete_roles(
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
 async def validate_patch_roles(
-   user_email: str = Depends(validate_token),
-   db: Session = Depends(get_db)
-) -> dict[str, Any]:
+   request: Request,
+   logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
+) -> None:
+   db: Session = request.state.db
    try:
-      # Fetch user by email
-      logged_in_user = db.query(models.User).filter(models.User.email == user_email).first()
-      if not logged_in_user:
-         raise ApiError.unauthorized("User is unauthenticated")
-
       # Validate if the user is a superadmin
       if logged_in_user.is_superadmin: 
-         return {"db" : db}
+         return 
       
       raise ApiError.forbidden("you do not have superadmin privileges to update roles")
    except HTTPException as e:
@@ -95,18 +81,14 @@ async def validate_patch_roles(
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
 async def validate_get_roles(
-   user_email: str = Depends(validate_token),
-   db: Session = Depends(get_db)
-) -> dict[str, Any]:
+   request: Request,
+   logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
+) -> None:
+   db: Session = request.state.db
    try:
-      # Fetch user by email
-      logged_in_user = db.query(models.User).filter(models.User.email == user_email).first()
-      if not logged_in_user:
-         raise ApiError.unauthorized("User is unauthenticated")
-
       # Validate if the logged-in user is a superadmin
       if logged_in_user.is_superadmin: 
-         return {"db" : db}
+         return 
       
       # validate if logged-in user is an admin in any account
       user_admin_accounts_exist = db.query(exists().where(
@@ -116,7 +98,7 @@ async def validate_get_roles(
         )
       )).scalar()
       if user_admin_accounts_exist:
-         return {"db" : db}
+         return 
       
       raise ApiError.forbidden("you do not have superadmin/account-admin privileges to read all roles")
    except HTTPException as e:
@@ -132,17 +114,13 @@ async def validate_get_roles(
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 async def validate_get_role(
-   user_email: str = Depends(validate_token),
+   request: Request,
+   logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
    role_id: UUID = Path(..., description = "Role ID to retrieve"),
-   db: Session = Depends(get_db)
-) -> dict[str, Any]:
+) -> None:
+   db: Session = request.state.db
    try:
-      # Fetch user by email
-      logged_in_user = db.query(models.User).filter(models.User.email == user_email).first()
-      if not logged_in_user:
-         raise ApiError.unauthorized("User is unauthenticated")
-      
-      return {"db" : db} # Allow access to all users to get role.
+      return 
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in GET /roles/{role_id} - validate_get_role middleware : {e}')

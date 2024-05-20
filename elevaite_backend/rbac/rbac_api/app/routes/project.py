@@ -1,20 +1,18 @@
-from fastapi import APIRouter, Path, Body, status, Depends, Query, Header
+from fastapi import APIRouter, Path, Body, status, Depends, Query, Header, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional, Any
 from uuid import UUID
-from pydantic import EmailStr
 
 from elevaitedb.schemas import (
    project as project_schemas,
    user as user_schemas,
 )
 from elevaitedb.db import models
-from rbac_api import validators
+from rbac_api import routes_to_middleware_imple_map
 
-from ..services import project_service as service
-from .utils.helpers import load_schema
-
+from ..services import project as service
+from .utils.helpers import load_schema, load_multiple_schemas
 project_router = APIRouter(prefix="/projects", tags=["projects"]) 
 
 @project_router.post("/", status_code=status.HTTP_201_CREATED, responses={
@@ -26,9 +24,12 @@ project_router = APIRouter(prefix="/projects", tags=["projects"])
       "description": "invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
-            }
-         },
+            "examples": load_multiple_schemas(
+               'common/unauthorized_accesstoken_examples.json',
+               'common/unauthorized_apikey_examples.json'
+            )
+         }
+      },
    },
    status.HTTP_403_FORBIDDEN: {
       "description": "User does not have permission to create project",
@@ -72,10 +73,11 @@ project_router = APIRouter(prefix="/projects", tags=["projects"])
    }
 })
 async def create_project(
+   request: Request,
    project_creation_payload: project_schemas.ProjectCreationRequestDTO = Body(..., description="project creation payload"),
    project_id: Optional[UUID] = Header(None, alias = "X-elevAIte-ProjectId", description="The ID of the parent project to post under"),
    account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id in which project is posted"),
-   validation_info: dict[str, Any]= Depends(validators.validate_post_project_factory(models.Project, ("CREATE",)))
+   validation_info: dict[str, Any]= Depends(routes_to_middleware_imple_map['create_project']),
 ) -> project_schemas.ProjectResponseDTO:
    """
    Create a Project resource
@@ -96,17 +98,16 @@ async def create_project(
       - users who are only account-admins can create projects under their admin accounts under any parent project
       - users who are not superadmins and not account admins can create projects if they have Project - 'READ' and 'CREATE' permission in any of their account-scoped roles under the account where project is created, and if 'X-elevAIte-ProjectId' is provided, users must also be assigned to all projects in the parent project hierarchy of - 'X-elevAIte-ProjectId' (inclusive of 'X-elevAIte-ProjectId'). If user is not a project-admin, user must also not have denied permissions on 'Project' - 'CREATE' in project permission overrides
    """
-   db: Session = validation_info.get("db", None)
-   logged_in_user = validation_info.get("logged_in_user", None)
+   db: Session = request.state.db
+   authenticated_entity = validation_info.get("authenticated_entity", None)
    
    return service.create_project(
-         account_id=account_id,
-         parent_project_id=project_id,
-         project_creation_payload=project_creation_payload,
-         db=db,
-         logged_in_user_id = logged_in_user.id,
-         logged_in_user_email=logged_in_user.email
-         )
+      account_id=account_id,
+      parent_project_id=project_id,
+      project_creation_payload=project_creation_payload,
+      db=db,
+      logged_in_user_id = authenticated_entity.id,
+   )
    
 @project_router.patch("/{project_id}", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -121,7 +122,7 @@ async def create_project(
       "description": "invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
          }
       },
    },
@@ -159,8 +160,9 @@ async def create_project(
    }
 })
 async def patch_project(
+   request: Request,
    project_patch_payload: project_schemas.ProjectPatchRequestDTO = Body(...),
-   validation_info: dict[str, Any] = Depends(validators.validate_patch_project_factory(models.Project, ("READ",)))
+   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['patch_project']),
 ) -> project_schemas.ProjectResponseDTO: 
    """
    Patch a Project resource
@@ -180,7 +182,7 @@ async def patch_project(
       - users who are only project-admins must also have Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be be assigned to all projects in the parent project hierarchy of the project to be patched (inclusive of project to be patched) to patch the project
    """
    project_to_patch: models.Project = validation_info.get("Project", None)
-   db: Session = validation_info.get("db", None)
+   db: Session = request.state.db
    return service.patch_project(project_to_patch, project_patch_payload, db)
 
 @project_router.get("/{project_id}", status_code=status.HTTP_200_OK, responses={
@@ -192,7 +194,7 @@ async def patch_project(
       "description": "invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
          }
       },
    },
@@ -230,7 +232,8 @@ async def patch_project(
    }
 })
 async def get_project( 
-   validation_info: dict[str, Any] = Depends(validators.validate_get_project_factory(models.Project, ("READ",))) 
+   request: Request,
+   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_project']),
 ) -> project_schemas.ProjectResponseDTO: 
    """
    Retrieve a Project resource
@@ -259,7 +262,10 @@ async def get_project(
       "description": "invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_multiple_schemas(
+               'common/unauthorized_accesstoken_examples.json',
+               'common/unauthorized_apikey_examples.json'
+            )
          }
       },
    },
@@ -297,10 +303,10 @@ async def get_project(
    }
 }) 
 async def get_projects(  
-   validation_info: dict[str,Any] = Depends(validators.validate_get_projects_factory(models.Project, ("READ",))),
-   view: Optional[project_schemas.ProjectView] = Query(None, description = "View mode, either - 'Flat' or 'Hierarchical'; default value is 'Flat'. When set to 'Flat', parent_project_id will not be considered"),
-   type: Optional[project_schemas.ProjectType] = Query(None, description = "Optional filter for querying projects based on ownership, either - 'My_Projects' or 'Shared_With_Me'; if not provided then this will assume both types (all projects for superadmin/account-admins)"),
-   project_creator_email: Optional[str] = Query(None, description = "Optional filter for querying projects based on project_creator_email"),
+   request: Request,
+   validation_info: dict[str,Any] = Depends(routes_to_middleware_imple_map['get_projects']),
+   view: Optional[project_schemas.ProjectView] = Query(project_schemas.ProjectView.Flat, description = "View mode, either - 'Flat' or 'Hierarchical'; default value is 'Flat'. When set to 'Flat', parent_project_id will not be considered"),
+   type: Optional[project_schemas.ProjectType] = Query(project_schemas.ProjectType.All, description = "Optional filter for querying projects based on ownership, either - 'My_Projects' or 'Shared_With_Me'; if not provided then this will assume both types (all projects for superadmin/account-admins)"),
    name: Optional[str] = Query(None, description = "Optional filter for querying projects based on project name"),
 ) -> List[project_schemas.ProjectResponseDTO]:
    """
@@ -320,19 +326,17 @@ async def get_projects(
       - users who are only account-admins can retrieve all projects in their admin accounts under any parent project regardless of assignment 
       - users who are not superadmin and not account-admin must have Project - 'READ' permissions in any of their account-scoped roles under the account where projects are to be retrieved, and if 'X-elevAIte-ProjectId' is provided, user must be be assigned to all projects in the parent project hierarchy of 'X-elevAIte-ProjectId' (inclusive of 'X-elevAIte-ProjectId')
    """
-   db: Session = validation_info.get("db", None)
-   logged_in_user = validation_info.get("logged_in_user", None)
-   logged_in_user_account_association = validation_info.get("logged_in_user_account_association", None)
-   parent_project = validation_info.get("logged_in_user_project_association", None)
+   db: Session = request.state.db
+   logged_in_user = validation_info.get("authenticated_entity", None)
+   logged_in_user_account_association = validation_info.get("logged_in_entity_account_association", None)
+   parent_project = validation_info.get("logged_in_entity_project_association", None)
    account = validation_info.get("Account", None)
    
    return service.get_projects(logged_in_user_id=logged_in_user.id,
                                  logged_in_user_is_superadmin=logged_in_user.is_superadmin,
                                  logged_in_user_is_admin=logged_in_user_account_association.is_admin if logged_in_user_account_association else False,
-                                 logged_in_user_email=logged_in_user.email,
                                  account_id=account.id,
                                  parent_project_id=parent_project.id if parent_project else None,
-                                 project_creator_email=project_creator_email,
                                  name=name,
                                  db=db,
                                  type=type,
@@ -351,7 +355,10 @@ async def get_projects(
       "description": "invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_multiple_schemas(
+               'common/unauthorized_accesstoken_examples.json',
+               'common/unauthorized_apikey_examples.json'
+            )
          }
       },
    },
@@ -389,11 +396,12 @@ async def get_projects(
    }
 })
 async def get_project_user_list(
-   validation_info: dict[str, Any] = Depends(validators.validate_get_project_user_list_factory(models.Project, ("READ",))),
+   request: Request,
+   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_project_user_list']),
    project_id: UUID = Path(..., description="Project id under which users are queried"),  
    firstname: Optional[str] = Query(None, description="Filter users by first name"),
    lastname: Optional[str] = Query(None, description="Filter users by last name"),
-   email: Optional[str] = Query(None, description="Filter users by email")
+   email: Optional[str] = Query(None, description="Filter users by email"),
 ) -> List[user_schemas.ProjectUserListItemDTO]:
    """
    Retrieve Project resource's user list
@@ -415,7 +423,7 @@ async def get_project_user_list(
       - Each list item displays User resource information along with account-admin, project-admin status and account-scoped roles
       - superadmin/account-admin users will always display an empty list for their account-scoped roles 
    """
-   db: Session = validation_info.get("db", None)
+   db: Session = request.state.db
    account: models.Account = validation_info.get('Account', None)
    return service.get_project_user_list(
             db=db,
@@ -439,7 +447,7 @@ async def get_project_user_list(
       "description": "invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
          }
       },
    },
@@ -477,8 +485,9 @@ async def get_project_user_list(
    }
 })
 async def deassign_user_from_project(
+   request: Request,
    user_id: UUID = Path(..., description = "The ID of the user to deassign from project"),
-   validation_info: dict[str, Any] = Depends(validators.validate_deassign_user_from_project_factory(models.Project, ("READ",)))
+   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['deassign_user_from_project']),
 ) -> JSONResponse:
    """
    Deassign User resource from Project resource
@@ -494,11 +503,11 @@ async def deassign_user_from_project(
    Notes:
       - superadmin users can deassign any user from any project
       - users who are only account-admins can deassign any user from any project within admin account
-      - users who are only project-admins can deassign any user from the project if they have Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be be assigned to all projects in the parent project hierarchy of the project (inclusive of project) in order to deassign user from the project
+      - users who are only project-admins can deassign any user from the project if the project-admin user has Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be be assigned to all projects in the parent project hierarchy of the project (inclusive of project) in order to deassign user from the project
       - users who are not superadmin and not account-admin and not project-admin can only deassign self from project if they have Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be be assigned to all projects in the parent project hierarchy of the project (inclusive of project) in order to deassign self from the project
       - project deassignment results in deassignment from all subproject assignments within the project as well for deassigned user
    """
-   db: Session = validation_info.get("db", None)
+   db: Session = request.state.db
    project = validation_info.get("Project", None)
    return service.deassign_user_from_project(user_id=user_id, db=db, project=project)
 
@@ -515,7 +524,7 @@ async def deassign_user_from_project(
       "description": "invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
          }
       },
    },
@@ -561,8 +570,9 @@ async def deassign_user_from_project(
    }
 })
 async def assign_users_to_project(
+   request: Request,
    project_assignee_list_dto: project_schemas.ProjectAssigneeListDTO = Body(description = "payload containing project assignees along with optional project permission overrides (default = no project permission overrides)"),
-   validation_info: dict[str, Any] = Depends(validators.validate_assign_users_to_project_factory(models.Project, ("READ",)))
+   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['assign_users_to_project']),
 ) -> JSONResponse:
    """
    Assign User resources to Project resource
@@ -580,11 +590,10 @@ async def assign_users_to_project(
       - all of the users to be assigned must be assigned to parent project of assigning project (if it exists)
       - superadmins can assign users to any project
       - users who are only account-admins can assign users to any project within admin accounts
-      - users who are only project-admins can assign any user from account containing the project if they have Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and if user must be assigned to all projects in the parent project hierarchy of the project (inclusive of project)
-      - assigned users will have all 'Allow'ed values for omitted fields in permission-overrides (even if permission overrides omitted completely)
+      - users who are only project-admins can assign any user from account containing the project if the project-admin user has Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and project-admin user must be assigned to all projects in the parent project hierarchy of the project (inclusive of project)
    """
    project : models.Project = validation_info.get("Project", None)
-   db: Session = validation_info.get("db", None)
+   db: Session = request.state.db
    return service.assign_users_to_project(project_assignee_list_dto,db,project)
 
 @project_router.patch("/{project_id}/users/{user_id}/admin", status_code=status.HTTP_200_OK, responses={
@@ -600,7 +609,7 @@ async def assign_users_to_project(
      "description": "Invalid, expired or no access token",
      "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
          }
       }
    },
@@ -638,10 +647,11 @@ async def assign_users_to_project(
    }
 })
 async def patch_user_project_admin_status(
+   request: Request,
    project_id: UUID = Path(..., description = "The ID of the project"),
    user_id: UUID = Path(..., description="ID of user"),
    project_admin_status_update_dto: project_schemas.ProjectAdminStatusUpdateDTO = Body(...),
-   validation_info:dict[str, Any] = Depends(validators.validate_update_user_project_admin_status_factory(models.Project, ("READ",)))  
+   validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['patch_user_project_admin_status']),
 ) -> JSONResponse:
    """
    Patch project admin status of user
@@ -659,15 +669,12 @@ async def patch_user_project_admin_status(
       - only authorized for use by superadmin/account-admin/project-admin users
       - superadmin users can update project admin status of any user in any project
       - users who are only account-admins can update project admin status of any user in any project within admin accounts
-      - users who are only project-admins can update project admin status of any user in the project if they have Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be assigned to all projects in the parent project hierarchy of the project (inclusive of project)
+      - users who are only project-admins can update project admin status of any user in the project if the project-admin user has Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be assigned to all projects in the parent project hierarchy of the project (inclusive of project)
    """
-   db: Session = validation_info.get("db", None)
+   db: Session = request.state.db
    account: models.Account = validation_info.get("Account", None)
    return service.patch_user_project_admin_status(user_id=user_id,
                                                    project_id=project_id,
                                                    account_id=account.id,
                                                    project_admin_status_update_dto=project_admin_status_update_dto,
                                                    db=db)
-
-
-   

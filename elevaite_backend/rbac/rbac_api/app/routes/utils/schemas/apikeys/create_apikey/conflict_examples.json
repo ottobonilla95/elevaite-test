@@ -1,0 +1,16 @@
+{
+   "duplicate_name_1": {
+      "summary": "An api key with the same name already exists and was created under project using api key",
+      "value": {
+         "detail": "An api key with the same name - 'example_name' - already exists and was created under project - '789e4567-e89b-12d3-a456-426614174000' - using api key - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   },
+   "duplicate_name_2": {
+      "summary": "An api key with the same name already exists and was created under project by user",
+      "value": {
+         "detail": "An api key with the same name - 'example_name' - already exists and was created under project - '789e4567-e89b-12d3-a456-426614174000' - by user - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   }
+}
+
+   

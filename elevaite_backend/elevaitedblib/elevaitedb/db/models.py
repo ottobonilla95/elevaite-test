@@ -26,7 +26,10 @@ from ..schemas.instance import (
 )
 from ..schemas.pipeline import PipelineStepStatus
 from ..schemas.application import ApplicationType
-from ..schemas.role import ProjectScopedPermission
+from ..schemas.permission import ProjectScopedRBACPermission
+from ..schemas.apikey import (
+    ApikeyPermissionsType
+)
 from .database import Base
 
 from sqlalchemy import (
@@ -292,8 +295,10 @@ class Project(Base):
     )
     account_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("accounts.id"), nullable=False
-    )  # Project can only be created inside an account
-    creator: Mapped[str] = mapped_column(String(254), nullable=False)
+    )  
+    creator_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), nullable=False
+    )
     parent_project_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("projects.id"), nullable=True
     )  # Projects can have null parents when created directly from account
@@ -342,10 +347,10 @@ class User_Account(Base):
         Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("users.id")
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE")
     )
     account_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("accounts.id")
+        Uuid(as_uuid=True), ForeignKey("accounts.id", ondelete="CASCADE")
     )
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
@@ -373,13 +378,13 @@ class User_Project(Base):
         Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("users.id")
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE")
     )
     project_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("projects.id")
+        Uuid(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE")
     )
     permission_overrides: Mapped[Annotated[dict[str, Any], Column(JSONB)]] = (
-        mapped_column(type_=JSONB, default=lambda: ProjectScopedPermission().dict())
+        mapped_column(type_=JSONB)
     )  # Use JSONB for filterable and indexable JSON structure
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
@@ -494,8 +499,6 @@ class User(Base):
     projects = relationship(
         "Project", secondary="user_project", back_populates="users"
     )  # many-to-many: many users can have many projects
-    # overriding_role = relationship('Role', back_populates='user_overrides', foreign_keys=[overriding_role_id]) # many-to-one: one role can be an override for multiple users
-    api_keys = relationship("APIKey", back_populates="user")
 
 
 class Role(Base):
@@ -518,22 +521,19 @@ class Role(Base):
     # user_overrides = relationship('User', back_populates='overriding_role')
 
 
-class APIKey(Base):
+class Apikey(Base):
     __tablename__ = "apikeys"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4()
-    )
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), ForeignKey("users.id"), nullable=False
-    )
-    key: Mapped[str] = mapped_column(
-        String, unique=True, nullable=False
-    )  # Assuming key should be unique
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4())
+    name: Mapped[str] = mapped_column(String(20), nullable=False)
+    creator_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    permissions_type: Mapped[ApikeyPermissionsType] = mapped_column(Enum(ApikeyPermissionsType), nullable=False)
+    project_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    key: Mapped[str] = mapped_column(String, unique=True, nullable=False) 
+    permissions: Mapped[Annotated[dict[str, Any], Column(JSONB)]] = ( 
+        mapped_column(type_=JSONB, default=lambda: ProjectScopedRBACPermission.create("Deny").dict())
+    ) 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
-    updated_at = mapped_column(
-        DateTime, default=get_utc_datetime, onupdate=get_utc_datetime
-    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
-    # --------- LOGICAL RELATIONSHIPS BASED ON FOREIGN KEYS-----------
-    user = relationship("User", back_populates="api_keys")  #
+# Define all class's such that first letter is uppercase and others are lowercase for rbac validation to work

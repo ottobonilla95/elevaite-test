@@ -7,7 +7,7 @@ from uuid import UUID
 from elevaitedb.util.func import get_utc_datetime
 
 from elevaitedb.schemas import (
-    role as role_schemas,
+    permission as permission_schemas,
     application as connector_schemas,
     instance as instance_schemas,
 )
@@ -154,23 +154,23 @@ def seed_db(db: Session):
     db.refresh(project_3_child3)
 
     # # User_Project entries
-    user_project_1 = models.User_Project(user_id=superadmin_1.id, project_id=project_1.id, is_admin=True)
-    user_project_1_child1 = models.User_Project(user_id=superadmin_1.id, project_id=project_1_child1.id, is_admin=True)
-    user_project_1_child2 = models.User_Project(user_id=superadmin_1.id, project_id=project_1_child2.id, is_admin=True)
+    user_project_1 = models.User_Project(user_id=superadmin_1.id, project_id=project_1.id, is_admin=True, permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny").dict())
+    user_project_1_child1 = models.User_Project(user_id=superadmin_1.id, project_id=project_1_child1.id, is_admin=True, permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny").dict())
+    user_project_1_child2 = models.User_Project(user_id=superadmin_1.id, project_id=project_1_child2.id, is_admin=True, permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny").dict())
 
-    user_project_2 = models.User_Project(user_id=superadmin_2.id, project_id=project_2.id, is_admin=True)
-    user_project_2_child1 = models.User_Project(user_id=superadmin_2.id, project_id=project_2_child1.id, is_admin=True)
-    user_project_2_child2 = models.User_Project(user_id=superadmin_2.id, project_id=project_2_child2.id, is_admin=True)
+    user_project_2 = models.User_Project(user_id=superadmin_2.id, project_id=project_2.id, is_admin=True, permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny").dict())
+    user_project_2_child1 = models.User_Project(user_id=superadmin_2.id, project_id=project_2_child1.id, is_admin=True, permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny").dict())
+    user_project_2_child2 = models.User_Project(user_id=superadmin_2.id, project_id=project_2_child2.id, is_admin=True, permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny").dict())
 
-    user_project_3 = models.User_Project(user_id=regular_users[2].id, project_id=project_3.id, is_admin=True)
-    user_project_3_for_user_0 = models.User_Project(user_id=regular_users[0].id, project_id=project_3.id)
-    user_project_3_child1_for_user_0 = models.User_Project(user_id=regular_users[0].id, project_id=project_3_child1.id)
-    user_project_3_child2_for_user_0 = models.User_Project(user_id=regular_users[0].id, project_id=project_3_child2.id)
+    user_project_3 = models.User_Project(user_id=regular_users[2].id, project_id=project_3.id, is_admin=True, permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny").dict())
+    user_project_3_for_user_0 = models.User_Project(user_id=regular_users[0].id, project_id=project_3.id, permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny").dict())
+    user_project_3_child1_for_user_0 = models.User_Project(user_id=regular_users[0].id, project_id=project_3_child1.id, permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny").dict())
+    user_project_3_child2_for_user_0 = models.User_Project(user_id=regular_users[0].id, project_id=project_3_child2.id, permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny").dict())
 
-    user_project_3_for_user_1 = models.User_Project(user_id=regular_users[1].id, project_id=project_3.id)
-    user_project_3_child1_for_user_1 = models.User_Project(user_id=regular_users[1].id, project_id=project_3_child1.id)
-    user_project_3_child2_for_user_1 = models.User_Project(user_id=regular_users[1].id, project_id=project_3_child2.id)
-    user_project_3_child3_for_user_1 = models.User_Project(user_id=regular_users[1].id, project_id=project_3_child3.id)
+    user_project_3_for_user_1 = models.User_Project(user_id=regular_users[1].id, project_id=project_3.id, permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny").dict())
+    user_project_3_child1_for_user_1 = models.User_Project(user_id=regular_users[1].id, project_id=project_3_child1.id, permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny").dict())
+    user_project_3_child2_for_user_1 = models.User_Project(user_id=regular_users[1].id, project_id=project_3_child2.id, permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny").dict())
+    user_project_3_child3_for_user_1 = models.User_Project(user_id=regular_users[1].id, project_id=project_3_child3.id, permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny").dict())
 
     user_projects = [
         user_project_1, user_project_1_child1, user_project_1_child2,
@@ -187,7 +187,7 @@ def seed_db(db: Session):
     # # Permissions setup :
 
     # # Data scientist account-scoped permissions:
-    data_scientist_permissions = role_schemas.AccountScopedPermission()
+    data_scientist_permissions = permission_schemas.AccountScopedRBACPermission.create("Deny") # create with all denied permissions
 
     data_scientist_permissions.ENTITY_Project.ACTION_CREATE = 'Allow'
 
@@ -202,7 +202,7 @@ def seed_db(db: Session):
     data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_UPDATE = 'Allow'
 
     # ML Engineer account-scoped permissions:
-    ml_engineer_permissions = role_schemas.AccountScopedPermission()
+    ml_engineer_permissions = permission_schemas.AccountScopedRBACPermission.create("Deny")
 
     ml_engineer_permissions.ENTITY_Project.ACTION_READ = 'Allow'
     ml_engineer_permissions.ENTITY_Project.ACTION_CREATE = 'Allow'
@@ -218,7 +218,7 @@ def seed_db(db: Session):
     ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_UPDATE = 'Allow'
 
     # ML OPS account-scoped permissions:
-    ml_ops_permissions = role_schemas.AccountScopedPermission()
+    ml_ops_permissions = permission_schemas.AccountScopedRBACPermission.create("Deny")
 
     ml_engineer_permissions.ENTITY_Project.ACTION_READ = 'Allow'
     ml_engineer_permissions.ENTITY_Project.ACTION_CREATE = 'Allow'
@@ -257,7 +257,7 @@ def seed_db(db: Session):
 
     # # Adding Project-specific permission overrides:
 
-    project_permissions_overrides = role_schemas.ProjectScopedPermission()
+    project_permissions_overrides = permission_schemas.ProjectScopedRBACPermission.create("Deny") # all denied permissions
     project_permissions_overrides.ENTITY_Project.ACTION_CREATE = 'Allow'
 
     user_project_id_to_update = user_project_3_for_user_0.id

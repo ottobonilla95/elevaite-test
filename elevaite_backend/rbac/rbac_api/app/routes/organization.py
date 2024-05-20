@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, status, Depends, Query
+from fastapi import APIRouter, Body, status, Depends, Query, Request
 from typing import Any, Optional, List
 from sqlalchemy.orm import Session
 from uuid import UUID
@@ -8,9 +8,9 @@ from elevaitedb.schemas import (
    user as user_schemas,
 )
 from elevaitedb.db import models
-from rbac_api import validators
+from rbac_api import routes_to_middleware_imple_map
 from .utils.helpers import load_schema
-from ..services import organization_service as service
+from ..services import organization as service
 
 organization_router = APIRouter(prefix="/organization", tags=["organizations"]) 
 
@@ -27,7 +27,7 @@ organization_router = APIRouter(prefix="/organization", tags=["organizations"])
                 "description": "Invalid, expired or no access token",
                 "content": {
                     "application/json": {
-                        "examples": load_schema('common/unauthorized_examples.json')
+                        "examples": load_schema('common/unauthorized_accesstoken_examples.json')
                     }
                 },
             },
@@ -65,8 +65,9 @@ organization_router = APIRouter(prefix="/organization", tags=["organizations"])
             }
          })
 async def patch_organization(
+    request: Request,
     organization_patch_req_payload: organization_schemas.OrganizationPatchRequestDTO = Body(...),
-    validation_info: dict[str, Any] = Depends(validators.validate_patch_organization)
+    validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['patch_organization']),
 ) -> organization_schemas.OrganizationResponseDTO:
     """
     Patch elevAIte organization resource.
@@ -81,7 +82,7 @@ async def patch_organization(
     Notes:
     - Only authorized for use by superadmin users.
     """
-    db: Session = validation_info.get("db", None)
+    db: Session = request.state.db
     org_to_patch : models.Organization = validation_info.get("Organization", None)
     return service.patch_organization(db=db, 
                                         org_to_patch=org_to_patch,
@@ -96,7 +97,7 @@ async def patch_organization(
                 "description": "Invalid, expired or no access token",
                 "content": {
                     "application/json": {
-                        "examples": load_schema('common/unauthorized_examples.json')
+                        "examples": load_schema('common/unauthorized_accesstoken_examples.json')
                     }
                 },
             },
@@ -118,7 +119,8 @@ async def patch_organization(
             }
         })
 async def get_organization(
-    validation_info: dict[str, Any] = Depends(validators.validate_get_organization)
+    request: Request,
+    validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_organization']),
 ) -> organization_schemas.OrganizationResponseDTO:
     """
     Retrieve elevAIte organization resource
@@ -146,7 +148,7 @@ async def get_organization(
         "description": "No access token or invalid access token",
         "content": {
             "application/json": {
-                "examples": load_schema('common/unauthorized_examples.json')
+                "examples": load_schema('common/unauthorized_accesstoken_examples.json')
                 }
             },
     },
@@ -184,10 +186,11 @@ async def get_organization(
     }
     })
 async def get_org_users( 
-   validation_info: dict[str, Any] = Depends(validators.validate_get_org_users),
-   firstname: Optional[str] = Query(None, description="Filter users by first name"),
-   lastname: Optional[str] = Query(None, description="Filter users by last name"),
-   email: Optional[str] = Query(None, description="Filter users by email")
+    request: Request,
+    validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_org_users']),
+    firstname: Optional[str] = Query(None, description="Filter users by first name"),
+    lastname: Optional[str] = Query(None, description="Filter users by last name"),
+    email: Optional[str] = Query(None, description="Filter users by email"),
 ) -> List[user_schemas.OrgUserListItemDTO]:
     """
     Retrieve elevAIte organization user resources. 
@@ -200,12 +203,12 @@ async def get_org_users(
     - email (str): Optional filter query param for user email with case-insensitive pattern matching
 
     Returns:
-    - List[OrgUserListItemDTO] : elevAIte organization users response objects
+    - List[OrgUserListItemDTO] : list of users registered to elevAIte platform
 
     Notes:
     - Only authorized for use by superadmins/account-admins.
     - Use case for superadmins/admins to add users to accounts
     """
-    db: Session = validation_info.get("db", None)
+    db: Session = request.state.db
     org_id: UUID = validation_info.get("org_id" , None)
     return service.get_org_users(db, org_id, firstname, lastname, email)

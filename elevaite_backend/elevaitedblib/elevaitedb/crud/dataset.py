@@ -1,20 +1,21 @@
 from sqlalchemy.orm import Session, Query
 from sqlalchemy import func, select
 from typing import Type, Callable
+import uuid
 from ..db import models
 from ..schemas.dataset import DatasetCreate, DatasetTagCreate, DatasetVersionCreate
 
 def get_datasets_of_project(
     db: Session,
     project_id: str,
-    # filter_function: Callable[[Type[models.Base], Query], Query] | None = None, # uncomment this when using validator
+    # filter_function: Callable[[Query], Query], # uncomment this when using validator
     skip: int = 0,
     limit: int = 100
 ):
     query = db.query(models.Dataset)
 
     # if filter_function is not None: # uncomment this when using validator
-    #     query = filter_function(models.Dataset, query)
+        # query = filter_function(query)
 
     return (
         query.filter(models.Dataset.projectId == project_id)

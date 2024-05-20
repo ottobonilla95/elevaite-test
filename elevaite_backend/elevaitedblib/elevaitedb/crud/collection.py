@@ -1,6 +1,6 @@
 from typing import List, Callable, Type
 from sqlalchemy.orm import Session, Query
-
+import uuid
 from ..schemas.collection import CollectionCreate
 
 from ..db import models
@@ -9,14 +9,14 @@ from ..db import models
 def get_collections(
     db: Session,
     projectId: str,
-    # filter_function: Callable[[Type[models.Base], Query], Query] | None = None, # uncomment this when using validator
+    # filter_function: Callable[[Query], Query], # uncomment this when using validator
     skip: int = 0,
     limit: int = 100,
 ) -> List[models.Collection]:
     query = db.query(models.Collection)
 
     # if filter_function is not None: # uncomment this when using validator
-    #     query = filter_function(models.Collection, query)
+        # query = filter_function(query)
 
     return (
         query.filter(models.Collection.projectId == projectId)

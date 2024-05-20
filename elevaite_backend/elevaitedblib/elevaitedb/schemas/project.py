@@ -6,9 +6,8 @@ from enum import Enum
 
 from . import (
    common as common_schemas,
-   user as user_schemas,
    dataset as dataset_schemas,
-   role as role_schemas
+   permission as permission_schemas
 )
 class ProjectType(str, Enum):
     My_Projects = "My_Projects"
@@ -62,7 +61,7 @@ class ProjectResponseDTO(BaseModel):
     account_id: UUID = Field(...)
     name: str = Field(..., max_length=60)
     description: Optional[str] = Field(None, max_length=500)
-    creator: EmailStr = Field(...)
+    creator_id: UUID = Field(...)
     parent_project_id: Optional[UUID] = Field(None)
     datasets: list[dataset_schemas.Dataset]
     created_at: datetime = Field(...)
@@ -77,8 +76,8 @@ class ProjectResponseDTO(BaseModel):
                 "account_id": "123e4567-e89b-12d3-a456-426614174000",
                 "name": "My Project",
                 "description": "Project description",
-                "creator": "example@gmail.com",
-                "parent_project_id": "123e4567-e89b-12d3-a456-426614174000",
+                "creator_id": "123e4567-e89b-12d3-a456-426614174002",
+                "parent_project_id": "123e4567-e89b-12d3-a456-426614174001",
                 "datasets": [],
                 "created_at": "2023-01-01T12:00:00Z",
                 "updated_at": "2023-01-01T12:00:00Z"
@@ -87,7 +86,7 @@ class ProjectResponseDTO(BaseModel):
 
 class ProjectAssigneeDTO(BaseModel):
     user_id: UUID = Field(..., description="The ID of the user to be assigned to a project")
-    permission_overrides: role_schemas.ProjectScopedPermission = Field(description='Optional Project-scoped permission overrides', default_factory=role_schemas.ProjectScopedPermission)
+    permission_overrides: permission_schemas.ProjectScopedRBACPermission = Field(description='Optional Project-scoped permission overrides')
 
     class Config:
         extra = Extra.forbid

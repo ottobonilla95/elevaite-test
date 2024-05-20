@@ -1,15 +1,15 @@
-from fastapi import APIRouter, Body, Depends, Path, status
+from fastapi import APIRouter, Body, Depends, Path, status, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from typing import List, Any
+from typing import List
 from uuid import UUID
 
 from elevaitedb.schemas import (
    role as role_schemas,
 )
 
-from rbac_api import validators
-from ..services import role_service as service
+from rbac_api import routes_to_middleware_imple_map
+from ..services import role as service
 from .utils.helpers import load_schema
 
 role_router = APIRouter(prefix="/roles", tags=["roles"]) 
@@ -23,7 +23,7 @@ role_router = APIRouter(prefix="/roles", tags=["roles"])
       "description": "No access token or invalid access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
             }
          },
    },
@@ -61,8 +61,9 @@ role_router = APIRouter(prefix="/roles", tags=["roles"])
    }
 })
 async def create_role(
+   request: Request,
    role_creation_dto: role_schemas.RoleCreationRequestDTO = Body(description= "role creation payload"),
-   validation_info: dict[str, Any] = Depends(validators.validate_post_roles)
+   _= Depends(routes_to_middleware_imple_map['create_role']),
 ) -> role_schemas.RoleResponseDTO :
    """
    Create Role resource
@@ -76,9 +77,9 @@ async def create_role(
    
    Notes:
       - only authorized for use by superadmin users
-      - role contains a JSONB permissions fields which has AccountScopedPermissions object
+      - role contains a JSONB permissions fields which has AccountScopedRBACPermissions object
    """
-   db: Session = validation_info.get("db", None)
+   db: Session = request.state.db
    return service.create_role(role_creation_dto, db)
 
 @role_router.get("/{role_id}", response_model=role_schemas.RoleResponseDTO, responses={
@@ -90,7 +91,7 @@ async def create_role(
       "description": "No access token or invalid access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
             }
          },
    },
@@ -120,8 +121,9 @@ async def create_role(
    }
 })
 async def get_role(
+   request: Request,
    role_id: UUID = Path(..., description= "role ID to retrieve role object"),
-   validation_info: dict[str, Any] = Depends(validators.validate_get_role)
+   _= Depends(routes_to_middleware_imple_map['get_role']),
 ) -> List[role_schemas.RoleResponseDTO]:
    """
    Retrieve Role resource
@@ -136,7 +138,7 @@ async def get_role(
    Notes:
       - authorized for use by all authenticated users
    """
-   db: Session = validation_info.get("db", None)
+   db: Session = request.state.db
    return service.get_role(db = db, role_id = role_id)
    
 @role_router.get("/", status_code = status.HTTP_200_OK, responses={
@@ -152,7 +154,7 @@ async def get_role(
       "description": "No access token or invalid access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
             }
          },
    },
@@ -174,7 +176,8 @@ async def get_role(
    }
 })
 async def get_roles(
-   validation_info: dict[str, Any] = Depends(validators.validate_get_roles)
+   request: Request,
+   _= Depends(routes_to_middleware_imple_map['get_roles']),
 ) -> List[role_schemas.RoleResponseDTO]:
    """
    Retrieve Role resources
@@ -189,7 +192,7 @@ async def get_roles(
       - Authorized for use only by superadmin and account-admin users (in atleast 1 account)
       - Usecase is to display role list from which superadmin/admin users can select roles to append to user's account-scoped roles
    """
-   db: Session = validation_info.get("db", None)
+   db: Session = request.state.db
    return service.get_roles(db)
    
 @role_router.patch("/{role_id}", responses={
@@ -201,7 +204,7 @@ async def get_roles(
       "description": "No access token or invalid access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
             }
          },
    },
@@ -239,9 +242,10 @@ async def get_roles(
    }
 })
 async def patch_role(
+   request: Request,
    role_id: UUID = Path(..., description="The ID of the role to update"),
    role_patch_req_payload: role_schemas.RoleUpdateRequestDTO = Body(description= "Role patch payload"),
-   validation_info:dict[str, Any] = Depends(validators.validate_patch_roles)
+   _= Depends(routes_to_middleware_imple_map['patch_role']),
 ) -> role_schemas.RoleResponseDTO:
    """
    Patch Role resource
@@ -257,7 +261,7 @@ async def patch_role(
    Notes:
       - Authorized for use only by superadmin users
    """
-   db: Session = validation_info.get("db", None)
+   db: Session = request.state.db
    return service.patch_role(role_id, role_patch_req_payload, db)
 
 @role_router.delete("/{role_id}", responses={
@@ -265,9 +269,7 @@ async def patch_role(
       "description": "Successfully deleted role",
       "content": {
          "application/json": {
-            "example": {
-               "message": "Successfully deleted role"
-            }
+            "examples": load_schema('roles/delete_role/ok_examples.json')
          }
       }
    },
@@ -275,7 +277,7 @@ async def patch_role(
       "description": "No access token or invalid access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
             }
          },
    },
@@ -305,8 +307,9 @@ async def patch_role(
    }
 })
 async def delete_role(
-   validation_info:dict[str, Any] = Depends(validators.validate_delete_roles),
-   role_id: UUID = Path(..., description="role id to delete", examples = ['11111111-1111-1111-1111-111111111111']) 
+   request: Request,
+   _= Depends(routes_to_middleware_imple_map['delete_role']),
+   role_id: UUID = Path(..., description="role id to delete", examples = ['11111111-1111-1111-1111-111111111111']),
 ) -> JSONResponse:
    """
    Delete Role resource
@@ -321,6 +324,6 @@ async def delete_role(
    Notes:
       - Authorized for use only by superadmin users
    """
-   db: Session = validation_info.get("db", None)
+   db: Session = request.state.db
    return service.delete_role(db, role_id)
 

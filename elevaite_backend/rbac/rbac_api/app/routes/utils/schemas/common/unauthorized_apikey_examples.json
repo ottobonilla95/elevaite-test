@@ -1,0 +1,8 @@
+{
+   "invalid_or_expired_apikey": {
+      "summary": "Invalid or expired apikey",
+      "value": {
+         "detail": "invalid or expired apikey"
+      }
+   }
+}

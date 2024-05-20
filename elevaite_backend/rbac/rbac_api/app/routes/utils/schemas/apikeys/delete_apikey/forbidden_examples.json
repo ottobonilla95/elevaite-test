@@ -1,0 +1,52 @@
+{
+   "insufficient_permissions_1": {
+      "summary": "logged-in user is not assigned to account",
+      "value": {
+         "detail": "you are not assigned to account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "insufficient_permissions_2": {
+      "summary": "logged-in user is not assigned to project",
+      "value": {
+         "detail": "you are not assigned to project - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "insufficient_permissions_3": {
+      "summary": "logged-in user is not assigned to 1 or more project in parent project's hierarchy",
+      "value": {
+         "detail": "you are not assigned to one or more projects in the project hierarchy of parent project - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "insufficient_permissions_4": {
+      "summary": "logged-in user does not have superadmin/account-admin privileges and does not have account-specific role-based access permissions to perform the action sequence",
+      "value": {
+         "detail": "you do not have superadmin/account-admin privileges and you do not have account-specific role-based access permissions to perform the action sequence - '(READ,)' - on 'Project' resources within account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "insufficient_permissions_5": {
+      "summary": "logged-in user does not have superadmin/account-admin privileges and does not have account-specific role-based access permissions to perform the action sequence",
+      "value": {
+         "detail": "you do not have superadmin/account-admin privileges and you do not have account-specific role-based access permissions to perform the action sequence - '(READ,)' - on 'Apikey' resources within account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "insufficient_permissions_6": {
+      "summary": "logged-in user is denied permissions to perform the action sequence - '(READ, )' - on 'Apikey' resources due to project-specific permission overrides in project",
+      "value": {
+         "detail": "you are denied permissions to perform the action sequence - '(READ, )' - on 'Apikey' resources due to project-specific permission overrides in project - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "insufficient_permissions_7": {
+      "summary": "api key's permissions are restricted to resources within project",
+      "value": {
+         "detail": "your permissions are restricted to resources within project - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   },
+   "insufficient_permissions_8": {
+      "summary": "you do not have superadmin/account-admin/project-admin privileges to revoke api keys that were created by other users",
+      "value": {
+         "detail": "you do not have superadmin/account-admin/project-admin privileges to revoke api keys that were created by other users"
+      }
+   }
+}
+
+   

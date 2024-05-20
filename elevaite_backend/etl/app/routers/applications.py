@@ -1,5 +1,5 @@
-from typing import List, Sequence, Any, Dict, Type
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Sequence, Any, Dict, Type, Optional
+from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from sqlalchemy.orm import Session, Query
 from ..services import applications as service
 from .deps import get_db
@@ -9,35 +9,27 @@ from elevaitedb.schemas import (
     pipeline as pipeline_schemas,
 )
 
-from rbac_api import (
-   validators,
-   rbac_instance
-)
-
+# from rbac_api import (
+#    routes_to_middleware_imple_map,
+#    rbac_instance
+# )
+ 
 router = APIRouter(prefix="/application", tags=["applications"])
 
 
 @router.get("", response_model=list[application_schemas.Application])
 def getApplicationList(
+    # request: Request,  # uncomment this when using validator
     db: Session = Depends(get_db), # comment this when using validator
-    # validation_info:dict[str, Any] = Depends(validators.validate_get_connectors_factory(models.Application, ("READ",))) # uncomment this to use validator
+    # validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['getApplicationList']), # uncomment this to use validator
 ) -> Sequence[application_schemas.Application]:
 
-    # db: Session = validation_info.get("db", None) # uncomment this when using validator
-    
-    # typenames = validation_info.get("target_entity_typename_combinations", tuple()) # uncomment this when using validator
-    # typevalues = validation_info.get("target_entity_typevalue_combinations", tuple()) # uncomment this when using validator
-
-    # filters_list: List[Dict[str, Any]] = rbac_instance.generate_post_validation_type_filters_for_all_query(models.Application, typenames, typevalues, validation_info) # uncomment this when using validator
-    
-    # Create a filter function closure
-    # def filter_function(model_class : Type[models.Base], query: Query) -> Query:  # uncomment this when using validator
-    #     return rbac_instance.apply_post_validation_type_filters_for_all_query(
-    #         model_class, filters_list, query)
+    # db: Session = request.state.db # uncomment this when using validator
+    # all_query_authorized_types_filter_function = rbac_instance.get_post_validation_types_filter_function_for_all_query(models.Application, validation_info) # uncomment this when using validator
     
     return service.getApplicationList(
         db,
-        # filter_function=filter_function # uncomment this when using validator
+        # filter_function=all_query_authorized_types_filter_function # uncomment this when using validator
     )
 
 
@@ -45,7 +37,7 @@ def getApplicationList(
 def getApplicationById(
     application_id: int,
     db: Session = Depends(get_db) # comment this when using validator
-    # validation_info:dict[str, Any] = Depends(validators.validate_get_connector_factory(models.Application, ("READ",))) # uncomment this to use validator
+    # validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['getApplicationById']), # uncomment this to use validator,
 ) -> application_schemas.Application:
 
     # application = validation_info.get("Application", None) # uncomment this when using validator
@@ -76,9 +68,10 @@ def getApplicationById(
     "/{application_id}/pipelines", response_model=list[pipeline_schemas.Pipeline]
 )
 def getApplicationPipelines(
+    # request: Request, # uncomment this when using validator
     application_id: int,
-    # validation_info:dict[str, Any] = Depends(validators.validate_get_connector_pipelines_factory(models.Application, ("READ",))), #uncomment this to use validator
-    db: Session = Depends(get_db) # comment this when using validator
+    db: Session = Depends(get_db), # comment this when using validator
+    # validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['getApplicationPipelines']), # uncomment this to use validator
 ) -> Sequence[pipeline_schemas.Pipeline]:
-    # db: Session = validation_info.get("db", None) #uncomment this when using validator
+    # db: Session = request.state.db #uncomment this when using validator
     return service.getApplicationPipelines(db, application_id)

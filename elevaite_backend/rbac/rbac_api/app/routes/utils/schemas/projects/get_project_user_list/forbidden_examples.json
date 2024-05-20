@@ -22,5 +22,11 @@
       "value": {
          "detail": "you do not have superadmin/account-admin privileges and you do not have account-specific role-based access permissions to perform the action sequence - '(READ,)' - on 'Project' resources within account - '789e4567-e89b-12d3-a456-426614174000'"
       }
+   },
+   "insufficient_permissions_5": {
+      "summary": "api key's permissions are restricted to resources within project",
+      "value": {
+         "detail": "your permissions are restricted to resources within project - '789e4567-e89b-12d3-a456-426614174000'"
+      }
    }
 }

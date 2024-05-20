@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Path, Body, status, Depends, Query
+from fastapi import APIRouter, Path, Body, status, Depends, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional, Any
@@ -9,8 +9,8 @@ from elevaitedb.schemas import (
    user as user_schemas,
 )
 from elevaitedb.db import models 
-from rbac_api import validators 
-from ..services import account_service as service
+from rbac_api import routes_to_middleware_imple_map
+from ..services import account as service
 from .utils.helpers import load_schema
 
 account_router = APIRouter(prefix="/accounts", tags=["accounts"]) 
@@ -24,7 +24,7 @@ account_router = APIRouter(prefix="/accounts", tags=["accounts"])
       "description": "Invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_schema("common/unauthorized_examples.json")
+            "examples": load_schema("common/unauthorized_accesstoken_examples.json")
          }
       },
    },
@@ -70,8 +70,9 @@ account_router = APIRouter(prefix="/accounts", tags=["accounts"])
    }
 })
 async def create_account(
+   request: Request,
    account_creation_payload: account_schemas.AccountCreationRequestDTO = Body(..., description = "account creation request payload"),
-   validation_info: dict[str, Any] = Depends(validators.validate_post_account) 
+   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['create_account']),
 ) -> account_schemas.AccountResponseDTO: 
    """
    Create an Account resource based on given body param.
@@ -87,8 +88,8 @@ async def create_account(
       - only authorized for use by superadmin users. 
       - creating an account assigns the creator to the account
    """
-   logged_in_user: models.User = validation_info.get("logged_in_user", None)
-   db: Session = validation_info.get("db", None)
+   logged_in_user: models.User = validation_info.get( "authenticated_entity", None)
+   db: Session = request.state.db
    return service.create_account(account_creation_payload, db, logged_in_user.id)
   
    
@@ -105,7 +106,7 @@ async def create_account(
       "description": "Invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_schema("common/unauthorized_examples.json")
+            "examples": load_schema("common/unauthorized_accesstoken_examples.json")
          }
       },
    },
@@ -143,8 +144,9 @@ async def create_account(
    }
 })
 async def patch_account(
+   request: Request,
    account_patch_req_payload: account_schemas.AccountPatchRequestDTO = Body(...),
-   validation_info: dict[str, Any] = Depends(validators.validate_patch_account) 
+   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['patch_account']) ,
 ) -> account_schemas.AccountResponseDTO: 
    """
    Patch an Account resource based on given body param.
@@ -160,7 +162,7 @@ async def patch_account(
       - only authorized for use by superadmin/account-admin users. 
    """
    account_to_patch: models.Account = validation_info.get("Account", None)
-   db: Session = validation_info.get("db", None)
+   db: Session = request.state.db
    return service.patch_account(account_to_patch, account_patch_req_payload, db)
    
 @account_router.get("/", responses={
@@ -176,7 +178,7 @@ async def patch_account(
       "description": "Invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
          }
       },
    },
@@ -189,8 +191,9 @@ async def patch_account(
       },
    }
 })
-async def get_accounts(  
-   validation_info: dict[str, Any] = Depends(validators.validate_get_accounts), 
+async def get_accounts(
+   request: Request,
+   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_accounts']), 
    name: Optional[str] = Query(None, description="Filter accounts by account name"),
 ) -> List[account_schemas.AccountResponseDTO]:
    """
@@ -198,16 +201,17 @@ async def get_accounts(
 
    Parameters:
       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
+      - name (query param): case-insensitive pattern match for account name
 
    Returns: 
-      - List[AccountResponseDTO] : The response containing list of AccountResponseDTO objects that are accessible by user. 
+      - List[AccountResponseDTO] : The response containing list of accounts that are accessible by user. 
    
    Notes:
       - superadmin users can retrieve all organization accounts regardless of assignment. 
       - non-superadmin users can only retrieve accounts to which they are assigned. 
    """
-   logged_in_user: models.User  = validation_info.get("logged_in_user", None)
-   db: Session = validation_info.get("db", None)
+   logged_in_user: models.User  = validation_info.get( "authenticated_entity", None)
+   db: Session = request.state.db
    return service.get_accounts(logged_in_user.id,logged_in_user.is_superadmin, name, db)
 
 @account_router.get("/{account_id}", responses={
@@ -219,7 +223,7 @@ async def get_accounts(
       "description": "Invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
          }
       },
    },
@@ -257,7 +261,7 @@ async def get_accounts(
    }
 })
 async def get_account( 
-   validation_info: dict[str, Any] = Depends(validators.validate_get_account), 
+   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_account']),
 ) -> account_schemas.AccountResponseDTO:
    """
    Retrieve Account resource
@@ -289,7 +293,7 @@ async def get_account(
       "description": "Invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
          }
       },
    },
@@ -327,11 +331,12 @@ async def get_account(
    }
 })
 async def get_account_user_list(
-   validation_info: dict[str, Any] = Depends(validators.validate_get_account_user_list),
+   request: Request,
+   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_account_user_list']),
    account_id: UUID = Path(..., description="Account id under which users are queried"),  
    firstname: Optional[str] = Query(None, description="Filter users by first name"),
    lastname: Optional[str] = Query(None, description="Filter users by last name"),
-   email: Optional[str] = Query(None, description="Filter users by email")
+   email: Optional[str] = Query(None, description="Filter users by email"),
 ) -> List[user_schemas.AccountUserListItemDTO]:
    """
    Retrieve Account resource's user list
@@ -352,7 +357,7 @@ async def get_account_user_list(
       - Each list item displays User resource information along with account-admin status and account-scoped roles
       - superadmin/account-admin users will always display an empty list for their account-scoped roles 
    """
-   db: Session = validation_info.get("db", None)
+   db: Session = request.state.db
    return service.get_account_user_list(db,account_id, firstname, lastname, email)
    
 
@@ -369,7 +374,7 @@ async def get_account_user_list(
       "description": "Invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
          }
       },
    },
@@ -415,9 +420,10 @@ async def get_account_user_list(
    }
 })
 async def assign_users_to_account(
+   request: Request,
    account_id: UUID = Path(..., description="The ID of the account"),
    user_list_dto: user_schemas.UserListDTO = Body(description = "payload containing user_id's to assign to account"),
-   validation_info: dict[str, Any] = Depends(validators.validate_assign_users_to_account)
+   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['assign_users_to_account']),
 ) -> JSONResponse:
    """
    Assign list of User resources to an Account resource
@@ -433,7 +439,7 @@ async def assign_users_to_account(
    Notes:
       - only authorized for use by superadmin/account-admin users
    """
-   db: Session = validation_info.get("db", None)
+   db: Session = request.state.db
    return service.assign_users_to_account(account_id, user_list_dto, db)
 
 @account_router.delete("/{account_id}/users/{user_id}", status_code=status.HTTP_200_OK, responses={
@@ -449,7 +455,7 @@ async def assign_users_to_account(
       "description": "Invalid, expired or no access token",
       "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
          }
       },
    },
@@ -487,9 +493,10 @@ async def assign_users_to_account(
    }
 })
 async def deassign_user_from_account(
+   request: Request,
    account_id: UUID = Path(..., description="The ID of the account"),
    user_id:UUID = Path(..., description = "user id to deassign from account"),
-   validation_info: dict[str, Any] = Depends(validators.validate_deassign_user_from_account)
+   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['deassign_user_from_account']),
 ) -> JSONResponse:
    """
    Deassign User resource from Account resource
@@ -508,8 +515,8 @@ async def deassign_user_from_account(
       - superadmin users can only be deassigned from account by root superadmin user or by themselves
       - deassignment from account also results in user getting deassigned from all assigned projects within that account
    """
-   db: Session = validation_info.get("db", None)
-   logged_in_user = validation_info.get('logged_in_user', None)
+   db: Session = request.state.db
+   logged_in_user = validation_info.get('authenticated_entity', None)
    return service.deassign_user_from_account(account_id, user_id, logged_in_user, db)
 
 
@@ -527,7 +534,7 @@ async def deassign_user_from_account(
      "description": "Invalid, expired or no access token",
      "content": {
          "application/json": {
-            "examples": load_schema('common/unauthorized_examples.json')
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
          }
       }
    },
@@ -565,10 +572,11 @@ async def deassign_user_from_account(
    }
 })
 async def patch_user_account_admin_status(
+   request: Request,
    account_id: UUID = Path(..., description="The ID of the account"),
    user_id: UUID = Path(..., description="ID of user"),
    account_admin_status_update_dto: account_schemas.AccountAdminStatusUpdateDTO = Body(...),
-   validation_info:dict[str, Any] = Depends(validators.validate_patch_account_admin_status)  
+   validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['patch_user_account_admin_status']),
 ) -> JSONResponse:
    """
    Patch User resources' account admin status
@@ -587,8 +595,8 @@ async def patch_user_account_admin_status(
       - users who are only account-admins cannot modify account admin status of self
       - revoking account admin status of non-superadmin user also results in deassignment of the user from all of the account's projects where the user is not also assigned to all projects in the respective projects' parent project hierarchy up until the account's top level project (where parent_project_id is null) 
    """
-   logged_in_user = validation_info.get("logged_in_user", None)
-   db: Session = validation_info.get("db", None)
+   logged_in_user = validation_info.get("authenticated_entity", None)
+   db: Session = request.state.db
    return service.patch_user_account_admin_status(account_id,  
                                                   user_id,
                                                    logged_in_user.is_superadmin,

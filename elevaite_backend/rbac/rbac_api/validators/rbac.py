@@ -2,13 +2,13 @@ from fastapi import Request, HTTPException, status
 from sqlalchemy.orm import Session, Query
 from sqlalchemy import and_
 
-from typing import Any, Dict, Type, Optional, List, Tuple, Set
+from typing import Any, Dict, Type, Optional, List, Tuple, Set, Callable
 from collections import OrderedDict
 from uuid import UUID
 
 from elevaitedb.db import models
 from elevaitedb.schemas import (
-   role as role_schemas,
+   permission as permission_schemas,
    auth as auth_schemas
 )
 from pydantic import ValidationError
@@ -23,46 +23,57 @@ from rbac_api.utils.cte import (
    is_user_project_association_till_root,
 )
 from .config import (
-   rbac_schema,
    model_classStr_to_class,
    validation_precedence_order,
+)
+from .schemas.permissions import (
+   account_scoped_permissions as account_scoped_permissions_schema,
+   project_scoped_permissions as project_scoped_permissions_schema,
+   apikey_scoped_permissions as apikey_scoped_permissions_schema
 )
 
 class RBAC:
    
    def __init__(
       self,
-      rbac_schema: Dict,
       model_classStr_to_class: Dict[str, Type[models.Base]],
       validation_precedence_order: list[Type[models.Base]],
    ):
-      self._rbac_schema = rbac_schema
+      self._account_scoped_permissions_schema = account_scoped_permissions_schema
+      self._project_scoped_permissions_schema = project_scoped_permissions_schema     
+      self._apikey_scoped_permissions_schema = apikey_scoped_permissions_schema
       self._model_classStr_to_class = model_classStr_to_class
       self._validation_precedence_order = validation_precedence_order
-      self._leaf_action_paths_map,self._entity_typenames_list,self._entity_typevalues_list, self._valid_entity_actions_map,self._entity_actions_to_path_params = self._initialize_rbac_instance_properties()
+
+      (self._account_scoped_permissions_leaf_action_paths_map,
+      self._project_scoped_permissions_leaf_action_paths_map,
+      self._apikey_scoped_permissions_leaf_action_paths_map,
+      self._entity_typenames_list,
+      self._entity_typevalues_list,
+      self._account_scoped_permissions_valid_entity_actions_map,
+      self._project_scoped_permissions_valid_entity_actions_map,
+      self._apikey_scoped_permissions_valid_entity_actions_map,
+      self._entity_actions_to_path_params
+      ) = self._initialize_rbac_instance_properties()
       
    def _initialize_rbac_instance_properties(self):
-      # Perform schema validation
-      self._validate_rbac_schema()
+   
       # Populate and return the action paths map
-      (leaf_action_paths_map,
+      (account_scoped_permissions_leaf_action_paths_map,
       entity_to_typenames_list,
       entity_to_typevalues_list,
-      valid_entity_actions_map,
-      entity_actions_to_path_params) =  self._populate_rbac_schema_info(self._rbac_schema)
-      # for key,val in leaf_action_paths_map.items():
-      #    pprint(f"{key} : {val}")
-      #    pprint("----------")
-      # pprint("X-------ENTITY TYPENAMES TO SET--------X")
-      # for key,val in entity_to_typenames_set.items():
+      account_scoped_permissions_valid_entity_actions_map,
+      entity_actions_to_path_params) =  self._populate_rbac_schema_info(self._account_scoped_permissions_schema)
+      # pprint("X-------ACCOUNT SCOPED PERMISSIONS LEAF ACTION PATHS MAP--------X")
+      # for key,val in account_scoped_permissions_leaf_action_paths_map.items():
       #    pprint(f"{key} : {val}")
       #    pprint("----------")
       # pprint("X-------ENTITY TYPENAMES LIST--------X")
       # for key,val in entity_to_typenames_list.items():
       #    pprint(f"{key} : {val}")
       #    pprint("----------")
-      # pprint("X-------VALID ENTITY ACTIONS --------X")
-      # for key,val in valid_entity_actions_map.items():
+      # pprint("X-------ACCOUNT SCOPED PERMISSIONS VALID ENTITY ACTIONS --------X")
+      # for key,val in account_scoped_permissions_valid_entity_actions_map.items():
       #    pprint(f"{key} : {val}")
       #    pprint("----------")
       # pprint("X-------ENTITY TYPE VALUES LIST --------X")
@@ -74,32 +85,92 @@ class RBAC:
       #    pprint(f"{key} : {val}")
       #    pprint("----------")
 
-      return leaf_action_paths_map, entity_to_typenames_list, entity_to_typevalues_list, valid_entity_actions_map, entity_actions_to_path_params
+      (project_scoped_permissions_leaf_action_paths_map,
+      _,
+      _,
+      project_scoped_permissions_valid_entity_actions_map,
+      _) =  self._populate_rbac_schema_info(self._project_scoped_permissions_schema)
+      # pprint("X-------PROJECT SCOPED PERMISSIONS LEAF ACTION PATHS MAP--------X")
+      # for key,val in project_scoped_permissions_leaf_action_paths_map.items():
+      #    pprint(f"{key} : {val}")
+      #    pprint("----------")
+      # pprint("X-------PROJECT SCOPED PERMISSIONS VALID ENTITY ACTIONS --------X")
+      # for key,val in project_scoped_permissions_valid_entity_actions_map.items():
+      #    pprint(f"{key} : {val}")
+      #    pprint("----------")
+
+      (apikey_scoped_permissions_leaf_action_paths_map,
+      _,
+      _,
+      apikey_scoped_permissions_valid_entity_actions_map,
+      _) =  self._populate_rbac_schema_info(self._apikey_scoped_permissions_schema)
+
+      return (account_scoped_permissions_leaf_action_paths_map,
+               project_scoped_permissions_leaf_action_paths_map,
+               apikey_scoped_permissions_leaf_action_paths_map,
+               entity_to_typenames_list, 
+               entity_to_typevalues_list,
+               account_scoped_permissions_valid_entity_actions_map,
+               project_scoped_permissions_valid_entity_actions_map,
+               apikey_scoped_permissions_valid_entity_actions_map,
+               entity_actions_to_path_params
+               )
    
-   def _validate_rbac_schema(self):
-      try:
-         validated_rbac_permissions_schema = role_schemas.AccountScopedPermission.parse_obj(self._rbac_schema)
-         # print("Input RBAC Schema Validation Successful")
-      except ValidationError as e:
-         print("input RBAC schema Validation Error:", e.json())
-         raise e
+   # def _validate_account_scoped_permissions_schema(self):
+   #    try:
+   #       validated_account_scoped_permissions_schema = permission_schemas.AccountScopedRBACPermission.parse_obj(self._account_scoped_permissions_schema)
+   #       # print("Input RBAC Schema Validation Successful")
+   #    except ValidationError as e:
+   #       print("input account_scoped_permissions schema Validation Error:", e.json())
+   #       raise e
    
+   # def _validate_project_scoped_permissions_schema(self):
+   #    try:
+   #       validated_project_scoped_permissions_schema = permission_schemas.ProjectScopedRBACPermission.parse_obj(self._project_scoped_permissions_schema)
+   #       # print("Input RBAC Schema Validation Successful")
+   #    except ValidationError as e:
+   #       print("input project_scoped_permissions schema Validation Error:", e.json())
+   #       raise e
+      
    def _populate_rbac_schema_info(
       self,
       current_schema_obj: dict,
-      current_cumulative_entities_in_path: list[Type[models.Base]] = [],
-      current_cumulative_typevalues_in_path: list[tuple[str, ...]] = [],
-      current_path=[],
-      current_action_sequence: list[str] = [],
-      valid_entity_actions_map: dict[Type[models.Base] | None, set[tuple[str, ...]]] = {},
-      entity_actions_to_path_params: dict[tuple[Type[models.Base], tuple[str, ...]], set[Type[models.Base]]] = {},
-      leaf_action_path_map: dict = {},
-      entity_to_typenames_set: dict[Type[models.Base] | None, set] = {},
-      entity_to_typenames_list: dict[Type[models.Base] | None, list[str]] = {},
-      entity_to_typevalues_set: dict[Type[models.Base] | None, set] = {},
-      entity_to_typevalues_list: dict[Type[models.Base] | None, list[tuple[str, ...]]] = {},
+      current_cumulative_entities_in_path: list[Type[models.Base]] | None = None,
+      current_cumulative_typevalues_in_path: list[tuple[str, ...]] | None = None,
+      current_path=None,
+      current_action_sequence: list[str] | None = None,
+      valid_entity_actions_map: dict[Type[models.Base] | None, set[tuple[str, ...]]] | None = None,
+      entity_actions_to_path_params: dict[tuple[Type[models.Base], tuple[str, ...]], set[Type[models.Base]]] | None = None,
+      leaf_action_path_map: dict | None = None,
+      entity_to_typenames_set: dict[Type[models.Base] | None, set] | None = None,
+      entity_to_typenames_list: dict[Type[models.Base] | None, list[str]] | None = None,
+      entity_to_typevalues_set: dict[Type[models.Base] | None, set] | None = None,
+      entity_to_typevalues_list: dict[Type[models.Base] | None, list[tuple[str, ...]]] | None = None,
    ):
-      
+      # initialize default param values here; must be done this way and not in signature as the modified state for mutable types will persist in future function calls when specified in signature 
+      if current_cumulative_entities_in_path is None:
+        current_cumulative_entities_in_path = []
+      if current_cumulative_typevalues_in_path is None:
+         current_cumulative_typevalues_in_path = []
+      if current_path is None:
+         current_path = []
+      if current_action_sequence is None:
+         current_action_sequence = []
+      if valid_entity_actions_map is None:
+         valid_entity_actions_map = {}
+      if entity_actions_to_path_params is None:
+         entity_actions_to_path_params = {}
+      if leaf_action_path_map is None:
+         leaf_action_path_map = {}
+      if entity_to_typenames_set is None:
+         entity_to_typenames_set = {}
+      if entity_to_typenames_list is None:
+         entity_to_typenames_list = {}
+      if entity_to_typevalues_set is None:
+         entity_to_typevalues_set = {}
+      if entity_to_typevalues_list is None:
+         entity_to_typevalues_list = {}
+
       for key, value in current_schema_obj.items():
          current_path.append(key) 
          current_entity = current_cumulative_entities_in_path[-1] if current_cumulative_entities_in_path else None
@@ -194,9 +265,9 @@ class RBAC:
       logged_in_user: models.User,
       account_id: Optional[UUID],
       project_id: Optional[UUID],
-      permissions_validation_request : auth_schemas.PermissionsValidationRequest,
+      permissions_evaluation_request : auth_schemas.PermissionsEvaluationRequest,
       db: Session,
-   )-> auth_schemas.PermissionsValidationResponse:
+   )-> auth_schemas.PermissionsEvaluationResponse:
       
       account_and_project_params = {}
       if account_id is not None:
@@ -213,13 +284,13 @@ class RBAC:
 
       # print(f'model_class_to_instance = {model_class_to_instance}')
       self._validate_inter_model_associations(model_class_to_instance, account_and_project_params)
-      logged_in_user_account_and_project_associations:dict[str, Any] = await self._validate_logged_in_user_account_and_project_associations(model_class_to_instance, logged_in_user, db)
+      logged_in_user_account_and_project_associations:dict[str, Any] = await self._validate_logged_in_entity_account_and_project_associations(model_class_to_instance, logged_in_user, db)
 
       # Initialize the response
       response_data = {}
-      permissions_validation_request_dict = permissions_validation_request.dict()
-      for field_name in permissions_validation_request_dict.keys():
-         field_value = permissions_validation_request_dict[field_name]
+      permissions_evaluation_request_dict = permissions_evaluation_request.dict()
+      for field_name in permissions_evaluation_request_dict.keys():
+         field_value = permissions_evaluation_request_dict[field_name]
          if field_value is None: continue
          try:
             match field_name:
@@ -227,31 +298,32 @@ class RBAC:
                   if not models.Project in model_class_to_instance:
                      raise ApiError.validationerror("X-elevAIte-ProjectId header is required to evaluate 'IS_PROJECT_ADMIN' permissions for user")
                   logged_in_user_project_association = logged_in_user_account_and_project_associations.get("logged_in_user_project_association", None)
-                  response_data[field_name] = logged_in_user_project_association.is_admin if logged_in_user_project_association else False
+                  response_data[field_name] = {"OVERALL_PERMISSIONS" : logged_in_user_project_association.is_admin if logged_in_user_project_association else False}
                case "IS_ACCOUNT_ADMIN":
                   if not models.Account in model_class_to_instance:
                      raise ApiError.validationerror("X-elevAIte-AccountId or X-elevAIte-ProjectId header is required to evaluate 'IS_ACCOUNT_ADMIN' permissions for user")
                   logged_in_user_account_association = logged_in_user_account_and_project_associations.get("logged_in_user_account_association", None)
-                  response_data[field_name] = logged_in_user_account_association.is_admin if logged_in_user_account_association else False
+                  response_data[field_name] = {"OVERALL_PERMISSIONS": logged_in_user_account_association.is_admin if logged_in_user_account_association else False}
                case _:
                   # Parse the field name to get the model class and action sequence
-                  target_model_class_str, target_model_action_sequence = auth_schemas.PermissionsValidationRequest.parse_model_type_and_action_sequence(field_name)
+                  target_model_class_str, target_model_action_sequence = auth_schemas.PermissionsEvaluationRequest.parse_model_type_and_action_sequence(field_name)
                   target_model_class_str = target_model_class_str.lower().capitalize()
                   # print(f'target_model_class_str = {target_model_class_str}, target_model_action_sequence = {target_model_action_sequence}')
                   target_model_class = self._model_classStr_to_class.get(target_model_class_str, None)
                   if not target_model_class:
                      print(f'in rbac.validate_rbac_permissions : no target class found for target_model_class_str = {target_model_class_str}')
                      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-                  if not target_model_action_sequence in self._valid_entity_actions_map[target_model_class]:
+                  if not target_model_action_sequence in self._account_scoped_permissions_valid_entity_actions_map[target_model_class]:
                      print(f'in rbac.validate_rbac_permissions : target model action sequence - "{target_model_action_sequence}" - not found in valid_entity_actions_map')
                      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
                   
+      
                   MODEL_ACTION_IS_ONLY_ACCOUNT_SCOPED: bool = False
                   # validate account/project endpoint params requirements met or not based on action scope
-                  if auth_schemas.PermissionsValidationRequest.validate_permission_scope(field_name, auth_schemas.RBACPermissionScope.ACCOUNT_SCOPE) and auth_schemas.PermissionsValidationRequest.validate_permission_scope(field_name, auth_schemas.RBACPermissionScope.PROJECT_SCOPE): # if endpoint supports account scoped and project scoped actions
+                  if auth_schemas.PermissionsEvaluationRequest.validate_permission_scope(field_name, auth_schemas.RBACPermissionScope.ACCOUNT_SCOPE) and auth_schemas.PermissionsEvaluationRequest.validate_permission_scope(field_name, auth_schemas.RBACPermissionScope.PROJECT_SCOPE): # if endpoint supports account scoped and project scoped actions
                      if not logged_in_user.is_superadmin and not models.Account in model_class_to_instance:
                         raise ApiError.validationerror(f"X-elevAIte-AccountId is required to evaluate {field_name} permissions for user")
-                  elif auth_schemas.PermissionsValidationRequest.validate_permission_scope(field_name, auth_schemas.RBACPermissionScope.ACCOUNT_SCOPE): # if endpoint only supports account scoped actions
+                  elif auth_schemas.PermissionsEvaluationRequest.validate_permission_scope(field_name, auth_schemas.RBACPermissionScope.ACCOUNT_SCOPE): # if endpoint only supports account scoped actions
                      if not logged_in_user.is_superadmin and not models.Account in model_class_to_instance:
                         raise ApiError.validationerror(f"X-elevAIte-AccountId is required to evaluate {field_name} permissions for user")
                      MODEL_ACTION_IS_ONLY_ACCOUNT_SCOPED = True
@@ -288,28 +360,67 @@ class RBAC:
                      target_model_class,
                      target_model_action_sequence
                   )
-                  response_data[field_name] = True  
+                  
+                  logged_in_user = validation_info.get("authenticated_entity", None)
+                  if logged_in_user and logged_in_user.is_superadmin:
+                     response_data[field_name] = auth_schemas.EvaluatedPermissionsFactory.get_evaluated_permission(all_permissions = True, permission_field=field_name).dict()
+                     continue
+                  logged_in_user_account_association = validation_info.get("logged_in_entity_account_association", None)
+                  if logged_in_user_account_association and logged_in_user_account_association.is_admin:
+                     response_data[field_name] = auth_schemas.EvaluatedPermissionsFactory.get_evaluated_permission(all_permissions = True, permission_field=field_name).dict()
+                     continue
+
+                  overall_permissions = True
+
+                  typenames = validation_info.get("target_entity_typename_combinations", tuple()) 
+                  typevalues = validation_info.get("target_entity_typevalue_combinations", tuple()) 
+
+                  specific_permissions = {}
+
+                  if typenames and typevalues:
+                     typenames_key = '_'.join(typenames)
+                     specific_permissions[typenames_key] = {}
+                     specific_permissions_unauthorized_count = 0
+                     for typevalues_combination in typevalues:
+                        typevalues_key = "_".join(typevalues_combination)
+                        validation_key = f'ENTITY_{target_model_class.__name__}_TYPENAMES_{typenames_key}_TYPEVALUES_{typevalues_key}'
+                        unauthorized_type = validation_info.get(validation_key)
+                        
+                        specific_permissions[typenames_key][typevalues_key] = True
+
+                        # Now we check if the type is unauthorized and set specific permissions to false
+                        if unauthorized_type:
+                           specific_permissions_unauthorized_count += 1 
+                           specific_permissions[typenames_key][typevalues_key] = False
+                     
+                     if specific_permissions_unauthorized_count == len(typevalues):
+                        overall_permissions = False
+                  
+                  response_data[field_name] = {
+                     "OVERALL_PERMISSIONS" : overall_permissions
+                  }
+
+                  if specific_permissions:
+                     response_data[field_name]['SPECIFIC_PERMISSIONS'] = specific_permissions
+                 
          except HTTPException as e:
             if e.status_code == status.HTTP_403_FORBIDDEN:
-               response_data[field_name] = False
+               response_data[field_name] = {
+                  "OVERALL_PERMISSIONS" : False
+               }
             else:
                raise e
-            
-      return auth_schemas.PermissionsValidationResponse(**response_data)
 
-   async def validate_endpoint_rbac_permissions(
+      return auth_schemas.PermissionsEvaluationResponse.parse_obj(response_data)
+
+   async def validate_rbac_permissions(
       self,
       request,
       db: Session,
-      user_email: str,
+      authenticated_entity: models.User | models.Apikey,
       target_model_action_sequence: tuple[str, ...],
       target_model_class: Type[models.Base],
    ) -> dict[str, Any]:
-      
-      logged_in_user = db.query(models.User).filter(models.User.email == user_email).first()
-      if not logged_in_user:
-         raise ApiError.unauthorized("User is unauthenticated")
-
       params = {**request.path_params}
       
       if not 'account_id' in request.path_params and not 'project_id' in request.path_params: # if account_id in path params or project_id in path params (account can be derived from project), dont consider account_id header
@@ -333,7 +444,7 @@ class RBAC:
       
       # make maps only considering params for account and project if provided, to prepare for validate logged-in user's account and project associations
       model_classStr_to_instanceIds = self._map_model_classStr_to_instanceIds(account_and_project_params)
-      model_class_to_instance = await self._map_model_class_to_instances(db, model_classStr_to_instanceIds)
+      model_class_to_instance = await self._map_model_class_to_instances(db, model_classStr_to_instanceIds) 
 
       if 'project_id' in account_and_project_params and not 'account_id' in account_and_project_params: # if only project_id provided and not account_id, extract account_id from project and update map
          model_class_to_instance.update(await self._map_model_class_to_instances(db, {'Account' : model_class_to_instance[models.Project].account_id}))
@@ -343,9 +454,9 @@ class RBAC:
       # do an inter-modal association check for only account and project instances
       self._validate_inter_model_associations(model_class_to_instance, account_and_project_params) 
 
-      ## validate logged in user account and project association check before proceeding to validate intermodal checks for other params
-      logged_in_user_account_and_project_associations:dict[str, Any] = await self._validate_logged_in_user_account_and_project_associations(model_class_to_instance, logged_in_user, db)
-
+      # validate authenticated entity's account and project association check before proceeding to validate intermodal checks for other params
+      logged_in_entity_account_and_project_associations:dict[str, Any] = await self._validate_logged_in_entity_account_and_project_associations(model_class_to_instance, authenticated_entity, db)
+      
       ## Update maps with rest of params here to prepare for validate intermodal associations with rest of params.
       model_classStr_to_instanceIds.update(self._map_model_classStr_to_instanceIds(params))
       model_class_to_instance.update(await self._map_model_class_to_instances(db, model_classStr_to_instanceIds))
@@ -354,7 +465,7 @@ class RBAC:
 
       validation_info:dict[str,Any] = await self._validate_account_and_project_based_permissions(
          db,
-         logged_in_user_account_and_project_associations,
+         logged_in_entity_account_and_project_associations,
          model_class_to_instance,
          target_model_class,
          target_model_action_sequence
@@ -362,8 +473,7 @@ class RBAC:
 
       converted_modelStr_instances_map = {model.__name__: instance for model, instance in model_class_to_instance.items()}
       validation_info.update(converted_modelStr_instances_map)
-      validation_info.update(logged_in_user_account_and_project_associations)
-      validation_info["db"] = db
+   
       return validation_info
 
    def _map_model_classStr_to_instanceIds(
@@ -420,70 +530,81 @@ class RBAC:
                if str(getattr(instance, attribute_name)) != str(value):
                   raise ApiError.validationerror(f"{model_class.__name__} - '{getattr(instance, 'id')}' - is not associated to {param} - '{value}'")
    
-   async def _validate_logged_in_user_account_and_project_associations(
+   async def _validate_logged_in_entity_account_and_project_associations(
       self,
       model_class_to_instance: dict[Type[models.Base],Type[models.Base]],
-      logged_in_user: models.User,
+      authenticated_entity: models.User | models.Apikey,
       db: Session
    )-> dict[str, Any]:
    
-      logged_in_user_account_and_project_association_info = {"logged_in_user" : logged_in_user,
-                                                               "logged_in_user_account_association" : None,
-                                                               "logged_in_user_project_association" : None}
+      logged_in_entity_account_and_project_association_info = {"authenticated_entity" : authenticated_entity,
+                                                               "logged_in_entity_account_association" : None,
+                                                               "logged_in_entity_project_association" : None}
       
-      if models.Account in model_class_to_instance:
-         logged_in_user_account_association = db.query(models.User_Account).filter(
-            models.User_Account.user_id == logged_in_user.id, models.User_Account.account_id == model_class_to_instance[models.Account].id
-         ).first()
+      if isinstance(authenticated_entity, models.User):
+         logged_in_user: models.User = authenticated_entity
+         if models.Account in model_class_to_instance:
+            logged_in_user_account_association = db.query(models.User_Account).filter(
+               models.User_Account.user_id == logged_in_user.id, models.User_Account.account_id == model_class_to_instance[models.Account].id
+            ).first()
 
-         if not logged_in_user_account_association:
-            if not logged_in_user.is_superadmin:
-               raise ApiError.forbidden(f"you are not assigned to account - '{model_class_to_instance[models.Account].id}'")
+            if not logged_in_user_account_association:
+               if not logged_in_user.is_superadmin:
+                  raise ApiError.forbidden(f"you are not assigned to account - '{model_class_to_instance[models.Account].id}'")
 
-         logged_in_user_account_and_project_association_info["logged_in_user_account_association"] = logged_in_user_account_association
-      
-      if models.Project in model_class_to_instance:
-         logged_in_user_project_association = db.query(models.User_Project).filter(
-            models.User_Project.user_id == logged_in_user.id, models.User_Project.project_id == model_class_to_instance[models.Project].id
-         ).first()
+            logged_in_entity_account_and_project_association_info["logged_in_entity_account_association"] = logged_in_user_account_association
+         
+         if models.Project in model_class_to_instance:
+            logged_in_user_project_association = db.query(models.User_Project).filter(
+               models.User_Project.user_id == logged_in_user.id, models.User_Project.project_id == model_class_to_instance[models.Project].id
+            ).first()
 
-         if not logged_in_user_project_association:  
+            if not logged_in_user_project_association:  
+               if not logged_in_user.is_superadmin and not (logged_in_user_account_association.is_admin if logged_in_user_account_association else False):
+                  raise ApiError.forbidden(f"you are not assigned to project - '{model_class_to_instance[models.Project].id}'")
+
+            logged_in_entity_account_and_project_association_info["logged_in_entity_project_association"] = logged_in_user_project_association
+
             if not logged_in_user.is_superadmin and not (logged_in_user_account_association.is_admin if logged_in_user_account_association else False):
-               raise ApiError.forbidden(f"you are not assigned to project - '{model_class_to_instance[models.Project].id}'")
-
-         logged_in_user_account_and_project_association_info["logged_in_user_project_association"] = logged_in_user_project_association
-
-         if not logged_in_user.is_superadmin and not (logged_in_user_account_association.is_admin if logged_in_user_account_association else False):
-            parent_project_id = model_class_to_instance[models.Project].parent_project_id
-            if parent_project_id and not is_user_project_association_till_root(db=db, starting_project_id=parent_project_id, user_id=logged_in_user.id):
-               raise ApiError.forbidden(f"you are not assigned to one or more projects in the project hierarchy of parent project - '{parent_project_id}'")
-      
-      return logged_in_user_account_and_project_association_info
+               parent_project_id = model_class_to_instance[models.Project].parent_project_id
+               if parent_project_id and not is_user_project_association_till_root(db=db, starting_project_id=parent_project_id, user_id=logged_in_user.id):
+                  raise ApiError.forbidden(f"you are not assigned to one or more projects in the project hierarchy of parent project - '{parent_project_id}'")
+      else: #  authenticated entity is Apikey
+         logged_in_apikey: models.Apikey = authenticated_entity
+         if not models.Project in model_class_to_instance or model_class_to_instance[models.Project].id != logged_in_apikey.project_id:
+            raise ApiError.forbidden(f"your permissions are restricted to resources within project - '{logged_in_apikey.project_id}'")
+         
+      return logged_in_entity_account_and_project_association_info
 
    async def _validate_account_and_project_based_permissions(
       self,
       db: Session, 
-      logged_in_user_account_and_project_association_info: dict[str,Any],
+      logged_in_entity_account_and_project_association_info: dict[str,Any],
       model_class_to_instance: dict[Type[models.Base],Type[models.Base]], 
       target_model_class: Type[models.Base],
       target_model_action_sequence: tuple[str, ...]
    ) -> dict:
-      logged_in_user = logged_in_user_account_and_project_association_info.get("logged_in_user", None)
-      logged_in_user_is_superadmin = logged_in_user.is_superadmin if logged_in_user else None
-      # validate early if logged in user is superadmin
-      if logged_in_user_is_superadmin:
-         return {}
       
-      if not models.Account in model_class_to_instance:
-         raise ApiError.forbidden("you do not have superadmin permissions and must provide an account_id")
-      
-      logged_in_user_account_association = logged_in_user_account_and_project_association_info.get("logged_in_user_account_association", None)
-      logged_in_user_is_account_admin = logged_in_user_account_association.is_admin if logged_in_user_account_association else None
-      # validate early if logged in user is account admin
-      if logged_in_user_is_account_admin:
-         return {}
-      
-      logged_in_user_account_association_id = logged_in_user_account_association.id if logged_in_user_account_association else None
+      permission_validation_info = dict()
+      permission_validation_info.update(logged_in_entity_account_and_project_association_info)
+
+      logged_in_entity = logged_in_entity_account_and_project_association_info.get("authenticated_entity", None)
+      if isinstance(logged_in_entity, models.User):
+         logged_in_user_is_superadmin = logged_in_entity.is_superadmin if logged_in_entity else None
+         # validate early if logged in user is superadmin
+         if logged_in_user_is_superadmin:
+            return permission_validation_info
+         
+         if not models.Account in model_class_to_instance:
+            raise ApiError.forbidden("you do not have superadmin permissions and must provide an account_id")
+         
+         logged_in_user_account_association = logged_in_entity_account_and_project_association_info.get("logged_in_entity_account_association", None)
+         logged_in_user_is_account_admin = logged_in_user_account_association.is_admin if logged_in_user_account_association else None
+         # validate early if logged in user is account admin
+         if logged_in_user_is_account_admin:
+            return permission_validation_info
+         
+         logged_in_user_account_association_id = logged_in_user_account_association.id if logged_in_user_account_association else None
 
       cumulative_pathparam_typevalues_sequence = []
       cumulative_pathparam_typenames_sequence = []
@@ -494,7 +615,6 @@ class RBAC:
       cumulative_headerparam_model_sequence = []
 
       is_target_model_class_visited = False
-      permission_validation_info = dict()
 
       # Iterate through the validation order for "READ" permission   
       for model_class in self._validation_precedence_order:
@@ -522,6 +642,7 @@ class RBAC:
 
                (read_action_account_permissions_error_msg,
                read_action_project_permissions_error_msg,
+               read_action_apikey_permissions_error_msg,
                _
                ) = self._get_model_permission_validation_info(
                   target_model_class=model_class,
@@ -532,6 +653,8 @@ class RBAC:
                   model_class_to_instance=model_class_to_instance)
                
                model_read_action_permission_path = self._get_model_permissions_path(
+                  authenticated_entity=logged_in_entity,
+                  permissions_scope=auth_schemas.RBACPermissionScope.ACCOUNT_SCOPE,
                   target_model_class=model_class,
                   model_class_sequence=tuple(cumulative_headerparam_model_sequence),
                   model_typevalues_sequence=tuple(cumulative_headerparam_typevalues_sequence) if cumulative_headerparam_typevalues_sequence else ((),),
@@ -555,6 +678,7 @@ class RBAC:
 
                (read_action_account_permissions_error_msg,
                read_action_project_permissions_error_msg,
+               read_action_apikey_permissions_error_msg,
                _
                ) = self._get_model_permission_validation_info(
                   target_model_class=model_class,
@@ -565,20 +689,50 @@ class RBAC:
                   model_class_to_instance=model_class_to_instance)
                
                model_read_action_permission_path = self._get_model_permissions_path(
+                  authenticated_entity=logged_in_entity,
+                  permissions_scope=auth_schemas.RBACPermissionScope.ACCOUNT_SCOPE,
                   target_model_class=model_class,
                   model_class_sequence=tuple(cumulative_pathparam_model_sequence),
                   model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
                   target_model_action_sequence=("READ",),
                )
 
-            if not await self._check_account_scoped_role_based_permission_exists(db, logged_in_user_account_association_id, model_read_action_permission_path, "Allow"):
-               raise ApiError.forbidden(read_action_account_permissions_error_msg)
+            if isinstance(logged_in_entity, models.User):
+               if not await self._check_account_scoped_role_based_permission_exists(db, logged_in_user_account_association_id, model_read_action_permission_path, "Allow"):
+                  raise ApiError.forbidden(read_action_account_permissions_error_msg)
 
-            logged_in_user_project_association = logged_in_user_account_and_project_association_info.get("logged_in_user_project_association", None)
-            if logged_in_user_project_association:
-               # check project-based permission overrides
-               if await self._check_project_scoped_permission_overrides_exist(logged_in_user_project_association, model_read_action_permission_path):
-                  raise ApiError.forbidden(read_action_project_permissions_error_msg)
+               logged_in_user_project_association = logged_in_entity_account_and_project_association_info.get("logged_in_entity_project_association", None)
+               if logged_in_user_project_association:
+                  # check project-based permission overrides
+                  path_exists_in_project_scoped_permissions = True
+                  try:
+                     self._get_model_permissions_path(
+                        authenticated_entity=logged_in_entity,
+                        target_model_class=model_class,
+                        permissions_scope=auth_schemas.RBACPermissionScope.PROJECT_SCOPE,
+                        model_class_sequence=tuple(cumulative_pathparam_model_sequence),
+                        model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
+                        target_model_action_sequence=("READ",),
+                     )
+                  except Exception as e:  # field doesn't exist in project scoped rbac permission schema but it did in account scoped rbac permission schema, so skip it
+                     path_exists_in_project_scoped_permissions = False
+                  if path_exists_in_project_scoped_permissions and await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, model_read_action_permission_path):
+                     raise ApiError.forbidden(read_action_project_permissions_error_msg)
+            else: # if logged_in_entity is instanceof Apikey
+               path_exists_in_api_scoped_permissions = True
+               try:
+                  self._get_model_permissions_path(
+                     authenticated_entity=logged_in_entity,
+                     target_model_class=model_class,
+                     permissions_scope=auth_schemas.RBACPermissionScope.PROJECT_SCOPE,
+                     model_class_sequence=tuple(cumulative_pathparam_model_sequence),
+                     model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
+                     target_model_action_sequence=("READ",),
+                  )
+               except Exception as e: # current permission field doesn't exist in ApiKeyScopedRBACPermission schema; assume that it is account-scoped/project-scoped model eventually leading up to an api-key scoped target model-action sequence and skip. If not, permissions will be denied when target is evaluated.
+                  path_exists_in_api_scoped_permissions = False
+               if path_exists_in_api_scoped_permissions and await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, model_read_action_permission_path):
+                  raise ApiError.forbidden(read_action_apikey_permissions_error_msg)
 
       if not is_target_model_class_visited:
          cumulative_pathparam_model_sequence.append(target_model_class)
@@ -594,6 +748,7 @@ class RBAC:
                
                (target_action_account_permissions_error_msg,
                target_action_project_permissions_error_msg,
+               target_action_apikey_permissions_error_msg,
                validation_info_key
                ) = self._get_model_permission_validation_info(
                   target_model_class=target_model_class,
@@ -604,6 +759,8 @@ class RBAC:
                   model_class_to_instance=model_class_to_instance)
                
                target_model_action_permission_path = self._get_model_permissions_path(
+                  authenticated_entity=logged_in_entity,
+                  permissions_scope=auth_schemas.RBACPermissionScope.ACCOUNT_SCOPE,
                   target_model_class=target_model_class,
                   model_class_sequence=tuple(cumulative_pathparam_model_sequence),
                   model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence),
@@ -612,22 +769,59 @@ class RBAC:
 
                cumulative_pathparam_typevalues_sequence.pop() 
 
-               if not await self._check_account_scoped_role_based_permission_exists(db, logged_in_user_account_association_id, target_model_action_permission_path, "Allow"):
-                  permission_validation_info[validation_info_key] = {"account_scoped_error_msg": target_action_account_permissions_error_msg}
-               
-               logged_in_user_project_association = logged_in_user_account_and_project_association_info.get("logged_in_user_project_association", None)
-               if logged_in_user_project_association:
-                  # check project-based permission overrides
-                  if await self._check_project_scoped_permission_overrides_exist(logged_in_user_project_association, target_model_action_permission_path):
+               if isinstance(logged_in_entity, models.User):
+                  if not await self._check_account_scoped_role_based_permission_exists(db, logged_in_user_account_association_id, target_model_action_permission_path, "Allow"):
+                     permission_validation_info[validation_info_key] = {"account_scoped_error_msg": target_action_account_permissions_error_msg}
+                  
+                  logged_in_user_project_association = logged_in_entity_account_and_project_association_info.get("logged_in_entity_project_association", None)
+                  if logged_in_user_project_association:
+                     # check project-based permission overrides
+                     path_exists_in_project_scoped_permissions = True
+                     try:
+                        self._get_model_permissions_path(
+                           authenticated_entity=logged_in_entity,
+                           target_model_class=target_model_class,
+                           permissions_scope=auth_schemas.RBACPermissionScope.PROJECT_SCOPE,
+                           model_class_sequence=tuple(cumulative_pathparam_model_sequence),
+                           model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
+                           target_model_action_sequence=target_model_action_sequence,
+                        )
+                     except Exception as e: # field doesn't exist in project scoped rbac permission schema but it did in account scoped rbac permission schema, so skip it
+                        path_exists_in_project_scoped_permissions = False
+                     if path_exists_in_project_scoped_permissions and await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
+                        if validation_info_key in permission_validation_info:
+                           permission_validation_info[validation_info_key]["project_scoped_error_msg"] = target_action_project_permissions_error_msg
+                        else:
+                           permission_validation_info[validation_info_key] = {"project_scoped_error_msg": target_action_project_permissions_error_msg}
+               else: # if logged_in_entity is instanceof Apikey
+                  try:
+                     path_exists_in_project_scoped_permissions = True
+                     self._get_model_permissions_path(
+                        authenticated_entity=logged_in_entity,
+                        target_model_class=target_model_class,
+                        permissions_scope=auth_schemas.RBACPermissionScope.PROJECT_SCOPE,
+                        model_class_sequence=tuple(cumulative_pathparam_model_sequence),
+                        model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
+                        target_model_action_sequence=target_model_action_sequence,
+                     )
+                  except Exception as e: # target permission field doesn't exist in ApiKeyScopedRBACPermission schema; restrict project-scoped permissions
+                     path_exists_in_project_scoped_permissions = False
                      if validation_info_key in permission_validation_info:
-                        permission_validation_info[validation_info_key]["project_scoped_error_msg"] = target_action_project_permissions_error_msg
-
+                        permission_validation_info[validation_info_key]["apikey_scoped_error_msg"] = target_action_apikey_permissions_error_msg
+                     else:
+                        permission_validation_info[validation_info_key] = {"apikey_scoped_error_msg": target_action_apikey_permissions_error_msg}
+                  if path_exists_in_project_scoped_permissions and await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
+                     if validation_info_key in permission_validation_info:
+                        permission_validation_info[validation_info_key]["apikey_scoped_error_msg"] = target_action_apikey_permissions_error_msg
+                     else:
+                        permission_validation_info[validation_info_key] = {"apikey_scoped_error_msg": target_action_apikey_permissions_error_msg}
          else:
             cumulative_pathparam_typevalues_sequence.append(tuple())
             cumulative_pathparam_typenames_sequence.append(tuple())
 
             (target_action_account_permissions_error_msg,
                target_action_project_permissions_error_msg,
+               target_action_apikey_permissions_error_msg,
                validation_info_key
             ) = self._get_model_permission_validation_info(
                model_class_sequence=cumulative_pathparam_model_sequence,
@@ -638,25 +832,54 @@ class RBAC:
                model_class_to_instance=model_class_to_instance)
             
             target_model_action_permission_path = self._get_model_permissions_path(
+               authenticated_entity=logged_in_entity,
                target_model_class=target_model_class,
+               permissions_scope=auth_schemas.RBACPermissionScope.ACCOUNT_SCOPE,
                model_class_sequence=tuple(cumulative_pathparam_model_sequence),
                model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
                target_model_action_sequence=target_model_action_sequence,
             )
-            if not await self._check_account_scoped_role_based_permission_exists(db, logged_in_user_account_association_id, target_model_action_permission_path, "Allow"):
-               raise ApiError.forbidden(target_action_account_permissions_error_msg)
-               
-            logged_in_user_project_association = logged_in_user_account_and_project_association_info.get("logged_in_user_project_association", None)
-            if logged_in_user_project_association:
-               # check project-based permission overrides
-               if await self._check_project_scoped_permission_overrides_exist(logged_in_user_project_association, target_model_action_permission_path):
-                  raise ApiError.forbidden(target_action_project_permissions_error_msg)
-         
+            if isinstance(logged_in_entity, models.User):
+               if not await self._check_account_scoped_role_based_permission_exists(db, logged_in_user_account_association_id, target_model_action_permission_path, "Allow"):
+                  raise ApiError.forbidden(target_action_account_permissions_error_msg)
+                  
+               logged_in_user_project_association = logged_in_entity_account_and_project_association_info.get("logged_in_entity_project_association", None)
+               if logged_in_user_project_association:
+                  # check project-based permission overrides
+                  path_exists_in_project_scoped_permissions = True
+                  try:
+                     self._get_model_permissions_path(
+                        authenticated_entity=logged_in_entity,
+                        target_model_class=target_model_class,
+                        permissions_scope=auth_schemas.RBACPermissionScope.PROJECT_SCOPE,
+                        model_class_sequence=tuple(cumulative_pathparam_model_sequence),
+                        model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
+                        target_model_action_sequence=target_model_action_sequence,
+                     )
+                  except Exception as e: # field doesn't exist in project scoped rbac permission schema but it did in account scoped rbac permission schema, so skip it
+                     path_exists_in_project_scoped_permissions = False
+                  if path_exists_in_project_scoped_permissions and await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
+                     raise ApiError.forbidden(target_action_project_permissions_error_msg)
+            else: # if logged_in_entity is instanceof Apikey
+               try:
+                  self._get_model_permissions_path(
+                     authenticated_entity=logged_in_entity,
+                     target_model_class=target_model_class,
+                     permissions_scope=auth_schemas.RBACPermissionScope.PROJECT_SCOPE,
+                     model_class_sequence=tuple(cumulative_pathparam_model_sequence),
+                     model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
+                     target_model_action_sequence=target_model_action_sequence,
+                  )
+               except Exception as e: # target permission field doesn't exist in ApiKeyScopedRBACPermission schema; restrict project-scoped permissions
+                  raise ApiError.forbidden(target_action_apikey_permissions_error_msg)
+               if await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
+                  raise ApiError.forbidden(target_action_apikey_permissions_error_msg)
          return permission_validation_info
       else:
          if target_model_action_sequence != ("READ",): 
             (target_action_account_permissions_error_msg,
             target_action_project_permissions_error_msg,
+            target_action_apikey_permissions_error_msg,
             _
             ) = self._get_model_permission_validation_info(
                   model_typevalues_list=cumulative_pathparam_typevalues_sequence,
@@ -664,24 +887,53 @@ class RBAC:
                   model_class_sequence=cumulative_pathparam_model_sequence,
                   target_model_class=target_model_class,
                   model_action_sequence=target_model_action_sequence,
-                  model_class_to_instance=model_class_to_instance)
+                  model_class_to_instance=model_class_to_instance
+               )
             
             target_model_action_permission_path = self._get_model_permissions_path(
-                  target_model_class=target_model_class,
-                  model_class_sequence=tuple(cumulative_pathparam_model_sequence),
-                  model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
-                  target_model_action_sequence=target_model_action_sequence,
-               )
-            if not await self._check_account_scoped_role_based_permission_exists(db, logged_in_user_account_association_id, target_model_action_permission_path, "Allow"):
-               raise ApiError.forbidden(target_action_account_permissions_error_msg)
+               authenticated_entity=logged_in_entity,
+               target_model_class=target_model_class,
+               permissions_scope=auth_schemas.RBACPermissionScope.ACCOUNT_SCOPE,
+               model_class_sequence=tuple(cumulative_pathparam_model_sequence),
+               model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
+               target_model_action_sequence=target_model_action_sequence,
+            )
+            if isinstance(logged_in_entity, models.User):
+               if not await self._check_account_scoped_role_based_permission_exists(db, logged_in_user_account_association_id, target_model_action_permission_path, "Allow"):
+                  raise ApiError.forbidden(target_action_account_permissions_error_msg)
 
-            logged_in_user_project_association = logged_in_user_account_and_project_association_info.get("logged_in_user_project_association", None)
-            if logged_in_user_project_association:
-               # check project-based permission overrides
-               if await self._check_project_scoped_permission_overrides_exist(logged_in_user_project_association, target_model_action_permission_path):
-                  raise ApiError.forbidden(target_action_project_permissions_error_msg)
-            
-      return {}
+               logged_in_user_project_association = logged_in_entity_account_and_project_association_info.get("logged_in_entity_project_association", None)
+               if logged_in_user_project_association:
+                  # check project-based permission overrides
+                  path_exists_in_project_scoped_permissions = True
+                  try:
+                     self._get_model_permissions_path(
+                        authenticated_entity=logged_in_entity,
+                        target_model_class=target_model_class,
+                        permissions_scope=auth_schemas.RBACPermissionScope.PROJECT_SCOPE,
+                        model_class_sequence=tuple(cumulative_pathparam_model_sequence),
+                        model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
+                        target_model_action_sequence=target_model_action_sequence,
+                     )
+                  except Exception as e: # field doesn't exist in project scoped rbac permission schema but it did in account scoped rbac permission schema, so skip it
+                     path_exists_in_project_scoped_permissions = False
+                  if path_exists_in_project_scoped_permissions and await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
+                     raise ApiError.forbidden(target_action_project_permissions_error_msg)
+            else: # if logged_in_entity is instanceof Apikey
+               try:
+                  self._get_model_permissions_path(
+                     authenticated_entity=logged_in_entity,
+                     target_model_class=target_model_class,
+                     permissions_scope=auth_schemas.RBACPermissionScope.PROJECT_SCOPE,
+                     model_class_sequence=tuple(cumulative_pathparam_model_sequence),
+                     model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
+                     target_model_action_sequence=target_model_action_sequence,
+                  )
+               except Exception as e: # target permission field doesn't exist in ApiKeyScopedRBACPermission schema; restrict project-scoped permissions
+                  raise ApiError.forbidden(target_action_apikey_permissions_error_msg)
+               if await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
+                  raise ApiError.forbidden(target_action_apikey_permissions_error_msg)
+      return permission_validation_info
 
    async def _check_account_scoped_role_based_permission_exists(
       self,
@@ -708,37 +960,80 @@ class RBAC:
 
    async def _check_project_scoped_permission_overrides_exist(
       self,
-      logged_in_user_project_association,
+      logged_in_entity_account_and_project_association_info: dict[str,Any],
       permission_path: list[str], 
    ) -> bool:
-      if not logged_in_user_project_association.is_admin:
-         # Fetch permission overrides for the logged-in non-project-admin user specific to project
-         user_project_overrides = role_schemas.ProjectScopedPermission.parse_obj(logged_in_user_project_association.permission_overrides)
-         if user_project_overrides:
-            current_attribute = user_project_overrides
-            for next_attribute in permission_path:
-               if hasattr(current_attribute, next_attribute):
-                  current_attribute = getattr(current_attribute, next_attribute)
-               else:
-                  # If the attribute does not exist, return False
-                  return False
-            if current_attribute == 'Deny':  
-               return True
+      logged_in_entity = logged_in_entity_account_and_project_association_info['authenticated_entity']
+      logged_in_entity_is_user = True
+      if isinstance(logged_in_entity, models.User):
+         logged_in_user_project_association = logged_in_entity_account_and_project_association_info['logged_in_entity_project_association']
+         if logged_in_user_project_association and logged_in_user_project_association.is_admin:
+            return False
+         try:
+            project_scoped_permission_overrides = permission_schemas.ProjectScopedRBACPermission.parse_obj(logged_in_user_project_association.permission_overrides) if logged_in_user_project_association else None
+         except Exception as e:
+            print(f"Invalid Project_scoped_permission overrides schema for user - '{logged_in_user_project_association.user_id}' - in project - '{logged_in_user_project_association.project_id}'")
+            raise e
+      else: # logged_in_entity is Apikey
+         logged_in_entity_is_user = False
+         try:
+            project_scoped_permission_overrides = permission_schemas.ApikeyScopedRBACPermission.parse_obj(logged_in_entity.permissions) if logged_in_entity else None
+         except Exception as e:
+            print(f"Invalid Project_scoped_permission overrides schema for apikey - '{logged_in_entity.id}' - in project - '{logged_in_entity.project_id}'")
+            raise e
+      if project_scoped_permission_overrides:
+         current_attribute = project_scoped_permission_overrides
+         for next_attribute in permission_path:
+            if hasattr(current_attribute, next_attribute):
+               current_attribute = getattr(current_attribute, next_attribute)
+            else:
+               # If the attribute does not exist, schema is malformed
+               print(f"in check_project_scoped_permission_overrides_exist : logged-in {'user' if logged_in_entity_is_user else 'apikey'} - '{logged_in_entity.id}' - has malformed project permission overrides under project - '{logged_in_entity.project_id}'")
+               raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+         if current_attribute == 'Deny':  
+            return True
       return False
    
    def _get_model_permissions_path(
       self,
+      authenticated_entity: models.User | models.Apikey,
+      permissions_scope: auth_schemas.RBACPermissionScope,
       target_model_class: Type[models.Base],
       model_class_sequence,
       model_typevalues_sequence: tuple[tuple[str,...],...],
       target_model_action_sequence: tuple[str, ...],
    ):
-      if not target_model_action_sequence in self._valid_entity_actions_map[target_model_class]:
-         raise ApiError.validationerror(f"undefined action sequence - '{target_model_action_sequence}' - for {target_model_class} resource")
+      paths_map_input_tuple = (model_class_sequence, model_typevalues_sequence, target_model_action_sequence)
+      if permissions_scope is auth_schemas.RBACPermissionScope.ACCOUNT_SCOPE:
+         if not target_model_action_sequence in self._account_scoped_permissions_valid_entity_actions_map[target_model_class]:
+            print(f"action sequence - '{target_model_action_sequence}' - for {target_model_class} resource not found in account-scoped-permissions schema")
+            raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+         if not paths_map_input_tuple in self._account_scoped_permissions_leaf_action_paths_map:
+            print(f"action path not found in account-scoped-permissions schema for target model class - '{target_model_class}' - with model class sequence - '{model_class_sequence}' - with model_type_values_sequence - '{model_typevalues_sequence}' - with target_model_action_sequence - '{target_model_action_sequence}'")
+            raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+         action_path: list[str] = self._account_scoped_permissions_leaf_action_paths_map[paths_map_input_tuple]
+      elif permissions_scope is auth_schemas.RBACPermissionScope.PROJECT_SCOPE:
+         if isinstance(authenticated_entity, models.User):
+            if not target_model_action_sequence in self._project_scoped_permissions_valid_entity_actions_map[target_model_class]:
+               print(f"action sequence - '{target_model_action_sequence}' - for {target_model_class} resource not found in project-scoped-permissions schema")
+               raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+            if not paths_map_input_tuple in self._project_scoped_permissions_leaf_action_paths_map:
+               print(f"action path not found in project-scoped-permissions schema for target model class - '{target_model_class}' - with model class sequence - '{model_class_sequence}' - with model_type_values_sequence - '{model_typevalues_sequence}' - with target_model_action_sequence - '{target_model_action_sequence}'")
+               raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+            action_path: list[str] = self._project_scoped_permissions_leaf_action_paths_map[paths_map_input_tuple]
+         else: # authenticated entity is Apikey
+            if not target_model_action_sequence in self._apikey_scoped_permissions_valid_entity_actions_map[target_model_class]:
+               print(f"action sequence - '{target_model_action_sequence}' - for {target_model_class} resource not found in apikey-scoped-permissions schema")
+               raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+            if not paths_map_input_tuple in self._apikey_scoped_permissions_leaf_action_paths_map:
+               print(f"action path not found in apikey-scoped-permissions schema for target model class - '{target_model_class}' - with model class sequence - '{model_class_sequence}' - with model_type_values_sequence - '{model_typevalues_sequence}' - with target_model_action_sequence - '{target_model_action_sequence}'")
+               raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+            action_path: list[str] = self._apikey_scoped_permissions_leaf_action_paths_map[paths_map_input_tuple]
+      else:
+         print(f"unimplemented business logic for get_model_permissions_path for scope - '{permissions_scope}'")
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       
-      action_path: list[str] = self._leaf_action_paths_map[(model_class_sequence, model_typevalues_sequence, target_model_action_sequence)]
       print(f'action_path = {action_path}')  
-      
       return action_path
    
    def _get_model_permission_validation_info(
@@ -750,8 +1045,9 @@ class RBAC:
       model_action_sequence,
       model_class_to_instance
    ):
-      if not model_action_sequence in self._valid_entity_actions_map[target_model_class]:
-         raise ApiError.validationerror(f"undefined action sequence - '{model_action_sequence}' - for {target_model_class} resource")
+      if not model_action_sequence in self._account_scoped_permissions_valid_entity_actions_map[target_model_class]:
+         print(f"undefined action sequence - '{model_action_sequence}' - for {target_model_class} resource")
+         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       
       # Building configuration
       configurations = tuple(
@@ -771,13 +1067,11 @@ class RBAC:
         f"on '{target_model_class.__name__}' resources "
         f"{'under the following configurations - (' + configurations_str + ') -' if configurations else ''} "
         f"in account - {model_class_to_instance[models.Account].id}"
-    )
+      )
 
-
-      # if models.Project in model_class_to_instance:
-      #    project_permissions_error_message = f"you are denied permissions to perform the action sequence - '{model_action_sequence}' - on '{target_model_class.__name__}' resources {'with the type configurations - ' + str(configurations) + ' -' if configurations else ''} due to project-specific permission overrides in project - '{model_class_to_instance[models.Project].id}'"
-      # Check if there's project-specific information and build that message
+      # Check if there's project-specific information and build relevant message
       project_permissions_error_message = None
+      apikey_permissions_error_message = None
       if models.Project in model_class_to_instance:
          project_permissions_error_message = (
             f"you are denied permissions to perform the action sequence - '{model_action_sequence}' - "
@@ -785,47 +1079,53 @@ class RBAC:
             f"{'under the following configurations - (' + configurations_str + ') -' if configurations else ''} "
             f"due to project-specific permission overrides in project - '{model_class_to_instance[models.Project].id}'"
          )
+         apikey_permissions_error_message = (
+            f"you are denied permissions to perform the action sequence - '{model_action_sequence}' - "
+            f"on '{target_model_class.__name__}' resources "
+            f"{'under the following configurations - (' + configurations_str + ') -' if configurations else ''} "
+            f"due to apikey-specific permission overrides in project - '{model_class_to_instance[models.Project].id}'"
+         )
       
-      # validation_info_key = '_'.join(f'{typename}_{typevalue}' for typename, typevalue in zip(model_typenames_list, model_typevalues_list))
-      
-      # return account_permissions_error_message, project_permissions_error_message if models.Project in model_class_to_instance else None, validation_info_key
       # Creating a validation info key with model class, typename, and typevalue
       validation_info_key = '__'.join(
         f'ENTITY_{model.__name__}_TYPENAMES_{"_".join(typenames)}_TYPEVALUES_{"_".join(typevalues)}'
         for model, typenames, typevalues in zip(model_class_sequence, model_typenames_list, model_typevalues_list)
       )
       
-      return account_permissions_error_message, project_permissions_error_message, validation_info_key
+      return account_permissions_error_message, project_permissions_error_message, apikey_permissions_error_message,  validation_info_key
    
-   def generate_post_validation_type_filters_for_all_query(self, model_class: Type[models.Base], typenames: Tuple[str], typevalues: Tuple[tuple[str, ...]], validation_info: Dict[str, Any]) -> List[Dict[str, Any]]:
-      filters_list = []
-      for typevalues_combination in typevalues:
-         key = f'ENTITY_{model_class.__name__}_TYPENAMES_{"_".join(typenames)}_TYPEVALUES_{"_".join(typevalues_combination)}'
-         unauthorized_type = validation_info.get(key)
-         
-         # Now we check if the type is unauthorized and create filters for them
-         if unauthorized_type:
-            filters = {typename: value for typename, value in zip(typenames, typevalues_combination)}
-            filters_list.append(filters)
-      
-      return filters_list
-   
-   def apply_post_validation_type_filters_for_all_query(self, model_class: Type[models.Base], filters_list: List[Dict[str, Any]], query: Query) -> Query:
-      if filters_list:
-         and_conditions = []
-         for filters in filters_list:
-            # Create conditions where each field must not equal the unauthorized value
-            for field, value in filters.items():
-               condition = getattr(model_class, field) != value
-               and_conditions.append(condition)
+   def get_post_validation_types_filter_function_for_all_query(self, model_class: Type[models.Base], validation_info: Dict[str, Any]) -> Callable:
 
-         # Apply all AND conditions to the query
-         if and_conditions:
-            query = query.filter(and_(*and_conditions))
+      def filter_function(query: Query) -> Query:  
+         typenames = validation_info.get("target_entity_typename_combinations", tuple()) 
+         typevalues = validation_info.get("target_entity_typevalue_combinations", tuple()) 
 
-      return query
+         filters_list = []
+         for typevalues_combination in typevalues:
+            key = f'ENTITY_{model_class.__name__}_TYPENAMES_{"_".join(typenames)}_TYPEVALUES_{"_".join(typevalues_combination)}'
+            unauthorized_type = validation_info.get(key)
+            
+            # Now we check if the type is unauthorized and create filters for them
+            if unauthorized_type:
+               filters = {typename: value for typename, value in zip(typenames, typevalues_combination)}
+               filters_list.append(filters)
+
+         if filters_list:
+            and_conditions = []
+            for filters in filters_list:
+               # Create conditions where each field must not equal the unauthorized value
+               for field, value in filters.items():
+                  condition = getattr(model_class, field) != value
+                  and_conditions.append(condition)
+
+            # Apply all AND conditions to the query
+            if and_conditions:
+               query = query.filter(and_(*and_conditions))
+
+         return query
+      return filter_function
    
-rbac_instance = RBAC(rbac_schema, model_classStr_to_class, validation_precedence_order)
+rbac_instance = RBAC(model_classStr_to_class=model_classStr_to_class,validation_precedence_order=validation_precedence_order)  
 
 
 

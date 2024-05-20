@@ -14,13 +14,13 @@ from elevaitedb.crud import (
 
 def getConfigurationsOfApplication(
     db: Session, 
-    # filter_function: Callable[[Type[models.Base], Query], Query], # uncomment this when using validator
+    # filter_function: Callable[[Query], Query], # uncomment this when using validator
     application_id: int
 ) -> List[models.Configuration]:
     _conf = configuration_crud.get_configurations_of_application(
         db,
         application_id,
-        # filter_function=filter_function, # uncomment this when using validator
+        # filter_function=filter_function, # uncomment this when using validator  
     )
     return _conf
 
