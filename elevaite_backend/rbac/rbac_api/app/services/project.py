@@ -158,12 +158,15 @@ def get_project_user_list(
    account_id: UUID, 
    firstname: Optional[str],
    lastname: Optional[str],
-   email: Optional[str]
+   email: Optional[str],
+   child_project_id: Optional[UUID],
+   assigned: Optional[bool] = True
 ) -> List[user_schemas.ProjectUserListItemDTO]:
    try:
       UserAccountAlias = aliased(models.User_Account)
       RoleUserAccountAlias = aliased(models.Role_User_Account)
       UserProjectAlias = aliased(models.User_Project)
+      ChildUserProjectAlias = aliased(models.User_Project)
 
       project_users_query = (
       db.query(models.User, UserAccountAlias.is_admin, UserProjectAlias.is_admin, UserAccountAlias.id)
@@ -178,6 +181,18 @@ def get_project_user_list(
          project_users_query = project_users_query.filter(models.User.lastname.ilike(f"%{lastname}%"))
       if email:
          project_users_query = project_users_query.filter(models.User.email.ilike(f"%{email}%"))
+
+      # Modify the join if child_project_id is provided
+      if child_project_id:
+         project_users_query = project_users_query.outerjoin(
+               ChildUserProjectAlias,
+               (ChildUserProjectAlias.user_id == models.User.id) & 
+               (ChildUserProjectAlias.project_id == child_project_id)
+         )
+         if assigned:
+            project_users_query = project_users_query.filter(ChildUserProjectAlias.project_id != None)
+         else:
+            project_users_query = project_users_query.filter(ChildUserProjectAlias.project_id == None)
 
       project_users = project_users_query.all()
       project_users_with_roles = []

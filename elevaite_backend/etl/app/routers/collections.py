@@ -10,7 +10,7 @@ from elevaitedb.schemas import (
 )
 # from rbac_api import (
 #    routes_to_middleware_imple_map,
-#    rbac_instance
+#    RBACProvider
 # )
 from elevaitedb.db import models
 from qdrant_client.conversions import common_types as types
@@ -28,7 +28,7 @@ def getCollectionsOfProject(
     # validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['getCollectionsOfProject']), # uncomment this to use validator
 ):
     # db: Session = request.state.db # uncomment this when using validator
-    # all_query_authorized_types_filter_function = rbac_instance.get_post_validation_types_filter_function_for_all_query(models.Collection, validation_info) # uncomment this when using validator
+    # all_query_authorized_types_filter_function = RBACProvider.get_instance().get_post_validation_types_filter_function_for_all_query(models.Collection, validation_info) # uncomment this when using validator
     
     return collection_service.getCollectionsOfProject(
         db=db,

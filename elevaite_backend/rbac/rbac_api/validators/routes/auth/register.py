@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from pprint import pprint
 from typing import Optional
 from rbac_api.app.errors.api_error import ApiError
-from .authenticate.impl import AccessTokenAuthentication
+from rbac_api.auth.impl import AccessTokenAuthentication
 from rbac_api.utils.deps import get_db
 from elevaitedb.schemas import (
    auth as auth_schemas
@@ -12,7 +12,7 @@ from elevaitedb.schemas import (
 
 async def validate_register_user(
    request: Request,
-   db: Session = Depends(get_db),
+   db: Session = Depends(get_db), 
    access_token_header: str = Header(..., alias='Authorization', description = "iDP access token with email and profile scope"),
    idp_type: Optional[auth_schemas.iDPType] = Header(None, alias='idp', description = "choice of iDP for access token. Defaults to google when not provided"),
 ) -> None:

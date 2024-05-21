@@ -399,6 +399,8 @@ async def get_project_user_list(
    firstname: Optional[str] = Query(None, description="Filter users by first name"),
    lastname: Optional[str] = Query(None, description="Filter users by last name"),
    email: Optional[str] = Query(None, description="Filter users by email"),
+   child_project_id: UUID = Query(None, description="Optional param to filter project user's by their assignment to immediate child project"),
+   assigned: Optional[bool] = Query(True, description="Optional query param denoting project assignment status to child project"),
 ) -> List[user_schemas.ProjectUserListItemDTO]:
    """
    Retrieve Project resource's user list
@@ -409,11 +411,14 @@ async def get_project_user_list(
       - firstname (str): Optional filter query param for user firstname with case-insensitive pattern matching
       - lastname (str): Optional filter query param for user lastname with case-insensitive pattern matching
       - email (str): Optional filter query param for user email with case-insensitive pattern matching
-      
+      - child_project_id (UUID): Optional filter query param to filter project users by their assignment to child project - 'child_project_id' 
+      - assigned (bool): Optional filter query param to denote project users' assignment status to child project - 'child_project_id'; when child_project_id not provided, this value is ignored. Defaults to True.
+
    Returns: 
       - List[ProjectResponseDTO] : Retrieved Project user list response objects 
    
    Notes:
+      - child_project_id optional query parameter is only authorized for use by superadmins/account-admins and project-admins (corresponding to param child_project_id), and it must be associated to parent project - 'project_id'  
       - superadmin users can retrieve any project's user list regardless of project assignment
       - users who are only account-admins can retrieve any project's user list under their admin accounts regardless of project assignment
       - users who are not superadmin and not account-admin must have Project - 'READ' permissions in any of their account-scoped roles under the account where project's user list is to be retrieved, and must be be assigned to all projects in the parent project hierarchy of the project (inclusive of project) in order to retrieve the project's user list
@@ -428,7 +433,9 @@ async def get_project_user_list(
             account_id=account.id,
             firstname=firstname,
             lastname=lastname,
-            email=email
+            email=email,
+            child_project_id=child_project_id,
+            assigned=assigned
          )
 
 @project_router.delete("/{project_id}/users/{user_id}", status_code=status.HTTP_200_OK, responses={

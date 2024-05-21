@@ -9,7 +9,9 @@ from elevaitedb.schemas import (
    user as user_schemas,
 )
 from elevaitedb.db import models 
-from rbac_api import routes_to_middleware_imple_map
+from rbac_api import (
+   routes_to_middleware_imple_map
+)
 from ..services import account as service
 from .utils.helpers import load_schema
 
@@ -337,6 +339,8 @@ async def get_account_user_list(
    firstname: Optional[str] = Query(None, description="Filter users by first name"),
    lastname: Optional[str] = Query(None, description="Filter users by last name"),
    email: Optional[str] = Query(None, description="Filter users by email"),
+   project_id: Optional[UUID] = Query(None, description="Optional query param to filter account user's by their assignment to account-level project"),
+   assigned: Optional[bool] = Query(True, description="Optional query param denoting project assignment status to account-level project"),
 ) -> List[user_schemas.AccountUserListItemDTO]:
    """
    Retrieve Account resource's user list
@@ -347,18 +351,21 @@ async def get_account_user_list(
       - firstname (str): Optional filter query param for user firstname with case-insensitive pattern matching
       - lastname (str): Optional filter query param for user lastname with case-insensitive pattern matching
       - email (str): Optional filter query param for user email with case-insensitive pattern matching
+      - project_id (UUID): Optional filter query param to filter account users by their assignment to account-level project - 'project_id' 
+      - assigned (bool): Optional filter query param to denote account users' assignment status to account-level project - 'project_id'; when project_id not provided, this value is ignored. Defaults to True.
 
    Returns: 
       - List[AccountUserListItemDTO] : The response containing AccountUserListItemDTO objects under account specified by account_id. 
-   
+
    Notes:
+      - project_id optional query parameter is only authorized for use by superadmins/account-admins and project-admins (corresponding to param project_id), and it must be associated to account with null parent_project_id 
       - superadmin users can retrieve any account user list regardless of account assignment
       - non-superadmin users can only retrieve the account user list if assigned to account
       - Each list item displays User resource information along with account-admin status and account-scoped roles
       - superadmin/account-admin users will always display an empty list for their account-scoped roles 
    """
    db: Session = request.state.db
-   return service.get_account_user_list(db,account_id, firstname, lastname, email)
+   return service.get_account_user_list(db,account_id, firstname, lastname, email, project_id, assigned)
    
 
 @account_router.post("/{account_id}/users", status_code=status.HTTP_200_OK, responses={

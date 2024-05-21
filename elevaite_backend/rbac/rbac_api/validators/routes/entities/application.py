@@ -1,26 +1,30 @@
-from fastapi import Path, Depends, Header, Request, HTTPException, Request
+from fastapi import Path, Depends, Header, Query, Request, HTTPException
 from uuid import UUID
-
-from ..auth.authenticate.impl import (
-   AccessTokenOrApikeyAuthentication,
-)
-from sqlalchemy import exists
+from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from rbac_api.utils.deps import get_db  
 from rbac_api.app.errors.api_error import ApiError
 from pprint import pprint
-from typing import Any, Type, Callable, Coroutine
+from typing import Any, Optional, Type, Callable, Dict
 
 from elevaitedb.db import models
-from ...rbac import rbac_instance
+from elevaitedb.schemas import (
+   application as application_schemas,
+)
+from rbac_api.auth.impl import (
+   AccessTokenAuthentication
+)
+from ...main import RBACProvider
 import inspect
 
-def validate_get_project_datasets_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
-   async def validate_get_project_datasets(
+def validate_get_application_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   async def validate_get_application(
       request: Request,
-      authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate),  
-      project_id: UUID = Path(..., description="project_id under which project datasets are queried"),
+      authenticated_entity: models.User = Depends(AccessTokenAuthentication.authenticate),  
+      # The params below are required for pydantic and rbac validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector application is queried"),
+      application_id: int = Path(..., description="id of connector application to be retrieved"),
    ) -> dict[str, Any]:
       db: Session = request.state.db
       try:
@@ -34,7 +38,7 @@ def validate_get_project_datasets_factory(target_model_class : Type[models.Base]
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_rbac_permissions(
+         return await RBACProvider.get_instance().validate_rbac_permissions(  
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -43,23 +47,23 @@ def validate_get_project_datasets_factory(target_model_class : Type[models.Base]
          )
       except HTTPException as e:
          db.rollback()
-         pprint(f'API error in GET /project/{project_id}/datasets - validate_get_project_datasets middleware : {e}')
+         pprint(f'API error in GET /application/{application_id} - validate_get_connector middleware : {e}')
          raise e
       except SQLAlchemyError as e:
-         pprint(f'DB error in GET /project/{project_id}/datasets - validate_get_project_datasets middleware : {e}')
+         pprint(f'DB error in GET /application/{application_id} - validate_get_connector middleware : {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
-         print(f'Unexpected error in GET /project/{project_id}/datasets - validate_get_project_datasets middleware : {e}')
+         print(f'Unexpected error in GET /application/{application_id} - validate_get_connector middleware : {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   return validate_get_project_datasets
+   return validate_get_application
 
-def validate_get_project_dataset_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
-   async def validate_get_project_dataset(
+def validate_get_applications_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   async def validate_get_applications(
       request: Request,
-      authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate),  
-      project_id: UUID = Path(..., description="project_id under which dataset is queried"),
-      dataset_id: UUID = Path(..., description=" id of dataset being queried"),
+      authenticated_entity: models.User = Depends(AccessTokenAuthentication.authenticate),  
+      # The params below are required for pydantic and rbac validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connectors are queried"),
    ) -> dict[str, Any]:
       db: Session = request.state.db
       try:
@@ -73,7 +77,7 @@ def validate_get_project_dataset_factory(target_model_class : Type[models.Base],
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_rbac_permissions(
+         return await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -82,23 +86,24 @@ def validate_get_project_dataset_factory(target_model_class : Type[models.Base],
          )
       except HTTPException as e:
          db.rollback()
-         pprint(f'API error in GET /project/{project_id}/datasets/{dataset_id} - validate_get_project_dataset middleware : {e}')
+         pprint(f'API error in GET /application - validate_get_connectors middleware : {e}')
          raise e
       except SQLAlchemyError as e:
-         pprint(f'DB error in GET /project/{project_id}/datasets/{dataset_id} - validate_get_project_dataset middleware : {e}')
+         pprint(f'DB error in GET /application - validate_get_connectors middleware : {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
-         print(f'Unexpected error in GET /project/{project_id}/datasets/{dataset_id} - validate_get_project_dataset middleware : {e}')
+         print(f'Unexpected error in GET /application - validate_get_connectors middleware : {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   return validate_get_project_dataset
+   return validate_get_applications
 
-def validate_add_tag_to_dataset_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
-   async def validate_add_tag_to_dataset(
+def validate_get_application_pipelines_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   async def validate_get_application_pipelines(
       request: Request,
-      authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate),  
-      project_id: UUID = Path(..., description="project_id under which dataset is tagged"),
-      dataset_id: UUID = Path(..., description=" id of dataset being queried"),
+      authenticated_entity: models.User = Depends(AccessTokenAuthentication.authenticate),  
+      # The params below are required for pydantic and rbac validation even when unused
+      account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which connector pipelines are queried"),
+      application_id: int = Path(..., description="id of connector application"),
    ) -> dict[str, Any]:
       db: Session = request.state.db
       try:
@@ -111,8 +116,8 @@ def validate_add_tag_to_dataset_factory(target_model_class : Type[models.Base], 
          else:
             request.state.account_context_exists = False
             request.state.project_context_exists = False
-
-         return await rbac_instance.validate_rbac_permissions(
+            
+         return await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -121,15 +126,14 @@ def validate_add_tag_to_dataset_factory(target_model_class : Type[models.Base], 
          )
       except HTTPException as e:
          db.rollback()
-         pprint(f'API error in POST /project/{project_id}/datasets/{dataset_id}/tags - validate_add_tag_to_dataset middleware : {e}')
+         pprint(f'API error in GET /application/{application_id}/pipelines - validate_get_connector_pipelines middleware : {e}')
          raise e
       except SQLAlchemyError as e:
-         pprint(f'DB error in POST /project/{project_id}/datasets/{dataset_id}/tags - validate_add_tag_to_dataset middleware : {e}')
+         pprint(f'DB error in GET /application/{application_id}/pipelines - validate_get_connector_pipelines middleware : {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
-         print(f'Unexpected error in POST /project/{project_id}/datasets/{dataset_id}/tags - validate_add_tag_to_dataset middleware : {e}')
+         print(f'Unexpected error in GET /application/{application_id}/pipelines - validate_get_connector_pipelines middleware : {e}')
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
-   return validate_add_tag_to_dataset
-
+   return validate_get_application_pipelines

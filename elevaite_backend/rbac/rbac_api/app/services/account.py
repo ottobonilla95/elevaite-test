@@ -222,11 +222,14 @@ def get_account_user_list(
    account_id: UUID, 
    firstname: Optional[str],
    lastname: Optional[str],
-   email: Optional[str]
+   email: Optional[str],
+   project_id: Optional[UUID],
+   assigned: Optional[bool] = True
 ) -> List[user_schemas.AccountUserListItemDTO]:
    try:
       UserAccountAlias = aliased(models.User_Account)
       RoleUserAccountAlias = aliased(models.Role_User_Account)
+      UserProjectAlias = aliased(models.User_Project)
 
       account_users_query = (
          db.query(models.User, UserAccountAlias.is_admin, UserAccountAlias.id)
@@ -241,6 +244,17 @@ def get_account_user_list(
       if email:
          account_users_query = account_users_query.filter(models.User.email.ilike(f"%{email}%"))
 
+      if project_id:
+         account_users_query = account_users_query.outerjoin(
+               UserProjectAlias,
+               (UserProjectAlias.user_id == models.User.id) & 
+               (UserProjectAlias.project_id == project_id)
+         )
+         if assigned:
+            account_users_query = account_users_query.filter(UserProjectAlias.project_id != None)
+         else:
+            account_users_query = account_users_query.filter(UserProjectAlias.project_id == None)
+            
       account_users = account_users_query.all()
       account_users_with_roles = []
 

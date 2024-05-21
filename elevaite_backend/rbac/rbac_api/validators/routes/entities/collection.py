@@ -1,7 +1,7 @@
 from fastapi import Path, Depends, Header, Request, HTTPException
 from uuid import UUID
-from ..auth.authenticate.impl import (
-   AccessTokenOrApikeyAuthentication,
+from rbac_api.auth.impl import (
+   AccessTokenOrApikeyAuthentication
 )
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,7 +11,7 @@ from pprint import pprint
 from typing import Any, Type, Callable, Coroutine
 
 from elevaitedb.db import models
-from ...rbac import rbac_instance
+from ...main import RBACProvider
 import inspect
 
 def validate_get_project_collections_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
@@ -32,7 +32,7 @@ def validate_get_project_collections_factory(target_model_class : Type[models.Ba
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_rbac_permissions(
+         return await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -71,7 +71,7 @@ def validate_get_project_collection_factory(target_model_class : Type[models.Bas
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_rbac_permissions(
+         return await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -110,7 +110,7 @@ def validate_get_project_collection_scroll_factory(target_model_class : Type[mod
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_rbac_permissions(
+         return await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -148,7 +148,7 @@ def validate_create_project_collection_factory(target_model_class : Type[models.
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_rbac_permissions(
+         return await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,

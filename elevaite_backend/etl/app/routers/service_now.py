@@ -33,10 +33,9 @@ from elevaitedb.crud import (
     collection as collection_crud,
 )
 from elevaitedb.util import func as util_func
-# from rbac_api import (
-#    routes_to_middleware_imple_map,
-#    rbac_instance
-# )
+from rbac_api import (
+   routes_to_middleware_imple_map,
+)
 
 router = APIRouter(prefix="/servicenow", tags=["servicenow"])
 

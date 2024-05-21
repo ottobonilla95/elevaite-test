@@ -3,8 +3,8 @@ from pprint import pprint
 from typing import Optional
 from rbac_api.app.errors.api_error import ApiError
 from sqlalchemy.orm import Session
-from ....idp.interface import IDPInterface
-from ....idp.factory import IDPFactory
+from .idp.interface import IDPInterface
+from .idp.factory import IDPFactory
 from rbac_api.utils.RedisSingleton import RedisSingleton
 from elevaitedb.schemas import (
    auth as auth_schemas,

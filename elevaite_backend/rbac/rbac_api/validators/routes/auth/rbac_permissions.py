@@ -5,7 +5,7 @@ from uuid import UUID
 from pprint import pprint
 from typing import Any, Optional
 from rbac_api.app.errors.api_error import ApiError
-from ..auth.authenticate.impl import AccessTokenAuthentication
+from rbac_api.auth.impl import AccessTokenAuthentication
 from rbac_api.utils.deps import get_db
 from elevaitedb.db import models
 from elevaitedb.schemas import (

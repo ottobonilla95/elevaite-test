@@ -1,7 +1,9 @@
 from fastapi import Query, Path, Depends, HTTPException, Request
 from uuid import UUID
 
-from ..auth.authenticate.impl import AccessTokenAuthentication
+from rbac_api.auth.impl import (
+   AccessTokenAuthentication
+)
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, select, exists
 from sqlalchemy.exc import SQLAlchemyError
@@ -123,6 +125,7 @@ async def validate_get_account_user_list(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
    account_id: UUID = Path(..., description="Account id under which users are queried"),
+   project_id: UUID = Query(None, description="Optional param to filter account user's by their assignment to account-level project"),
 ) -> dict[str, Any]:
    db: Session = request.state.db
    try:
@@ -132,13 +135,40 @@ async def validate_get_account_user_list(
          raise ApiError.notfound(f"Account - '{account_id}' - not found")
 
       if logged_in_user.is_superadmin:
+         if project_id:
+            project = db.query(models.Project).filter(models.Project.id == project_id).first()
+            if not project or project.account_id != account_id:
+               raise ApiError.notfound(f"Project - '{project_id}' - not found in account - '{account_id}'")
+            if project.parent_project_id != None:
+               raise ApiError.validationerror(f"Project - '{project_id}' - is not an account-level project under account - '{account_id}'")
          return { "authenticated_entity" : logged_in_user,
                   "logged_in_user_account_association" : None,
                   }
+      
+      # user is non-superadmin here
+
       # Check if the logged-in user is associated with the account
       logged_in_user_account_association = db.query(models.User_Account).filter_by(user_id=logged_in_user.id, account_id=account_id).first()
       if not logged_in_user_account_association:
          raise ApiError.forbidden(f"you are not assigned to account - '{account_id}'")
+
+      # User is non-superadmin, and assigned to account here
+      if project_id:
+         project = db.query(models.Project).filter(models.Project.id == project_id).first()
+         if not project or project.account_id != account_id:
+            raise ApiError.notfound(f"Project - '{project_id}' - not found in account - '{account_id}'")
+         if project.parent_project_id != None:
+            raise ApiError.validationerror(f"Project - '{project_id}' - is not an account-level project under account - '{account_id}'")
+         
+         if logged_in_user_account_association.is_admin:
+            return {"authenticated_entity" : logged_in_user,
+               "logged_in_user_account_association" : logged_in_user_account_association,
+               }
+         # user is non-superadmin and non-account-admin here
+         logged_in_user_project_association = db.query(models.User_Project).filter(models.User_Project.user_id == logged_in_user.id,
+                                                                                   models.User_Project.project_id == project_id).first()
+         if not logged_in_user_project_association or not logged_in_user_project_association.is_admin:
+            raise ApiError.forbidden(f"you do not have superadmin privileges or account-admin privileges in account - '{account_id}' - or project-admin privileges in project - '{project_id}' - to view account users with project filters in account - '{account_id}'")
 
       return {"authenticated_entity" : logged_in_user,
                "logged_in_user_account_association" : logged_in_user_account_association,

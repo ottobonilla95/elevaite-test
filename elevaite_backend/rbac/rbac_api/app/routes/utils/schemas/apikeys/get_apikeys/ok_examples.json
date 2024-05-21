@@ -10,7 +10,9 @@
             "permissions": {
                 "ENTITY_Project": {
                     "ACTION_SERVICENOW": {
-                        "ACTION_INGEST": "Deny"
+                        "ACTION_TICKET": {
+                            "ACTION_INGEST": "Deny"
+                        }
                     },
                     "ENTITY_Dataset": {
                         "ACTION_READ": "Deny",
@@ -56,7 +58,9 @@
             "permissions": {
                 "ENTITY_Project": {
                     "ACTION_SERVICENOW": {
-                        "ACTION_INGEST": "Deny"
+                        "ACTION_TICKET": {
+                            "ACTION_INGEST": "Deny"
+                        }
                     },
                     "ENTITY_Dataset": {
                         "ACTION_READ": "Deny",

@@ -99,6 +99,8 @@ def get_org_users(
    firstname: Optional[str],
    lastname: Optional[str],
    email: Optional[str],
+   account_id: Optional[UUID],
+   assigned: Optional[bool] = True,
 ) -> List[user_schemas.OrgUserListItemDTO]:
    try:
       query = db.query(models.User).filter(models.User.organization_id == org_id)
@@ -109,6 +111,21 @@ def get_org_users(
          query = query.filter(models.User.lastname.ilike(f"%{lastname}%"))
       if email:
          query = query.filter(models.User.email.ilike(f"%{email}%"))
+
+      if account_id:
+         # Outer join with User_Account to have null/non-null values to distinguish account members/non-members
+         query = query.outerjoin(
+             models.User_Account,
+             (models.User.id == models.User_Account.user_id) & 
+             (models.User_Account.account_id == account_id)
+         )
+         
+         if assigned:
+            # Filter users assigned to the account
+            query = query.filter(models.User_Account.account_id != None)
+         else:
+            # Filter users not assigned to the account
+            query = query.filter(models.User_Account.account_id == None)
 
       users = query.all()
       return cast(List[user_schemas.OrgUserListItemDTO], users)

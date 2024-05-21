@@ -25,36 +25,42 @@ from rbac_api.utils.cte import (
 from .config import (
    model_classStr_to_class,
    validation_precedence_order,
-)
-from .schemas.permissions import (
    account_scoped_permissions as account_scoped_permissions_schema,
    project_scoped_permissions as project_scoped_permissions_schema,
    apikey_scoped_permissions as apikey_scoped_permissions_schema
 )
 
-class RBAC:
-   
+class RBACProvider:
+   _instance = None
+
+   def __new__(cls, *args, **kwargs):
+      if cls._instance is None:
+         cls._instance = super().__new__(cls)
+      return cls._instance
+
    def __init__(
       self,
       model_classStr_to_class: Dict[str, Type[models.Base]],
-      validation_precedence_order: list[Type[models.Base]],
+      validation_precedence_order: List[Type[models.Base]],
    ):
-      self._account_scoped_permissions_schema = account_scoped_permissions_schema
-      self._project_scoped_permissions_schema = project_scoped_permissions_schema     
-      self._apikey_scoped_permissions_schema = apikey_scoped_permissions_schema
-      self._model_classStr_to_class = model_classStr_to_class
-      self._validation_precedence_order = validation_precedence_order
-
-      (self._account_scoped_permissions_leaf_action_paths_map,
-      self._project_scoped_permissions_leaf_action_paths_map,
-      self._apikey_scoped_permissions_leaf_action_paths_map,
-      self._entity_typenames_list,
-      self._entity_typevalues_list,
-      self._account_scoped_permissions_valid_entity_actions_map,
-      self._project_scoped_permissions_valid_entity_actions_map,
-      self._apikey_scoped_permissions_valid_entity_actions_map,
-      self._entity_actions_to_path_params
-      ) = self._initialize_rbac_instance_properties()
+      if not hasattr(self, '_initialized'):
+         self._initialized = True
+         self._model_classStr_to_class = model_classStr_to_class
+         self._validation_precedence_order = validation_precedence_order
+         self._account_scoped_permissions_schema = account_scoped_permissions_schema
+         self._project_scoped_permissions_schema = project_scoped_permissions_schema     
+         self._apikey_scoped_permissions_schema = apikey_scoped_permissions_schema
+         
+         (self._account_scoped_permissions_leaf_action_paths_map,
+            self._project_scoped_permissions_leaf_action_paths_map,
+            self._apikey_scoped_permissions_leaf_action_paths_map,
+            self._entity_typenames_list,
+            self._entity_typevalues_list,
+            self._account_scoped_permissions_valid_entity_actions_map,
+            self._project_scoped_permissions_valid_entity_actions_map,
+            self._apikey_scoped_permissions_valid_entity_actions_map,
+            self._entity_actions_to_path_params
+         ) = self._initialize_rbac_instance_properties()
       
    def _initialize_rbac_instance_properties(self):
    
@@ -105,6 +111,15 @@ class RBAC:
       apikey_scoped_permissions_valid_entity_actions_map,
       _) =  self._populate_rbac_schema_info(self._apikey_scoped_permissions_schema)
 
+      # pprint("X-------APIKEY SCOPED PERMISSIONS LEAF ACTION PATHS MAP--------X")
+      # for key,val in apikey_scoped_permissions_leaf_action_paths_map.items():
+      #    pprint(f"{key} : {val}")
+      #    pprint("----------")
+      # pprint("X-------APIKEY SCOPED PERMISSIONS VALID ENTITY ACTIONS --------X")
+      # for key,val in apikey_scoped_permissions_valid_entity_actions_map.items():
+      #    pprint(f"{key} : {val}")
+      #    pprint("----------")
+
       return (account_scoped_permissions_leaf_action_paths_map,
                project_scoped_permissions_leaf_action_paths_map,
                apikey_scoped_permissions_leaf_action_paths_map,
@@ -115,22 +130,6 @@ class RBAC:
                apikey_scoped_permissions_valid_entity_actions_map,
                entity_actions_to_path_params
                )
-   
-   # def _validate_account_scoped_permissions_schema(self):
-   #    try:
-   #       validated_account_scoped_permissions_schema = permission_schemas.AccountScopedRBACPermission.parse_obj(self._account_scoped_permissions_schema)
-   #       # print("Input RBAC Schema Validation Successful")
-   #    except ValidationError as e:
-   #       print("input account_scoped_permissions schema Validation Error:", e.json())
-   #       raise e
-   
-   # def _validate_project_scoped_permissions_schema(self):
-   #    try:
-   #       validated_project_scoped_permissions_schema = permission_schemas.ProjectScopedRBACPermission.parse_obj(self._project_scoped_permissions_schema)
-   #       # print("Input RBAC Schema Validation Successful")
-   #    except ValidationError as e:
-   #       print("input project_scoped_permissions schema Validation Error:", e.json())
-   #       raise e
       
    def _populate_rbac_schema_info(
       self,
@@ -1125,7 +1124,10 @@ class RBAC:
          return query
       return filter_function
    
-rbac_instance = RBAC(model_classStr_to_class=model_classStr_to_class,validation_precedence_order=validation_precedence_order)  
-
+   @classmethod 
+   def get_instance(cls):
+      if cls._instance is None:
+         raise ValueError("RBACProvider not initialized. Call the constructor first.")
+      return cls._instance
 
 

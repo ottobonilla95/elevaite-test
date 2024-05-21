@@ -191,6 +191,8 @@ async def get_org_users(
     firstname: Optional[str] = Query(None, description="Filter users by first name"),
     lastname: Optional[str] = Query(None, description="Filter users by last name"),
     email: Optional[str] = Query(None, description="Filter users by email"),
+    account_id: Optional[UUID] = Query(None, description="Filter users by account ID"),
+    assigned: Optional[bool] = Query(True, description="Filter users by assignment to the account"),
 ) -> List[user_schemas.OrgUserListItemDTO]:
     """
     Retrieve elevAIte organization user resources. 
@@ -201,6 +203,8 @@ async def get_org_users(
     - firstname (str): Optional filter query param for user firstname with case-insensitive pattern matching
     - lastname (str): Optional filter query param for user lastname with case-insensitive pattern matching
     - email (str): Optional filter query param for user email with case-insensitive pattern matching
+    - account_id (UUID): Optional query param to filter org user's by their assignment to account
+    - assigned (bool): Optional filter query param to denote org users' assignment status to account_id; when account_id not provided, this value is ignored. Defaults to True.
 
     Returns:
     - List[OrgUserListItemDTO] : list of users registered to elevAIte platform
@@ -211,4 +215,4 @@ async def get_org_users(
     """
     db: Session = request.state.db
     org_id: UUID = validation_info.get("org_id" , None)
-    return service.get_org_users(db, org_id, firstname, lastname, email)
+    return service.get_org_users(db, org_id, firstname, lastname, email, account_id, assigned)

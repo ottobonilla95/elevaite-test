@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException, Header, Request, Path, Body
 from uuid import UUID
-from ..auth.authenticate.impl import (
-   AccessTokenAuthentication,
+from rbac_api.auth.impl import (
+   AccessTokenAuthentication
 )
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -14,7 +14,7 @@ from elevaitedb.db import models
 from elevaitedb.schemas import (
    apikey as apikey_schemas,
 )
-from ...rbac import rbac_instance
+from ...main import RBACProvider
 import inspect
 
 def validate_create_apikey_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
@@ -22,7 +22,7 @@ def validate_create_apikey_factory(target_model_class : Type[models.Base], targe
       request: Request,
       # The params below are required for pydantic validation even when unused
       project_id: UUID = Path(..., description="The ID of the project under which apikey is created"),
-      authenticated_entity: models.User | models.Apikey = Depends(AccessTokenAuthentication.authenticate), 
+      authenticated_entity: models.User = Depends(AccessTokenAuthentication.authenticate), 
    ) -> dict[str, Any]:
       db: Session = request.state.db
       try: 
@@ -36,7 +36,7 @@ def validate_create_apikey_factory(target_model_class : Type[models.Base], targe
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_rbac_permissions(
+         return await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -62,7 +62,7 @@ def validate_get_apikeys_factory(target_model_class : Type[models.Base], target_
       request: Request,
       # The params below are required for pydantic validation even when unused
       project_id: UUID = Path(..., description="The ID of the project under which apikeys are read"),
-      authenticated_entity: models.User | models.Apikey = Depends(AccessTokenAuthentication.authenticate), 
+      authenticated_entity: models.User = Depends(AccessTokenAuthentication.authenticate), 
    ) -> dict[str, Any]:
       db: Session = request.state.db
       try: 
@@ -76,7 +76,7 @@ def validate_get_apikeys_factory(target_model_class : Type[models.Base], target_
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_rbac_permissions(
+         return await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -117,7 +117,7 @@ def validate_get_apikey_factory(target_model_class : Type[models.Base], target_m
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] = await rbac_instance.validate_rbac_permissions(
+         validation_info:dict[str, Any] = await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -176,7 +176,7 @@ def validate_delete_apikey_factory(target_model_class : Type[models.Base], targe
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] = await rbac_instance.validate_rbac_permissions(
+         validation_info:dict[str, Any] = await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,

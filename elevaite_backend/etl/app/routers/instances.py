@@ -14,7 +14,7 @@ from elevaitedb.schemas import (
 )
 # from rbac_api import (
 #    routes_to_middleware_imple_map,
-#    rbac_instance
+#    RBACProvider
 # )
 
 router = APIRouter(prefix="/application/{application_id}/instance", tags=["instances"])
@@ -30,7 +30,7 @@ def getApplicationInstances(
 ) -> Sequence[instance_schemas.Instance]:
     
     # db: Session = request.state.db # uncomment this when using validator
-    # all_query_authorized_types_filter_function = rbac_instance.get_post_validation_types_filter_function_for_all_query(models.Instance, validation_info) # uncomment this when using validator
+    # all_query_authorized_types_filter_function = RBACProvider.get_instance().get_post_validation_types_filter_function_for_all_query(models.Instance, validation_info) # uncomment this when using validator
 
     return instance_service.getApplicationInstances(
         db,

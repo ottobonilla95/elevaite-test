@@ -1,2 +1,2 @@
-from .rbac import rbac_instance
-from .middleware import routes_to_middleware_imple_map
+from .main import RBACProvider
+from .routes import routes_to_middleware_imple_map

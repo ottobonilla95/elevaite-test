@@ -6,13 +6,13 @@ from pprint import pprint
 from typing import Any, Type, Optional
 from rbac_api.app.errors.api_error import ApiError
 import os
-from ..auth.authenticate.impl import (
-   AccessTokenAuthentication,
+from rbac_api.auth.impl import (
+   AccessTokenAuthentication
 )
 
 from elevaitedb.db import models
 
-from ...rbac import rbac_instance
+from ...main import RBACProvider
 import inspect
 
 async def validate_get_user_profile(
@@ -164,7 +164,7 @@ def validate_update_project_permission_overrides_factory(target_model_class : Ty
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] = await rbac_instance.validate_rbac_permissions(
+         validation_info:dict[str, Any] = await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -224,7 +224,7 @@ def validate_get_project_permission_overrides_factory(target_model_class : Type[
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] = await rbac_instance.validate_rbac_permissions(
+         validation_info:dict[str, Any] = await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,

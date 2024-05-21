@@ -12,10 +12,10 @@ from elevaitedb.db import models
 from elevaitedb.schemas import (
    application as application_schemas,
 )
-from ..auth.authenticate.impl import (
-   AccessTokenOrApikeyAuthentication,
+from rbac_api.auth.impl import (
+   AccessTokenOrApikeyAuthentication
 )
-from ...rbac import rbac_instance
+from ...main import RBACProvider
 import inspect
 
 def validate_get_application_instances_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
@@ -38,7 +38,7 @@ def validate_get_application_instances_factory(target_model_class : Type[models.
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_rbac_permissions(
+         return await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -80,7 +80,7 @@ def validate_get_application_instance_factory(target_model_class : Type[models.B
             request.state.account_context_exists = False
             request.state.project_context_exists = False
          
-         return await rbac_instance.validate_rbac_permissions(
+         return await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -122,7 +122,7 @@ def validate_get_application_instance_chart_factory(target_model_class : Type[mo
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_rbac_permissions(
+         return await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -163,7 +163,7 @@ def validate_get_application_instance_configuration_factory(target_model_class :
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_rbac_permissions(
+         return await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -205,7 +205,7 @@ def validate_get_application_instance_logs_factory(target_model_class : Type[mod
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_rbac_permissions(
+         return await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -246,7 +246,7 @@ def validate_create_application_instance_factory(target_model_class : Type[model
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await rbac_instance.validate_rbac_permissions(
+         return await RBACProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,

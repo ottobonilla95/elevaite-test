@@ -17,7 +17,7 @@ from elevaitedb.schemas import (
 
 from elevaitedb.db import models
 from ..errors.api_error import ApiError
-from rbac_api.validators.rbac import rbac_instance
+from rbac_api import RBACProvider
 import os
 
 def register_user(
@@ -130,7 +130,7 @@ async def evaluate_rbac_permissions(
    db: Session, 
 ) -> auth_schemas.PermissionsEvaluationResponse:
    try:
-      return await rbac_instance.evaluate_rbac_permissions(
+      return await RBACProvider.get_instance().evaluate_rbac_permissions(
          logged_in_user=logged_in_user,
          account_id=account_id,
          project_id=project_id,
