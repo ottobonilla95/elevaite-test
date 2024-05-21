@@ -1,7 +1,31 @@
-import type { ColorScheme } from "@repo/ui/contexts";
+
+
+export interface ColorScheme {
+  type?: "dark" | "light";
+  primary?: string;
+  secondary?: string;
+  tertiary?: string;
+  highlight?: string;
+  text?: string;
+  secondaryText?: string;
+  tertiaryText?: string;
+  icon?: string;
+  iconBorder?: string;
+  hoverColor?: string;
+  borderColor?: string;
+  background?: string;
+  backgroundSecondary?: string;
+  backgroundHighContrast?: string;
+  navbarLogo?: string,
+  navbarBackground?: string,
+  success?: string,
+  danger?: string,
+  tagBorder?: string,
+}
+
 
 // Dark
-export const EngineerTheme: ColorScheme = {
+export const DarkTheme: ColorScheme = {
   type: "dark",
   primary: "#282828",
   secondary: "#424242",
@@ -24,7 +48,7 @@ export const EngineerTheme: ColorScheme = {
 };
 
 // Light
-export const AppDrawerTheme: ColorScheme = {
+export const LightTheme: ColorScheme = {
   type: "light",
   primary: "#FFFFFF",
   secondary: "#F1F5F9",

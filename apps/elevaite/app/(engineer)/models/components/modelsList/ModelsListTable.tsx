@@ -188,8 +188,10 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
                             >
                                 <CommonSelect
                                     className="evaluate-dialog-dataset"
-                                    options={modelsContext.modelDatasets.map(item => { return {value: item.id.toString(), label: item.name}; })}
+                                    options={modelsContext.modelDatasets.filter(item => item.tasks && pendingAction.model.task && item.tasks.includes(pendingAction.model.task))
+                                        .map(item => { return {value: item.id.toString(), label: item.name}; })}
                                     onSelectedValueChange={setDatasetId}
+                                    emptyListLabel="No available datasets to evaluate this model"
                                 />
                             </CommonFormLabels>
                         </div>

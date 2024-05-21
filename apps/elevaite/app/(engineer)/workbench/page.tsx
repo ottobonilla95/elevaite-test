@@ -1,156 +1,127 @@
 "use client";
 import { Card, ElevaiteIcons } from "@repo/ui/components";
-import { useEffect, useState } from "react";
+import { useThemes } from "@repo/ui/contexts";
 import { Tab, TabList, TabPanel, Tabs } from "react-tabs";
-import { getApplicationList } from "../../lib/actions/applicationActions";
-import type { ApplicationObject } from "../../lib/interfaces";
-import { ApplicationType } from "../../lib/interfaces";
+import { useWorkbench } from "../../lib/contexts/WorkbenchContext";
 import "./page.scss";
 
 
 
 
 export default function Page(): JSX.Element {
-  const [applicationList, setApplicationList] = useState<ApplicationObject[]>();
-  const [dataRetrievalList, setDataRetrievalList] = useState<ApplicationObject[]>();
-  const [preProcessingList, setPreProcessingList] = useState<ApplicationObject[]>();
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
+  const workbenchContext = useWorkbench();
+  const themesContext = useThemes();
 
-
-  useEffect(() => {
-    void (async () => {
-      try {
-        const data = await getApplicationList();
-        setApplicationList(data);
-        setIsLoading(false);
-      } catch (error) {
-        setIsLoading(false);
-        setHasError(true);
-        // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
-        console.error('Error fetching application list:', error);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (applicationList) {
-      setDataRetrievalList(applicationList.filter((app) => { return app.applicationType === ApplicationType.INGEST; }));
-      setPreProcessingList(applicationList.filter((app) => { return app.applicationType === ApplicationType.PREPROCESS; }));
-    }
-  }, [applicationList]);
-
-  
 
   return (
-    <Tabs>
-      <TabList>
-        <Tab>INGEST</Tab>
-        {/* <Tab>TRAINING</Tab>
-        <Tab>QA</Tab>
-        <Tab>DEPLOY</Tab> */}
-      </TabList>
-      <TabPanel>
-        <div className="tab-panel-contents ingest">
-          <Section separator>Data Retrieval Applications</Section>
-          {!dataRetrievalList ? null : 
-            dataRetrievalList.length === 0 ?
+    <div className={["applications-page-container", themesContext.type].filter(Boolean).join(" ")}>
+      <Tabs>
+        <TabList>
+          <Tab>INGEST</Tab>
+          {/* <Tab>TRAINING</Tab>
+          <Tab>QA</Tab>
+          <Tab>DEPLOY</Tab> */}
+        </TabList>
+        <TabPanel>
+          <div className="tab-panel-contents ingest">
+            <Section separator>Data Retrieval Applications</Section>
+
+            { workbenchContext.loading.applications === undefined ? null
+            : workbenchContext.loading.applications ? 
+              <Section><div className="loading-box"><ElevaiteIcons.SVGSpinner/><span>Loading Applications. Please wait...</span></div></Section>
+            : workbenchContext.errors.applications ? 
+              <Section><span>There has been an error loading the applications. Please try again later.</span></Section>
+            :  workbenchContext.ingestList.length === 0 ?
               <Section>There are no data retrieval applications to display.</Section>
-            :
-            dataRetrievalList.map((app) => (
-              <Card
-                key={app.id}
-                id={app.id}
-                description={app.description}
-                icon={app.icon}
-                subtitle={`By ${app.creator}`}
-                title={app.title}
-                btnLabel="Open"
-                url="/application"
-              />
-            ))
-          }
-          {!isLoading && !hasError ? null :
-            <Section>{isLoading ?
-              <div className="loading-box"><ElevaiteIcons.SVGSpinner/><span>Loading Applications. Please wait...</span></div> :
-              <span>There has been an error loading the applications. Please try again later.</span>}
-            </Section>
-          }
-          <Section separator>Preprocess Applications</Section>
-          {!preProcessingList ? null : 
-            preProcessingList.length === 0 ?
+            : workbenchContext.ingestList.map((app) => (
+                <Card
+                  key={app.id}
+                  id={app.id}
+                  description={app.description}
+                  icon={app.icon}
+                  subtitle={`By ${app.creator}`}
+                  title={app.title}
+                  btnLabel="Open"
+                  url="/application"
+                />
+              ))
+            }
+
+            <Section separator>Preprocess Applications</Section>
+
+            { workbenchContext.loading.applications === undefined ? null
+            : workbenchContext.loading.applications ? 
+              <Section><div className="loading-box"><ElevaiteIcons.SVGSpinner/><span>Loading Applications. Please wait...</span></div></Section>
+            : workbenchContext.errors.applications ? 
+              <Section><span>There has been an error loading the applications. Please try again later.</span></Section>
+            :  workbenchContext.preProcessingList.length === 0 ?
               <Section>There are no preprocessing applications to display.</Section>
-            :
-            preProcessingList.map((app) => (
+            : workbenchContext.preProcessingList.map((app) => (
+                <Card
+                  key={app.id}
+                  id={app.id}
+                  description={app.description}
+                  icon={app.icon}
+                  subtitle={`By ${app.creator}`}
+                  title={app.title}
+                  btnLabel="Open"
+                  url="/application"
+                />
+              ))
+            }
+
+          </div>
+        </TabPanel>
+        {/* <TabPanel>
+          <div className="grid sm:max-lg:grid-cols-1 lg:max-2xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4 p-8 w-fit">
+            {ingestionMethods.map((method) => (
               <Card
-                key={app.id}
-                id={app.id}
-                description={app.description}
-                icon={app.icon}
-                subtitle={`By ${app.creator}`}
-                title={app.title}
+                key={method.id}
+                id={method.id}
                 btnLabel="Open"
-                url="/application"
+                description={method.description}
+                icon={method.icon}
+                iconAlt={method.iconAlt}
+                subtitle={method.subtitle}
+                title={method.title}
               />
-            ))
-          }
-          {!isLoading && !hasError ? null :
-            <Section>{isLoading ?
-              <div className="loading-box"><ElevaiteIcons.SVGSpinner/><span>Loading Applications. Please wait...</span></div> :
-              <span>There has been an error loading the applications. Please try again later.</span>}
-            </Section>
-          }
-        </div>
-      </TabPanel>
-      {/* <TabPanel>
-        <div className="grid sm:max-lg:grid-cols-1 lg:max-2xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4 p-8 w-fit">
-          {ingestionMethods.map((method) => (
-            <Card
-              key={method.id}
+            ))}
+          </div>
+        </TabPanel>
+        <TabPanel>
+          <div className="grid sm:max-lg:grid-cols-1 lg:max-2xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4 p-8 w-fit">
+            {ingestionMethods.map((method) => (
+              <Card
+                key={method.id}
+                id={method.id}
+                btnLabel="Open"
+                description={method.description}
+                icon={method.icon}
+                iconAlt={method.iconAlt}
+                subtitle={method.subtitle}
+                title={method.title}
+              />
+            ))}
+          </div>
+        </TabPanel>
+        <TabPanel>
+          <div className="grid sm:max-lg:grid-cols-1 lg:max-2xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4 p-8 w-fit">
+            {ingestionMethods.map((method) => (
+              <Card
+                key={method.id}
               id={method.id}
-              btnLabel="Open"
-              description={method.description}
-              icon={method.icon}
-              iconAlt={method.iconAlt}
-              subtitle={method.subtitle}
-              title={method.title}
-            />
-          ))}
-        </div>
-      </TabPanel>
-      <TabPanel>
-        <div className="grid sm:max-lg:grid-cols-1 lg:max-2xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4 p-8 w-fit">
-          {ingestionMethods.map((method) => (
-            <Card
-              key={method.id}
-              id={method.id}
-              btnLabel="Open"
-              description={method.description}
-              icon={method.icon}
-              iconAlt={method.iconAlt}
-              subtitle={method.subtitle}
-              title={method.title}
-            />
-          ))}
-        </div>
-      </TabPanel>
-      <TabPanel>
-        <div className="grid sm:max-lg:grid-cols-1 lg:max-2xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4 p-8 w-fit">
-          {ingestionMethods.map((method) => (
-            <Card
-              key={method.id}
-             id={method.id}
-              btnLabel="Open"
-              description={method.description}
-              icon={method.icon}
-              iconAlt={method.iconAlt}
-              subtitle={method.subtitle}
-              title={method.title}
-            />
-          ))}
-        </div>
-      </TabPanel> */}
-    </Tabs>
+                btnLabel="Open"
+                description={method.description}
+                icon={method.icon}
+                iconAlt={method.iconAlt}
+                subtitle={method.subtitle}
+                title={method.title}
+              />
+            ))}
+          </div>
+        </TabPanel> */}
+      </Tabs>
+    </div>
   );
 }
 

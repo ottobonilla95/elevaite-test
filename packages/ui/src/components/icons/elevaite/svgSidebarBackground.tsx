@@ -1,9 +1,9 @@
 import type { SVGProps } from "react"
-import { useColors } from "../../../contexts/ColorContext";
+import { useThemes } from "../../../contexts/ColorContext";
 
 
 function SVGSidebarBackground(props: SVGProps<SVGSVGElement>): JSX.Element {
-    const theme = useColors();
+    const theme = useThemes();
     let mainColor = "#343434";
     if (props.color) mainColor = props.color;
     else if (theme.type === "dark" && theme.hoverColor) mainColor = theme.hoverColor;

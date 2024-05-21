@@ -1,17 +1,17 @@
 "use client";
-import React, { useContext } from "react";
-import "./Sidebar.scss";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ColorContext } from "../../contexts";
+import { useThemes } from "../../contexts";
 import SVGSidebarBackground from "../icons/elevaite/svgSidebarBackground";
 import { SidebarIconObject } from "../interfaces";
+import "./Sidebar.scss";
 
 interface SidebarProps {
   sidebarIcons: SidebarIconObject[];
 }
 
 export function Sidebar({ ...props }: SidebarProps): JSX.Element {
-  const theme = useContext(ColorContext);
+  const theme = useThemes();
   return (
     <div className={[
       "sidebar-container",
@@ -41,7 +41,7 @@ function SidebarIcon({ children, ...props }: SidebarIconProps): JSX.Element {
   const pathname = usePathname();
 
   return (
-    <a
+    <Link
       className={[
         "sidebar-nav-button",
         props.themeType,
@@ -51,6 +51,6 @@ function SidebarIcon({ children, ...props }: SidebarIconProps): JSX.Element {
       href={props.link}
     >
       {children}
-    </a>
+    </Link>
   );
 }

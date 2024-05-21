@@ -15,10 +15,12 @@ export interface CommonMenuItem<T> {
 
 
 interface CommonMenuProps {
-    item: any;
+    item?: any;
     menu: CommonMenuItem<any>[];
     top?: boolean;
     left?: boolean;
+    sideCover?: boolean;
+    menuIcon?: React.ReactNode;
 }
 
 export function CommonMenu(props: CommonMenuProps): JSX.Element {
@@ -46,7 +48,7 @@ export function CommonMenu(props: CommonMenuProps): JSX.Element {
                 passedRef={buttonRef}
                 onClick={toggleMenu}
             >
-                <ElevaiteIcons.SVGMenuDots/>
+                {props.menuIcon ? props.menuIcon : <ElevaiteIcons.SVGMenuDots/>}
             </CommonButton>
             <ClickOutsideDetector onOutsideClick={closeMenu} ignoredRefs={[buttonRef]}>
                 <div
@@ -54,6 +56,7 @@ export function CommonMenu(props: CommonMenuProps): JSX.Element {
                         "common-menu-anchor",
                         props.top ? "top" : "bottom",
                         props.left ? "left" : "right",
+                        props.sideCover ? "side-cover" : undefined,
                         isOpen ? "open" : undefined,
                     ].filter(Boolean).join(" ")}
                 >

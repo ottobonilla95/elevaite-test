@@ -1,5 +1,6 @@
 import type { CommonMenuItem } from "@repo/ui/components";
 import { CommonButton, CommonMenu, ElevaiteIcons } from "@repo/ui/components";
+import dayjs from "dayjs";
 import { specialHandlingDatasetFields, useDatasets } from "../../../../lib/contexts/DatasetsContext";
 import type { ModelDatasetObject } from "../../../../lib/interfaces";
 import "./DatasetsListRow.scss";
@@ -39,10 +40,12 @@ export function DatasetsListRow(props: DatasetsListRowProps): JSX.Element {
 
     function getSpecialItem(item: RowStructure): React.ReactNode {
         switch (item.specialHandling) {
+            case specialHandlingDatasetFields.TASKS: return (props.dataset?.[item.field] ? 
+                Array.isArray(props.dataset[item.field]) ? (props.dataset[item.field] as string[]).sort().join(", ") : props.dataset[item.field] as string : "");
             case specialHandlingDatasetFields.TAGS: return (props.dataset?.[item.field] ? <>{(props.dataset[item.field] as string[]).map((tag: string) => 
                     <div className="tag" key={tag}>{tag}</div>
                 )}</> : "");
-            // case specialHandlingDatasetFields.DATE: return (props.dataset?.[item.field] ? dayjs(props.dataset[item.field] as string).format("DD-MMM-YYYY hh:mm a") : "");
+            case specialHandlingDatasetFields.DATE: return (props.dataset?.[item.field] ? dayjs(props.dataset[item.field] as string).format("DD-MMM-YYYY hh:mm a") : "");
             default: return "";
         }
     }

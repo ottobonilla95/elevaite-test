@@ -422,6 +422,9 @@ export interface ModelDatasetObject {
     status: string;
     huggingface_repo: string;
     tags: string[];
+    tasks?: string[];
+    dataset_params: unknown;
+    created: string;
 }
 
 export interface HuggingfaceDatasetObject {

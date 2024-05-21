@@ -1,37 +1,49 @@
 "use client";
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { LightTheme, ColorScheme, DarkTheme } from "../themes";
+
+
+
+
+// ENUMS and INTERFACES
+
+enum ThemeType {
+  DARK = "dark",
+  LIGHT = "light",
+}
+interface ThemeObject {
+  id: string;
+  label: string;  
+  type: ThemeType;
+  colors: ColorScheme;
+}
+
+
+
+// STATICS
+
+const LOCAL_STORAGE_THEME = "elevaite_theme";
+
+const defaultThemeList: ThemeObject[] = [
+  { id: "darkTheme01", label: "Dark Theme", type: ThemeType.DARK, colors: DarkTheme },
+  { id: "lightTheme01", label: "Light Theme", type: ThemeType.LIGHT, colors: LightTheme },
+]
+
+
+
+
 
 // STRUCTURE 
 
-export interface ColorScheme {
-  type?: "dark" | "light";
-  primary?: string;
-  secondary?: string;
-  tertiary?: string;
-  highlight?: string;
-  text?: string;
-  secondaryText?: string;
-  tertiaryText?: string;
-  icon?: string;
-  iconBorder?: string;
-  hoverColor?: string;
-  borderColor?: string;
-  background?: string;
-  backgroundSecondary?: string;
-  backgroundHighContrast?: string;
-  navbarLogo?: string,
-  navbarBackground?: string,
-  success?: string,
-  danger?: string,
-  tagBorder?: string,
-}
 
 export interface ColorContextStructure extends ColorScheme {
-  getCSSVariablesColorsInjectionStyle: () => React.CSSProperties,
+  themesList: ThemeObject[];
+  changeTheme: (themeId: string) => void;
 }
 
 export const ColorContext = createContext<ColorContextStructure>({
-  getCSSVariablesColorsInjectionStyle: () => { return {} },
+  themesList: [],
+  changeTheme: () => {},
 });
 
 
@@ -39,14 +51,6 @@ export const ColorContext = createContext<ColorContextStructure>({
 
 // FUNCTIONS
 
-function formatThemeToCSSVariables(theme: ColorScheme): React.CSSProperties {
-  const style: Record<string, string> = Object.keys(theme).reduce((prev, curr) => {
-    return {...prev, [`--ev-colors-${curr}`]: theme[curr as keyof ColorScheme]}
-  }, {});
-  return {
-    ...style
-  } as React.CSSProperties
-}
 
 function setThemePropertiesToBody(theme: ColorScheme): void {
   (Object.keys(theme) as (keyof typeof theme)[]).forEach((themeKey) => {
@@ -66,25 +70,40 @@ function setThemePropertiesToBody(theme: ColorScheme): void {
 // PROVIDER
 
 interface ColorContextProviderProps {
-  theme: ColorScheme,
   children: React.ReactNode;
 }
 
 export function ColorContextProvider(props: ColorContextProviderProps): React.ReactElement {
+  const [themesList] = useState<ThemeObject[]>(defaultThemeList);
+  const [selectedTheme, setSelectedTheme] = useState<ThemeObject>(defaultThemeList[0]);
+
 
   useEffect(() => {
-    setThemePropertiesToBody(props.theme);
-  }, [props.theme]);
+    const themeId = localStorage.getItem(LOCAL_STORAGE_THEME);
+    if (themeId) changeTheme(themeId);
+  }, []);
 
-  function getCSSVariablesColorsInjectionStyle(): React.CSSProperties {
-    return formatThemeToCSSVariables(props.theme);
+
+  useEffect(() => {
+    setThemePropertiesToBody(selectedTheme.colors);
+  }, [selectedTheme]);
+
+
+  function changeTheme(themeId: string): void {
+    const foundTheme = themesList.find(item => item.id === themeId);
+    if (!foundTheme) return;
+    localStorage.setItem(LOCAL_STORAGE_THEME, foundTheme.id);
+    setSelectedTheme(foundTheme);
   }
+
+
 
   return (
     <ColorContext.Provider
       value={ {
-        ...props.theme,
-        getCSSVariablesColorsInjectionStyle,
+        ...selectedTheme.colors,
+        themesList,
+        changeTheme,
       } }
     >
       { props.children}
@@ -92,6 +111,6 @@ export function ColorContextProvider(props: ColorContextProviderProps): React.Re
   );
 }
 
-export function useColors(): ColorContextStructure {
+export function useThemes(): ColorContextStructure {
   return useContext(ColorContext);
 }

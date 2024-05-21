@@ -27,7 +27,7 @@ export function DatasetsListTable(props: DatasetsListTableProps): JSX.Element {
         { header: "Dataset Name", field: "name", isSortable: true },
         { header: "Dataset Description", field: "huggingface_repo", isSortable: true },
         { header: "Dataset Id", field: "id", isSortable: false },
-        { header: "Task", field: "task", isSortable: true },
+        { header: "Task", field: "tasks", isSortable: true, specialHandling: specialHandlingDatasetFields.TASKS },
         { header: "Rows", field: "rows", isSortable: true, align: "center", style: "block" },
         { header: "Columns", field: "columns", isSortable: true, align: "center", style: "block" },
         { header: "Tags", field: "tags", isSortable: true, specialHandling: specialHandlingDatasetFields.TAGS },

@@ -1,10 +1,23 @@
-"use client";
+import { ColorContextProvider } from "@repo/ui/contexts";
+import { RolesContextProvider } from "../lib/contexts/RolesContext";
+import { SessionWrapper } from "./SessionWrapper";
 
-import { SessionProvider } from "next-auth/react";
-import type { ReactNode, JSX } from "react";
 
-function Providers({ children }: { children?: ReactNode }): JSX.Element {
-  return <SessionProvider>{children}</SessionProvider>;
+interface ProvidersProps {
+  children?: React.ReactNode;
 }
 
-export default Providers;
+
+export default function Providers({ children }: ProvidersProps): JSX.Element {
+  return (
+    <SessionWrapper>
+      <RolesContextProvider>
+          <ColorContextProvider>
+            {children}
+          </ColorContextProvider>
+      </RolesContextProvider>
+    </SessionWrapper>
+  );
+}
+
+

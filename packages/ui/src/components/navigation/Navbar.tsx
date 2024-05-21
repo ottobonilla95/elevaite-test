@@ -1,44 +1,70 @@
 "use client";
+import { User } from "next-auth";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useContext, useEffect, useState } from "react";
-import { ColorContext } from "../../contexts";
-import SVGNavbarLogo from "../icons/elevaite/svgNavbarLogo";
+import React, { useEffect, useState } from "react";
+import { useThemes } from "../../contexts/ColorContext";
+import { CommonButton, CommonDialog, CommonMenu, CommonMenuItem } from "../common";
+import { ElevaiteIcons } from "../icons";
+import SVGHelp from "../icons/svgHelp";
 import { Searchbar } from "../search/Searchbar";
 import type { BreadcrumbItem } from "./Breadcrumbs";
 import { Breadcrumbs } from "./Breadcrumbs";
 import "./Navbar.scss";
-import { CommonButton } from "../common";
+
+
 
 interface NavBarProps {
   breadcrumbLabels: Record<string, { label: string; link: string }>;
-  user?: { icon?: string; fullName?: string };
-  children?: React.ReactNode;
+  user?: User;
   handleSearchInput: (term: string) => void;
   searchResults: { key: string; link: string; label: string }[];
   logOut: () => void;
+  children?: React.ReactNode;
 }
 
-export function NavBar({ ...props }: NavBarProps): JSX.Element {
-  const [btnPressed, setBtnPressed] = useState(false);
-  const [breadcrumbItems, setBreadcrumbItems] = useState<BreadcrumbItem[]>([]);
-  const [hover, setHover] = useState(false);
+export function NavBar(props: NavBarProps): JSX.Element {
   const pathname = usePathname();
-  const colors = useContext(ColorContext);
+  const themesContext = useThemes();
+  const [breadcrumbItems, setBreadcrumbItems] = useState<BreadcrumbItem[]>([]);
+  const [isHelpActive, setIsHelpActive] = useState(false);
+  const [isLogoutRequestOpen, setIsLogoutRequestOpen] = useState(false);
+  const [userMenu, setUserMenu] = useState<CommonMenuItem<undefined>[]>([{ label: "Logout", onClick: () => { handleLogoutRequest(); } }]);
+
+
 
   useEffect(() => {
     setBreadcrumbItems(pathToBreadcrumbs(pathname));
   }, [pathname, props.breadcrumbLabels]);
 
-  // useEffect(() => {
-  //   console.log(props.user);
-  // }, [props.user]);
+  useEffect(() => {
+    if (themesContext.themesList.length === 0) return;
+    const themesList: CommonMenuItem<undefined>[] = themesContext.themesList.map(item => { return {
+      label: item.label,
+      onClick: () => { handleThemeClick(item.id) }
+    }});
+    themesList.push({ label: "Logout", onClick: () => { handleLogoutRequest(); } });
+    setUserMenu(themesList);
+  }, [themesContext.themesList]);
+
+
+  function handleThemeClick(themeId: string): void {
+    themesContext.changeTheme(themeId);
+  }
+
+  function handleLogoutRequest(): void {
+    setIsLogoutRequestOpen(true);
+  }
+
+  function handleHelpClick(): void {
+    setIsHelpActive(!isHelpActive);
+  }
 
   function handleLogout(): void {
     props.logOut();
   }
-
+  
   function pathToBreadcrumbs(path: string): BreadcrumbItem[] {
     if (pathname === "/") return [props.breadcrumbLabels.home];
     const runningPath = path.split("/").filter((str) => str !== "");
@@ -53,74 +79,62 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
     });
   }
 
+
+
   return (
     <div className="navbar-container">
+
+      {!isLogoutRequestOpen ? undefined :
+        <CommonDialog
+          title="Are you sure you want to log out?"
+          onConfirm={handleLogout}
+          onCancel={() => setIsLogoutRequestOpen(false)}
+        />
+      }
+
       <div className="navbar-holder">
+
         <div className="navbar-left">
           <Link href="/">
-            <SVGNavbarLogo />
+            <ElevaiteIcons.SVGNavbarLogo />
           </Link>
           <Breadcrumbs items={breadcrumbItems} />
         </div>
+
         <div className="navbar-right">
+
           <Searchbar
             handleInput={props.handleSearchInput}
             isJump
             results={props.searchResults}
             resultsTopOffset="70px"
           />
-          <button
-            className="help"
-            onClick={() => {
-              setBtnPressed(!btnPressed);
-            }}
-            onFocus={() => {
-              setHover(true);
-            }}
-            onMouseEnter={() => {
-              setHover(true);
-            }}
-            onMouseLeave={() => {
-              setHover(false);
-            }}
-            style={{ background: btnPressed || hover ? colors.hoverColor : "", borderColor: colors.borderColor }}
-            type="button"
+
+          <CommonButton
+            className={["help-button", isHelpActive ? "active" : undefined].filter(Boolean).join(" ")}
+            onClick={handleHelpClick}
           >
-            <svg
-              fill="none"
-              height="20"
-              style={{ stroke: btnPressed ? colors.highlight : colors.icon }}
-              viewBox="0 0 20 20"
-              width="20"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <g clipPath="url(#clip0_910_5173)">
-                <path
-                  d="M7.57508 7.49999C7.771 6.94305 8.15771 6.47341 8.66671 6.17427C9.17571 5.87512 9.77416 5.76577 10.3561 5.86558C10.938 5.96539 11.4658 6.26793 11.846 6.7196C12.2262 7.17127 12.4343 7.74293 12.4334 8.33332C12.4334 9.99999 9.93342 10.8333 9.93342 10.8333M10.0001 14.1667H10.0084M18.3334 9.99999C18.3334 14.6024 14.6025 18.3333 10.0001 18.3333C5.39771 18.3333 1.66675 14.6024 1.66675 9.99999C1.66675 5.39762 5.39771 1.66666 10.0001 1.66666C14.6025 1.66666 18.3334 5.39762 18.3334 9.99999Z"
-                  stroke="current"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                />
-              </g>
-              <defs>
-                <clipPath id="clip0_910_5173">
-                  <rect fill="currentColor" height="20" stroke="currentColor" width="20" />
-                </clipPath>
-              </defs>
-            </svg>
-          </button>
-          <div className="line" style={{ background: colors.borderColor }} />
-          {props.user?.fullName}
-          <CommonButton onClick={handleLogout} noBackground>
-            {!props.user?.icon ? (
-              "Logout"
-            ) : (
-              <div className="icon-container">
-                <Image alt="User Image" height={40} width={40} src={props.user.icon} />
-              </div>
-            )}
+            <SVGHelp/>
           </CommonButton>
+
+          <div className="separator"/>
+
+          {props.user?.name}
+
+          <CommonMenu
+            item={undefined}
+            menu={userMenu}
+            left
+            sideCover
+            menuIcon={
+              <div className="icon-container">
+              {!props.user?.image ? <ElevaiteIcons.SVGMenuDots/> :
+                <Image alt="User Image" height={40} width={40} src={props.user.image} />
+              }
+              </div>
+            }
+          />
+
         </div>
       </div>
       {props.children}
@@ -128,4 +142,3 @@ export function NavBar({ ...props }: NavBarProps): JSX.Element {
   );
 }
 
-export default NavBar;

@@ -1,5 +1,6 @@
 import type { SidebarIconObject } from "@repo/ui/components";
 import { ElevaiteIcons } from "@repo/ui/components";
+import { WorkbenchContextProvider } from "../lib/contexts/WorkbenchContext";
 import AppLayout from "../ui/AppLayout";
 import "./layout.css";
 
@@ -48,8 +49,10 @@ const sidebarIcons: SidebarIconObject[] = [
 
 export default function PageLayout({ children }: { children: React.ReactNode }): JSX.Element {
     return (
-        <AppLayout breadcrumbLabels={breadcrumbLabels} layout="engineer" sidebarIcons={sidebarIcons}>
-            {children}
-        </AppLayout>
+        <WorkbenchContextProvider>
+            <AppLayout breadcrumbLabels={breadcrumbLabels} layout="engineer" sidebarIcons={sidebarIcons}>
+                {children}
+            </AppLayout>
+        </WorkbenchContextProvider>
     );
 }

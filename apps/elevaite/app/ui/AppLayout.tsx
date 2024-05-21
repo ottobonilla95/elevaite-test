@@ -16,14 +16,9 @@ interface AppLayoutProps {
   breadcrumbLabels: Record<string, { label: string; link: string }>;
 }
 
-function AppLayout({
-  sidebarIcons,
-  children,
-  breadcrumbLabels,
-  ...props
-}: AppLayoutProps): JSX.Element {
-  const [results, setResults] = useState<{ key: string; link: string; label: string }[]>(getResults(""));
+function AppLayout({sidebarIcons, children, breadcrumbLabels, ...props }: AppLayoutProps): JSX.Element {
   const { data: session } = useSession();
+  const [results, setResults] = useState<{ key: string; link: string; label: string }[]>(getResults(""));
 
 
   function getResults(term: string): { key: string; link: string; label: string }[] {
@@ -54,7 +49,7 @@ function AppLayout({
         handleSearchInput={handleSearchInput}
         logOut={logOut}
         searchResults={results}
-        user={{ icon: session?.user?.image ?? "" }}
+        user={session?.user}
       />
       <Sidebar sidebarIcons={sidebarIcons} />
       <div className="children-container">

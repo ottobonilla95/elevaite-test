@@ -1,9 +1,9 @@
 import type { SVGProps } from "react"
-import { useColors } from "../../../contexts/ColorContext";
+import { useThemes } from "../../../contexts/ColorContext";
 
 
 function SVGMagnifyingGlass(props: SVGProps<SVGSVGElement>): JSX.Element {
-    const theme = useColors();
+    const theme = useThemes();
     let mainColor = "currentColor";
     if (props.color) mainColor = props.color;
     else if (theme.icon) mainColor = theme.icon;

@@ -1,10 +1,6 @@
-import { ColorContextProvider } from "@repo/ui/contexts";
-import { SessionProvider } from "next-auth/react";
 import { Inter } from "next/font/google";
-import { auth } from "../auth";
 import "./layout.scss";
-import { EngineerTheme } from "./ui/themes";
-import { RolesContextProvider } from "./lib/contexts/RolesContext";
+import Providers from "./ui/Providers";
 
 
 const font = Inter({ subsets: ["latin"] });
@@ -14,31 +10,14 @@ interface RootLayoutProps {
     children: React.ReactNode
 }
 
-export default async function RootLayout({children}: RootLayoutProps): Promise<JSX.Element> {
-
-
-    const session = await auth();
-    if (session?.user) {
-        // filter out sensitive data before passing to client.
-        session.user = {
-            id: session.user.id,
-            name: session.user.name,
-            email: session.user.email,
-            image: session.user.image,
-        };
-    }
-
+export default function RootLayout({children}: RootLayoutProps): JSX.Element {
 
     return (
         <html lang="en">
             <body className={font.className}>
-                <SessionProvider session={session}>
-                    <RolesContextProvider>
-                        <ColorContextProvider theme={EngineerTheme}>
-                            {children}
-                        </ColorContextProvider>
-                    </RolesContextProvider>
-                </SessionProvider>
+                <Providers>
+                    {children}
+                </Providers>
             </body>
         </html>
     );

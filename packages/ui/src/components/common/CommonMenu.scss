@@ -16,8 +16,8 @@
 
         &.top { bottom: 100%; }
         &.bottom { top: 100%; }
-        &.left { right: 100%; }
-        &.right { left: 100%; }
+        &.left { right: 100%; &.side-cover { right: 0; } }
+        &.right { left: 100%; &.side-cover {left: 0; } }
         
         z-index: 50;
         min-width: 100%;
