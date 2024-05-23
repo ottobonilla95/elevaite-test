@@ -8,8 +8,9 @@ from rbac_api.app.errors.api_error import ApiError
 from rbac_api.auth.impl import AccessTokenAuthentication
  
 from elevaitedb.db import models
-from ...main import RBACProvider
+from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider
 import inspect
+# from ....audit import AuditorProvider
 
 def validate_get_project_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
    async def validate_get_project(
@@ -29,7 +30,7 @@ def validate_get_project_factory(target_model_class : Type[models.Base], target_
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACProvider.get_instance().validate_rbac_permissions(
+         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -71,7 +72,7 @@ def validate_get_projects_factory(target_model_class : Type[models.Base], target
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACProvider.get_instance().validate_rbac_permissions(
+         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -112,7 +113,7 @@ def validate_get_project_user_list_factory(target_model_class : Type[models.Base
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] = await RBACProvider.get_instance().validate_rbac_permissions(
+         validation_info:dict[str, Any] = await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -170,7 +171,7 @@ def validate_patch_project_factory(target_model_class : Type[models.Base], targe
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] =  await RBACProvider.get_instance().validate_rbac_permissions(
+         validation_info:dict[str, Any] =  await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -230,7 +231,7 @@ def validate_post_project_factory(target_model_class : Type[models.Base], target
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACProvider.get_instance().validate_rbac_permissions(
+         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -269,7 +270,7 @@ def validate_assign_users_to_project_factory(target_model_class : Type[models.Ba
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] =  await RBACProvider.get_instance().validate_rbac_permissions(
+         validation_info:dict[str, Any] =  await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -329,7 +330,7 @@ def validate_deassign_user_from_project_factory(target_model_class : Type[models
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] =  await RBACProvider.get_instance().validate_rbac_permissions(
+         validation_info:dict[str, Any] =  await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -389,7 +390,7 @@ def validate_update_user_project_admin_status_factory(target_model_class : Type[
             request.state.account_context_exists = False
             request.state.project_context_exists = False
             
-         validation_info:dict[str, Any] =  await RBACProvider.get_instance().validate_rbac_permissions(
+         validation_info:dict[str, Any] =  await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,

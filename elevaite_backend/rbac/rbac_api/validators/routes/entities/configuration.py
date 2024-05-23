@@ -15,7 +15,7 @@ from elevaitedb.schemas import (
 from rbac_api.auth.impl import (
    AccessTokenAuthentication
 )
-from ...main import RBACProvider
+from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider
 import inspect
 
 def validate_get_application_configurations_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
@@ -38,7 +38,7 @@ def validate_get_application_configurations_factory(target_model_class : Type[mo
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACProvider.get_instance().validate_rbac_permissions(
+         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -80,7 +80,7 @@ def validate_get_application_configuration_factory(target_model_class : Type[mod
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACProvider.get_instance().validate_rbac_permissions(
+         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -122,7 +122,7 @@ def validate_update_application_configuration_factory(target_model_class : Type[
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACProvider.get_instance().validate_rbac_permissions(
+         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -163,7 +163,7 @@ def validate_create_application_configuration_factory(target_model_class : Type[
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACProvider.get_instance().validate_rbac_permissions(
+         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,

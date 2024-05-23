@@ -1,0 +1,8 @@
+{
+   "conflict": {
+      "summary": "A role with the same name already exists",
+      "value": {
+         "detail": "A role with name - 'ML Engineer' - already exists"
+      }
+   }
+}

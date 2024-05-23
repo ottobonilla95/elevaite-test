@@ -20,7 +20,7 @@ def getConfigurationsOfApplication(
     _conf = configuration_crud.get_configurations_of_application(
         db,
         application_id,
-        # filter_function=filter_function, # uncomment this when using validator  
+        # filter_function=filter_function, # uncomment this when using validator   
     )
     return _conf
 

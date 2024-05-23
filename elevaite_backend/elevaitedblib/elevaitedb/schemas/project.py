@@ -1,5 +1,5 @@
 from pydantic import BaseModel,EmailStr, Field, Extra, root_validator, validator
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from uuid import UUID
 from datetime import datetime
 from enum import Enum
@@ -86,8 +86,15 @@ class ProjectResponseDTO(BaseModel):
 
 class ProjectAssigneeDTO(BaseModel):
     user_id: UUID = Field(..., description="The ID of the user to be assigned to a project")
-    permission_overrides: permission_schemas.ProjectScopedRBACPermission = Field(description='Optional Project-scoped permission overrides')
+    permission_overrides: permission_schemas.ProjectScopedRBACPermission = Field(...)
 
+    # @validator('permission_overrides', pre=True)
+    # def validate_permissions(cls, v, values, **kwargs):
+    #     try:
+    #         validated_permissions = permission_schemas.ProjectScopedRBACPermission.parse_obj(v)
+    #         return v # return the raw object after validation
+    #     except Exception as e:
+    #         raise e
     class Config:
         extra = Extra.forbid
 

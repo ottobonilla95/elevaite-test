@@ -14,7 +14,7 @@ from elevaitedb.db import models
 from elevaitedb.schemas import (
    apikey as apikey_schemas,
 )
-from ...main import RBACProvider
+from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider
 import inspect
 
 def validate_create_apikey_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
@@ -36,7 +36,7 @@ def validate_create_apikey_factory(target_model_class : Type[models.Base], targe
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACProvider.get_instance().validate_rbac_permissions(
+         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -76,7 +76,7 @@ def validate_get_apikeys_factory(target_model_class : Type[models.Base], target_
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACProvider.get_instance().validate_rbac_permissions(
+         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -117,7 +117,7 @@ def validate_get_apikey_factory(target_model_class : Type[models.Base], target_m
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] = await RBACProvider.get_instance().validate_rbac_permissions(
+         validation_info:dict[str, Any] = await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -176,7 +176,7 @@ def validate_delete_apikey_factory(target_model_class : Type[models.Base], targe
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] = await RBACProvider.get_instance().validate_rbac_permissions(
+         validation_info:dict[str, Any] = await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,

@@ -9,14 +9,15 @@ from pprint import pprint
 
 from elevaitedb.schemas import (
    role as role_schemas,
+   permission as permission_schemas,
 )
 from elevaitedb.db import models
 
 from ..errors.api_error import ApiError
 
 def create_role(
-    role_creation_dto: role_schemas.RoleCreationRequestDTO,
-    db: Session
+   role_creation_dto: role_schemas.RoleCreationRequestDTO,
+   db: Session
 ) -> role_schemas.RoleResponseDTO :
    try:
       existing_role = db.query(models.Role).filter(models.Role.name == role_creation_dto.name).first()
@@ -25,12 +26,12 @@ def create_role(
          raise ApiError.conflict(f"A role with name - '{role_creation_dto.name}' - already exists")
       new_role = models.Role(
          name=role_creation_dto.name,
-         # permissions=role_creation_dto.permissions.model_dump(),
-         permissions=role_creation_dto.permissions.dict(),
+         permissions=role_creation_dto.permissions.dict(exclude_none=True) # exclude None values
       )
       db.add(new_role)
       db.commit()
       db.refresh(new_role)
+
       return new_role
    except HTTPException as e:
       db.rollback()
@@ -58,13 +59,17 @@ def get_role(
       if not role:
          raise ApiError.notfound(f"role - '{role_id}' - not found")
       return role
+   except HTTPException as e:
+      db.rollback()
+      pprint(f'API error in GET /roles/{role_id} service method : {e}')
+      raise e
    except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
       db.rollback()
-      pprint(f'DB error in GET /roles service method : {e}')
+      pprint(f'DB error in GET /roles/{role_id} service method : {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
-      pprint(f'Unexpected error in GET /roles service method: {e}')
+      pprint(f'Unexpected error in GET /roles/{role_id} service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
 def get_roles(
@@ -93,22 +98,25 @@ def patch_role(
       if not db_role:
          print(f'In PATCH: /roles/{role_id} service method : role -"{role_id}"- to patch not found')
          raise ApiError.notfound(f"role - '{role_id}' - not found")
-         
-      for key, value in vars(role_patch_req_payload).items():
-         # print(f'key = {key}, value = {value}')
-         if key == 'permissions':
-            # value = value.model_dump()
-            value = value.dict()
-         # print(f'key = {key}, value = {value}')
-         setattr(db_role, key, value) if value is not None else None
+      
+      if role_patch_req_payload.name:
+         setattr(db_role, "name", role_patch_req_payload.name)
+      if role_patch_req_payload.permissions:
+         setattr(db_role, "permissions", role_patch_req_payload.permissions.dict(exclude_none=True))
+
       db_role.updated_at = datetime.now()
       db.commit()
       db.refresh(db_role)
+
       return db_role
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in PATCH /roles/{role_id} service method: {e}')
       raise e
+   except IntegrityError as e: # Database-side uniqueness check : Check if an account with the same name already exists in the organization
+      db.rollback()  
+      pprint(f'DB error in PATCH /roles/{role_id} service method : {e}')
+      raise ApiError.conflict(f"A role with name -'{role_patch_req_payload.name}'- already exists")
    except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
       db.rollback()
       pprint(f'DB error in PATCH /roles/{role_id} service method: {e}')

@@ -140,7 +140,7 @@ async def validate_get_account_user_list(
             if not project or project.account_id != account_id:
                raise ApiError.notfound(f"Project - '{project_id}' - not found in account - '{account_id}'")
             if project.parent_project_id != None:
-               raise ApiError.validationerror(f"Project - '{project_id}' - is not an account-level project under account - '{account_id}'")
+               raise ApiError.validationerror(f"Project - '{project_id}' - is not a top-level project under account - '{account_id}'")
          return { "authenticated_entity" : logged_in_user,
                   "logged_in_user_account_association" : None,
                   }
@@ -158,7 +158,7 @@ async def validate_get_account_user_list(
          if not project or project.account_id != account_id:
             raise ApiError.notfound(f"Project - '{project_id}' - not found in account - '{account_id}'")
          if project.parent_project_id != None:
-            raise ApiError.validationerror(f"Project - '{project_id}' - is not an account-level project under account - '{account_id}'")
+            raise ApiError.validationerror(f"Project - '{project_id}' - is not a top-level project under account - '{account_id}'")
          
          if logged_in_user_account_association.is_admin:
             return {"authenticated_entity" : logged_in_user,

@@ -24,9 +24,9 @@
       }
    },
    "insufficient_permissions_5": {
-      "summary": "api key's permissions are restricted to resources within project",
+      "summary": "logged-in user does not have superadmin/account-admin privileges or project-admin status in child project to filter project user list with child project filters",
       "value": {
-         "detail": "your permissions are restricted to resources within project - '789e4567-e89b-12d3-a456-426614174000'"
+         "detail": "you do not have superadmin privileges or account-admin privileges in account - '789e4567-e89b-12d3-a456-426614174000' - or project-admin privileges in child project - '789e4567-e89b-12d3-a456-426614174001' - to filter project users with child project filters"
       }
    }
 }

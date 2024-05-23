@@ -1,8 +1,8 @@
-from fastapi import Request, HTTPException, status
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, Query
 from sqlalchemy import and_
 
-from typing import Any, Dict, Type, Optional, List, Tuple, Set, Callable
+from typing import Any, Dict, Type, Optional, List, Callable
 from collections import OrderedDict
 from uuid import UUID
 
@@ -11,8 +11,7 @@ from elevaitedb.schemas import (
    permission as permission_schemas,
    auth as auth_schemas
 )
-from pydantic import ValidationError
-from pprint import pprint
+
 from rbac_api.app.errors.api_error import ApiError
 
 from rbac_api.utils.funcs import (
@@ -22,45 +21,54 @@ from rbac_api.utils.funcs import (
 from rbac_api.utils.cte import (
    is_user_project_association_till_root,
 )
-from .config import (
-   model_classStr_to_class,
-   validation_precedence_order,
-   account_scoped_permissions as account_scoped_permissions_schema,
-   project_scoped_permissions as project_scoped_permissions_schema,
-   apikey_scoped_permissions as apikey_scoped_permissions_schema
-)
+# from .config import (
+#    model_classStr_to_class,
+#    validation_precedence_order,
+#    account_scoped_permissions as account_scoped_permissions_schema,
+#    project_scoped_permissions as project_scoped_permissions_schema,
+#    apikey_scoped_permissions as apikey_scoped_permissions_schema
+# )
 
-class RBACProvider:
-   _instance = None
+class RBACValidator:
+   # _instance = None
 
-   def __new__(cls, *args, **kwargs):
-      if cls._instance is None:
-         cls._instance = super().__new__(cls)
-      return cls._instance
+   # def __new__(cls, *args, **kwargs):
+   #    if cls._instance is None:
+   #       cls._instance = super().__new__(cls)
+   #    return cls._instance
 
    def __init__(
       self,
       model_classStr_to_class: Dict[str, Type[models.Base]],
       validation_precedence_order: List[Type[models.Base]],
+      account_scoped_permissions_schema: Dict[str, Any],
+      project_scoped_permissions_schema: Dict[str, Any],
+      apikey_scoped_permissions_schema: Dict[str, Any]
    ):
-      if not hasattr(self, '_initialized'):
-         self._initialized = True
-         self._model_classStr_to_class = model_classStr_to_class
-         self._validation_precedence_order = validation_precedence_order
-         self._account_scoped_permissions_schema = account_scoped_permissions_schema
-         self._project_scoped_permissions_schema = project_scoped_permissions_schema     
-         self._apikey_scoped_permissions_schema = apikey_scoped_permissions_schema
-         
-         (self._account_scoped_permissions_leaf_action_paths_map,
-            self._project_scoped_permissions_leaf_action_paths_map,
-            self._apikey_scoped_permissions_leaf_action_paths_map,
-            self._entity_typenames_list,
-            self._entity_typevalues_list,
-            self._account_scoped_permissions_valid_entity_actions_map,
-            self._project_scoped_permissions_valid_entity_actions_map,
-            self._apikey_scoped_permissions_valid_entity_actions_map,
-            self._entity_actions_to_path_params
-         ) = self._initialize_rbac_instance_properties()
+      # if not hasattr(self, '_initialized'):
+      #    self._initialized = True
+      #    self._model_classStr_to_class = model_classStr_to_class
+      #    self._validation_precedence_order = validation_precedence_order
+      #    self._account_scoped_permissions_schema = account_scoped_permissions_schema
+      #    self._project_scoped_permissions_schema = project_scoped_permissions_schema     
+      #    self._apikey_scoped_permissions_schema = apikey_scoped_permissions_schema
+
+      self._model_classStr_to_class = model_classStr_to_class
+      self._validation_precedence_order = validation_precedence_order
+      self._account_scoped_permissions_schema = account_scoped_permissions_schema
+      self._project_scoped_permissions_schema = project_scoped_permissions_schema     
+      self._apikey_scoped_permissions_schema = apikey_scoped_permissions_schema
+      
+      (self._account_scoped_permissions_leaf_action_paths_map,
+         self._project_scoped_permissions_leaf_action_paths_map,
+         self._apikey_scoped_permissions_leaf_action_paths_map,
+         self._entity_typenames_list,
+         self._entity_typevalues_list,
+         self._account_scoped_permissions_valid_entity_actions_map,
+         self._project_scoped_permissions_valid_entity_actions_map,
+         self._apikey_scoped_permissions_valid_entity_actions_map,
+         self._entity_actions_to_path_params
+      ) = self._initialize_rbac_instance_properties()
       
    def _initialize_rbac_instance_properties(self):
    
@@ -412,6 +420,38 @@ class RBACProvider:
 
       return auth_schemas.PermissionsEvaluationResponse.parse_obj(response_data)
 
+   async def evaluate_apikey_permissions(
+      self,
+      db: Session,
+      logged_in_user_account_association_id: UUID,
+      logged_in_entity_account_and_project_association_info: Dict[str, Any]
+   ) -> Dict[str, Any]:
+      result_permissions = {}
+
+      for action_path in self._apikey_scoped_permissions_leaf_action_paths_map.values():
+         account_permission_exists = await self._check_account_scoped_role_based_permission_exists(
+            db,
+            logged_in_user_account_association_id,
+            action_path,  
+            "Allow" 
+         )
+         
+         project_permission_override_exists = await self._check_project_scoped_permission_overrides_exist(
+            logged_in_entity_account_and_project_association_info,
+            action_path
+         )
+
+         if account_permission_exists and not project_permission_override_exists:
+            # Build the nested dictionary for the result
+            current_level = result_permissions
+            for part in action_path[:-1]:
+                  if part not in current_level:
+                     current_level[part] = {}
+                  current_level = current_level[part]
+            current_level[action_path[-1]] = "Allow"
+      
+      return result_permissions
+   
    async def validate_rbac_permissions(
       self,
       request,
@@ -730,7 +770,7 @@ class RBACProvider:
                   )
                except Exception as e: # current permission field doesn't exist in ApiKeyScopedRBACPermission schema; assume that it is account-scoped/project-scoped model eventually leading up to an api-key scoped target model-action sequence and skip. If not, permissions will be denied when target is evaluated.
                   path_exists_in_api_scoped_permissions = False
-               if path_exists_in_api_scoped_permissions and await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, model_read_action_permission_path):
+               if path_exists_in_api_scoped_permissions and await self._check_apikey_scoped_permission_restrictions_exist(logged_in_entity_account_and_project_association_info, model_read_action_permission_path):
                   raise ApiError.forbidden(read_action_apikey_permissions_error_msg)
 
       if not is_target_model_class_visited:
@@ -809,7 +849,7 @@ class RBACProvider:
                         permission_validation_info[validation_info_key]["apikey_scoped_error_msg"] = target_action_apikey_permissions_error_msg
                      else:
                         permission_validation_info[validation_info_key] = {"apikey_scoped_error_msg": target_action_apikey_permissions_error_msg}
-                  if path_exists_in_project_scoped_permissions and await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
+                  if path_exists_in_project_scoped_permissions and await self._check_apikey_scoped_permission_restrictions_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
                      if validation_info_key in permission_validation_info:
                         permission_validation_info[validation_info_key]["apikey_scoped_error_msg"] = target_action_apikey_permissions_error_msg
                      else:
@@ -871,7 +911,7 @@ class RBACProvider:
                   )
                except Exception as e: # target permission field doesn't exist in ApiKeyScopedRBACPermission schema; restrict project-scoped permissions
                   raise ApiError.forbidden(target_action_apikey_permissions_error_msg)
-               if await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
+               if await self._check_apikey_scoped_permission_restrictions_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
                   raise ApiError.forbidden(target_action_apikey_permissions_error_msg)
          return permission_validation_info
       else:
@@ -930,7 +970,7 @@ class RBACProvider:
                   )
                except Exception as e: # target permission field doesn't exist in ApiKeyScopedRBACPermission schema; restrict project-scoped permissions
                   raise ApiError.forbidden(target_action_apikey_permissions_error_msg)
-               if await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
+               if await self._check_apikey_scoped_permission_restrictions_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
                   raise ApiError.forbidden(target_action_apikey_permissions_error_msg)
       return permission_validation_info
 
@@ -963,36 +1003,50 @@ class RBACProvider:
       permission_path: list[str], 
    ) -> bool:
       logged_in_entity = logged_in_entity_account_and_project_association_info['authenticated_entity']
-      logged_in_entity_is_user = True
-      if isinstance(logged_in_entity, models.User):
-         logged_in_user_project_association = logged_in_entity_account_and_project_association_info['logged_in_entity_project_association']
-         if logged_in_user_project_association and logged_in_user_project_association.is_admin:
-            return False
-         try:
-            project_scoped_permission_overrides = permission_schemas.ProjectScopedRBACPermission.parse_obj(logged_in_user_project_association.permission_overrides) if logged_in_user_project_association else None
-         except Exception as e:
-            print(f"Invalid Project_scoped_permission overrides schema for user - '{logged_in_user_project_association.user_id}' - in project - '{logged_in_user_project_association.project_id}'")
-            raise e
-      else: # logged_in_entity is Apikey
-         logged_in_entity_is_user = False
-         try:
-            project_scoped_permission_overrides = permission_schemas.ApikeyScopedRBACPermission.parse_obj(logged_in_entity.permissions) if logged_in_entity else None
-         except Exception as e:
-            print(f"Invalid Project_scoped_permission overrides schema for apikey - '{logged_in_entity.id}' - in project - '{logged_in_entity.project_id}'")
-            raise e
+      
+      logged_in_user_project_association = logged_in_entity_account_and_project_association_info['logged_in_entity_project_association']
+      if logged_in_user_project_association and logged_in_user_project_association.is_admin:
+         return False
+      try:
+         project_scoped_permission_overrides = permission_schemas.ProjectScopedRBACPermission.parse_obj(logged_in_user_project_association.permission_overrides) if logged_in_user_project_association else None
+      except Exception as e:
+         print(f"Invalid Project_scoped_permission overrides schema for user - '{logged_in_user_project_association.user_id}' - in project - '{logged_in_user_project_association.project_id}'")
+         raise e
       if project_scoped_permission_overrides:
          current_attribute = project_scoped_permission_overrides
          for next_attribute in permission_path:
             if hasattr(current_attribute, next_attribute):
                current_attribute = getattr(current_attribute, next_attribute)
             else:
-               # If the attribute does not exist, schema is malformed
-               print(f"in check_project_scoped_permission_overrides_exist : logged-in {'user' if logged_in_entity_is_user else 'apikey'} - '{logged_in_entity.id}' - has malformed project permission overrides under project - '{logged_in_entity.project_id}'")
-               raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-         if current_attribute == 'Deny':  
+               # If the attribute does not exist, overrides dont exist
+               return False
+         if current_attribute == 'Deny':  # if final attribute is deny, permission overrides exist
             return True
-      return False
+      return False # permission overrides not found, so does not exist
    
+   async def _check_apikey_scoped_permission_restrictions_exist(
+      self,
+      logged_in_entity_account_and_project_association_info: dict[str,Any],
+      permission_path: list[str], 
+   ) -> bool:
+      logged_in_entity = logged_in_entity_account_and_project_association_info['authenticated_entity']
+      try:
+         apikey_scoped_permissions = permission_schemas.ApikeyScopedRBACPermission.parse_obj(logged_in_entity.permissions) if logged_in_entity else None
+      except Exception as e:
+         print(f"Invalid apikey_scoped_permissions schema for apikey - '{logged_in_entity.id}' - in project - '{logged_in_entity.project_id}'")
+         raise e
+      if apikey_scoped_permissions:
+         current_attribute =apikey_scoped_permissions
+         for next_attribute in permission_path:
+            if hasattr(current_attribute, next_attribute):
+               current_attribute = getattr(current_attribute, next_attribute)
+            else:
+               # If the attribute does not exist, permissions don't exist and restrictions exist
+               return True
+         if current_attribute == 'Allow': # final value must be Allow for no restrictions  
+            return False
+      return True  # permissions dont exist, restrictions exist
+
    def _get_model_permissions_path(
       self,
       authenticated_entity: models.User | models.Apikey,
@@ -1032,7 +1086,7 @@ class RBACProvider:
          print(f"unimplemented business logic for get_model_permissions_path for scope - '{permissions_scope}'")
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       
-      print(f'action_path = {action_path}')  
+      # print(f'action_path = {action_path}')  
       return action_path
    
    def _get_model_permission_validation_info(
@@ -1082,7 +1136,7 @@ class RBACProvider:
             f"you are denied permissions to perform the action sequence - '{model_action_sequence}' - "
             f"on '{target_model_class.__name__}' resources "
             f"{'under the following configurations - (' + configurations_str + ') -' if configurations else ''} "
-            f"due to apikey-specific permission overrides in project - '{model_class_to_instance[models.Project].id}'"
+            f"due to apikey-specific permission restrictions in project - '{model_class_to_instance[models.Project].id}'"
          )
       
       # Creating a validation info key with model class, typename, and typevalue
@@ -1124,10 +1178,10 @@ class RBACProvider:
          return query
       return filter_function
    
-   @classmethod 
-   def get_instance(cls):
-      if cls._instance is None:
-         raise ValueError("RBACProvider not initialized. Call the constructor first.")
-      return cls._instance
+   # @classmethod 
+   # def get_instance(cls):
+   #    if cls._instance is None:
+   #       raise ValueError("RBACProvider not initialized. Call the constructor first.")
+   #    return cls._instance
 
 

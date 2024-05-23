@@ -65,7 +65,7 @@ def create_project(
          user_id=logged_in_user_id,
          project_id=new_project.id,
          is_admin=True,
-         permission_overrides=permission_schemas.ProjectScopedRBACPermission.create("Allow").dict()
+         permission_overrides=dict() # empty dict denoting no overrides
       )
       
       db.add(new_user_project) # Add the User_Project association to the session
@@ -291,7 +291,7 @@ def assign_users_to_project(
          raise ApiError.conflict(f"One or more users are already assigned to project - '{project.id}'")
       
       new_user_projects = [
-         models.User_Project(user_id=assignee.user_id, project_id=project.id, permission_overrides=assignee.permission_overrides.dict())
+         models.User_Project(user_id=assignee.user_id, project_id=project.id, permission_overrides=assignee.permission_overrides.dict(exclude_none=True)) 
          for assignee in project_assignee_list_dto.assignees
       ]
       db.bulk_save_objects(new_user_projects)

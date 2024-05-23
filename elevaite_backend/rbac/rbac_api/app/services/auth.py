@@ -17,7 +17,7 @@ from elevaitedb.schemas import (
 
 from elevaitedb.db import models
 from ..errors.api_error import ApiError
-from rbac_api import RBACProvider
+from rbac_api import RBACValidatorProvider
 import os
 
 def register_user(
@@ -98,7 +98,7 @@ def register_user(
          new_user_default_project_association = models.User_Project(
             user_id=db_user.id,
             project_id=default_project.id,
-            permission_overrides = permission_schemas.ProjectScopedRBACPermission.create("Allow").dict()
+            permission_overrides = dict() # empty dict indicates no overrides
          )
          db.add(new_user_default_project_association)
 
@@ -130,7 +130,7 @@ async def evaluate_rbac_permissions(
    db: Session, 
 ) -> auth_schemas.PermissionsEvaluationResponse:
    try:
-      return await RBACProvider.get_instance().evaluate_rbac_permissions(
+      return await RBACValidatorProvider.get_instance().evaluate_rbac_permissions(
          logged_in_user=logged_in_user,
          account_id=account_id,
          project_id=project_id,

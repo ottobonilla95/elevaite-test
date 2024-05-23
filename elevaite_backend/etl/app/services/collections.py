@@ -23,7 +23,7 @@ def getCollectionsOfProject(
     return collection_crud.get_collections(
         db=db,
         projectId=projectId,
-        # filter_function=filter_function, # uncomment this when using validator 
+        # filter_function=filter_function, # uncomment this when using validator  
         skip=skip,
         limit=limit,
     )

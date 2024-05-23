@@ -7,9 +7,10 @@ from uuid import UUID
 from elevaitedb.schemas import (
    project as project_schemas,
    user as user_schemas,
+   api as api_schemas,
 )
 from elevaitedb.db import models
-from rbac_api import routes_to_middleware_imple_map
+from rbac_api import route_validator_map
 
 from ..services import project as service
 from .utils.helpers import load_schema
@@ -76,7 +77,7 @@ async def create_project(
    project_creation_payload: project_schemas.ProjectCreationRequestDTO = Body(..., description="project creation payload"),
    project_id: Optional[UUID] = Header(None, alias = "X-elevAIte-ProjectId", description="The ID of the parent project to post under"),
    account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id in which project is posted"),
-   validation_info: dict[str, Any]= Depends(routes_to_middleware_imple_map['create_project']),
+   validation_info: dict[str, Any]= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'create_project')]),
 ) -> project_schemas.ProjectResponseDTO:
    """
    Create a Project resource
@@ -92,7 +93,7 @@ async def create_project(
    
    Notes:
       - When 'X-elevAIte-ProjectId' is not provided, the created project is a top level project in the account with parent_project_id = null
-      - Creating a project makes the creator a project admin for that project, with all 'Allow'ed values for fields in project-permission overrides
+      - Creating a project makes the creator a project admin for that project, with no project-permission overrides (empty object)
       - superadmin users can create projects in any account and under any parent project
       - users who are only account-admins can create projects under their admin accounts under any parent project
       - users who are not superadmins and not account admins can create projects if they have Project - 'READ' and 'CREATE' permission in any of their account-scoped roles under the account where project is created, and if 'X-elevAIte-ProjectId' is provided, users must also be assigned to all projects in the parent project hierarchy of - 'X-elevAIte-ProjectId' (inclusive of 'X-elevAIte-ProjectId'). If user is not a project-admin, user must also not have denied permissions on 'Project' - 'CREATE' in project permission overrides
@@ -161,7 +162,7 @@ async def create_project(
 async def patch_project(
    request: Request,
    project_patch_payload: project_schemas.ProjectPatchRequestDTO = Body(...),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['patch_project']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_project')]),
 ) -> project_schemas.ProjectResponseDTO: 
    """
    Patch a Project resource
@@ -232,7 +233,7 @@ async def patch_project(
 })
 async def get_project( 
    request: Request,
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_project']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_project')]),
 ) -> project_schemas.ProjectResponseDTO: 
    """
    Retrieve a Project resource
@@ -302,7 +303,7 @@ async def get_project(
 }) 
 async def get_projects(  
    request: Request,
-   validation_info: dict[str,Any] = Depends(routes_to_middleware_imple_map['get_projects']),
+   validation_info: dict[str,Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_projects')]),
    view: Optional[project_schemas.ProjectView] = Query(project_schemas.ProjectView.Flat, description = "View mode, either - 'Flat' or 'Hierarchical'; default value is 'Flat'. When set to 'Flat', parent_project_id will not be considered"),
    type: Optional[project_schemas.ProjectType] = Query(project_schemas.ProjectType.All, description = "Optional filter for querying projects based on ownership, either - 'My_Projects' or 'Shared_With_Me'; if not provided then this will assume both types (all projects for superadmin/account-admins)"),
    name: Optional[str] = Query(None, description = "Optional filter for querying projects based on project name"),
@@ -394,7 +395,7 @@ async def get_projects(
 })
 async def get_project_user_list(
    request: Request,
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_project_user_list']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_project_user_list')]),
    project_id: UUID = Path(..., description="Project id under which users are queried"),  
    firstname: Optional[str] = Query(None, description="Filter users by first name"),
    lastname: Optional[str] = Query(None, description="Filter users by last name"),
@@ -491,7 +492,7 @@ async def get_project_user_list(
 async def deassign_user_from_project(
    request: Request,
    user_id: UUID = Path(..., description = "The ID of the user to deassign from project"),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['deassign_user_from_project']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'deassign_user_from_project')]),
 ) -> JSONResponse:
    """
    Deassign User resource from Project resource
@@ -576,7 +577,7 @@ async def deassign_user_from_project(
 async def assign_users_to_project(
    request: Request,
    project_assignee_list_dto: project_schemas.ProjectAssigneeListDTO = Body(description = "payload containing project assignees along with optional project permission overrides (default = no project permission overrides)"),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['assign_users_to_project']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'assign_users_to_project')]),
 ) -> JSONResponse:
    """
    Assign User resources to Project resource
@@ -584,7 +585,7 @@ async def assign_users_to_project(
    Parameters:
       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope.
       - project_id (UUID) : Path variable. id of project to which users are assigned
-      - project_assignee_list_dto (UUID): List of user id's along with their optional project permission overrides to assign to project (default = no project permission overrides)
+      - project_assignee_list_dto (UUID): List of user id's along with their optional project permission overrides to assign to project
       
    Returns: 
       - JSONResponse : 200 success message for successful assignment of users to project
@@ -655,7 +656,7 @@ async def patch_user_project_admin_status(
    project_id: UUID = Path(..., description = "The ID of the project"),
    user_id: UUID = Path(..., description="ID of user"),
    project_admin_status_update_dto: project_schemas.ProjectAdminStatusUpdateDTO = Body(...),
-   validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['patch_user_project_admin_status']),
+   validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_user_project_admin_status')]),
 ) -> JSONResponse:
    """
    Patch project admin status of user

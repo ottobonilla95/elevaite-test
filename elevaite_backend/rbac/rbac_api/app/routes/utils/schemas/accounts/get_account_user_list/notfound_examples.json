@@ -1,8 +1,14 @@
 {
-   "not_found": {
+   "not_found_account": {
       "summary": "account not found",
       "value": {
          "detail": "Account - '789e4567-e89b-12d3-a456-426614174000' - not found"
+      }
+   },
+   "not_found_project": {
+      "summary": "project in filter not found in account",
+      "value": {
+         "detail": "Project - '789e4567-e89b-12d3-a456-426614174000' - not found in account - '789e4567-e89b-12d3-a456-426614174001'"
       }
    }
 }

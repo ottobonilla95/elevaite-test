@@ -8,9 +8,10 @@ from elevaitedb.schemas import (
    user as user_schemas,
    role as role_schemas,
    permission as permission_schemas,
+   api as api_schemas,
 )
 from elevaitedb.db import models
-from rbac_api import routes_to_middleware_imple_map
+from rbac_api import route_validator_map
 
 from ..services import user as service
 from .utils.helpers import load_schema
@@ -70,7 +71,7 @@ user_router = APIRouter(prefix="/users", tags=["users"])
 async def patch_user(
    request: Request,
    user_patch_payload: user_schemas.UserPatchRequestDTO = Body(description= "User patch payload"),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['patch_user']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_user')]),
 ) -> user_schemas.OrgUserListItemDTO:
    """
    Patch User resource
@@ -143,7 +144,7 @@ async def patch_user(
 async def get_user_profile(
    request: Request,
    account_id: Optional[UUID] = Header(None, alias = "X-elevAIte-AccountId", description="optional account_id under which user profile is queried; required by non-superadmins"),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_user_profile']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_user_profile')]),
 ) -> user_schemas.UserProfileDTO:
    """
    Retrieve User profile with mutual account membership information
@@ -221,7 +222,7 @@ async def patch_user_account_roles(
    request: Request,
    account_id: UUID = Path(..., description="The ID of the account to scope the user roles to"),
    role_list_dto: role_schemas.RoleListDTO = Body(description = "payload containing account-scoped role_id's and action to patch user"),
-   validation_info:dict[str,Any] = Depends(routes_to_middleware_imple_map['patch_user_account_roles']),
+   validation_info:dict[str,Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_user_account_roles')]),
 ) -> JSONResponse:
    """
    Patch user's account scoped roles
@@ -300,7 +301,7 @@ async def update_user_project_permission_overrides(
    user_id: UUID = Path(..., description="The ID of the user"),
    project_id: UUID = Path(..., description="The ID of the project"),
    permission_overrides_payload: permission_schemas.ProjectScopedRBACPermission = Body(...),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['update_user_project_permission_overrides']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'update_user_project_permission_overrides')]),
 ) -> JSONResponse:
    """
    Update user's project permission overrides 
@@ -378,7 +379,7 @@ async def get_user_project_permission_overrides(
    request: Request,
    user_id: UUID = Path(..., description="The ID of the user"),
    project_id: UUID = Path(..., description="The ID of the project"),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_user_project_permission_overrides']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_user_project_permission_overrides')]),
 ) -> permission_schemas.ProjectScopedRBACPermission:
    """
    Get user's project permission overrides 
@@ -454,7 +455,7 @@ async def patch_user_superadmin_status(
    request: Request,
    user_id: UUID = Path(..., description="The ID of the user"),
    superadmin_status_update_dto: user_schemas.SuperadminStatusUpdateDTO = Body(...),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['patch_user_superadmin_status']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_user_superadmin_status')]),
 ) -> JSONResponse:
    """
    Update user's superadmin status

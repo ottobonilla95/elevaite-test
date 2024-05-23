@@ -11,21 +11,25 @@ from pprint import pprint
 from ..errors.api_error import ApiError
 from datetime import UTC
 import secrets
+from fastapi.encoders import jsonable_encoder
 
 from elevaitedb.schemas import (
    apikey as apikey_schemas,
    permission as permission_schemas,
 )
 from elevaitedb.db import models
+from rbac_api import RBACValidatorProvider
+from .utils.apikey_helpers import is_permission_subset
 
-def create_apikey(
+async def create_apikey(
    create_apikey_dto: apikey_schemas.ApikeyCreate,
    project_id: UUID,
    db: Session,
    logged_in_user: models.User,
    logged_in_user_is_account_admin: bool,
    logged_in_user_is_project_admin: bool,
-   logged_in_user_project_association: models.User_Project
+   logged_in_user_project_association: models.User_Project,
+   logged_in_user_account_association: models.User_Account
    )-> apikey_schemas.ApikeyCreateResponseDTO:
    try:
       creator_id = logged_in_user.id
@@ -40,13 +44,27 @@ def create_apikey(
          raise ApiError.conflict(f"An api key with the same name - '{create_apikey_dto.name}' - already exists and was created under project - '{project_id}' - by user - '{creator_id}'")
 
       apikey_permissions_type: apikey_schemas.ApikeyPermissionsType = create_apikey_dto.permissions_type
+
+
       if apikey_permissions_type is apikey_schemas.ApikeyPermissionsType.CLONED:
          if logged_in_user.is_superadmin or logged_in_user_is_account_admin or logged_in_user_is_project_admin:
-            permissions = permission_schemas.ApikeyScopedRBACPermission.create("Allow").dict()
+            apikey_overall_permissions = permission_schemas.ApikeyScopedRBACPermission.create().dict(exclude_none = True)
          else:
-            permissions = permission_schemas.ApikeyScopedRBACPermission.map_to_apikey_scoped_permissions(logged_in_user_project_association.permission_overrides, permission_schemas.RBACPermissionScope.PROJECT_SCOPE) 
+            logged_in_user_account_association_id = logged_in_user_account_association.id
+            logged_in_entity_account_and_project_association_info = {"authenticated_entity" : logged_in_user, "logged_in_entity_account_association" : logged_in_user_account_association, "logged_in_entity_project_association" : logged_in_user_project_association}
+            apikey_overall_permissions = await RBACValidatorProvider.get_instance().evaluate_apikey_permissions(db=db, logged_in_entity_account_and_project_association_info=logged_in_entity_account_and_project_association_info, logged_in_user_account_association_id=logged_in_user_account_association_id)    
       else:
-         permissions = create_apikey_dto.permissions.dict()
+         if logged_in_user.is_superadmin or logged_in_user_is_account_admin or logged_in_user_is_project_admin:
+            apikey_overall_permissions = create_apikey_dto.permissions.dict(exclude_none=True)
+         else:
+            logged_in_user_account_association_id = logged_in_user_account_association.id
+            logged_in_entity_account_and_project_association_info = {"authenticated_entity" : logged_in_user, "logged_in_entity_account_association" : logged_in_user_account_association, "logged_in_entity_project_association" : logged_in_user_project_association}
+            logged_in_user_overall_permissions = await RBACValidatorProvider.get_instance().evaluate_apikey_permissions(db=db, logged_in_entity_account_and_project_association_info=logged_in_entity_account_and_project_association_info, logged_in_user_account_association_id=logged_in_user_account_association_id) 
+            payload_custom_permissions = create_apikey_dto.permissions.dict(exclude_none=True)
+            if not is_permission_subset(payload_custom_permissions, logged_in_user_overall_permissions):
+               raise ApiError.forbidden(f'Attempting to create api key with custom permissions which exceed your current user permissions')    
+            apikey_overall_permissions = payload_custom_permissions
+
 
       # generate unique key
       api_key_value = f"eAI_{secrets.token_urlsafe(16)}"
@@ -55,7 +73,7 @@ def create_apikey(
         "name": create_apikey_dto.name,
         "creator_id": creator_id,
         "permissions_type": apikey_permissions_type,
-        "permissions": permissions,
+        "permissions": apikey_overall_permissions,
         "key": api_key_value,
         "project_id": project_id,
         "created_at": datetime.now(UTC),
@@ -69,7 +87,7 @@ def create_apikey(
       db.add(new_apikey)
       db.commit()
       db.refresh(new_apikey)
-
+      
       return apikey_schemas.ApikeyCreateResponseDTO.from_orm(new_apikey)
    except HTTPException as e:
       db.rollback()

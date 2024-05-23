@@ -27,7 +27,7 @@ def get_datasets_of_project(
     return dataset_crud.get_datasets_of_project(
         db=db, 
         project_id=projectId,
-        # filter_function=filter_function, # uncomment this when using validator
+        # filter_function=filter_function, # uncomment this when using validator 
         skip=skip,
         limit=limit
     )

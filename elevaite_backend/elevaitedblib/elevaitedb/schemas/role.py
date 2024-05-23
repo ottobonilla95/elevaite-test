@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, Extra, root_validator, validator
-from typing import Optional, Literal, List
+from pydantic import BaseModel, Field, Extra, root_validator, validator, PrivateAttr
+from typing import Optional, Literal, List, Dict, Any
 from uuid import UUID
 from datetime import datetime
 from .permission import (
@@ -11,7 +11,15 @@ from .permission import (
 class RoleCreationRequestDTO(BaseModel):
    name: str = Field(...)
    permissions: AccountScopedRBACPermission = Field(...)
-   
+
+   # @validator('permissions', pre=True)
+   # def validate_permissions(cls, v, values, **kwargs):
+   #    try:
+   #       validated_permissions = AccountScopedRBACPermission.parse_obj(v)
+   #       return v # return the raw object after validation
+   #    except Exception as e:
+   #       raise e
+
    class Config:
       extra = Extra.forbid
    
@@ -19,9 +27,6 @@ class RoleCreationRequestDTO(BaseModel):
 class RoleUpdateRequestDTO(BaseModel):
    name: Optional[str] = Field(None)
    permissions: Optional[AccountScopedRBACPermission] = Field(None)
-    
-   class Config:
-      extra = Extra.forbid
 
    @root_validator(pre=True)
    @classmethod
@@ -31,6 +36,18 @@ class RoleUpdateRequestDTO(BaseModel):
          print(f"Inside PATCH /roles/role_id - RoleUpdateRequestDTO schema validation")
          raise ValueError("At least one field must be provided in payload")
       return values
+   
+   # @validator('permissions', pre=True)
+   # def validate_permissions(cls, v, values, **kwargs):
+   #    try:
+   #       validated_permissions = AccountScopedRBACPermission.parse_obj(v)
+   #       return v # return the raw object after validation
+   #    except Exception as e:
+   #       raise e
+   
+   class Config:
+      extra = Extra.forbid
+
    
 
 class RoleResponseDTO(BaseModel):

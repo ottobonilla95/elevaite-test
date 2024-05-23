@@ -1,6 +1,6 @@
 # app/schemas/user_schemas.py
 from pydantic import BaseModel, EmailStr, Field, Extra, root_validator, validator
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Dict, Any
 from uuid import UUID
 from datetime import datetime
 from .role import (
@@ -139,3 +139,17 @@ class ProjectUserProfileDTO(AccountUserProfileDTO):
 
 class SuperadminStatusUpdateDTO(StatusUpdateAction):
    pass
+
+# class UpdateUserProjectPermissionOverrides(BaseModel):
+#    permission_overrides: ProjectScopedRBACPermission = Field(...)
+
+#    # @validator('permission_overrides', pre=True)
+#    # def validate_permission_overrides(cls, v, values, **kwargs):
+#    #    try:
+#    #       validated_permission_overrides = ProjectScopedRBACPermission.parse_obj(v)
+#    #       return v # return the raw object after validation
+#    #    except Exception as e:
+#    #       raise e
+      
+#    class Config:
+#       extra = Extra.forbid

@@ -1,222 +1,108 @@
 {
-   "programmatically_created_apikey_with_custom_permissions": {
-      "summary": "Programmatically (api key is creator) created api key with custom permissions",
-      "value": {
-         "id": "3fa85f64-5717-4562-b3fc-2c963f66afa1",
-         "name" : "example_name",
-         "key" : "eAI_Vtp3oF4R3baeS15kUrVg",
-         "creation_type" : "programmatic",
-         "creator_user_id": null,
-         "creator_apikey_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-         "project_id" : "3fa85f64-5717-4562-b3fc-2c963f66afa7",
-         "permissions_type" : "custom",
-         "permissions" : {
-            "ENTITY_Project": {
-                "ACTION_CREATE": "Allow",
-                "ENTITY_Dataset": {
-                    "ACTION_READ": "Deny",
-                    "ACTION_TAG": "Deny"
-                },
-                "ENTITY_Collection": {
-                    "ACTION_CREATE": "Deny",
-                    "ACTION_READ": "Deny"
-                },
-                "ENTITY_Apikey": {
-                  "ACTION_CREATE": "Deny",
-                  "ACTION_READ": "Deny"
-              }
-            },
-            "ENTITY_Application": {
-                "TYPENAMES_applicationType": {
-                    "TYPEVALUES_ingest": {
-                        "ENTITY_Instance": {
-                            "ACTION_READ": "Deny",
-                            "ACTION_CREATE": "Deny",
-                            "ACTION_CONFIGURATION": {
-                                "ACTION_READ": "Deny"
-                            }
+   "cloned_permissions_apikey": {
+        "summary": "Api key created by cloning logged-in user's project-scoped permissions",
+        "value": {
+            "id": "95710771-ae48-4a61-9176-ea97d9645ad7",
+            "name": "test key 1",
+            "creator_id": "4d4a59fd-f2c4-478e-a2ad-e30ac5b624be",
+            "project_id": "d1aca774-ccb1-4ec6-8c41-68bc6e088305",
+            "permissions": {
+                "ENTITY_Project": {
+                    "ACTION_SERVICENOW": {
+                        "ACTION_TICKET": {
+                            "ACTION_INGEST": "Deny"
                         }
                     },
-                    "TYPEVALUES_preprocess": {
-                        "ENTITY_Instance": {
-                            "ACTION_READ": "Deny",
-                            "ACTION_CREATE": "Deny",
-                            "ACTION_CONFIGURATION": {
-                                "ACTION_READ": "Deny"
+                    "ENTITY_Dataset": {
+                        "ACTION_READ": "Allow",
+                        "ACTION_TAG": "Deny"
+                    },
+                    "ENTITY_Collection": {
+                        "ACTION_CREATE": "Allow",
+                        "ACTION_READ": "Deny"
+                    }
+                },
+                "ENTITY_Application": {
+                    "TYPENAMES_applicationType": {
+                        "TYPEVALUES_ingest": {
+                            "ENTITY_Instance": {
+                                "ACTION_READ": "Allow",
+                                "ACTION_CREATE": "Deny",
+                                "ACTION_CONFIGURATION": {
+                                    "ACTION_READ": "Allow"
+                                }
+                            }
+                        },
+                        "TYPEVALUES_preprocess": {
+                            "ENTITY_Instance": {
+                                "ACTION_READ": "Deny",
+                                "ACTION_CREATE": "Allow",
+                                "ACTION_CONFIGURATION": {
+                                    "ACTION_READ": "Allow"
+                                }
                             }
                         }
                     }
                 }
-            }
-         },
-         "created_at": "2024-05-10T21:43:44.010Z",
-         "expires_at": "2024-25-10T21:43:44.010Z"
-       }
+            },
+            "permissions_type": "cloned",
+            "created_at": "2024-05-21T12:23:42.624587",
+            "expires_at": "2024-05-31T08:01:26.657915",
+            "key": "eAI_SqzK7RjT33uIfM_9u2j5hw"
+        }
    },
-
-   "apikey_created_with_console_with_custom_permissions": {
-      "summary": "Api key creating using console (user is creator) with custom permissions",
+   "custom_permissions_apikey": {
+      "summary": "Api key created with custom apikey-scoped permissions",
       "value": {
-         "id": "3fa85f64-5717-4562-b3fc-2c963f66afa1",
-         "name" : "example_name",
-         "key" : "eAI_Vtp3oF4R3baeS15kUrVg",
-         "creation_type" : "console",
-         "creator_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-         "creator_apikey_id": null,
-         "project_id" : "3fa85f64-5717-4562-b3fc-2c963f66afa7",
-         "permissions_type" : "custom",
-         "permissions" : {
+        "id": "95710771-ae48-4a61-9176-ea97d9645ad7",
+        "name": "test key 2",
+        "creator_id": "4d4a59fd-f2c4-478e-a2ad-e30ac5b624be",
+        "project_id": "d1aca774-ccb1-4ec6-8c41-68bc6e088305",
+        "permissions": {
             "ENTITY_Project": {
-                "ACTION_CREATE": "Allow",
+                "ACTION_SERVICENOW": {
+                    "ACTION_TICKET": {
+                        "ACTION_INGEST": "Deny"
+                    }
+                },
                 "ENTITY_Dataset": {
-                    "ACTION_READ": "Deny",
+                    "ACTION_READ": "Allow",
                     "ACTION_TAG": "Deny"
                 },
                 "ENTITY_Collection": {
-                    "ACTION_CREATE": "Deny",
+                    "ACTION_CREATE": "Allow",
                     "ACTION_READ": "Deny"
-                },
-                "ENTITY_Apikey": {
-                  "ACTION_CREATE": "Deny",
-                  "ACTION_READ": "Deny"
-              }
+                }
             },
             "ENTITY_Application": {
                 "TYPENAMES_applicationType": {
                     "TYPEVALUES_ingest": {
                         "ENTITY_Instance": {
-                            "ACTION_READ": "Deny",
+                            "ACTION_READ": "Allow",
                             "ACTION_CREATE": "Deny",
                             "ACTION_CONFIGURATION": {
-                                "ACTION_READ": "Deny"
+                                "ACTION_READ": "Allow"
                             }
                         }
                     },
                     "TYPEVALUES_preprocess": {
                         "ENTITY_Instance": {
                             "ACTION_READ": "Deny",
-                            "ACTION_CREATE": "Deny",
+                            "ACTION_CREATE": "Allow",
                             "ACTION_CONFIGURATION": {
-                                "ACTION_READ": "Deny"
+                                "ACTION_READ": "Allow"
                             }
                         }
                     }
                 }
             }
-         },
-         "created_at": "2024-05-10T21:43:44.010Z",
-         "expires_at": "2024-25-10T21:43:44.010Z"
-       }
-   },
-   "programmatically_created_apikey_with_cloned_permissions": {
-      "summary": "Programmatically (api key is creator) created api key with custom permissions",
-      "value": {
-         "id": "3fa85f64-5717-4562-b3fc-2c963f66afa1",
-         "name" : "example_name",
-         "key" : "eAI_Vtp3oF4R3baeS15kUrVg",
-         "creation_type" : "programmatic",
-         "creator_user_id": null,
-         "creator_apikey_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-         "project_id" : "3fa85f64-5717-4562-b3fc-2c963f66afa7",
-         "permissions_type" : "cloned",
-         "permissions" : {
-            "ENTITY_Project": {
-                "ACTION_CREATE": "Allow",
-                "ENTITY_Dataset": {
-                    "ACTION_READ": "Deny",
-                    "ACTION_TAG": "Deny"
-                },
-                "ENTITY_Collection": {
-                    "ACTION_CREATE": "Deny",
-                    "ACTION_READ": "Deny"
-                },
-                "ENTITY_Apikey": {
-                  "ACTION_CREATE": "Deny",
-                  "ACTION_READ": "Deny"
-              }
-            },
-            "ENTITY_Application": {
-                "TYPENAMES_applicationType": {
-                    "TYPEVALUES_ingest": {
-                        "ENTITY_Instance": {
-                            "ACTION_READ": "Deny",
-                            "ACTION_CREATE": "Deny",
-                            "ACTION_CONFIGURATION": {
-                                "ACTION_READ": "Deny"
-                            }
-                        }
-                    },
-                    "TYPEVALUES_preprocess": {
-                        "ENTITY_Instance": {
-                            "ACTION_READ": "Deny",
-                            "ACTION_CREATE": "Deny",
-                            "ACTION_CONFIGURATION": {
-                                "ACTION_READ": "Deny"
-                            }
-                        }
-                    }
-                }
-            }
-         },
-         "created_at": "2024-05-10T21:43:44.010Z",
-         "expires_at": "2024-25-10T21:43:44.010Z"
-       }
-   },
-
-   "apikey_created_with_console_with_cloned_permissions": {
-      "summary": "Api key creating using console (user is creator) with custom permissions",
-      "value": {
-         "id": "3fa85f64-5717-4562-b3fc-2c963f66afa1",
-         "name" : "example_name",
-         "key" : "eAI_Vtp3oF4R3baeS15kUrVg",
-         "creation_type" : "console",
-         "creator_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-         "creator_apikey_id": null,
-         "project_id" : "3fa85f64-5717-4562-b3fc-2c963f66afa7",
-         "permissions_type" : "cloned",
-         "permissions" : {
-            "ENTITY_Project": {
-                "ACTION_CREATE": "Allow",
-                "ENTITY_Dataset": {
-                    "ACTION_READ": "Deny",
-                    "ACTION_TAG": "Deny"
-                },
-                "ENTITY_Collection": {
-                    "ACTION_CREATE": "Deny",
-                    "ACTION_READ": "Deny"
-                },
-                "ENTITY_Apikey": {
-                  "ACTION_CREATE": "Deny",
-                  "ACTION_READ": "Deny"
-              }
-            },
-            "ENTITY_Application": {
-                "TYPENAMES_applicationType": {
-                    "TYPEVALUES_ingest": {
-                        "ENTITY_Instance": {
-                            "ACTION_READ": "Deny",
-                            "ACTION_CREATE": "Deny",
-                            "ACTION_CONFIGURATION": {
-                                "ACTION_READ": "Deny"
-                            }
-                        }
-                    },
-                    "TYPEVALUES_preprocess": {
-                        "ENTITY_Instance": {
-                            "ACTION_READ": "Deny",
-                            "ACTION_CREATE": "Deny",
-                            "ACTION_CONFIGURATION": {
-                                "ACTION_READ": "Deny"
-                            }
-                        }
-                    }
-                }
-            }
-         },
-         "created_at": "2024-05-10T21:43:44.010Z",
-         "expires_at": "2024-25-10T21:43:44.010Z"
-       }
-   }
+        },
+        "permissions_type": "custom",
+        "created_at": "2024-05-21T12:23:42.624587",
+        "expires_at": "2024-05-31T08:01:26.657915",
+        "key": "eAI_SqzK7RjT33uIfM_9u2j5hw"
+    }
+}
 
    
 }

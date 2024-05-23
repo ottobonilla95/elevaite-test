@@ -10,5 +10,11 @@
       "value": {
          "detail": "Project - '789e4567-e89b-12d3-a456-426614174000' - not found"
       }
+   },
+   "not_found_child_project": {
+      "summary": "Immediate child project in filter not found",
+      "value": {
+         "detail": "Immediate child project - '789e4567-e89b-12d3-a456-426614174000' - not found under parent project - '789e4567-e89b-12d3-a456-426614174001'"
+      }
    }
 }

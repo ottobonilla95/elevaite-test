@@ -6,9 +6,10 @@ from uuid import UUID
 
 from elevaitedb.schemas import (
    role as role_schemas,
+   api as api_schemas,
 )
 
-from rbac_api import routes_to_middleware_imple_map
+from rbac_api import route_validator_map
 from ..services import role as service
 from .utils.helpers import load_schema
 
@@ -63,7 +64,7 @@ role_router = APIRouter(prefix="/roles", tags=["roles"])
 async def create_role(
    request: Request,
    role_creation_dto: role_schemas.RoleCreationRequestDTO = Body(description= "role creation payload"),
-   _= Depends(routes_to_middleware_imple_map['create_role']),
+   _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'create_role')]),
 ) -> role_schemas.RoleResponseDTO :
    """
    Create Role resource
@@ -78,6 +79,8 @@ async def create_role(
    Notes:
       - only authorized for use by superadmin users
       - role contains a JSONB permissions fields which has AccountScopedRBACPermissions object
+      - Only Takes in fields with 'Allow' value; If a field is omitted, it is implied that it is 'Denied'. An empty permissions object implied all permissions are denied
+      - If a field is not provided, it will have 'null' value, and its nested fields are ignored
    """
    db: Session = request.state.db
    return service.create_role(role_creation_dto, db)
@@ -123,7 +126,7 @@ async def create_role(
 async def get_role(
    request: Request,
    role_id: UUID = Path(..., description= "role ID to retrieve role object"),
-   _= Depends(routes_to_middleware_imple_map['get_role']),
+   _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_role')]),
 ) -> List[role_schemas.RoleResponseDTO]:
    """
    Retrieve Role resource
@@ -177,7 +180,7 @@ async def get_role(
 })
 async def get_roles(
    request: Request,
-   _= Depends(routes_to_middleware_imple_map['get_roles']),
+   _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_roles')]),
 ) -> List[role_schemas.RoleResponseDTO]:
    """
    Retrieve Role resources
@@ -224,6 +227,14 @@ async def get_roles(
          }
       },
    },
+   status.HTTP_409_CONFLICT: {
+      "description": "Role with same name already exists",
+      "content": {
+         "application/json": {
+            "examples": load_schema('roles/patch_role/conflict_examples.json')
+            }
+         },
+   },
    status.HTTP_422_UNPROCESSABLE_ENTITY: {
       "description": "Payload validation error",
       "content": {
@@ -245,7 +256,7 @@ async def patch_role(
    request: Request,
    role_id: UUID = Path(..., description="The ID of the role to update"),
    role_patch_req_payload: role_schemas.RoleUpdateRequestDTO = Body(description= "Role patch payload"),
-   _= Depends(routes_to_middleware_imple_map['patch_role']),
+   _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_role')]),
 ) -> role_schemas.RoleResponseDTO:
    """
    Patch Role resource
@@ -260,6 +271,7 @@ async def patch_role(
    
    Notes:
       - Authorized for use only by superadmin users
+      - Patch payload for permission field will perform an update on the permissions json
    """
    db: Session = request.state.db
    return service.patch_role(role_id, role_patch_req_payload, db)
@@ -308,7 +320,7 @@ async def patch_role(
 })
 async def delete_role(
    request: Request,
-   _= Depends(routes_to_middleware_imple_map['delete_role']),
+   _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'delete_role')]),
    role_id: UUID = Path(..., description="role id to delete", examples = ['11111111-1111-1111-1111-111111111111']),
 ) -> JSONResponse:
    """

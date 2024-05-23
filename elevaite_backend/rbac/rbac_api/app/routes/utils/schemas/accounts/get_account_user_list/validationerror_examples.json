@@ -13,5 +13,11 @@
             }
          ]
       }
+   },
+   "project_in_filter_not_top_level": {
+      "summary": "project in filter is not a top-level account project",
+      "value": {
+         "detail": "Project - '789e4567-e89b-12d3-a456-426614174000' - is not a top-level project under account - '789e4567-e89b-12d3-a456-426614174001'"
+      }
    }
 }

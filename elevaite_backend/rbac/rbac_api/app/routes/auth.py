@@ -6,9 +6,10 @@ from uuid import UUID
 from pydantic import EmailStr
 
 from elevaitedb.schemas import (
-   auth as auth_schemas
+   auth as auth_schemas,
+   api as api_schemas,
 )
-from rbac_api import routes_to_middleware_imple_map
+from rbac_api import route_validator_map
 from ..services import auth as service
 from .utils.helpers import load_schema
 
@@ -76,7 +77,7 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
 async def register_user(
    request: Request,
    register_user_payload: auth_schemas.RegisterUserRequestDTO = Body(description= "user creation payload"),
-   _= Depends(routes_to_middleware_imple_map['register_user']),
+   _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'register_user')]),
 ) -> JSONResponse:
    """
    Register User resource to Organization resource 
@@ -150,7 +151,7 @@ async def evaluate_rbac_permissions(
    account_id: Optional[UUID] = Header(None, alias='X-elevAIte-AccountId', description="account id under which rbac permissions are evaluated"), 
    project_id: Optional[UUID] = Header(None, alias='X-elevAIte-ProjectId', description="project id under which rbac permissions are evaluated"),
    permissions_evaluation_request: auth_schemas.PermissionsEvaluationRequest = Body(...),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['evaluate_rbac_permissions']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'evaluate_rbac_permissions')]),
 ) -> auth_schemas.PermissionsEvaluationResponse:
    """
    Retrieve an evaluated list of rbac permissions for requested resource actions, and additionally can also retrieve account/project admin status.

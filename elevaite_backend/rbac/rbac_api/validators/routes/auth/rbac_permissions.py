@@ -14,7 +14,7 @@ from elevaitedb.schemas import (
 
 async def validate_evaluate_rbac_permissions(
    request: Request,
-   logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate), 
+   logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),  
    # params required for pydantic validation
    account_id: Optional[UUID] = Header(None, alias='X-elevAIte-AccountId', description="account id under which rbac permissions are evaluated"),
    project_id: Optional[UUID] = Header(None, alias='X-elevAIte-ProjectId', description="project id under which rbac permissions are evaluated"),

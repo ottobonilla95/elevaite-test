@@ -7,10 +7,11 @@ from uuid import UUID
 from elevaitedb.schemas import (
    account as account_schemas,
    user as user_schemas,
+   api as api_schemas,
 )
 from elevaitedb.db import models 
 from rbac_api import (
-   routes_to_middleware_imple_map
+   route_validator_map
 )
 from ..services import account as service
 from .utils.helpers import load_schema
@@ -74,7 +75,7 @@ account_router = APIRouter(prefix="/accounts", tags=["accounts"])
 async def create_account(
    request: Request,
    account_creation_payload: account_schemas.AccountCreationRequestDTO = Body(..., description = "account creation request payload"),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['create_account']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'create_account')]),
 ) -> account_schemas.AccountResponseDTO: 
    """
    Create an Account resource based on given body param.
@@ -148,7 +149,7 @@ async def create_account(
 async def patch_account(
    request: Request,
    account_patch_req_payload: account_schemas.AccountPatchRequestDTO = Body(...),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['patch_account']) ,
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_account')]) ,
 ) -> account_schemas.AccountResponseDTO: 
    """
    Patch an Account resource based on given body param.
@@ -195,7 +196,7 @@ async def patch_account(
 })
 async def get_accounts(
    request: Request,
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_accounts']), 
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_accounts')]), 
    name: Optional[str] = Query(None, description="Filter accounts by account name"),
 ) -> List[account_schemas.AccountResponseDTO]:
    """
@@ -263,7 +264,7 @@ async def get_accounts(
    }
 })
 async def get_account( 
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_account']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_account')]),
 ) -> account_schemas.AccountResponseDTO:
    """
    Retrieve Account resource
@@ -334,7 +335,7 @@ async def get_account(
 })
 async def get_account_user_list(
    request: Request,
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_account_user_list']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_account_user_list')]),
    account_id: UUID = Path(..., description="Account id under which users are queried"),  
    firstname: Optional[str] = Query(None, description="Filter users by first name"),
    lastname: Optional[str] = Query(None, description="Filter users by last name"),
@@ -430,7 +431,7 @@ async def assign_users_to_account(
    request: Request,
    account_id: UUID = Path(..., description="The ID of the account"),
    user_list_dto: user_schemas.UserListDTO = Body(description = "payload containing user_id's to assign to account"),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['assign_users_to_account']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'assign_users_to_account')]),
 ) -> JSONResponse:
    """
    Assign list of User resources to an Account resource
@@ -503,7 +504,7 @@ async def deassign_user_from_account(
    request: Request,
    account_id: UUID = Path(..., description="The ID of the account"),
    user_id:UUID = Path(..., description = "user id to deassign from account"),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['deassign_user_from_account']),
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'deassign_user_from_account')]),
 ) -> JSONResponse:
    """
    Deassign User resource from Account resource
@@ -583,7 +584,7 @@ async def patch_user_account_admin_status(
    account_id: UUID = Path(..., description="The ID of the account"),
    user_id: UUID = Path(..., description="ID of user"),
    account_admin_status_update_dto: account_schemas.AccountAdminStatusUpdateDTO = Body(...),
-   validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['patch_user_account_admin_status']),
+   validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_user_account_admin_status')]),
 ) -> JSONResponse:
    """
    Patch User resources' account admin status

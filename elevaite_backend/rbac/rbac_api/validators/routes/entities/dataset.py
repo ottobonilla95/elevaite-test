@@ -13,7 +13,7 @@ from pprint import pprint
 from typing import Any, Type, Callable, Coroutine
 
 from elevaitedb.db import models
-from ...main import RBACProvider
+from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider
 import inspect
 
 def validate_get_project_datasets_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
@@ -34,7 +34,7 @@ def validate_get_project_datasets_factory(target_model_class : Type[models.Base]
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACProvider.get_instance().validate_rbac_permissions(
+         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -73,7 +73,7 @@ def validate_get_project_dataset_factory(target_model_class : Type[models.Base],
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACProvider.get_instance().validate_rbac_permissions(
+         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -112,7 +112,7 @@ def validate_add_tag_to_dataset_factory(target_model_class : Type[models.Base], 
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACProvider.get_instance().validate_rbac_permissions(
+         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,

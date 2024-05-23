@@ -36,9 +36,9 @@
       }
    },
    "insufficient_permissions_7": {
-      "summary": "api key's permissions are restricted to resources within project",
+      "summary": "logged-in user does not have permissions to create api key with custom permissions which exceed user's permissions",
       "value": {
-         "detail": "your permissions are restricted to resources within project - '789e4567-e89b-12d3-a456-426614174000'"
+         "detail": "Attempting to create api key with custom permissions which exceed your current user permissions"
       }
    }
 }

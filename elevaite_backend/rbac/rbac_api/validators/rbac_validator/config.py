@@ -62,7 +62,7 @@ validation_precedence_order = [models.Project, models.Application, models.Config
 
 # This is the Role.permissions schema which reflect AccountScopedRBACPermissions since role permissions are account scoped
 # Is not taken into consideration for users with elevated status of superadmin (User.is_superadmin)/account-admin(User_Account.is_admin) 
-account_scoped_permissions = permission_schemas.AccountScopedRBACPermission.create('Allow').dict()
+account_scoped_permissions = permission_schemas.AccountScopedRBACPermission.create().dict()
 # {
 #    "ENTITY_Project": {
 #       "ACTION_READ": "Allow",
@@ -245,45 +245,45 @@ account_scoped_permissions = permission_schemas.AccountScopedRBACPermission.crea
 # Only meaningful if user has account-scoped permission for the resource first.
 #  'Deny' value for a field means that the user who has account-scoped permission for that field, will be denied due to project-based permission overrides for that field.
 # there is a It only contains permissions applicable at the project level; Project ENTITY's READ action, Configuration ENTITY and Application ENTITY's READ action permissions are omitted since they are account level actions and resources.
-project_scoped_permissions = permission_schemas.ProjectScopedRBACPermission.create("Allow").dict() 
+project_scoped_permissions = permission_schemas.ProjectScopedRBACPermission.create().dict() 
 # {
 #   "ENTITY_Project": {
-#       "ACTION_CREATE": "Allow",
+#       "ACTION_CREATE": "Deny",
 #       "ACTION_SERVICENOW": {
 #          "ACTION_TICKET" : {
-#            "ACTION_INGEST" : "Allow"
+#            "ACTION_INGEST" : "Deny"
 #           }
 #       },
 #       "ENTITY_Dataset": {
-#          "ACTION_TAG": "Allow",
-#          "ACTION_READ": "Allow"
+#          "ACTION_TAG": "Deny",
+#          "ACTION_READ": "Deny"
 #       },
 #       "ENTITY_Collection": {
-#          "ACTION_READ": "Allow",
-#          "ACTION_CREATE": "Allow"
+#          "ACTION_READ": "Deny",
+#          "ACTION_CREATE": "Deny"
 #       },
 #       "ENTITY_Apikey":{
-#          "ACTION_READ": "Allow",
-#          "ACTION_CREATE": "Allow"
+#          "ACTION_READ": "Deny",
+#          "ACTION_CREATE": "Deny"
 #       }  
 #   },
 #   "ENTITY_Application": {
 #       "TYPENAMES_applicationType": {
 #          "TYPEVALUES_ingest": {
 #             "ENTITY_Instance": {
-#                "ACTION_READ": "Allow",
-#                "ACTION_CREATE": "Allow",
+#                "ACTION_READ": "Deny",
+#                "ACTION_CREATE": "Deny",
 #                "ACTION_CONFIGURATION": {
-#                   "ACTION_READ": "Allow"
+#                   "ACTION_READ": "Deny"
 #                }
 #             }
 #          },
 #          "TYPEVALUES_preprocess": {
 #          "ENTITY_Instance": {
-#                "ACTION_READ": "Allow",
-#                "ACTION_CREATE": "Allow",
+#                "ACTION_READ": "Deny",
+#                "ACTION_CREATE": "Deny",
 #                "ACTION_CONFIGURATION": {
-#                   "ACTION_READ": "Allow"
+#                   "ACTION_READ": "Deny"
 #                }
 #             }
 #          }
@@ -293,7 +293,7 @@ project_scoped_permissions = permission_schemas.ProjectScopedRBACPermission.crea
 
 # This is the schema used for Apikey (Apikey.permissions) It only contains permissions scoped to the APikey, which is scoped to the project, and hence has a subset of the project's permissions. 
 # does not contain Project-CREATE,Apikey-CREATE, Apikey-READ
-apikey_scoped_permissions = permission_schemas.ApikeyScopedRBACPermission.create("Allow").dict() 
+apikey_scoped_permissions = permission_schemas.ApikeyScopedRBACPermission.create().dict() 
 # {
 #   "ENTITY_Project": {
 #       "ACTION_SERVICENOW": {

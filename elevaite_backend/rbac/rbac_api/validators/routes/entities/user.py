@@ -12,7 +12,7 @@ from rbac_api.auth.impl import (
 
 from elevaitedb.db import models
 
-from ...main import RBACProvider
+from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider
 import inspect
 
 async def validate_get_user_profile(
@@ -164,7 +164,7 @@ def validate_update_project_permission_overrides_factory(target_model_class : Ty
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] = await RBACProvider.get_instance().validate_rbac_permissions(
+         validation_info:dict[str, Any] = await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -224,7 +224,7 @@ def validate_get_project_permission_overrides_factory(target_model_class : Type[
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] = await RBACProvider.get_instance().validate_rbac_permissions(
+         validation_info:dict[str, Any] = await RBACValidatorProvider.get_instance().validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,

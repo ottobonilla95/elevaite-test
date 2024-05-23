@@ -35,12 +35,6 @@
          "detail": "you are denied permissions to perform the action sequence - '(READ, )' - on 'Apikey' resources due to project-specific permission overrides in project - '789e4567-e89b-12d3-a456-426614174000'"
       }
    },
-   "insufficient_permissions_7": {
-      "summary": "api key's permissions are restricted to resources within project",
-      "value": {
-         "detail": "your permissions are restricted to resources within project - '789e4567-e89b-12d3-a456-426614174000'"
-      }
-   },
    "insufficient_permissions_8": {
       "summary": "you do not have superadmin/account-admin/project-admin privileges to revoke api keys that were created by other users",
       "value": {

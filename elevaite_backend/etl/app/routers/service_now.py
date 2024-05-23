@@ -19,7 +19,11 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request
 import pika
 from rbac_api.utils.deps import get_db
 from sqlalchemy.orm import Session
-from elevaitedb.schemas import service_now as schemas
+
+from elevaitedb.schemas import (
+   service_now as schemas,
+#    api as api_schemas,
+)
 
 from app.util.service_now_seed import service_now_seed
 from app.util.func import get_routing_key
@@ -33,9 +37,9 @@ from elevaitedb.crud import (
     collection as collection_crud,
 )
 from elevaitedb.util import func as util_func
-from rbac_api import (
-   routes_to_middleware_imple_map,
-)
+# from rbac_api import (
+#    route_validator_map,
+# )
 
 router = APIRouter(prefix="/servicenow", tags=["servicenow"])
 
@@ -45,10 +49,10 @@ def ingestServiceNowTickets(
     # request: Request, # uncomment when using validator
     dto: Annotated[schemas.ServiceNowIngestBody, Body()],
     db: Session = Depends(get_db), # comment this when using validator
-    # validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['ingestServiceNowTickets']), # uncomment this to use validator
+    # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'ingestServiceNowTickets')]), # uncomment this to use validator
     rmq: pika.BlockingConnection = Depends(get_rabbitmq_connection),
 ):
-    # db: Session = request.state.db
+    # db: Session = request.state.db # uncomment this when using validator
     load_dotenv()
     if not bool(re.match("^[a-z0-9][a-z0-9-]{2,62}$", dto.dataset_name)):
         raise HTTPException(400, "Dataset Name must match /^[a-z0-9][a-z0-9-]{2,62}$/")

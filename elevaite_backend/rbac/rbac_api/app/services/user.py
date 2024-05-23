@@ -289,8 +289,7 @@ def update_user_project_permission_overrides(
       if user_project_association.is_admin or user_account_association.is_admin or user_to_patch.is_superadmin:
          raise ApiError.validationerror(f"Invalid action - Attempting to update project permission overrides for user - '{user_id}' - who is admin/superadmin/project-admin")
 
-      # user_project_association.permission_overrides = permission_overrides_payload.model_dump()
-      user_project_association.permission_overrides = permission_overrides_payload.dict()
+      user_project_association.permission_overrides = permission_overrides_payload.dict(exclude_none=True) # exclude values with None
       db.commit()
       return JSONResponse(content={"message": f"Project permission overrides successfully updated for user"}, status_code=status.HTTP_200_OK)
    except HTTPException as e:

@@ -6,9 +6,10 @@ from uuid import UUID
 
 from elevaitedb.schemas import (
    apikey as apikey_schemas,
+   api as api_schemas,
 )
 from elevaitedb.db import models
-from rbac_api import routes_to_middleware_imple_map
+from rbac_api import route_validator_map
 
 from ..services import apikey as service
 from .utils.helpers import load_schema
@@ -71,7 +72,7 @@ async def create_apikey(
    request: Request,
    project_id: UUID = Path(..., description='project under which the apikey is created under and is scoped to'),
    create_apikey_dto: apikey_schemas.ApikeyCreate = Body(...),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['create_apikey']), 
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'create_apikey')]), 
 ) -> apikey_schemas.ApikeyCreateResponseDTO:
    """
    Create an api key
@@ -94,9 +95,10 @@ async def create_apikey(
    logged_in_user: models.User = validation_info["authenticated_entity"]
    logged_in_user_project_association: models.User_Project | None = validation_info.get("logged_in_entity_project_association", None)
    logged_in_user_account_association: models.User_Account | None = validation_info.get("logged_in_entity_account_association", None)
-   return service.create_apikey(db=db,
+   return await service.create_apikey(db=db,
                                  project_id=project_id,
                                  logged_in_user_project_association=logged_in_user_project_association,
+                                 logged_in_user_account_association=logged_in_user_account_association,
                                  logged_in_user_is_project_admin=logged_in_user_project_association.is_admin if logged_in_user_project_association else False,
                                  logged_in_user_is_account_admin=logged_in_user_account_association.is_admin if logged_in_user_account_association else False,
                                  logged_in_user=logged_in_user,
@@ -150,7 +152,7 @@ async def create_apikey(
 async def get_apikeys(
    request: Request,
    project_id: UUID = Path(..., description='project under which the apikeys are retrieved under and are scoped to'),
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_apikeys']), 
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_apikeys')]), 
 ) -> List[apikey_schemas.ApikeyGetResponseDTO]:
    """
    Retrieve api keys
@@ -222,7 +224,7 @@ async def get_apikeys(
    }
 })
 async def get_apikey(
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_apikey']), 
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_apikey')]), 
 ) -> apikey_schemas.ApikeyGetResponseDTO:
    """
    Retrieve api keys
@@ -289,7 +291,7 @@ async def get_apikey(
 })
 async def delete_apikey(
    request: Request,
-   validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['delete_apikey']), 
+   validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'delete_apikey')]), 
 ) -> JSONResponse:
    """
    Revoke api key

@@ -11,10 +11,11 @@ from elevaitedb.db import models
 from elevaitedb.schemas import (
     instance as instance_schemas,
     configuration as configuration_schemas,
+    # api as api_schemas,
 )
 # from rbac_api import (
-#    routes_to_middleware_imple_map,
-#    RBACProvider
+#    route_validator_map,
+#    RBACValidatorProvider
 # )
 
 router = APIRouter(prefix="/application/{application_id}/instance", tags=["instances"])
@@ -25,12 +26,12 @@ def getApplicationInstances(
     # request: Request, #uncomment when using validator
     application_id: int,
     db: Session = Depends(get_db),  # comment this when using validator
-    # validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['getApplicationInstances']), # uncomment this when using validator
+    # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'getApplicationInstances')]), # uncomment this when using validator
     # project_id: UUID = Header(..., alias = "X-elevAIte-ProjectId", description="project_id under which connector instances are queried"), # uncomment this when using validator
 ) -> Sequence[instance_schemas.Instance]:
     
     # db: Session = request.state.db # uncomment this when using validator
-    # all_query_authorized_types_filter_function = RBACProvider.get_instance().get_post_validation_types_filter_function_for_all_query(models.Instance, validation_info) # uncomment this when using validator
+    # all_query_authorized_types_filter_function = RBACValidatorProvider.get_instance().get_post_validation_types_filter_function_for_all_query(models.Instance, validation_info) # uncomment this when using validator
 
     return instance_service.getApplicationInstances(
         db,
@@ -45,7 +46,7 @@ def getApplicationInstanceById(
     application_id: int,
     instance_id: str,
     db: Session = Depends(get_db),  # comment this when using validator
-    # validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['getApplicationInstanceById']), # uncomment this to use validator
+    # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'getApplicationInstanceById')]), # uncomment this to use validator
 ) -> instance_schemas.Instance:
 
     # instance = validation_info.get("Instance", None) # uncomment this when using validator
@@ -65,7 +66,7 @@ def getApplicationInstanceById(
 def getApplicationInstanceChart(
     application_id: int,
     instance_id: str,
-    # _= Depends(routes_to_middleware_imple_map['getApplicationInstanceChart']), # uncomment this to use validator
+    # _= Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'getApplicationInstanceChart')]), # uncomment this to use validator
 ) -> instance_schemas.InstanceChartData:
     return instance_service.getApplicationInstanceChart(
         application_id=application_id, instance_id=instance_id
@@ -77,11 +78,11 @@ def getApplicationInstanceChart(
     response_model=configuration_schemas.Configuration,
 )
 def getApplicationInstanceConfiguration(
-    # request: Request, uncomment when using validator
+    # request: Request, # uncomment when using validator
     application_id: int,
     instance_id: str,
     db: Session = Depends(get_db),  # comment this when using validator
-    # validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['getApplicationInstanceConfiguration']), # uncomment to use validator
+    # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'getApplicationInstanceConfiguration')]), # uncomment to use validator
 ) -> instance_schemas.Configuration:
     # db: Session = request.state.db # uncomment this when using validator
     return instance_service.getApplicationInstanceConfiguration(
@@ -97,7 +98,7 @@ def getApplicationInstanceLogs(
     instance_id: str,
     skip: int = 0,
     limit: int = 100,
-    # _= Depends(routes_to_middleware_imple_map['getApplicationInstanceLogs']), # uncomment this to use validator
+    # _= Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'getApplicationInstanceLogs')]), # uncomment this to use validator
 ) -> list[instance_schemas.InstanceLogs]:
     return instance_service.getApplicationInstanceLogs(
         instance_id=instance_id, offset=skip, limit=limit
@@ -112,9 +113,9 @@ def createApplicationInstance(
         instance_schemas.InstanceCreateDTO,
         Body(),
     ],
+    # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'createApplicationInstance')]), # uncomment this to use validator
     rmq: pika.BlockingConnection = Depends(get_rabbitmq_connection),
     db: Session = Depends(get_db),  # comment this when using validator
-    # validation_info:dict[str, Any] = Depends(routes_to_middleware_imple_map['createApplicationInstance']) # uncomment this to use validator
 ) -> instance_schemas.Instance:
     # db: Session = request.state.db # uncomment this when using validator
     return instance_service.createApplicationInstance(

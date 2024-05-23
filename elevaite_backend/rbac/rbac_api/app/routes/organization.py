@@ -6,9 +6,10 @@ from uuid import UUID
 from elevaitedb.schemas import (
    organization as organization_schemas,
    user as user_schemas,
+   api as api_schemas,
 )
 from elevaitedb.db import models
-from rbac_api import routes_to_middleware_imple_map
+from rbac_api import route_validator_map
 from .utils.helpers import load_schema
 from ..services import organization as service
 
@@ -67,7 +68,7 @@ organization_router = APIRouter(prefix="/organization", tags=["organizations"])
 async def patch_organization(
     request: Request,
     organization_patch_req_payload: organization_schemas.OrganizationPatchRequestDTO = Body(...),
-    validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['patch_organization']),
+    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'patch_organization')]),
 ) -> organization_schemas.OrganizationResponseDTO:
     """
     Patch elevAIte organization resource.
@@ -120,7 +121,7 @@ async def patch_organization(
         })
 async def get_organization(
     request: Request,
-    validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_organization']),
+    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_organization')]),
 ) -> organization_schemas.OrganizationResponseDTO:
     """
     Retrieve elevAIte organization resource
@@ -187,7 +188,7 @@ async def get_organization(
     })
 async def get_org_users( 
     request: Request,
-    validation_info: dict[str, Any] = Depends(routes_to_middleware_imple_map['get_org_users']),
+    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_org_users')]),
     firstname: Optional[str] = Query(None, description="Filter users by first name"),
     lastname: Optional[str] = Query(None, description="Filter users by last name"),
     email: Optional[str] = Query(None, description="Filter users by email"),

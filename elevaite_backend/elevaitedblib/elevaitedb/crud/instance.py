@@ -16,7 +16,7 @@ def get_instances(
 
     query = db.query(models.Instance)
     # if filter_function is not None: # uncomment this when using validator
-        # query = filter_function(query)
+    #     query = filter_function(query)
 
     return (
         query.filter(models.Instance.applicationId == applicationId)
