@@ -204,7 +204,7 @@ async def get_org_users(
     - firstname (str): Optional filter query param for user firstname with case-insensitive pattern matching
     - lastname (str): Optional filter query param for user lastname with case-insensitive pattern matching
     - email (str): Optional filter query param for user email with case-insensitive pattern matching
-    - account_id (UUID): Optional query param to filter org user's by their assignment to account
+    - account_id (UUID): Optional query param to filter org user's by their assignment to account; must be provided if used by non-superadmin users
     - assigned (bool): Optional filter query param to denote org users' assignment status to account_id; when account_id not provided, this value is ignored. Defaults to True.
 
     Returns:
@@ -212,6 +212,7 @@ async def get_org_users(
 
     Notes:
     - Only authorized for use by superadmins/account-admins.
+    - Non-superadmin users must provide account_id in which they have admin status
     - Use case for superadmins/admins to add users to accounts
     """
     db: Session = request.state.db

@@ -90,32 +90,25 @@ async def validate_get_org_users(
          return {"org_id" : org_id}
       
       if not account_id:
-         # Check for any entries in User_Account for the user where is_admin is true, and the account belongs to the org
-         logged_in_user_admin_account_exist = db.query(models.User_Account).join(
-            models.Account, models.User_Account.account_id == models.Account.id
-         ).filter(
-            models.User_Account.user_id == logged_in_user.id,
-            models.User_Account.is_admin == True,
-            models.Account.organization_id == org_id
-         ).first()
-      else:
-         # Check for entry in User_Account for the user where is_admin is true for specific account_id, and the account belongs to the org
-         logged_in_user_admin_account_exist = db.query(models.User_Account).join(
-            models.Account, models.User_Account.account_id == models.Account.id
-         ).filter(
-            models.User_Account.user_id == logged_in_user.id,
-            models.User_Account.account_id == account_id,
-            models.User_Account.is_admin == True,
-            models.Account.organization_id == org_id
-         ).first()
+         raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin privileges and must provide admin account filter to read organization users")
+      
+      # Check for entry in User_Account for the user where is_admin is true for specific account_id, and the account belongs to the org
+      logged_in_user_admin_account_exist = db.query(models.User_Account).join(
+         models.Account, models.User_Account.account_id == models.Account.id
+      ).filter(
+         models.User_Account.user_id == logged_in_user.id,
+         models.User_Account.account_id == account_id,
+         models.User_Account.is_admin == True,
+         models.Account.organization_id == org_id
+      ).first()
 
       if logged_in_user_admin_account_exist:
          return {"org_id" : org_id}
       
       if not account_id:
-         raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin or account-admin privileges in any account to read all users in organization - '{org_id}'")
+         raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin privileges to read all users in organization - '{org_id}'")
       else:
-         raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin or account-admin privileges in account - '{account_id}' - to read organization users with account filters")
+         raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin or account-admin privileges in account - '{account_id}' - to read organization users")
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in GET /organization/users - validate_get_org_users middleware : {e}')

@@ -1,14 +1,20 @@
 {
    "insufficient_permissions_1": {
-      "summary": "logged-in user does not have superadmin or account-admin account privileges in any account to read organization users",
+      "summary": "logged-in user does not have superadmin privileges and must provide admin account filter to read organization users",
       "value": {
-         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614174000' - does not have superadmin or account-admin privileges in any account to read all users in organization - '789e4567-e89b-12d3-a456-426614174001'"
+         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614174000' - does not have superadmin privileges and must provide admin account filter to read organization users"
       }
    },
    "insufficient_permissions_2": {
+      "summary": "logged-in user does not have superadmin privileges to read all users in organization",
+      "value": {
+         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614174000' - does not have superadmin privileges to read all users in organization - '789e4567-e89b-12d3-a456-426614174001'"
+      }
+   },
+   "insufficient_permissions_3": {
       "summary": "logged-in user does not have superadmin or account-admin privileges in account specified in filter to read organization users",
       "value": {
-         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614174000' - does not have superadmin or account-admin privileges in account - '789e4567-e89b-12d3-a456-426614174001' - to read organization users with account filter"
+         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614174000' - does not have superadmin or account-admin privileges in account - '789e4567-e89b-12d3-a456-426614174001' - to read organization users"
       }
    }
 }
