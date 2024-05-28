@@ -2,13 +2,13 @@
    "insufficient_permissions_1": {
       "summary": "logged-in user does not have admin/superadmin privileges to deassign user from account",
       "value": {
-         "detail": "you do not have superadmin/account-admin privileges to deassign user from account - '789e4567-e89b-12d3-a456-426614174000'"
+         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614176000' - does not have superadmin/account-admin privileges to deassign user from account - '789e4567-e89b-12d3-a456-426614174000'"
       }
    },
    "insufficient_permissions_3": {
       "summary": "logged-in user does not have root superadmin permissions to deassign superadmin user from account",
       "value": {
-         "detail": "you do not have root superadmin permissions to deassign superadmin user - '789e4567-e89b-12d3-a456-426614174000' - from account - '789e4567-e89b-12d3-a456-426614174000'"
+         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614176000' - does not have root superadmin permissions to deassign superadmin user - '789e4567-e89b-12d3-a456-426614174000' - from account - '789e4567-e89b-12d3-a456-426614174000'"
       }
    }
 }

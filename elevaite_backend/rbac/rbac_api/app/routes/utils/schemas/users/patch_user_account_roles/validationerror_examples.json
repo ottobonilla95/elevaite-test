@@ -27,13 +27,13 @@
       }
    },
    "payload_business_validation_error_3": {
-      "summary": "Invalid action - you cannot update account scoped roles for superadmin user",
+      "summary": "Invalid action - cannot update account scoped roles for superadmin user",
       "value": {
          "detail": "Invalid action : cannot patch account roles for superadmin user - '789e4567-e89b-12d3-a456-426614174000'"
       }
    },
    "payload_business_validation_error_4": {
-      "summary": "Invalid action - you cannot update account scoped roles for admin user",
+      "summary": "Invalid action - cannot update account scoped roles for admin user",
       "value": {
          "detail": "Invalid action : cannot patch account roles for admin user - '789e4567-e89b-12d3-a456-426614174000'"
       }

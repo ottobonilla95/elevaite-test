@@ -18,6 +18,8 @@ from rbac_api.auth.impl import (
 from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider
 import inspect
 
+rbacValidator = RBACValidatorProvider.get_instance()
+
 def validate_get_application_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
    async def validate_get_application(
       request: Request,
@@ -38,7 +40,7 @@ def validate_get_application_factory(target_model_class : Type[models.Base], tar
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(  
+         return await rbacValidator.validate_rbac_permissions(  
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -77,7 +79,7 @@ def validate_get_applications_factory(target_model_class : Type[models.Base], ta
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
+         return await rbacValidator.validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -117,7 +119,7 @@ def validate_get_application_pipelines_factory(target_model_class : Type[models.
             request.state.account_context_exists = False
             request.state.project_context_exists = False
             
-         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
+         return await rbacValidator.validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,

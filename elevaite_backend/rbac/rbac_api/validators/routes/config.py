@@ -47,6 +47,8 @@ route_validator_map = {
 
    (api_schemas.APINamespace.RBAC_API, "patch_user"): entity_validators.user.validate_patch_user,
    (api_schemas.APINamespace.RBAC_API, "get_user_profile"): entity_validators.user.validate_get_user_profile,
+   (api_schemas.APINamespace.RBAC_API, "get_user_accounts"): entity_validators.user.validate_get_user_accounts,
+   (api_schemas.APINamespace.RBAC_API, "get_user_projects"): entity_validators.user.validate_get_user_projects,
    (api_schemas.APINamespace.RBAC_API, "patch_user_account_roles"): entity_validators.user.validate_patch_user_account_roles,
    (api_schemas.APINamespace.RBAC_API, "update_user_project_permission_overrides"): entity_validators.user.validate_update_project_permission_overrides_factory(models.Project, ("READ", )),
    (api_schemas.APINamespace.RBAC_API, "get_user_project_permission_overrides"): entity_validators.user.validate_get_project_permission_overrides_factory(models.Project, ("READ", )),

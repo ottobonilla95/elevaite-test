@@ -2,13 +2,13 @@
    "insufficient_permissions_1": {
       "summary": "logged-in user is not superadmin",
       "value": {
-         "detail": "you do not have superadmin privileges to update user superadmin status"
+         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614176000' - does not have superadmin privileges to update user superadmin status"
       }
    },
    "insufficient_permissions_2": {
       "summary": "logged-in user cannot update superadmin status of root superadmin user",
       "value": {
-         "detail": "you cannot update superadmin status of root superadmin user - '789e4567-e89b-12d3-a456-426614174000'"
+         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614176000' - cannot update superadmin status of root superadmin user - '789e4567-e89b-12d3-a456-426614174000'"
       }
    }
 }

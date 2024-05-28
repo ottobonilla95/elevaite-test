@@ -1,0 +1,10 @@
+{
+   "insufficient_permissions": {
+      "summary": "logged-in user does not have superadmin privileges to read user accounts",
+      "value": {
+         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614176000' - does not have superadmin privileges to read user accounts"
+      }
+   }
+}
+
+

@@ -23,7 +23,7 @@ async def validate_post_account(
          return {"authenticated_entity" : logged_in_user}
 
       # If not a superadmin, deny access
-      raise ApiError.forbidden("you do not have superadmin privileges to create accounts")
+      raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin privileges to create accounts")
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in POST /accounts/ - validate_post_account middleware : {e}')
@@ -43,20 +43,24 @@ async def validate_patch_account(
 ) -> dict[str, Any]:
    db: Session = request.state.db
    try: 
+
+      account = db.query(models.Account).filter(models.Account.id == account_id).first()
+      if not account:
+         raise ApiError.notfound(f"Account - '{account_id}' - not found")  # Account not found
+      
+      if logged_in_user.is_superadmin:
+         return {"Account" : account}
+      
       is_logged_in_user_account_admin = db.query(exists().where(and_( 
          models.User_Account.user_id == logged_in_user.id,
          models.User_Account.account_id == account_id,
          models.User_Account.is_admin == True
       ))).scalar()
       
-      account = db.query(models.Account).filter(models.Account.id == account_id).first()
-      if not account:
-         raise ApiError.notfound(f"Account - '{account_id}' - not found")  # Account not found
-
-      if logged_in_user.is_superadmin or is_logged_in_user_account_admin:
+      if is_logged_in_user_account_admin:
          return {"Account" : account}
 
-      raise ApiError.forbidden(f"you do not have superadmin/account-admin privileges to patch account - '{account_id}'")
+      raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin/account-admin privileges to patch account - '{account_id}'")
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in PATCH /accounts/{account_id} - validate_patch_account middleware : {e}')
@@ -78,7 +82,7 @@ async def validate_get_account(
    try:
       account = db.query(models.Account).filter(models.Account.id == account_id).first()
       if not account:
-         raise ApiError.notfound(f"account - '{account_id}' - not found")
+         raise ApiError.notfound(f"Account - '{account_id}' - not found")
       
       if logged_in_user.is_superadmin:
          return {"Account": account}
@@ -89,7 +93,7 @@ async def validate_get_account(
       )).scalar()
       
       if not user_account_association_exists:
-         raise ApiError.forbidden(f"you are not assigned to account - '{account_id}'")
+         raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - is not assigned to account - '{account_id}'")
       
       return {"Account": account}
    except HTTPException as e:
@@ -150,7 +154,7 @@ async def validate_get_account_user_list(
       # Check if the logged-in user is associated with the account
       logged_in_user_account_association = db.query(models.User_Account).filter_by(user_id=logged_in_user.id, account_id=account_id).first()
       if not logged_in_user_account_association:
-         raise ApiError.forbidden(f"you are not assigned to account - '{account_id}'")
+         raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - is not assigned to account - '{account_id}'")
 
       # User is non-superadmin, and assigned to account here
       if project_id:
@@ -168,7 +172,7 @@ async def validate_get_account_user_list(
          logged_in_user_project_association = db.query(models.User_Project).filter(models.User_Project.user_id == logged_in_user.id,
                                                                                    models.User_Project.project_id == project_id).first()
          if not logged_in_user_project_association or not logged_in_user_project_association.is_admin:
-            raise ApiError.forbidden(f"you do not have superadmin privileges or account-admin privileges in account - '{account_id}' - or project-admin privileges in project - '{project_id}' - to view account users with project filters in account - '{account_id}'")
+            raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin privileges or account-admin privileges in account - '{account_id}' - or project-admin privileges in project - '{project_id}' - to view account users with project filter in account - '{account_id}'")
 
       return {"authenticated_entity" : logged_in_user,
                "logged_in_user_account_association" : logged_in_user_account_association,
@@ -210,7 +214,7 @@ async def validate_assign_users_to_account(
          if logged_in_user_account_association.is_admin:
             return {"authenticated_entity" : logged_in_user}
       
-      raise ApiError.forbidden(f"you do not have superadmin/account-admin privileges to assign users to account - '{account_id}'")
+      raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin/account-admin privileges to assign users to account - '{account_id}'")
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in POST /accounts/{account_id}/users - validate_assign_users_to_account middleware : {e}')
@@ -249,7 +253,7 @@ async def validate_deassign_user_from_account(
          if logged_in_user_account_association.is_admin:
             return {"authenticated_entity" : logged_in_user}
       
-      raise ApiError.forbidden(f"you do not have superadmin/account-admin privileges to deassign user from account - '{account_id}'")
+      raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin/account-admin privileges to deassign user from account - '{account_id}'")
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in DELETE /accounts/{account_id}/users/{user_id} - validate_deassign_user_from_account middleware : {e}')
@@ -286,7 +290,7 @@ async def validate_patch_account_admin_status(
       ).first()
 
       if not logged_in_user_account_association:
-         raise ApiError.forbidden(f"you are not assigned to account - '{account_id}'")
+         raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - is not assigned to account - '{account_id}'")
 
       # Check if the user is an admin of the account
       if logged_in_user_account_association.is_admin: 
@@ -294,7 +298,7 @@ async def validate_patch_account_admin_status(
                   "logged_in_user_account_association" : logged_in_user_account_association,
                   }
 
-      raise ApiError.forbidden(f"you do not have superadmin/account-admin privileges to update user admin status in account - '{account_id}'")
+      raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin/account-admin privileges to update user admin status in account - '{account_id}'")
 
    except HTTPException as e:
       db.rollback()

@@ -589,7 +589,7 @@ class RBACValidator:
 
             if not logged_in_user_account_association:
                if not logged_in_user.is_superadmin:
-                  raise ApiError.forbidden(f"you are not assigned to account - '{model_class_to_instance[models.Account].id}'")
+                  raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - is not assigned to account - '{model_class_to_instance[models.Account].id}'")
 
             logged_in_entity_account_and_project_association_info["logged_in_entity_account_association"] = logged_in_user_account_association
          
@@ -600,18 +600,18 @@ class RBACValidator:
 
             if not logged_in_user_project_association:  
                if not logged_in_user.is_superadmin and not (logged_in_user_account_association.is_admin if logged_in_user_account_association else False):
-                  raise ApiError.forbidden(f"you are not assigned to project - '{model_class_to_instance[models.Project].id}'")
+                  raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - is not assigned to project - '{model_class_to_instance[models.Project].id}'")
 
             logged_in_entity_account_and_project_association_info["logged_in_entity_project_association"] = logged_in_user_project_association
 
             if not logged_in_user.is_superadmin and not (logged_in_user_account_association.is_admin if logged_in_user_account_association else False):
                parent_project_id = model_class_to_instance[models.Project].parent_project_id
                if parent_project_id and not is_user_project_association_till_root(db=db, starting_project_id=parent_project_id, user_id=logged_in_user.id):
-                  raise ApiError.forbidden(f"you are not assigned to one or more projects in the project hierarchy of parent project - '{parent_project_id}'")
+                  raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - is not assigned to one or more projects in the project hierarchy of parent project - '{parent_project_id}'")
       else: #  authenticated entity is Apikey
          logged_in_apikey: models.Apikey = authenticated_entity
          if not models.Project in model_class_to_instance or model_class_to_instance[models.Project].id != logged_in_apikey.project_id:
-            raise ApiError.forbidden(f"your permissions are restricted to resources within project - '{logged_in_apikey.project_id}'")
+            raise ApiError.forbidden(f"permissions for apikey - '{logged_in_apikey.id}' -  are restricted to resources within project - '{logged_in_apikey.project_id}'")
          
       return logged_in_entity_account_and_project_association_info
 
@@ -635,7 +635,7 @@ class RBACValidator:
             return permission_validation_info
          
          if not models.Account in model_class_to_instance:
-            raise ApiError.forbidden("you do not have superadmin permissions and must provide an account_id")
+            raise ApiError.forbidden(f"logged-in user - '{logged_in_entity.id}' - does not have superadmin permissions and must provide an account_id")
          
          logged_in_user_account_association = logged_in_entity_account_and_project_association_info.get("logged_in_entity_account_association", None)
          logged_in_user_is_account_admin = logged_in_user_account_association.is_admin if logged_in_user_account_association else None
@@ -684,6 +684,7 @@ class RBACValidator:
                read_action_apikey_permissions_error_msg,
                _
                ) = self._get_model_permission_validation_info(
+                  logged_in_entity=logged_in_entity,
                   target_model_class=model_class,
                   model_class_sequence=cumulative_headerparam_model_sequence, 
                   model_typevalues_list=cumulative_headerparam_typevalues_sequence,
@@ -720,6 +721,7 @@ class RBACValidator:
                read_action_apikey_permissions_error_msg,
                _
                ) = self._get_model_permission_validation_info(
+                  logged_in_entity=logged_in_entity,
                   target_model_class=model_class,
                   model_class_sequence= cumulative_pathparam_model_sequence,
                   model_typevalues_list=cumulative_pathparam_typevalues_sequence,
@@ -790,6 +792,7 @@ class RBACValidator:
                target_action_apikey_permissions_error_msg,
                validation_info_key
                ) = self._get_model_permission_validation_info(
+                  logged_in_entity=logged_in_entity,
                   target_model_class=target_model_class,
                   model_class_sequence=cumulative_pathparam_model_sequence,
                   model_typevalues_list=cumulative_pathparam_typevalues_sequence,
@@ -863,6 +866,7 @@ class RBACValidator:
                target_action_apikey_permissions_error_msg,
                validation_info_key
             ) = self._get_model_permission_validation_info(
+               logged_in_entity=logged_in_entity,
                model_class_sequence=cumulative_pathparam_model_sequence,
                model_typevalues_list=cumulative_pathparam_typevalues_sequence,
                model_typenames_list=cumulative_pathparam_typenames_sequence,
@@ -921,6 +925,7 @@ class RBACValidator:
             target_action_apikey_permissions_error_msg,
             _
             ) = self._get_model_permission_validation_info(
+                  logged_in_entity=logged_in_entity,
                   model_typevalues_list=cumulative_pathparam_typevalues_sequence,
                   model_typenames_list=cumulative_pathparam_typenames_sequence,
                   model_class_sequence=cumulative_pathparam_model_sequence,
@@ -1091,6 +1096,7 @@ class RBACValidator:
    
    def _get_model_permission_validation_info(
       self,
+      logged_in_entity: models.User | models.Apikey,
       target_model_class: Type[models.Base],
       model_class_sequence: list[Type[models.Base]],
       model_typenames_list: list[tuple[str, ...]],
@@ -1113,9 +1119,8 @@ class RBACValidator:
 
       configurations_str = '; '.join(configurations) if configurations else ''
 
-      # account_permissions_error_message =f"you do not have superadmin/account-admin privileges and you do not have account-specific role-based access permissions to perform the action sequence - '{model_action_sequence}' - on '{target_model_class.__name__}' resources {'with the type configurations - ' + str(configurations) + ' -' if configurations else ''} in account - {model_class_to_instance[models.Account].id}"
       account_permissions_error_message = (
-        f"you do not have superadmin/account-admin privileges and you do not have "
+        f"{'Apikey' if isinstance(logged_in_entity, models.Apikey) else 'logged-in user'} - '{logged_in_entity.id}' - does not have superadmin/account-admin privileges and also does not have "
         f"account-specific role-based access permissions to perform the action sequence - '{model_action_sequence}' - "
         f"on '{target_model_class.__name__}' resources "
         f"{'under the following configurations - (' + configurations_str + ') -' if configurations else ''} "
@@ -1127,13 +1132,13 @@ class RBACValidator:
       apikey_permissions_error_message = None
       if models.Project in model_class_to_instance:
          project_permissions_error_message = (
-            f"you are denied permissions to perform the action sequence - '{model_action_sequence}' - "
+            f"{'Apikey' if isinstance(logged_in_entity, models.Apikey) else 'logged-in user'} - '{logged_in_entity.id}' - is denied permissions to perform the action sequence - '{model_action_sequence}' - "
             f"on '{target_model_class.__name__}' resources "
             f"{'under the following configurations - (' + configurations_str + ') -' if configurations else ''} "
             f"due to project-specific permission overrides in project - '{model_class_to_instance[models.Project].id}'"
          )
          apikey_permissions_error_message = (
-            f"you are denied permissions to perform the action sequence - '{model_action_sequence}' - "
+            f"{'Apikey' if isinstance(logged_in_entity, models.Apikey) else 'logged-in user'} - '{logged_in_entity.id}' - is denied permissions to perform the action sequence - '{model_action_sequence}' - "
             f"on '{target_model_class.__name__}' resources "
             f"{'under the following configurations - (' + configurations_str + ') -' if configurations else ''} "
             f"due to apikey-specific permission restrictions in project - '{model_class_to_instance[models.Project].id}'"

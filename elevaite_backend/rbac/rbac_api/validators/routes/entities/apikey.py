@@ -17,6 +17,8 @@ from elevaitedb.schemas import (
 from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider
 import inspect
 
+rbacValidator = RBACValidatorProvider.get_instance()
+
 def validate_create_apikey_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
    async def validate_create_apikey(
       request: Request,
@@ -36,7 +38,7 @@ def validate_create_apikey_factory(target_model_class : Type[models.Base], targe
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
+         return await rbacValidator.validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -76,7 +78,7 @@ def validate_get_apikeys_factory(target_model_class : Type[models.Base], target_
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         return await RBACValidatorProvider.get_instance().validate_rbac_permissions(
+         return await rbacValidator.validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -117,7 +119,7 @@ def validate_get_apikey_factory(target_model_class : Type[models.Base], target_m
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] = await RBACValidatorProvider.get_instance().validate_rbac_permissions(
+         validation_info:dict[str, Any] = await rbacValidator.validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -139,7 +141,7 @@ def validate_get_apikey_factory(target_model_class : Type[models.Base], target_m
             return validation_info
             
          if apikey.creator_id != logged_in_user.id:
-            raise ApiError.forbidden(f"you do not have superadmin/account-admin/project-admin privileges to read api keys that were created by other users in the project")
+            raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin/account-admin/project-admin privileges to read api keys that were created by other users in the project")
          
          return validation_info
       except HTTPException as e:
@@ -176,7 +178,7 @@ def validate_delete_apikey_factory(target_model_class : Type[models.Base], targe
             request.state.account_context_exists = False
             request.state.project_context_exists = False
 
-         validation_info:dict[str, Any] = await RBACValidatorProvider.get_instance().validate_rbac_permissions(
+         validation_info:dict[str, Any] = await rbacValidator.validate_rbac_permissions(
             request=request,
             db=db,
             target_model_action_sequence=target_model_action_sequence,
@@ -199,7 +201,7 @@ def validate_delete_apikey_factory(target_model_class : Type[models.Base], targe
             return validation_info
             
          if apikey.creator_id != logged_in_user.id:     
-            raise ApiError.forbidden(f"you do not have superadmin/account-admin/project-admin privileges to revoke api keys that were created by other users")
+            raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin/account-admin/project-admin privileges to revoke api keys that were created by other users")
          
          return validation_info
       except HTTPException as e:

@@ -1,12 +1,23 @@
-from fastapi import APIRouter, Body, Depends, Path, Header, status, Request
+from fastapi import (
+   APIRouter,
+   Body,
+   Depends,
+   Path,
+   Header,
+   Query,
+   status,
+   Request
+)
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from typing import Any, Optional
+from typing import Any, Optional, List
 from uuid import UUID
 
 from elevaitedb.schemas import (
    user as user_schemas,
    role as role_schemas,
+   account as account_schemas,
+   project as project_schemas,
    permission as permission_schemas,
    api as api_schemas,
 )
@@ -167,7 +178,143 @@ async def get_user_profile(
    logged_in_user = validation_info.get("authenticated_entity", None)
    db: Session = request.state.db
    return service.get_user_profile(user_to_profile, logged_in_user, account_id, db)
+
+@user_router.get("/{user_id}/accounts", status_code=status.HTTP_200_OK, responses={
+   status.HTTP_200_OK: {
+      "description": "Successfully retrieved user accounts",
+      "model": List[account_schemas.AccountResponseDTO]
+   },
+   status.HTTP_401_UNAUTHORIZED: {
+      "description": "No access token or invalid access token",
+      "content": {
+         "application/json": {
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
+            }
+         },
+   },
+   status.HTTP_403_FORBIDDEN: {
+      "description": "logged-in user does not have superadmin permissions to read user accounts",
+      "content": {
+         "application/json": {
+            "examples": load_schema('users/get_user_accounts/forbidden_examples.json')
+         }
+      },
+   },
+   status.HTTP_404_NOT_FOUND: {
+      "description": "user not found",
+      "content": {
+         "application/json": {
+            "examples": load_schema('users/get_user_accounts/notfound_examples.json')
+         }
+      },
+   },
+   status.HTTP_422_UNPROCESSABLE_ENTITY: {
+      "description": "Validation error",
+      "content": {
+         "application/json": {
+            "examples": load_schema('users/get_user_accounts/validationerror_examples.json')
+         }
+      },
+   },
+   status.HTTP_503_SERVICE_UNAVAILABLE: {
+      "description": "The server is currently unable to handle the request due to a temporary overloading or maintenance of the server",
+      "content": {
+         "application/json": {
+            "examples": load_schema('common/serviceunavailable_examples.json') 
+         }
+      }
+   }
+})
+async def get_user_accounts(
+   request: Request,
+   user_id: UUID = Path(...),
+   _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_user_accounts')]),
+) -> List[account_schemas.AccountResponseDTO]:
+   """
+   Retrieve User associated accounts
+
+   Parameters:
+      - user_id (UUID): ID of user to fetch associated accounts for
+
+   Returns:
+      - List[AccountResponseDTO] objects 
    
+   Notes:
+      - Only authorized for use by superadmins
+   """
+
+   db: Session = request.state.db
+   return service.get_user_accounts(user_id=user_id, db=db)
+
+@user_router.get("/{user_id}/projects", status_code=status.HTTP_200_OK, responses={
+   status.HTTP_200_OK: {
+      "description": "Successfully retrieved user projects",
+      "model": List[project_schemas.ProjectResponseDTO]
+   },
+   status.HTTP_401_UNAUTHORIZED: {
+      "description": "No access token or invalid access token",
+      "content": {
+         "application/json": {
+            "examples": load_schema('common/unauthorized_accesstoken_examples.json')
+            }
+         },
+   },
+   status.HTTP_403_FORBIDDEN: {
+      "description": "logged-in user does not have superadmin or account admin permissions to read user projects",
+      "content": {
+         "application/json": {
+            "examples": load_schema('users/get_user_projects/forbidden_examples.json')
+         }
+      },
+   },
+   status.HTTP_404_NOT_FOUND: {
+      "description": "user or account not found",
+      "content": {
+         "application/json": {
+            "examples": load_schema('users/get_user_projects/notfound_examples.json')
+         }
+      },
+   },
+   status.HTTP_422_UNPROCESSABLE_ENTITY: {
+      "description": "Validation error",
+      "content": {
+         "application/json": {
+            "examples": load_schema('users/get_user_projects/validationerror_examples.json')
+         }
+      },
+   },
+   status.HTTP_503_SERVICE_UNAVAILABLE: {
+      "description": "The server is currently unable to handle the request due to a temporary overloading or maintenance of the server",
+      "content": {
+         "application/json": {
+            "examples": load_schema('common/serviceunavailable_examples.json') 
+         }
+      }
+   }
+})
+async def get_user_projects(
+   request: Request,
+   user_id: UUID = Path(...),
+   account_id: UUID = Header(..., alias = "X-elevAIte-AccountId", description="account_id under which user projects are queried"),
+   _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_user_projects')]),
+) -> List[project_schemas.ProjectResponseDTO]:
+   """
+   Retrieve User associated projects
+
+   Parameters:
+      - user_id (UUID): ID of user to fetch associated projects for
+      - X-elevAIte-AccountId (UUID): ID of account under which user associated projects are fetched
+
+   Returns:
+      - List[ProjectResponseDTO] objects 
+   
+   Notes:
+      - Only authorized for use by superadmins and account-admins of account given by 'X-elevAIte-AccountId'
+   """
+
+   db: Session = request.state.db
+   return service.get_user_projects(user_id=user_id, account_id=account_id, db=db)
+
 @user_router.patch("/{user_id}/accounts/{account_id}/roles", responses={
    status.HTTP_200_OK: {
       "description": "User roles successfully updated",
@@ -318,7 +465,6 @@ async def update_user_project_permission_overrides(
       - Authorized for use only by superadmin/account-admin/project-admin users
       - cannot patch project permission overrides for superadmin/account-admin/project-admin users
       - users who are only project-admins can patch project permission overrides for other regular users if the project-admin user has Project - 'READ' permissions in any of their account-scoped roles under the account containing the project, and must be associated to all projects in the parent project hierarchy of the project (inclusive of project)
-      - Usecase - to update user project permission overrides from the default all 'Deny' permissions after they have been added to a project 
    """
    db: Session = request.state.db
    user_to_patch = validation_info.get("User", None)

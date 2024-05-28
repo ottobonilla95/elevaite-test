@@ -41,14 +41,6 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
             }
          },
    },
-   status.HTTP_403_FORBIDDEN: {
-      "description": "User does not have permissions to this resource",
-      "content": {
-         "application/json": {
-            "examples": load_schema('auth/register/forbidden_examples.json')
-         }
-      },
-   },
    status.HTTP_404_NOT_FOUND: {
       "description": "organization not found",
       "content": {
@@ -173,7 +165,7 @@ async def evaluate_rbac_permissions(
    - IS_ACCOUNT_ADMIN field is account-scoped only and requires 'X-elevAIte-AccountId'
    - IS_PROJECT_ADMIN field is project-scoped only and requires 'X-elevAIte-ProjectId'
    - APPLICATION_READ field is account-scoped only and requires 'X-elevAIte-AccountId'
-   - PROJECT_READ field is account-scoped only and requires 'X-elevAIte-ProjectId'
+   - PROJECT_READ field is account-scoped only and requires 'X-elevAIte-AccountId'
    - PROJECT_CREATE field is account-scoped and project-scoped and requires atleast one of 'X-elevAIte-AccountId' or 'X-elevAIte-ProjectId'
    - PROJECT_SERVICENOW_TICKET_INGEST field is project-scoped only and requires 'X-elevAIte-ProjectId'
    - APIKEY_READ field is project-scoped only and requires 'X-elevAIte-ProjectId'

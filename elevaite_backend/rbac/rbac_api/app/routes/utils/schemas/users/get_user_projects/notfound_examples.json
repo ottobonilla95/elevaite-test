@@ -10,5 +10,11 @@
       "value": {
          "detail": "User - '789e4567-e89b-12d3-a456-426614174000' - not found"
       }
+   },
+   "unassigned_to_account": {
+      "summary": "logged-in user is not a superadmin/account-admin, and is not assigned to account",
+      "value": {
+         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614176000' - is not assigned to account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
    }
 }

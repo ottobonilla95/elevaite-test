@@ -2,13 +2,13 @@
    "insufficient_permissions_1": {
       "summary": "logged-in user is not assigned to account",
       "value": {
-         "detail": "you are not assigned to account - '789e4567-e89b-12d3-a456-426614174000'"
+         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614176000' - is not assigned to account - '789e4567-e89b-12d3-a456-426614174000'"
       }
    },
    "insufficient_permissions_2": {
       "summary": "logged-in user is not a superadmin/account-admin and does not have account-specific role-based access permissions to read connector resources in account - '789e4567-e89b-12d3-a456-426614174000'",
       "value": {
-         "detail": "you are not a superadmin/account-admin and you do not have account-specific role-based access permissions to read connector resources in account - '789e4567-e89b-12d3-a456-426614174000'"
+         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614176000' - is not a superadmin/account-admin and also does not have account-specific role-based access permissions to read connector resources in account - '789e4567-e89b-12d3-a456-426614174000'"
       }
    }
 }

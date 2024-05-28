@@ -166,57 +166,7 @@ def get_accounts(
    except Exception as e:
       pprint(f'Unexpected error in GET /accounts service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-
-def get_account_user_profile(
-   db: Session,
-   account_id: UUID,
-   logged_in_user: models.User,
-   user_account_association: models.User_Account
-) -> user_schemas.AccountUserProfileDTO:
-   try:
-      if logged_in_user.is_superadmin:
-         account_user_with_roles_dto = user_schemas.AccountUserProfileDTO(
-            **logged_in_user.__dict__,
-            is_account_admin=False,
-            roles=[]
-         )
-      elif user_account_association.is_admin:
-         account_user_with_roles_dto = user_schemas.AccountUserProfileDTO(
-            **logged_in_user.__dict__,
-            is_account_admin=True,
-            roles=[]
-         )
-      else:
-         RoleUserAccountAlias = aliased(models.Role_User_Account)
-         roles_query = (
-            db.query(models.Role)
-            .join(RoleUserAccountAlias, RoleUserAccountAlias.role_id == models.Role.id)
-            .filter(RoleUserAccountAlias.user_account_id == user_account_association.id)
-         )
-         roles = roles_query.all()
-         roles_dto = cast(List[role_schemas.RoleResponseDTO], roles)
-
-         account_user_with_roles_dto = user_schemas.AccountUserProfileDTO(
-            **logged_in_user.__dict__,
-            is_account_admin=False,
-            roles=roles_dto
-         )
-
-      return account_user_with_roles_dto
-
-   except HTTPException as e:
-      db.rollback()
-      pprint(f'API error in GET /accounts/{account_id}/profile service method: {e}')
-      raise e
-   except SQLAlchemyError as e:
-      db.rollback()
-      pprint(f'Error in GET /accounts/{account_id}/profile service method: {e}')
-      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   except Exception as e:
-      db.rollback()
-      pprint(f'Unexpected error in GET /accounts/{account_id}/profile service method: {e}')
-      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-
+   
 def get_account_user_list(
    db: Session,
    account_id: UUID, 
@@ -381,7 +331,7 @@ def deassign_user_from_account(
       if user_to_deassign.is_superadmin: # if user to deassign is superadmin
          ROOT_SUPERADMIN_ID = os.getenv("ROOT_SUPERADMIN_ID", None)
          if ROOT_SUPERADMIN_ID != logged_in_user.id: # only root superadmin user can deassign other superadmins
-            raise ApiError.forbidden(f"you do not have root superadmin permissions to deassign superadmin user - '{user_to_deassign.id}' from account - '{account_id}'")
+            raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have root superadmin permissions to deassign superadmin user - '{user_to_deassign.id}' from account - '{account_id}'")
       
       delete_all_associated_user_projects_in_account(user_id = user_to_deassign.id, account_id=account_id, db=db)
       
@@ -433,7 +383,7 @@ def patch_user_account_admin_status(
 
       if user_id == logged_in_user_id:
          if not logged_in_user_is_superadmin:
-            raise ApiError.forbidden('you do not have permission to modify account admin status of self')
+            raise ApiError.forbidden(f"logged-in user - '{logged_in_user_id}' - does not do not have permission to modify account admin status of self")
       
       match account_admin_status_update_dto.action:
          case "Grant":

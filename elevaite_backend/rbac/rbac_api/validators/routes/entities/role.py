@@ -23,7 +23,7 @@ async def validate_post_roles(
       if logged_in_user.is_superadmin: 
          return 
       
-      raise ApiError.forbidden("you do not have superadmin privileges to create roles")
+      raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin privileges to create roles")
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in validate_post_roles middleware : {e}')
@@ -46,7 +46,7 @@ async def validate_delete_roles(
       if logged_in_user.is_superadmin: 
          return 
       
-      raise ApiError.forbidden("you do not have superadmin privileges to delete roles")
+      raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin privileges to delete roles")
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in validate_delete_roles middleware : {e}')
@@ -69,7 +69,7 @@ async def validate_patch_roles(
       if logged_in_user.is_superadmin: 
          return 
       
-      raise ApiError.forbidden("you do not have superadmin privileges to update roles")
+      raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin privileges to update roles")
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in validate_patch_roles middleware : {e}')
@@ -102,7 +102,7 @@ async def validate_get_roles(
       if user_admin_accounts_exist:
          return 
       
-      raise ApiError.forbidden("you do not have superadmin/account-admin privileges to read all roles")
+      raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin/account-admin privileges to read all roles")
    except HTTPException as e:
       db.rollback()
       pprint(f'API error GET /roles/ - validate_get_all_roles middleware : {e}')

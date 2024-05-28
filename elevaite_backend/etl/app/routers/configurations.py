@@ -13,6 +13,7 @@ from elevaitedb.schemas import (
 #    route_validator_map,
 #    RBACValidatorProvider
 # )
+# rbacValidator = RBACValidatorProvider.get_instance()
 router = APIRouter(
     prefix="/application/{application_id}/configuration", tags=["configurations"]
 )
@@ -27,7 +28,7 @@ def getApplicationConfigurations(
     ):
 
     # db: Session = request.state.db # uncomment this when using validator
-    # all_query_authorized_types_filter_function = RBACValidatorProvider.get_instance().get_post_validation_types_filter_function_for_all_query(models.Configuration, validation_info) # uncomment this when using validator
+    # all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(models.Configuration, validation_info) # uncomment this when using validator
 
     return conf_service.getConfigurationsOfApplication(
         db=db,

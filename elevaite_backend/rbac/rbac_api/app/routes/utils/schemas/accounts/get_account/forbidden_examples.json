@@ -2,7 +2,7 @@
    "insufficient_permissions": {
       "summary": "logged-in user is not assigned to account",
       "value": {
-         "detail": "you are not assigned to account - '789e4567-e89b-12d3-a456-426614174000'"
+         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614176000' - is not assigned to account - '789e4567-e89b-12d3-a456-426614174000'"
       }
    }
 }

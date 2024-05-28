@@ -13,6 +13,8 @@ import os
 from elevaitedb.schemas import (
    user as user_schemas,
    role as role_schemas,
+   account as account_schemas,
+   project as project_schemas,
    permission as permission_schemas,
 )
 from .utils.project_helpers import (
@@ -124,36 +126,60 @@ def get_user_profile(
       pprint(f'Unexpected error in GET /users/{user_to_profile.id}/profile service method : {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
-def get_org_users(
+def get_user_accounts(
    db: Session,
-   org_id: UUID,
-   firstname: Optional[str],
-   lastname: Optional[str],
-   email: Optional[str],
-) -> List[user_schemas.OrgUserListItemDTO]:
+   user_id: UUID,
+) -> List[account_schemas.AccountResponseDTO]:
    try:
-      query = db.query(models.User).filter(models.User.organization_id == org_id)
-
-      if firstname:
-         query = query.filter(models.User.firstname.ilike(f"%{firstname}%"))
-      if lastname:
-         query = query.filter(models.User.lastname.ilike(f"%{lastname}%"))
-      if email:
-         query = query.filter(models.User.email.ilike(f"%{email}%"))
-
-      users = query.all()
-      return cast(List[user_schemas.OrgUserListItemDTO], users)
+      user = db.query(models.User).filter(models.User.id == user_id).first()
+      if not user:
+         raise ApiError.notfound(f"User - '{user_id}' - not found")
+      
+      query = db.query(models.Account)\
+               .join(models.User_Account, models.Account.id == models.User_Account.account_id)\
+               .filter(models.User_Account.user_id == user_id)
+      
+      accounts = query.all()
+      return cast(List[account_schemas.AccountResponseDTO], accounts)
    except HTTPException as e:
       db.rollback()
-      pprint(f'API error in GET /users/ service method : {e}')
+      pprint(f'API error in GET /users/{user_id}/accounts service method : {e}')
       raise e
    except SQLAlchemyError as e:
       db.rollback()
-      pprint(f'Error in GET /users/ service method : {e}')
+      pprint(f'Error in GET /users/{user_id}/accounts service method : {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
-      pprint(f'Unexpected error in GET /users service method: {e}')
+      pprint(f'Unexpected error in GET /users/{user_id}/accounts service method : {e}')
+      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+
+def get_user_projects( 
+   db: Session,
+   user_id: UUID,
+   account_id : UUID
+) -> List[project_schemas.ProjectResponseDTO]:
+   try:
+      user = db.query(models.User).filter(models.User.id == user_id).first()
+      if not user:
+         raise ApiError.notfound(f"User - '{user_id}' - not found")
+      
+      query = db.query(models.Project)\
+               .join(models.User_Project, models.User_Project.project_id == models.Project.id)\
+               .filter(
+                  models.Project.account_id == account_id,
+                  models.User_Project.user_id == user_id,
+               )            
+
+      projects = query.all()
+      return cast(List[project_schemas.ProjectResponseDTO], projects)  
+   except SQLAlchemyError as e:
+      db.rollback()
+      pprint(f'DB error in GET users/{user_id}/projects/ service method: {e}')
+      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
+   except Exception as e:
+      db.rollback()
+      print(f'Unexpected error in GET users/{user_id}/projects/ service method: {e}')
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def patch_user(
@@ -355,7 +381,7 @@ def patch_user_superadmin_status(
       
       ROOT_SUPERADMIN_ID = UUID(os.getenv("ROOT_SUPERADMIN_ID"))
       if ROOT_SUPERADMIN_ID == user_id: # cannot update root superadmin's status
-         raise ApiError.forbidden(f"you cannot update superadmin status of root superadmin user - '{user_id}'")
+         raise ApiError.forbidden(f"logged-in user - '{logged_in_user_id}' - cannot update superadmin status of root superadmin user - '{user_id}'")
       
       match superadmin_status_update_dto.action:
          case "Grant":

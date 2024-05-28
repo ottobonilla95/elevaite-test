@@ -1,0 +1,10 @@
+{
+   "insufficient_permissions": {
+      "summary": "logged-in user do not have superadmin or account-admin privileges to read user projects in account",
+      "value": {
+         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614176000' - does not have superadmin or account-admin privileges to read user projects in account - '789e4567-e89b-12d3-a456-426614174000'"
+      }
+   }
+}
+
+

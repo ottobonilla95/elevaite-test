@@ -14,6 +14,7 @@ from elevaitedb.schemas import (
 #    route_validator_map,
 #    RBACValidatorProvider
 # )
+# rbacValidator = RBACValidatorProvider.get_instance()
 from elevaitedb.db import models
 router = APIRouter(prefix="/project/{project_id}/datasets", tags=["datasets"])
 
@@ -28,7 +29,7 @@ def getProjectDatasets(
     # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'getProjectDatasets')]), # uncomment this to use validator
 ):
     # db: Session = request.state.db # uncomment this when using validator
-    # all_query_authorized_types_filter_function = RBACValidatorProvider.get_instance().get_post_validation_types_filter_function_for_all_query(models.Dataset, validation_info) # uncomment this when using validator
+    # all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(models.Dataset, validation_info) # uncomment this when using validator
 
     return dataset_service.get_datasets_of_project(
         db=db, 

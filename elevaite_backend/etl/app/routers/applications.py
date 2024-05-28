@@ -14,7 +14,8 @@ from elevaitedb.schemas import (
 #    route_validator_map,
 #    RBACValidatorProvider
 # )
- 
+
+# rbacValidator = RBACValidatorProvider.get_instance()
 router = APIRouter(prefix="/application", tags=["applications"])
 
 
@@ -26,7 +27,7 @@ def getApplicationList(
 ) -> Sequence[application_schemas.Application]:
 
     # db: Session = request.state.db # uncomment this when using validator
-    # all_query_authorized_types_filter_function = RBACValidatorProvider.get_instance().get_post_validation_types_filter_function_for_all_query(models.Application, validation_info) # uncomment this when using validator
+    # all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(models.Application, validation_info) # uncomment this when using validator
     
     return service.getApplicationList(
         db,
