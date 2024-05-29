@@ -369,6 +369,31 @@ export async function requestModelEvaluation(modelId: string|number, datasetId: 
 // DELETES
 //////////////////
 
+
+
+
+export async function undeployModel(endpointId: string): Promise<boolean> {  
+  if (!MODELS_URL) throw new Error("Missing base url");
+  const headers = new Headers();
+  headers.append("Content-Type", "application/json");
+  const response = await fetch(`${MODELS_URL}/endpoints/${endpointId}`, {
+    method: "DELETE",
+    headers,
+  });
+  revalidateTag(cacheTags.endpoints);
+  if (!response.ok) {
+    if (response.status === 422) {
+      const errorData: unknown = await response.json();
+      // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+      console.dir(errorData, { depth: null });
+    }
+    throw new Error("Failed to delete model");
+  }  
+  const data: unknown = await response.json();
+  if (isObject(data) && "message" in data) return true; // Expected result: { message: 'endpoint `4` deleted' }
+  return false;
+}
+
 export async function deleteModel(modelId: string): Promise<boolean> {  
   if (!MODELS_URL) throw new Error("Missing base url");
   const headers = new Headers();

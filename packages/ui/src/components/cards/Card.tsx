@@ -19,7 +19,6 @@ export interface CardProps {
   url?: string;
   id?: string;
   link?: string;
-  altBackground?: boolean;
 }
 
 export function Card({ icon, title, subtitle, description, ...props }: CardProps): JSX.Element {
@@ -38,7 +37,6 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
       className={[
         "card-container",
         props.link ? "with-link" : undefined,
-        props.altBackground ? "alt-background" : undefined,
       ].filter(Boolean).join(" ")}
       id={props.id}
     >
@@ -46,8 +44,8 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
         <div className="card-header">
           <div className="card-header-title">
             {!icon ? //TODO: Remove testing icons
-                props.id == "1" ? <Logos.Aws/> :
-                props.id == "2" ? <Logos.Preprocess/>
+                props.id == "1" ? <Logos.Aws className="card-header-icon"/> :
+                props.id == "2" ? <Logos.Preprocess className="card-header-icon"/>
               : null :
               <img src={icon} alt={props.iconAlt ? props.iconAlt : "logo"} className="card-header-icon" />
             }

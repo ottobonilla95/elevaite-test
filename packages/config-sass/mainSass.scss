@@ -49,7 +49,7 @@
 
 
 
-@mixin scrollbar($track: var(--ev-colors-background), $bar: var(--ev-colors-secondary)) {
+@mixin scrollbar($track: var(--ev-colors-background), $bar: var(--ev-colors-secondary), $radius: 5px) {
   // Firefox
   @supports not selector(::-webkit-scrollbar) {
     scrollbar-width: thin;
@@ -63,12 +63,12 @@
   /* Track */
   &::-webkit-scrollbar-track {
     background: $track;
-    border-radius: 5px;
+    border-radius: $radius;
   }
   /* Handle */
   &::-webkit-scrollbar-thumb {
     background: $bar;
-    border-radius: 5px;
+    border-radius: $radius;
   }
 }
 

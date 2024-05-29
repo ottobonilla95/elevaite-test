@@ -16,6 +16,7 @@ const embeddingTasksArray = [
 
 enum MENU_ACTIONS {
     DEPLOY = "Deploy",
+    UNDEPLOY = "Undeploy",
     DELETE = "Delete",
     EVALUATE = "Evaluate",
 };
@@ -68,6 +69,7 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
     function getModelsListMenu(status?: ModelsStatus): CommonMenuItem<ModelObject>[] {
         if (!status || status === ModelsStatus.REGISTERING) return [];
         else if (status === ModelsStatus.DEPLOYED) return [
+            { label: "Undeploy Model", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.UNDEPLOY); } },
             { label: "Remove Model", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.DELETE); } },
             { label: "Evaluate Model", onClick: (item: ModelObject) => { handleMenuClick(item, MENU_ACTIONS.EVALUATE); } },
         ];
@@ -84,6 +86,7 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
     function handleMenuClick(model: ModelObject, action: MENU_ACTIONS): void {
         switch (action) {
             case MENU_ACTIONS.DEPLOY: setPendingAction({title: "Deploy Model?", action, model}); break;
+            case MENU_ACTIONS.UNDEPLOY: setPendingAction({title: "Undeploy Model?", action, model}); break;
             case MENU_ACTIONS.EVALUATE: setPendingAction({title: "Evaluate Model", action, model, label: "Evaluate", icon: <ElevaiteIcons.SVGEvaluate/>}); break;
             case MENU_ACTIONS.DELETE: setPendingAction({title: "Delete Model?", action, model}); break;
             default: break;
@@ -102,6 +105,7 @@ export function ModelsListTable(props: ModelsListTableProps): JSX.Element {
         if (!pendingAction) return;
         switch (pendingAction.action) {
             case MENU_ACTIONS.DEPLOY: void modelsContext.deployModel(pendingAction.model.id); break;
+            case MENU_ACTIONS.UNDEPLOY: void modelsContext.undeployModel(pendingAction.model.endpointId); break;
             case MENU_ACTIONS.EVALUATE: void modelsContext.evaluateModel(pendingAction.model.id, datasetId); break;
             case MENU_ACTIONS.DELETE: void modelsContext.deleteModel(pendingAction.model.id.toString()); break;
             default: break;

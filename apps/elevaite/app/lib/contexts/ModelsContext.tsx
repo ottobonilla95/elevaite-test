@@ -1,7 +1,7 @@
 "use client";
 import dayjs from "dayjs";
 import { createContext, useContext, useEffect, useState } from "react";
-import { deleteModel, deployModel, getAvailableModels, getAvailableModelsByName, getEvaluationLogsById, getModelById, getModelDatasets, getModelEndpoints, getModelEvaluations, getModelLogs, getModelParametersById, getModels, getModelsTasks, registerModel, requestModelEvaluation } from "../actions/modelActions";
+import { deleteModel, deployModel, getAvailableModels, getAvailableModelsByName, getEvaluationLogsById, getModelById, getModelDatasets, getModelEndpoints, getModelEvaluations, getModelLogs, getModelParametersById, getModels, getModelsTasks, registerModel, requestModelEvaluation, undeployModel } from "../actions/modelActions";
 import { countActiveFilters, getUniqueActiveFiltersFromGroup, getUniqueTagsFromList } from "../helpers";
 import { ModelsStatus, type AvailableModelObject, type EvaluationObject, type FiltersStructure, type ModelDatasetObject, type ModelEndpointObject, type ModelEvaluationLogObject, type ModelObject, type ModelParametersObject, type ModelRegistrationLogObject } from "../interfaces";
 
@@ -96,6 +96,7 @@ export interface ModelsContextStructure {
     getAvailableRemoteModelsByName: (name: string) => void;
     registerModel: (modelName: string, modelRepo: string, tags?: string[]) => Promise<void>;
     deployModel: (modelId: string|number) => Promise<void>;
+    undeployModel: (endpointId?: string) => Promise<void>;
     deleteModel: (modelId: string|number) => Promise<void>;
     modelDatasets: ModelDatasetObject[],
     evaluateModel: (modelId: string|number, datasetId: string) => Promise<EvaluationObject|undefined>;
@@ -128,6 +129,7 @@ export const ModelsContext = createContext<ModelsContextStructure>({
     getAvailableRemoteModelsByName: () => {/**/},
     registerModel: async () => {/**/},
     deployModel: async () => {/**/},
+    undeployModel: async () => {/**/},
     deleteModel: async () => {/**/},
     modelDatasets: [],
     // eslint-disable-next-line @typescript-eslint/require-await -- We don't need to await for the core structure.
@@ -565,6 +567,22 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
     }
 
 
+    async function actionUndeployModel(endpointId?: string): Promise<void> {
+        if (!endpointId) return;
+        try {
+            setLoading(current => {return {...current, registerModel: true}} );
+            await undeployModel(endpointId);
+            await fetchModelEndpoints();
+            if (selectedModel?.id === endpointId) await refreshModelById(endpointId);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching selected model parameters:", error);
+        } finally {
+            setLoading(current => {return {...current, registerModel: false}} );
+        }
+    }
+
+
 
     async function actionEvaluateModel(modelId: string|number, datasetId: string): Promise<EvaluationObject|undefined> {
         try {
@@ -617,6 +635,7 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
                 getAvailableRemoteModelsByName,
                 registerModel: actionRegisterModel,
                 deployModel: actionDeployModel,
+                undeployModel: actionUndeployModel,
                 deleteModel: actionDeleteModel,
                 modelDatasets,
                 evaluateModel: actionEvaluateModel,

@@ -28,7 +28,7 @@ export const S3PreprocessFormInitializer: S3PreprocessFormDTO = {
 
 
 export const S3PreprocessingAppInstanceForm: AppInstanceFormStructure<S3PreprocessFormDTO> = {
-    title: "Preprocess Functions",
+    title: "Preprocess Pipelines",
     icon: <Logos.Preprocess/>,
     initializer: S3PreprocessFormInitializer,
     requiredFields: ["datasetId#datasetName", "projectId", "collectionId"],

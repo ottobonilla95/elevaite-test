@@ -10,11 +10,12 @@
     align-items: center;
     gap: 8px;
     border-radius: 10px;
-    border: 1px solid var(--ev-colors-borderColor);
-    background-color: var(--ev-colors-background);
+    border: 1px solid var(--ev-colors-uiBorder);
+    background-color: var(--ev-colors-uiBackground);
     min-width: 400px;
 
     & input {
+      background-color: var(--ev-colors-uiBackground);
       flex: 1 0 auto;
       outline: none;
     }

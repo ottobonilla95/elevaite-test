@@ -104,6 +104,7 @@ export function CommonSelect({
             className={[
                 "common-select",
                 props.className,
+                AdvancedOptionComponent ? "advanced" : undefined,
             ].filter(Boolean).join(" ")}
         >
             <CommonButton 

@@ -9,6 +9,10 @@
 
     position: relative;
 
+    &.advanced .common-select-options-container {
+        max-width: 100%;
+    }
+
     & .common-select-display {
         justify-content: space-between;
 

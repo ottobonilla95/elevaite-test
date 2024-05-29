@@ -15,13 +15,13 @@ export function Sidebar({ ...props }: SidebarProps): JSX.Element {
   return (
     <div className={[
       "sidebar-container",
-      theme.type
+      "dark", // theme.type
       ].join(" ")}
     >
       <div className="sidebar-nav">
         <SVGSidebarBackground className="sidebar-backdrop"/>
         {props.sidebarIcons.map((item) => (
-          <SidebarIcon key={item.link} link={item.link} description={item.description} themeType={theme.type}>
+          <SidebarIcon key={item.link} link={item.link} description={item.description} themeType={"dark"}>
             {item.icon}
           </SidebarIcon>
         ))}

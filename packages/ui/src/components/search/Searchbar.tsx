@@ -88,7 +88,6 @@ export function Searchbar({ handleInput, ...props }: SearchBarProps): JSX.Elemen
           onChange={(e) => { handleChange(e.target.value); }}
           placeholder="Find answers"
           ref={inputRef}
-          style={{ background: colors.background, color: colors.text }}
           type="search"
         />
         <span className="hotkey-hint">

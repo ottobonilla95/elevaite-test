@@ -22,7 +22,7 @@ export const S3DataRetrievalAppInstanceFormInitializer: S3IngestFormDTO = {
 
 
 export const S3DataRetrievalAppInstanceForm: AppInstanceFormStructure<S3IngestFormDTO> = {
-    title: "AWS S3 Document Ingest",
+    title: "S3 Connector",
     icon: <Logos.Aws/>,
     initializer: S3DataRetrievalAppInstanceFormInitializer,
     requiredFields: ["datasetId#datasetName", "url", "roleARN", "projectId"],

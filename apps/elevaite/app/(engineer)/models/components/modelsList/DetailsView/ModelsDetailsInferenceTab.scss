@@ -76,51 +76,7 @@
     }
 
 
-    & .chat-input-container {
-        flex-shrink: 0;
-        min-height: 100px;
-        max-height: 300px;
 
-        display: flex;
-        flex-direction: column;
-        gap: 5px 20px;
-        padding: 20px;
-
-        background-color: var(--ev-colors-primary);
-        border-radius: 8px;
-
-
-        &.loading {
-            & .chat-input-field svg {
-                color: var(--ev-colors-secondaryText);
-            }
-        }
-
-
-        & .chat-input-field {
-            flex-grow: 1;
-            padding: 10px 15px;
-            border-radius: 8px;
-            background-color: var(--ev-colors-background);
-
-            &:focus-within {
-                border-color: var(--ev-colors-highlight);
-            }
-
-            & button {            
-                height: 28px;
-                width: 28px;
-            }
-
-            & svg {
-                color: var(--ev-colors-highlight);
-            }
-
-            & > textarea {                
-                max-height: 250px;
-            }
-        }
-    }                    
 }
 
 

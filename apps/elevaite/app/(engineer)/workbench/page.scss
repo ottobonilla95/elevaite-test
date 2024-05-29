@@ -53,7 +53,7 @@
 
   & .separator {
     flex-grow: 1;
-    border-top: 1px solid var(--ev-colors-borderColor);
+    border-top: 1px solid var(--ev-colors-specialSeparator);
   }
 }
 
@@ -76,17 +76,22 @@
 }
 
 .react-tabs__tab-list {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  margin: 0px 32px;
+  padding: 0px 32px;
   display: flex;
   flex-direction: row;
   align-items: center;
   position: sticky;
-  // top: var(--navbar-height);
-  /* vertical-align: middle; */
-  background: var(--ev-colors-background);
-  // width: 100%;
+  background: var(--ev-colors-specialTabBackground);
   z-index: 100;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0; bottom: -1px;
+    left: 32px; right: 32px;
+    border-bottom: 1px solid var(--ev-colors-borderColor);
+    z-index: 50;
+  }
 }
 
 .react-tabs__tab {
@@ -108,8 +113,8 @@
 }
 
 .react-tabs__tab--selected {
-  border-bottom: 2px solid var(--ev-colors-highlight);
-  color: var(--ev-colors-highlight);
+  border-bottom: 2px solid var(--ev-colors-specialTabHighlight);
+  color: var(--ev-colors-specialTabHighlight);
   opacity: 1;
 }
 

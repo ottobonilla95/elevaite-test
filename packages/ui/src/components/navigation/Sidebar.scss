@@ -13,10 +13,10 @@
   scrollbar-width: thin;
   z-index: 110;
   width: var(--sidebar-width);
-  background-color: var(--ev-colors-secondary);
+  background-color: var(--ev-colors-uiSecondary);
 
   &.dark {
-    background-color: var(--ev-colors-primary);
+    background-color: var(--ev-colors-uiPrimary);
   }
 
 
@@ -40,19 +40,19 @@
     & .sidebar-nav-button {
       padding: 5px;
       border-radius: 5px;
-      color: var(--ev-colors-icon);
+      color: var(--ev-colors-uiIcon);
       background-color: transparent;
       transition: background-color 200ms ease-in-out;
 
       &.light:hover {
-        background-color: var(--ev-colors-primary);
+        background-color: var(--ev-colors-uiPrimary);
       }
       &:hover {
-        background-color: var(--ev-colors-hoverColor);
+        background-color: var(--ev-colors-uiHover);
       }
 
       &.active {
-        color: var(--ev-colors-highlight);
+        color: var(--ev-colors-uiHighlight);
       }
     }
   }

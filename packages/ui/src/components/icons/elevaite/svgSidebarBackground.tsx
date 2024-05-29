@@ -6,8 +6,9 @@ function SVGSidebarBackground(props: SVGProps<SVGSVGElement>): JSX.Element {
     const theme = useThemes();
     let mainColor = "#343434";
     if (props.color) mainColor = props.color;
-    else if (theme.type === "dark" && theme.hoverColor) mainColor = theme.hoverColor;
-    else if (theme.borderColor) mainColor = theme.borderColor;
+    // else if (theme.type === "dark" && theme.hoverColor) mainColor = theme.hoverColor;
+    // else if (theme.borderColor) mainColor = theme.borderColor;
+    else if (theme.uiHover) mainColor = theme.uiHover;
 
     return (
         <svg

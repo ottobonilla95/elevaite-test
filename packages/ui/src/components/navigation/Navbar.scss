@@ -10,9 +10,9 @@
   position: fixed;
   top: 0;
   z-index: 200;
-  background-color: var(--ev-colors-navbarBackground);
-  border-bottom: 1px solid var(--ev-colors-borderColor);
-  color: var(--ev-colors-secondaryText);
+  background-color: var(--ev-colors-uiPrimary);
+  border-bottom: 1px solid var(--ev-colors-uiBorder);
+  color: var(--ev-colors-uiTextSecondary);
 
   & .navbar-holder {
     display: flex;
@@ -25,7 +25,7 @@
     display: flex;
     align-items: center;
     gap: 20px;
-    color: var(--ev-colors-text);
+    color: var(--ev-colors-uiText);
   }
   & .navbar-right {
     flex-grow: 0.25;
@@ -35,8 +35,8 @@
   & button.help-button {
     width: 30px;
     height: 30px;
-    border: 1px solid var(--ev-colors-borderColor);
-    color: var(--ev-colors-secondaryText);
+    border: 1px solid var(--ev-colors-uiBorder);
+    color: var(--ev-colors-uiTextSecondary);
     padding: 2px;
     & > svg {
       height: 30px;
@@ -44,13 +44,13 @@
     }
 
     &.active {
-      color: var(--ev-colors-highlight);
+      color: var(--ev-colors-uiHighlight);
     }
   }
 
   & .separator {
     height: 24px;
-    border-left: 1px solid var(--ev-colors-borderColor);
+    border-left: 1px solid var(--ev-colors-uiBorder);
   }
 
   & .icon-container {

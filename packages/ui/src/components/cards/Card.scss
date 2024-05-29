@@ -12,14 +12,11 @@
   cursor: default;
 
   background-color: var(--ev-colors-primary);
-  border: 1px solid var(--ev-colors-borderColor);
-  border-top-color: var(--ev-colors-highlight);
+  border: 1px solid var(--ev-colors-specialCardBorder);
+  border-top-color: var(--ev-colors-specialCardBorderTop);
 
   &.with-link {
     cursor: pointer;
-  }
-  &.alt-background {
-    background-color: var(--ev-colors-secondary);
   }
   &:focus-within {
     border-color: var(--ev-colors-highlight);
@@ -31,7 +28,7 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
-    padding: 24px;
+    padding: 20px;
     border-radius: 12px;
     min-height: 150px;
     height: 100%;
@@ -50,11 +47,15 @@
         & .card-header-icon {
           width: 32px;
           height: 32px;
-          padding: 3px;
           display: flex;
           justify-content: center;
           align-items: center;
           flex-shrink: 0;
+
+          & > svg {
+            height: 100%;
+            width: 100%;
+          }
         }
 
         & .card-header-label {
@@ -93,23 +94,23 @@
       font-size: 14px;
       font-weight: 500;
       margin-top: 20px;
+      color: var(--ev-colors-text);
     }
 
     & .card-button {
       align-self: flex-end;
-      height: 40px;
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 8px;
-      padding: 14px 24px;
-      border: 1px solid var(--ev-colors-borderColor);
+      padding: 5px 20px;
+      border: 1px solid var(--ev-colors-specialCardButtonBorder);
       border-radius: 8px;
       font-size: 14px;
       font-weight: 600;
 
-      color: var(--ev-colors-highlight);
-      background-color: var(--ev-colors-primary);
+      color: var(--ev-colors-text);
+      background-color: var(--ev-colors-specialCardButtonBackground);
 
       @include buttonClick($backgroundColor: var(--ev-colors-hoverColor), $hoverFocus: true);
     }

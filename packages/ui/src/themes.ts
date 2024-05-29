@@ -1,6 +1,7 @@
 
+export type ColorScheme = ColorSchemeBase & ColorSchemeUI & ColorSchemeSpecial;
 
-export interface ColorScheme {
+interface ColorSchemeBase {
   type?: "dark" | "light";
   primary?: string;
   secondary?: string;
@@ -16,11 +17,31 @@ export interface ColorScheme {
   background?: string;
   backgroundSecondary?: string;
   backgroundHighContrast?: string;
-  navbarLogo?: string,
-  navbarBackground?: string,
   success?: string,
   danger?: string,
   tagBorder?: string,
+}
+
+interface ColorSchemeUI {
+  uiPrimary?: string;
+  uiSecondary?: string;
+  uiIcon?: string;
+  uiHover?: string;
+  uiHighlight?: string;
+  uiText?: string;
+  uiTextSecondary?: string;
+  uiBackground?: string;
+  uiBorder?: string;
+}
+
+interface ColorSchemeSpecial {
+  specialCardBorder?: string;
+  specialCardBorderTop?: string;
+  specialCardButtonBackground?: string;
+  specialCardButtonBorder?: string;
+  specialSeparator?: string;
+  specialTabBackground?: string;
+  specialTabHighlight?: string;
 }
 
 
@@ -40,11 +61,27 @@ export const DarkTheme: ColorScheme = {
   iconBorder: "#282828",
   background: "#161616",
   backgroundHighContrast: "#000000",
-  navbarLogo: "#FFFFFF",
-  navbarBackground: "#282828",
   success: "#D8FC77",
   danger: "#DC143C",
   tagBorder: "#71570D",
+  // UI colors
+  uiPrimary: "#282828",
+  uiSecondary: "#424242",
+  uiIcon: "#93939380",
+  uiHover: "#363636",
+  uiHighlight: "#e75f33",
+  uiText: "#FFFFFF",
+  uiTextSecondary: "#808080",
+  uiBackground: "#161616",
+  uiBorder: "#FFFFFF1F",
+  // Special cases
+  specialCardBorder: "#FFFFFF1F",
+  specialCardBorderTop: "#e75f33",
+  specialCardButtonBackground: "#282828",
+  specialCardButtonBorder: "#FFFFFF1F",
+  specialSeparator: "#FFFFFF1F",
+  specialTabBackground: "transparent",
+  specialTabHighlight: "#e75f33",
 };
 
 // Light
@@ -61,11 +98,26 @@ export const LightTheme: ColorScheme = {
   hoverColor: "#f5f5f5",
   borderColor: "#CBD5E1",
   iconBorder: "#64748B",
-  background: "#F9FAFB",
+  background: "#F7F6F1",
   backgroundHighContrast: "#FFFFFF",
-  navbarLogo: "#0F172A",
-  navbarBackground: "#CBD5E1",
   success: "#D8FC77",
   danger: "#DC143C",
   tagBorder: "#71570D",
+  // UI colors -- Navigation UI is the same between the two themes.
+  uiPrimary: DarkTheme.uiPrimary,
+  uiSecondary: DarkTheme.uiSecondary,
+  uiIcon: DarkTheme.uiIcon,
+  uiHover: DarkTheme.uiHover,
+  uiHighlight: DarkTheme.uiHighlight,
+  uiText: DarkTheme.uiText,
+  uiBackground: DarkTheme.uiBackground,
+  uiBorder: DarkTheme.uiBorder,
+  // Special cases
+  specialCardBorder: "transparent",
+  specialCardBorderTop: "transparent",
+  specialCardButtonBackground: "#e75f33",
+  specialCardButtonBorder: "transparent",
+  specialSeparator: "#282828",
+  specialTabBackground: "#FFFFFF",
+  specialTabHighlight: "#0F172A",
 };

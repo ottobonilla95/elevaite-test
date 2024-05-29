@@ -6,7 +6,6 @@ import { auth } from "../auth";
 import { AppLayout } from "./components/AppLayout";
 import "./globals.css";
 import { ChatContextProvider } from "./ui/contexts/ChatContext";
-import { EngineerTheme } from "./ui/themes";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,7 +28,7 @@ export default async function RootLayout({children,}: Readonly<{children: React.
       <body className={inter.className}>
         
         <SessionProvider session={session}>
-          <ColorContextProvider theme={EngineerTheme}>
+          <ColorContextProvider>
             <ChatContextProvider>
 
               <AppLayout breadcrumbs={breadcrumbs}>
