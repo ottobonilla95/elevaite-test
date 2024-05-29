@@ -9,8 +9,10 @@ from .interfaces import (
     LogInfo,
     MaxDatasetVersionInput,
     PipelineStepStatusInput,
+    RPCResponse,
     RepoNameInput,
     SetInstanceChartDataInput,
+    SetRedisStatsInput,
     SetRedisValueInput,
 )
 from .connection import get_rmq_connection
@@ -63,11 +65,18 @@ class RPCClient(object):
         self._publish_request(input.json(), RPCRoutingKeys.get_repo_name)
         while self.response is None:
             self.connection.process_data_events(time_limit=0)
-        return str(self.response)
+        return str(self.response, "utf-8")
 
     def set_pipeline_step_running(self, input: PipelineStepStatusInput) -> None:
         self.response = None
         self._publish_request(input.json(), RPCRoutingKeys.set_pipeline_step_running)
+        while self.response is None:
+            self.connection.process_data_events(time_limit=0)
+        return
+
+    def set_redis_stats(self, input: SetRedisStatsInput) -> None:
+        self.response = None
+        self._publish_request(input.json(), RPCRoutingKeys.set_redis_stats)
         while self.response is None:
             self.connection.process_data_events(time_limit=0)
         return
@@ -112,4 +121,4 @@ class RPCClient(object):
         self._publish_request(log.json(), RPCRoutingKeys.log_info)
         while self.response is None:
             self.connection.process_data_events(time_limit=0)
-        return str(self.response)
+        return str(self.response, "utf-8")

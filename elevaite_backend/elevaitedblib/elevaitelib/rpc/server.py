@@ -32,11 +32,12 @@ class RPCServer:
             body,
         ):
             _data = json.loads(body)
-            print("  [o] Received: ")
-            print(body)
+            print(func.__name__)
+            # print("  [o] Received: ")
+            # print(body)
             response = func(_data)
-            print("  [o] Responding: ")
-            print(response)
+            # print("  [o] Responding: ")
+            # print(response)
 
             ch.basic_publish(
                 exchange="",

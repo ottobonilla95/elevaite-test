@@ -1,9 +1,4 @@
 from typing import TypeGuard
-from elevaitelib.schemas.configuration import (
-    S3IngestFormDataDTO,
-    PreProcessFormDTO,
-    ServiceNowIngestDataDTO,
-)
 from pydantic import BaseModel
 
 
@@ -22,19 +17,19 @@ def isS3IngestData(obj) -> TypeGuard[S3IngestData]:
     return obj.type == "s3_ingest"
 
 
-class ServiceNowIngestData(ServiceNowIngestDataDTO):
-    applicationId: int
-    instanceId: str
+# class ServiceNowIngestData(ServiceNowIngestDataDTO):
+#     applicationId: int
+#     instanceId: str
 
 
-def isServiceNowIngestData(obj) -> TypeGuard[ServiceNowIngestData]:
-    return obj.type == "service-now"
+# def isServiceNowIngestData(obj) -> TypeGuard[ServiceNowIngestData]:
+#     return obj.type == "service-now"
 
 
-class PreProcessForm(PreProcessFormDTO):
-    instanceId: str
-    applicationId: int
-    collectionId: str
+# class PreProcessForm(PreProcessFormDTO):
+#     instanceId: str
+#     applicationId: int
+#     collectionId: str
 
 
 class Secrets(BaseModel):

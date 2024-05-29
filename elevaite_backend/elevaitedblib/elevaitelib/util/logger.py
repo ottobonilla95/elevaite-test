@@ -51,8 +51,8 @@ class ESLogger:
                 "level": {"type": "keyword"},
             }
         }
-
-        self.client.indices.create(index=key, mappings=mappings)
+        if not self.client.indices.exists(index=key).body:
+            self.client.indices.create(index=key, mappings=mappings)
 
     def info(self, message: str):
         self.client.create(

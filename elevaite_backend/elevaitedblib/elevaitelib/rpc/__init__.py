@@ -40,5 +40,16 @@ def start_rpc_server():
     )
     server.bind_and_consume(routing_key=RPCRoutingKeys.log_info, func=rpc_func.log_info)
     server.bind_and_consume(routing_key=RPCRoutingKeys.hello, func=rpc_func.hello)
+    server.bind_and_consume(
+        routing_key=RPCRoutingKeys.set_redis_value, func=rpc_func.set_redis_value
+    )
+    server.bind_and_consume(
+        routing_key=RPCRoutingKeys.get_max_version_of_dataset,
+        func=rpc_func.get_max_version_of_dataset,
+    )
+    server.bind_and_consume(
+        routing_key=RPCRoutingKeys.create_dataset_version,
+        func=rpc_func.create_dataset_version,
+    )
     time.sleep(1)
     print(" [x] Started RPC Server")

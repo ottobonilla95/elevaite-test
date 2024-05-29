@@ -3,6 +3,10 @@ from typing import Any, Dict, List, Union
 from pydantic import BaseModel
 
 
+class RPCResponse(BaseModel):
+    response: Union[str, bool, int, Dict[str, Any], None]
+
+
 class InstanceTaskDataLabel(str, Enum):
     CURR_DOC = "CURR_DOC"
     AVG_CHUNK_SIZE = "AVG_CHUNK_SIZE"
@@ -77,3 +81,7 @@ class RepoNameInput(BaseModel):
 class LogInfo(BaseModel):
     msg: str
     key: str
+
+
+class DatasetCurrVersionInput(BaseModel):
+    dataset_id: str

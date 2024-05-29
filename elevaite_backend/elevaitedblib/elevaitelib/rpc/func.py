@@ -2,6 +2,7 @@ import json
 import os
 from typing import Any
 from dotenv import load_dotenv
+from elevaitelib.schemas.dataset import DatasetVersionCreate
 from ..util.logger import ESLogger
 import redis
 from sqlalchemy.orm import Session
@@ -31,6 +32,8 @@ from elevaite_client.rpc.interfaces import (
     SetInstanceChartDataInput,
     SetRedisStatsInput,
     SetRedisValueInput,
+    MaxDatasetVersionInput,
+    CreateDatasetVersionInput,
 )
 
 
@@ -80,14 +83,16 @@ def set_redis_stats(payload: Any, r: redis.Redis = _get_redis()):
 
     r.json().set(input.instance_id, ".", _data)
     r.close()
+    return ""
 
 
 def set_redis_value(payload: Any, r: redis.Redis = _get_redis()):
     input = SetRedisValueInput.parse_obj(payload)
     r.json().set(name=input.name, path=input.path, obj=input.obj)
+    return ""
 
 
-def set_instance_running(payload: Any, db: Session = SessionLocal()) -> None:
+def set_instance_running(payload: Any, db: Session = SessionLocal()):
     input = InstanceStatusInput(**payload)
     instance_crud.update_instance(
         db=db,
@@ -96,6 +101,7 @@ def set_instance_running(payload: Any, db: Session = SessionLocal()) -> None:
         updateInstanceDTO=InstanceUpdate(status=InstanceStatus.RUNNING),
     )
     db.close()
+    return ""
 
 
 def set_instance_completed(payload: Any, db: Session = SessionLocal()):
@@ -109,6 +115,7 @@ def set_instance_completed(payload: Any, db: Session = SessionLocal()):
         ),
     )
     db.close()
+    return ""
 
 
 def set_pipeline_step_meta(payload: Any, db: Session = SessionLocal()):
@@ -117,9 +124,19 @@ def set_pipeline_step_meta(payload: Any, db: Session = SessionLocal()):
         db=db,
         instance_id=input.instance_id,
         step_id=input.step_id,
-        dto=InstancePipelineStepStatusUpdate(meta=input.meta),
+        dto=InstancePipelineStepStatusUpdate(
+            meta=list(
+                map(
+                    lambda item: InstancePipelineStepData(
+                        label=item.label, value=item.value
+                    ),
+                    input.meta,
+                )
+            )
+        ),
     )
     db.close()
+    return ""
 
 
 def set_pipeline_step_completed(payload: Any, db: Session = SessionLocal()):
@@ -134,6 +151,7 @@ def set_pipeline_step_completed(payload: Any, db: Session = SessionLocal()):
         ),
     )
     db.close()
+    return ""
 
 
 def set_pipeline_step_running(payload: Any, db: Session = SessionLocal()):
@@ -148,6 +166,7 @@ def set_pipeline_step_running(payload: Any, db: Session = SessionLocal()):
         ),
     )
     db.close()
+    return ""
 
 
 def set_instance_chart_data(
@@ -163,6 +182,7 @@ def set_instance_chart_data(
     )
     db.close()
     r.close()
+    return ""
 
 
 def get_repo_name(payload: Any, db: Session = SessionLocal()) -> str:
@@ -171,11 +191,27 @@ def get_repo_name(payload: Any, db: Session = SessionLocal()) -> str:
     dataset = dataset_crud.get_dataset_by_id(db=db, dataset_id=input.dataset_id)
     if dataset is None:
         raise Exception("Dataset not found")
+    db.close()
     project_name = util_func.to_kebab_case(_project_name)
     dataset_name = util_func.to_kebab_case(dataset.name)
     repo_name = project_name + "-" + dataset_name
-    db.close()
     return repo_name
+
+
+def get_max_version_of_dataset(payload: Any, db: Session = SessionLocal()) -> str:
+    input = MaxDatasetVersionInput(**payload)
+    res = dataset_crud.get_max_version_of_dataset(db=db, datasetId=input.dataset_id)
+    return str(res)
+
+
+def create_dataset_version(payload: Any, db: Session = SessionLocal()) -> str:
+    input = CreateDatasetVersionInput(**payload)
+    res = dataset_crud.create_dataset_version(
+        db=db,
+        datasetId=input.dataset_id,
+        dsvc=DatasetVersionCreate(commitId=input.ref_id, version=input.version),
+    )
+    return str(res)
 
 
 def hello(payload: Any) -> Any:
@@ -187,3 +223,4 @@ def log_info(payload: Any):
     logger = ESLogger(input.key)
     logger.info(input.msg)
     logger.destroy()
+    return ""

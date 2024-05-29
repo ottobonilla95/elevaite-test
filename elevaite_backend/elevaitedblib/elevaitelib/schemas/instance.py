@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Any, Dict, List, TypeGuard, Union
 
+from elevaite_client.rpc.interfaces import InstanceTaskDataLabel
 from pydantic import UUID4, BaseModel
 
 from .pipeline import PipelineStepStatus
@@ -125,7 +126,7 @@ def chart_data_from_redis(input: Any) -> InstanceChartData:
 
 
 class InstancePipelineStepData(BaseModel):
-    label: InstanceStepDataLabel
+    label: InstanceTaskDataLabel
     value: str | int
 
 
