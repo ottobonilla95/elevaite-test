@@ -14,7 +14,13 @@ from pprint import pprint
 
 from rbac_api.utils.deps import get_db  
 from elevaitedb.db import models
+from elevaitedb.schemas import (
+   api as api_schemas,
+)
+from ....audit import AuditorProvider
+auditor = AuditorProvider.get_instance()
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_patch_organization(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate), 
@@ -37,12 +43,15 @@ async def validate_patch_organization(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in in PATCH /organization - validate_patch_organization middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in PATCH /organization - validate_patch_organization middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_get_organization(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate), 
@@ -62,12 +71,15 @@ async def validate_get_organization(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in GET /organization - validate_get_organization middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in GET /organization - validate_get_organization middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_get_org_users(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate), 
@@ -115,9 +127,11 @@ async def validate_get_org_users(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in GET /organization/users - validate_get_org_users middleware: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in GET /organization/users - validate_get_org_users middleware: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 

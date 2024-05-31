@@ -1,4 +1,4 @@
-from fastapi import status, HTTPException
+from fastapi import status, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import exists
 from sqlalchemy.orm import Session
@@ -21,6 +21,7 @@ from rbac_api import RBACValidatorProvider
 import os
 
 def register_user(
+      request: Request,
       db: Session, 
       register_user_payload: auth_schemas.RegisterUserRequestDTO,
       user_email: EmailStr
@@ -116,13 +117,16 @@ def register_user(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'Error in POST /auth/register register_user service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in POST /auth/register register_user service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 async def evaluate_rbac_permissions(
+   request: Request,
    account_id: Optional[UUID],
    project_id: Optional[UUID],
    logged_in_user: models.User,
@@ -131,6 +135,7 @@ async def evaluate_rbac_permissions(
 ) -> auth_schemas.PermissionsEvaluationResponse:
    try:
       return await RBACValidatorProvider.get_instance().evaluate_rbac_permissions(
+         request=request,
          logged_in_user=logged_in_user,
          account_id=account_id,
          project_id=project_id,
@@ -144,8 +149,10 @@ async def evaluate_rbac_permissions(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'Error in POST /auth/rbac-permissions evaluate_rbac_permissions service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in POST /auth/rbac-permissions evaluate_rbac_permissions service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")

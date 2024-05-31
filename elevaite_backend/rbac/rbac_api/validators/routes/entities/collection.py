@@ -11,11 +11,17 @@ from pprint import pprint
 from typing import Any, Type, Callable, Coroutine
 
 from elevaitedb.db import models
+from elevaitedb.schemas import (
+   api as api_schemas,
+)
 from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider
+from ....audit import AuditorProvider
 import inspect
 rbacValidator = RBACValidatorProvider.get_instance()
+auditor = AuditorProvider.get_instance()
 
 def validate_get_project_collections_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_get_project_collections(
       request: Request,
       authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate),  
@@ -46,14 +52,17 @@ def validate_get_project_collections_factory(target_model_class : Type[models.Ba
          raise e
       except SQLAlchemyError as e:
          pprint(f'DB error in GET /project/{project_id}/collection - validate_get_project_collections middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in GET /project/{project_id}/collection - validate_get_project_collections middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_get_project_collections
 
 def validate_get_project_collection_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_get_project_collection(
       request: Request,
       authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate),  
@@ -85,14 +94,17 @@ def validate_get_project_collection_factory(target_model_class : Type[models.Bas
          raise e
       except SQLAlchemyError as e:
          pprint(f'DB error in GET /project/{project_id}/collection/{collection_id} - validate_get_project_collection middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in GET /project/{project_id}/collection/{collection_id} - validate_get_project_collection middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_get_project_collection
 
 def validate_get_project_collection_scroll_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_get_project_collection_scroll(
       request: Request,
       authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate),  
@@ -124,14 +136,17 @@ def validate_get_project_collection_scroll_factory(target_model_class : Type[mod
          raise e
       except SQLAlchemyError as e:
          pprint(f'DB error in GET /project/{project_id}/collection/{collection_id}/scroll - validate_get_project_collection_scroll middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in GET /project/{project_id}/collection/{collection_id}/scroll - validate_get_project_collection_scroll middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_get_project_collection_scroll
 
 def validate_create_project_collection_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_create_project_collection(
       request: Request,
       authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate),  
@@ -162,10 +177,12 @@ def validate_create_project_collection_factory(target_model_class : Type[models.
          raise e
       except SQLAlchemyError as e:
          pprint(f'DB error in POST /project/{project_id}/collection - validate_create_project_collection middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in POST /project/{project_id}/collection - validate_create_project_collection middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
    return validate_create_project_collection

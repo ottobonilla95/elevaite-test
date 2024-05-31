@@ -12,7 +12,13 @@ from rbac_api.app.errors.api_error import ApiError
 
 from rbac_api.utils.deps import get_db
 from elevaitedb.db import models
+from elevaitedb.schemas import (
+   api as api_schemas,
+)
+from ....audit import AuditorProvider
+auditor = AuditorProvider.get_instance()
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_post_roles(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
@@ -30,12 +36,15 @@ async def validate_post_roles(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in validate_post_roles middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in validate_post_roles middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_delete_roles(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
@@ -53,12 +62,15 @@ async def validate_delete_roles(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in validate_delete_roles middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in validate_delete_roles middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_patch_roles(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
@@ -76,12 +88,15 @@ async def validate_patch_roles(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in validate_patch_roles middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in validate_patch_roles middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_get_roles(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
@@ -109,12 +124,15 @@ async def validate_get_roles(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in GET /roles/ - validate_get_all_roles middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in GET /roles/ - validate_get_all_roles middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   
+
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_get_role(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
@@ -129,8 +147,10 @@ async def validate_get_role(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in GET /roles/{role_id} - validate_get_role middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in GET /roles/{role_id} - validate_get_role middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")

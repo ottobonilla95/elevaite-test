@@ -12,6 +12,8 @@ from elevaitedb.schemas import (
 from rbac_api import route_validator_map
 from ..services import role as service
 from .utils.helpers import load_schema
+from ...audit import AuditorProvider
+auditor = AuditorProvider.get_instance()
 
 role_router = APIRouter(prefix="/roles", tags=["roles"]) 
 
@@ -61,6 +63,7 @@ role_router = APIRouter(prefix="/roles", tags=["roles"])
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def create_role(
    request: Request,
    role_creation_dto: role_schemas.RoleCreationRequestDTO = Body(description= "role creation payload"),
@@ -83,7 +86,7 @@ async def create_role(
       - If a field is not provided, it will have 'null' value, and its nested fields are ignored
    """
    db: Session = request.state.db
-   return service.create_role(role_creation_dto, db)
+   return service.create_role(request,role_creation_dto, db)
 
 @role_router.get("/{role_id}", response_model=role_schemas.RoleResponseDTO, responses={
    status.HTTP_200_OK: {
@@ -123,11 +126,12 @@ async def create_role(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def get_role(
    request: Request,
    role_id: UUID = Path(..., description= "role ID to retrieve role object"),
    _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_role')]),
-) -> List[role_schemas.RoleResponseDTO]:
+) -> role_schemas.RoleResponseDTO:
    """
    Retrieve Role resource
 
@@ -142,7 +146,7 @@ async def get_role(
       - authorized for use by all authenticated users
    """
    db: Session = request.state.db
-   return service.get_role(db = db, role_id = role_id)
+   return service.get_role(request=request, db=db, role_id=role_id)
    
 @role_router.get("/", status_code = status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -178,6 +182,7 @@ async def get_role(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def get_roles(
    request: Request,
    _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_roles')]),
@@ -196,7 +201,7 @@ async def get_roles(
       - Usecase is to display role list from which superadmin/admin users can select roles to append to user's account-scoped roles
    """
    db: Session = request.state.db
-   return service.get_roles(db)
+   return service.get_roles(request, db)
    
 @role_router.patch("/{role_id}", responses={
    status.HTTP_200_OK: {
@@ -252,6 +257,7 @@ async def get_roles(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def patch_role(
    request: Request,
    role_id: UUID = Path(..., description="The ID of the role to update"),
@@ -274,7 +280,7 @@ async def patch_role(
       - Patch payload for permission field will perform an update on the permissions json
    """
    db: Session = request.state.db
-   return service.patch_role(role_id, role_patch_req_payload, db)
+   return service.patch_role(request, role_id, role_patch_req_payload, db)
 
 @role_router.delete("/{role_id}", responses={
    status.HTTP_200_OK: {
@@ -318,6 +324,7 @@ async def patch_role(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def delete_role(
    request: Request,
    _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'delete_role')]),
@@ -337,5 +344,5 @@ async def delete_role(
       - Authorized for use only by superadmin users
    """
    db: Session = request.state.db
-   return service.delete_role(db, role_id)
+   return service.delete_role(request, db, role_id)
 

@@ -1,5 +1,5 @@
 
-from fastapi import status, HTTPException
+from fastapi import status, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session, load_only
 from sqlalchemy.exc import  SQLAlchemyError
@@ -22,6 +22,7 @@ from rbac_api import RBACValidatorProvider
 from .utils.apikey_helpers import is_permission_subset
 
 async def create_apikey(
+   request: Request,
    create_apikey_dto: apikey_schemas.ApikeyCreate,
    project_id: UUID,
    db: Session,
@@ -52,14 +53,14 @@ async def create_apikey(
          else:
             logged_in_user_account_association_id = logged_in_user_account_association.id
             logged_in_entity_account_and_project_association_info = {"authenticated_entity" : logged_in_user, "logged_in_entity_account_association" : logged_in_user_account_association, "logged_in_entity_project_association" : logged_in_user_project_association}
-            apikey_overall_permissions = await RBACValidatorProvider.get_instance().evaluate_apikey_permissions(db=db, logged_in_entity_account_and_project_association_info=logged_in_entity_account_and_project_association_info, logged_in_user_account_association_id=logged_in_user_account_association_id)    
+            apikey_overall_permissions = await RBACValidatorProvider.get_instance().evaluate_apikey_permissions(request=request, db=db, logged_in_entity_account_and_project_association_info=logged_in_entity_account_and_project_association_info, logged_in_user_account_association_id=logged_in_user_account_association_id)    
       else:
          if logged_in_user.is_superadmin or logged_in_user_is_account_admin or logged_in_user_is_project_admin:
             apikey_overall_permissions = create_apikey_dto.permissions.dict(exclude_none=True)
          else:
             logged_in_user_account_association_id = logged_in_user_account_association.id
             logged_in_entity_account_and_project_association_info = {"authenticated_entity" : logged_in_user, "logged_in_entity_account_association" : logged_in_user_account_association, "logged_in_entity_project_association" : logged_in_user_project_association}
-            logged_in_user_overall_permissions = await RBACValidatorProvider.get_instance().evaluate_apikey_permissions(db=db, logged_in_entity_account_and_project_association_info=logged_in_entity_account_and_project_association_info, logged_in_user_account_association_id=logged_in_user_account_association_id) 
+            logged_in_user_overall_permissions = await RBACValidatorProvider.get_instance().evaluate_apikey_permissions(request=request, db=db, logged_in_entity_account_and_project_association_info=logged_in_entity_account_and_project_association_info, logged_in_user_account_association_id=logged_in_user_account_association_id) 
             payload_custom_permissions = create_apikey_dto.permissions.dict(exclude_none=True)
             if not is_permission_subset(payload_custom_permissions, logged_in_user_overall_permissions):
                raise ApiError.forbidden(f'Attempting to create api key with custom permissions which exceed your current user permissions')    
@@ -96,13 +97,27 @@ async def create_apikey(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'DB error in POST /apikeys service method: Error creating apikey: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in POST /apikeys service method: Error creating apikey: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")  
 
+def get_apikey(
+   request: Request,
+   apikey: apikey_schemas.ApikeyGetResponseDTO
+) -> apikey_schemas.ApikeyGetResponseDTO:
+   try:
+      return apikey_schemas.ApikeyGetResponseDTO.from_orm(apikey)
+   except Exception as e:
+      pprint(f'Unexpected error in GET /apikeys/{apikey.id} service method: Error retrieving apikey: {e}')
+      request.state.source_error_msg = str(e)
+      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")  
+   
 def get_apikeys(
+   request: Request,
    db: Session,
    logged_in_user: models.User,
    logged_in_user_is_account_admin: bool,
@@ -128,7 +143,7 @@ def get_apikeys(
                               models.Apikey.project_id == project_id)
 
       apikeys = query.all()
-      return cast(List[apikey_schemas.ApikeyGetResponseDTO], apikeys) 
+      return [apikey_schemas.ApikeyGetResponseDTO.from_orm(apikey) for apikey in apikeys] 
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in GET /apikeys/ service method: {e}')
@@ -136,13 +151,16 @@ def get_apikeys(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'DB error in GET /apikeys service method: Error retrieving apikeys: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in GET /apikeys service method: Error retrieving apikeys: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")  
 
 def delete_apikey(
+   request: Request,
    db: Session,
    apikey : models.Apikey
    )-> JSONResponse:
@@ -160,8 +178,10 @@ def delete_apikey(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'DB error in DELETE /apikeys/{apikey.id} service method: Error deleting apikey: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in DELETE /apikeys/{apikey.id} service method: Error deleting apikey: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")  

@@ -15,6 +15,8 @@ from rbac_api import (
 )
 from ..services import account as service
 from .utils.helpers import load_schema
+from ...audit import AuditorProvider
+auditor = AuditorProvider.get_instance()
 
 account_router = APIRouter(prefix="/accounts", tags=["accounts"]) 
 
@@ -72,6 +74,7 @@ account_router = APIRouter(prefix="/accounts", tags=["accounts"])
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def create_account(
    request: Request,
    account_creation_payload: account_schemas.AccountCreationRequestDTO = Body(..., description = "account creation request payload"),
@@ -93,7 +96,7 @@ async def create_account(
    """
    logged_in_user: models.User = validation_info.get( "authenticated_entity", None)
    db: Session = request.state.db
-   return service.create_account(account_creation_payload, db, logged_in_user.id)
+   return service.create_account(request,account_creation_payload, db, logged_in_user.id)
   
    
 @account_router.patch("/{account_id}", responses={
@@ -146,6 +149,7 @@ async def create_account(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def patch_account(
    request: Request,
    account_patch_req_payload: account_schemas.AccountPatchRequestDTO = Body(...),
@@ -166,7 +170,7 @@ async def patch_account(
    """
    account_to_patch: models.Account = validation_info.get("Account", None)
    db: Session = request.state.db
-   return service.patch_account(account_to_patch, account_patch_req_payload, db)
+   return service.patch_account(request, account_to_patch, account_patch_req_payload, db)
    
 @account_router.get("/", responses={
    status.HTTP_200_OK: {
@@ -194,6 +198,7 @@ async def patch_account(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def get_accounts(
    request: Request,
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_accounts')]), 
@@ -215,7 +220,7 @@ async def get_accounts(
    """
    logged_in_user: models.User  = validation_info.get( "authenticated_entity", None)
    db: Session = request.state.db
-   return service.get_accounts(logged_in_user.id,logged_in_user.is_superadmin, name, db)
+   return service.get_accounts(request, logged_in_user.id,logged_in_user.is_superadmin, name, db)
 
 @account_router.get("/{account_id}", responses={
    status.HTTP_200_OK: {
@@ -263,7 +268,9 @@ async def get_accounts(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def get_account( 
+   request: Request,
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_account')]),
 ) -> account_schemas.AccountResponseDTO:
    """
@@ -333,6 +340,7 @@ async def get_account(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def get_account_user_list(
    request: Request,
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_account_user_list')]),
@@ -366,7 +374,7 @@ async def get_account_user_list(
       - superadmin/account-admin users will always display an empty list for their account-scoped roles 
    """
    db: Session = request.state.db
-   return service.get_account_user_list(db,account_id, firstname, lastname, email, project_id, assigned)
+   return service.get_account_user_list(request, db,account_id, firstname, lastname, email, project_id, assigned)
    
 
 @account_router.post("/{account_id}/users", status_code=status.HTTP_200_OK, responses={
@@ -427,6 +435,7 @@ async def get_account_user_list(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def assign_users_to_account(
    request: Request,
    account_id: UUID = Path(..., description="The ID of the account"),
@@ -448,7 +457,7 @@ async def assign_users_to_account(
       - only authorized for use by superadmin/account-admin users
    """
    db: Session = request.state.db
-   return service.assign_users_to_account(account_id, user_list_dto, db)
+   return service.assign_users_to_account(request, account_id, user_list_dto, db)
 
 @account_router.delete("/{account_id}/users/{user_id}", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -500,6 +509,7 @@ async def assign_users_to_account(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def deassign_user_from_account(
    request: Request,
    account_id: UUID = Path(..., description="The ID of the account"),
@@ -525,7 +535,7 @@ async def deassign_user_from_account(
    """
    db: Session = request.state.db
    logged_in_user = validation_info.get('authenticated_entity', None)
-   return service.deassign_user_from_account(account_id, user_id, logged_in_user, db)
+   return service.deassign_user_from_account(request, account_id, user_id, logged_in_user, db)
 
 
    
@@ -579,6 +589,7 @@ async def deassign_user_from_account(
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def patch_user_account_admin_status(
    request: Request,
    account_id: UUID = Path(..., description="The ID of the account"),
@@ -605,8 +616,9 @@ async def patch_user_account_admin_status(
    """
    logged_in_user = validation_info.get("authenticated_entity", None)
    db: Session = request.state.db
-   return service.patch_user_account_admin_status(account_id,  
-                                                  user_id,
+   return service.patch_user_account_admin_status(request,
+                                                   account_id,  
+                                                   user_id,
                                                    logged_in_user.is_superadmin,
                                                    account_admin_status_update_dto,
                                                    db,

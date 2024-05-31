@@ -13,11 +13,17 @@ from pprint import pprint
 from typing import Any, Type, Callable, Coroutine
 
 from elevaitedb.db import models
+from elevaitedb.schemas import (
+   api as api_schemas,
+)
 from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider
+from ....audit import AuditorProvider
 import inspect
 rbacValidator = RBACValidatorProvider.get_instance()
+auditor = AuditorProvider.get_instance()
 
 def validate_get_project_datasets_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_get_project_datasets(
       request: Request,
       authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate),  
@@ -48,14 +54,17 @@ def validate_get_project_datasets_factory(target_model_class : Type[models.Base]
          raise e
       except SQLAlchemyError as e:
          pprint(f'DB error in GET /project/{project_id}/datasets - validate_get_project_datasets middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in GET /project/{project_id}/datasets - validate_get_project_datasets middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_get_project_datasets
 
 def validate_get_project_dataset_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_get_project_dataset(
       request: Request,
       authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate),  
@@ -87,14 +96,17 @@ def validate_get_project_dataset_factory(target_model_class : Type[models.Base],
          raise e
       except SQLAlchemyError as e:
          pprint(f'DB error in GET /project/{project_id}/datasets/{dataset_id} - validate_get_project_dataset middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in GET /project/{project_id}/datasets/{dataset_id} - validate_get_project_dataset middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_get_project_dataset
 
 def validate_add_tag_to_dataset_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]) -> Callable[..., Coroutine[Any, Any, dict[str, Any]]]:
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_add_tag_to_dataset(
       request: Request,
       authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate),  
@@ -126,10 +138,12 @@ def validate_add_tag_to_dataset_factory(target_model_class : Type[models.Base], 
          raise e
       except SQLAlchemyError as e:
          pprint(f'DB error in POST /project/{project_id}/datasets/{dataset_id}/tags - validate_add_tag_to_dataset middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in POST /project/{project_id}/datasets/{dataset_id}/tags - validate_add_tag_to_dataset middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
    return validate_add_tag_to_dataset

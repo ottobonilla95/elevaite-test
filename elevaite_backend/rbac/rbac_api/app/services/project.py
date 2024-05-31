@@ -1,4 +1,4 @@
-from fastapi import status, HTTPException
+from fastapi import status, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session, aliased, load_only
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -18,6 +18,7 @@ from elevaitedb.schemas import (
    user as user_schemas,
    role as role_schemas,
    permission as permission_schemas,
+   api as api_schemas,
 )
 from elevaitedb.db import models
 
@@ -26,8 +27,8 @@ from rbac_api.utils.cte import (
    delete_user_project_associations_for_subprojects_of_user_list
 )
 
-
 def create_project(
+   request: Request,
    project_creation_payload: project_schemas.ProjectCreationRequestDTO,
    account_id: UUID,
    parent_project_id: Optional[UUID],
@@ -83,13 +84,16 @@ def create_project(
    except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
         db.rollback()
         pprint(f'Error in POST /projects service method: {e}')
+        request.state.source_error_msg = str(e)
         raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in POST /projects/ service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def patch_project(
+   request: Request,
    project_to_patch: models.Project,
    project_patch_payload: project_schemas.ProjectPatchRequestDTO,
    db: Session,
@@ -100,17 +104,20 @@ def patch_project(
       project_to_patch.updated_at = datetime.now()
       db.commit()
       db.refresh(project_to_patch)
-      return project_to_patch
+      return project_schemas.ProjectResponseDTO.from_orm(project_to_patch)
    except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
       db.rollback()
       pprint(f'DB error in PATCH /projects/{project_to_patch.id} service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in PATCH /projects/{project_to_patch.id} service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-
+   
 def get_projects( 
+   request: Request,
    logged_in_user_id: UUID,
    logged_in_user_is_superadmin: bool,
    logged_in_user_is_admin: bool,
@@ -142,17 +149,20 @@ def get_projects(
          query = query.filter(models.Project.name.ilike(f"%{name}%"))
 
       projects = query.all()
-      return cast(List[project_schemas.ProjectResponseDTO], projects)  
+      return [project_schemas.ProjectResponseDTO.from_orm(project) for project in projects]   
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'DB error in GET /projects/ service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in GET /projects/ service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
 def get_project_user_list(
+   request: Request,
    db: Session,
    project_id: UUID,
    account_id: UUID, 
@@ -234,13 +244,16 @@ def get_project_user_list(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'Error in GET /projects/{project_id}/users service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in GET /projects/{project_id}/users service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   
+
 def assign_users_to_project(
+   request: Request,
    project_assignee_list_dto: project_schemas.ProjectAssigneeListDTO,
    db: Session,
    project : models.Project,
@@ -304,13 +317,16 @@ def assign_users_to_project(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'DB Error in POST /projects/{project.id}/users service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in POST /projects/{project.id}/users service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
 def deassign_user_from_project(
+   request: Request,
    user_id: UUID,
    db: Session,
    project : models.Project,
@@ -341,13 +357,16 @@ def deassign_user_from_project(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'DB Error in DELETE /projects/{project.id}/users/{user_id} service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in DELETE /projects/{project.id}/users/{user_id} service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   
+
 def patch_user_project_admin_status(
+   request: Request,
    user_id: UUID,
    account_id: UUID,
    project_id: UUID,
@@ -390,10 +409,12 @@ def patch_user_project_admin_status(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'DB error in PATCH /projects/{project_id}/users/{user_id}/admin service method: Error updating project-admin status: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in PATCH /projects/{project_id}/users/{user_id}/admin service method: Error updating project-admin status: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")  
    
    

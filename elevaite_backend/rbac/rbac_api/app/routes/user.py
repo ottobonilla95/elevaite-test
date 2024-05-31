@@ -26,6 +26,8 @@ from rbac_api import route_validator_map
 
 from ..services import user as service
 from .utils.helpers import load_schema
+from ...audit import AuditorProvider
+auditor = AuditorProvider.get_instance()
 
 user_router = APIRouter(prefix="/users", tags=["users"]) 
 
@@ -79,6 +81,7 @@ user_router = APIRouter(prefix="/users", tags=["users"])
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def patch_user(
    request: Request,
    user_patch_payload: user_schemas.UserPatchRequestDTO = Body(description= "User patch payload"),
@@ -100,7 +103,7 @@ async def patch_user(
    """
    user_to_patch: models.User = validation_info.get("User", None)
    db: Session = request.state.db
-   return service.patch_user(user_to_patch, user_patch_payload, db)
+   return service.patch_user(request, user_to_patch, user_patch_payload, db)
 
 @user_router.get("/{user_id}/profile", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -152,6 +155,7 @@ async def patch_user(
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def get_user_profile(
    request: Request,
    account_id: Optional[UUID] = Header(None, alias = "X-elevAIte-AccountId", description="optional account_id under which user profile is queried; required by non-superadmins"),
@@ -177,7 +181,7 @@ async def get_user_profile(
    user_to_profile = validation_info.get("User", None)
    logged_in_user = validation_info.get("authenticated_entity", None)
    db: Session = request.state.db
-   return service.get_user_profile(user_to_profile, logged_in_user, account_id, db)
+   return service.get_user_profile(request, user_to_profile, logged_in_user, account_id, db)
 
 @user_router.get("/{user_id}/accounts", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -225,6 +229,7 @@ async def get_user_profile(
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def get_user_accounts(
    request: Request,
    user_id: UUID = Path(...),
@@ -244,7 +249,7 @@ async def get_user_accounts(
    """
 
    db: Session = request.state.db
-   return service.get_user_accounts(user_id=user_id, db=db)
+   return service.get_user_accounts(request=request, user_id=user_id, db=db)
 
 @user_router.get("/{user_id}/projects", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -292,6 +297,7 @@ async def get_user_accounts(
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def get_user_projects(
    request: Request,
    user_id: UUID = Path(...),
@@ -313,7 +319,7 @@ async def get_user_projects(
    """
 
    db: Session = request.state.db
-   return service.get_user_projects(user_id=user_id, account_id=account_id, db=db)
+   return service.get_user_projects(request=request,user_id=user_id, account_id=account_id, db=db)
 
 @user_router.patch("/{user_id}/accounts/{account_id}/roles", responses={
    status.HTTP_200_OK: {
@@ -365,6 +371,7 @@ async def get_user_projects(
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def patch_user_account_roles(
    request: Request,
    account_id: UUID = Path(..., description="The ID of the account to scope the user roles to"),
@@ -388,7 +395,8 @@ async def patch_user_account_roles(
    db: Session = request.state.db
    user_to_patch: models.User = validation_info["User"]
 
-   return service.patch_user_account_roles(user_to_patch=user_to_patch,
+   return service.patch_user_account_roles(request=request,
+                                             user_to_patch=user_to_patch,
                                              account_id=account_id,
                                              db = db,
                                              role_list_dto= role_list_dto)
@@ -443,6 +451,7 @@ async def patch_user_account_roles(
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def update_user_project_permission_overrides(
    request: Request,
    user_id: UUID = Path(..., description="The ID of the user"),
@@ -469,7 +478,7 @@ async def update_user_project_permission_overrides(
    db: Session = request.state.db
    user_to_patch = validation_info.get("User", None)
    account = validation_info.get("Account", None)
-   return service.update_user_project_permission_overrides(user_id, user_to_patch, account.id, project_id, permission_overrides_payload, db)
+   return service.update_user_project_permission_overrides(request, user_id, user_to_patch, account.id, project_id, permission_overrides_payload, db)
 
 @user_router.get("/{user_id}/projects/{project_id}/permission-overrides", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -521,6 +530,7 @@ async def update_user_project_permission_overrides(
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def get_user_project_permission_overrides(
    request: Request,
    user_id: UUID = Path(..., description="The ID of the user"),
@@ -545,7 +555,7 @@ async def get_user_project_permission_overrides(
    db: Session = request.state.db
    user_to_patch = validation_info.get("User", None)
    account = validation_info.get("Account", None)
-   return service.get_user_project_permission_overrides(user_to_patch, user_id, account.id, project_id, db)
+   return service.get_user_project_permission_overrides(request, user_to_patch, user_id, account.id, project_id, db)
 
 @user_router.patch("/{user_id}/superadmin", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -597,6 +607,7 @@ async def get_user_project_permission_overrides(
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def patch_user_superadmin_status(
    request: Request,
    user_id: UUID = Path(..., description="The ID of the user"),
@@ -621,7 +632,8 @@ async def patch_user_superadmin_status(
    """
    db: Session = request.state.db
    logged_in_user = validation_info.get("authenticated_entity", None)
-   return service.patch_user_superadmin_status(db=db,
+   return service.patch_user_superadmin_status(request=request,
+                                                db=db,
                                                 logged_in_user_id=logged_in_user.id,
                                                 user_id=user_id,
                                                 superadmin_status_update_dto=superadmin_status_update_dto

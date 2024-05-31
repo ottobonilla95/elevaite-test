@@ -11,15 +11,19 @@ from typing import Any, Optional, Type, Callable, Dict
 from elevaitedb.db import models
 from elevaitedb.schemas import (
    application as application_schemas,
+   api as api_schemas,
 )
 from rbac_api.auth.impl import (
    AccessTokenOrApikeyAuthentication
 )
 from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider
+from ....audit import AuditorProvider
 import inspect
 rbacValidator = RBACValidatorProvider.get_instance()
+auditor = AuditorProvider.get_instance()
 
 def validate_get_application_instances_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_get_application_instances(
       request: Request,
       authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate), 
@@ -52,15 +56,18 @@ def validate_get_application_instances_factory(target_model_class : Type[models.
          raise e
       except SQLAlchemyError as e:
          pprint(f'DB error in GET /application/{application_id}/instance - validate_get_connector_instances middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in GET /application/{application_id}/instance - validate_get_connector_instances middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
    return validate_get_application_instances
 
 def validate_get_application_instance_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_get_application_instance(
       request: Request,
       authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate), 
@@ -94,15 +101,18 @@ def validate_get_application_instance_factory(target_model_class : Type[models.B
          raise e
       except SQLAlchemyError as e:
          pprint(f'DB error in GET /application/{application_id}/instance - validate_get_connector_instances middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in GET /application/{application_id}/instance - validate_get_connector_instances middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
    return validate_get_application_instance
 
 def validate_get_application_instance_chart_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_get_application_instance_chart(
       request: Request,
       authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate), 
@@ -136,14 +146,17 @@ def validate_get_application_instance_chart_factory(target_model_class : Type[mo
          raise e
       except SQLAlchemyError as e:
          pprint(f'DB error in GET /application/{application_id}/instance/{instance_id}/chart - validate_get_connector_instance_chart middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in GET /application/{application_id}/instance/{instance_id}/chart - validate_get_connector_instance_chart middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_get_application_instance_chart
 
 def validate_get_application_instance_configuration_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_get_application_instance_configuration(
       request: Request,
       authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate), 
@@ -177,15 +190,18 @@ def validate_get_application_instance_configuration_factory(target_model_class :
          raise e
       except SQLAlchemyError as e:
          pprint(f'DB error in GET /application/{application_id}/instance/{instance_id}/configuration - validate_get_connector_instance_configuration middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in GET /application/{application_id}/instance/{instance_id}/configuration - validate_get_connector_instance_configuration middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
    return validate_get_application_instance_configuration
 
 def validate_get_application_instance_logs_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_get_application_instance_logs(
       request: Request,
       authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate), 
@@ -219,15 +235,18 @@ def validate_get_application_instance_logs_factory(target_model_class : Type[mod
          raise e
       except SQLAlchemyError as e:
          pprint(f'DB error in GET /application/{application_id}/instance/{instance_id}/log - validate_get_connector_instance_logs middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in GET /application/{application_id}/instance/{instance_id}/log - validate_get_connector_instance_logs middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
    return validate_get_application_instance_logs
 
 def validate_create_application_instance_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_create_application_instance(
       request: Request,
       authenticated_entity: models.User | models.Apikey = Depends(AccessTokenOrApikeyAuthentication.authenticate), 
@@ -260,9 +279,11 @@ def validate_create_application_instance_factory(target_model_class : Type[model
          raise e
       except SQLAlchemyError as e:
          pprint(f'DB error in POST /application/{application_id}/instance/ - validate_create_connector_instance middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in POST /application/{application_id}/instance/ - validate_create_connector_instance middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_create_application_instance

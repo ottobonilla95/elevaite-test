@@ -12,11 +12,16 @@ from rbac_api.auth.impl import (
 )
 
 from elevaitedb.db import models
-
+from elevaitedb.schemas import (
+   api as api_schemas,
+)
 from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider
+from ....audit import AuditorProvider
 import inspect
 rbacValidator = RBACValidatorProvider.get_instance()
+auditor = AuditorProvider.get_instance()
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_get_user_profile(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),   
@@ -61,12 +66,15 @@ async def validate_get_user_profile(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in GET /users/{user_id}/profile - validate_get_user_profile middleware: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in GET /users/{user_id}/profile - validate_get_user_profile middleware: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_get_user_accounts(
    request: Request,
    user_id: UUID,
@@ -83,11 +91,14 @@ async def validate_get_user_accounts(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in GET /users/{user_id}/accounts/ - validate_get_user_accounts middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       print(f'Unexpected error in GET /users/{user_id}/accounts/ - validate_get_user_accounts middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_get_user_projects(
    request: Request,
    user_id: UUID,
@@ -117,11 +128,14 @@ async def validate_get_user_projects(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in GET /users/{user_id}/accounts/ - validate_get_user_accounts middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       print(f'Unexpected error in GET /users/{user_id}/accounts/ - validate_get_user_accounts middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_patch_user(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate), 
@@ -149,12 +163,15 @@ async def validate_patch_user(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in PATCH: /users/{user_id} - validate_patch_user middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in PATCH: /users/{user_id} - validate_patch_user middlware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_patch_user_account_roles(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
@@ -193,15 +210,18 @@ async def validate_patch_user_account_roles(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'DB error in PATCH /users/{user_id}/accounts/{account_id}/roles validate_patch_user_account_roles middleware: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in PATCH /users/{user_id}/accounts/{account_id}/roles validate_patch_user_account_roles middleware: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 
    
 def validate_update_project_permission_overrides_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_update_project_permission_overrides(
       request: Request,
       logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),  
@@ -253,15 +273,18 @@ def validate_update_project_permission_overrides_factory(target_model_class : Ty
       except SQLAlchemyError as e:
          db.rollback()
          pprint(f'DB error in PATCH users/{user_id}/projects/{project_id}/permission-overrides - validate_update_project_permission_overrides middleware: {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in PATCH users/{user_id}/projects/{project_id}/permission-overrides - validate_update_project_permission_overrides middleware: {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
    return validate_update_project_permission_overrides
 
 def validate_get_project_permission_overrides_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_get_project_permission_overrides(
       request: Request,
       logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),  
@@ -312,14 +335,17 @@ def validate_get_project_permission_overrides_factory(target_model_class : Type[
       except SQLAlchemyError as e:
          db.rollback()
          pprint(f'DB error in GET users/{user_id}/projects/{project_id}/permission-overrides - validate_get_project_permission_overrides middleware: {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in GET users/{user_id}/projects/{project_id}/permission-overrides - validate_get_project_permission_overrides middleware: {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
    return validate_get_project_permission_overrides
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_patch_user_superadmin_status(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
@@ -339,9 +365,11 @@ async def validate_patch_user_superadmin_status(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'DB error in PATCH /users/{user_id}/superadmin - validate_update_user_superadmin_status middleware: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in PATCH /users/{user_id}/superadmin - validate_update_user_superadmin_status middleware: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 

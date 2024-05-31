@@ -13,6 +13,8 @@ from rbac_api import route_validator_map
 
 from ..services import apikey as service
 from .utils.helpers import load_schema
+from ...audit import AuditorProvider
+auditor = AuditorProvider.get_instance()
 
 apikey_router = APIRouter(prefix="/projects/{project_id}/apikeys", tags=["apikeys"]) 
 
@@ -68,6 +70,7 @@ apikey_router = APIRouter(prefix="/projects/{project_id}/apikeys", tags=["apikey
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def create_apikey(
    request: Request,
    project_id: UUID = Path(..., description='project under which the apikey is created under and is scoped to'),
@@ -95,7 +98,8 @@ async def create_apikey(
    logged_in_user: models.User = validation_info["authenticated_entity"]
    logged_in_user_project_association: models.User_Project | None = validation_info.get("logged_in_entity_project_association", None)
    logged_in_user_account_association: models.User_Account | None = validation_info.get("logged_in_entity_account_association", None)
-   return await service.create_apikey(db=db,
+   return await service.create_apikey(request=request,
+                                 db=db,
                                  project_id=project_id,
                                  logged_in_user_project_association=logged_in_user_project_association,
                                  logged_in_user_account_association=logged_in_user_account_association,
@@ -149,6 +153,7 @@ async def create_apikey(
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def get_apikeys(
    request: Request,
    project_id: UUID = Path(..., description='project under which the apikeys are retrieved under and are scoped to'),
@@ -172,7 +177,8 @@ async def get_apikeys(
    logged_in_user: models.User  = validation_info["authenticated_entity"]
    logged_in_user_project_association: models.User_Project | None = validation_info.get("logged_in_entity_project_association", None)
    logged_in_user_account_association: models.User_Account | None = validation_info.get("logged_in_entity_account_association", None)
-   return service.get_apikeys(db=db,
+   return service.get_apikeys(request=request,
+            db=db,
             logged_in_user=logged_in_user,
             logged_in_user_is_project_admin=logged_in_user_project_association.is_admin if logged_in_user_project_association else False,
             logged_in_user_is_account_admin=logged_in_user_account_association.is_admin if logged_in_user_account_association else False,
@@ -223,7 +229,9 @@ async def get_apikeys(
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def get_apikey(
+   request: Request,
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_apikey')]), 
 ) -> apikey_schemas.ApikeyGetResponseDTO:
    """
@@ -243,7 +251,7 @@ async def get_apikey(
    """
    
    apikey: models.Apikey = validation_info["Apikey"]
-   return apikey
+   return service.get_apikey(request, apikey)
 
 @apikey_router.delete("/{apikey_id}", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -289,6 +297,7 @@ async def get_apikey(
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def delete_apikey(
    request: Request,
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'delete_apikey')]), 
@@ -310,4 +319,4 @@ async def delete_apikey(
    
    apikey: models.Apikey = validation_info["Apikey"]
    db: Session = request.state.db
-   return service.delete_apikey(apikey=apikey, db=db)
+   return service.delete_apikey(request=request,apikey=apikey, db=db)

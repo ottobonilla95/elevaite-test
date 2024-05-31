@@ -14,6 +14,8 @@ from rbac_api import route_validator_map
 
 from ..services import project as service
 from .utils.helpers import load_schema
+from ...audit import AuditorProvider
+auditor = AuditorProvider.get_instance()
 project_router = APIRouter(prefix="/projects", tags=["projects"]) 
 
 @project_router.post("/", status_code=status.HTTP_201_CREATED, responses={
@@ -72,6 +74,7 @@ project_router = APIRouter(prefix="/projects", tags=["projects"])
          },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def create_project(
    request: Request,
    project_creation_payload: project_schemas.ProjectCreationRequestDTO = Body(..., description="project creation payload"),
@@ -102,13 +105,14 @@ async def create_project(
    authenticated_entity = validation_info.get("authenticated_entity", None)
    
    return service.create_project(
+      request,
       account_id=account_id,
       parent_project_id=project_id,
       project_creation_payload=project_creation_payload,
       db=db,
       logged_in_user_id = authenticated_entity.id,
    )
-   
+
 @project_router.patch("/{project_id}", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
       "description": "Project successfully patched",
@@ -159,6 +163,7 @@ async def create_project(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def patch_project(
    request: Request,
    project_patch_payload: project_schemas.ProjectPatchRequestDTO = Body(...),
@@ -183,7 +188,8 @@ async def patch_project(
    """
    project_to_patch: models.Project = validation_info.get("Project", None)
    db: Session = request.state.db
-   return service.patch_project(project_to_patch, project_patch_payload, db)
+   return service.patch_project(request, project_to_patch, project_patch_payload, db)
+
 
 @project_router.get("/{project_id}", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -231,6 +237,7 @@ async def patch_project(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def get_project( 
    request: Request,
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_project')]),
@@ -301,6 +308,7 @@ async def get_project(
       }
    }
 }) 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def get_projects(  
    request: Request,
    validation_info: dict[str,Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_projects')]),
@@ -331,15 +339,18 @@ async def get_projects(
    parent_project = validation_info.get("logged_in_entity_project_association", None)
    account = validation_info.get("Account", None)
    
-   return service.get_projects(logged_in_user_id=logged_in_user.id,
-                                 logged_in_user_is_superadmin=logged_in_user.is_superadmin,
-                                 logged_in_user_is_admin=logged_in_user_account_association.is_admin if logged_in_user_account_association else False,
-                                 account_id=account.id,
-                                 parent_project_id=parent_project.id if parent_project else None,
-                                 name=name,
-                                 db=db,
-                                 type=type,
-                                 view=view)
+   return service.get_projects(request=request,
+                              logged_in_user_id=logged_in_user.id,
+                              logged_in_user_is_superadmin=logged_in_user.is_superadmin,
+                              logged_in_user_is_admin=logged_in_user_account_association.is_admin if logged_in_user_account_association else False,
+                              account_id=account.id,
+                              parent_project_id=parent_project.id if parent_project else None,
+                              name=name,
+                              db=db,
+                              type=type,
+                              view=view
+                              )
+
 
 @project_router.get("/{project_id}/users", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -393,6 +404,7 @@ async def get_projects(
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def get_project_user_list(
    request: Request,
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'get_project_user_list')]),
@@ -429,6 +441,7 @@ async def get_project_user_list(
    db: Session = request.state.db
    account: models.Account = validation_info.get('Account', None)
    return service.get_project_user_list(
+            request=request,
             db=db,
             project_id=project_id,
             account_id=account.id,
@@ -438,6 +451,7 @@ async def get_project_user_list(
             child_project_id=child_project_id,
             assigned=assigned
          )
+
 
 @project_router.delete("/{project_id}/users/{user_id}", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -489,6 +503,7 @@ async def get_project_user_list(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def deassign_user_from_project(
    request: Request,
    user_id: UUID = Path(..., description = "The ID of the user to deassign from project"),
@@ -514,7 +529,7 @@ async def deassign_user_from_project(
    """
    db: Session = request.state.db
    project = validation_info.get("Project", None)
-   return service.deassign_user_from_project(user_id=user_id, db=db, project=project)
+   return service.deassign_user_from_project(request=request, user_id=user_id, db=db, project=project)
 
 @project_router.post("/{project_id}/users", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -574,6 +589,7 @@ async def deassign_user_from_project(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def assign_users_to_project(
    request: Request,
    project_assignee_list_dto: project_schemas.ProjectAssigneeListDTO = Body(description = "payload containing project assignees along with optional project permission overrides (default = no project permission overrides)"),
@@ -599,7 +615,8 @@ async def assign_users_to_project(
    """
    project : models.Project = validation_info.get("Project", None)
    db: Session = request.state.db
-   return service.assign_users_to_project(project_assignee_list_dto,db,project)
+   return service.assign_users_to_project(request, project_assignee_list_dto,db,project)
+
 
 @project_router.patch("/{project_id}/users/{user_id}/admin", status_code=status.HTTP_200_OK, responses={
    status.HTTP_200_OK: {
@@ -651,6 +668,7 @@ async def assign_users_to_project(
       }
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def patch_user_project_admin_status(
    request: Request,
    project_id: UUID = Path(..., description = "The ID of the project"),
@@ -678,8 +696,10 @@ async def patch_user_project_admin_status(
    """
    db: Session = request.state.db
    account: models.Account = validation_info.get("Account", None)
-   return service.patch_user_project_admin_status(user_id=user_id,
+   return service.patch_user_project_admin_status(request=request,
+                                                  user_id=user_id,
                                                    project_id=project_id,
                                                    account_id=account.id,
                                                    project_admin_status_update_dto=project_admin_status_update_dto,
                                                    db=db)
+

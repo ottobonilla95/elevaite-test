@@ -19,7 +19,7 @@ class GoogleIDP(IDPInterface):
 
          # Handle Google API Error Response
          if "error" in response:
-            print(f"in idp/google get_user : invalid or expired auth credentials")
+            # print(f"in idp/google get_user : invalid or expired auth credentials")
             raise ApiError.unauthorized("invalid or expired auth credentials")
          
          email = response.get("email")

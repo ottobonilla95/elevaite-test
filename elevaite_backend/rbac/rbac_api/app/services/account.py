@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import func, case, and_, select, exists
 from sqlalchemy.orm import Session, aliased
@@ -26,6 +26,7 @@ from rbac_api.utils.cte import (
 )
 
 def create_account(
+   request: Request,
    account_creation_payload: account_schemas.AccountCreationRequestDTO,
    db: Session,
    logged_in_user_id: UUID 
@@ -83,13 +84,16 @@ def create_account(
    except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
       db.rollback()
       pprint(f'DB error in POST /accounts service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in POST /accounts service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def patch_account(
+   request: Request,
    account_to_patch: models.Account,
    account_patch_req_dto: account_schemas.AccountPatchRequestDTO,
    db: Session
@@ -119,7 +123,7 @@ def patch_account(
       account_to_patch.updated_at = datetime.now()
       db.commit()
       db.refresh(account_to_patch)
-      return account_to_patch
+      return account_schemas.AccountResponseDTO.from_orm(account_to_patch)
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in PATCH /accounts/{account_to_patch.id} service method: {e}')
@@ -127,13 +131,16 @@ def patch_account(
    except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
       db.rollback()
       pprint(f'DB error in PATCH /accounts/{account_to_patch.id} service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in PATCH /accounts/{account_to_patch.id} service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
 def get_accounts( 
+   request: Request,
    logged_in_user_id: UUID,
    logged_in_user_is_superadmin: bool,
    name: Optional[str],
@@ -155,19 +162,22 @@ def get_accounts(
          query = query.filter(models.Account.name.ilike(f"%{name}%"))
 
       accounts = query.all()
-      return cast(List[account_schemas.AccountResponseDTO], accounts)
+      return [account_schemas.AccountResponseDTO.from_orm(account) for account in accounts]
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in GET /accounts service method: {e}')
       raise e
    except SQLAlchemyError as e: 
       pprint(f'DB error in GET /accounts service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       pprint(f'Unexpected error in GET /accounts service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def get_account_user_list(
+   request: Request,
    db: Session,
    account_id: UUID, 
    firstname: Optional[str],
@@ -243,13 +253,16 @@ def get_account_user_list(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'Error in GET /accounts/{account_id}/users service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in GET /accounts/{account_id}/users service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def assign_users_to_account(
+   request: Request,
    account_id: UUID,
    user_list_dto: user_schemas.UserListDTO,
    db: Session,
@@ -293,13 +306,16 @@ def assign_users_to_account(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'DB Error in POST /accounts/{account_id}/users service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in POST /accounts/{account_id}/users service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
 def deassign_user_from_account(
+   request: Request,
    account_id: UUID,
    user_id: UUID,
    logged_in_user: models.User,
@@ -351,13 +367,16 @@ def deassign_user_from_account(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'DB Error in DELETE /accounts/{account_id}/users/{user_id} service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in DELETE /accounts/{account_id}/users/{user_id} service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def patch_user_account_admin_status(
+   request: Request,
    account_id: UUID,
    user_id: UUID,
    logged_in_user_is_superadmin: bool,
@@ -411,10 +430,12 @@ def patch_user_account_admin_status(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'DB error in PATCH /accounts/{account_id}/users/{user_id}/admin service method')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in PATCH /accounts/{account_id}/users/{user_id}/admin service method')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")  
 
 

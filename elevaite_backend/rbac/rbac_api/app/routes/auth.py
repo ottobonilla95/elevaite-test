@@ -12,7 +12,8 @@ from elevaitedb.schemas import (
 from rbac_api import route_validator_map
 from ..services import auth as service
 from .utils.helpers import load_schema
-
+from ...audit import AuditorProvider
+auditor = AuditorProvider.get_instance()
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"]) 
 
@@ -66,6 +67,7 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def register_user(
    request: Request,
    register_user_payload: auth_schemas.RegisterUserRequestDTO = Body(description= "user creation payload"),
@@ -86,7 +88,12 @@ async def register_user(
 
    db: Session = request.state.db
    user_email: EmailStr = request.state.user_email
-   return service.register_user(db=db, register_user_payload=register_user_payload, user_email=user_email)
+   return service.register_user(
+      request=request,
+      db=db,
+      register_user_payload=register_user_payload,
+      user_email=user_email
+   )
 
 @auth_router.post("/rbac-permissions", responses={
    status.HTTP_200_OK: {
@@ -138,6 +145,7 @@ async def register_user(
       },
    }
 })
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def evaluate_rbac_permissions(
    request: Request,
    account_id: Optional[UUID] = Header(None, alias='X-elevAIte-AccountId', description="account id under which rbac permissions are evaluated"), 
@@ -185,6 +193,7 @@ async def evaluate_rbac_permissions(
    db: Session = request.state.db
    logged_in_user = validation_info.get("authenticated_entity", None)
    return await service.evaluate_rbac_permissions(
+      request=request,
       logged_in_user=logged_in_user,
       permissions_evaluation_request=permissions_evaluation_request,
       account_id=account_id,

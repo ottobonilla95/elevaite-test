@@ -9,9 +9,13 @@ from rbac_api.auth.impl import AccessTokenAuthentication
 from rbac_api.utils.deps import get_db
 from elevaitedb.db import models
 from elevaitedb.schemas import (
-   auth as auth_schemas
+   auth as auth_schemas,
+   api as api_schemas,
 )
+from ....audit import AuditorProvider
+auditor = AuditorProvider.get_instance()
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_evaluate_rbac_permissions(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),  
@@ -29,8 +33,10 @@ async def validate_evaluate_rbac_permissions(
    except SQLAlchemyError as e:
       db.rollback()
       print(f'DB error in POST /auth/permissions - validate_evaluate_rbac_permissions middleware: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in POST /auth/permissions - validate_evaluate_rbac_permissions middleware: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")

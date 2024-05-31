@@ -7,9 +7,13 @@ from rbac_api.app.errors.api_error import ApiError
 from rbac_api.auth.impl import AccessTokenAuthentication
 from rbac_api.utils.deps import get_db
 from elevaitedb.schemas import (
-   auth as auth_schemas
+   auth as auth_schemas,
+   api as api_schemas,
 )
+from ....audit import AuditorProvider
+auditor = AuditorProvider.get_instance()
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_register_user(
    request: Request,
    db: Session = Depends(get_db), 
@@ -36,8 +40,10 @@ async def validate_register_user(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in POST /auth/register - validate_register_user middleware: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       print(f'Unexpected error in POST /auth/register - validate_register_user middleware: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 

@@ -11,7 +11,13 @@ from pprint import pprint
 from typing import Any
 from rbac_api.app.errors.api_error import ApiError
 from elevaitedb.db import models
+from elevaitedb.schemas import (
+   api as api_schemas,
+)
+from ....audit import AuditorProvider
+auditor = AuditorProvider.get_instance()
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_post_account(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate), 
@@ -30,12 +36,15 @@ async def validate_post_account(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in POST /accounts/ - validate_post_account middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in POST /accounts/ - validate_post_account middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_patch_account(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
@@ -67,12 +76,15 @@ async def validate_patch_account(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in PATCH /accounts/{account_id} - validate_patch_account middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in PATCH /accounts/{account_id} - validate_patch_account middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_get_account(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
@@ -102,11 +114,14 @@ async def validate_get_account(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in GET /accounts/{account_id} - validate_get_account middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       print(f'Unexpected error in GET /accounts/{account_id} - validate_get_account middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-   
+
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_get_accounts(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
@@ -120,11 +135,14 @@ async def validate_get_accounts(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in GET /accounts/ - validate_get_accounts middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       print(f'Unexpected error in GET /accounts/ - validate_get_accounts middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_get_account_user_list(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
@@ -183,11 +201,14 @@ async def validate_get_account_user_list(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in GET /accounts/{account_id}/users - validate_get_account_user_list middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       print(f'Unexpected error in GET /accounts/{account_id}/users - validate_get_account_user_list middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_assign_users_to_account(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
@@ -221,11 +242,14 @@ async def validate_assign_users_to_account(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in POST /accounts/{account_id}/users - validate_assign_users_to_account middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       print(f'Unexpected error in POST /accounts/{account_id}/users - validate_assign_users_to_account middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_deassign_user_from_account(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
@@ -260,11 +284,14 @@ async def validate_deassign_user_from_account(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in DELETE /accounts/{account_id}/users/{user_id} - validate_deassign_user_from_account middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       print(f'Unexpected error in DELETE /accounts/{account_id}/users/{user_id} - validate_deassign_user_from_account middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
+@auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
 async def validate_patch_account_admin_status(
    request: Request,
    logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),
@@ -306,8 +333,10 @@ async def validate_patch_account_admin_status(
       raise e
    except SQLAlchemyError as e:
       pprint(f'DB error in PATCH validate_patch_account_admin_status middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       print(f'Unexpected error in PATCH validate_patch_account_admin_status middleware : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    

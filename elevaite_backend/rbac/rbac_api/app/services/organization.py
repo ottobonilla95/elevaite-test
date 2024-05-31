@@ -1,5 +1,5 @@
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import  SQLAlchemyError
 from typing import List, Optional, cast
@@ -13,44 +13,9 @@ from elevaitedb.schemas import (
    user as user_schemas,
 )
 from elevaitedb.db import models
-
-
-
-# def create_organization(
-#    organization_creation_payload: OrganizationCreationRequestDTO,
-#    db: Session
-# ) -> OrganizationResponseDTO :
-#    try:
-#       existing_organization = db.query(Organization).filter(Organization.name == organization_creation_payload.name).first()
-#       if existing_organization: # Application-side uniqueness check : Check if org with same name exists already
-#          pprint(f'in POST /organization - An organization with the same name already exists in organizations table')
-#          raise ApiError.conflict(f"organization with name - '{organization_creation_payload.name}' - already exists")
-#       new_organization = Organization(
-#          name=organization_creation_payload.name,
-#          description=organization_creation_payload.description
-#       )
-#       db.add(new_organization)
-#       db.commit()
-#       db.refresh(new_organization)
-#       return new_organization
-#    except HTTPException as e:
-#       db.rollback()
-#       pprint(f'API error in POST /organization service method : {e}')
-#       raise e
-#    except IntegrityError as e: # Database-side uniqueness check : Check if organization with same name already exists
-#       db.rollback()  
-#       pprint(f'DB error in POST /organizations service method : {e}')
-#       raise ApiError.conflict(f"organization with name - '{organization_creation_payload.name}' - already exists")
-#    except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
-#       db.rollback()
-#       pprint(f'DB error in POST /organizations service method : {e}')
-#       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-#    except Exception as e:
-#       db.rollback()
-#       pprint(f'Unexpected error inPOST /organizations service method : {e}')
-#       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def patch_organization(
+   request: Request,
    organization_patch_req_payload: organization_schemas.OrganizationPatchRequestDTO,
    db: Session,
    org_to_patch: models.Organization
@@ -79,7 +44,7 @@ def patch_organization(
       org_to_patch.updated_at = datetime.now()
       db.commit()
       db.refresh(org_to_patch)
-      return org_to_patch
+      return organization_schemas.OrganizationResponseDTO.from_orm(org_to_patch)
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in PATCH /organization service method: {e}')
@@ -87,13 +52,16 @@ def patch_organization(
    except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
       db.rollback()
       pprint(f'DB error in PATCH /organization service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in PATCH /organization service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-      
+   
 def get_org_users(
+   request: Request,
    db: Session,
    org_id: UUID,
    firstname: Optional[str],
@@ -128,7 +96,7 @@ def get_org_users(
             query = query.filter(models.User_Account.account_id == None)
 
       users = query.all()
-      return cast(List[user_schemas.OrgUserListItemDTO], users)
+      return [user_schemas.OrgUserListItemDTO.from_orm(user) for user in users] 
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in GET /users/ service method : {e}')
@@ -136,9 +104,11 @@ def get_org_users(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'Error in GET /users/ service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in GET /users service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 

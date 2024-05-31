@@ -8,12 +8,17 @@ from rbac_api.app.errors.api_error import ApiError
 from rbac_api.auth.impl import AccessTokenAuthentication
  
 from elevaitedb.db import models
+from elevaitedb.schemas import (
+   api as api_schemas,
+)
 from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider
 import inspect
-# from ....audit import AuditorProvider
+from ....audit import AuditorProvider
 rbacValidator = RBACValidatorProvider.get_instance()
+auditor = AuditorProvider.get_instance()
 
 def validate_get_project_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_get_project(
       request: Request,
       logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),  
@@ -45,15 +50,18 @@ def validate_get_project_factory(target_model_class : Type[models.Base], target_
       except SQLAlchemyError as e:
          db.rollback()
          print(f'DB error in GET /projects/{project_id} - validate_get_project middleware: {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in GET /projects/{project_id} - validate_get_project middleware: {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
    return validate_get_project
 
 def validate_get_projects_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_get_projects(
          request: Request,
          logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),  
@@ -87,15 +95,18 @@ def validate_get_projects_factory(target_model_class : Type[models.Base], target
       except SQLAlchemyError as e:
          db.rollback()
          pprint(f'DB error in GET - /projects/ validate_get_projects middleware: {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in GET - /projects/ - validate_get_projects middleware: {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_get_projects
 
 
 def validate_get_project_user_list_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_get_project_user_list(
       request: Request,
       logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),  
@@ -147,14 +158,17 @@ def validate_get_project_user_list_factory(target_model_class : Type[models.Base
             raise e
       except SQLAlchemyError as e:
          pprint(f'DB error in GET /projects/{project_id}/users - validate_get_project_user_list middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          print(f'Unexpected error in GET /projects/{project_id}/users - validate_get_project_user_list middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
    return validate_get_project_user_list
 
 def validate_patch_project_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_patch_project(
       request: Request,
       logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),  
@@ -205,14 +219,17 @@ def validate_patch_project_factory(target_model_class : Type[models.Base], targe
       except SQLAlchemyError as e:
          db.rollback()
          pprint(f'DB error in PATCH /projects/{project_id}  - validate_patch_project middleware: {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in PATCH /projects/{project_id} - validate_patch_project middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_patch_project
 
 def validate_post_project_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_post_project( # cascade delete on associations will make this work as intended. disabled status of account and projects need to be checked
       request: Request,
       logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),  
@@ -246,14 +263,17 @@ def validate_post_project_factory(target_model_class : Type[models.Base], target
       except SQLAlchemyError as e:
          db.rollback()
          pprint(f'DB error in POST /projects validate_post_project: {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in POST /projects - validate_post_projects middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_post_project
 
 def validate_assign_users_to_project_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_assign_users_to_project(
       request: Request,
       logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),   
@@ -305,14 +325,17 @@ def validate_assign_users_to_project_factory(target_model_class : Type[models.Ba
          # Handle SQLAlchemy errors
          db.rollback()
          pprint(f'DB error in POST /projects/{project_id}/users - validate_assign_users_to_project middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in POST /projects/{project_id}/users - validate_assign_users_to_project middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_assign_users_to_project   
 
 def validate_deassign_user_from_project_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_deassign_user_from_project(
       request: Request,
       logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),   
@@ -365,14 +388,17 @@ def validate_deassign_user_from_project_factory(target_model_class : Type[models
          # Handle SQLAlchemy errors
          db.rollback()
          pprint(f'DB error in DELETE /projects/{project_id}/users/{user_id} - validate_deassign_user_from_project middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in DELETE /projects/{project_id}/users/{user_id} - validate_deassign_user_from_project middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_deassign_user_from_project   
 
 def validate_update_user_project_admin_status_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_update_user_project_admin_status(
       request: Request,
       logged_in_user: models.User = Depends(AccessTokenAuthentication.authenticate),   
@@ -425,10 +451,12 @@ def validate_update_user_project_admin_status_factory(target_model_class : Type[
          # Handle SQLAlchemy errors
          db.rollback()
          pprint(f'DB error in PATCH /projects/{project_id}/users/{user_id}/admin - validate_update_user_project_admin_status middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       except Exception as e:
          db.rollback()
          print(f'Unexpected error in PATCH /projects/{project_id}/users/{user_id}/admin - validate_update_user_project_admin_status middleware : {e}')
+         request.state.source_error_msg = str(e)
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    return validate_update_user_project_admin_status 
             

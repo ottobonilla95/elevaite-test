@@ -10,12 +10,18 @@ from typing import Any, Type
 from rbac_api.app.errors.api_error import ApiError
  
 from elevaitedb.db import models
+from elevaitedb.schemas import (
+   api as api_schemas,
+)
 from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider
+from ....audit import AuditorProvider
 import inspect
 
 rbacValidator = RBACValidatorProvider.get_instance()
+auditor = AuditorProvider.get_instance()
 
 def validate_servicenow_tickets_ingest_factory(target_model_class : Type[models.Base], target_model_action_sequence: tuple[str, ...]):
+   @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
    async def validate_servicenow_tickets_ingest(
       request: Request,
       # The params below are required for pydantic validation even when unused

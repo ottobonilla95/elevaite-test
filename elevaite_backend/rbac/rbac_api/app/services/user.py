@@ -1,4 +1,4 @@
-from fastapi import status, HTTPException
+from fastapi import status, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import func,exists, and_
 from sqlalchemy.orm import Session, aliased
@@ -27,6 +27,7 @@ from elevaitedb.db import models
 from ..errors.api_error import ApiError
 
 def get_user_profile(
+   request: Request,
    user_to_profile: models.User,
    logged_in_user: models.User,
    account_id: Optional[UUID],
@@ -120,13 +121,16 @@ def get_user_profile(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'Error in GET /users/{user_to_profile.id}/profile service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in GET /users/{user_to_profile.id}/profile service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
 def get_user_accounts(
+   request: Request,
    db: Session,
    user_id: UUID,
 ) -> List[account_schemas.AccountResponseDTO]:
@@ -140,7 +144,7 @@ def get_user_accounts(
                .filter(models.User_Account.user_id == user_id)
       
       accounts = query.all()
-      return cast(List[account_schemas.AccountResponseDTO], accounts)
+      return [account_schemas.AccountResponseDTO.from_orm(account) for account in accounts]
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in GET /users/{user_id}/accounts service method : {e}')
@@ -148,13 +152,16 @@ def get_user_accounts(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'Error in GET /users/{user_id}/accounts service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in GET /users/{user_id}/accounts service method : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
 
 def get_user_projects( 
+   request: Request,
    db: Session,
    user_id: UUID,
    account_id : UUID
@@ -172,17 +179,20 @@ def get_user_projects(
                )            
 
       projects = query.all()
-      return cast(List[project_schemas.ProjectResponseDTO], projects)  
+      return [project_schemas.ProjectResponseDTO.from_orm(project) for project in projects]
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'DB error in GET users/{user_id}/projects/ service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       print(f'Unexpected error in GET users/{user_id}/projects/ service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def patch_user(
+   request: Request,
    user_to_patch: models.User,
    user_patch_payload: user_schemas.UserPatchRequestDTO,
    db: Session
@@ -193,7 +203,7 @@ def patch_user(
       user_to_patch.updated_at = datetime.now()
       db.commit()
       db.refresh(user_to_patch)
-      return user_to_patch
+      return user_schemas.OrgUserListItemDTO.from_orm(user_to_patch)
    except HTTPException as e:
       db.rollback()
       pprint(f'API Error in PATCH /users/{user_to_patch.id} service method: {e}')
@@ -201,13 +211,16 @@ def patch_user(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'Error in PATCH /users/{user_to_patch.id} service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in PATCH /users/{user_to_patch.id} service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def patch_user_account_roles(
+   request: Request,
    user_to_patch: models.User,
    account_id: UUID,
    role_list_dto: role_schemas.RoleListDTO,
@@ -289,13 +302,16 @@ def patch_user_account_roles(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'Error in PATCH /users/{user_to_patch.id}/accounts/{account_id}/roles service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in PATCH /users/{user_to_patch.id} : {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def update_user_project_permission_overrides(
+   request: Request,
    user_id: UUID,
    user_to_patch: models.User,
    account_id: UUID,
@@ -325,13 +341,16 @@ def update_user_project_permission_overrides(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'Error in PUT users/{user_id}/projects/{project_id}/permission-overrides service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in PUT users/{user_id}/projects/{project_id}/permission-overrides service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def get_user_project_permission_overrides(
+   request: Request,
    user_to_patch: models.User,
    user_id: UUID,
    account_id: UUID,
@@ -350,7 +369,7 @@ def get_user_project_permission_overrides(
       if user_project_association.is_admin or user_account_association.is_admin or user_to_patch.is_superadmin:
          raise ApiError.validationerror(f"Invalid action - Attempting to get project permission overrides for user - '{user_id}' - who is admin/superadmin/project-admin")
       
-      return cast(permission_schemas.ProjectScopedRBACPermission, user_project_association.permission_overrides)
+      return permission_schemas.ProjectScopedRBACPermission.parse_obj(user_project_association.permission_overrides)
    except HTTPException as e:
       db.rollback()
       pprint(f'API Error in GET users/{user_id}/projects/{project_id}/permission-overrides service method: {e}')
@@ -358,13 +377,16 @@ def get_user_project_permission_overrides(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'Error in GET users/{user_id}/projects/{project_id}/permission-overrides service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in GET users/{user_id}/projects/{project_id}/permission-overrides service method: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    
 def patch_user_superadmin_status(
+   request: Request,
    user_id: UUID,
    superadmin_status_update_dto: user_schemas.SuperadminStatusUpdateDTO,
    db: Session,
@@ -405,8 +427,10 @@ def patch_user_superadmin_status(
    except SQLAlchemyError as e:
       db.rollback()
       pprint(f'DB error in PATCH /users/{user_id}/superadmin service method: Error updating superadmin status: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
    except Exception as e:
       db.rollback()
       pprint(f'Unexpected error in PATCH /users/{user_id}/superadmin service method: Error updating superadmin status: {e}')
+      request.state.source_error_msg = str(e)
       raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")  
