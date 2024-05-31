@@ -1,0 +1,22 @@
+
+
+.cost-list-table-container {
+
+
+
+    & .cost-list-table-grid {
+        height: 100%;
+        display: grid;
+        grid-template-columns: minmax(150px,2fr) minmax(150px,2fr) minmax(100px,2fr) minmax(150px,3fr) 1fr 1fr minmax(100px,2fr) 1fr 1fr 1fr 1fr 1fr;
+        grid-auto-rows: min-content;
+        align-content: flex-start;
+        
+        overflow-y: auto;
+        @include scrollbar();
+
+        & .empty {
+            grid-column: 1 / -1;
+            color: var(--ev-colors-secondaryText);
+        }
+    }
+}

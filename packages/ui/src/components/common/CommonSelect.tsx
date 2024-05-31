@@ -48,7 +48,7 @@ export function CommonSelect({
         if (defaultValue) {
             findAndSelectOption(defaultValue);
         }
-    }, [isLoading, defaultValue]);
+    }, [isLoading, defaultValue, options.length]);
 
 
     function findAndSelectOption(value: string, checkCallback?: boolean): void {
@@ -56,7 +56,7 @@ export function CommonSelect({
             setSelectedOption(undefined);
             return;
         }
-        const foundOption = options.find((item) => { return item.value === value;})
+        const foundOption = options.find((item) => { return item.value === value;});
         if (foundOption) {
             setSelectedOption(foundOption);
             if (checkCallback || callbackOnDefaultValue) onSelectedValueChange(foundOption.value, foundOption.label ? foundOption.label : foundOption.value);

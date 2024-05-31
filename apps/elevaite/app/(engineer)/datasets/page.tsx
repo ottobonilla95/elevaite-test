@@ -1,4 +1,3 @@
-"use client"
 import { DatasetsContextProvider } from "../../lib/contexts/DatasetsContext";
 import { DatasetsHeader } from "./components/DatasetsHeader";
 import { DatasetsList } from "./components/DatasetsList";

@@ -1,6 +1,6 @@
 
 
-.datasets-list-row-container {
+.cost-list-row-container {
     display: contents;
 
     font-size: 12px;
@@ -12,7 +12,7 @@
         font-weight: 600;
         color: var(--ev-colors-secondaryText);
 
-        & > .datasets-list-row-cell {
+        & > .cost-list-row-cell {
             background-color: var(--ev-colors-primary);
             position: sticky;
             top: 0;
@@ -21,11 +21,11 @@
     }
 
     &:last-child {
-        & > .datasets-list-row-cell:first-child { border-bottom-left-radius: 8px; }
-        & > .datasets-list-row-cell:last-child { border-bottom-right-radius: 8px; }
+        & > .cost-list-row-cell:first-child { border-bottom-left-radius: 8px; }
+        & > .cost-list-row-cell:last-child { border-bottom-right-radius: 8px; }
     }
 
-    & .datasets-list-row-cell {
+    & .cost-list-row-cell {
         min-height: 40px;
         padding: 5px 5px 5px 10px;
         display: flex;
@@ -54,6 +54,12 @@
             border: 1px solid var(--ev-colors-borderColor);
         }
 
+        &.ellipses > span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
 
         & .sort-container {
             display: flex;
@@ -70,16 +76,6 @@
                 &:first-child { transform: rotate(180deg); }
             }
         }
-
-        // &.node {
-        //     justify-content: center;
-        //     background-color: var(--ev-colors-primary);
-        //     border-left: 1px solid var(--ev-colors-borderColor);
-            
-        //     &.ram {
-        //         border-right: 1px solid var(--ev-colors-borderColor);
-        //     }
-        // }
 
         &.id { color: var(--ev-colors-secondaryText); }
 
@@ -104,10 +100,29 @@
     }
 
     & .tag {
+        margin: auto;
         padding: 0 10px;
         background-color: var(--ev-colors-primary);
         border: 1px solid var(--ev-colors-tagBorder);
         border-radius: 12px;
+    }
+
+    & .model-content {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+
+        & .model-color-container {
+            flex-shrink: 0;
+            height: 10px;
+            width: 10px;
+        }
+
+        & span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
     }
 }
 

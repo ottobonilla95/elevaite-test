@@ -1,0 +1,98 @@
+
+
+
+.cost-header-container {
+    grid-column: 1 / span 2;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+
+    & .cost-header-title {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+
+        background-color: var(--ev-colors-primary);
+        border-radius: 8px;
+
+
+        & .cost-header-button {
+
+            &.open {
+                
+            }
+        }
+    }
+
+
+
+    & .cost-header-info {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px;
+
+        background-color: var(--ev-colors-backgroundHighContrast);
+        border-radius: 8px;
+
+
+        & .info-block {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 5px;
+            padding: 0 20px;
+            
+            background-color: var(--ev-colors-background);
+            border-radius: 8px;
+            user-select: none;
+
+            &.primary {
+                flex-grow: 1;
+
+                & .info-block-label {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: var(--ev-colors-text);
+                }
+
+                & .show-block {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    font-size: 12px;
+                    font-weight: 600;
+
+                    & .show-label {
+                        color: var(--ev-colors-secondaryText);
+                    }
+                }
+            }
+
+            & .info-block-label {
+                font-size: 14px;
+                font-weight: 500;
+                color: var(--ev-colors-secondaryText);
+            }
+            & .info-block-value {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+
+                & .value {
+                    font-size: 20px;
+                    font-weight: 400;
+                    color: var(--ev-colors-text);
+                }
+                & .value-post {
+                    font-size: 14px;
+                    font-weight: 300;
+                    color: var(--ev-colors-highlight);
+                }
+            }
+        }
+    }
+}

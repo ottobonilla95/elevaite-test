@@ -1,0 +1,31 @@
+
+
+.cost-main-container {    
+    height: 100%;
+    display: grid;
+    grid-template-rows: 80px 1fr;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+    padding: 20px;
+
+    color: var(--ev-colors-text);
+    background-color: var(--ev-colors-background);
+    transition: grid-template-columns 200ms ease-in-out, column-gap 200ms ease-in-out;
+
+    &.closed {
+        grid-template-columns: 0 1fr;
+        column-gap: 0;
+        
+        & .cost-sidebar-container {
+            overflow: hidden;
+            padding-left: 0;
+            padding-right: 0;
+        }
+    }
+
+    & .cost-details-container {
+        overflow-x: hidden;
+        overflow-y: auto;
+        @include scrollbar();
+    }
+}

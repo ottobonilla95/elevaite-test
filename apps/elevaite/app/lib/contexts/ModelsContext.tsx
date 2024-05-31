@@ -228,6 +228,7 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
     useEffect(() => {
         setActiveFiltersCount(countActiveFilters(filtering));
         filterModels();
+        console.log("Filters", filtering);
     }, [filtering]);
 
     useEffect(() => {        

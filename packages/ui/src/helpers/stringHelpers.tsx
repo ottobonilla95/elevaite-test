@@ -16,3 +16,10 @@ export function getInitials(name: string): string {
 
     return initials.join("");
 }
+
+
+
+export function localeSort(array: string[]): void {
+    array.sort((a, b) => a.localeCompare(b));
+}
+

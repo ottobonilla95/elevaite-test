@@ -1,3 +1,4 @@
+"use client";
 import { CommonButton, CommonModal, ElevaiteIcons } from "@repo/ui/components";
 import "./ModelsHeader.scss";
 import { useState } from "react";

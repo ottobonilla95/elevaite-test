@@ -24,6 +24,10 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
     label: "Workbench",
     link: "/workbench",
   },
+  cost: {
+      label: "Billing and Costs",
+      link: "/cost",
+  },
   application: {
     label: "Application",
     link: "/application",
@@ -42,6 +46,7 @@ const sidebarIcons: SidebarIconObject[] = [
   { icon: <ElevaiteIcons.Datasets />, link: "/datasets", description: "Datasets" },
   { icon: <ElevaiteIcons.SVGModels />, link: "/models", description: "Models" },
   { icon: <ElevaiteIcons.Workbench />, link: "/workbench", description: "Workbench" },
+  { icon: <ElevaiteIcons.SVGCost />, link: "/cost", description: "Billing & Costs" },
   { icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" },
 ];
 

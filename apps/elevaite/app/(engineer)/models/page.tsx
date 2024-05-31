@@ -1,4 +1,3 @@
-"use client"
 import { ModelsContextProvider } from "../../lib/contexts/ModelsContext";
 import { ModelsHeader } from "./components/ModelsHeader";
 import { ModelsList } from "./components/ModelsList";
