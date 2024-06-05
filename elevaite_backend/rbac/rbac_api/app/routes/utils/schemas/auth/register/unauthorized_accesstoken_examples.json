@@ -2,7 +2,7 @@
    "no_token": {
       "summary": "no token",
       "value": {
-         "detail": "Request header must contain bearer access_token for authentication"
+         "detail": "Request auth header must contain bearer iDP access_token for authentication"
       }
    },
    "invalid_or_expired_token": {

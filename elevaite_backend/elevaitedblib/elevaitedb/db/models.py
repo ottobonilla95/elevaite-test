@@ -531,7 +531,7 @@ class Apikey(Base):
     project_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("projects.id"), nullable=False)
     key: Mapped[str] = mapped_column(String, unique=True, nullable=False) 
     permissions: Mapped[Annotated[dict[str, Any], Column(JSONB)]] = ( 
-        mapped_column(type_=JSONB, default=lambda: ProjectScopedRBACPermission.create("Deny").dict())
+        mapped_column(type_=JSONB)
     ) 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)

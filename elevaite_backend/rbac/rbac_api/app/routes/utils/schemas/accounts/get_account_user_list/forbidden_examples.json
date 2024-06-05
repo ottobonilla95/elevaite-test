@@ -6,12 +6,6 @@
       }
    },
    "insufficient_permissions_2": {
-      "summary": "logged-in user is not assigned to account",
-      "value": {
-         "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614176000' - is not assigned to account - '789e4567-e89b-12d3-a456-426614174000'"
-      }
-   },
-   "insufficient_permissions_3": {
       "summary": "logged-in user does not have superadmin/account-admin/project-admin privileges to view account user list with project filters",
       "value": {
          "detail": "logged-in user - '789e4567-e89b-12d3-a456-426614176000' - does not have superadmin privileges or account-admin privileges in account - '789e4567-e89b-12d3-a456-426614174000' - or project-admin privileges in project - '789e4567-e89b-12d3-a456-426614174001' - to view account users with project filter in account - '789e4567-e89b-12d3-a456-426614174002'"

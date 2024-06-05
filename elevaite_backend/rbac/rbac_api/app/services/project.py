@@ -99,12 +99,20 @@ def patch_project(
    db: Session,
    ): 
    try:
+      if project_patch_payload.name is not None and project_patch_payload.name != project_to_patch.name:
+         project_with_conflicting_name_in_account_exists = db.query(exists().where(models.Project.name == project_patch_payload.name, models.Project.account_id == project_to_patch.account_id)).scalar()
+         if project_with_conflicting_name_in_account_exists:
+            raise ApiError.conflict(f"Project with name - '{project_patch_payload.name}' - already exists in account - '{project_to_patch.account_id}")
       for var, value in vars(project_patch_payload).items():
          setattr(project_to_patch, var, value) if value is not None else None
       project_to_patch.updated_at = datetime.now()
       db.commit()
       db.refresh(project_to_patch)
       return project_schemas.ProjectResponseDTO.from_orm(project_to_patch)
+   except HTTPException as e:
+      db.rollback()
+      pprint(f'API error in PATCH /projects/{project_to_patch.id} service method: {e}')
+      raise e
    except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
       db.rollback()
       pprint(f'DB error in PATCH /projects/{project_to_patch.id} service method: {e}')

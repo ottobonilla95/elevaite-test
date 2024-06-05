@@ -28,6 +28,11 @@ def register_user(
 ) -> JSONResponse:
    try:
       org_id = os.getenv("ORGANIZATION_ID")
+      try:
+         org_id = UUID(org_id)
+      except Exception as e:
+         raise Exception(f'organization_id - "{org_id}" - has invalid UUID format')
+      
       USER_ALREADY_EXISTS = True
       # Verify if the specified user exists already
       db_user = db.query(models.User).filter(models.User.email == user_email, models.User.organization_id == org_id).first()

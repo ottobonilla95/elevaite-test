@@ -61,7 +61,7 @@ def get_role(
    try:
       role = db.query(models.Role).filter(models.Role.id == role_id).first()
       if not role:
-         raise ApiError.notfound(f"role - '{role_id}' - not found")
+         raise ApiError.notfound(f"Role - '{role_id}' - not found")
       
       return role_schemas.RoleResponseDTO.from_orm(role)
    except HTTPException as e:
@@ -108,7 +108,7 @@ def patch_role(
       db_role = db.query(models.Role).filter(models.Role.id == role_id).first()
       if not db_role:
          print(f'In PATCH: /roles/{role_id} service method : role -"{role_id}"- to patch not found')
-         raise ApiError.notfound(f"role - '{role_id}' - not found")
+         raise ApiError.notfound(f"Role - '{role_id}' - not found")
       
       if role_patch_req_payload.name:
          setattr(db_role, "name", role_patch_req_payload.name)
@@ -124,10 +124,10 @@ def patch_role(
       db.rollback()
       pprint(f'API error in PATCH /roles/{role_id} service method: {e}')
       raise e
-   except IntegrityError as e: # Database-side uniqueness check : Check if an account with the same name already exists in the organization
+   except IntegrityError as e: # Database-side uniqueness check : Check if a role the same name already exists in the organization
       db.rollback()  
       pprint(f'DB error in PATCH /roles/{role_id} service method : {e}')
-      raise ApiError.conflict(f"A role with name -'{role_patch_req_payload.name}'- already exists")
+      raise ApiError.conflict(f"A role with name - '{role_patch_req_payload.name}' - already exists")
    except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
       db.rollback()
       pprint(f'DB error in PATCH /roles/{role_id} service method: {e}')
@@ -148,7 +148,7 @@ def delete_role(
       role = db.query(models.Role).filter(models.Role.id == role_id).first()
       if not role:
          print(f'in DELETE /roles/{role_id} service method : role - "{role_id}" - not found')
-         raise ApiError.notfound(f"role - '{role_id}' - not found")
+         raise ApiError.notfound(f"Role - '{role_id}' - not found")
       
       db.delete(role)
       db.commit()

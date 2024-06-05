@@ -132,6 +132,14 @@ async def create_account(
          }
       },
    },
+   status.HTTP_409_CONFLICT: {
+      "description": "Account with same name already exists",
+      "content": {
+         "application/json": {
+            "examples": load_schema('accounts/patch_account/conflict_examples.json')
+            }
+         },
+   },
    status.HTTP_422_UNPROCESSABLE_ENTITY: {
       "description": "Payload validation error",
       "content": {

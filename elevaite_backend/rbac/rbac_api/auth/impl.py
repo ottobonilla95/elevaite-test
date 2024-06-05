@@ -85,7 +85,7 @@ class AccessTokenAuthentication(AuthenticationInterface):
       access_token_header: str = Header(..., alias='Authorization', description = "iDP access token with email and profile scope"),
       idp_type: Optional[auth_schemas.iDPType] = Header(None, alias='idp', description = "choice of iDP for access token. Defaults to google when not provided"),
       db: Session = Depends(get_db) 
-   ) -> User | Apikey:
+   ) -> User:
 
       request.state.db = db
       request.state.access_method = auth_schemas.AuthType.ACCESS_TOKEN.value
@@ -102,7 +102,6 @@ class AccessTokenAuthentication(AuthenticationInterface):
       if cached_email is None:
          idp: IDPInterface = IDPFactory.get_idp(idp_type=idp_type if idp_type else auth_schemas.iDPType.GOOGLE)
          email = idp.get_user_email(access_token=token)
-         pprint(f'user email obtained from token successfully')
          RedisSingleton().connection.setex(token, 60*60, email)
       else:
          email = cached_email
@@ -111,7 +110,7 @@ class AccessTokenAuthentication(AuthenticationInterface):
  
       logged_in_user = db.query(User).filter(User.email == email).first()
       if not logged_in_user:
-         raise ApiError.unauthorized("User is unauthenticated")
+         raise ApiError.unauthorized("user is unauthenticated")
       
       request.state.logged_in_entity_id = logged_in_user.id
    
@@ -124,7 +123,7 @@ class ApikeyAuthentication(AuthenticationInterface):
       request: Request,
       api_key_header: str = Header(..., alias='X-elevAIte-apikey', description="API key for auth"),
       db: Session = Depends(get_db)
-   ) -> User | Apikey:
+   ) -> Apikey:
 
       request.state.db = db
       request.state.access_method =  auth_schemas.AuthType.API_KEY.value

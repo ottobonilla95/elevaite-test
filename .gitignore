@@ -46,3 +46,7 @@ __pycache__/
 **/storybook-static/
 out
 .idea
+
+# pytest coverage
+.coverage 
+htmlcov

@@ -17,7 +17,6 @@
    "payload_business_logic_validation_error": {
       "summary": "Business-logic payload validation error",
       "value": {
-         "detail": "At least one field must be provided in payload"
-      }
+         "detail": [{"loc": ["body", "__root__"], "msg": "At least one field must be provided in payload", "type": "value_error"}]}
    }
 }

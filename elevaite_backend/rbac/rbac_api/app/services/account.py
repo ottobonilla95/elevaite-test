@@ -45,7 +45,7 @@ def create_account(
 
       if not organization_exists:
          pprint(f"in POST /accounts/ service method : organization - '{account_creation_payload.organization_id}' - not found'")
-         raise ApiError.notfound(f"organization - '{account_creation_payload.organization_id}' - not found")
+         raise ApiError.notfound(f"Organization - '{account_creation_payload.organization_id}' - not found")
 
       if account_exists:
          pprint(f"in POST /accounts/ service method : An account with name - '{account_creation_payload.name}' - already exists in organization - '{account_creation_payload.organization_id}'")
@@ -128,6 +128,10 @@ def patch_account(
       db.rollback()
       pprint(f'API error in PATCH /accounts/{account_to_patch.id} service method: {e}')
       raise e
+   except IntegrityError as e: # Database-side uniqueness check : Check if an account with the same name already exists in the organization
+      db.rollback()  
+      pprint(f'DB error in PATCH /accounts/{account_to_patch.id} service method : {e}')
+      raise ApiError.conflict(f"An account with name - '{account_patch_req_dto.name}' - already exists")
    except SQLAlchemyError as e: # group db side error as 503 to not expose actual error to client
       db.rollback()
       pprint(f'DB error in PATCH /accounts/{account_to_patch.id} service method: {e}')
@@ -345,7 +349,10 @@ def deassign_user_from_account(
          return JSONResponse(content={"message": f"Successfully deassigned user - '{user_id}' - from account - '{account_id}'"}, status_code=status.HTTP_200_OK)
       
       if user_to_deassign.is_superadmin: # if user to deassign is superadmin
-         ROOT_SUPERADMIN_ID = os.getenv("ROOT_SUPERADMIN_ID", None)
+         try:
+            ROOT_SUPERADMIN_ID = UUID(os.getenv("ROOT_SUPERADMIN_ID", None))
+         except Exception as e:
+            raise Exception("ROOT_SUPERADMIN_ID is not a valid UUID")
          if ROOT_SUPERADMIN_ID != logged_in_user.id: # only root superadmin user can deassign other superadmins
             raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have root superadmin permissions to deassign superadmin user - '{user_to_deassign.id}' from account - '{account_id}'")
       

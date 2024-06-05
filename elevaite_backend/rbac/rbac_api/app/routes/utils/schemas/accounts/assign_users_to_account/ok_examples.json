@@ -2,7 +2,7 @@
    "assign_success": {
       "summary": "Users assigned successfully",
       "value": {
-            "message": "Successfully assigned 4 users to account - '789e4567-e89b-12d3-a456-426614174000'"
+            "message": "Successfully assigned 4 user/(s) to account - '789e4567-e89b-12d3-a456-426614174000'"
       }
    }
 }

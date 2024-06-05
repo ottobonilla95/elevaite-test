@@ -27,14 +27,18 @@ async def validate_patch_organization(
 ) -> dict[str, Any]:
    db: Session = request.state.db
    try:
-      org_id = os.getenv("ORGANIZATION_ID")
+      try:
+         org_id = UUID(os.getenv("ORGANIZATION_ID", None))
+      except Exception as e:
+         raise ApiError.notfound(f"Organization not found")
       
       if not logged_in_user.is_superadmin:
          raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin privileges to patch organization - '{org_id}'")
       
+      
       org_to_patch = db.query(models.Organization).filter(models.Organization.id == org_id).first()
       if not org_to_patch:
-         raise ApiError.notfound(f"Organization - '{org_id}' - not found")
+         raise ApiError.notfound(f"Organization not found")
       
       return {"Organization" : org_to_patch}
    except HTTPException as e:
@@ -58,12 +62,16 @@ async def validate_get_organization(
 ) -> dict[str, Any]:
    db: Session = request.state.db
    try:
-      org_id = os.getenv("ORGANIZATION_ID", None)
+      try:
+         org_id = UUID(os.getenv("ORGANIZATION_ID", None))
+      except Exception as e:
+         raise ApiError.notfound(f"Organization not found")
+
       
       db_org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
       if not db_org:
-         raise ApiError.notfound(f"Organization - '{org_id}' - not found")
-
+         raise ApiError.notfound(f"Organization not found")
+      
       return {"Organization" : db_org}
    except HTTPException as e:
       db.rollback()
@@ -87,10 +95,13 @@ async def validate_get_org_users(
 ) -> dict[str, Any]:
    db: Session = request.state.db
    try:
-      org_id = UUID(os.getenv("ORGANIZATION_ID", None))
-          
+      try:
+         org_id = UUID(os.getenv("ORGANIZATION_ID", None))
+      except Exception as e:
+         raise ApiError.notfound(f"Organization not found")
+         
       if not db.query(exists().where(models.Organization.id == org_id)).scalar():
-         raise ApiError.notfound(f"Organization - '{org_id}' - not found")
+         raise ApiError.notfound(f"Organization not found")
       
       if account_id:
          account_exists = db.query(exists().where(models.Account.id == account_id)).scalar() # check account existence after superadmin checked
@@ -117,10 +128,7 @@ async def validate_get_org_users(
       if logged_in_user_admin_account_exist:
          return {"org_id" : org_id}
       
-      if not account_id:
-         raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin privileges to read all users in organization - '{org_id}'")
-      else:
-         raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin or account-admin privileges in account - '{account_id}' - to read organization users")
+      raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - does not have superadmin or account-admin privileges in account - '{account_id}' - to read organization users")
    except HTTPException as e:
       db.rollback()
       pprint(f'API error in GET /organization/users - validate_get_org_users middleware : {e}')

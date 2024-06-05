@@ -316,11 +316,8 @@ async def validate_patch_account_admin_status(
          models.User_Account.account_id == account_id
       ).first()
 
-      if not logged_in_user_account_association:
-         raise ApiError.forbidden(f"logged-in user - '{logged_in_user.id}' - is not assigned to account - '{account_id}'")
-
       # Check if the user is an admin of the account
-      if logged_in_user_account_association.is_admin: 
+      if logged_in_user_account_association and logged_in_user_account_association.is_admin: 
          return {"authenticated_entity" : logged_in_user,
                   "logged_in_user_account_association" : logged_in_user_account_association,
                   }

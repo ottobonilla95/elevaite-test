@@ -12,14 +12,6 @@ class RoleCreationRequestDTO(BaseModel):
    name: str = Field(...)
    permissions: AccountScopedRBACPermission = Field(...)
 
-   # @validator('permissions', pre=True)
-   # def validate_permissions(cls, v, values, **kwargs):
-   #    try:
-   #       validated_permissions = AccountScopedRBACPermission.parse_obj(v)
-   #       return v # return the raw object after validation
-   #    except Exception as e:
-   #       raise e
-
    class Config:
       extra = Extra.forbid
    
@@ -36,14 +28,6 @@ class RoleUpdateRequestDTO(BaseModel):
          print(f"Inside PATCH /roles/role_id - RoleUpdateRequestDTO schema validation")
          raise ValueError("At least one field must be provided in payload")
       return values
-   
-   # @validator('permissions', pre=True)
-   # def validate_permissions(cls, v, values, **kwargs):
-   #    try:
-   #       validated_permissions = AccountScopedRBACPermission.parse_obj(v)
-   #       return v # return the raw object after validation
-   #    except Exception as e:
-   #       raise e
    
    class Config:
       extra = Extra.forbid
