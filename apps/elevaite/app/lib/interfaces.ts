@@ -110,10 +110,16 @@ export interface FilterUnitStructure {
 
 export interface FilterGroupStructure {
     label: string;
+    field?: string;
     isClosed?: boolean;
     filters: FilterUnitStructure[];
 }
 
+export interface SortingObject<ObjectToBeSorted, SpecialHandlingFieldsEnum = undefined> {
+    field?: keyof ObjectToBeSorted;
+    isDesc?: boolean;
+    specialHandling?: SpecialHandlingFieldsEnum;
+}
 
 
 

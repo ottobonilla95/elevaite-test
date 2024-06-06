@@ -19,9 +19,19 @@
 
 
         & .cost-header-button {
+            height: 24px;
+            width: 24px;
+
+            & > svg {
+                height: 100%;
+                width: 100%;
+                transition: transform 200ms ease-in-out;
+            }
 
             &.open {
-                
+                & > svg {
+                    transform: rotateY(180deg);
+                }
             }
         }
     }

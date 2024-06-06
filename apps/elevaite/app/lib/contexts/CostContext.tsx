@@ -2,6 +2,8 @@
 import { localeSort } from "@repo/ui/helpers";
 import dayjs from "dayjs";
 import { createContext, useContext, useEffect, useState } from "react";
+import { countActiveFilters } from "../helpers";
+import { type FiltersStructure, type SortingObject } from "../interfaces";
 import { TEST_COST_DATA, type TestCostDataObject } from "./CostContextTestData";
 
 
@@ -17,6 +19,12 @@ export enum specialHandlingCostFields {
     FRACTION_AMOUNT = "amountFraction",
     PRICE = "price",
     MODEL = "model",
+}
+
+export enum costBarChartAxisValues {
+    COST = "cost",
+    TOKENS = "tokens",
+    GPU = "gpu",
 }
 
 
@@ -38,6 +46,14 @@ enum BarChartBaseColors {
     Cyan = "rgba(63, 209, 246, 1)",
 };
 
+const filterStructureFoundation: {label: string; field: string}[] = [
+    { label: "Project", field: "project", },
+    { label: "Billing Type", field: "billingType", },
+    { label: "Model Provider", field: "modelProvider", },
+    { label: "Model", field: "modelId", },
+];
+
+
 
 // INTERFACES
 
@@ -45,14 +61,10 @@ enum BarChartBaseColors {
 //     test: boolean;
 // }
 
-interface SortingObject {
-    field?: keyof TestCostDataObject;
-    isDesc?: boolean;
-}
-
 export interface CostDetails {
     totalCost?: number;
-    formattedCost?: string;
+    totalGpu?: number;
+    totalTokens?: number;
     uniqueAccounts?: string[];
     uniqueModels?: string[];
     uniqueProjects?: string[];
@@ -96,9 +108,7 @@ function getCostOfItem(item: TestCostDataObject): number {
     return 30 * item.cost;
 }
 
-
-
-function sortDisplayCostData(costData: TestCostDataObject[], sorting: SortingObject, specialHandling?: specialHandlingCostFields): TestCostDataObject[] {
+function sortDisplayCostData(costData: TestCostDataObject[], sorting: SortingObject<TestCostDataObject>, specialHandling?: specialHandlingCostFields): TestCostDataObject[] {
 
     switch (specialHandling) {
         case specialHandlingCostFields.DATE:
@@ -134,10 +144,18 @@ export interface CostContextStructure {
     costData: TestCostDataObject[];
     costDetails: CostDetails;
     getBarColor: (modelId: string) => string;
-    getCostsOfModelPerProject: (modelId: string) => number[];
-    costSorting: SortingObject;
+    costBarChartAxis: costBarChartAxisValues;
+    setCostBarChartAxis: (axis: costBarChartAxisValues) => void;
+    getValueOfModelPerProject: (modelId: string, axis?: costBarChartAxisValues) => number[];
+    costSorting: SortingObject<TestCostDataObject>;
     sortCostData: (field: string, specialHandling?: string) => void;
     filterByAccount: (account: string) => void;
+    filtering: FiltersStructure;
+    activeFiltersCount: number;
+    toggleFilterGroup: (group: string) => void;
+    toggleFilterOfGroup: (filter: string, group: string) => void;
+    clearFiltersOfGroup: (group: string) => void;
+    clearAllFilters: () => void;
 }
 
 
@@ -145,10 +163,18 @@ export const CostContext = createContext<CostContextStructure>({
     costData: [],
     costDetails: {},
     getBarColor: () => "",
-    getCostsOfModelPerProject: () => [],
+    costBarChartAxis: costBarChartAxisValues.COST,
+    setCostBarChartAxis: () => {/**/},
+    getValueOfModelPerProject: () => [],
     costSorting: {field: undefined},
     sortCostData: () => {/**/},
     filterByAccount: () => {/**/},
+    filtering: {filters:[]},
+    activeFiltersCount: 0,
+    toggleFilterGroup: () => {/**/},
+    toggleFilterOfGroup: () => {/**/},
+    clearFiltersOfGroup: () => {/**/},
+    clearAllFilters: () => {/**/},
 });
 
 
@@ -164,7 +190,10 @@ export function CostContextProvider(props: CostContextProviderProps): JSX.Elemen
     const [costData, setCostData] = useState<TestCostDataObject[]>([]);
     const [displayCostData, setDisplayCostData] = useState<TestCostDataObject[]>([]);
     const [costDetails, setCostDetails] = useState<CostDetails>({});
-    const [sorting, setSorting] = useState<SortingObject>({field: undefined});
+    const [costBarChartAxis, setCostBarChartAxis] = useState(costBarChartAxisValues.COST)
+    const [sorting, setSorting] = useState<SortingObject<TestCostDataObject>>({field: undefined});
+    const [filtering, setFiltering] = useState<FiltersStructure>({filters: []});
+    const [activeFiltersCount, setActiveFiltersCount] = useState(0);
     const [selectedAccount, setSelectedAccount] = useState("");
 
 
@@ -174,13 +203,25 @@ export function CostContextProvider(props: CostContextProviderProps): JSX.Elemen
 
     useEffect(() => {
         calculateCostCounts(costData);
-        formatDisplayData(costData);
+        setDisplayCostData(formatDisplayData());
     }, [costData]);
 
+    useEffect(() => {
+        constructFilters(costData);
+    }, [costData]); // Add loading === false when loading is implemented.
+
+    useEffect(() => {        
+        setDisplayCostData(formatDisplayData());
+    }, [selectedAccount]);
 
     useEffect(() => {
-        formatDisplayData(costData.filter(item => !selectedAccount || selectedAccount === "All" || item.account === selectedAccount));
-    }, [selectedAccount]);
+        setActiveFiltersCount(countActiveFilters(filtering));
+        filterCostData();
+        // console.log("Filtering:", filtering);
+        // filterDatasets();
+    }, [filtering]);
+
+    
 
     // useEffect(() => {
     //     console.log("Display Data:", displayCostData);        
@@ -188,22 +229,160 @@ export function CostContextProvider(props: CostContextProviderProps): JSX.Elemen
 
 
 
-    function formatDisplayData(data: TestCostDataObject[]): void {        
-        setDisplayCostData(JSON.parse(JSON.stringify(data)) as TestCostDataObject[]);
+    function formatDisplayData(): TestCostDataObject[] {   
+        const costDataClone = JSON.parse(JSON.stringify(costData)) as TestCostDataObject[];
+        const adjustedCostData = costDataClone.filter(item => !selectedAccount || selectedAccount === "All" || item.account === selectedAccount);
+        // setDisplayCostData();
+        return sortDisplayCostData(adjustedCostData, sorting);
+    }
+
+
+    function filterCostData(): void {
+        const allCostData = formatDisplayData();
+        const filteredCostData: TestCostDataObject[] = [];
+
+        // If there are no active filters, reset the list
+        if (countActiveFilters(filtering) === 0) {
+            setDisplayCostData(allCostData);
+            return;
+        }
+
+        // For each item decide if to add it or not.
+        for (const costItem of allCostData) {            
+            const show: boolean[] = [];
+
+            // For each field covered by filtering
+            for (const filterGroup of filtering.filters) {
+                if ("field" in filterGroup && filterGroup.field) {
+                    if (filterGroup.filters.filter(item => item.isActive).length === 0) continue;
+                    const label = costItem[filterGroup.field] as string;
+                    if (label) {
+                        const specificFilter = filterGroup.filters.find(filterItem => filterItem.label === label);
+                        if (specificFilter?.isActive) show.push(true);
+                        else show.push(false);
+                    }
+                }                
+            }
+            if (!(show.some(item => !item))) filteredCostData.push(costItem);
+        }
+        setDisplayCostData(filteredCostData);
     }
 
 
 
+    function constructFilters(data: TestCostDataObject[]): void {
+        const constructedFilters: FiltersStructure = {
+            label: "Filters",
+            filters: filterStructureFoundation.map(item => { return {
+                label: item.label,
+                field: item.field,
+                isClosed: true,
+                filters: getUniqueValues(data, item.field).sort((a, b) => a.localeCompare(b)).map(unique => { return {
+                    label: unique,
+                    isSelected: false,
+                    isActive: false,
+                }; }),
+            }; })
+        };
+        setFiltering(constructedFilters);
+    }
+
+    function getUniqueValues(data: TestCostDataObject[], field: string): string[] {
+        const itemsSet = new Set<string>();
+        data.map(dataItem => {
+            if (dataItem[field] && typeof dataItem[field] === "string") return itemsSet.add(dataItem[field] as string);
+            return undefined;
+        })
+        return Array.from(itemsSet).sort();
+    }
+
+    function toggleFilterGroup(group: string): void {
+        setFiltering(prevSorting => ({
+            ...prevSorting,
+            filters: prevSorting.filters.map(foundGroup => {
+              if ("filters" in foundGroup && foundGroup.label === group) {
+                return {
+                  ...foundGroup,
+                  isClosed: !foundGroup.isClosed
+                };
+              }
+              return foundGroup;
+            })
+        }));
+    }
+
+    function toggleFilterOfGroup(filter: string, group: string): void {
+        setFiltering(prevSorting => ({
+            ...prevSorting,
+            filters: prevSorting.filters.map(foundFilter => {
+              if ('filters' in foundFilter && foundFilter.label === group) {
+                return {
+                  ...foundFilter,
+                  filters: foundFilter.filters.map(subFilter => {
+                    if (subFilter.label === filter) {
+                      return {
+                        ...subFilter,
+                        isActive: !subFilter.isActive
+                      };
+                    }
+                    return subFilter;
+                  })
+                };
+              }
+              return foundFilter;
+            })
+        }));
+    }
+
+    function clearGroup(group: string): void {
+        setFiltering(prevFiltering => ({
+            ...prevFiltering,
+            filters: prevFiltering.filters.map(filter => {
+              if ('filters' in filter && filter.label === group) {
+                return {
+                  ...filter,
+                  filters: filter.filters.map(subFilter => ({
+                    ...subFilter,
+                    isActive: false
+                  }))
+                };
+              }
+              return filter;
+            })
+        }));
+    }
+
+    function clearAll(): void {
+        setFiltering(prevFiltering => ({
+            ...prevFiltering,
+            filters: prevFiltering.filters.map(filter => {
+                if ('filters' in filter) {
+                    return {
+                        ...filter,
+                        filters: filter.filters.map(subFilter => ({
+                            ...subFilter,
+                            isActive: false
+                        }))
+                    };
+                } 
+                return {
+                    ...filter,
+                    isActive: false
+                };
+            })
+        }));
+    }
+
+
     function calculateCostCounts(table: TestCostDataObject[]): void {
         let totalCost = 0;
+        let totalGpu = 0;
+        let totalTokens = 0;
         for (const i of table) { 
             totalCost += getCostOfItem(i);
+            totalGpu += i.gpu ?? 0;
+            totalTokens += i.tokensIn + (i.tokensOut ?? 0);
         }
-        // Formatting:
-        const formattedCost = totalCost.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        })
         const uniqueAccounts = Array.from(new Set(table.map((item) => item.account)));
         localeSort(uniqueAccounts);
         const uniqueModels = Array.from(new Set(table.map((item) => item.modelId)));
@@ -213,7 +392,8 @@ export function CostContextProvider(props: CostContextProviderProps): JSX.Elemen
 
         setCostDetails({
             totalCost,
-            formattedCost,
+            totalGpu,
+            totalTokens,
             uniqueAccounts,
             uniqueModels,
             uniqueProjects,
@@ -223,6 +403,44 @@ export function CostContextProvider(props: CostContextProviderProps): JSX.Elemen
     function getBarColor(modelId: string): string {
         const index = costDetails.uniqueModels?.findIndex(item => item === modelId);
         return getBarChartColor(index !== undefined ? (index + 1) : 0);
+    }
+
+
+    function getValueOfModelPerProject(modelId: string, axis?: costBarChartAxisValues): number[] {
+        switch (axis) {
+            case costBarChartAxisValues.TOKENS: return getTokensOfModelPerProject(modelId);
+            case costBarChartAxisValues.GPU: return getGPUUsageOfModelPerProject(modelId);
+            default: return getCostsOfModelPerProject(modelId);
+        }
+    }
+    
+    function getTokensOfModelPerProject(modelId: string): number[] {
+        if (!costDetails.uniqueModels || !costDetails.uniqueProjects) return [];
+        const tokensArray = costDetails.uniqueProjects.map(project => {
+            let totalTokensIn = 0;
+            let totalTokensOut = 0;
+            for (const i of displayCostData) {
+                if (i.project === project && i.modelId === modelId) {
+                    totalTokensIn += i.tokensIn;
+                    totalTokensOut += (i.tokensOut ?? 0);
+                }
+            }
+            return [totalTokensIn, totalTokensOut];
+        });
+        return tokensArray.flat();
+    }
+
+    function getGPUUsageOfModelPerProject(modelId: string): number[] {
+        if (!costDetails.uniqueModels || !costDetails.uniqueProjects) return [];
+        const gpuArray = costDetails.uniqueProjects.map(project => {
+            let totalGPUCost = 0;
+            for (const i of displayCostData) {
+                if (i.project === project && i.modelId === modelId)
+                totalGPUCost += i.gpu ?? 0;
+            }
+            return totalGPUCost;
+        });
+        return gpuArray;
     }
 
     function getCostsOfModelPerProject(modelId: string): number[] {
@@ -243,7 +461,7 @@ export function CostContextProvider(props: CostContextProviderProps): JSX.Elemen
 
     
     function sortCostData(field: keyof TestCostDataObject, specialHandling?: specialHandlingCostFields): void {
-        let sortingResult: SortingObject = {};
+        let sortingResult: SortingObject<TestCostDataObject> = {};
         if (sorting.field !== field) sortingResult = {field};
         if (sorting.field === field) {
             if (sorting.isDesc) sortingResult = {field: undefined};
@@ -269,10 +487,18 @@ export function CostContextProvider(props: CostContextProviderProps): JSX.Elemen
                 costData: displayCostData,
                 costDetails,
                 getBarColor,
-                getCostsOfModelPerProject,
+                costBarChartAxis,
+                setCostBarChartAxis,
+                getValueOfModelPerProject,
                 costSorting: sorting,
                 sortCostData,
                 filterByAccount,
+                filtering,
+                activeFiltersCount,
+                toggleFilterGroup,
+                toggleFilterOfGroup,
+                clearFiltersOfGroup: clearGroup,
+                clearAllFilters: clearAll,
             } }
         >
             {props.children}

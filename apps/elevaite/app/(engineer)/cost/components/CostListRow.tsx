@@ -104,7 +104,12 @@ export function CostListRow(props: CostListRowProps): JSX.Element {
                     disabled={!structureItem.isSortable}
                     overrideClass
                 >
-                    {structureItem.header}
+                    <div className="header-title">
+                        <span>{structureItem.header}</span>
+                        {!structureItem.subtitle ? undefined :
+                            <span className="subtitle">{structureItem.subtitle}</span>
+                        }
+                    </div>
                     
                     {structureItem.isSortable ? 
                         <div className={[

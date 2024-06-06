@@ -3,7 +3,7 @@ import { useThemes } from '@repo/ui/contexts';
 import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Title, Tooltip, type TooltipItem, } from 'chart.js';
 import { useEffect, useState } from 'react';
 import { Bar } from "react-chartjs-2";
-import { useCost } from "../../../lib/contexts/CostContext";
+import { costBarChartAxisValues, useCost } from "../../../lib/contexts/CostContext";
 import "./CostBarChart.scss";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -15,6 +15,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 export function CostBarChart(): JSX.Element {
     const costContext = useCost();
     const themeContext = useThemes();
+    // const barChartRef = useRef<ChartJS<"bar", number[], string> | undefined | null>(null);
     const [barLabels, setBarLabels] = useState<string[]>([]);
 
 
@@ -48,9 +49,12 @@ export function CostBarChart(): JSX.Element {
         },
         plugins: {
             tooltip: {
+                 // The default "average" for position is better, but it has a critical bug:
+                 // When you scroll over it before the chart has loaded, it throws a .reduce without first value error.
+                position: "nearest" as const,
+                titleMarginBottom: 20,
+                footerMarginTop: 20,
                 callbacks: {
-                    beforeBody: () => "\n",
-                    afterBody: () => "\n",
                     footer: getFooter,
                     label: formatLabelNumber,
                 },
@@ -60,41 +64,74 @@ export function CostBarChart(): JSX.Element {
     };
 
     useEffect(() => {
-        setBarLabels(costContext.costDetails.uniqueProjects ?? []);
-    }, [costContext.costDetails.uniqueProjects]);
+        if (costContext.costBarChartAxis === costBarChartAxisValues.TOKENS) {
+            setBarLabels(costContext.costDetails.uniqueProjects ? costContext.costDetails.uniqueProjects.map(item => [`${item} In`, `${item} Out`]).flat() : []);
+        } else {
+            setBarLabels(costContext.costDetails.uniqueProjects ?? []);
+        }
+    }, [costContext.costDetails.uniqueProjects, costContext.costBarChartAxis]);
+
+
 
 
     // FILTER FUNCTIONS
 
     function getFooter(tooltipItems: TooltipItem<"bar">[]): string {
-        let totalCost = 0;      
+        let totalAmount = 0;      
         tooltipItems.forEach((tooltipItem: TooltipItem<"bar">) => {
-            totalCost += tooltipItem.parsed.y;
+            totalAmount += tooltipItem.parsed.y;
         });
-        return `Total Cost:    $ ${totalCost.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        })}`;
+        switch (costContext.costBarChartAxis) {
+            case costBarChartAxisValues.TOKENS: return `Total Tokens:    ${totalAmount.toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            })}`;
+            case costBarChartAxisValues.GPU: return `Total GPU Usage:    ${totalAmount.toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+            })} mins`;
+            case costBarChartAxisValues.COST: return `Total Cost:    $ ${totalAmount.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })}`;
+        }
     };
 
     function formatLabelNumber(tooltipItem: TooltipItem<"bar">): string {
-        return `${tooltipItem.dataset.label ?? ""}:    $ ${parseFloat(tooltipItem.formattedValue).toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        })}`;
+        const value = tooltipItem.raw as number;
+        if (!value || isNaN(value)) return "";
+        switch (costContext.costBarChartAxis) {
+            case costBarChartAxisValues.TOKENS: return `${tooltipItem.dataset.label ?? ""}:    ${value.toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            })}`;
+            case costBarChartAxisValues.GPU: return `${tooltipItem.dataset.label ?? ""}:    ${value.toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+            })} mins`;
+            case costBarChartAxisValues.COST: return `${tooltipItem.dataset.label ?? ""}:    $ ${value.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })}`;
+        }
     }
 
     function formatChartYAxis(value: string): string {
-        return `$ ${parseFloat(value).toLocaleString(undefined, {
+        const formattedValue = parseFloat(value).toLocaleString(undefined, {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
-        })}`;
+        });
+
+        switch (costContext.costBarChartAxis) {
+            case costBarChartAxisValues.TOKENS: return `${formattedValue} tkn`;
+            case costBarChartAxisValues.GPU: return `${formattedValue} mins`;
+            case costBarChartAxisValues.COST: return `$ ${formattedValue}`;
+        }
     }
 
     function filterTooltip(tooltipItem: TooltipItem<"bar">): boolean {
         return tooltipItem.raw !== 0;
-    }
-    
+    }    
 
     //////////////
 
@@ -110,7 +147,7 @@ export function CostBarChart(): JSX.Element {
                         datasets: !costContext.costDetails.uniqueModels ? [] : 
                         costContext.costDetails.uniqueModels.map(model => { return {
                             label: model,
-                            data: costContext.getCostsOfModelPerProject(model),
+                            data: costContext.getValueOfModelPerProject(model, costContext.costBarChartAxis),
                             backgroundColor: costContext.getBarColor(model),
                         }; })                        
                     }}

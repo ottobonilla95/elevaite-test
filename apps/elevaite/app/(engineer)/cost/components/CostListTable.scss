@@ -7,7 +7,7 @@
     & .cost-list-table-grid {
         height: 100%;
         display: grid;
-        grid-template-columns: minmax(150px,2fr) minmax(150px,2fr) minmax(100px,2fr) minmax(150px,3fr) 1fr 1fr minmax(100px,2fr) 1fr 1fr 1fr 1fr 1fr;
+        grid-template-columns: minmax(150px,2fr) minmax(150px,2fr) minmax(100px,2fr) minmax(150px,3fr) 1fr 1fr minmax(100px,2fr) 1fr 1fr minmax(110px,1fr) minmax(90px,1fr) 1fr;
         grid-auto-rows: min-content;
         align-content: flex-start;
         
@@ -17,6 +17,13 @@
         & .empty {
             grid-column: 1 / -1;
             color: var(--ev-colors-secondaryText);
+            padding: 30px;
+
+
+            & span {
+                position: sticky;
+                left: 30px;
+            }
         }
     }
 }

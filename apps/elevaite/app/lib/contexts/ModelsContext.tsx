@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import { createContext, useContext, useEffect, useState } from "react";
 import { deleteModel, deployModel, getAvailableModels, getAvailableModelsByName, getEvaluationLogsById, getModelById, getModelDatasets, getModelEndpoints, getModelEvaluations, getModelLogs, getModelParametersById, getModels, getModelsTasks, registerModel, requestModelEvaluation, undeployModel } from "../actions/modelActions";
 import { countActiveFilters, getUniqueActiveFiltersFromGroup, getUniqueTagsFromList } from "../helpers";
-import { ModelsStatus, type AvailableModelObject, type EvaluationObject, type FiltersStructure, type ModelDatasetObject, type ModelEndpointObject, type ModelEvaluationLogObject, type ModelObject, type ModelParametersObject, type ModelRegistrationLogObject } from "../interfaces";
+import { ModelsStatus, type AvailableModelObject, type EvaluationObject, type FiltersStructure, type ModelDatasetObject, type ModelEndpointObject, type ModelEvaluationLogObject, type ModelObject, type ModelParametersObject, type ModelRegistrationLogObject, type SortingObject } from "../interfaces";
 
 
 
@@ -53,12 +53,6 @@ const defaultLoadingList: LoadingListObject = {
 
 // INTERFACES
 
-interface SortingObject {
-    field?: keyof ModelObject;
-    isDesc?: boolean;
-    specialHandling?: specialHandlingModelFields;
-}
-
 interface LoadingListObject {
     models: boolean|undefined;
     modelTasks: boolean|undefined;
@@ -82,7 +76,7 @@ export interface ModelsContextStructure {
     models: ModelObject[];
     modelTasks: string[];
     availableModels: AvailableModelObject[];
-    modelsSorting: SortingObject;
+    modelsSorting: SortingObject<ModelObject, specialHandlingModelFields>;
     selectedModel: ModelObject|undefined;
     setSelectedModel: (model: ModelObject|undefined) => void;
     selectedModelParameters: ModelParametersObject|undefined,
@@ -147,7 +141,7 @@ export const ModelsContext = createContext<ModelsContextStructure>({
 
 // FUNCTIONS
 
-function sortDisplayModels(models: ModelObject[], sorting: SortingObject): ModelObject[] {
+function sortDisplayModels(models: ModelObject[], sorting: SortingObject<ModelObject, specialHandlingModelFields>): ModelObject[] {
     const sortingModels = JSON.parse(JSON.stringify(models)) as ModelObject[];
     const statusSortOrder = [ModelsStatus.REGISTERING, ModelsStatus.FAILED, ModelsStatus.DEPLOYED, ModelsStatus.ACTIVE];
 
@@ -203,7 +197,7 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
     const [modelEndpoints, setModelEndpoints] = useState<ModelEndpointObject[]>([]);
     const [modelDatasets, setModelDatasets] = useState<ModelDatasetObject[]>([]);
     const [availableModels, setAvailableModels] = useState<AvailableModelObject[]>([]);
-    const [sorting, setSorting] = useState<SortingObject>({field: undefined});
+    const [sorting, setSorting] = useState<SortingObject<ModelObject, specialHandlingModelFields>>({field: undefined});
     const [filtering, setFiltering] = useState<FiltersStructure>({filters: []});
     const [activeFiltersCount, setActiveFiltersCount] = useState(0);
     const [loading, setLoading] = useState<LoadingListObject>(defaultLoadingList);
@@ -283,7 +277,7 @@ export function ModelsContextProvider(props: ModelsContextProviderProps): JSX.El
 
 
     function sortModels(field: keyof ModelObject, specialHandling?: specialHandlingModelFields): void {
-        let sortingResult: SortingObject = {};
+        let sortingResult: SortingObject<ModelObject, specialHandlingModelFields> = {};
         if (sorting.field !== field) sortingResult = {field, specialHandling};
         if (sorting.field === field) {
             if (sorting.isDesc) sortingResult = {field: undefined, specialHandling};

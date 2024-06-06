@@ -32,7 +32,7 @@ export function CostListTable(): JSX.Element {
                     <CostListRow isHeader structure={costListStructure} />
                     {costContext.costData.length === 0 ? 
                         <div className="table-span empty">
-                            There is no cost data to display.
+                            <span>There is no cost data to display.</span>
                         </div>
 
                     :

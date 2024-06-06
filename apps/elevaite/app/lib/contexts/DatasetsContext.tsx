@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { getAvailableDatasets, getDatasetTasks, getDatasets, registerDataset } from "../actions/datasetActions";
 import { countActiveFilters, getUniqueActiveFiltersFromGroup, getUniqueTagsFromList } from "../helpers";
-import { type FiltersStructure, type HuggingfaceDatasetObject, type ModelDatasetObject } from "../interfaces";
+import { SortingObject, type FiltersStructure, type HuggingfaceDatasetObject, type ModelDatasetObject } from "../interfaces";
 
 
 
@@ -34,11 +34,6 @@ const defaultLoadingList: LoadingListObject = {
 
 // INTERFACES
 
-interface SortingObject {
-    field?: keyof ModelDatasetObject;
-    isDesc?: boolean;
-}
-
 interface LoadingListObject {
     datasets: boolean|undefined;
     datasetTasks: boolean|undefined;
@@ -57,7 +52,7 @@ export interface DatasetsContextStructure {
     datasets: ModelDatasetObject[];
     datasetTasks: string[],
     availableDatasets: HuggingfaceDatasetObject[];
-    datasetSorting: SortingObject;
+    datasetSorting: SortingObject<ModelDatasetObject>;
     sortDatasets: (field: string, specialHandling?: string) => void;
     getAvailableDatasetsByName: (name: string) => void;
     getAvailableDatasetsByTask: (task: string) => void;
@@ -95,7 +90,7 @@ export const DatasetsContext = createContext<DatasetsContextStructure>({
 
 // FUNCTIONS
 
-function sortDisplayDatasets(datasets: ModelDatasetObject[], sorting: SortingObject, specialHandling?: specialHandlingDatasetFields): ModelDatasetObject[] {
+function sortDisplayDatasets(datasets: ModelDatasetObject[], sorting: SortingObject<ModelDatasetObject>, specialHandling?: specialHandlingDatasetFields): ModelDatasetObject[] {
 
     switch (specialHandling) {
         // case specialHandlingDatasetFields.DATE:
@@ -140,7 +135,7 @@ export function DatasetsContextProvider(props: DatasetsContextProviderProps): JS
     const [availableDatasets, setAvailableDatasets] = useState<HuggingfaceDatasetObject[]>([]);
     const [filtering, setFiltering] = useState<FiltersStructure>({filters: []});
     const [activeFiltersCount, setActiveFiltersCount] = useState(0);
-    const [sorting, setSorting] = useState<SortingObject>({field: undefined});
+    const [sorting, setSorting] = useState<SortingObject<ModelDatasetObject>>({field: undefined});
     const [loading, setLoading] = useState<LoadingListObject>(defaultLoadingList);
     
     
@@ -153,7 +148,6 @@ export function DatasetsContextProvider(props: DatasetsContextProviderProps): JS
     }, []);
 
     useEffect(() => {
-        // console.log("datasets", displayDatasets);
         if (loading.datasets === false && loading.datasetTasks === false && loading.filtersStructure) constructFilters(displayDatasets, datasetTasks);
     }, [displayDatasets, datasetTasks, loading.datasets, loading.datasetTasks]);
 
@@ -207,7 +201,7 @@ export function DatasetsContextProvider(props: DatasetsContextProviderProps): JS
 
 
     function sortDatasets(field: keyof ModelDatasetObject, specialHandling?: specialHandlingDatasetFields): void {
-        let sortingResult: SortingObject = {};
+        let sortingResult: SortingObject<ModelDatasetObject> = {};
         if (sorting.field !== field) sortingResult = {field};
         if (sorting.field === field) {
             if (sorting.isDesc) sortingResult = {field: undefined};

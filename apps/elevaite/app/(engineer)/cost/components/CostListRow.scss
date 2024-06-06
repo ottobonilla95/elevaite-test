@@ -18,6 +18,15 @@
             top: 0;
             z-index: 10;
         }
+
+        & .header-title {
+            display: flex;
+            flex-direction: column;
+
+            & .subtitle {
+                font-size: 10px;
+            }
+        }
     }
 
     &:last-child {

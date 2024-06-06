@@ -1,5 +1,7 @@
+"use client";
 import { CommonButton, CommonSelect, ElevaiteIcons, type CommonSelectOption } from "@repo/ui/components";
-import { useCost } from "../../../lib/contexts/CostContext";
+import { useEffect, useState } from "react";
+import { costBarChartAxisValues, useCost } from "../../../lib/contexts/CostContext";
 import "./CostHeader.scss";
 
 
@@ -11,19 +13,36 @@ interface CostHeaderProps {
 
 export function CostHeader(props: CostHeaderProps): JSX.Element {
     const costContext = useCost();
+    const [totalDetails, setTotalDetails] = useState<{value: string; label: string; post: string}>({value: "—", label: "Total Cost", post: "$"});
 
     const showOptions: CommonSelectOption[] = [
-        { value: "cost", label: "Cost" },
-        { value: "tokens", label: "In & Out Tokens" },
-        { value: "gpu", label: "GPU Usage" },
+        { value: costBarChartAxisValues.COST, label: "Cost" },
+        { value: costBarChartAxisValues.TOKENS, label: "In & Out Tokens" },
+        { value: costBarChartAxisValues.GPU, label: "GPU Usage" },
     ];
+
+
+    useEffect(() => {
+        const settingDetails = {label: "", value: "", post: ""};
+        switch (costContext.costBarChartAxis) {
+            case costBarChartAxisValues.COST: settingDetails.value = costContext.costDetails.totalCost?.toLocaleString(undefined, 
+                { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "—"; settingDetails.label = "Total Cost"; settingDetails.post = "$"; break;
+            case costBarChartAxisValues.GPU: settingDetails.value = costContext.costDetails.totalGpu?.toLocaleString(undefined, 
+                { minimumFractionDigits: 0, maximumFractionDigits: 2 }) ?? "—"; settingDetails.label = "Total GPU Usage"; settingDetails.post = "mins"; break;
+            case costBarChartAxisValues.TOKENS: settingDetails.value = costContext.costDetails.totalTokens?.toLocaleString(undefined, 
+                { minimumFractionDigits: 0, maximumFractionDigits: 0 }) ?? "—"; settingDetails.label = "Total Tokens"; settingDetails.post = "tkn"; break;
+        }
+        setTotalDetails(settingDetails);
+    }, [costContext.costBarChartAxis, costContext.costDetails]);
+
+
 
     function handleSidebarToggle(): void {
         props.onSidebarToggle();
     }
 
-    function handleSelectChange(value: string, label: string): void {
-        console.log("Changed view:", label);
+    function handleShowTypeChange(value: costBarChartAxisValues): void {
+        costContext.setCostBarChartAxis(value);
     }
 
 
@@ -34,7 +53,7 @@ export function CostHeader(props: CostHeaderProps): JSX.Element {
                     className={["cost-header-button", props.isSidebarOpen ? "open" : undefined].filter(Boolean).join(" ")}
                     onClick={handleSidebarToggle}
                 >
-                    <ElevaiteIcons.SVGChevron type="right" />
+                    <ElevaiteIcons.SVGSideArrow />
                 </CommonButton>
                 <span>Billing and Cost Management</span>
             </div>
@@ -45,15 +64,15 @@ export function CostHeader(props: CostHeaderProps): JSX.Element {
                         <span className="show-label">Show:</span>
                         <CommonSelect
                             options={showOptions}
-                            onSelectedValueChange={handleSelectChange}
-                            defaultValue={showOptions[0].value}
+                            onSelectedValueChange={handleShowTypeChange}
+                            defaultValue={costContext.costBarChartAxis}
                         />
                     </div>
                 </div>
                 <InfoBlock
-                    label="Total Cost"
-                    value={costContext.costDetails.formattedCost ?? "—"}
-                    post="$"
+                    label={totalDetails.label}
+                    value={totalDetails.value}
+                    post={totalDetails.post}
                 />
                 <InfoBlock
                     label="Model Count"
