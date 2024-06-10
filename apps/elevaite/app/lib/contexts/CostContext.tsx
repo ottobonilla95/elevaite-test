@@ -150,6 +150,8 @@ export interface CostContextStructure {
     costSorting: SortingObject<TestCostDataObject>;
     sortCostData: (field: string, specialHandling?: string) => void;
     filterByAccount: (account: string) => void;
+    selectedDate?: string;
+    setSelectedDate: (IsoDate?: string) => void;
     filtering: FiltersStructure;
     activeFiltersCount: number;
     toggleFilterGroup: (group: string) => void;
@@ -169,6 +171,8 @@ export const CostContext = createContext<CostContextStructure>({
     costSorting: {field: undefined},
     sortCostData: () => {/**/},
     filterByAccount: () => {/**/},
+    selectedDate: "",
+    setSelectedDate: () => {/**/},
     filtering: {filters:[]},
     activeFiltersCount: 0,
     toggleFilterGroup: () => {/**/},
@@ -195,6 +199,7 @@ export function CostContextProvider(props: CostContextProviderProps): JSX.Elemen
     const [filtering, setFiltering] = useState<FiltersStructure>({filters: []});
     const [activeFiltersCount, setActiveFiltersCount] = useState(0);
     const [selectedAccount, setSelectedAccount] = useState("");
+    const [selectedDate, setSelectedDate] = useState<string|undefined>();
 
 
     useEffect(() => {
@@ -204,6 +209,10 @@ export function CostContextProvider(props: CostContextProviderProps): JSX.Elemen
     useEffect(() => {
         calculateCostCounts(costData);
         setDisplayCostData(formatDisplayData());
+        // Currently just picking the first of available dates. Fix when we have live data.
+        if (costData.length > 0 && costData[0].inferenceDate) {
+            setSelectedDate(dayjs(costData[0].inferenceDate).startOf("month").toISOString());
+        }
     }, [costData]);
 
     useEffect(() => {
@@ -493,6 +502,8 @@ export function CostContextProvider(props: CostContextProviderProps): JSX.Elemen
                 costSorting: sorting,
                 sortCostData,
                 filterByAccount,
+                selectedDate,
+                setSelectedDate,
                 filtering,
                 activeFiltersCount,
                 toggleFilterGroup,

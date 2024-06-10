@@ -25,9 +25,7 @@
     "packages/*"
   ],
   "dependencies": {
-    "chart.js": "^4.4.3",
     "next": "^14.0.4",
-    "react-chartjs-2": "^5.2.0",
     "sass": "^1.69.7"
   }
 }

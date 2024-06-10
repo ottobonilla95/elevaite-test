@@ -40,6 +40,7 @@ import SVGToggleSize from "./svgToggleSize";
 import SVGDatasets from "./svgDatasets";
 import SVGCost from "./svgCost";
 import SVGSideArrow from "./svgSideArrow";
+import SVGDatePicker from "./svgDatePicker";
 
 
 export const ElevaiteIcons = {
@@ -85,4 +86,5 @@ export const ElevaiteIcons = {
     SVGDatasets,
     SVGCost,
     SVGSideArrow,
+    SVGDatePicker,
 };

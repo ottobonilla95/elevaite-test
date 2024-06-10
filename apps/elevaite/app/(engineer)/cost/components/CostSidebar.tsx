@@ -1,4 +1,5 @@
-import { CommonButton, CommonFormLabels, CommonSelect, ElevaiteIcons, SimpleInput, type CommonSelectOption } from "@repo/ui/components";
+import { CommonButton, CommonDatePicker, CommonFormLabels, CommonSelect, ElevaiteIcons, type CommonSelectOption } from "@repo/ui/components";
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useCost } from "../../../lib/contexts/CostContext";
 import { type FilterGroupStructure, type FilterUnitStructure } from "../../../lib/interfaces";
@@ -26,6 +27,10 @@ export function CostSidebar(): JSX.Element {
 
     function handleAccountChange(value: string): void {
         costContext.filterByAccount(value);
+    }
+
+    function handleDateChange(date: string): void {
+        costContext.setSelectedDate(dayjs(date).toISOString());
     }
 
     function handleGroupClick(group: string): void {
@@ -64,10 +69,21 @@ export function CostSidebar(): JSX.Element {
                 <CommonFormLabels
                     className="parameter-item"
                     label="Month"
-                >
-                    <SimpleInput
-                        value="May 2024"
-                        onChange={() => {/** */}}
+                >                    
+                    <CommonDatePicker
+                        selectedDate={costContext.selectedDate}
+                        onDateChange={handleDateChange}
+                        monthOnly
+                        customInput={
+                            <div className="month-picker-wrapper">
+                                <CommonButton
+                                    className="month-picker-button"
+                                >
+                                    {dayjs(costContext.selectedDate).format("MMMM YYYY")}
+                                    <ElevaiteIcons.SVGDatePicker/>
+                                </CommonButton>
+                            </div>
+                        }
                     />
                 </CommonFormLabels>
             </div>
