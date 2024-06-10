@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Any, Dict, List, TypeGuard, Union
 
 from elevaite_client.rpc.interfaces import InstanceTaskDataLabel
-from pydantic import UUID4, BaseModel
+from pydantic import UUID4, BaseModel, Json
 
 from .pipeline import PipelineStepStatus
 from .configuration import Configuration
@@ -40,12 +40,11 @@ class InstanceBase(BaseModel):
     startTime: Union[str, None]
     endTime: Union[str, None]
     status: InstanceStatus
-    datasetId: UUID4
+    executionId: Union[str, None]
     projectId: UUID4
-    selectedPipelineId: UUID4
+    pipelineId: UUID4
     configurationId: UUID4
-    applicationId: int
-    configurationRaw: str
+    configurationRaw: Json
 
 
 class InstanceChartData(BaseModel):
@@ -157,7 +156,7 @@ class InstanceCreateDTO(BaseModel):
     creator: str
     configurationId: UUID4
     projectId: UUID4
-    selectedPipelineId: UUID4
+    pipelineId: UUID4
     instanceName: str
 
 
@@ -165,6 +164,7 @@ class InstanceUpdate(BaseModel):
     comment: Union[str, None] = None
     endTime: Union[str, None] = None
     status: Union[InstanceStatus, None] = None
+    executionId: Union[str, None] = None
 
 
 class Instance(InstanceBase):

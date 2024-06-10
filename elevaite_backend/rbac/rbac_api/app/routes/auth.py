@@ -5,17 +5,15 @@ from typing import Any, Optional
 from uuid import UUID
 from pydantic import EmailStr
 
-from elevaitedb.schemas import (
-   auth as auth_schemas,
+from elevaitelib.schemas import auth as auth_schemas,
    api as api_schemas,
-)
 from rbac_api import route_validator_map
 from ..services import auth as service
 from .utils.helpers import load_schema
 from ...audit import AuditorProvider
 auditor = AuditorProvider.get_instance()
 
-auth_router = APIRouter(prefix="/auth", tags=["auth"]) 
+auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
 @auth_router.post("/register", responses={
    status.HTTP_201_CREATED: {
@@ -73,18 +71,18 @@ async def register_user(
    register_user_payload: auth_schemas.RegisterUserRequestDTO = Body(description= "user creation payload"),
    _= Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'register_user')]),
 ) -> JSONResponse:
-   """
-   Register User resource to Organization resource 
+    """
+    Register User resource to Organization resource
 
-   Parameters:
-      - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope (user will be registered with email corresponding to access token email)
-      - register_user_payload : Contains optional user params - 'firstname' and 'lastname'
-      
-   Returns: 
-      - JSONResponse : A JSON with 200 success message containing existing user in org corresponding to email 
-      - JSONResponse : A JSON with 201 success message containing newly registered user in org 
-    
-   """
+    Parameters:
+       - Authorization Header (Bearer Token): Mandatory. Google access token containing user profile and email scope (user will be registered with email corresponding to access token email)
+       - register_user_payload : Contains optional user params - 'firstname' and 'lastname'
+
+    Returns:
+       - JSONResponse : A JSON with 200 success message containing existing user in org corresponding to email
+       - JSONResponse : A JSON with 201 success message containing newly registered user in org
+
+    """
 
    db: Session = request.state.db
    user_email: EmailStr = request.state.user_email
@@ -153,16 +151,16 @@ async def evaluate_rbac_permissions(
    permissions_evaluation_request: auth_schemas.PermissionsEvaluationRequest = Body(...),
    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.RBAC_API, 'evaluate_rbac_permissions')]),
 ) -> auth_schemas.PermissionsEvaluationResponse:
-   """
-   Retrieve an evaluated list of rbac permissions for requested resource actions, and additionally can also retrieve account/project admin status.
+    """
+    Retrieve an evaluated list of rbac permissions for requested resource actions, and additionally can also retrieve account/project admin status.
 
-   Parameters:
-   - X-elevAIte-AccountId (UUID): Optional. The ID of the account under which permissions are to be evaluated; This is optional if 'X-elevAIte-projectId' is provided since it can be derived from the project. In case both 'X-elevAIte-AccountId' and 'X-elevAIte-ProjectId' are provided, then they must be associated. 
-   - X-elevAIte-ProjectId (UUID): Optional. The ID of the project under which permissions are to be evaluated; This is mandatory for project-only scoped resources and statuses such as Projects, Apikeys, Datasets, Collections, Instances and 'IS_PROJECT_ADMIN' 
-   - request_body : The request body which should contain atleast 1 field for rbac permission evaluation.
+    Parameters:
+    - X-elevAIte-AccountId (UUID): Optional. The ID of the account under which permissions are to be evaluated; This is optional if 'X-elevAIte-projectId' is provided since it can be derived from the project. In case both 'X-elevAIte-AccountId' and 'X-elevAIte-ProjectId' are provided, then they must be associated.
+    - X-elevAIte-ProjectId (UUID): Optional. The ID of the project under which permissions are to be evaluated; This is mandatory for project-only scoped resources and statuses such as Projects, Apikeys, Datasets, Collections, Instances and 'IS_PROJECT_ADMIN'
+    - request_body : The request body which should contain atleast 1 field for rbac permission evaluation.
 
-   Returns:
-   - json containing OVERALL_PERMISSIONS object with 'True' or 'False' boolean value for each requested input field, and additionally may contain SPECIFIC_PERMISSIONS object for each requested input field if requested permission field has more than 1 type, with each type containing bool 'True' or 'False' values; Omitted fields contain 'NOT_EVALUATED' string value
+    Returns:
+    - json containing OVERALL_PERMISSIONS object with 'True' or 'False' boolean value for each requested input field, and additionally may contain SPECIFIC_PERMISSIONS object for each requested input field if requested permission field has more than 1 type, with each type containing bool 'True' or 'False' values; Omitted fields contain 'NOT_EVALUATED' string value
 
    Notes:
    - evaluated permissions for a requested field will always return an 'OVERALL_PERMISSIONS' object containing a 'True' or 'False' boolean value

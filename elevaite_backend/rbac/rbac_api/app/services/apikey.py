@@ -2,7 +2,7 @@
 from fastapi import status, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session, load_only
-from sqlalchemy.exc import  SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import and_, exists
 from typing import List, cast
 from uuid import UUID
@@ -13,11 +13,12 @@ from datetime import UTC
 import secrets
 from fastapi.encoders import jsonable_encoder
 
-from elevaitedb.schemas import (
-   apikey as apikey_schemas,
-   permission as permission_schemas,
+from elevaitelib.schemas import (
+    apikey as apikey_schemas,
+    permission as permission_schemas,
 )
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
+
 from rbac_api import RBACValidatorProvider
 from .utils.apikey_helpers import is_permission_subset
 
@@ -67,8 +68,8 @@ async def create_apikey(
             apikey_overall_permissions = payload_custom_permissions
 
 
-      # generate unique key
-      api_key_value = f"eAI_{secrets.token_urlsafe(16)}"
+        # generate unique key
+        api_key_value = f"eAI_{secrets.token_urlsafe(16)}"
 
       apikey_kwargs = {
         "name": create_apikey_dto.name,

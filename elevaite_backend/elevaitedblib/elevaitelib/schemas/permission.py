@@ -3,9 +3,11 @@ from typing import Optional, Literal, List, Any
 from uuid import UUID
 from datetime import datetime
 from enum import Enum
+
 # define nested structure for AccountScopedRBACPermission which goes into Role.permissions
 # define nested structure for ProjectScopedRBACPermission which goes into User_Project.permission_overrides
 # define nested structure for ApikeyScopedRBACPermission which goes into Apikey.permissions
+
 
 class RBACPermissionScope(str, Enum):
    ACCOUNT_SCOPE = "ACCOUNT_SCOPE"
@@ -75,8 +77,8 @@ class AccountScopedCollectionPermission(BaseModel):
          raise ValueError("At least one field - 'ACTION_READ' or 'ACTION_CREATE' must be provided")
       return values
 
-   class Config:
-      extra = Extra.forbid
+    class Config:
+        extra = Extra.forbid
 
    @classmethod
    def create(cls):
@@ -232,6 +234,7 @@ class ProjectScopedProjectPermission(BaseModel):
       )
 # Permission type for ProjectScoped Project resource type
 
+
 # Permission type for ApikeyScoped Project resource type
 class ApikeyScopedProjectPermission(BaseModel):
    ACTION_SERVICENOW: Optional[AccountScopedServicenowTicketPermission] = Field(None)
@@ -378,8 +381,8 @@ class AccountScopedApplicationIngestPermission(BaseModel):
 class ProjectScopedApplicationIngestPermission(BaseModel):
    ENTITY_Instance: ProjectScopedApplicationInstancePermission = Field(...)
 
-   class Config:
-      extra = Extra.forbid
+    class Config:
+        extra = Extra.forbid
 
    @classmethod
    def create(cls):
@@ -398,14 +401,15 @@ class ApikeyScopedApplicationIngestPermission(BaseModel):
    
    
 # PreprocessPermissionType follows the same structure as IngestPermissionType
-class AccountScopedApplicationPreprocessPermission(AccountScopedApplicationIngestPermission):
-   pass
+class AccountScopedPipelinePreprocessPermission(AccountScopedPipelineIngestPermission):
+    pass
 
 class ProjectScopedApplicationPreprocessPermission(ProjectScopedApplicationIngestPermission):
    pass
 
 class ApikeyScopedApplicationPreprocessPermission(ApikeyScopedApplicationIngestPermission):
    pass 
+
 
 # if generic entity had more than one branching type like 'type1' and 'type2';
 # and each of them have 2 possible values like 'type1value1','type1value2', 'type2value1', 'type2value2',
@@ -424,8 +428,8 @@ class AccountScopedApplicationTypeValues(BaseModel):
          raise ValueError("At least one field from - 'TYPEVALUES_ingest', 'TYPEVALUES_preprocess' must be provided")
       return values
 
-   class Config:
-      extra = Extra.forbid
+    class Config:
+        extra = Extra.forbid
 
    @classmethod
    def create(cls):
@@ -435,10 +439,11 @@ class AccountScopedApplicationTypeValues(BaseModel):
       )
 
 # this class considers all branching type attribute names for entity: TYPENAMES_<type1name>__<type2name>__...
-class AccountScopedApplicationTypeNames(BaseModel):
-   TYPENAMES_applicationType: AccountScopedApplicationTypeValues = Field(...)
-   class Config:
-      extra = Extra.forbid
+class AccountScopedPipelineTypeNames(BaseModel):
+    TYPENAMES_pipelineType: AccountScopedPipelineTypeValues = Field(...)
+
+    class Config:
+        extra = Extra.forbid
 
    @classmethod
    def create(cls):
@@ -471,10 +476,11 @@ class ProjectScopedApplicationTypeValues(BaseModel):
       )
    
 # this class considers all branching type attribute names for entity: TYPENAMES_<type1name>__<type2name>__...
-class ProjectScopedApplicationTypeNames(BaseModel):
-   TYPENAMES_applicationType: ProjectScopedApplicationTypeValues = Field(...)
-   class Config:
-      extra = Extra.forbid
+class ProjectScopedPipelineTypeNames(BaseModel):
+    TYPENAMES_pipelineType: ProjectScopedPipelineTypeValues = Field(...)
+
+    class Config:
+        extra = Extra.forbid
 
    @classmethod
    def create(cls):
@@ -556,6 +562,7 @@ class ProjectScopedRBACPermission(BaseModel):
          ENTITY_Project=ProjectScopedProjectPermission.create(),
          ENTITY_Application=ProjectScopedApplicationTypeNames.create()
       )
+
 
 class ApikeyScopedRBACPermission(BaseModel):
    ENTITY_Project: Optional[ApikeyScopedProjectPermission] = Field(None) 

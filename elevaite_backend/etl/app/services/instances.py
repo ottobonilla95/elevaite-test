@@ -1,24 +1,19 @@
-from datetime import datetime
 import uuid
 import json
-from pprint import pprint
-from typing import Any, List, Type, Callable
+from typing import List, Callable
 import elasticsearch
 from fastapi import HTTPException
+import fastjsonschema
+from flytekit.remote import FlyteRemote
 from sqlalchemy.orm import Session, Query
-
 import pika
 from app.util.name_generator import get_random_name
 from app.util.RedisSingleton import RedisSingleton
 from app.util.ElasticSingleton import ElasticSingleton
 from elevaitelib.util import func as util_func
-from elevaitelib.schemas.application import is_application
 from elevaitelib.schemas.instance import (
-    Instance,
     InstanceChartData,
     InstanceCreate,
-    InstancePipelineStepStatus,
-    InstancePipelineStepStatusUpdate,
     InstanceStatus,
     InstanceUpdate,
     InstanceCreateDTO,
@@ -29,15 +24,12 @@ from elevaitelib.schemas.instance import (
 from elevaitelib.schemas.pipeline import Pipeline, PipelineStepStatus, is_pipeline
 from elevaitelib.schemas.configuration import (
     Configuration,
-    PreProcessFormDTO,
-    S3IngestFormDataDTO,
     is_configuration,
 )
 from elevaitelib.schemas.dataset import DatasetCreate, is_dataset
 from elevaitelib.schemas.collection import CollectionCreate
 from elevaitelib.orm.crud import (
     pipeline as pipeline_crud,
-    application as application_crud,
     instance as instance_crud,
     configuration as configuration_crud,
     dataset as dataset_crud,
@@ -48,116 +40,97 @@ from elevaitelib.orm.db import models
 from app.util.func import get_routing_key
 
 
-def getApplicationInstances(
+def getInstancesOfPipeline(
     db: Session,
-    application_id: int,
+    pipeline_id: str,
     # project_id: uuid.UUID, # uncomment this when using validator
     # filter_function: Callable[[Query], Query], # uncomment this when using validator
 ) -> List[models.Instance]:
-    instances = instance_crud.get_instances(
-        db,
-        application_id,
-        # project_id, # uncomment this when using validator
+    instances = instance_crud.get_instances_of_pipeline(
+        db=db,
+        pipelineId=pipeline_id,
+        # project_id=project_id, # uncomment this when using validator
         # filter_function=filter_function, # uncomment this when using validator
         limit=100,
     )
     return instances
 
 
-def getApplicationInstanceById(
-    db: Session, application_id: int, instance_id: str
-) -> models.Instance:
-    _instance = instance_crud.get_instance_by_id(db, application_id, instance_id)
+def getInstanceById(db: Session, instance_id: str) -> models.Instance:
+    _instance = instance_crud.get_instance_by_id(db=db, id=instance_id)
     if _instance is None:
         raise HTTPException(404, "Instance not found")
     return _instance
 
 
-def createApplicationInstance(
+def createInstance(
     db: Session,
-    application_id: int,
     createInstanceDto: InstanceCreateDTO,
     rmq: pika.BlockingConnection,
+    remote: FlyteRemote,
 ) -> models.Instance:
-
-    # TODO: This will be changed with the pipeline rework
-    app = application_crud.get_application_by_id(db, application_id)
-
-    if not is_application(app):
-        raise HTTPException(status_code=404, detail="Application not found")
-
     _configuration = configuration_crud.get_configuration_by_id(
-        db, application_id=application_id, id=str(createInstanceDto.configurationId)
+        db, id=str(createInstanceDto.configurationId)
     )
 
     if _configuration is None:
         raise HTTPException(404, "Configuration not found")
 
-    _raw_configuration = _configuration.raw
-    if _raw_configuration["type"] == "ingest":
-        _conf = S3IngestFormDataDTO(**_raw_configuration)
-    elif _raw_configuration["type"] == "preprocess":
-        _conf = PreProcessFormDTO(**_raw_configuration)
-        if _conf.collectionId is None:
-            _collection = collection_crud.create_collection(
-                db=db,
-                projectId=_conf.projectId,
-                cc=CollectionCreate(name=get_random_name(), size=1536),
-            )
-        else:
-            _collection = collection_crud.get_collection_by_id(
-                db=db, collectionId=_conf.collectionId
-            )
-        _conf.collectionId = str(_collection.id)
-        _raw_configuration["collectionId"] = str(_collection.id)
-    else:
-        raise HTTPException(
-            status_code=402, detail="Configuration Type must be ingest or preprocess"
-        )
+    _pipeline = pipeline_crud.get_pipeline_by_id(
+        db=db, pipeline_id=str(createInstanceDto.pipelineId)
+    )
 
-    _pipeline = pipeline_crud.get_pipeline_by_id(db, _conf.selectedPipelineId)
+    if _pipeline is None or not is_pipeline(_pipeline):
+        raise HTTPException(404, "Pipeline not found")
+
+    input_schema = json.loads(_pipeline.input)
+    validator = fastjsonschema.compile(input_schema)
+
+    try:
+        validator(_configuration.raw)  # type: ignore
+    except fastjsonschema.JsonSchemaException as e:
+        raise HTTPException(400, "Configuration raw data is invalid")
 
     # _dataset = None
 
-    if not _conf.datasetId:
-        datasetName = (
-            _conf.datasetName if _conf.datasetName is not None else get_random_name()
-        )
-        _dataset = dataset_crud.create_dataset(
-            db,
-            dataset_create=DatasetCreate(
-                name=datasetName, projectId=createInstanceDto.projectId, description=""
-            ),
-        )
-        tags = dataset_crud.get_dataset_tags(db=db)
-        _source_tag = list(filter(lambda x: x.name == "Source", tags))
-        if len(_source_tag) == 1:
-            source_tag = _source_tag[0]
-            dataset_crud.add_tag_to_dataset(
-                db=db, dataset_id=str(_dataset.id), tag_id=str(source_tag.id)
-            )
+    # if not _conf.datasetId:
+    #     datasetName = (
+    #         _conf.datasetName if _conf.datasetName is not None else get_random_name()
+    #     )
+    #     _dataset = dataset_crud.create_dataset(
+    #         db,
+    #         dataset_create=DatasetCreate(
+    #             name=datasetName, projectId=createInstanceDto.projectId, description=""
+    #         ),
+    #     )
+    #     tags = dataset_crud.get_dataset_tags(db=db)
+    #     _source_tag = list(filter(lambda x: x.name == "Source", tags))
+    #     if len(_source_tag) == 1:
+    #         source_tag = _source_tag[0]
+    #         dataset_crud.add_tag_to_dataset(
+    #             db=db, dataset_id=str(_dataset.id), tag_id=str(source_tag.id)
+    #         )
 
-    else:
-        _dataset = dataset_crud.get_dataset_by_id(db, _conf.datasetId)
-        if not is_dataset(_dataset):
-            raise HTTPException(status_code=404, detail="Dataset not found")
+    # else:
+    #     _dataset = dataset_crud.get_dataset_by_id(db, _conf.datasetId)
+    #     if not is_dataset(_dataset):
+    #         raise HTTPException(status_code=404, detail="Dataset not found")
 
-    _conf.datasetId = str(_dataset.id)
-    _raw_configuration["datasetId"] = str(_dataset.id)
+    # _conf.datasetId = str(_dataset.id)
+    # _raw_configuration["datasetId"] = str(_dataset.id)
 
     _instance_create = InstanceCreate(
-        applicationId=application_id,
         creator=createInstanceDto.creator,
-        datasetId=_dataset.id,
         startTime=util_func.get_iso_datetime(),
-        selectedPipelineId=_pipeline.id,
+        pipelineId=_pipeline.id,
         name=createInstanceDto.instanceName,
         status=InstanceStatus.STARTING,
         configurationId=_configuration.id,
-        configurationRaw=json.dumps(_raw_configuration),
+        configurationRaw=_configuration.raw,
         projectId=createInstanceDto.projectId,
         comment=None,
         endTime=None,
+        executionId=None,
     )
 
     _instance = instance_crud.create_instance(db, _instance_create)
@@ -171,88 +144,74 @@ def createApplicationInstance(
             comment="Pipeline was not found.", status=InstanceStatus.FAILED
         )
         res = instance_crud.update_instance(
-            db, application_id, str(_instance.id), _instance_update
+            db=db, instance_id=str(_instance.id), updateInstanceDTO=_instance_update
         )
         return res
 
-    for ps in _pipeline.steps:
-        _status = PipelineStepStatus.IDLE
-        _start_time = None
-        if ps.id == _pipeline.entry:
-            _status = PipelineStepStatus.RUNNING
-            _start_time = util_func.get_iso_datetime()
-        _ipss = InstancePipelineStepStatus(
-            stepId=ps.id,
-            instanceId=_instance.id,
-            status=_status,
-            startTime=_start_time,
-            endTime=None,
-            meta=[],
-        )
-        _instance_pipeline_step = instance_crud.add_pipeline_step(
-            db, str(_instance.id), _ipss
-        )
-
-    _data = {
-        "id": str(_instance.id),
-        "dto": _raw_configuration,
-        "configurationName": _configuration.name,
-        "application_id": application_id,
-    }
-
-    rmq.channel().basic_publish(
-        exchange="",
-        body=json.dumps(_data, default=vars),
-        routing_key=get_routing_key(application_id=application_id),
-    )
-    # # Maybe we should do this like this?
-    #     return instance_crud.get_instance_by_id(
-    #         db, applicationId=application_id, id=_instance.id
+    # for ps in _pipeline.steps:
+    #     _status = PipelineStepStatus.IDLE
+    #     _start_time = None
+    #     if ps.id == _pipeline.entry:
+    #         _status = PipelineStepStatus.RUNNING
+    #         _start_time = util_func.get_iso_datetime()
+    #     _ipss = InstancePipelineStepStatus(
+    #         stepId=ps.id,
+    #         instanceId=_instance.id,
+    #         status=_status,
+    #         startTime=_start_time,
+    #         endTime=None,
+    #         meta=[],
+    #     )
+    #     _instance_pipeline_step = instance_crud.add_pipeline_step(
+    #         db, str(_instance.id), _ipss
     #     )
 
-    __instance = instance_crud.get_instance_by_id(
-        db, applicationId=application_id, id=str(_instance.id)
+    wf = remote.fetch_workflow(name=_pipeline.flyte_name)
+
+    exec = remote.execute(wf, inputs=_configuration.raw)
+    instance_crud.update_instance(
+        db=db,
+        instance_id=str(_instance.id),
+        updateInstanceDTO=InstanceUpdate(executionId=exec.id),
     )
+
+    __instance = instance_crud.get_instance_by_id(db, id=str(_instance.id))
 
     return __instance
 
+    # def approveInstance(db: Session, instance_id: str) -> Instance:
 
-def approveApplicationInstance(
-    db: Session, application_id: int, instance_id: str
-) -> Instance:
+    #     _end_time = util_func.get_iso_datetime()
+    #     _instance = instance_crud.update_instance(
+    #         db=db,
+    #         instance_id=instance_id,
+    #         updateInstanceDTO=InstanceUpdate(
+    #             status=InstanceStatus.COMPLETED, endTime=_end_time
+    #         ),
+    #     )
 
-    _end_time = util_func.get_iso_datetime()
-    _instance = instance_crud.update_instance(
-        db,
-        application_id,
-        instance_id,
-        InstanceUpdate(status=InstanceStatus.COMPLETED, endTime=_end_time),
-    )
+    #     if not is_instance(_instance):
+    #         raise HTTPException(500, "Error updating instance.")
 
-    if not is_instance(_instance):
-        raise HTTPException(500, "Error updating instance.")
+    #     _pipeline = pipeline_crud.get_pipeline_by_id(
+    #         db=db, pipeline_id=str(_instance.pipelineId)
+    #     )
+    #     if not is_pipeline(_pipeline):
+    #         raise HTTPException(500, "Selected Pipeline doesn't exist")
 
-    _pipeline = pipeline_crud.get_pipeline_by_id(
-        db=db, pipeline_id=str(_instance.selectedPipelineId)
-    )
-    if not is_pipeline(_pipeline):
-        raise HTTPException(500, "Selected Pipeline doesn't exist")
+    #     _ipss = instance_crud.update_pipeline_step(
+    #         db=db,
+    #         instance_id=instance_id,
+    #         step_id=str(_pipeline.exit),
+    #         dto=InstancePipelineStepStatusUpdate(
+    #             endTime=_end_time, status=PipelineStepStatus.COMPLETED
+    #         ),
+    #     )
 
-    _ipss = instance_crud.update_pipeline_step(
-        db=db,
-        instance_id=instance_id,
-        step_id=str(_pipeline.exit),
-        dto=InstancePipelineStepStatusUpdate(
-            endTime=_end_time, status=PipelineStepStatus.COMPLETED
-        ),
-    )
-
-    return getApplicationInstanceById(db, application_id, instance_id)
+    # return getInstanceById(db=db, instance_id=instance_id)
 
 
-def getApplicationInstanceChart(
-    application_id: int, instance_id: str
-) -> InstanceChartData:
+def getInstanceChart(instance_id: str) -> InstanceChartData:
     r = RedisSingleton().connection
 
     if not r.ping():
@@ -265,17 +224,22 @@ def getApplicationInstanceChart(
     return chart_data_from_redis(input=res)
 
 
-def getApplicationInstanceConfiguration(
-    db: Session, application_id: int, instance_id: str
+def getInstanceConfiguration(
+    db: Session, pipeline_id: str, instance_id: str
 ) -> Configuration:
-    res = configuration_crud.get_configuration_by_id(db, application_id, instance_id)
+    instance = instance_crud.get_instance_by_id(db=db, id=instance_id)
+    if not is_instance(instance):
+        raise HTTPException(404, "Instance not found")
+    res = configuration_crud.get_configuration_by_id(
+        db=db, id=str(instance.configurationId)
+    )
     if not is_configuration(res):
         raise HTTPException(404, "Configuration not found")
 
     return res
 
 
-def getApplicationInstanceLogs(instance_id: str, limit: int = 100, offset: int = 0):
+def getInstanceLogs(instance_id: str, limit: int = 100, offset: int = 0):
     es = ElasticSingleton()
     result: list[InstanceLogs] = []
     try:

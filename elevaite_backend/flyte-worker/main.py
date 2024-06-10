@@ -5,6 +5,7 @@ import flytekit
 from flytekit.models.common import NamedEntityIdentifier
 from flytekit.models.admin.workflow import Workflow
 from flytekit.models.core.identifier import Identifier
+from flytekit.models.filters import Filter, FilterList
 from flytekit.configuration import Config, ImageConfig, PlatformConfig
 from flytekit.tools.translator import Options
 from flyteidl.service import admin_pb2_grpc
@@ -13,10 +14,7 @@ from flytekit.remote import FlyteRemote, FlyteWorkflow
 from flytekit.configuration import SerializationSettings, FastSerializationSettings
 from elevaitelib.rpc import start_rpc_server, RPCClient
 
-from worker.workflows.s3_ingest import (
-    s3_ingest_workflow as s3_ingest_wf,
-    S3IngestData,
-)
+from worker.workflows.s3_ingest import S3IngestData
 from worker.workflows.example import wf as example_wf
 from worker.util.func import get_flyte_remote, get_secrets, get_secrets_dict
 
@@ -29,31 +27,40 @@ def main():
     client = SynchronousFlyteClient(cfg=PlatformConfig(insecure=True))
 
     res = client.list_workflows_paginated(
-        identifier=NamedEntityIdentifier(project="elevaite", domain="development")
+        identifier=NamedEntityIdentifier(project="elevaite", domain="development"),
     )
-    for a in res[0]:
-        print(f"{a.id.name}, {a.id.version}")
-        pprint(a.closure._compiled_workflow.__dict__, depth=10)
+    # for a in res[0]:
+    #     print(f"{a.id.name}, {a.id.version}")
+    #     pprint(a.closure.compiled_workflow.tasks, depth=10)
 
-    for node in s3_ingest_wf.nodes:
-        pprint(node.flyte_entity.__dict__)
-        print(node.id)
-        print()
+    # res2 = client.list_workflow_ids_paginated(project="elevaite", domain="development")
+    # pprint(res2[0])
 
-    print("Awaiting Messages")
+    res3 = client.get_workflow(res[0][1].id)
+    pprint(res3.closure.compiled_workflow)
 
-    wf = remote.fetch_workflow(
-        name="flyte-worker.worker.workflows.s3_ingest_poc.s3_ingest_poc_workflow"
-    )
+    # for t in res3.closure.compiled_workflow.tasks:
+    #     pprint(t.template.__dict__)
 
-    # remote.
+    # for node in s3_ingest_wf.nodes:
+    #     pprint(node.flyte_entity.__dict__)
+    #     print(node.id)
+    #     print()
 
-    if wf.flyte_tasks is not None:
-        print(len(wf.flyte_tasks))
-        for task in wf.flyte_tasks:
-            pprint(task.id)
+    # print("Awaiting Messages")
 
-    pprint(S3IngestData.schema())
+    # wf = remote.fetch_workflow(
+    #     name="flyte-worker.worker.workflows.s3_ingest_poc.s3_ingest_poc_workflow"
+    # )
+
+    # # remote.
+
+    # if wf.flyte_tasks is not None:
+    #     print(len(wf.flyte_tasks))
+    #     for task in wf.flyte_tasks:
+    #         pprint(task.id)
+
+    # pprint(S3IngestData.schema())
 
     # exec = remote.execute(
     #     wf,

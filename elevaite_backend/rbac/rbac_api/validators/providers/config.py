@@ -1,4 +1,4 @@
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
 from elevaitelib.schemas import permission as permission_schemas
 
 # include all models in routes here
@@ -6,7 +6,7 @@ model_classStr_to_class = {
     "Account": models.Account,
     "Project": models.Project,
     "User": models.User,
-    "Application": models.Application,
+    "Pipeline": models.Pipeline,
     "Instance": models.Instance,
     "Configuration": models.Configuration,
     "Dataset": models.Dataset,
@@ -21,7 +21,6 @@ model_classStr_to_class = {
 # It is only important that for entities involved in a certain endpoint, the inner entities should be to the right of the inner entities
 validation_precedence_order = [
     models.Project,
-    models.Application,
     models.Configuration,
     models.Instance,
     models.Dataset,

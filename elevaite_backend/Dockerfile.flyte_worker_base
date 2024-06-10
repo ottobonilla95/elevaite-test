@@ -22,12 +22,14 @@ ENV POETRY_NO_INTERACTION=1 \
 
 # WORKDIR /elevaite
 
-COPY elevaite_client/dist/elevaite_client-0.1.1-py3-none-any.whl /root
+COPY elevaite_client/ /root/elevaite_client
+WORKDIR /root/elevaite_client
+RUN poetry build
 
 # Install Python dependencies
 COPY flyte-worker/requirements.txt /root
 RUN pip install -r /root/requirements.txt
-RUN pip install ./elevaite_client-0.1.1-py3-none-any.whl
+RUN pip install /root/elevaite_client/dist/elevaite_client-0.1.2-py3-none-any.whl
 
 # Copy the actual code
 # COPY flyte-worker /root

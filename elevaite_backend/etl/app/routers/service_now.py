@@ -30,11 +30,9 @@ from app.util.func import get_routing_key
 from .deps import get_rabbitmq_connection
 from elevaitelib.orm.crud import (
     pipeline as pipeline_crud,
-    application as application_crud,
     instance as instance_crud,
     configuration as configuration_crud,
     dataset as dataset_crud,
-    collection as collection_crud,
 )
 from elevaitedb.util import func as util_func
 
@@ -93,10 +91,11 @@ def ingestServiceNowTickets(
         version=None,
     )
     _conf_create = ConfigurationCreate(
-        applicationId=1,
         isTemplate=False,
         name=f"{dto.dataset_name}-conf",
         raw=_conf_raw,
+        pipelineId=str(_pipeline.id),
+        datasetId=str(_dataset.id),
     )
     _conf = configuration_crud.create_configuration(
         db=db, configurationCreate=_conf_create
@@ -105,15 +104,13 @@ def ingestServiceNowTickets(
     _instance = instance_crud.create_instance(
         db=db,
         createInstanceDTO=InstanceCreate(
-            applicationId=1,
             comment=None,
             configurationId=_conf.id,
             configurationRaw=json.dumps(_conf_raw.json()),
             creator="ServiceNow",
-            datasetId=_dataset.id,
             name=f"{dto.dataset_name}-instance",
             projectId=uuid.UUID(projectId),
-            selectedPipelineId=uuid.UUID(pipelineId),
+            pipelineId=uuid.UUID(pipelineId),
             startTime=util_func.get_iso_datetime(),
             status=InstanceStatus.STARTING,
             endTime=None,

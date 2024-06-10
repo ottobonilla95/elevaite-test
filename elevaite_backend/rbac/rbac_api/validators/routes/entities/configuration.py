@@ -8,8 +8,8 @@ from rbac_api.app.errors.api_error import ApiError
 from pprint import pprint
 from typing import Any, Optional, Type, Callable, Dict
 
-from elevaitedb.db import models
-from elevaitedb.schemas import (
+from elevaitelib.orm.db import models
+from elevaitelib.schemas import (
     application as application_schemas,
     api as api_schemas,
 )

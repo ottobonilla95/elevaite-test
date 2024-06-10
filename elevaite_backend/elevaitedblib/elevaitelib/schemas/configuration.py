@@ -51,8 +51,9 @@ class ServiceNowIngestDataDTO(BaseDatasetInformationForm):
 
 
 class ConfigurationBase(BaseModel):
-    applicationId: int
-    raw: S3IngestFormDataDTO | PreProcessFormDTO | ServiceNowIngestDataDTO
+    pipelineId: str
+    datasetId: str
+    raw: Json
     name: str
     isTemplate: bool
 

@@ -6,35 +6,36 @@ from ...schemas import instance as schema
 from typing import Type, Callable
 
 
-def get_instances(
+def get_instances(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Instance).offset(skip).limit(limit).all()
+
+
+def get_instances_of_pipeline(
     db: Session,
-    applicationId: int,
-    # project_id: UUID, # uncomment this when using validator
-    # filter_function: Callable[[Query], Query], # uncomment this when using validator
+    pipelineId: str,
+    # project_id: UUID,  # uncomment this when using validator
+    # filter_function: Callable[[Query], Query],  # uncomment this when using validator
     skip: int = 0,
     limit: int = 0,
 ):
 
     query = db.query(models.Instance)
-    # if filter_function is not None: # uncomment this when using validator
-    # query = filter_function(query)
+    # if filter_function is not None:  # uncomment this when using validator
+    #     query = filter_function(query)
 
     return (
-        query.filter(models.Instance.applicationId == applicationId)
-        # .filter(models.Instance.projectId == project_id) # uncomment this when using validator
+        query.filter(models.Instance.pipelineId == pipelineId)
+        # .filter(
+        #     models.Instance.projectId == project_id
+        # )  # uncomment this when using validator
         .offset(skip)
         .limit(limit)
         .all()
     )
 
 
-def get_instance_by_id(db: Session, applicationId: int, id: str):
-    return (
-        db.query(models.Instance)
-        .filter(models.Instance.applicationId == applicationId)
-        .filter(models.Instance.id == id)
-        .first()
-    )
+def get_instance_by_id(db: Session, id: str):
+    return db.query(models.Instance).filter(models.Instance.id == id).first()
 
 
 def create_instance(
@@ -46,14 +47,11 @@ def create_instance(
         name=createInstanceDTO.name,
         startTime=createInstanceDTO.startTime,
         status=schema.InstanceStatus.STARTING,
-        datasetId=createInstanceDTO.datasetId,
-        selectedPipelineId=createInstanceDTO.selectedPipelineId,
-        applicationId=createInstanceDTO.applicationId,
+        selectedPipelineId=createInstanceDTO.pipelineId,
         configurationId=createInstanceDTO.configurationId,
         projectId=createInstanceDTO.projectId,
         configurationRaw=createInstanceDTO.configurationRaw,
     )
-    # app.applicationType = createApplicationDTO
     db.add(_instance)
     db.commit()
     db.refresh(_instance)
@@ -74,11 +72,10 @@ def create_instance(
 
 def update_instance(
     db: Session,
-    application_id: int,
     instance_id: str,
     updateInstanceDTO: schema.InstanceUpdate,
 ):
-    _instance = get_instance_by_id(db, applicationId=application_id, id=instance_id)
+    _instance = get_instance_by_id(db, id=instance_id)
     if _instance is None:
         return None
 

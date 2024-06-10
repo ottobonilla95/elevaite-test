@@ -48,10 +48,9 @@ class PipelineStep(PipelineStepBase):
 
 
 class PipelineBase(BaseModel):
-    steps: list[PipelineStep]
-    entry: UUID4
-    exit: UUID4
     label: str
+    flyte_name: str
+    input: str
 
 
 class PipelineCreate(PipelineBase):

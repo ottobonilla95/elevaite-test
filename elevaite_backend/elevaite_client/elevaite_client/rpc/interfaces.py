@@ -85,3 +85,12 @@ class LogInfo(BaseModel):
 
 class DatasetCurrVersionInput(BaseModel):
     dataset_id: str
+
+
+class GetDatasetVersionCommitIdInput(BaseModel):
+    dataset_id: str
+    version: int
+
+
+class GetCollectionNameInput(BaseModel):
+    collection_id: str

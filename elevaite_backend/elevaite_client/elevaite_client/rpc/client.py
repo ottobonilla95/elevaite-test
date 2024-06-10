@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import json
-from typing import Any, Dict
+from typing import Any, Dict, List, Union
 import pika
 import uuid
 from .constants import EXCHANGE_NAME, RPCRoutingKeys
 from .interfaces import (
     CreateDatasetVersionInput,
+    GetCollectionNameInput,
+    GetDatasetVersionCommitIdInput,
     LogInfo,
     MaxDatasetVersionInput,
     PipelineStepStatusInput,
@@ -122,3 +124,39 @@ class RPCClient(object):
         while self.response is None:
             self.connection.process_data_events(time_limit=0)
         return str(self.response, "utf-8")
+
+    def get_dataset_version_commit_id(
+        self, input: GetDatasetVersionCommitIdInput
+    ) -> str:
+        self.response = None
+        self._publish_request(
+            input.json(), RPCRoutingKeys.get_dataset_version_commit_id
+        )
+        while self.response is None:
+            self.connection.process_data_events(time_limit=0)
+        return str(self.response, "utf-8")
+
+    def get_collection_name(self, input: GetCollectionNameInput) -> str:
+        self.response = None
+        self._publish_request(input.json(), RPCRoutingKeys.get_collection_name)
+        while self.response is None:
+            self.connection.process_data_events(time_limit=0)
+        return str(self.response, "utf-8")
+
+
+class RedisRPCHelper:
+    key: str
+    client: RPCClient
+
+    def __init__(self, key: str, client: RPCClient) -> None:
+        self.key = key
+        self.client = client
+
+    def set_value(
+        self,
+        path: str,
+        obj: Union[str, int, float, bool, None, Dict[str, Any], List[Any]],
+    ) -> None:
+        return self.client.set_redis_value(
+            input=SetRedisValueInput(name=self.key, path=path, obj=obj)
+        )

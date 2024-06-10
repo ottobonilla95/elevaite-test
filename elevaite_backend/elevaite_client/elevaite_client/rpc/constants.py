@@ -19,3 +19,5 @@ class RPCRoutingKeys(str, Enum):
     set_redis_value = "set_redis_value"
     get_max_version_of_dataset = "get_max_version_of_dataset"
     create_dataset_version = "create_dataset_version"
+    get_dataset_version_commit_id = "get_dataset_version_commit_id"
+    get_collection_name = "get_collection_name"

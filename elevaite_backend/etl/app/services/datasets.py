@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Type, Callable
 import uuid
 from sqlalchemy.orm import Session, Query
-from elevaitelib.db import models
+from elevaitelib.orm.db import models
 from app.util.name_generator import get_random_name
 from app.util import func as util_func
 from elevaitelib.schemas.dataset import (

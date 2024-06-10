@@ -6,8 +6,8 @@ from typing import Any, Dict, Type, Optional, List, Tuple, Set, Callable
 from collections import OrderedDict
 from uuid import UUID
 
-from elevaitedb.db import models
-from elevaitedb.schemas import (
+from elevaitelib.orm.db import models
+from elevaitelib.schemas import (
    permission as permission_schemas,
    auth as auth_schemas
 )

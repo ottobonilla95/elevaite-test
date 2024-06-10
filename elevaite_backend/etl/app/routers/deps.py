@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 import pika
 from elevaitelib.orm.db.database import SessionLocal
 from qdrant_client import AsyncQdrantClient
+from flytekit.configuration import Config
+from flytekit.remote import FlyteRemote
 
 
 def get_db():
@@ -57,3 +59,14 @@ def get_qdrant_connection():
     if QDRANT_API_KEY is None:
         return AsyncQdrantClient(url=QDRANT_URL)
     return AsyncQdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
+
+
+def get_flyte_remote() -> FlyteRemote:
+    load_dotenv()
+    DEFAULT_DOMAIN = os.getenv("FLYTE_DOMAIN")
+    DEFAULT_PROJECT = os.getenv("FLYTE_PROJECT")
+    return FlyteRemote(
+        config=Config.auto(),
+        default_project=DEFAULT_PROJECT if DEFAULT_PROJECT is not None else "elevaite",
+        default_domain=DEFAULT_DOMAIN if DEFAULT_DOMAIN is not None else "development",
+    )

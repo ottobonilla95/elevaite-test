@@ -394,7 +394,7 @@ async def validate_deassign_user_from_account(
         if logged_in_user.is_superadmin:
             return {"authenticated_entity": logged_in_user}
 
-        # Check for User_Account association
+            # Check for User_Account association
         logged_in_user_account_association = (
             db.query(models.User_Account)
             .filter(
@@ -457,7 +457,7 @@ async def validate_patch_account_admin_status(
                 "logged_in_user_account_association": None,
             }
 
-        # Check if there's an association between the logged-in user and the account
+            # Check if there's an association between the logged-in user and the account
         logged_in_user_account_association = (
             db.query(models.User_Account)
             .filter(

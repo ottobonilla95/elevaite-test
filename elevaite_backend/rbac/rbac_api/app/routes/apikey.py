@@ -4,11 +4,11 @@ from sqlalchemy.orm import Session
 from typing import List, Any
 from uuid import UUID
 
-from elevaitedb.schemas import (
+from elevaitelib.schemas import (
     apikey as apikey_schemas,
     api as api_schemas,
 )
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
 from rbac_api import route_validator_map
 
 from ..services import apikey as service
