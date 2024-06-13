@@ -3,7 +3,7 @@ from typing import List
 
 import requests
 
-from . import EmbeddingInfo
+from .interfaces import EmbeddingInfo
 
 
 def embed_documents(texts: List[str], info: EmbeddingInfo) -> List[List[float]]:

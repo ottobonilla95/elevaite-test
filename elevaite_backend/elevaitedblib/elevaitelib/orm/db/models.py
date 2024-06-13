@@ -22,7 +22,7 @@ from ...schemas.instance import (
     InstancePipelineStepData,
     InstanceStatus,
 )
-from ...schemas.pipeline import PipelineStepStatus
+from ...schemas.pipeline import PipelineSource, PipelineStepStatus
 from ...schemas.permission import ProjectScopedRBACPermission
 from ...schemas.apikey import ApikeyPermissionsType
 from .database import Base
@@ -102,6 +102,8 @@ class Pipeline(Base):
     flyte_name: Mapped[str] = mapped_column()
     label: Mapped[str] = mapped_column()
     input: Mapped[str] = mapped_column()
+    source: Mapped[PipelineSource] = mapped_column(Enum(PipelineSource))
+    creator: Mapped[str] = mapped_column()
 
     configurations: Mapped[List["Configuration"]] = relationship(
         back_populates="pipeline", uselist=True
@@ -445,7 +447,7 @@ class Apikey(Base):
     )
     key: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     permissions: Mapped[Annotated[dict[str, Any], Column(JSONB)]] = mapped_column(
-        type_=JSONB, default=lambda: ProjectScopedRBACPermission.create("Deny").dict()
+        type_=JSONB
     )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)

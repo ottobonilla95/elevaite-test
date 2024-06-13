@@ -2,7 +2,7 @@ import os
 import time
 from typing import List
 
-from . import EmbeddingInfo
+from .interfaces import EmbeddingInfo
 from openai import OpenAI
 
 

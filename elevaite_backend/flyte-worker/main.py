@@ -1,34 +1,34 @@
 import os
-from pprint import pprint
 import sys
-import flytekit
-from flytekit.models.common import NamedEntityIdentifier
-from flytekit.models.admin.workflow import Workflow
-from flytekit.models.core.identifier import Identifier
-from flytekit.models.filters import Filter, FilterList
-from flytekit.configuration import Config, ImageConfig, PlatformConfig
-from flytekit.tools.translator import Options
-from flyteidl.service import admin_pb2_grpc
-from flytekit.clients.friendly import SynchronousFlyteClient
-from flytekit.remote import FlyteRemote, FlyteWorkflow
-from flytekit.configuration import SerializationSettings, FastSerializationSettings
-from elevaitelib.rpc import start_rpc_server, RPCClient
+
+# from pprint import pprint
+# import flytekit
+# from flytekit.models.common import NamedEntityIdentifier
+# from flytekit.models.admin.workflow import Workflow
+# from flytekit.models.core.identifier import Identifier
+# from flytekit.models.filters import Filter, FilterList
+# from flytekit.configuration import Config, ImageConfig, PlatformConfig
+# from flytekit.tools.translator import Options
+# from flyteidl.service import admin_pb2_grpc
+# from flytekit.clients.friendly import SynchronousFlyteClient
+# from flytekit.remote import FlyteRemote, FlyteWorkflow
+# from flytekit.configuration import SerializationSettings, FastSerializationSettings
+from elevaitelib.rpc import start_rpc_server
 
 from worker.workflows.s3_ingest import S3IngestData
-from worker.workflows.example import wf as example_wf
 from worker.util.func import get_flyte_remote, get_secrets, get_secrets_dict
 
 
 def main():
-    # start_rpc_server()
+    start_rpc_server()
 
     remote = get_flyte_remote()
 
-    client = SynchronousFlyteClient(cfg=PlatformConfig(insecure=True))
+    # client = SynchronousFlyteClient(cfg=PlatformConfig(insecure=True))
 
-    res = client.list_workflows_paginated(
-        identifier=NamedEntityIdentifier(project="elevaite", domain="development"),
-    )
+    # res = client.list_workflows_paginated(
+    #     identifier=NamedEntityIdentifier(project="elevaite", domain="development"),
+    # )
     # for a in res[0]:
     #     print(f"{a.id.name}, {a.id.version}")
     #     pprint(a.closure.compiled_workflow.tasks, depth=10)
@@ -36,8 +36,10 @@ def main():
     # res2 = client.list_workflow_ids_paginated(project="elevaite", domain="development")
     # pprint(res2[0])
 
-    res3 = client.get_workflow(res[0][1].id)
-    pprint(res3.closure.compiled_workflow)
+    # res3 = client.get_workflow(res[0][1].id)
+    # pprint(res3.closure.compiled_workflow)
+
+    # remote.fetch_execution()
 
     # for t in res3.closure.compiled_workflow.tasks:
     #     pprint(t.template.__dict__)
@@ -49,9 +51,9 @@ def main():
 
     # print("Awaiting Messages")
 
-    # wf = remote.fetch_workflow(
-    #     name="flyte-worker.worker.workflows.s3_ingest_poc.s3_ingest_poc_workflow"
-    # )
+    wf = remote.fetch_workflow(
+        name="flyte-worker.worker.workflows.s3_ingest.s3_ingest_workflow"
+    )
 
     # # remote.
 
@@ -62,22 +64,25 @@ def main():
 
     # pprint(S3IngestData.schema())
 
-    # exec = remote.execute(
-    #     wf,
-    #     inputs={
-    #         "input": S3IngestData(
-    #             applicationId=1,
-    #             datasetId="3abcba29-490c-441f-bb37-28743afa28f0",
-    #             projectId="7f66ade4-2bf0-4d46-a2dc-c2aee9e9e043",
-    #             instanceId="06ae4f5f-6f93-4b70-9eaf-d24573ded430",
-    #             roleARN="",
-    #             type="s3_ingest",
-    #             url="s3://training-data-webex/uncompressed/data/",
-    #             useEC2=False,
-    #         ).dict(),
-    #     },
-    #     envs=get_secrets_dict(),
-    # )
+    exec = remote.execute(
+        wf,
+        inputs={
+            "data": {
+                "datasetId": "3abcba29-490c-441f-bb37-28743afa28f0",
+                "projectId": "7f66ade4-2bf0-4d46-a2dc-c2aee9e9e043",
+                "instanceId": "06ae4f5f-6f93-4b70-9eaf-d24573ded430",
+                "roleARN": "",
+                "url": "s3://training-data-webex/uncompressed/data/",
+                "useEC2": False,
+            },
+        },
+        envs=get_secrets_dict(),
+    )
+
+    execname = exec.id.name
+
+    exec2 = remote.fetch_execution(name=execname)
+    exec2
 
 
 if __name__ == "__main__":

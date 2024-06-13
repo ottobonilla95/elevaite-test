@@ -6,7 +6,7 @@ from typing import Optional
 from rbac_api.app.errors.api_error import ApiError
 from rbac_api.auth.impl import AccessTokenAuthentication
 from rbac_api.utils.deps import get_db
-from elevaitedb.schemas import (
+from elevaitelib.schemas import (
     auth as auth_schemas,
     api as api_schemas,
 )

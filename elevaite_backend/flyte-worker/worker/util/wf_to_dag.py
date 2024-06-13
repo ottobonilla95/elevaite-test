@@ -1,9 +1,16 @@
 from enum import Enum
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional, TypeGuard, TypedDict
 
 from pydantic import BaseModel
 from flytekit.models.core.compiler import CompiledWorkflowClosure, CompiledWorkflow
-from flytekit.models.core.workflow import BranchNode, WorkflowNode, GateNode
+from flytekit.models.core.workflow import (
+    BranchNode,
+    WorkflowNode,
+    GateNode,
+    ArrayNode,
+    Node,
+    TaskNode,
+)
 from flytekit.remote import FlyteWorkflow, FlyteNode, FlyteTask
 
 startNodeId = "start-node"
@@ -70,6 +77,7 @@ class CompiledNode(BaseModel):
     branchNode: Optional[BranchNode]
     workflowNode: Optional[WorkflowNode]
     gateNode: Optional[GateNode]
+    arrayNode: Optional[ArrayNode]
     # sourceId: str
     # targetId: str
 
@@ -142,6 +150,12 @@ def getNodeTypeFromCompiledNode(node: FlyteNode) -> dTypes:
 
     return dTypes.task
 
+def getNodeExecutionDetails(node: dNode, tasks: List[CompiledTask]) -> NodeExecutionInfo:
+    if node.value is None: 
+        raise Exception("Not sure what to do")
+    taskNode = node.value.array_node.node.task_node if node.value.array_node is not None else node.value.task_node
+    taskType = getTaskTypeFromCompiledNode(taskNode=taskNode, tasks=tasks) # type: ignore
+    
 
 def getDisplayName(context: Any, truncate: bool = True):
     displayName = ""
@@ -161,7 +175,7 @@ def getDisplayName(context: Any, truncate: bool = True):
     return displayName
 
 
-def createDNode(props: CreateDNodeProps):
+def createDNode(props: CreateDNodeProps) -> dNode:
     nodeValue = (
         props.compiledNode
         if props.taskTemplate is None
@@ -204,7 +218,7 @@ def createDNode(props: CreateDNodeProps):
     output = dNode(
         id=props.compiledNode.id,
         scopedId=scopedId,
-        value=nodeValue,
+        value=nodeValue,  # type: ignore
         type=type,
         edges=[],
         nodes=[],
@@ -212,6 +226,197 @@ def createDNode(props: CreateDNodeProps):
         name=getDisplayName(props.compiledNode),
         **nodeMetadata.__dict__,
     )
+    if not isStartOrEndNode(node=props.compiledNode):
+        nodeExecutionInfo = 
+
+    return output
+
+
+def buildDAG(
+    contextWorkflow,
+    contextCompiledNode,
+    compiledWorkflowClosure,
+    graphType,
+    nodeMetadataMap,
+    root,
+    staticExecutionIdsMap,
+):
+    match (graphType):
+        case dTypes.branch:
+            parseBranch(
+                root=root,
+                contextCompiledNode=contextCompiledNode,
+                nodeMetadataMap=nodeMetadataMap,
+                staticExecutionIdsMap=staticExecutionIdsMap,
+                workflow=compiledWorkflowClosure,
+            )
+        # case dTypes.subworkflow:
+        #     parseWorkflow()
+        # case dTypes.primary:
+        #     parseWorkflow()
+
+
+def parseBranch(
+    root,
+    contextCompiledNode: CompiledNode,
+    nodeMetadataMap,
+    staticExecutionIdsMap,
+    workflow,
+):
+    otherNode = (
+        contextCompiledNode.branchNode.if_else.other
+        if contextCompiledNode.branchNode is not None
+        else None
+    )
+    thenNode = (
+        contextCompiledNode.branchNode.if_else.case.then_node
+        if contextCompiledNode.branchNode is not None
+        else None
+    )
+    elseNode = (
+        contextCompiledNode.branchNode.if_else.else_node
+        if contextCompiledNode.branchNode is not None
+        else None
+    )
+
+    if thenNode:
+        parseNode()
+
+
+def parseNode(
+    node: Node,
+    root: dNode,
+    nodeMetadataMap,
+    staticExecutionIdsMap,
+    compiledWorkflowClosure: CompiledWorkflowClosure,
+):
+    _dNode: dNode
+    if node.branch_node:
+        _dNode = createDNode(
+            CreateDNodeProps(
+                {
+                    "compiledNode": node,
+                    "parentDNode": root,
+                    "nodeMetadataMap": nodeMetadataMap,
+                    "staticExecutionIdsMap": staticExecutionIdsMap,
+                    "compiledWorkflowClosure": compiledWorkflowClosure,
+                }
+            )
+        )
+        buildDAG(
+            root=_dNode,
+            contextCompiledNode=node,
+            graphType=dTypes.branch,
+            nodeMetadataMap=nodeMetadataMap,
+            staticExecutionIdsMap=staticExecutionIdsMap,
+            compiledWorkflowClosure=compiledWorkflowClosure,
+            contextWorkflow=None,
+        )
+    elif node.workflow_node:
+        if node.workflow_node.launchplan_ref:
+            _dNode = createDNode(
+                CreateDNodeProps(
+                    {
+                        "compiledNode": node,
+                        "parentDNode": root,
+                        "nodeMetadataMap": nodeMetadataMap,
+                        "staticExecutionIdsMap": staticExecutionIdsMap,
+                        "compiledWorkflowClosure": compiledWorkflowClosure,
+                    }
+                )
+            )
+        else:
+            id = node.workflow_node.sub_workflow_ref
+            subworkflow = getSubWorkflowFromId(id, compiledWorkflowClosure)
+            _dNode = createDNode(
+                CreateDNodeProps(
+                    {
+                        "compiledNode": node,
+                        "parentDNode": root,
+                        "nodeMetadataMap": nodeMetadataMap,
+                        "staticExecutionIdsMap": staticExecutionIdsMap,
+                        "compiledWorkflowClosure": compiledWorkflowClosure,
+                    }
+                )
+            )
+            buildDAG(
+                root=_dNode,
+                contextCompiledNode=node,
+                graphType=dTypes.branch,
+                nodeMetadataMap=nodeMetadataMap,
+                staticExecutionIdsMap=staticExecutionIdsMap,
+                compiledWorkflowClosure=compiledWorkflowClosure,
+                contextWorkflow=None,
+            )
+    elif node.array_node:
+        arrayNode = node.array_node.node
+        taskNode = arrayNode.task_node
+        taskType = getTaskTypeFromCompiledNode(taskNode=taskNode, tasks=compiledWorkflowClosure.tasks)  # type: ignore
+        _dNode = createDNode(
+            CreateDNodeProps(
+                {
+                    "compiledNode": node,
+                    "parentDNode": root,
+                    "nodeMetadataMap": nodeMetadataMap,
+                    "staticExecutionIdsMap": staticExecutionIdsMap,
+                    "compiledWorkflowClosure": compiledWorkflowClosure,
+                    "taskTemplate": taskType,
+                }
+            )
+        )
+    elif node.task_node:
+        taskType = getTaskTypeFromCompiledNode(
+            taskNode=node.task_node, tasks=compiledWorkflowClosure.tasks
+        )
+        _dNode = createDNode(
+            CreateDNodeProps(
+                {
+                    "compiledNode": node,
+                    "parentDNode": root,
+                    "nodeMetadataMap": nodeMetadataMap,
+                    "staticExecutionIdsMap": staticExecutionIdsMap,
+                    "compiledWorkflowClosure": compiledWorkflowClosure,
+                    "taskTemplate": taskType,
+                }
+            )
+        )
+    else:
+        _dNode = createDNode(
+            CreateDNodeProps(
+                {
+                    "compiledNode": node,
+                    "parentDNode": root,
+                    "nodeMetadataMap": nodeMetadataMap,
+                    "staticExecutionIdsMap": staticExecutionIdsMap,
+                    "compiledWorkflowClosure": compiledWorkflowClosure,
+                }
+            )
+        )
+    root.nodes.append(_dNode)
+
+
+def isCompiledWorkflowClosure(obj: Any) -> TypeGuard[CompiledWorkflowClosure]:
+    return type(obj) == "object" and obj.primary is not None
+
+
+def getSubWorkflowFromId(id, workflow: CompiledWorkflowClosure | CompiledWorkflow):
+    subworkflows: List[CompiledWorkflow] = (
+        workflow.sub_workflows if isCompiledWorkflowClosure(workflow) else []
+    )
+
+    for k in subworkflows:
+        if k.template.id == id:
+            return k
+    return None
+
+
+def getTaskTypeFromCompiledNode(taskNode: TaskNode, tasks: List[CompiledTask]):
+    if taskNode.reference_id is None:
+        return None
+    for task in tasks:
+        if taskNode.reference_id == task.template.id:
+            return task
+    return None
 
 
 def workflowToDagTransformer(
@@ -232,3 +437,8 @@ def workflowToDagTransformer(
             }
         )
     )
+
+    dag: dNode
+
+    # try:
+    #     dag = buildDAG()

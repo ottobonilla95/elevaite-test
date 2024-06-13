@@ -1,4 +1,6 @@
-from enum import Enum 
+from enum import Enum
+
+
 class LogLevel(str, Enum):
-   INFO = "info"
-   ERROR = "error"
+    INFO = "info"
+    ERROR = "error"

@@ -2,7 +2,6 @@
 
 from typing import Any, Dict
 from flytekit import task, workflow
-import lakefs
 import boto3
 from pydantic import BaseModel
 
@@ -22,7 +21,6 @@ from ..util.func import get_secrets, get_secrets_dict, path_leaf
 
 
 class S3IngestData(BaseModel):
-    type: str = "s3_ingest"
     projectId: str
     datasetId: str
     instanceId: str
@@ -32,7 +30,7 @@ class S3IngestData(BaseModel):
 
 
 @task(enable_deck=True, environment=get_secrets_dict())
-def s3_ingest(_data: Dict[str, str | int | bool | Any]):
+def s3_ingest(_data: dict):
     data = S3IngestData.parse_obj(_data)
     secrets = get_secrets()
     LAKEFS_ACCESS_KEY_ID = secrets.LAKEFS_ACCESS_KEY_ID
@@ -161,5 +159,5 @@ def s3_ingest(_data: Dict[str, str | int | bool | Any]):
 
 
 @workflow()
-def s3_ingest_poc_workflow(data: Dict[str, str | int | bool | Any]):
+def s3_ingest_workflow(data: dict):
     s3_ingest(_data=data)

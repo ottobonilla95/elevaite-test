@@ -9,8 +9,8 @@ from rbac_api.app.errors.api_error import ApiError
 import os
 from rbac_api.auth.impl import AccessTokenAuthentication
 
-from elevaitedb.db import models
-from elevaitedb.schemas import (
+from elevaitelib.orm.db import models
+from elevaitelib.schemas import (
     api as api_schemas,
 )
 from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider

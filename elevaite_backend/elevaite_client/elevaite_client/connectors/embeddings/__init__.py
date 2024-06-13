@@ -4,31 +4,7 @@ import uuid
 from pydantic import BaseModel
 import tiktoken
 from . import openai, elevaite
-
-
-class EmbeddingType(str, Enum):
-    OPENAI = "openai"
-    LOCAL = "local"
-    EXTERNAL = "external"
-
-
-class EmbeddingInfo(BaseModel):
-    type: EmbeddingType
-    inference_url: Optional[str]
-    name: str
-    dimensions: int
-
-
-class EmbeddingResult(BaseModel):
-    payload: "ChunkAsJson"
-    vectors: List[List[float]]
-    id: str
-    token_size: int
-
-
-class ChunkAsJson(BaseModel):
-    metadata: Dict[str, Any]
-    page_content: str
+from .interfaces import EmbeddingType, EmbeddingInfo, EmbeddingResult, ChunkAsJson
 
 
 def get_token_size(content: str) -> int:

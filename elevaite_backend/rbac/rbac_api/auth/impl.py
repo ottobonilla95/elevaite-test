@@ -6,11 +6,11 @@ from sqlalchemy.orm import Session
 from .idp.interface import IDPInterface
 from .idp.factory import IDPFactory
 from rbac_api.utils.RedisSingleton import RedisSingleton
-from elevaitedb.schemas import (
+from elevaitelib.schemas import (
     auth as auth_schemas,
     api as api_schemas,
 )
-from elevaitedb.db.models import User, Apikey
+from elevaitelib.orm.db.models import User, Apikey
 from datetime import datetime, UTC
 from rbac_api.utils.funcs import (
     make_naive_datetime_utc,

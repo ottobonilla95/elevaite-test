@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, Query
 
 from ..services import collections as collection_service
 from .deps import get_db, get_qdrant_connection
-from elevaitedb.schemas import (
+from elevaitelib.schemas import (
     collection as collection_schemas,
     #    api as api_schemas,
 )
@@ -15,7 +15,7 @@ from elevaitedb.schemas import (
 #    RBACValidatorProvider
 # )
 # rbacValidator = RBACValidatorProvider.get_instance()
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
 from qdrant_client.conversions import common_types as types
 
 router = APIRouter(prefix="/project/{project_id}/collection", tags=["collections"])

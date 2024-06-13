@@ -12,6 +12,7 @@ from .interfaces import (
     MaxDatasetVersionInput,
     PipelineStepStatusInput,
     RPCResponse,
+    RegisterPipelineInput,
     RepoNameInput,
     SetInstanceChartDataInput,
     SetRedisStatsInput,
@@ -125,6 +126,13 @@ class RPCClient(object):
             self.connection.process_data_events(time_limit=0)
         return str(self.response, "utf-8")
 
+    def log_error(self, log: LogInfo) -> str:
+        self.response = None
+        self._publish_request(log.json(), RPCRoutingKeys.log_error)
+        while self.response is None:
+            self.connection.process_data_events(time_limit=0)
+        return str(self.response, "utf-8")
+
     def get_dataset_version_commit_id(
         self, input: GetDatasetVersionCommitIdInput
     ) -> str:
@@ -139,6 +147,13 @@ class RPCClient(object):
     def get_collection_name(self, input: GetCollectionNameInput) -> str:
         self.response = None
         self._publish_request(input.json(), RPCRoutingKeys.get_collection_name)
+        while self.response is None:
+            self.connection.process_data_events(time_limit=0)
+        return str(self.response, "utf-8")
+
+    def register_experiment(self, input: RegisterPipelineInput) -> str:
+        self.response = None
+        self._publish_request(input.json(), RPCRoutingKeys.register_experiment)
         while self.response is None:
             self.connection.process_data_events(time_limit=0)
         return str(self.response, "utf-8")
@@ -160,3 +175,18 @@ class RedisRPCHelper:
         return self.client.set_redis_value(
             input=SetRedisValueInput(name=self.key, path=path, obj=obj)
         )
+
+
+class RPCLogger:
+    key: str
+    client: RPCClient
+
+    def __init__(self, key: str, client: RPCClient) -> None:
+        self.key = key
+        self.client = client
+
+    def info(self, msg: str) -> str:
+        return self.client.log_info(log=LogInfo(key=self.key, msg=msg))
+
+    def error(self, msg: str) -> str:
+        return self.client.log_error(log=LogInfo(key=self.key, msg=msg))

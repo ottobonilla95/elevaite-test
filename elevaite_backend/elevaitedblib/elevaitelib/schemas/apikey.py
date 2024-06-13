@@ -20,9 +20,7 @@ class ApikeyPermissionsType(str, Enum):
 class ApikeyCreate(BaseModel):
     name: str = Field(..., max_length=20, description="api key name")
     permissions_type: ApikeyPermissionsType
-    permissions: ApikeyScopedRBACPermission = Field(
-        default=ApikeyScopedRBACPermission.create("Deny")
-    )
+    permissions: ApikeyScopedRBACPermission = Field(default=dict())
     expires_at: Union[datetime, Literal["NEVER"]] = Field(
         description='Expiration date or "NEVER" for no expiration.'
     )

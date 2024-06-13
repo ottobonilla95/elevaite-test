@@ -94,3 +94,11 @@ class GetDatasetVersionCommitIdInput(BaseModel):
 
 class GetCollectionNameInput(BaseModel):
     collection_id: str
+
+
+class RegisterPipelineInput(BaseModel):
+    label: str
+    label: str
+    flyte_name: str
+    input: str
+    creator: str

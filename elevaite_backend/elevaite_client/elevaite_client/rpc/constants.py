@@ -21,3 +21,4 @@ class RPCRoutingKeys(str, Enum):
     create_dataset_version = "create_dataset_version"
     get_dataset_version_commit_id = "get_dataset_version_commit_id"
     get_collection_name = "get_collection_name"
+    register_experiment = "register_experiment"

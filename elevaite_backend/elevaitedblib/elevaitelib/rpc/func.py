@@ -3,6 +3,7 @@ import os
 from typing import Any
 from dotenv import load_dotenv
 from elevaitelib.schemas.dataset import DatasetVersionCreate
+from elevaitelib.schemas.pipeline import PipelineCreate, PipelineSource
 from ..util.logger import ESLogger
 import redis
 from sqlalchemy.orm import Session
@@ -12,6 +13,7 @@ from ..orm.crud import (
     instance as instance_crud,
     project as project_crud,
     dataset as dataset_crud,
+    pipeline as pipeline_crud,
 )
 from ..schemas.instance import (
     InstancePipelineStepData,
@@ -28,6 +30,7 @@ from elevaite_client.rpc.interfaces import (
     InstanceStepMetaInput,
     LogInfo,
     PipelineStepStatusInput,
+    RegisterPipelineInput,
     RepoNameInput,
     SetInstanceChartDataInput,
     SetRedisStatsInput,
@@ -96,7 +99,6 @@ def set_instance_running(payload: Any, db: Session = SessionLocal()):
     input = InstanceStatusInput(**payload)
     instance_crud.update_instance(
         db=db,
-        application_id=input.application_id,
         instance_id=input.instance_id,
         updateInstanceDTO=InstanceUpdate(status=InstanceStatus.RUNNING),
     )
@@ -108,7 +110,6 @@ def set_instance_completed(payload: Any, db: Session = SessionLocal()):
     input = InstanceStatusInput(**payload)
     instance_crud.update_instance(
         db=db,
-        application_id=input.application_id,
         instance_id=input.instance_id,
         updateInstanceDTO=InstanceUpdate(
             status=InstanceStatus.COMPLETED, endTime=util_func.get_iso_datetime()
@@ -224,3 +225,18 @@ def log_info(payload: Any):
     logger.info(input.msg)
     logger.destroy()
     return ""
+
+
+def register_experiment(payload: Any, db: Session = SessionLocal()):
+    input = RegisterPipelineInput.parse_obj(payload)
+    pipeline_crud.create_pipeline(
+        db=db,
+        pipeline_dto=PipelineCreate(
+            creator=input.creator,
+            flyte_name=input.flyte_name,
+            input=input.input,
+            source=PipelineSource.EXPERIMENT,
+            label=input.label,
+        ),
+    )
+    return "registered"

@@ -16,7 +16,7 @@ from elevaitelib.schemas import (
     pipeline as pipeline_schemas,
 )
 
-from rbac_api import routes_to_middleware_imple_map, RBACProvider
+from rbac_api import route_validator_map, RBACValidatorProvider
 
 router = APIRouter(prefix="/pipeline", tags=["pipelines"])
 

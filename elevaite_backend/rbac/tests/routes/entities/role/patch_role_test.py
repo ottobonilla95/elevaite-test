@@ -6,7 +6,7 @@ from ....auth.idp.google import (
      get_user_email_response_with_success,
 )
 from ....fixtures.setup_initial_data import db_data
-from elevaitedb.schemas import (
+from elevaitelib.schemas import (
    permission as permission_schemas
 )
 @pytest.mark.asyncio

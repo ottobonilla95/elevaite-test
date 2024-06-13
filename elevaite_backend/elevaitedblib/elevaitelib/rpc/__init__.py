@@ -51,5 +51,9 @@ def start_rpc_server():
         routing_key=RPCRoutingKeys.create_dataset_version,
         func=rpc_func.create_dataset_version,
     )
+    server.bind_and_consume(
+        routing_key=RPCRoutingKeys.register_experiment,
+        func=rpc_func.register_experiment,
+    )
     time.sleep(1)
     print(" [x] Started RPC Server")

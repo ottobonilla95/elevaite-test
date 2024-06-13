@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, Extra, root_validator, validator
-from typing import Optional, Literal, List
+from pydantic import BaseModel, Field, Extra, root_validator, validator, PrivateAttr
+from typing import Optional, Literal, List, Dict, Any
 from uuid import UUID
 from datetime import datetime
 from .permission import (
@@ -21,9 +21,6 @@ class RoleUpdateRequestDTO(BaseModel):
     name: Optional[str] = Field(None)
     permissions: Optional[AccountScopedRBACPermission] = Field(None)
 
-    class Config:
-        extra = Extra.forbid
-
     @root_validator(pre=True)
     @classmethod
     def check_not_all_none(cls, values):
@@ -34,6 +31,9 @@ class RoleUpdateRequestDTO(BaseModel):
             )
             raise ValueError("At least one field must be provided in payload")
         return values
+
+    class Config:
+        extra = Extra.forbid
 
 
 class RoleResponseDTO(BaseModel):

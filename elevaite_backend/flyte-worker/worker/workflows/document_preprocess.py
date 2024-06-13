@@ -11,16 +11,13 @@ from unstructured.partition.html import partition_html
 from unstructured.chunking.title import chunk_by_title
 from unstructured.documents.elements import Element
 
-from elevaite_backend.elevaite_client.elevaite_client.rpc.interfaces import (
-    GetDatasetVersionCommitIdInput,
-)
-from elevaite_client.rpc.client import RPCClient, RedisRPCHelper
+from elevaite_client.rpc.client import RPCClient, RPCLogger, RedisRPCHelper
 from elevaite_client.rpc.interfaces import (
     GetCollectionNameInput,
-    LogInfo,
     RepoNameInput,
     SetInstanceChartDataInput,
     MaxDatasetVersionInput,
+    GetDatasetVersionCommitIdInput,
 )
 from elevaite_client.connectors import lakefs as lakefs_conn, embeddings, qdrant
 from elevaite_client.connectors.embeddings import ChunkAsJson
@@ -93,6 +90,7 @@ def segment_documents(_data: Dict[str, str | int | bool | Any]) -> List[ChunkAsJ
     LAKEFS_STORAGE_NAMESPACE = secrets.LAKEFS_STORAGE_NAMESPACE
     rpc_client = RPCClient()
     r = RedisRPCHelper(key=data.instanceId, client=rpc_client)
+    logger = RPCLogger(key=data.instanceId, client=rpc_client)
 
     repo_name = rpc_client.get_repo_name(
         RepoNameInput(dataset_id=data.datasetId, project_id=data.projectId)
@@ -124,9 +122,8 @@ def segment_documents(_data: Dict[str, str | int | bool | Any]) -> List[ChunkAsJ
     )
     chunks_as_json: List[ChunkAsJson] = []
     findex = 0
-    rpc_client.log_info(
-        log=LogInfo(key=data.instanceId, msg="Starting file segmentation")
-    )
+    logger.info(msg="Starting file segmentation")
+
     total_chunk_size = 0
     avg_chunk_size = 0
     max_chunk_size = 0
@@ -189,9 +186,7 @@ def segment_documents(_data: Dict[str, str | int | bool | Any]) -> List[ChunkAsJ
         #         ],
         #     )
 
-    rpc_client.log_info(
-        log=LogInfo(key=data.instanceId, msg="Completed file segmentation")
-    )
+    logger.info(msg="Completed file segmentation")
 
     rpc_client.set_instance_chart_data(
         input=SetInstanceChartDataInput(instance_id=data.instanceId)
@@ -240,6 +235,7 @@ def vectorize_segments(
 ):
     rpc_client = RPCClient()
     data = DocumentPreprocessData.parse_obj(_data)
+    logger = RPCLogger(key=data.instanceId, client=rpc_client)
     collection_name = rpc_client.get_collection_name(
         input=GetCollectionNameInput(collection_id=data.collectionId)
     )
@@ -254,6 +250,7 @@ def vectorize_segments(
     p_index = 0
 
     qdrant_client = get_qdrant_connection()
+    logger.info(msg="Starting file segmentation")
     start_time = time.time()
 
     _embeddings = embeddings.embed_documents(
@@ -356,9 +353,10 @@ def vectorize_segments(
         #     ],
         # )
     end_time = time.time()
-    print("Qdrant insert time " + str(end_time - start_time))
+    logger.info(msg="Completed file segmentation")
+    logger.info(msg="Qdrant insert time " + str(end_time - start_time))
 
 
 @workflow
 def document_preprocess_workflow(data: Dict[str, str | int | bool | Any]):
-    "hello"
+    vectorize_segments(_data=data, payload_with_contents=segment_documents(_data=data))  # type: ignore

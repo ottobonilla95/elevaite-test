@@ -47,10 +47,17 @@ class PipelineStep(PipelineStepBase):
         orm_mode = True
 
 
+class PipelineSource(Enum):
+    ELEVAITE = "elevaite"
+    EXPERIMENT = "experiment"
+
+
 class PipelineBase(BaseModel):
     label: str
     flyte_name: str
     input: str
+    source: PipelineSource
+    creator: str
 
 
 class PipelineCreate(PipelineBase):

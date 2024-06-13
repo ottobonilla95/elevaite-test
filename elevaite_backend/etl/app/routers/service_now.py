@@ -34,7 +34,7 @@ from elevaitelib.orm.crud import (
     configuration as configuration_crud,
     dataset as dataset_crud,
 )
-from elevaitedb.util import func as util_func
+from elevaitelib.util import func as util_func
 
 # from rbac_api import (
 #    route_validator_map,

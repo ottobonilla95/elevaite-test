@@ -1,680 +1,781 @@
-import pytest 
+import pytest
 from unittest.mock import patch, AsyncMock, MagicMock, ANY
 from .... import models
 from ....auth.idp.google import (
-     get_user_email_response_with_error, 
-     get_user_email_response_with_success,
+    get_user_email_response_with_error,
+    get_user_email_response_with_success,
 )
 from ....fixtures.setup_initial_data import db_data
-from elevaitedb.schemas import permission as permission_schemas
-import uuid 
+from elevaitelib.schemas import permission as permission_schemas
+import uuid
+
+
 @pytest.mark.asyncio
-@patch("elevaitedb.db.models.User_Account", new=models.User_Account)
+@patch("elevaitelib.orm.db.models.User_Account", new=models.User_Account)
 @patch("rbac_api.auth.impl.RedisSingleton")
 @patch("rbac_api.auth.idp.impl.requests")
-async def test_assign_users_to_account_with_existing_account_id_and_unassigned_users_in_payload_and_valid_access_token_not_in_redis_cache_and_authenticating_user_is_superadmin(mock_requests, mock_redis_class, client, setup_initial_data):
-    
-   # Mock the GoogleIDP reques.get method
-   mock_response = MagicMock()
-   mock_response.json.return_value = get_user_email_response_with_success(email = db_data["user1"]["email"])
-   mock_requests.get.return_value = mock_response
+async def test_assign_users_to_account_with_existing_account_id_and_unassigned_users_in_payload_and_valid_access_token_not_in_redis_cache_and_authenticating_user_is_superadmin(
+    mock_requests, mock_redis_class, client, setup_initial_data
+):
 
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = None
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
-   assign_users_to_account_payload = {
-      "user_ids": [
-         db_data['user2']['id'], db_data['user3']['id']
-      ]
-   }
+    # Mock the GoogleIDP reques.get method
+    mock_response = MagicMock()
+    mock_response.json.return_value = get_user_email_response_with_success(
+        email=db_data["user1"]["email"]
+    )
+    mock_requests.get.return_value = mock_response
 
-   account_id = db_data["account3"]["id"]
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = None
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
 
-   token = headers["Authorization"].split(" ")[1]
-   # Verify the exact call to setex
-   mock_redis_instance.connection.setex.assert_called_once_with(token, 60 * 60, db_data["user1"]["email"])
-   # Assert the call and return value of connection.get
-   mock_redis_instance.connection.get.assert_called_once_with(token)
-   assert mock_redis_instance.connection.get(token) is None
-   # Assert the call of GoogleIDP requests.get
-   mock_requests.get.assert_called_once_with('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', headers={"Authorization": f"Bearer {token}"})
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
+    assign_users_to_account_payload = {
+        "user_ids": [db_data["user2"]["id"], db_data["user3"]["id"]]
+    }
 
-   assert response.status_code == 200
-   actual_response_payload = response.json()
+    account_id = db_data["account3"]["id"]
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
 
-   expected_response_payload = {
-      "message": f"Successfully assigned 2 user/(s) to account - '{account_id}'"
-   }
+    token = headers["Authorization"].split(" ")[1]
+    # Verify the exact call to setex
+    mock_redis_instance.connection.setex.assert_called_once_with(
+        token, 60 * 60, db_data["user1"]["email"]
+    )
+    # Assert the call and return value of connection.get
+    mock_redis_instance.connection.get.assert_called_once_with(token)
+    assert mock_redis_instance.connection.get(token) is None
+    # Assert the call of GoogleIDP requests.get
+    mock_requests.get.assert_called_once_with(
+        "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
+        headers={"Authorization": f"Bearer {token}"},
+    )
 
-   assert actual_response_payload == expected_response_payload
-    
+    assert response.status_code == 200
+    actual_response_payload = response.json()
+
+    expected_response_payload = {
+        "message": f"Successfully assigned 2 user/(s) to account - '{account_id}'"
+    }
+
+    assert actual_response_payload == expected_response_payload
+
 
 @pytest.mark.asyncio
-@patch("elevaitedb.db.models.User_Account", new=models.User_Account)
+@patch("elevaitelib.orm.db.models.User_Account", new=models.User_Account)
 @patch("rbac_api.auth.impl.RedisSingleton")
 @patch("rbac_api.auth.idp.impl.requests")
-async def test_assign_users_to_account_users_with_existing_account_id_and_unassigned_users_in_payload_and_valid_access_token_in_redis_cache_and_authenticating_user_is_superadmin(mock_requests, mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = db_data["user1"]["email"]
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
+async def test_assign_users_to_account_users_with_existing_account_id_and_unassigned_users_in_payload_and_valid_access_token_in_redis_cache_and_authenticating_user_is_superadmin(
+    mock_requests, mock_redis_class, client, setup_initial_data
+):
 
-  # Mock the GoogleIDP request.get method
-   mock_response = MagicMock()
-   mock_response.json.return_value = get_user_email_response_with_success(email = db_data["user1"]["email"])
-   mock_requests.get.return_value = mock_response
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = db_data["user1"]["email"]
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
 
-   assign_users_to_account_payload = {
-      "user_ids": [
-         db_data['user2']['id'], db_data['user3']['id']
-      ]
-   }
+    # Mock the GoogleIDP request.get method
+    mock_response = MagicMock()
+    mock_response.json.return_value = get_user_email_response_with_success(
+        email=db_data["user1"]["email"]
+    )
+    mock_requests.get.return_value = mock_response
 
-   account_id = db_data["account3"]["id"]
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
 
-   token = headers["Authorization"].split(" ")[1]
-   # Verify that setex is not called
-   mock_redis_instance.connection.setex.assert_not_called()
+    assign_users_to_account_payload = {
+        "user_ids": [db_data["user2"]["id"], db_data["user3"]["id"]]
+    }
 
-   # Assert the call and return value of connection.get
-   mock_redis_instance.connection.get.assert_called_once_with(token)
-   assert mock_redis_instance.connection.get(token) == db_data["user1"]["email"]
+    account_id = db_data["account3"]["id"]
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
 
-   # Assert that GoogleIDP.get_user_email is not called
-   mock_requests.get.assert_not_called()
-   
-   assert response.status_code == 200
-   actual_response_payload = response.json()
+    token = headers["Authorization"].split(" ")[1]
+    # Verify that setex is not called
+    mock_redis_instance.connection.setex.assert_not_called()
 
-   expected_response_payload = {
-      "message": f"Successfully assigned 2 user/(s) to account - '{account_id}'"
-   }
+    # Assert the call and return value of connection.get
+    mock_redis_instance.connection.get.assert_called_once_with(token)
+    assert mock_redis_instance.connection.get(token) == db_data["user1"]["email"]
 
-   assert actual_response_payload == expected_response_payload
+    # Assert that GoogleIDP.get_user_email is not called
+    mock_requests.get.assert_not_called()
 
-@pytest.mark.asyncio
-@patch("elevaitedb.db.models.User_Account", new=models.User_Account)
-@patch("rbac_api.auth.impl.RedisSingleton")
-async def test_assign_users_to_account_users_with_existing_account_id_and_unassigned_users_in_payload_and_valid_access_token_and_authenticating_user_is_account_admin(mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = db_data["user4"]["email"]
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
+    assert response.status_code == 200
+    actual_response_payload = response.json()
 
-   assign_users_to_account_payload = {
-      "user_ids": [
-         db_data['user1']['id'], db_data['user2']['id']
-      ]
-   }
+    expected_response_payload = {
+        "message": f"Successfully assigned 2 user/(s) to account - '{account_id}'"
+    }
 
-   account_id = db_data["account4"]["id"]
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-   
-   assert response.status_code == 200
-   actual_response_payload = response.json()
+    assert actual_response_payload == expected_response_payload
 
-   expected_response_payload = {
-      "message": f"Successfully assigned 2 user/(s) to account - '{account_id}'"
-   }
-
-   assert actual_response_payload == expected_response_payload
 
 @pytest.mark.asyncio
-@patch("elevaitedb.db.models.User_Account", new=models.User_Account)
+@patch("elevaitelib.orm.db.models.User_Account", new=models.User_Account)
 @patch("rbac_api.auth.impl.RedisSingleton")
-async def test_assign_users_to_account_users_with_existing_account_id_and_unassigned_users_in_payload_and_valid_access_token_and_authenticating_user_is_not_superadmin_and_not_account_admin(mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = db_data["user3"]["email"]
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
+async def test_assign_users_to_account_users_with_existing_account_id_and_unassigned_users_in_payload_and_valid_access_token_and_authenticating_user_is_account_admin(
+    mock_redis_class, client, setup_initial_data
+):
 
-   assign_users_to_account_payload = {
-      "user_ids": [
-         db_data['user1']['id'], db_data['user2']['id']
-      ]
-   }
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = db_data["user4"]["email"]
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
 
-   account_id = db_data["account2"]["id"]
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-   
-   assert response.status_code == 403
-   actual_response_payload = response.json()
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
 
-   expected_response_payload = {
-      "detail": f"logged-in user - '{db_data['user3']['id']}' - does not have superadmin/account-admin privileges to assign users to account - '{account_id}'"
-   }
+    assign_users_to_account_payload = {
+        "user_ids": [db_data["user1"]["id"], db_data["user2"]["id"]]
+    }
 
-   assert actual_response_payload == expected_response_payload
+    account_id = db_data["account4"]["id"]
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
+
+    assert response.status_code == 200
+    actual_response_payload = response.json()
+
+    expected_response_payload = {
+        "message": f"Successfully assigned 2 user/(s) to account - '{account_id}'"
+    }
+
+    assert actual_response_payload == expected_response_payload
+
 
 @pytest.mark.asyncio
+@patch("elevaitelib.orm.db.models.User_Account", new=models.User_Account)
 @patch("rbac_api.auth.impl.RedisSingleton")
-async def test_assign_users_to_account_with_non_existent_account_id_and_valid_access_token_and_authenticating_user_exists_in_db(mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = db_data["user2"]["email"]
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
-   assign_users_to_account_payload = {
-         "user_ids": [
-            db_data['user1']['id'], db_data['user3']['id']
-         ]
-      }
+async def test_assign_users_to_account_users_with_existing_account_id_and_unassigned_users_in_payload_and_valid_access_token_and_authenticating_user_is_not_superadmin_and_not_account_admin(
+    mock_redis_class, client, setup_initial_data
+):
 
-   non_existent_account_id = "d1df1a9e-4c01-4302-a74d-fe1ec9db7339"
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{non_existent_account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-   
-   assert response.status_code == 404
-   actual_response_payload = response.json()
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = db_data["user3"]["email"]
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
 
-   expected_response_payload = {"detail": f"Account - '{non_existent_account_id}' - not found"}
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
 
-   assert actual_response_payload == expected_response_payload
+    assign_users_to_account_payload = {
+        "user_ids": [db_data["user1"]["id"], db_data["user2"]["id"]]
+    }
+
+    account_id = db_data["account2"]["id"]
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
+
+    assert response.status_code == 403
+    actual_response_payload = response.json()
+
+    expected_response_payload = {
+        "detail": f"logged-in user - '{db_data['user3']['id']}' - does not have superadmin/account-admin privileges to assign users to account - '{account_id}'"
+    }
+
+    assert actual_response_payload == expected_response_payload
+
 
 @pytest.mark.asyncio
 @patch("rbac_api.auth.impl.RedisSingleton")
-async def test_assign_users_to_account_with_existing_account_id_and_already_assigned_users_in_payload_and_valid_access_token_and_authenticating_user_is_superadmin(mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = db_data["user1"]["email"]
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
-   assign_users_to_account_payload = {
-         "user_ids": [
-            db_data['user2']['id'], db_data['user3']['id']
-         ]
-      }
+async def test_assign_users_to_account_with_non_existent_account_id_and_valid_access_token_and_authenticating_user_exists_in_db(
+    mock_redis_class, client, setup_initial_data
+):
 
-   account_id = db_data['account2']['id']
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-   
-   assert response.status_code == 409
-   actual_response_payload = response.json()
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = db_data["user2"]["email"]
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
 
-   expected_response_payload = {"detail": f"One or more users are already assigned to account - '{account_id}'"}
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
+    assign_users_to_account_payload = {
+        "user_ids": [db_data["user1"]["id"], db_data["user3"]["id"]]
+    }
 
-   assert actual_response_payload == expected_response_payload
+    non_existent_account_id = "d1df1a9e-4c01-4302-a74d-fe1ec9db7339"
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{non_existent_account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
 
-@pytest.mark.asyncio
-@patch("rbac_api.auth.impl.RedisSingleton")
-async def test_assign_users_to_account_with_existing_account_id_and_already_assigned_users_in_payload_and_valid_access_token_and_authenticating_user_is_account_admin(mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = db_data["user2"]["email"]
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
-   assign_users_to_account_payload = {
-         "user_ids": [
-            db_data['user3']['id'], db_data['user4']['id']
-         ]
-      }
+    assert response.status_code == 404
+    actual_response_payload = response.json()
 
-   account_id = db_data['account2']['id']
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-   
-   assert response.status_code == 409
-   actual_response_payload = response.json()
+    expected_response_payload = {
+        "detail": f"Account - '{non_existent_account_id}' - not found"
+    }
 
-   expected_response_payload = {"detail": f"One or more users are already assigned to account - '{account_id}'"}
+    assert actual_response_payload == expected_response_payload
 
-   assert actual_response_payload == expected_response_payload
 
 @pytest.mark.asyncio
 @patch("rbac_api.auth.impl.RedisSingleton")
-async def test_assign_users_to_account_with_existing_account_id_and_no_users_in_payload_and_valid_access_token_and_authenticating_user_is_superadmin(mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = db_data["user1"]["email"]
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
-   assign_users_to_account_payload = {
-         "user_ids": []
-      }
+async def test_assign_users_to_account_with_existing_account_id_and_already_assigned_users_in_payload_and_valid_access_token_and_authenticating_user_is_superadmin(
+    mock_redis_class, client, setup_initial_data
+):
 
-   account_id = db_data['account2']['id']
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-   
-   assert response.status_code == 422
-   actual_response_payload = response.json()
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = db_data["user1"]["email"]
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
 
-   expected_response_payload = {'detail': [{'loc': ['body', 'user_ids'], 'msg': 'The list of user IDs must have length between 1 and 50 (inclusive)', 'type': 'value_error'}]}
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
+    assign_users_to_account_payload = {
+        "user_ids": [db_data["user2"]["id"], db_data["user3"]["id"]]
+    }
 
-   assert actual_response_payload == expected_response_payload
+    account_id = db_data["account2"]["id"]
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
 
-@pytest.mark.asyncio
-@patch("rbac_api.auth.impl.RedisSingleton")
-async def test_assign_users_to_account_with_existing_account_id_and_more_than_50_users_in_payload_and_valid_access_token_and_authenticating_user_is_superadmin(mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = db_data["user1"]["email"]
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
-   assign_users_to_account_payload = {
-      "user_ids": [str(uuid.uuid4()) for i in range(51)]
-   }
+    assert response.status_code == 409
+    actual_response_payload = response.json()
 
-   account_id = db_data['account2']['id']
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-   
-   assert response.status_code == 422
-   actual_response_payload = response.json()
+    expected_response_payload = {
+        "detail": f"One or more users are already assigned to account - '{account_id}'"
+    }
 
-   expected_response_payload = {'detail': [{'loc': ['body', 'user_ids'], 'msg': 'The list of user IDs must have length between 1 and 50 (inclusive)', 'type': 'value_error'}]}
+    assert actual_response_payload == expected_response_payload
 
-   assert actual_response_payload == expected_response_payload
 
 @pytest.mark.asyncio
 @patch("rbac_api.auth.impl.RedisSingleton")
-async def test_assign_users_to_account_with_existing_account_id_and_duplicate_users_in_payload_and_valid_access_token_and_authenticating_user_is_superadmin(mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = db_data["user1"]["email"]
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
-   assign_users_to_account_payload = {
-      "user_ids": [db_data['user2']['id'], db_data['user2']['id']]
-   }
+async def test_assign_users_to_account_with_existing_account_id_and_already_assigned_users_in_payload_and_valid_access_token_and_authenticating_user_is_account_admin(
+    mock_redis_class, client, setup_initial_data
+):
 
-   account_id = db_data['account2']['id']
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-   
-   assert response.status_code == 422
-   actual_response_payload = response.json()
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = db_data["user2"]["email"]
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
 
-   expected_response_payload = {'detail': [{'loc': ['body', 'user_ids'], 'msg': "Duplicate user IDs are not allowed", 'type': 'value_error'}]}
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
+    assign_users_to_account_payload = {
+        "user_ids": [db_data["user3"]["id"], db_data["user4"]["id"]]
+    }
 
-   assert actual_response_payload == expected_response_payload
+    account_id = db_data["account2"]["id"]
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
 
-@pytest.mark.asyncio
-@patch("rbac_api.auth.impl.RedisSingleton")
-async def test_assign_users_to_account_with_existing_account_id_and_one_or_more_users_in_payload_not_found_and_valid_access_token_and_authenticating_user_is_superadmin(mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = db_data["user1"]["email"]
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
-   assign_users_to_account_payload = {
-      "user_ids": [db_data['user2']['id'], str(uuid.uuid4())]
-   }
+    assert response.status_code == 409
+    actual_response_payload = response.json()
 
-   account_id = db_data['account2']['id']
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-   
-   assert response.status_code == 404
-   actual_response_payload = response.json()
+    expected_response_payload = {
+        "detail": f"One or more users are already assigned to account - '{account_id}'"
+    }
 
-   expected_response_payload = {"detail": "One or more users not found"}
+    assert actual_response_payload == expected_response_payload
 
-   assert actual_response_payload == expected_response_payload
 
 @pytest.mark.asyncio
 @patch("rbac_api.auth.impl.RedisSingleton")
-async def test_assign_users_to_account_with_existing_account_id_and_no_users_in_payload_and_valid_access_token_and_authenticating_user_is_account_admin(mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = db_data["user2"]["email"]
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
-   assign_users_to_account_payload = {
-         "user_ids": []
-      }
+async def test_assign_users_to_account_with_existing_account_id_and_no_users_in_payload_and_valid_access_token_and_authenticating_user_is_superadmin(
+    mock_redis_class, client, setup_initial_data
+):
 
-   account_id = db_data['account2']['id']
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-   
-   assert response.status_code == 422
-   actual_response_payload = response.json()
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = db_data["user1"]["email"]
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
 
-   expected_response_payload = {'detail': [{'loc': ['body', 'user_ids'], 'msg': 'The list of user IDs must have length between 1 and 50 (inclusive)', 'type': 'value_error'}]}
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
+    assign_users_to_account_payload = {"user_ids": []}
 
-   assert actual_response_payload == expected_response_payload
+    account_id = db_data["account2"]["id"]
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
 
-@pytest.mark.asyncio
-@patch("rbac_api.auth.impl.RedisSingleton")
-async def test_assign_users_to_account_with_existing_account_id_and_more_than_50_users_in_payload_and_valid_access_token_and_authenticating_user_is_account_admin(mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = db_data["user2"]["email"]
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
-   assign_users_to_account_payload = {
-      "user_ids": [str(uuid.uuid4()) for i in range(51)]
-   }
+    assert response.status_code == 422
+    actual_response_payload = response.json()
 
-   account_id = db_data['account2']['id']
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-   
-   assert response.status_code == 422
-   actual_response_payload = response.json()
+    expected_response_payload = {
+        "detail": [
+            {
+                "loc": ["body", "user_ids"],
+                "msg": "The list of user IDs must have length between 1 and 50 (inclusive)",
+                "type": "value_error",
+            }
+        ]
+    }
 
-   expected_response_payload = {'detail': [{'loc': ['body', 'user_ids'], 'msg': 'The list of user IDs must have length between 1 and 50 (inclusive)', 'type': 'value_error'}]}
+    assert actual_response_payload == expected_response_payload
 
-   assert actual_response_payload == expected_response_payload
 
 @pytest.mark.asyncio
 @patch("rbac_api.auth.impl.RedisSingleton")
-async def test_assign_users_to_account_with_existing_account_id_and_duplicate_users_in_payload_and_valid_access_token_and_authenticating_user_is_account_admin(mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = db_data["user2"]["email"]
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
-   assign_users_to_account_payload = {
-      "user_ids": [db_data['user1']['id'], db_data['user1']['id']]
-   }
+async def test_assign_users_to_account_with_existing_account_id_and_more_than_50_users_in_payload_and_valid_access_token_and_authenticating_user_is_superadmin(
+    mock_redis_class, client, setup_initial_data
+):
 
-   account_id = db_data['account2']['id']
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-   
-   assert response.status_code == 422
-   actual_response_payload = response.json()
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = db_data["user1"]["email"]
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
 
-   expected_response_payload = {'detail': [{'loc': ['body', 'user_ids'], 'msg': "Duplicate user IDs are not allowed", 'type': 'value_error'}]}
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
+    assign_users_to_account_payload = {
+        "user_ids": [str(uuid.uuid4()) for i in range(51)]
+    }
 
-   assert actual_response_payload == expected_response_payload
+    account_id = db_data["account2"]["id"]
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
+
+    assert response.status_code == 422
+    actual_response_payload = response.json()
+
+    expected_response_payload = {
+        "detail": [
+            {
+                "loc": ["body", "user_ids"],
+                "msg": "The list of user IDs must have length between 1 and 50 (inclusive)",
+                "type": "value_error",
+            }
+        ]
+    }
+
+    assert actual_response_payload == expected_response_payload
+
 
 @pytest.mark.asyncio
 @patch("rbac_api.auth.impl.RedisSingleton")
-async def test_assign_users_to_account_with_existing_account_id_and_one_or_more_users_in_payload_not_found_and_valid_access_token_and_authenticating_user_is_account_admin(mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = db_data["user2"]["email"]
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
-   assign_users_to_account_payload = {
-      "user_ids": [db_data['user1']['id'], str(uuid.uuid4())]
-   }
+async def test_assign_users_to_account_with_existing_account_id_and_duplicate_users_in_payload_and_valid_access_token_and_authenticating_user_is_superadmin(
+    mock_redis_class, client, setup_initial_data
+):
 
-   account_id = db_data['account2']['id']
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-   
-   assert response.status_code == 404
-   actual_response_payload = response.json()
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = db_data["user1"]["email"]
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
 
-   expected_response_payload = {"detail": "One or more users not found"}
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
+    assign_users_to_account_payload = {
+        "user_ids": [db_data["user2"]["id"], db_data["user2"]["id"]]
+    }
 
-   assert actual_response_payload == expected_response_payload
+    account_id = db_data["account2"]["id"]
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
+
+    assert response.status_code == 422
+    actual_response_payload = response.json()
+
+    expected_response_payload = {
+        "detail": [
+            {
+                "loc": ["body", "user_ids"],
+                "msg": "Duplicate user IDs are not allowed",
+                "type": "value_error",
+            }
+        ]
+    }
+
+    assert actual_response_payload == expected_response_payload
+
 
 @pytest.mark.asyncio
-async def test_assign_users_to_account_with_existing_account_id_and_no_access_token(client, setup_initial_data):
-    
-   headers = {
-      "Authorization": " ",
-      "Content-Type": "application/json"
-   }
+@patch("rbac_api.auth.impl.RedisSingleton")
+async def test_assign_users_to_account_with_existing_account_id_and_one_or_more_users_in_payload_not_found_and_valid_access_token_and_authenticating_user_is_superadmin(
+    mock_redis_class, client, setup_initial_data
+):
 
-   assign_users_to_account_payload = {
-      "user_ids": [db_data['user1']['id'], db_data['user2']['id']]
-   }
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = db_data["user1"]["email"]
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
 
-   existing_account_id = db_data["account1"]["id"]
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
+    assign_users_to_account_payload = {
+        "user_ids": [db_data["user2"]["id"], str(uuid.uuid4())]
+    }
 
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{existing_account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-  
-   assert response.status_code == 401
-   actual_response_payload = response.json()
+    account_id = db_data["account2"]["id"]
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
 
-   expected_response_payload = {"detail": "Request auth header must contain bearer iDP access_token for authentication"}
+    assert response.status_code == 404
+    actual_response_payload = response.json()
 
-   assert actual_response_payload == expected_response_payload
+    expected_response_payload = {"detail": "One or more users not found"}
+
+    assert actual_response_payload == expected_response_payload
+
+
+@pytest.mark.asyncio
+@patch("rbac_api.auth.impl.RedisSingleton")
+async def test_assign_users_to_account_with_existing_account_id_and_no_users_in_payload_and_valid_access_token_and_authenticating_user_is_account_admin(
+    mock_redis_class, client, setup_initial_data
+):
+
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = db_data["user2"]["email"]
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
+
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
+    assign_users_to_account_payload = {"user_ids": []}
+
+    account_id = db_data["account2"]["id"]
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
+
+    assert response.status_code == 422
+    actual_response_payload = response.json()
+
+    expected_response_payload = {
+        "detail": [
+            {
+                "loc": ["body", "user_ids"],
+                "msg": "The list of user IDs must have length between 1 and 50 (inclusive)",
+                "type": "value_error",
+            }
+        ]
+    }
+
+    assert actual_response_payload == expected_response_payload
+
+
+@pytest.mark.asyncio
+@patch("rbac_api.auth.impl.RedisSingleton")
+async def test_assign_users_to_account_with_existing_account_id_and_more_than_50_users_in_payload_and_valid_access_token_and_authenticating_user_is_account_admin(
+    mock_redis_class, client, setup_initial_data
+):
+
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = db_data["user2"]["email"]
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
+
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
+    assign_users_to_account_payload = {
+        "user_ids": [str(uuid.uuid4()) for i in range(51)]
+    }
+
+    account_id = db_data["account2"]["id"]
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
+
+    assert response.status_code == 422
+    actual_response_payload = response.json()
+
+    expected_response_payload = {
+        "detail": [
+            {
+                "loc": ["body", "user_ids"],
+                "msg": "The list of user IDs must have length between 1 and 50 (inclusive)",
+                "type": "value_error",
+            }
+        ]
+    }
+
+    assert actual_response_payload == expected_response_payload
+
+
+@pytest.mark.asyncio
+@patch("rbac_api.auth.impl.RedisSingleton")
+async def test_assign_users_to_account_with_existing_account_id_and_duplicate_users_in_payload_and_valid_access_token_and_authenticating_user_is_account_admin(
+    mock_redis_class, client, setup_initial_data
+):
+
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = db_data["user2"]["email"]
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
+
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
+    assign_users_to_account_payload = {
+        "user_ids": [db_data["user1"]["id"], db_data["user1"]["id"]]
+    }
+
+    account_id = db_data["account2"]["id"]
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
+
+    assert response.status_code == 422
+    actual_response_payload = response.json()
+
+    expected_response_payload = {
+        "detail": [
+            {
+                "loc": ["body", "user_ids"],
+                "msg": "Duplicate user IDs are not allowed",
+                "type": "value_error",
+            }
+        ]
+    }
+
+    assert actual_response_payload == expected_response_payload
+
+
+@pytest.mark.asyncio
+@patch("rbac_api.auth.impl.RedisSingleton")
+async def test_assign_users_to_account_with_existing_account_id_and_one_or_more_users_in_payload_not_found_and_valid_access_token_and_authenticating_user_is_account_admin(
+    mock_redis_class, client, setup_initial_data
+):
+
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = db_data["user2"]["email"]
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
+
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
+    assign_users_to_account_payload = {
+        "user_ids": [db_data["user1"]["id"], str(uuid.uuid4())]
+    }
+
+    account_id = db_data["account2"]["id"]
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
+
+    assert response.status_code == 404
+    actual_response_payload = response.json()
+
+    expected_response_payload = {"detail": "One or more users not found"}
+
+    assert actual_response_payload == expected_response_payload
+
+
+@pytest.mark.asyncio
+async def test_assign_users_to_account_with_existing_account_id_and_no_access_token(
+    client, setup_initial_data
+):
+
+    headers = {"Authorization": " ", "Content-Type": "application/json"}
+
+    assign_users_to_account_payload = {
+        "user_ids": [db_data["user1"]["id"], db_data["user2"]["id"]]
+    }
+
+    existing_account_id = db_data["account1"]["id"]
+
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{existing_account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
+
+    assert response.status_code == 401
+    actual_response_payload = response.json()
+
+    expected_response_payload = {
+        "detail": "Request auth header must contain bearer iDP access_token for authentication"
+    }
+
+    assert actual_response_payload == expected_response_payload
+
 
 @pytest.mark.asyncio
 @patch("rbac_api.auth.impl.RedisSingleton")
 @patch("rbac_api.auth.idp.impl.requests")
-async def test_assign_users_to_account_with_existing_account_id_and_invalid_or_expired_access_token(mock_requests, mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = None
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
+async def test_assign_users_to_account_with_existing_account_id_and_invalid_or_expired_access_token(
+    mock_requests, mock_redis_class, client, setup_initial_data
+):
 
-  # Mock the GoogleIDP request.get method
-   mock_response = MagicMock()
-   mock_response.json.return_value = get_user_email_response_with_error()
-   mock_requests.get.return_value = mock_response
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = None
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
 
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
+    # Mock the GoogleIDP request.get method
+    mock_response = MagicMock()
+    mock_response.json.return_value = get_user_email_response_with_error()
+    mock_requests.get.return_value = mock_response
 
-   assign_users_to_account_payload = {
-      "user_ids": [db_data['user1']['id'], db_data['user2']['id']]
-   }
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
 
-   existing_account_id = db_data["account1"]["id"]
+    assign_users_to_account_payload = {
+        "user_ids": [db_data["user1"]["id"], db_data["user2"]["id"]]
+    }
 
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{existing_account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
+    existing_account_id = db_data["account1"]["id"]
 
-   token = headers["Authorization"].split(" ")[1]
-   # Verify that setex is not called (error thrown before that)
-   mock_redis_instance.connection.setex.assert_not_called()
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{existing_account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
 
-   # Assert the call of connection.get
-   mock_redis_instance.connection.get.assert_called_once_with(token)
+    token = headers["Authorization"].split(" ")[1]
+    # Verify that setex is not called (error thrown before that)
+    mock_redis_instance.connection.setex.assert_not_called()
 
-   # Assert that GoogleIDP.get_user_email is called
-   mock_requests.get.assert_called_once_with('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', headers={"Authorization": f"Bearer {token}"})
+    # Assert the call of connection.get
+    mock_redis_instance.connection.get.assert_called_once_with(token)
 
-   assert response.status_code == 401
-   actual_response_payload = response.json()
+    # Assert that GoogleIDP.get_user_email is called
+    mock_requests.get.assert_called_once_with(
+        "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
+        headers={"Authorization": f"Bearer {token}"},
+    )
 
-   expected_response_payload = {"detail": "invalid or expired auth credentials"}
+    assert response.status_code == 401
+    actual_response_payload = response.json()
 
-   assert actual_response_payload == expected_response_payload
+    expected_response_payload = {"detail": "invalid or expired auth credentials"}
+
+    assert actual_response_payload == expected_response_payload
+
 
 @pytest.mark.asyncio
 @patch("rbac_api.auth.impl.RedisSingleton")
-async def test_assign_users_to_account_with_existing_account_id_and_valid_access_token_and_authenticating_user_does_not_exist_in_db(mock_redis_class, client, setup_initial_data):
-    
-   # Mock the Redis get and setex methods
-   mock_redis_instance = MagicMock()
-   mock_redis_instance.connection.get.return_value = "unregistered_email"
-   mock_redis_instance.connection.setex.return_value = None
-   mock_redis_class.return_value = mock_redis_instance
-   
-   headers = {
-      "Authorization": "Bearer MOCK_ACCESS_TOKEN",
-      "Content-Type": "application/json"
-   }
+async def test_assign_users_to_account_with_existing_account_id_and_valid_access_token_and_authenticating_user_does_not_exist_in_db(
+    mock_redis_class, client, setup_initial_data
+):
 
-   assign_users_to_account_payload = {
-      "user_ids": [db_data['user1']['id'], db_data['user2']['id']]
-   }
+    # Mock the Redis get and setex methods
+    mock_redis_instance = MagicMock()
+    mock_redis_instance.connection.get.return_value = "unregistered_email"
+    mock_redis_instance.connection.setex.return_value = None
+    mock_redis_class.return_value = mock_redis_instance
 
-   existing_account_id = db_data["account1"]["id"]
+    headers = {
+        "Authorization": "Bearer MOCK_ACCESS_TOKEN",
+        "Content-Type": "application/json",
+    }
 
-   response = await client.request(
-      method="POST",
-      url=f'/accounts/{existing_account_id}/users',
-      headers=headers,
-      json=assign_users_to_account_payload
-   )
-   
-   assert response.status_code == 401
-   actual_response_payload = response.json()
+    assign_users_to_account_payload = {
+        "user_ids": [db_data["user1"]["id"], db_data["user2"]["id"]]
+    }
 
-   expected_response_payload = {"detail": "user is unauthenticated"}
+    existing_account_id = db_data["account1"]["id"]
 
-   assert actual_response_payload == expected_response_payload
+    response = await client.request(
+        method="POST",
+        url=f"/accounts/{existing_account_id}/users",
+        headers=headers,
+        json=assign_users_to_account_payload,
+    )
+
+    assert response.status_code == 401
+    actual_response_payload = response.json()
+
+    expected_response_payload = {"detail": "user is unauthenticated"}
+
+    assert actual_response_payload == expected_response_payload

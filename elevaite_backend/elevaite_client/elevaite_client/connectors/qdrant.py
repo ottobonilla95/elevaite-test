@@ -1,8 +1,5 @@
 import os
-from typing import List, Optional, Union
-
-from pydantic import StrictInt, StrictStr
-from ..connectors.embeddings import EmbeddingInfo, EmbeddingResult
+from typing import List, Optional
 from qdrant_client import AsyncQdrantClient, QdrantClient
 from qdrant_client.http.models import (
     Batch,
@@ -69,7 +66,7 @@ def recreate_collection(
 def upsert_records(
     connection: QdrantClient,
     collection_name: str,
-    ids: List[Union[StrictStr, StrictInt]],
+    ids: List[ExtendedPointId],
     payloads: Optional[List[Payload]],
     vectors: BatchVectorStruct,
 ):
