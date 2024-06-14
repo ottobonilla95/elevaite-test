@@ -1,4 +1,4 @@
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
 from sqlalchemy.orm import Session
 
 

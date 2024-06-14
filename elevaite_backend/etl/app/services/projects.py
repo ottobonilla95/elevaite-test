@@ -1,8 +1,8 @@
 # from sqlalchemy.orm import Session
 
-# from elevaitedb.crud import project as project_crud
-# from elevaitedb.schemas import project as project_schemas
-# from elevaitedb.db import models
+# from elevaitelib.crud import project as project_crud
+# from elevaitelib.schemas import project as project_schemas
+# from elevaitelib.db import models
 
 
 # def get_projects(db: Session, skip: int = 0, limit: int = 100):

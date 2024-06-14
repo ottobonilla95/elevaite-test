@@ -5,7 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from elevaitedb.db.models import Base
+from elevaitelib.orm.db.models import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

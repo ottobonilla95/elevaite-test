@@ -1,8 +1,8 @@
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from elevaitedb.schemas.application import ApplicationType
-from elevaitedb.db import models
+from elevaitelib.schemas.application import ApplicationType
+from elevaitelib.orm.db import models
 
 
 def seed_db(db: Session):

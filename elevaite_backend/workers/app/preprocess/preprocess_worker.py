@@ -5,17 +5,17 @@ import threading
 from elasticsearch import Elasticsearch
 import redis
 
-from elevaitedb.db.database import SessionLocal
-from elevaitedb.crud import (
+from elevaitelib.orm.db.database import SessionLocal
+from elevaitelib.orm.crud import (
     instance as instance_crud,
     pipeline as pipeline_crud,
 )
-from elevaitedb.util import func as util_func
-from elevaitedb.schemas.instance import (
+from elevaitelib.util import func as util_func
+from elevaitelib.schemas.instance import (
     InstanceStatus,
     InstanceUpdate,
 )
-from elevaitedb.util.logger import ESLogger
+from elevaitelib.util.logger import ESLogger
 
 from .steps.base_step import (
     STEP_REGISTRY,

@@ -1,6 +1,6 @@
 from typing import List, Optional
-from elevaitedb.schemas.configuration import EmbeddingType, PreprocessEmbeddingInfo
-from elevaitedb.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
+from elevaitelib.schemas.configuration import EmbeddingType, PreprocessEmbeddingInfo
+from elevaitelib.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http.models import Batch
 from qdrant_client.http.models import Distance, VectorParams
@@ -125,70 +125,70 @@ async def insert_records(
             vectors.clear()
             ids.clear()
 
-            set_pipeline_step_meta(
-                db=db,
-                instance_id=instance_id,
-                step_id=step_id,
-                meta=[
-                    InstancePipelineStepData(
-                        label=InstanceStepDataLabel.TOTAL_SEGMENTS_TOKENIZED,
-                        value=p_index,
-                    ),
-                    InstancePipelineStepData(
-                        label=InstanceStepDataLabel.LRGST_TOKEN_SIZE,
-                        value=max_token_size,
-                    ),
-                    InstancePipelineStepData(
-                        label=InstanceStepDataLabel.AVG_TOKEN_SIZE,
-                        value=str(avg_token_size),
-                    ),
-                    InstancePipelineStepData(
-                        label=InstanceStepDataLabel.EMB_MODEL,
-                        value=embedding.info.name,
-                    ),
-                    InstancePipelineStepData(
-                        label=InstanceStepDataLabel.EMB_MODEL_DIM,
-                        value=embedding.info.dimensions,
-                    ),
-                    InstancePipelineStepData(
-                        label=InstanceStepDataLabel.MIN_TOKEN_SIZE,
-                        value=min_token_size,
-                    ),
-                ],
-            )
+            # set_pipeline_step_meta(
+            #     db=db,
+            #     instance_id=instance_id,
+            #     step_id=step_id,
+            #     meta=[
+            #         InstancePipelineStepData(
+            #             label=InstanceStepDataLabel.TOTAL_SEGMENTS_TOKENIZED,
+            #             value=p_index,
+            #         ),
+            #         InstancePipelineStepData(
+            #             label=InstanceStepDataLabel.LRGST_TOKEN_SIZE,
+            #             value=max_token_size,
+            #         ),
+            #         InstancePipelineStepData(
+            #             label=InstanceStepDataLabel.AVG_TOKEN_SIZE,
+            #             value=str(avg_token_size),
+            #         ),
+            #         InstancePipelineStepData(
+            #             label=InstanceStepDataLabel.EMB_MODEL,
+            #             value=embedding.info.name,
+            #         ),
+            #         InstancePipelineStepData(
+            #             label=InstanceStepDataLabel.EMB_MODEL_DIM,
+            #             value=embedding.info.dimensions,
+            #         ),
+            #         InstancePipelineStepData(
+            #             label=InstanceStepDataLabel.MIN_TOKEN_SIZE,
+            #             value=min_token_size,
+            #         ),
+            #     ],
+            # )
     if len(payloads) > 0:
         await qdrant_client.upsert(
             collection_name=collection,
             points=Batch(ids=ids, payloads=payloads, vectors=vectors),
         )
 
-        set_pipeline_step_meta(
-            db=db,
-            instance_id=instance_id,
-            step_id=step_id,
-            meta=[
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.TOTAL_SEGMENTS_TOKENIZED,
-                    value=p_index,
-                ),
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.LRGST_TOKEN_SIZE,
-                    value=max_token_size,
-                ),
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.AVG_TOKEN_SIZE,
-                    value=str(avg_token_size),
-                ),
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.EMB_MODEL,
-                    value=embedding.info.name,
-                ),
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.EMB_MODEL_DIM,
-                    value=embedding.info.dimensions,
-                ),
-            ],
-        )
+        # set_pipeline_step_meta(
+        #     db=db,
+        #     instance_id=instance_id,
+        #     step_id=step_id,
+        #     meta=[
+        #         InstancePipelineStepData(
+        #             label=InstanceStepDataLabel.TOTAL_SEGMENTS_TOKENIZED,
+        #             value=p_index,
+        #         ),
+        #         InstancePipelineStepData(
+        #             label=InstanceStepDataLabel.LRGST_TOKEN_SIZE,
+        #             value=max_token_size,
+        #         ),
+        #         InstancePipelineStepData(
+        #             label=InstanceStepDataLabel.AVG_TOKEN_SIZE,
+        #             value=str(avg_token_size),
+        #         ),
+        #         InstancePipelineStepData(
+        #             label=InstanceStepDataLabel.EMB_MODEL,
+        #             value=embedding.info.name,
+        #         ),
+        #         InstancePipelineStepData(
+        #             label=InstanceStepDataLabel.EMB_MODEL_DIM,
+        #             value=embedding.info.dimensions,
+        #         ),
+        #     ],
+        # )
     end_time = time.time()
     print("Qdrant insert time " + str(end_time - start_time))
 
@@ -198,7 +198,7 @@ def create_embedding(input, embedding_model, depth=0):
         raise Exception("Too many retries")
     try:
         time.sleep((5 * depth) + (6 / 1000))
-        response = openai.Embedding.create(input=input, engine=embedding_model)
+        response = openai.embeddings.create(input=input, model=embedding_model)
         return response
     except Exception as e:
         print(e)

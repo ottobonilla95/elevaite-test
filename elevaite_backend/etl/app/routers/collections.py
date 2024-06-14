@@ -5,16 +5,17 @@ from sqlalchemy.orm import Session, Query
 
 from ..services import collections as collection_service
 from .deps import get_db, get_qdrant_connection
-from elevaitedb.schemas import (
-   collection as collection_schemas,
-#    api as api_schemas,
+from elevaitelib.schemas import (
+    collection as collection_schemas,
+    #    api as api_schemas,
 )
+
 # from rbac_api import (
 #    route_validator_map,
 #    RBACValidatorProvider
 # )
 # rbacValidator = RBACValidatorProvider.get_instance()
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
 from qdrant_client.conversions import common_types as types
 
 router = APIRouter(prefix="/project/{project_id}/collection", tags=["collections"])
@@ -31,11 +32,11 @@ def getCollectionsOfProject(
 ):
     # db: Session = request.state.db # uncomment this when using validator
     # all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(models.Collection, validation_info) # uncomment this when using validator
-    
+
     return collection_service.getCollectionsOfProject(
         db=db,
         projectId=project_id,
-        # filter_function=all_query_authorized_types_filter_function, # uncomment this when using validator 
+        # filter_function=all_query_authorized_types_filter_function, # uncomment this when using validator
         skip=skip,
         limit=limit,
     )

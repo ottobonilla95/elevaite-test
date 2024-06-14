@@ -4,39 +4,38 @@ import re
 from typing import Annotated, Any
 import uuid
 from dotenv import load_dotenv
-from elevaitedb.schemas.configuration import (
+from elevaitelib.schemas.configuration import (
     ConfigurationCreate,
     ServiceNowIngestDataDTO,
 )
-from elevaitedb.schemas.dataset import DatasetCreate
-from elevaitedb.schemas.instance import (
+from elevaitelib.schemas.dataset import DatasetCreate
+from elevaitelib.schemas.instance import (
     InstanceCreate,
     InstancePipelineStepStatus,
     InstanceStatus,
 )
-from elevaitedb.schemas.pipeline import PipelineStepStatus
+from elevaitelib.schemas.pipeline import PipelineStepStatus
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 import pika
 from rbac_api.utils.deps import get_db
 from sqlalchemy.orm import Session
 
-from elevaitedb.schemas import (
-   service_now as schemas,
-#    api as api_schemas,
+from elevaitelib.schemas import (
+    service_now as schemas,
+    #    api as api_schemas,
 )
 
 from app.util.service_now_seed import service_now_seed
 from app.util.func import get_routing_key
 from .deps import get_rabbitmq_connection
-from elevaitedb.crud import (
+from elevaitelib.orm.crud import (
     pipeline as pipeline_crud,
-    application as application_crud,
     instance as instance_crud,
     configuration as configuration_crud,
     dataset as dataset_crud,
-    collection as collection_crud,
 )
-from elevaitedb.util import func as util_func
+from elevaitelib.util import func as util_func
+
 # from rbac_api import (
 #    route_validator_map,
 # )
@@ -48,7 +47,7 @@ router = APIRouter(prefix="/servicenow", tags=["servicenow"])
 def ingestServiceNowTickets(
     # request: Request, # uncomment when using validator
     dto: Annotated[schemas.ServiceNowIngestBody, Body()],
-    db: Session = Depends(get_db), # comment this when using validator
+    db: Session = Depends(get_db),  # comment this when using validator
     # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'ingestServiceNowTickets')]), # uncomment this to use validator
     rmq: pika.BlockingConnection = Depends(get_rabbitmq_connection),
 ):
@@ -92,10 +91,11 @@ def ingestServiceNowTickets(
         version=None,
     )
     _conf_create = ConfigurationCreate(
-        applicationId=1,
         isTemplate=False,
         name=f"{dto.dataset_name}-conf",
         raw=_conf_raw,
+        pipelineId=str(_pipeline.id),
+        datasetId=str(_dataset.id),
     )
     _conf = configuration_crud.create_configuration(
         db=db, configurationCreate=_conf_create
@@ -104,15 +104,13 @@ def ingestServiceNowTickets(
     _instance = instance_crud.create_instance(
         db=db,
         createInstanceDTO=InstanceCreate(
-            applicationId=1,
             comment=None,
             configurationId=_conf.id,
             configurationRaw=json.dumps(_conf_raw.json()),
             creator="ServiceNow",
-            datasetId=_dataset.id,
             name=f"{dto.dataset_name}-instance",
             projectId=uuid.UUID(projectId),
-            selectedPipelineId=uuid.UUID(pipelineId),
+            pipelineId=uuid.UUID(pipelineId),
             startTime=util_func.get_iso_datetime(),
             status=InstanceStatus.STARTING,
             endTime=None,

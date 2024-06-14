@@ -1,5 +1,5 @@
-
 from dotenv import load_dotenv
+
 load_dotenv()
 
 import logging
@@ -7,8 +7,8 @@ from rbac_api.utils.RedisSingleton import RedisSingleton
 from fastapi import FastAPI, Depends
 from rbac_api.app.routes.main import attach_routes
 import uvicorn
-from elevaitedb.db.database import engine
-from elevaitedb.db import models
+from elevaitelib.orm.db.database import engine
+from elevaitelib.orm.db import models
 from rbac_api.utils.seed_db import seed_db as seed
 from rbac_api.utils.deps import get_db
 from rbac_api.utils.check_env_vars import check_env_vars
@@ -23,9 +23,11 @@ check_env_vars()
 # Attach all routes to the app
 attach_routes(app)
 
+
 @app.get("/hc", tags=["testing"])
 def healthCheck():
     return {"msg": "Hello World"}
+
 
 # @app.post("/seed", tags=["testing"])
 # def seed_db(db: Session = Depends(get_db)):

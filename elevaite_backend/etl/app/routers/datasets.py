@@ -6,16 +6,18 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session, Query
 from ..services import datasets as dataset_service
 from .deps import get_db
-from elevaitedb.schemas import (
+from elevaitelib.schemas import (
     dataset as dataset_schemas,
     # api as api_schemas,
 )
+
 # from rbac_api import (
 #    route_validator_map,
 #    RBACValidatorProvider
 # )
 # rbacValidator = RBACValidatorProvider.get_instance()
-from elevaitedb.db import models
+from elevaitelib.orm.db import models
+
 router = APIRouter(prefix="/project/{project_id}/datasets", tags=["datasets"])
 
 
@@ -25,18 +27,18 @@ def getProjectDatasets(
     project_id: str,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db), # comment this when using validator
+    db: Session = Depends(get_db),  # comment this when using validator
     # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'getProjectDatasets')]), # uncomment this to use validator
 ):
     # db: Session = request.state.db # uncomment this when using validator
     # all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(models.Dataset, validation_info) # uncomment this when using validator
 
     return dataset_service.get_datasets_of_project(
-        db=db, 
+        db=db,
         projectId=project_id,
         # filter_function=all_query_authorized_types_filter_function, # uncomment this when using validator
         skip=skip,
-        limit=limit
+        limit=limit,
     )
 
 
@@ -44,13 +46,15 @@ def getProjectDatasets(
 def getDatasetById(
     project_id: str,
     dataset_id: str,
-    db: Session = Depends(get_db), # comment this when using validator
+    db: Session = Depends(get_db),  # comment this when using validator
     # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'getDatasetById')]), # uncomment this to use validator
 ):
     # dataset = validation_info.get('Dataset', None) # uncomment this when using validator
     # return dataset # uncomment this when using validator
 
-    return dataset_service.get_dataset_by_id(db=db, datasetId=dataset_id) # comment this when using validator
+    return dataset_service.get_dataset_by_id(
+        db=db, datasetId=dataset_id
+    )  # comment this when using validator
 
 
 class AddTagToDatasetDto(BaseModel):
@@ -63,7 +67,7 @@ def addTagToDataset(
     project_id: str,
     dataset_id: str,
     dto: Annotated[AddTagToDatasetDto, Body()],
-    db: Session = Depends(get_db), # comment this when using validator
+    db: Session = Depends(get_db),  # comment this when using validator
     # validation_info:dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, 'getApplicationConfigurations')'addTagToDataset']), # uncomment this when using validator
 ):
     # db: Session = request.state.db # uncomment this when using validator

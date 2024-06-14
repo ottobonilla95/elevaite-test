@@ -3,53 +3,52 @@ from typing import Any, Dict, List, Optional, Annotated
 import uuid
 from pydantic import UUID4, Json
 from sqlalchemy import (
-   Boolean,
-   Column,
-   DateTime,
-   Enum,
-   ForeignKey,
-   Integer,
-   String,
-   Table,
-   Uuid,
-   JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Uuid,
+    JSON,
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy_json import MutableJson
 from qdrant_client.http.models import Distance
 
-from elevaitedb.util.func import get_utc_datetime
-from elevaitedb.schemas.instance import (
+from elevaitelib.util.func import get_utc_datetime
+from elevaitelib.schemas.instance import (
     InstancePipelineStepData,
     InstanceStatus,
 )
-from elevaitedb.schemas.pipeline import PipelineStepStatus
-from elevaitedb.schemas.application import ApplicationType
-from elevaitedb.schemas.permission import ProjectScopedRBACPermission
-from elevaitedb.schemas.apikey import (
-    ApikeyPermissionsType
-)
+from elevaitelib.schemas.pipeline import PipelineStepStatus
+from elevaitelib.schemas.application import ApplicationType
+from elevaitelib.schemas.permission import ProjectScopedRBACPermission
+from elevaitelib.schemas.apikey import ApikeyPermissionsType
 
 from sqlalchemy import (
-   Column,
-   DateTime,
-   String,
-   DateTime,
-   ForeignKey,
-   Boolean,
-   UniqueConstraint,
+    Column,
+    DateTime,
+    String,
+    DateTime,
+    ForeignKey,
+    Boolean,
+    UniqueConstraint,
 )
 
 from sqlalchemy import Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base
 
-Base = declarative_base() 
+Base = declarative_base()
 
 import uuid
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.types import CHAR
 from sqlalchemy import TypeDecorator
+
 
 # Custom UUID type for SQLite
 class GUID(TypeDecorator):
@@ -57,12 +56,13 @@ class GUID(TypeDecorator):
 
     Uses PostgreSQL's UUID type, otherwise uses CHAR(32), storing as stringified hex values.
     """
+
     impl = CHAR
 
     cache_ok = False
 
     def load_dialect_impl(self, dialect):
-        if dialect.name == 'postgresql':
+        if dialect.name == "postgresql":
             return dialect.type_descriptor(PG_UUID())
         else:
             return dialect.type_descriptor(CHAR(32))
@@ -70,7 +70,7 @@ class GUID(TypeDecorator):
     def process_bind_param(self, value, dialect):
         if value is None:
             return value
-        elif dialect.name == 'postgresql':
+        elif dialect.name == "postgresql":
             return str(value)
         else:
             if not isinstance(value, uuid.UUID):
@@ -84,24 +84,30 @@ class GUID(TypeDecorator):
         else:
             return uuid.UUID(value)
 
+
 class BaseMixin(object):
-   id = Column(GUID, primary_key=True, default=lambda: str(uuid.uuid4()))
-   created_at = Column(DateTime, default=lambda: get_utc_datetime())
-   updated_at = Column(DateTime, default=lambda: get_utc_datetime(), onupdate=lambda: get_utc_datetime())
+    id = Column(GUID, primary_key=True, default=lambda: str(uuid.uuid4()))
+    created_at = Column(DateTime, default=lambda: get_utc_datetime())
+    updated_at = Column(
+        DateTime,
+        default=lambda: get_utc_datetime(),
+        onupdate=lambda: get_utc_datetime(),
+    )
+
 
 class Application(Base):
-   __tablename__ = "applications"
+    __tablename__ = "applications"
 
-   id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-   title: Mapped[str]
-   icon: Mapped[str]
-   description: Mapped[str]
-   version: Mapped[str]
-   creator: Mapped[str]  # TODO: Check if this should be a relationship to the user
-   applicationType: Mapped[ApplicationType] = mapped_column(Enum(ApplicationType))
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    title: Mapped[str]
+    icon: Mapped[str]
+    description: Mapped[str]
+    version: Mapped[str]
+    creator: Mapped[str]  # TODO: Check if this should be a relationship to the user
+    applicationType: Mapped[ApplicationType] = mapped_column(Enum(ApplicationType))
 
-   instances: Mapped[List["Instance"]] = relationship(back_populates="application")
-   pipelines: Mapped[List["Pipeline"]] = relationship("Pipeline")
+    instances: Mapped[List["Instance"]] = relationship(back_populates="application")
+    pipelines: Mapped[List["Pipeline"]] = relationship("Pipeline")
 
 
 class Instance(Base):
@@ -329,7 +335,7 @@ class DatasetVersion(Base):
 class Project(Base, BaseMixin):
     __tablename__ = "projects"
     id = Column(GUID, primary_key=True, default=lambda: str(uuid.uuid4()))
-    account_id= Column(GUID, ForeignKey("accounts.id", ondelete="CASCADE"))
+    account_id = Column(GUID, ForeignKey("accounts.id", ondelete="CASCADE"))
     creator_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"))
     parent_project_id = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(60), nullable=False)
@@ -340,7 +346,7 @@ class Project(Base, BaseMixin):
         "Account", back_populates="projects", foreign_keys=[account_id]
     )  # many-to-one: many projects can belong to 1 account
     parent = relationship(
-        "Project", remote_side=[id], back_populates="children", uselist=False 
+        "Project", remote_side=[id], back_populates="children", uselist=False
     )  # Self-referential many-to-one ; many children to one parent
     children = relationship(
         "Project", back_populates="parent"
@@ -390,13 +396,13 @@ class User_Account(Base, BaseMixin):
 class User_Project(Base, BaseMixin):
 
     __tablename__ = "user_project"
-    user_id= Column(GUID, ForeignKey("users.id", ondelete="CASCADE"))
+    user_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"))
     project_id = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"))
     permission_overrides: Mapped[Annotated[dict[str, Any], Column(JSON)]] = (
         mapped_column(type_=JSON)
     )
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    
+
     __table_args__ = (
         UniqueConstraint("user_id", "project_id", name="_user_project_uc"),
     )  # Add a unique constraint for the combination of user_id and project_id
@@ -454,7 +460,7 @@ class Account(Base, BaseMixin):
 
     # --------- LOGICAL RELATIONSHIPS BASED ON FOREIGN KEYS -----------
     organization = relationship(
-        "Organization", back_populates="accounts", foreign_keys=[organization_id] 
+        "Organization", back_populates="accounts", foreign_keys=[organization_id]
     )  # many-to-one: many accounts can belong to 1 organization
     users = relationship(
         "User", secondary="user_account", back_populates="accounts"
@@ -467,7 +473,7 @@ class Account(Base, BaseMixin):
 class User(Base, BaseMixin):
     __tablename__ = "users"
 
-    organization_id=Column(GUID, ForeignKey("organizations.id"), nullable=False)
+    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=False)
     firstname: Mapped[str] = mapped_column(String(60), nullable=True)
     lastname: Mapped[str] = mapped_column(String(60), nullable=True)
     email: Mapped[str] = mapped_column(String(254), unique=True, nullable=False)
@@ -483,30 +489,37 @@ class User(Base, BaseMixin):
 
 
 class Role(Base, BaseMixin):
-   __tablename__ = "roles"
-   name = Column(
-      String, nullable=False, unique=True
-   )  # 'DATA_SCIENTIST'
-   permissions = Column(JSON)  # Use JSONB for filterable and indexable JSON structure
-   # --------- LOGICAL RELATIONSHIPS BASED ON FOREIGN KEYS-----------
-   # user_account_overrides = relationship('User_Account', back_populates='overriding_role')
-   # user_project_overrides = relationship('User_Project', back_populates='overriding_role')
-   # user_overrides = relationship('User', back_populates='overriding_role')
+    __tablename__ = "roles"
+    name = Column(String, nullable=False, unique=True)  # 'DATA_SCIENTIST'
+    permissions = Column(JSON)  # Use JSONB for filterable and indexable JSON structure
+    # --------- LOGICAL RELATIONSHIPS BASED ON FOREIGN KEYS-----------
+    # user_account_overrides = relationship('User_Account', back_populates='overriding_role')
+    # user_project_overrides = relationship('User_Project', back_populates='overriding_role')
+    # user_overrides = relationship('User', back_populates='overriding_role')
 
 
 class Apikey(Base):
     __tablename__ = "apikeys"
 
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4()
+    )
     name: Mapped[str] = mapped_column(String(20), nullable=False)
-    creator_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    permissions_type: Mapped[ApikeyPermissionsType] = mapped_column(Enum(ApikeyPermissionsType), nullable=False)
-    project_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("projects.id"), nullable=False)
-    key: Mapped[str] = mapped_column(String, unique=True, nullable=False) 
-    permissions: Mapped[Annotated[dict[str, Any], Column(JSON)]] = ( 
-        mapped_column(type_=JSON)
-    ) 
+    creator_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    permissions_type: Mapped[ApikeyPermissionsType] = mapped_column(
+        Enum(ApikeyPermissionsType), nullable=False
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("projects.id"), nullable=False
+    )
+    key: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    permissions: Mapped[Annotated[dict[str, Any], Column(JSON)]] = mapped_column(
+        type_=JSON
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
 
 # Define all class's such that first letter is uppercase and others are lowercase for rbac validation to work

@@ -1,15 +1,15 @@
 import asyncio
 import uuid
 from typing import List, Tuple, Optional, Callable, Type
-from elevaitedb.db import models
-from elevaitedb.util.func import to_kebab_case
+from elevaitelib.orm.db import models
+from elevaitelib.util.func import to_kebab_case
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.conversions import common_types as types
 from qdrant_client.http.models import Distance, VectorParams
 from sqlalchemy.orm import Session, Query
-from elevaitedb.schemas.collection import Collection, CollectionCreate
-from elevaitedb.crud import collection as collection_crud
-from elevaitedb.util import func as util_func
+from elevaitelib.schemas.collection import Collection, CollectionCreate
+from elevaitelib.orm.crud import collection as collection_crud
+from elevaitelib.util import func as util_func
 
 
 def getCollectionsOfProject(
@@ -23,7 +23,7 @@ def getCollectionsOfProject(
     return collection_crud.get_collections(
         db=db,
         projectId=projectId,
-        # filter_function=filter_function, # uncomment this when using validator  
+        # filter_function=filter_function, # uncomment this when using validator
         skip=skip,
         limit=limit,
     )

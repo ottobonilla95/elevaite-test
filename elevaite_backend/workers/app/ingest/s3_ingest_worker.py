@@ -13,22 +13,22 @@ from botocore.credentials import RefreshableCredentials
 from botocore.session import get_session
 import redis
 
-from elevaitedb.db.database import SessionLocal
-from elevaitedb.crud import (
+from elevaitelib.orm.db.database import SessionLocal
+from elevaitelib.orm.crud import (
     instance as instance_crud,
     pipeline as pipeline_crud,
     dataset as dataset_crud,
 )
-from elevaitedb.util import func as util_func
-from elevaitedb.util.s3url import S3Url
-from elevaitedb.util.logger import ESLogger
-from elevaitedb.schemas.instance import (
+from elevaitelib.util import func as util_func
+from elevaitelib.util.s3url import S3Url
+from elevaitelib.util.logger import ESLogger
+from elevaitelib.schemas.instance import (
     InstancePipelineStepData,
     InstanceStatus,
     InstanceUpdate,
     InstanceStepDataLabel,
 )
-from elevaitedb.schemas.dataset import DatasetVersionCreate
+from elevaitelib.schemas.dataset import DatasetVersionCreate
 
 from .steps.base_step import get_initialized_step, register_resource_registry
 
