@@ -51,9 +51,9 @@ class ServiceNowIngestDataDTO(BaseDatasetInformationForm):
 
 
 class ConfigurationBase(BaseModel):
-    pipelineId: str
-    datasetId: str
-    raw: Json
+    pipelineId: UUID4
+    datasetId: UUID4
+    raw: dict
     name: str
     isTemplate: bool
 

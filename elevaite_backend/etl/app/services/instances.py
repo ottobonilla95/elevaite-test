@@ -224,9 +224,7 @@ def getInstanceChart(instance_id: str) -> InstanceChartData:
     return chart_data_from_redis(input=res)
 
 
-def getInstanceConfiguration(
-    db: Session, pipeline_id: str, instance_id: str
-) -> Configuration:
+def getInstanceConfiguration(db: Session, instance_id: str) -> Configuration:
     instance = instance_crud.get_instance_by_id(db=db, id=instance_id)
     if not is_instance(instance):
         raise HTTPException(404, "Instance not found")

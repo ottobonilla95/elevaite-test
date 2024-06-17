@@ -17,7 +17,8 @@ from app.util.RedisSingleton import RedisSingleton
 from app.util.ElasticSingleton import ElasticSingleton
 from elevaitelib.orm.db import models
 from elevaitelib.orm.db.database import engine
-from app.util.db_seed import seed_db
+
+# from app.util.db_seed import seed_db
 from elevaitelib.schemas import application as application_schemas
 from app.routers.deps import get_db
 
@@ -37,13 +38,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # app.include_router(applications_router)
+app.include_router(pipelines_router)
 app.include_router(instances_router)
 app.include_router(configuration_router)
 app.include_router(datasets_router)
 # app.include_router(projects_router)
 app.include_router(collections_router)
 app.include_router(service_now_router)
-app.include_router(pipelines_router)
 
 
 @app.get("/hc")
@@ -51,11 +52,11 @@ def healthCheck():
     return {"Hello": "World"}
 
 
-@app.post("/seed", response_model=list[application_schemas.Application])
-def seed(
-    db: Session = Depends(get_db),
-) -> list[application_schemas.Application]:
-    return seed_db(db=db)
+# @app.post("/seed", response_model=list[application_schemas.Application])
+# def seed(
+#     db: Session = Depends(get_db),
+# ) -> list[application_schemas.Application]:
+#     return seed_db(db=db)
 
 
 if __name__ == "__main__":

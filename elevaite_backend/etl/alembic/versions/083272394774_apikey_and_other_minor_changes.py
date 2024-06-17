@@ -24,19 +24,25 @@ def upgrade() -> None:
     op.add_column("apikeys", sa.Column("name", sa.String(length=20), nullable=False))
     op.add_column("apikeys", sa.Column("creator_user_id", sa.Uuid(), nullable=True))
     op.add_column("apikeys", sa.Column("creator_apikey_id", sa.Uuid(), nullable=True))
+    sa_enum = sa.Enum("PROGRAMMATIC", "CONSOLE", name="apikeycreationtype")
+    # This will create the enum if it's not already present which is helpful
+    sa_enum.create(op.get_bind(), checkfirst=True)
     op.add_column(
         "apikeys",
         sa.Column(
             "creation_type",
-            sa.Enum("PROGRAMMATIC", "CONSOLE", name="apikeycreationtype"),
+            sa_enum,
             nullable=False,
         ),
     )
+    sa_enum_2 = sa.Enum("CLONED", "CUSTOM", name="apikeypermissionstype")
+    # This will create the enum if it's not already present which is helpful
+    sa_enum_2.create(op.get_bind(), checkfirst=True)
     op.add_column(
         "apikeys",
         sa.Column(
             "permissions_type",
-            sa.Enum("CLONED", "CUSTOM", name="apikeypermissionstype"),
+            sa_enum_2,
             nullable=False,
         ),
     )
@@ -151,4 +157,10 @@ def downgrade() -> None:
     op.drop_column("apikeys", "creator_apikey_id")
     op.drop_column("apikeys", "creator_user_id")
     op.drop_column("apikeys", "name")
+    sa_enum = sa.Enum(name="apikeypermissionstype")
+    sa_enum.drop(op.get_bind(), checkfirst=True)
+    sa_enum = sa.Enum(name="apikeycreationtype")
+    sa_enum.drop(op.get_bind(), checkfirst=True)
+    sa_enum = sa.Enum(name="distance")
+    sa_enum.drop(op.get_bind(), checkfirst=True)
     # ### end Alembic commands ###

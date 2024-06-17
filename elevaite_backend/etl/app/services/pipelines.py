@@ -15,7 +15,8 @@ from elevaitelib.util import func as util_func
 
 
 def getPipelines(db: Session, skip: int = 0, limit: int = 10):
-    return pipeline_crud.get_pipelines(db=db, skip=skip, limit=limit)
+    r = pipeline_crud.get_pipelines(db=db, skip=skip, limit=limit)
+    return r
 
 
 def getPipelineById(db: Session, id: str):

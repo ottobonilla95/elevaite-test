@@ -185,24 +185,24 @@ route_validator_map = {
         api_schemas.APINamespace.RBAC_API,
         "patch_user_superadmin_status",
     ): entity_validators.user.validate_patch_user_superadmin_status,
-    (
-        api_schemas.APINamespace.ETL_API,
-        "getApplicationList",
-    ): entity_validators.application.validate_get_applications_factory(
-        models.Application, ("READ",)
-    ),
-    (
-        api_schemas.APINamespace.ETL_API,
-        "getApplicationById",
-    ): entity_validators.application.validate_get_application_factory(
-        models.Application, ("READ",)
-    ),
-    (
-        api_schemas.APINamespace.ETL_API,
-        "getApplicationPipelines",
-    ): entity_validators.application.validate_get_application_pipelines_factory(
-        models.Application, ("READ",)
-    ),
+    # (
+    #     api_schemas.APINamespace.ETL_API,
+    #     "getApplicationList",
+    # ): entity_validators.application.validate_get_applications_factory(
+    #     models.Application, ("READ",)
+    # ),
+    # (
+    #     api_schemas.APINamespace.ETL_API,
+    #     "getApplicationById",
+    # ): entity_validators.application.validate_get_application_factory(
+    #     models.Application, ("READ",)
+    # ),
+    # (
+    #     api_schemas.APINamespace.ETL_API,
+    #     "getApplicationPipelines",
+    # ): entity_validators.application.validate_get_application_pipelines_factory(
+    #     models.Application, ("READ",)
+    # ),
     (
         api_schemas.APINamespace.ETL_API,
         "getCollectionsOfProject",

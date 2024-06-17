@@ -43,8 +43,8 @@ class IsProjectAdminPermissionEvaluationRequest(ExcludeAccountAndProjectParams):
 
 
 # All route params below exclude account_id and project_id, and are for the general target resource rather than a particular target resource
-class GetApplicationsRouteParams(ExcludeAccountAndProjectParams):  # /application
-    pass
+# class GetApplicationsRouteParams(ExcludeAccountAndProjectParams):  # /application
+#     pass
 
 
 class GetProjectsRouteParams(ExcludeAccountAndProjectParams):  # /projects
@@ -144,7 +144,7 @@ class PermissionsEvaluationRequest(
 ):  # the payload for the fields directly corresponds to the path params/header params for the GET ALL version of the endpoints (in other words, exclude target model id) without account/project in any order; this is because these are not exclusive to the target model id, and account/project is skipped because it is evaluated once in the endpoint for all the fields in payload for POST /auth/rbac-permissions
     IS_ACCOUNT_ADMIN: Optional[IsAccountAdminPermissionEvaluationRequest]
     IS_PROJECT_ADMIN: Optional[IsProjectAdminPermissionEvaluationRequest]
-    APPLICATION_READ: Optional[GetApplicationsRouteParams]
+    # APPLICATION_READ: Optional[GetApplicationsRouteParams]
     PROJECT_READ: Optional[GetProjectsRouteParams]
     PROJECT_CREATE: Optional[CreateProjectRouteParams]
     PROJECT_SERVICENOW_TICKET_INGEST: Optional[IngestServicenowTicketsRouteParams]

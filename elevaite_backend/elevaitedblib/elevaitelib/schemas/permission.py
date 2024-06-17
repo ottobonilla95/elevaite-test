@@ -615,7 +615,7 @@ class ApikeyScopedApplicationTypeNames(BaseModel):
 
 class AccountScopedRBACPermission(BaseModel):
     ENTITY_Project: Optional[AccountScopedProjectPermission] = Field(None)
-    ENTITY_Application: Optional[AccountScopedApplicationTypeNames] = Field(None)
+    # ENTITY_Application: Optional[AccountScopedApplicationTypeNames] = Field(None)
 
     # @root_validator(pre=True)
     # @classmethod
@@ -632,13 +632,13 @@ class AccountScopedRBACPermission(BaseModel):
     def create(cls):
         return cls(
             ENTITY_Project=AccountScopedProjectPermission.create(),
-            ENTITY_Application=AccountScopedApplicationTypeNames.create(),
+            # ENTITY_Application=AccountScopedApplicationTypeNames.create(),
         )
 
 
 class ProjectScopedRBACPermission(BaseModel):
     ENTITY_Project: Optional[ProjectScopedProjectPermission] = Field(None)
-    ENTITY_Application: Optional[ProjectScopedApplicationTypeNames] = Field(None)
+    # ENTITY_Application: Optional[ProjectScopedApplicationTypeNames] = Field(None)
 
     # @root_validator(pre=True)
     # @classmethod
@@ -656,13 +656,13 @@ class ProjectScopedRBACPermission(BaseModel):
     def create(cls):
         return cls(
             ENTITY_Project=ProjectScopedProjectPermission.create(),
-            ENTITY_Application=ProjectScopedApplicationTypeNames.create(),
+            # ENTITY_Application=ProjectScopedApplicationTypeNames.create(),
         )
 
 
 class ApikeyScopedRBACPermission(BaseModel):
     ENTITY_Project: Optional[ApikeyScopedProjectPermission] = Field(None)
-    ENTITY_Application: Optional[ApikeyScopedApplicationTypeNames] = Field(None)
+    # ENTITY_Application: Optional[ApikeyScopedApplicationTypeNames] = Field(None)
 
     # @root_validator(pre=True)
     # @classmethod
@@ -680,7 +680,7 @@ class ApikeyScopedRBACPermission(BaseModel):
     def create(cls):
         return cls(
             ENTITY_Project=ApikeyScopedProjectPermission.create(),
-            ENTITY_Application=ApikeyScopedApplicationTypeNames.create(),
+            # ENTITY_Application=ApikeyScopedApplicationTypeNames.create(),
         )
 
     @classmethod

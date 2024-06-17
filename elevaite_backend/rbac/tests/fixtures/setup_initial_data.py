@@ -279,35 +279,35 @@ db_data = {
                 "ACTION_SERVICENOW": {"ACTION_TICKET": {"ACTION_INGEST": "Allow"}},
                 "ENTITY_Collection": {"ACTION_READ": "Allow", "ACTION_CREATE": "Allow"},
             },
-            "ENTITY_Application": {
-                "TYPENAMES_applicationType": {
-                    "TYPEVALUES_ingest": {
-                        "ENTITY_Instance": {
-                            "ACTION_READ": "Allow",
-                            "ACTION_CREATE": "Allow",
-                            "ACTION_CONFIGURATION": {"ACTION_READ": "Allow"},
-                        },
-                        "ENTITY_Configuration": {
-                            "ACTION_READ": "Allow",
-                            "ACTION_CREATE": "Allow",
-                            "ACTION_UPDATE": "Allow",
-                        },
-                    },
-                    "TYPEVALUES_preprocess": {
-                        "ACTION_READ": "Allow",
-                        "ENTITY_Instance": {
-                            "ACTION_READ": "Allow",
-                            "ACTION_CREATE": "Allow",
-                            "ACTION_CONFIGURATION": {"ACTION_READ": "Allow"},
-                        },
-                        "ENTITY_Configuration": {
-                            "ACTION_READ": "Allow",
-                            "ACTION_CREATE": "Allow",
-                            "ACTION_UPDATE": "Allow",
-                        },
-                    },
-                }
-            },
+            # "ENTITY_Application": {
+            #     "TYPENAMES_applicationType": {
+            #         "TYPEVALUES_ingest": {
+            #             "ENTITY_Instance": {
+            #                 "ACTION_READ": "Allow",
+            #                 "ACTION_CREATE": "Allow",
+            #                 "ACTION_CONFIGURATION": {"ACTION_READ": "Allow"},
+            #             },
+            #             "ENTITY_Configuration": {
+            #                 "ACTION_READ": "Allow",
+            #                 "ACTION_CREATE": "Allow",
+            #                 "ACTION_UPDATE": "Allow",
+            #             },
+            #         },
+            #         "TYPEVALUES_preprocess": {
+            #             "ACTION_READ": "Allow",
+            #             "ENTITY_Instance": {
+            #                 "ACTION_READ": "Allow",
+            #                 "ACTION_CREATE": "Allow",
+            #                 "ACTION_CONFIGURATION": {"ACTION_READ": "Allow"},
+            #             },
+            #             "ENTITY_Configuration": {
+            #                 "ACTION_READ": "Allow",
+            #                 "ACTION_CREATE": "Allow",
+            #                 "ACTION_UPDATE": "Allow",
+            #             },
+            #         },
+            #     }
+            # },
         },
     },
     "role2": {
@@ -322,23 +322,23 @@ db_data = {
                 "ACTION_SERVICENOW": {"ACTION_TICKET": {"ACTION_INGEST": "Allow"}},
                 "ENTITY_Collection": {"ACTION_READ": "Allow", "ACTION_CREATE": "Allow"},
             },
-            "ENTITY_Application": {
-                "TYPENAMES_applicationType": {
-                    "TYPEVALUES_preprocess": {
-                        "ACTION_READ": "Allow",
-                        "ENTITY_Instance": {
-                            "ACTION_READ": "Allow",
-                            "ACTION_CREATE": "Allow",
-                            "ACTION_CONFIGURATION": {"ACTION_READ": "Allow"},
-                        },
-                        "ENTITY_Configuration": {
-                            "ACTION_READ": "Allow",
-                            "ACTION_CREATE": "Allow",
-                            "ACTION_UPDATE": "Allow",
-                        },
-                    }
-                }
-            },
+            # "ENTITY_Application": {
+            #     "TYPENAMES_applicationType": {
+            #         "TYPEVALUES_preprocess": {
+            #             "ACTION_READ": "Allow",
+            #             "ENTITY_Instance": {
+            #                 "ACTION_READ": "Allow",
+            #                 "ACTION_CREATE": "Allow",
+            #                 "ACTION_CONFIGURATION": {"ACTION_READ": "Allow"},
+            #             },
+            #             "ENTITY_Configuration": {
+            #                 "ACTION_READ": "Allow",
+            #                 "ACTION_CREATE": "Allow",
+            #                 "ACTION_UPDATE": "Allow",
+            #             },
+            #         }
+            #     }
+            # },
         },
     },
     "role3": {

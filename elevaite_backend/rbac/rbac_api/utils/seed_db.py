@@ -396,31 +396,31 @@ def seed_db(db: Session):
 
     data_scientist_permissions.ENTITY_Project.ACTION_CREATE = "Allow"
 
-    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ACTION_READ = (
-        "Allow"
-    )
-    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_READ = (
-        "Allow"
-    )
-    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_CREATE = (
-        "Allow"
-    )
-    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_UPDATE = (
-        "Allow"
-    )
+    # data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ACTION_READ = (
+    #     "Allow"
+    # )
+    # data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_READ = (
+    #     "Allow"
+    # )
+    # data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_CREATE = (
+    #     "Allow"
+    # )
+    # data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_UPDATE = (
+    #     "Allow"
+    # )
 
-    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ACTION_READ = (
-        "Allow"
-    )
-    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_READ = (
-        "Allow"
-    )
-    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_CREATE = (
-        "Allow"
-    )
-    data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_UPDATE = (
-        "Allow"
-    )
+    # data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ACTION_READ = (
+    #     "Allow"
+    # )
+    # data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_READ = (
+    #     "Allow"
+    # )
+    # data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_CREATE = (
+    #     "Allow"
+    # )
+    # data_scientist_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_UPDATE = (
+    #     "Allow"
+    # )
 
     # ML Engineer account-scoped permissions:
     ml_engineer_permissions = permission_schemas.AccountScopedRBACPermission.create(
@@ -430,30 +430,30 @@ def seed_db(db: Session):
     ml_engineer_permissions.ENTITY_Project.ACTION_READ = "Allow"
     ml_engineer_permissions.ENTITY_Project.ACTION_CREATE = "Allow"
 
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ACTION_READ = (
-        "Allow"
-    )
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_READ = (
-        "Allow"
-    )
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_CREATE = (
-        "Allow"
-    )
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_UPDATE = (
-        "Allow"
-    )
+    # ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ACTION_READ = (
+    #     "Allow"
+    # )
+    # ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_READ = (
+    #     "Allow"
+    # )
+    # ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_CREATE = (
+    #     "Allow"
+    # )
+    # ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_UPDATE = (
+    #     "Allow"
+    # )
 
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ACTION_READ = (
-        "Allow"
-    )
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_READ = (
-        "Allow"
-    )
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_CREATE = (
-        "Allow"
-    )
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_UPDATE = (
-        "Allow"
+    # ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ACTION_READ = (
+    #     "Allow"
+    # )
+    # ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_READ = (
+    #     "Allow"
+    # )
+    # ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_CREATE = (
+    #     "Allow"
+    # )
+    # ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_UPDATE = (
+    #     "Allow"
     )
 
     # ML OPS account-scoped permissions:
