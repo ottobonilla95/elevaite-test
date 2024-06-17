@@ -1,6 +1,8 @@
 "use client";
-import { usePathname, useRouter } from "next/navigation";
-import { Logos } from "..";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { CommonButton, Logos } from "..";
 import SVGChevron from "../icons/elevaite/svgChevron";
 import "./Card.scss";
 
@@ -17,20 +19,37 @@ export interface CardProps {
   miscLabel?: string;
   btnLabel?: string;
   url?: string;
-  id?: string;
+  externalUrl?: string;
+  id?: string | number;
   link?: string;
 }
 
 export function Card({ icon, title, subtitle, description, ...props }: CardProps): JSX.Element {
-  const router = useRouter();
   const pathname = usePathname();
+  const [iconElement, setIconElement] = useState<React.ReactNode>(null);
+  const [formattedUrl, setFormattedUrl] = useState("/");
+
+
+  useEffect(() => {
+    setIconElement(getIconElement(props.id, icon, props.iconAlt));
+  }, [props.id, icon]);
+
+  useEffect(() => {
+    setFormattedUrl(
+      props.externalUrl ? props.externalUrl :
+      props.url ? pathname + props.url + addIdParameter() :
+      "/"
+    );
+  }, [props.url, props.externalUrl]);
+
 
   function addIdParameter(): string {
     if (!props.id) return "";
     const parameters = new URLSearchParams();
-    parameters.set("id", props.id);
+    parameters.set("id", props.id.toString());
     return `?${parameters.toString()}`;
   }
+
 
   return (
     <div
@@ -38,17 +57,12 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
         "card-container",
         props.link ? "with-link" : undefined,
       ].filter(Boolean).join(" ")}
-      id={props.id}
+      id={props.id?.toString()}
     >
       <div className="card">
         <div className="card-header">
           <div className="card-header-title">
-            {!icon ? //TODO: Remove testing icons
-                props.id == "1" ? <Logos.Aws className="card-header-icon"/> :
-                props.id == "2" ? <Logos.Preprocess className="card-header-icon"/>
-              : null :
-              <img src={icon} alt={props.iconAlt ? props.iconAlt : "logo"} className="card-header-icon" />
-            }
+            {iconElement}
             <div className="card-header-label">{title}</div>
           </div>
           {/* {subtitle ? 
@@ -62,21 +76,32 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
         {props.miscLabel ? 
           <span className="card-misc-label">{props.miscLabel}</span>
         : null}
-        {props.btnLabel ? 
-          <button
-            className="card-button"
-            disabled={!props.url}
-            id={props.id ? `${props.id}Btn` : ""} /* <- What's this for? */
-            onClick={() => { if (props.url) router.push(pathname + props.url + addIdParameter())}}
-            type="button"
-          >
-            {props.btnLabel}
-            <SVGChevron type="right" />
-          </button>
-        : null}
+        {!props.btnLabel ? undefined :
+          <div className="card-button-container">
+            <Link href={formattedUrl} >
+                <CommonButton className="card-button">
+                  {props.btnLabel}
+                  <SVGChevron type="right" />
+                </CommonButton>
+            </Link>
+          </div>
+        }
       </div>
     </div>
   );
 }
 
 export default Card;
+
+
+
+
+function getIconElement(id?: string | number, icon?: string, iconAlt?: string): React.ReactNode {
+  if (icon) return <img src={icon} alt={iconAlt ?? "logo"} className="card-header-icon" />
+  switch (id?.toString()) {
+    case "1": return <Logos.Aws className="card-header-icon"/>;
+    case "2": return <Logos.Preprocess className="card-header-icon"/>;
+    case "LocalApp_1": return <Logos.Jupyter className="card-header-icon"/>;
+    default: return null;
+  }
+}

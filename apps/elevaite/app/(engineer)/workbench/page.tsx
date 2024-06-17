@@ -42,7 +42,8 @@ export default function Page(): JSX.Element {
                   subtitle={`By ${app.creator}`}
                   title={app.title}
                   btnLabel="Open"
-                  url="/application"
+                  externalUrl={app.externalUrl}
+                  url={app.url ?? "/application"}
                 />
               ))
             }
@@ -65,7 +66,8 @@ export default function Page(): JSX.Element {
                   subtitle={`By ${app.creator}`}
                   title={app.title}
                   btnLabel="Open"
-                  url="/application"
+                  externalUrl={app.externalUrl}
+                  url={app.url ?? "/application"}
                 />
               ))
             }

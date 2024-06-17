@@ -20,6 +20,20 @@ const defaultErrorList: ErrorListObject = {
 }
 
 
+const localApplications: ApplicationObject[] = [
+    {
+        id: "LocalApp_1",
+        applicationType: ApplicationType.PREPROCESS,
+        creator: "Elevaite",
+        title: "Notebook Experiments",
+        description: "Experimental data pipelines using Jupyter Notebooks",
+        icon: "",
+        externalUrl: "https://elevaitenb.iopex.ai/",
+        version: "1",
+    },
+];
+
+
 // INTERFACES
 
 interface LoadingListObject {
@@ -85,17 +99,21 @@ export function WorkbenchContextProvider(props: WorkbenchContextProviderProps): 
         try {
             setLoading(current => {return {...current, applications: true}} );
             const data = await getApplicationList();
-            setApplicationList(data);
+            setApplicationList(appendLocalApplications(data));
             setErrors(current => {return { ...current, applications: false}} );
-          } catch (error) {
+        } catch (error) {
             setErrors(current => {return { ...current, applications: true}} );
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error('Error fetching application list:', error);
-          } finally {
+        } finally {
             setLoading(current => {return {...current, applications: false}} );
-          }
+        }
     }
 
+
+    function appendLocalApplications(remoteApps: ApplicationObject[]): ApplicationObject[] {
+        return [...remoteApps, ...localApplications];
+    }
 
 
   

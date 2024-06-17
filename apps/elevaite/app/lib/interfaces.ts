@@ -130,13 +130,15 @@ export interface SortingObject<ObjectToBeSorted, SpecialHandlingFieldsEnum = und
 ////////////////
 
 export interface ApplicationObject {
-    id: "string";
+    id: string;
     applicationType: ApplicationType;
-    creator: "string";
-    description: "string";
-    icon: "string";
-    title: "string";
-    version: "string";
+    creator: string;
+    description: string;
+    icon: string;
+    title: string;
+    version: string;
+    url?: string;
+    externalUrl?: string;
 }
 
 export interface ApplicationConfigurationObject {

@@ -97,22 +97,18 @@
       color: var(--ev-colors-text);
     }
 
-    & .card-button {
-      align-self: flex-end;
+    & .card-button-container {
       display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-      padding: 5px 20px;
-      border: 1px solid var(--ev-colors-specialCardButtonBorder);
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
+      justify-content: flex-end;
 
-      color: var(--ev-colors-text);
-      background-color: var(--ev-colors-specialCardButtonBackground);
-
-      @include buttonClick($backgroundColor: var(--ev-colors-hoverColor), $hoverFocus: true);
+      & .card-button {
+        padding: 5px 20px;
+        border: 1px solid var(--ev-colors-specialCardButtonBorder);
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ev-colors-text);
+        background-color: var(--ev-colors-specialCardButtonBackground);
+      }
     }
   }
 }
