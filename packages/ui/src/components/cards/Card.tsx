@@ -20,6 +20,7 @@ export interface CardProps {
   btnLabel?: string;
   url?: string;
   externalUrl?: string;
+  openInNewTab?: boolean;
   id?: string | number;
   link?: string;
 }
@@ -78,7 +79,11 @@ export function Card({ icon, title, subtitle, description, ...props }: CardProps
         : null}
         {!props.btnLabel ? undefined :
           <div className="card-button-container">
-            <Link href={formattedUrl} >
+            <Link
+              href={formattedUrl}
+              rel={props.openInNewTab ? "noopener noreferrer" : undefined}
+              target={props.openInNewTab ? "_blank" : undefined}
+            >
                 <CommonButton className="card-button">
                   {props.btnLabel}
                   <SVGChevron type="right" />

@@ -27,8 +27,9 @@ const localApplications: ApplicationObject[] = [
         creator: "Elevaite",
         title: "Notebook Experiments",
         description: "Experimental data pipelines using Jupyter Notebooks",
-        icon: "",
+        icon: "", // Check getIconElement at packages\ui\src\components\cards\Card.tsx
         externalUrl: "https://elevaitenb.iopex.ai/",
+        openInNewTab: true,
         version: "1",
     },
 ];

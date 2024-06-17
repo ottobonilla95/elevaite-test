@@ -43,6 +43,7 @@ export default function Page(): JSX.Element {
                   title={app.title}
                   btnLabel="Open"
                   externalUrl={app.externalUrl}
+                  openInNewTab={app.openInNewTab}
                   url={app.url ?? "/application"}
                 />
               ))
@@ -67,6 +68,7 @@ export default function Page(): JSX.Element {
                   title={app.title}
                   btnLabel="Open"
                   externalUrl={app.externalUrl}
+                  openInNewTab={app.openInNewTab}
                   url={app.url ?? "/application"}
                 />
               ))

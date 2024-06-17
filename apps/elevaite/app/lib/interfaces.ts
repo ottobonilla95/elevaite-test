@@ -139,6 +139,7 @@ export interface ApplicationObject {
     version: string;
     url?: string;
     externalUrl?: string;
+    openInNewTab?: boolean;
 }
 
 export interface ApplicationConfigurationObject {
