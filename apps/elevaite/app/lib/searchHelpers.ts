@@ -5,7 +5,7 @@ export function userSearchHelper(term: string): { key: string; link: string; lab
   const refs: { key: string; link: string; label: string }[] = [];
   applications.forEach((app) => {
     app.cards.forEach((card) => {
-      refs.push({ key: (card.id ?? card.iconAlt) ?? card.title, label: card.title, link: `#${card.id ?? ""}` });
+      refs.push({ key: (card.id?.toString() ?? card.iconAlt) ?? card.title, label: card.title, link: `#${card.id?.toString() ?? ""}` });
     });
   });
   return refs.filter((ref) => ref.label.toLowerCase().includes(term.toLowerCase()));
