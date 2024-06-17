@@ -47,6 +47,10 @@ __pycache__/
 out
 .idea
 
+#ignore the db files that popped up in the server somehow
+elevaite_db/*
+logfile
+
 # pytest coverage
 .coverage 
 htmlcov
