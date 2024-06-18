@@ -63,7 +63,7 @@ export const authConfig = {
 
       try {
         await registerToBackend({
-          // email,
+          email,
           firstName,
           lastName,
           authToken,

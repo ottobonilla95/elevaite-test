@@ -15,6 +15,10 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
         label: "Models",
         link: "/models",
     },
+    access: {
+      label: "Access Management",
+      link: "/access",
+    },
     datasets: {
         label: "Datasets",
         link: "/datasets",
@@ -43,6 +47,7 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
 
 const sidebarIcons: SidebarIconObject[] = [
     // { icon: <ElevaiteIcons.WorkersQueues />, link: "/workers_queues" },
+    { icon: <ElevaiteIcons.SVGAccess />, link: "/access", description: "Access Management" },
     { icon: <ElevaiteIcons.Datasets />, link: "/datasets", description: "Datasets" },
     { icon: <ElevaiteIcons.SVGModels />, link: "/models", description: "Models" },
     { icon: <ElevaiteIcons.Workbench />, link: "/workbench", description: "Workbench" },

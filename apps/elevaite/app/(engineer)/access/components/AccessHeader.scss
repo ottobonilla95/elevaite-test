@@ -1,0 +1,50 @@
+
+
+
+.access-header-container {
+    max-height: 45px;
+    height: 10vh;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+
+    & .part-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+
+        & .title {
+            color: var(--ev-colors-text);
+            font-size: 20px;
+            font-weight: 400;
+            cursor: default;
+        }
+
+        
+        & .refresh-button {
+
+            & > svg {
+                height: 18px;
+                width: 18px;
+            }
+        }
+
+        & .icon-button {
+            height: 30px;
+            width: 30px;
+            padding: 5px;
+            color: var(--ev-colors-secondaryText);
+
+            & > svg {
+                height: 100%;
+                width: 100%;
+            }
+
+            &.play {
+                color: var(--ev-colors-highlight);
+            }
+        }
+    }
+}

@@ -27,6 +27,13 @@
     gap: 20px;
     color: var(--ev-colors-uiText);
   }
+  & .navbar-left a {
+    height: 30px;
+    & > svg {
+      height: 100%;
+      width: auto;
+    }
+  }
   & .navbar-right {
     flex-grow: 0.25;
   }
