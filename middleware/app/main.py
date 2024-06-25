@@ -23,15 +23,20 @@ from .utils.functions import (
     NotenoughContext,
     finalFormatedOutput,
     faq_answer,
+    answer_from_cache,
     faq_streaming_request,
     generate_email_content,
     streaming_request_upgraded,
+    streaming_in_context_cache,
     getReleatedChatText,
     extract_chat_session_summary,
     storeSession,
     loadSession,
     deleteSession,
     insert2Memory,
+    remove_pattern_from_text,
+    split_by_month,
+    get_log_status_and_classification,
 )
 from .utils.playground import retrieve_prompt
 
@@ -92,15 +97,39 @@ def get_Agent_incidentSolver(query: str, uid: str, sid: str, collection: str):
         {"from": "human", "message": query}, chat_session_memory
     )
     storeSession(uid, sid, chat_session_memory)
-    if collection.lower() == "cisco_clo" or collection.lower() == "pan":
-        result, refs = streaming_request_upgraded(uid, sid, query, collection, isUpsell=False, withRefs=True)
-        data = {"text": result, "refs": refs}
-        return JSONResponse(content=data)
+    #if collection.lower() == "cisco_clo" or collection.lower() == "pan":
+    if collection == "bgpinsights":
+        pattern = r'\bTCB\w*\b'
+        bgp_pattern = r'%BGP\S*' 
+        log_lines = split_by_month(query)
+        if len(log_lines) > 1:
+            log_types_in_sequence = []
+            for line in log_lines:
+                cleaned_query = remove_pattern_from_text(pattern, line)
+                cleaned_query = remove_pattern_from_text(bgp_pattern, cleaned_query)
+                print(f"cleaned query {cleaned_query}")
+                result, refs, log_type, log_status = get_log_status_and_classification(uid, sid, cleaned_query, collection)
+                log_types_in_sequence.append(log_type)
+                if log_status == 'error':
+                    break
+            if log_status != 'error':
+                result = "The log sequence does not have any anomalies."
+                refs = ['']
+        else:
+            cleaned_query = remove_pattern_from_text(pattern, query)
+            cleaned_query = remove_pattern_from_text(bgp_pattern, cleaned_query)
+            print(f"cleaned query {cleaned_query}")
+            result, refs = answer_from_cache(uid, sid, cleaned_query, collection)
     else:
-        return StreamingResponse(
-            streaming_request_upgraded(uid, sid, query, collection),
-            media_type="text/event-stream",
-        )
+        result, refs = streaming_request_upgraded(uid, sid, query, collection, isUpsell=False, withRefs=True)
+    data = {"text": result, "refs": refs}
+    print(f"Data {data}")
+    return JSONResponse(content=data)
+    #else:
+    #    return StreamingResponse(
+    #        streaming_request_upgraded(uid, sid, query, collection),
+    #        media_type="text/event-stream",
+    #    )
 
 
 @app.get("/upsell")

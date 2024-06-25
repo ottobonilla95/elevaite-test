@@ -30,6 +30,7 @@ from collections import defaultdict
 from .email_util.email_parser import EmailConversationParser
 import app.configs.collections_config as collections_config
 import app.configs.prompts_config as prompts_config
+import app.configs.in_context_config as in_context_config
 memory = _global.chatHistory
 
 
@@ -61,6 +62,97 @@ def faq_answer(uid: str, sid: str, query: str, collection: str):
     else:
 
         return None
+
+def split_by_month(text):
+    try:
+        # Define a regex pattern to match month abbreviations (JAN|FEB|MAR|...|DEC)
+        month_pattern = r'\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\b'
+
+        # Split the text into lines based on the occurrence of months
+        split_lines = re.split(month_pattern, text)
+
+        # Remove empty strings from split result (due to regex split)
+        split_lines = [line.strip() for line in split_lines if line.strip()]
+
+        # Create lines where each line has the text from one month to the next
+        lines = []
+        for i in range(0, len(split_lines), 2):  # Start from index 0 and step by 2 (every even-indexed item)
+            month_line = split_lines[i] + split_lines[i+1] if i+1 < len(split_lines) else split_lines[i]
+            lines.append(month_line.strip())
+
+        return lines
+    except Exception as e:
+        print(f"Error while splitting lines from text {e}. Returning original text as is")
+        return [text]
+
+def remove_pattern_from_text(pattern, text):
+    try:
+        cleaned_sentence = re.sub(pattern, '', text).strip()
+        return cleaned_sentence
+    except Exception as e:
+        print(f"Error while removing pattern from text {e}. Returning original text as is")
+        return text
+################################## FAQ Short-circuit ###############################
+# Get an answer directly from the vector db without going to an LLM
+def answer_from_cache(uid: str, sid: str, query: str, collection: str):
+    embeddings = OpenAIEmbeddings()
+    qa_collection_name = collections_config.collections_config[collection]
+    # print("Collection Name = " + qa_collection_name)
+
+    qdrant_client = QdrantClient(
+        url=os.environ.get("QDRANT_URL"), api_key=os.environ.get("QDRANT_API_KEY")
+    )
+
+    qdrant = Qdrant(
+        client=qdrant_client,
+        collection_name=qa_collection_name,
+        embeddings=embeddings  # , content_payload_key="Text" \
+        # , metadata_payload_key="metadata"
+    )
+    results = qdrant.similarity_search_with_score(query, k=1)
+    print(f"FAQ Search Score is {results[0][1]}")
+    if results[0][1] > 0.75 and "answer" in results[0][0].metadata:
+        answer = results[0][0].metadata["answer"]
+        ref = ''
+        if "url" in results[0][0].metadata:
+            ref = results[0][0].metadata["url"]
+        return answer, [ref]
+    else:
+        return "Apologies! I haven't been trained to answer this type of log message", ['']
+
+def get_log_status_and_classification(uid: str, sid: str, query: str, collection: str):
+    embeddings = OpenAIEmbeddings()
+    qa_collection_name = collections_config.collections_config[collection]
+    # print("Collection Name = " + qa_collection_name)
+
+    qdrant_client = QdrantClient(
+        url=os.environ.get("QDRANT_URL"), api_key=os.environ.get("QDRANT_API_KEY")
+    )
+
+    qdrant = Qdrant(
+        client=qdrant_client,
+        collection_name=qa_collection_name,
+        embeddings=embeddings  # , content_payload_key="Text" \
+        # , metadata_payload_key="metadata"
+    )
+    results = qdrant.similarity_search_with_score(query, k=1)
+    print(f"Log Status Search Score is {results[0][1]}")
+    answer = None
+    ref = ''
+    classification = None
+    status = None
+    if results[0][1] > 0.75 and "answer" in results[0][0].metadata:
+        answer = results[0][0].metadata["answer"]
+        if "document_type" in results[0][0].metadata:
+            classfication = results[0][0].metadata["document_type"]
+        if "status" in results[0][0].metadata:
+            status = results[0][0].metadata["status"]
+        if "url" in results[0][0].metadata:
+            ref = results[0][0].metadata["url"]
+        return answer, [ref], classification, status
+    else:
+        return answer, [ref], classification, status
+
 
 def streaming_request(uid: str, sid: str, input: str):
     memory = loadSession(uid, sid)
@@ -142,7 +234,7 @@ def getIssuseContexFromSummary(uid: str, sid: str, query: str):  # , filter: dic
         embeddings=embeddings  # , content_payload_key="Text" \
         # , metadata_payload_key="metadata"
     )
-    results = qdrant.similarity_search_with_score(query, filter=filter, k=4)
+    results = qdrant.similarity_search_with_score(query, k=4)
     return processQdrantOutput(uid, sid, results)
 
 def getReleatedChatText(uid: str, sid: str, input: str):
@@ -209,14 +301,14 @@ def processQdrantOutput(uid: str, sid: str, results: list):
         currentScore = results[i][1]
         currentURL = results[i][0].metadata["source"]
         print(str(currentScore) + " : " + currentURL)
-        if currentScore > 0.7:
+        if currentScore > 0.8:
             tokenSize = tokenSize + results[i][0].metadata["tokenSize"] #tokenSize
-            if tokenSize < MAX_KB_TOKENSIZE and (
-                prevScore == 0
-                or (prevScore - currentScore) / prevScore * 100 <= scoreDiff
-            ):
+            #if tokenSize < MAX_KB_TOKENSIZE and (
+            #    prevScore == 0
+            #    or (prevScore - currentScore) / prevScore * 100 <= scoreDiff
+            #):
                 # finalResults.append(str(i+1) +". "+results[i][0].metadata['title']  \
-
+            if True:
                 if prevURL == "":
                     prevURL = currentURL
                     knowledgeText = "\n" + str(kbCnt) + ". '"
@@ -231,19 +323,64 @@ def processQdrantOutput(uid: str, sid: str, results: list):
                         + prevURL
                     )
                     finalResults.append(knowledgeText)
-                    knowledgeText = (
-                        "\n" + str(kbCnt) + ". '" + results[i][0].page_content
-                    )
+                    if 'resolution' in results[i][0]:
+                        knowledgeText = (
+                            "\n" + str(kbCnt) + ". '" + results[i][0].resolution
+                        )
+                        finalResults.append(knowledgeText)
+                    else:
+                        knowledgeText = (
+                            "\n" + str(kbCnt) + ". '" + results[i][0].page_content
+                        )
+                        finalResults.append(knowledgeText)
+                    print(f"Added Context with score - {currentScore} and context {knowledgeText}")
                     prevURL = currentURL
                     kbCnt = kbCnt + 1
                 else:
-                    knowledgeText = knowledgeText + results[i][0].page_content + "\n"
+                    if 'resolution' in results[i][0]:
+                        knowledgeText = knowledgeText + results[i][0].resolution + "\n"
+                        finalResults.append(knowledgeText)
+                    else:
+                        knowledgeText = knowledgeText + results[i][0].page_content + "\n"
+                        finalResults.append(knowledgeText)
+                    print(f"Added Context with score - {currentScore} and context {knowledgeText}")
                 prevScore = currentScore
             else:
                 break
-    finalResults.append(knowledgeText)
     output = " ".join(finalResults)
     return output
+
+# Process the output recieved from vector db to create the context for the LLM
+def get_context_from_qdrant(uid: str, sid: str, results: list):
+    finalResults = []
+    refs=[]
+    tokenSize = 0
+    for result in results:
+        currentScore = result[1]
+        currentURL = result[0].metadata["source"]
+        if currentScore > 0.8:
+            tokenSize = tokenSize + result[0].metadata["tokenSize"] #tokenSize
+            page_content = ""
+            print(result[0])
+            if 'resolution' in result[0].metadata:
+                page_content = result[0].metadata['resolution'] + "\n"
+            else:
+                page_content = result[0].page_content + "\n"
+            if bool(page_content):
+                finalResults.append(page_content)
+                print(f"Added Context with score - {currentScore} and context {page_content} and tokensize {tokenSize}")
+            else:
+                print("page content is empty")
+            if 'source' in result[0].metadata:
+                reference = result[0].metadata['source']
+                if bool(reference):
+                    if str(reference).strip() not in refs:
+                        refs.append(str(reference).strip()) 
+        else:
+            break
+    output = " ".join(finalResults)
+    print(f"Context: {output}")
+    return {"context" : output, "refs": refs}
 
 # Get the chunks relevant to a query
 def getIssuseContexFromDetails(
@@ -273,15 +410,53 @@ def getIssuseContexFromDetails(
         print('Here are upsell results', results)
         return processQdrantOutput(uid, sid, results)
     else:
-        results = qdrant.similarity_search_with_score(query, k=3)  # filter=filter
+        if collection == "servicenow":
+            results = qdrant.similarity_search_with_score(query, k=1)  # filter=filter
+        else:
+            results = qdrant.similarity_search_with_score(query, k=3)  # filter=filter
         print("This is the score here",results[0][1])
         if results[0][1] < 0.77:
             return None
-        return processQdrantOutput(uid, sid, results)
+        return get_context_from_qdrant(uid, sid, results)
+
+def get_context_from_cache(collection: str):
+    print(f"Config Type {type(in_context_config.in_context_config)}")
+    if collection in in_context_config.in_context_config:
+        context = in_context_config.in_context_config[collection]
+        return context
+    else:
+        return None
+
+def streaming_in_context_cache(uid: str, sid: str, human_input: str, collection: str):
+    context = get_context_from_cache(collection)
+    if context is not None:
+        input = (
+            human_input
+            + "\n Here is the context below: \n <context> \n"
+            + context
+            + "\n </context>"
+        )
+        print(f"We have relevant conteext. The context sent to LLM is {input}")
+    else:
+        input = human_input + "<context> No relevant context found. </context>"
+        print(f"We dont have any context as input. The input sent to LLM is {input}")
+
+    template = prompts_config.prompts_config[collection]
+    prompt = PromptTemplate(
+            input_variables=["human_input"], template=template
+        )
+    chat = ChatOpenAI(temperature=0)
+    llm_chain = LLMChain(llm=chat, prompt=prompt)
+    result = llm_chain.predict(human_input=input)
+    if context is not None:
+       return result, ["jobclassinfo2.csv"] 
+    else:
+       return "No relevant context found in the documents", [""]
+
 
 # Stream the response being generated based on RAG
 def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection: str, isUpsell: bool = False, withRefs: bool = False):
-    template = ''
+    template = ""
     print('This is upsell', isUpsell)
     if isUpsell:
         template = prompts_config.prompts_config['netgear_upsell']
@@ -309,13 +484,17 @@ def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection:
         }
     with open('./db/all_chat_memory.pkl', 'wb') as f:
         pickle.dump(memory, f, pickle.HIGHEST_PROTOCOL)
-        
-    input = str(memory[uid][sid]) + human_input
-    recent_history = loadSession(uid, sid)
-    if len(recent_history) > 3:
-        input = '\n'.join(str(msg['from']+ ":" + msg['message']) for msg in recent_history[-3:])
+
+    input = ""
+    if collection != "none":    
+        input = human_input
     else:
-        input = '\n'.join(str(msg['from']+ ":" + msg['message']) for msg in recent_history)
+        input = str(memory[uid][sid]) + human_input
+        recent_history = loadSession(uid, sid)
+        if len(recent_history) > 3:
+            input = '\n'.join(str(msg['from']+ ":" + msg['message']) for msg in recent_history[-3:])
+        else:
+            input = '\n'.join(str(msg['from']+ ":" + msg['message']) for msg in recent_history)
     print("This is the whole input", input)
     if isUpsell:
         context = getIssuseContexFromDetails(uid, sid, input, collection, True)
@@ -323,34 +502,39 @@ def streaming_request_upgraded(uid: str, sid: str, human_input: str, collection:
         context = getIssuseContexFromDetails(uid, sid, input, collection)
     
     refs = set()
-    if withRefs:
-        data = get_context_for_query(input, collection)
-        chunks = data['chunks']
-        for chunk in chunks:
-            refs.add(chunk['reference'])
+    if withRefs and context is not None and 'refs' in context:
+        references = context['refs']
+        for reference in references:
+            refs.add(reference)
 
-    if context is not None:
+    if context is not None and 'context' in context:
         input = (
             human_input
             + "\n Here is the context below: \n <context> \n"
-            + context
+            + context['context']
             + "\n </context>"
         )
+        print(f"We have relevant conteext. The context sent to LLM is {input}")
     else:
         input = human_input + "<context> No relevant context found. </context>"
-    print(input)
-    prompt = PromptTemplate(
-        input_variables=["chat_history", "human_input"], template=template
-    )
-    llm_chain = LLMChain(llm=chat, prompt=prompt, memory=memory[uid][sid])
-    result = llm_chain.predict(human_input=input)
-    with open('./db/all_chat_memory.pkl', 'wb') as f:
-        pickle.dump(memory, f, pickle.HIGHEST_PROTOCOL)
-    # print(memory[uid][sid])
-
-    # print(result)
-    chat_session_memory = insert2Memory({"from": "ai", "message": result}, chat_session_memory)
-    storeSession(uid, sid, chat_session_memory)
+        print(f"We dont have any context as input. The input sent to LLM is {input}")
+    result = ""
+    if collection != "none":
+        prompt = PromptTemplate(
+            input_variables=["chat_history", "human_input"], template=template
+        )
+        llm_chain = LLMChain(llm=chat, prompt=prompt, memory=memory[uid][sid])
+        result = llm_chain.predict(human_input=input)
+    else:
+        prompt = PromptTemplate(
+            input_variables=["chat_history", "human_input"], template=template
+        )
+        llm_chain = LLMChain(llm=chat, prompt=prompt, memory=memory[uid][sid])
+        result = llm_chain.predict(human_input=input)
+        with open('./db/all_chat_memory.pkl', 'wb') as f:
+            pickle.dump(memory, f, pickle.HIGHEST_PROTOCOL)
+        chat_session_memory = insert2Memory({"from": "ai", "message": result}, chat_session_memory)
+        storeSession(uid, sid, chat_session_memory)
     final_result = ""
     if withRefs:
         list_refs = list(refs)
@@ -603,27 +787,39 @@ def get_context_for_query(query: str, collection: str):
     vectorized_query = openai.Embedding.create( input= query, engine=MODEL)
 
     results = qdrant_client.search(
-    collection_name=qa_collection_name,
-    query_vector=vectorized_query["data"][0]["embedding"],
-    limit=3,
-    score_threshold=0.77,
-    with_vectors=False,
-    with_payload=True,
-)
+        collection_name=qa_collection_name,
+        query_vector=vectorized_query["data"][0]["embedding"],
+        limit=3,
+        score_threshold=0.77,
+        with_vectors=False,
+        with_payload=True,
+    )
     # results = qdrant.similarity_search_with_score(query, k=3)  # filter=filter
     chunks = []
+    source_refs = {}
     context = ""
+    res = ""
     for result in results:
         chunk = {}
-        res = re.sub("  ", " ", result.payload['page_content'])
+        if 'resolution' in result.payload:
+            res = re.sub("  ", " ", result.payload['resolution'])
+        else:
+            if 'page_content' in result.payload:
+                res = re.sub("  ", " ", result.payload['page_content'])
         chunk["text"] = res
-        print(result)
         chunk["score"] = result.score
+        print(f"One Shot Response result - {chunk['text']} with score {chunk['score']}")
         chunk["id"] = result.id
-        chunk["reference"] = result.payload['metadata']['source']
+        if 'metadata' in result.payload and 'source' in result.payload['metadata']:
+            reference = result.payload['metadata']['source']
+            if bool(reference):
+                reference_url = reference.strip()
+                chunk["reference"] = reference_url
+                if reference_url not in source_refs:
+                    source_refs['ref'] = reference_url
         chunks.append(chunk)
-        context += str(res)
-    return {"context": context, "chunks": chunks}
+        context =  context + " " + str(res)
+    return {"context": context, "chunks": chunks, "refs": source_refs}
 
 
 async def generate_one_shot_response(query: str, prompt:str = None, collection: str = "cisco", prompt_tenant: str = "cisco_poc_1"):
