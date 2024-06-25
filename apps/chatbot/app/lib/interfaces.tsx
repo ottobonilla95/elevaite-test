@@ -17,14 +17,11 @@ export enum ChatbotV {
 export const defaultChatbotV = ChatbotV.InWarranty;
 
 export enum ChatBotGenAI {
-    Netgear = "netgear",
-    Netskope = "netskope",
     Pan = "pan",
     Cisco = "cisco",
     CiscoClo = "cisco_clo",
-    Arlo = "arlo",
-    Juniper = "juniper_vsrx",
-    ServiceNow = "service_now",
+    ServiceNow = "servicenow",
+    BGPInsights = "bgpinsights",
 }
 export const defaultGenAIBotOption = ChatBotGenAI.CiscoClo;
 

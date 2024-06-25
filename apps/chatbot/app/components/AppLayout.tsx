@@ -38,7 +38,7 @@ export function AppLayout({children, breadcrumbs}: AppLayoutProps): JSX.Element 
                 handleSearchInput={handleSearchInput}
                 logOut={logOut}
                 searchResults={results}
-                user={{ icon: session?.user?.image ?? "" }}
+                user={{ image: session?.user?.image ?? "" }}
             />
             <SessionBar/>
             {children}
