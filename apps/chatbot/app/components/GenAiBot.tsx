@@ -7,14 +7,11 @@ import "./GenAiBot.scss";
 
 
 const genAIBotOptions: CommonSelectOption[] = [
-    { value: ChatBotGenAI.Netgear, label: "Network Devices Provider", selectedLabel: "Network" },
-    { value: ChatBotGenAI.Netskope, label: "Edge Security Provider", selectedLabel: "Edge" },
     { value: ChatBotGenAI.Pan, label: "Hardware Firewall Provider", selectedLabel: "Firewall" },
     { value: ChatBotGenAI.Cisco, label: "Collaboration Provider", selectedLabel: "Collab" },
     { value: ChatBotGenAI.CiscoClo, label: "CLO" },
-    { value: ChatBotGenAI.Arlo, label: "Arlo" },
     { value: ChatBotGenAI.ServiceNow, label: "Service Now" },
-    // { value: ChatBotGenAI.JUNIPER, label: "" },
+    { value: ChatBotGenAI.BGPInsights, label: "BGP Insights" }
 ];
 
 
