@@ -104,7 +104,11 @@ class Pipeline(Base):
     input: Mapped[str] = mapped_column()
     source: Mapped[PipelineSource] = mapped_column(Enum(PipelineSource))
     creator: Mapped[str] = mapped_column()
+    projectId: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("projects.id"), nullable=True
+    )
 
+    project: Mapped[Optional["Project"]] = relationship(uselist=False)
     configurations: Mapped[List["Configuration"]] = relationship(
         back_populates="pipeline", uselist=True
     )

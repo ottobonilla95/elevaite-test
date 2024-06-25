@@ -15,7 +15,7 @@ from elevaitelib.util import func as util_func
 def getCollectionsOfProject(
     db: Session,
     projectId: str,
-    # filter_function: Callable[[Query], Query], # uncomment this when using validator
+    filter_function: Callable[[Query], Query],  # uncomment this when using validator
     skip: int = 0,
     limit: int = 100,
 ) -> List[models.Collection]:
@@ -23,7 +23,7 @@ def getCollectionsOfProject(
     return collection_crud.get_collections(
         db=db,
         projectId=projectId,
-        # filter_function=filter_function, # uncomment this when using validator
+        filter_function=filter_function,  # uncomment this when using validator
         skip=skip,
         limit=limit,
     )
@@ -76,4 +76,4 @@ def getCollectionChunks(
         return res
     except Exception as e:
         print(f"{type(e)} occured: {e}")
-        return tuple()
+        return tuple()  # type: ignore

@@ -18,7 +18,7 @@ from elevaitelib.orm.crud import (
 def get_datasets_of_project(
     db: Session,
     projectId: str,
-    # filter_function: Callable[[Query], Query], # uncomment this when using validator
+    filter_function: Callable[[Query], Query],  # uncomment this when using validator
     skip: int,
     limit: int,
 ) -> List[models.Dataset]:
@@ -26,7 +26,7 @@ def get_datasets_of_project(
     return dataset_crud.get_datasets_of_project(
         db=db,
         project_id=projectId,
-        # filter_function=filter_function, # uncomment this when using validator 
+        # filter_function=filter_function, # uncomment this when using validator
         skip=skip,
         limit=limit,
     )

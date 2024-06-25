@@ -14,13 +14,44 @@ from elevaitelib.orm.crud import pipeline as pipeline_crud
 from elevaitelib.util import func as util_func
 
 
-def getPipelines(db: Session, skip: int = 0, limit: int = 10):
-    r = pipeline_crud.get_pipelines(db=db, skip=skip, limit=limit)
+def getPipelines(
+    db: Session,
+    filter_function: Callable[[Query], Query],  # uncomment this when using validator
+    skip: int = 0,
+    limit: int = 10,
+):
+    r = pipeline_crud.get_pipelines(
+        db=db, skip=skip, limit=limit, filter_function=filter_function
+    )
     return r
 
 
-def getPipelineById(db: Session, id: str):
-    pipeline = pipeline_crud.get_pipeline_by_id(db=db, pipeline_id=id)
+def getPipelinesOfProject(
+    db: Session,
+    filter_function: Callable[[Query], Query],
+    project_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 10,
+):
+    r = pipeline_crud.get_pipelines_of_project(
+        db=db,
+        skip=skip,
+        limit=limit,
+        filter_function=filter_function,
+        project_id=project_id,
+    )
+    return r
+
+
+def getPipelineById(
+    db: Session,
+    id: str,
+    project_id: uuid.UUID,
+    filter_function: Callable[[Query], Query],
+):
+    pipeline = pipeline_crud.get_pipeline_by_id(
+        db=db, pipeline_id=id, filter_function=filter_function, project_id=project_id
+    )
     if not is_pipeline(pipeline):
         raise HTTPException(404, "Pipeline not found")
 

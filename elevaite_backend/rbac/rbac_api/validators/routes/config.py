@@ -229,14 +229,14 @@ route_validator_map = {
     ),
     (
         api_schemas.APINamespace.ETL_API,
-        "getApplicationConfigurations",
-    ): entity_validators.configuration.validate_get_application_configurations_factory(
+        "getPipelineConfigurations",
+    ): entity_validators.configuration.validate_get_pipeline_configurations_factory(
         models.Configuration, ("READ",)
     ),
     (
         api_schemas.APINamespace.ETL_API,
-        "getApplicationConfiguration",
-    ): entity_validators.configuration.validate_get_application_configuration_factory(
+        "getConfigurationById",
+    ): entity_validators.configuration.validate_get_pipeline_configuration_factory(
         models.Configuration, ("READ",)
     ),
     (
@@ -271,26 +271,26 @@ route_validator_map = {
     ),
     (
         api_schemas.APINamespace.ETL_API,
-        "getApplicationInstances",
-    ): entity_validators.instance.validate_get_application_instances_factory(
+        "getPipelineInstances",
+    ): entity_validators.instance.validate_get_pipeline_instances_factory(
         models.Instance, ("READ",)
     ),
     (
         api_schemas.APINamespace.ETL_API,
         "getApplicationInstanceById",
-    ): entity_validators.instance.validate_get_application_instance_factory(
+    ): entity_validators.instance.validate_get_instance_factory(
         models.Instance, ("READ",)
     ),
     (
         api_schemas.APINamespace.ETL_API,
         "getApplicationInstanceChart",
-    ): entity_validators.instance.validate_get_application_instance_chart_factory(
+    ): entity_validators.instance.validate_get_instance_chart_factory(
         models.Instance, ("READ",)
     ),
     (
         api_schemas.APINamespace.ETL_API,
-        "getApplicationInstanceConfiguration",
-    ): entity_validators.instance.validate_get_application_instance_configuration_factory(
+        "getInstanceConfiguration",
+    ): entity_validators.instance.validate_get_instance_configuration_factory(
         models.Instance,
         (
             "CONFIGURATION",
@@ -300,13 +300,13 @@ route_validator_map = {
     (
         api_schemas.APINamespace.ETL_API,
         "getApplicationInstanceLogs",
-    ): entity_validators.instance.validate_get_application_instance_logs_factory(
+    ): entity_validators.instance.validate_get_instance_logs_factory(
         models.Instance, ("READ",)
     ),
     (
         api_schemas.APINamespace.ETL_API,
-        "createApplicationInstance",
-    ): entity_validators.instance.validate_create_application_instance_factory(
+        "launchInstance",
+    ): entity_validators.instance.validate_create_instance_factory(
         models.Instance, ("CREATE",)
     ),
     (
@@ -320,4 +320,5 @@ route_validator_map = {
             "INGEST",
         ),
     ),
+    **entity_validators.pipeline.pipelines_map,
 }

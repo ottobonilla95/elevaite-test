@@ -30,7 +30,7 @@ class AccessTokenOrApikeyAuthentication(AuthenticationInterface):
         request: Request,
         access_token_header: Optional[str] = Header(
             None,
-            alias="Authorization",
+            alias="X-elevAIte-idp-auth",
             description="iDP access token with email and profile scope",
         ),
         idp_type: Optional[auth_schemas.iDPType] = Header(

@@ -13,21 +13,21 @@ def get_instances(db: Session, skip: int = 0, limit: int = 100):
 def get_instances_of_pipeline(
     db: Session,
     pipelineId: str,
-    # project_id: UUID,  # uncomment this when using validator
-    # filter_function: Callable[[Query], Query],  # uncomment this when using validator
+    project_id: UUID,  # uncomment this when using validator
+    filter_function: Callable[[Query], Query],  # uncomment this when using validator
     skip: int = 0,
     limit: int = 0,
 ):
 
     query = db.query(models.Instance)
-    # if filter_function is not None:  # uncomment this when using validator
-    #     query = filter_function(query)
+    if filter_function is not None:  # uncomment this when using validator
+        query = filter_function(query)
 
     return (
         query.filter(models.Instance.pipelineId == pipelineId)
-        # .filter(
-        #     models.Instance.projectId == project_id
-        # )  # uncomment this when using validator
+        .filter(
+            models.Instance.projectId == project_id
+        )  # uncomment this when using validator
         .offset(skip)
         .limit(limit)
         .all()

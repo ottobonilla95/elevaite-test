@@ -9,14 +9,14 @@ from ..db import models
 def get_collections(
     db: Session,
     projectId: str,
-    # filter_function: Callable[[Query], Query], # uncomment this when using validator
+    filter_function: Callable[[Query], Query],  # uncomment this when using validator
     skip: int = 0,
     limit: int = 100,
 ) -> List[models.Collection]:
     query = db.query(models.Collection)
 
-    # if filter_function is not None: # uncomment this when using validator
-    # query = filter_function(query)
+    if filter_function is not None:  # uncomment this when using validator
+        query = filter_function(query)
 
     return (
         query.filter(models.Collection.projectId == projectId)

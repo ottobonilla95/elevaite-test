@@ -13,12 +13,12 @@ def get_configuration_by_id(db: Session, id: str):
 def get_configurations_of_pipeline(
     db: Session,
     pipeline_id: str,
-    # filter_function: Callable[[Query], Query], # uncomment this when using validator
+    filter_function: Callable[[Query], Query],  # uncomment this when using validator
 ):
     query = db.query(models.Configuration)
 
-    # if filter_function is not None: # uncomment this when using validator
-    # query = filter_function(query)
+    if filter_function is not None:  # uncomment this when using validator
+        query = filter_function(query)
 
     return query.filter(models.Configuration.pipelineId == pipeline_id).all()
 

@@ -43,14 +43,14 @@ from app.util.func import get_routing_key
 def getInstancesOfPipeline(
     db: Session,
     pipeline_id: str,
-    # project_id: uuid.UUID, # uncomment this when using validator
-    # filter_function: Callable[[Query], Query], # uncomment this when using validator
+    project_id: uuid.UUID,  # uncomment this when using validator
+    filter_function: Callable[[Query], Query],  # uncomment this when using validator
 ) -> List[models.Instance]:
     instances = instance_crud.get_instances_of_pipeline(
         db=db,
         pipelineId=pipeline_id,
-        # project_id=project_id, # uncomment this when using validator
-        # filter_function=filter_function, # uncomment this when using validator
+        project_id=project_id,  # uncomment this when using validator
+        filter_function=filter_function,  # uncomment this when using validator
         limit=100,
     )
     return instances
@@ -77,7 +77,7 @@ def createInstance(
         raise HTTPException(404, "Configuration not found")
 
     _pipeline = pipeline_crud.get_pipeline_by_id(
-        db=db, pipeline_id=str(createInstanceDto.pipelineId)
+        db=db, pipeline_id=str(createInstanceDto.pipelineId), filter_function=None
     )
 
     if _pipeline is None or not is_pipeline(_pipeline):

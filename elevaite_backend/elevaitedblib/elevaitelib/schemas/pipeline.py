@@ -58,6 +58,7 @@ class PipelineBase(BaseModel):
     input: str
     source: PipelineSource
     creator: str
+    projectId: str
 
 
 class PipelineCreate(PipelineBase):

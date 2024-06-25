@@ -14,13 +14,13 @@ from elevaitelib.orm.crud import (
 
 def getConfigurationsOfPipeline(
     db: Session,
-    # filter_function: Callable[[Query], Query], # uncomment this when using validator
+    filter_function: Callable[[Query], Query],  # uncomment this when using validator
     pipeline_id: str,
 ) -> List[models.Configuration]:
     _conf = configuration_crud.get_configurations_of_pipeline(
         db,
         pipeline_id,
-        # filter_function=filter_function, # uncomment this when using validator
+        filter_function=filter_function,  # uncomment this when using validator
     )
     return _conf
 

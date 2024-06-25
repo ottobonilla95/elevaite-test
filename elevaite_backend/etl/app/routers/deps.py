@@ -5,6 +5,11 @@ from elevaitelib.orm.db.database import SessionLocal
 from qdrant_client import AsyncQdrantClient
 from flytekit.configuration import Config
 from flytekit.remote import FlyteRemote
+from elevaitelib.schemas import (
+    api as api_schemas,
+)
+
+from rbac_api import route_validator_map, RBACValidatorProvider
 
 
 def get_db():
@@ -70,3 +75,7 @@ def get_flyte_remote() -> FlyteRemote:
         default_project=DEFAULT_PROJECT if DEFAULT_PROJECT is not None else "elevaite",
         default_domain=DEFAULT_DOMAIN if DEFAULT_DOMAIN is not None else "development",
     )
+
+
+def get_validation_info(namespace: api_schemas.APINamespace, target: str):
+    return route_validator_map[(namespace, target)]  # type: ignore

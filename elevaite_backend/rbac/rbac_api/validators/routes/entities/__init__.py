@@ -1,7 +1,6 @@
 from . import (
     organization,
     account,
-    application,
     apikey,
     collection,
     configuration,
@@ -10,4 +9,5 @@ from . import (
     project,
     role,
     user,
+    pipeline,
 )

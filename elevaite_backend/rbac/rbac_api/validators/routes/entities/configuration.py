@@ -22,22 +22,22 @@ rbacValidator = RBACValidatorProvider.get_instance()
 auditor = AuditorProvider.get_instance()
 
 
-def validate_get_application_configurations_factory(
+def validate_get_pipeline_configurations_factory(
     target_model_class: Type[models.Base], target_model_action_sequence: tuple[str, ...]
 ):
     @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
-    async def validate_get_application_configurations(
+    async def validate_get_pipeline_configurations(
         request: Request,
         authenticated_entity: models.User = Depends(
             AccessTokenAuthentication.authenticate
         ),
         # The params below are required for pydantic and rbac validation even when unused
-        account_id: UUID = Header(
+        project_id: UUID = Header(
             ...,
-            alias="X-elevAIte-AccountId",
-            description="account_id under which connector appication configurations are queried",
+            alias="X-elevAIte-ProjectId",
+            description="project_id under which pipeline configurations are queried",
         ),
-        application_id: int = Path(..., description="id of connector application"),
+        pipeline_id: str = Path(..., description="id of workflow pipeline"),
     ) -> dict[str, Any]:
         db: Session = request.state.db
         try:
@@ -61,12 +61,12 @@ def validate_get_application_configurations_factory(
         except HTTPException as e:
             db.rollback()
             pprint(
-                f"API error in GET /application/{application_id}/configuration - validate_get_connector_configurations middleware : {e}"
+                f"API error in GET /pipeline/{pipeline_id}/configuration - validate_get_connector_configurations middleware : {e}"
             )
             raise e
         except SQLAlchemyError as e:
             pprint(
-                f"DB error in GET /application/{application_id}/configuration - validate_get_connector_configurations middleware : {e}"
+                f"DB error in GET /pipeline/{pipeline_id}/configuration - validate_get_connector_configurations middleware : {e}"
             )
             request.state.source_error_msg = str(e)
             raise ApiError.serviceunavailable(
@@ -75,30 +75,30 @@ def validate_get_application_configurations_factory(
         except Exception as e:
             db.rollback()
             print(
-                f"Unexpected error in GET /application/{application_id}/configuration - validate_get_connector_configurations middleware : {e}"
+                f"Unexpected error in GET /pipeline/{pipeline_id}/configuration - validate_get_connector_configurations middleware : {e}"
             )
             request.state.source_error_msg = str(e)
             raise ApiError.serviceunavailable(
                 "The server is currently unavailable, please try again later."
             )
 
-    return validate_get_application_configurations
+    return validate_get_pipeline_configurations
 
 
-def validate_get_application_configuration_factory(
+def validate_get_pipeline_configuration_factory(
     target_model_class: Type[models.Base], target_model_action_sequence: tuple[str, ...]
 ):
     @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
-    async def validate_get_application_configuration(
+    async def validate_get_pipeline_configuration(
         request: Request,
         authenticated_entity: models.User = Depends(
             AccessTokenAuthentication.authenticate
         ),
         # The params below are required for pydantic and rbac validation even when unused
-        account_id: UUID = Header(
+        project_id: UUID = Header(
             ...,
-            alias="X-elevAIte-AccountId",
-            description="account_id under which connector appication configuration is queried",
+            alias="X-elevAIte-ProjectId",
+            description="project_id under which pipeline configuration is queried",
         ),
         application_id: int = Path(..., description="id of connector application"),
         configuration_id: UUID = Path(
@@ -148,7 +148,7 @@ def validate_get_application_configuration_factory(
                 "The server is currently unavailable, please try again later."
             )
 
-    return validate_get_application_configuration
+    return validate_get_pipeline_configuration
 
 
 def validate_update_application_configuration_factory(
@@ -161,10 +161,10 @@ def validate_update_application_configuration_factory(
             AccessTokenAuthentication.authenticate
         ),
         # The params below are required for pydantic and rbac validation even when unused
-        account_id: UUID = Header(
+        project_id: UUID = Header(
             ...,
-            alias="X-elevAIte-AccountId",
-            description="account_id under which connector appication configuration is queried",
+            alias="X-elevAIte-ProjectId",
+            description="project_id under which pipeline configuration is queried",
         ),
         application_id: int = Path(..., description="id of connector application"),
         configuration_id: UUID = Path(
@@ -227,10 +227,10 @@ def validate_create_application_configuration_factory(
             AccessTokenAuthentication.authenticate
         ),
         # The params below are required for pydantic and rbac validation even when unused
-        account_id: UUID = Header(
+        project_id: UUID = Header(
             ...,
-            alias="X-elevAIte-AccountId",
-            description="account_id under which connector appication configurations are queried",
+            alias="X-elevAIte-ProjectId",
+            description="project_id under which pipeline configurations are queried",
         ),
         application_id: int = Path(..., description="id of connector application"),
     ) -> dict[str, Any]:
