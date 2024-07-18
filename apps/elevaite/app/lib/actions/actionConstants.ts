@@ -15,4 +15,5 @@ export enum cacheTags {
   datasets = "DATASETS",
   evaluations = "EVALUATIONS",
   rbac = "RBAC",
+  users = "USERS",
 };

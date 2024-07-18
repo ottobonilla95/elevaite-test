@@ -88,6 +88,19 @@ export enum EmbeddingModelType {
     EXTERNAL = "external",
 }
 
+export enum ACCESS_MANAGEMENT_TABS {
+    ACCOUNTS = "Accounts",
+    PROJECTS = "Projects",
+    USERS = "Users",
+    ROLES = "Roles",
+};
+
+export enum ROLE_PERMISSIONS {
+    ACTION_CREATE = "ACTION_CREATE",
+    ACTION_READ = "ACTION_READ",
+    ACTION_UPDATE = "ACTION_UPDATE",
+    ACTION_DELETE = "ACTION_DELETE",
+}
 
 
 
@@ -459,14 +472,49 @@ export interface OrganizationObject {
     updated_at: string;
 }
 
+export interface UserObject {
+    id: string;
+    organization_id: string;
+    firstname?: string;
+    lastname?: string;
+    email?: string;
+    is_superadmin: boolean;
+    created_at: string;
+    updated_at: string;
+    is_account_admin?: boolean;
+    roles?: UserRoleObject[];
+    account_memberships?: userAccountMembershipObject[];
+}
+export interface ExtendedUserObject extends UserObject {
+    displayRoles?: {
+        roleLabel: string; // Role name or "Admin"
+        roleParent?: string; // Account name or Project Name
+    }[];
+}
+
+export interface userAccountMembershipObject {
+    account_id: string;
+    account_name: string;
+    is_admin: boolean;
+    roles: UserRoleObject[];
+}
+export interface UserRoleObject {
+    id: string;
+    name: string;
+}
+
 export interface AccountObject {
     id: string;
     organization_id: string;
     name: string;
-    description: string;
+    description?: string;
     is_disabled?: boolean;
     created_at: string;
     updated_at: string;
+}
+
+export interface ExtendedAccountObject extends AccountObject {
+    projectCount?: number;
 }
 
 export interface ProjectObject {
@@ -474,13 +522,32 @@ export interface ProjectObject {
     account_id: string;
     name: string;
     description: string;
-    creator: string;
+    creator?: string;
     parent_project_id?: string;
     is_disabled?: boolean;
     datasets: RbacDatasetObject[],
     created_at: string;
     updated_at: string;
 }
+
+export interface ExtendedProjectObject extends ProjectObject {
+    accountName?: string;
+    parentProjectName?: string;
+}
+
+export interface RoleObject {
+    id: string;
+    name: string;
+    permissions: RolePermission;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface RolePermission {
+    [name: string]: "Allow" | "Deny" | RolePermission;
+}
+
+
 
 export interface RbacDatasetObject {
     id: string;

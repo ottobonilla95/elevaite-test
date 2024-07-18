@@ -2,30 +2,30 @@ import type { DBUser } from "./interfaces";
 import { isDBUser } from "./interfaces";
 
 const RBAC_BACKEND_URL = process.env.RBAC_BACKEND_URL;
-const ORG_ID = process.env.ORG_ID;
+// const ORG_ID = process.env.ORG_ID;
 
 export async function registerToBackend({
   firstName,
   lastName,
-  email,
+  // email,
   authToken,
 }: {
   firstName: string;
   lastName: string;
-  email: string;
+  // email: string;
   authToken: string;
 }): Promise<DBUser> {
   if (!RBAC_BACKEND_URL)
     throw new Error("RBAC_BACKEND_URL does not exist in the env");
-  const url = new URL(`${RBAC_BACKEND_URL}/register/`);
+  const url = new URL(`${RBAC_BACKEND_URL}/auth/register`);
   const headers = new Headers();
   headers.append("Content-Type", "application/json");
   headers.append("Authorization", `Bearer ${authToken}`);
   const body = JSON.stringify({
-    org_id: ORG_ID,
+    // org_id: ORG_ID,
     firstname: firstName,
     lastname: lastName,
-    email,
+    // email,
   });
   const res = await fetch(url, {
     body,

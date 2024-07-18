@@ -42,6 +42,9 @@ import SVGCost from "./svgCost";
 import SVGSideArrow from "./svgSideArrow";
 import SVGDatePicker from "./svgDatePicker";
 import SVGAccess from "./svgAccess";
+import SVGAccounts from "./svgAccounts";
+import SVGProjects from "./svgProjects";
+import SVGUser from "./svgUser";
 
 
 export const ElevaiteIcons = {
@@ -89,4 +92,7 @@ export const ElevaiteIcons = {
     SVGSideArrow,
     SVGDatePicker,
     SVGAccess,
+    SVGAccounts,
+    SVGProjects,
+    SVGUser,
 };

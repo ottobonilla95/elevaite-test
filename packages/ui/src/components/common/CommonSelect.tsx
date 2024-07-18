@@ -24,13 +24,14 @@ export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> 
     onAdd?: () => void;
     addLabel?: string;
     noDoubleClick?: boolean;
+    useCommonStyling?: boolean;
     AdvancedOptionComponent?: (props: AdvancedSelectOptionProps) => JSX.Element;
 }
 
 
 export function CommonSelect({
     options, defaultValue, controlledValue, callbackOnDefaultValue, noSelectionMessage,
-    anchor, showTitles, emptyListLabel, onSelectedValueChange, onAdd, addLabel,
+    anchor, showTitles, emptyListLabel, onSelectedValueChange, onAdd, addLabel, useCommonStyling,
     noDoubleClick, isLoading, AdvancedOptionComponent, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
     const [selectedOption, setSelectedOption] = useState<CommonSelectOption>();
     const [isOpen, setIsOpen] = useState(false);
@@ -42,7 +43,7 @@ export function CommonSelect({
         else if (controlledValue !== undefined && controlledValue !== selectedOption?.value) {
             findAndSelectOption(controlledValue, true);
         }
-    }, [controlledValue]);
+    }, [controlledValue, options.length]);
 
     useEffect(() => {
         if (defaultValue) {
@@ -52,7 +53,7 @@ export function CommonSelect({
 
 
     function findAndSelectOption(value: string, checkCallback?: boolean): void {
-        if (options.length === 0 || !value) {
+        if (options.length === 0 || value === undefined) {
             setSelectedOption(undefined);
             return;
         }
@@ -104,6 +105,8 @@ export function CommonSelect({
             className={[
                 "common-select",
                 props.className,
+                useCommonStyling ? "common-style" : undefined,
+                props.disabled ? "disabled" : undefined,
                 AdvancedOptionComponent ? "advanced" : undefined,
             ].filter(Boolean).join(" ")}
         >

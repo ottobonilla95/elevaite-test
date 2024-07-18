@@ -13,6 +13,33 @@
         max-width: 100%;
     }
 
+    &.common-style {
+        font-size: 14px;
+        background-color: var(--ev-colors-background);
+        border-radius: 8px;
+
+        &.disabled {
+            opacity: 0.75;
+        }
+
+        & .common-button {
+            padding: 10px 15px;
+            flex-grow: 1;
+            & > svg {
+                color: var(--ev-colors-highlight);
+            }
+        }
+        & .common-select-options-contents {
+            max-height: 300px;
+            gap: 0;
+
+            & > button {
+                padding: 2px 5px;
+                &:hover { color: var(--ev-colors-highlight); }
+            }
+        }
+    }
+
     & .common-select-display {
         justify-content: space-between;
 
