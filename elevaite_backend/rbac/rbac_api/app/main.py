@@ -9,7 +9,8 @@ from rbac_api.app.routes.main import attach_routes
 import uvicorn
 from elevaitelib.orm.db.database import engine
 from elevaitelib.orm.db import models
-from rbac_api.utils.seed_db import seed_db as seed
+
+# from rbac_api.utils.seed_db import seed_db as seed
 from rbac_api.utils.deps import get_db
 from rbac_api.utils.check_env_vars import check_env_vars
 from sqlalchemy.orm import Session

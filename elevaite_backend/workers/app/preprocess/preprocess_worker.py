@@ -115,7 +115,9 @@ async def preprocess(data: PreProcessForm) -> None:
         if data.datasetId is None:
             raise Exception("No datasetId recieved")
 
-        _pipeline = pipeline_crud.get_pipeline_by_id(db, data.selectedPipelineId)
+        _pipeline = pipeline_crud.get_pipeline_by_id(
+            db, data.selectedPipelineId, data.projectId, None
+        )
         _entry_step = None
         _first_step = None
         _second_step = None
@@ -188,12 +190,12 @@ async def preprocess(data: PreProcessForm) -> None:
         logger.error(message="Error encountered, aborting pipeline")
         logger.error(message=str(e))
         instance_crud.update_instance(
-            db,
-            data.applicationId,
-            data.instanceId,
-            InstanceUpdate(
+            db=db,
+            instance_id=data.instanceId,
+            updateInstanceDTO=InstanceUpdate(
                 status=InstanceStatus.FAILED,
                 endTime=util_func.get_iso_datetime(),
                 comment=str(e),
+                executionId=None,
             ),
         )

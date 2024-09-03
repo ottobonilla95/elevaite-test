@@ -7,7 +7,7 @@ from .role import (
     RoleResponseDTO,
     RoleSummaryDTO,
 )
-from ...elevaitelib.schemas.permission import ProjectScopedRBACPermission
+from .permission import ProjectScopedRBACPermission
 from .common import StatusUpdateAction
 
 
