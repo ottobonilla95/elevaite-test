@@ -1,9 +1,9 @@
 from fastapi import Path, Depends, Header, Request, HTTPException
 from uuid import UUID
-from rbac_api.auth.impl import AccessTokenOrApikeyAuthentication
+from rbac_lib.auth.impl import AccessTokenOrApikeyAuthentication
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from rbac_api.utils.deps import get_db
+from rbac_lib.utils.deps import get_db
 from rbac_api.app.errors.api_error import ApiError
 from pprint import pprint
 from typing import Any, Type, Callable, Coroutine

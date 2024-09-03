@@ -1,7 +1,7 @@
 from fastapi import Query, Path, Depends, HTTPException, Request
 from uuid import UUID
 
-from rbac_api.auth.impl import AccessTokenAuthentication
+from rbac_lib.auth.impl import AccessTokenAuthentication
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, select, exists
 from sqlalchemy.exc import SQLAlchemyError

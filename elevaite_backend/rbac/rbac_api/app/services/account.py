@@ -21,7 +21,7 @@ from .utils.project_helpers import (
     get_top_level_associated_project_ids_for_user_in_account,
     delete_all_associated_user_projects_in_account,
 )
-from rbac_api.utils.cte import (
+from rbac_lib.utils.cte import (
     delete_unrooted_user_project_associations_in_account,
 )
 

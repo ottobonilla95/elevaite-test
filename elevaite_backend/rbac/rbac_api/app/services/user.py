@@ -20,7 +20,7 @@ from elevaitelib.schemas import (
 from .utils.project_helpers import (
     get_top_level_associated_project_ids_for_user_in_all_non_admin_accounts,
 )
-from rbac_api.utils.cte import (
+from rbac_lib.utils.cte import (
     delete_unrooted_user_project_associations_in_all_non_admin_accounts,
 )
 from elevaitelib.orm.db import models

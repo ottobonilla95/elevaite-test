@@ -5,17 +5,17 @@ from rbac_api.app.errors.api_error import ApiError
 from sqlalchemy.orm import Session
 from .idp.interface import IDPInterface
 from .idp.factory import IDPFactory
-from rbac_api.utils.RedisSingleton import RedisSingleton
+from rbac_lib.utils.RedisSingleton import RedisSingleton
 from elevaitelib.schemas import (
     auth as auth_schemas,
     api as api_schemas,
 )
 from elevaitelib.orm.db.models import User, Apikey
 from datetime import datetime, UTC
-from rbac_api.utils.funcs import (
+from rbac_lib.utils.funcs import (
     make_naive_datetime_utc,
 )
-from rbac_api.utils.deps import get_db
+from rbac_lib.utils.deps import get_db
 from .interface import AuthenticationInterface
 from ..audit import AuditorProvider
 

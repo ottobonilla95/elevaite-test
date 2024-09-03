@@ -9,10 +9,10 @@ from elevaitelib.schemas import (
     api as api_schemas,
 )
 from elevaitelib.orm.db import models
-from rbac_api import route_validator_map
+from rbac_lib import route_validator_map
 from .utils.helpers import load_schema
 from ..services import organization as service
-from ...audit import AuditorProvider
+from rbac_lib.audit import AuditorProvider
 
 auditor = AuditorProvider.get_instance()
 

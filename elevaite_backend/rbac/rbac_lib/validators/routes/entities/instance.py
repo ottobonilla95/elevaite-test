@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from rbac_api.utils.deps import get_db
+from rbac_lib.utils.deps import get_db
 from rbac_api.app.errors.api_error import ApiError
 from pprint import pprint
 from typing import Any, Optional, Type, Callable, Dict
@@ -13,7 +13,7 @@ from elevaitelib.schemas import (
     application as application_schemas,
     api as api_schemas,
 )
-from rbac_api.auth.impl import AccessTokenOrApikeyAuthentication
+from rbac_lib.auth.impl import AccessTokenOrApikeyAuthentication
 from ...rbac_validator.rbac_validator_provider import RBACValidatorProvider
 from ....audit import AuditorProvider
 import inspect

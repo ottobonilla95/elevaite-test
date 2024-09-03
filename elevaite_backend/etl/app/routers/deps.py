@@ -9,7 +9,7 @@ from elevaitelib.schemas import (
     api as api_schemas,
 )
 
-from rbac_api import route_validator_map, RBACValidatorProvider
+from rbac_lib import route_validator_map, RBACValidatorProvider
 
 
 def get_db():

@@ -22,7 +22,7 @@ from elevaitelib.schemas import (
 )
 from elevaitelib.orm.db import models
 
-from rbac_api.utils.cte import (
+from rbac_lib.utils.cte import (
     delete_user_project_associations_for_subprojects_of_user,
     delete_user_project_associations_for_subprojects_of_user_list,
 )

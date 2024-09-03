@@ -1,13 +1,13 @@
 from fastapi import Depends, HTTPException, Header, Request, Path, Body
 from uuid import UUID
-from rbac_api.auth.impl import AccessTokenAuthentication
+from rbac_lib.auth.impl import AccessTokenAuthentication
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from pprint import pprint
 from typing import Any, Type
 from rbac_api.app.errors.api_error import ApiError
 
-from rbac_api.utils.deps import get_db
+from rbac_lib.utils.deps import get_db
 from elevaitelib.orm.db import models
 from elevaitelib.schemas import (
     apikey as apikey_schemas,

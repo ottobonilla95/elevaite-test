@@ -6,10 +6,10 @@ from uuid import UUID
 from pydantic import EmailStr
 
 from elevaitelib.schemas import auth as auth_schemas, api as api_schemas
-from rbac_api import route_validator_map
+from rbac_lib import route_validator_map
 from ..services import auth as service
 from .utils.helpers import load_schema
-from ...audit import AuditorProvider
+from rbac_lib.audit import AuditorProvider
 
 auditor = AuditorProvider.get_instance()
 
