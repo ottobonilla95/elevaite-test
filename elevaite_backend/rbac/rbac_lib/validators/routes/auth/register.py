@@ -43,7 +43,7 @@ async def validate_register_user(
                 db=db,
             )
         except HTTPException as e:
-            if not e.detail == "User is unauthenticated":
+            if not e.detail == "user is unauthenticated":
                 raise e
     except HTTPException as e:
         pprint(

@@ -101,7 +101,7 @@ def register_user(
             default_project = models.Project(
                 id=default_project_id,
                 account_id=default_account.id,
-                creator=user_email,
+                creator_id=db_user.id,
                 name="elevAIte Default Project",
                 description="elevAIte Default Project desc",
                 created_at=datetime.now(),
