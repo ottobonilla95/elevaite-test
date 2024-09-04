@@ -15,11 +15,11 @@ from pydantic import ValidationError
 from pprint import pprint
 from rbac_lib.utils.api_error import ApiError
 
-from rbac_api.utils.funcs import (
+from rbac_lib.utils.funcs import (
    snake_to_camel,
    construct_jsonb_path_expression,
 )
-from rbac_api.utils.cte import (
+from rbac_lib.utils.cte import (
    is_user_project_association_till_root,
 )
 from .config import (
