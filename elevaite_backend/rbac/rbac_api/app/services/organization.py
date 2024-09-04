@@ -5,7 +5,7 @@ from typing import List, Optional, cast
 from uuid import UUID
 from datetime import datetime
 from pprint import pprint
-from ..errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 
 from elevaitelib.schemas import (
     organization as organization_schemas,

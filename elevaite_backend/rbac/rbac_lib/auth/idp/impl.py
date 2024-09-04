@@ -1,6 +1,6 @@
 import requests
 from fastapi import HTTPException
-from rbac_api.app.errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 from .interface import IDPInterface
 
 class GoogleIDP(IDPInterface):

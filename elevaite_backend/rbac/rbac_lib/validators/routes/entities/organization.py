@@ -6,7 +6,7 @@ from rbac_lib.auth.impl import AccessTokenAuthentication
 from sqlalchemy import exists
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from rbac_api.app.errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 from typing import Any, Optional
 from pprint import pprint
 

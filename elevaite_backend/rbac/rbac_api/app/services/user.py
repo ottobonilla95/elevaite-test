@@ -24,7 +24,7 @@ from rbac_lib.utils.cte import (
     delete_unrooted_user_project_associations_in_all_non_admin_accounts,
 )
 from elevaitelib.orm.db import models
-from ..errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 
 
 def get_user_profile(

@@ -9,7 +9,7 @@ from uuid import UUID
 from elevaitelib.orm.db import models
 from elevaitelib.schemas import permission as permission_schemas, auth as auth_schemas
 
-from rbac_api.app.errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 
 from rbac_lib.utils.funcs import (
     snake_to_camel,

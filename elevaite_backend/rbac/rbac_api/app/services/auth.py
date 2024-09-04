@@ -13,7 +13,7 @@ from pydantic import EmailStr
 from elevaitelib.schemas import auth as auth_schemas, permission as permission_schemas
 
 from elevaitelib.orm.db import models
-from ..errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 from rbac_api import RBACValidatorProvider
 import os
 

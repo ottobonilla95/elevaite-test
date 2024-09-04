@@ -7,7 +7,7 @@ from sqlalchemy import and_, select, exists
 from sqlalchemy.exc import SQLAlchemyError
 from pprint import pprint
 from typing import Any
-from rbac_api.app.errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 from elevaitelib.orm.db import models
 from elevaitelib.schemas import (
     api as api_schemas,

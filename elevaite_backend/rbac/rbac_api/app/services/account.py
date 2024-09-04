@@ -8,7 +8,7 @@ from uuid import UUID
 from datetime import datetime
 from pprint import pprint
 import os
-from ..errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 
 from elevaitelib.schemas import (
     account as account_schemas,

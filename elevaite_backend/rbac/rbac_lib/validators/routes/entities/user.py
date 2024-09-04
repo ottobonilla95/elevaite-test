@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from uuid import UUID
 from pprint import pprint
 from typing import Any, Type, Optional
-from rbac_api.app.errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 import os
 from rbac_lib.auth.impl import AccessTokenAuthentication
 

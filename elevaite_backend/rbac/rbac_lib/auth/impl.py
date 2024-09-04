@@ -1,7 +1,7 @@
 from fastapi import Header, Depends, Request
 from pprint import pprint
 from typing import Optional
-from rbac_api.app.errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 from sqlalchemy.orm import Session
 from .idp.interface import IDPInterface
 from .idp.factory import IDPFactory

@@ -13,7 +13,7 @@ from elevaitelib.schemas import (
 )
 from pydantic import ValidationError
 from pprint import pprint
-from rbac_api.app.errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 
 from rbac_api.utils.funcs import (
    snake_to_camel,

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from pprint import pprint
 from typing import Optional, Any, Type
-from rbac_api.app.errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 from rbac_lib.auth.impl import AccessTokenAuthentication
 
 from elevaitelib.orm.db import models

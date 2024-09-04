@@ -9,7 +9,7 @@ from uuid import UUID
 from datetime import datetime
 from pprint import pprint
 from pydantic import EmailStr
-from ..errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 from datetime import UTC
 import secrets
 
