@@ -14,7 +14,7 @@ from elevaitelib.schemas import auth as auth_schemas, permission as permission_s
 
 from elevaitelib.orm.db import models
 from rbac_lib.utils.api_error import ApiError
-from rbac_api import RBACValidatorProvider
+from rbac_lib import RBACValidatorProvider
 import os
 
 

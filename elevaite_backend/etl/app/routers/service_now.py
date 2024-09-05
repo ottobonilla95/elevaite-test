@@ -17,7 +17,6 @@ from elevaitelib.schemas.instance import (
 from elevaitelib.schemas.pipeline import PipelineStepStatus
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 import pika
-from rbac_api.utils.deps import get_db
 from sqlalchemy.orm import Session
 
 from elevaitelib.schemas import (
@@ -27,7 +26,7 @@ from elevaitelib.schemas import (
 
 from app.util.service_now_seed import service_now_seed
 from app.util.func import get_routing_key
-from .deps import get_rabbitmq_connection
+from .deps import get_db, get_rabbitmq_connection
 from elevaitelib.orm.crud import (
     pipeline as pipeline_crud,
     instance as instance_crud,

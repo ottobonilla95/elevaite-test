@@ -4,7 +4,7 @@ load_dotenv()
 
 import logging
 from fastapi import FastAPI, Depends
-from rbac_api.app.routes.main import attach_routes
+from .routes.main import attach_routes
 import uvicorn
 from elevaitelib.orm.db.database import engine
 from elevaitelib.orm.db import models
@@ -14,7 +14,7 @@ from rbac_lib.utils.check_env_vars import check_env_vars
 from sqlalchemy.orm import Session
 
 app = FastAPI()
-models.Base.metadata.create_all(bind=engine)
+# models.Base.metadata.create_all(bind=engine)
 
 # Check mandatory env vars presence
 check_env_vars()

@@ -18,7 +18,7 @@ from elevaitelib.schemas import (
 )
 from elevaitelib.orm.db import models
 
-from rbac_api import RBACValidatorProvider
+from rbac_lib import RBACValidatorProvider
 from .utils.apikey_helpers import is_permission_subset
 
 
