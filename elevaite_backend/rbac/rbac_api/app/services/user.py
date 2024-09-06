@@ -20,11 +20,11 @@ from elevaitelib.schemas import (
 from .utils.project_helpers import (
     get_top_level_associated_project_ids_for_user_in_all_non_admin_accounts,
 )
-from rbac_api.utils.cte import (
+from rbac_lib.utils.cte import (
     delete_unrooted_user_project_associations_in_all_non_admin_accounts,
 )
 from elevaitelib.orm.db import models
-from ..errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 
 
 def get_user_profile(
@@ -82,17 +82,17 @@ def get_user_profile(
                 .subquery()
             )
 
-        # Use .alias() to reference the column in the subquery for use with .in_()
-        logged_in_user_accounts_alias = logged_in_user_accounts_subquery.alias()
+            # Use .alias() to reference the column in the subquery for use with .in_()
+            logged_in_user_accounts_alias = logged_in_user_accounts_subquery.alias()
 
-        # Filter user accounts to include only those where account_id matches
-        # both the target user and logged-in user
-        user_accounts_query = user_accounts_query.filter(
-            models.User_Account.user_id == user_to_profile.id,
-            models.User_Account.account_id.in_(
-                db.query(logged_in_user_accounts_alias.c.account_id)
-            ),
-        )
+            # Filter user accounts to include only those where account_id matches
+            # both the target user and logged-in user
+            user_accounts_query = user_accounts_query.filter(
+                models.User_Account.user_id == user_to_profile.id,
+                models.User_Account.account_id.in_(
+                    db.query(logged_in_user_accounts_alias.c.account_id)
+                ),
+            )
 
         user_accounts = user_accounts_query.all()
 

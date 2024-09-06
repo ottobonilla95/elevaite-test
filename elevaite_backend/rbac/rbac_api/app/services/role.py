@@ -13,8 +13,7 @@ from elevaitelib.schemas import (
 )
 from elevaitelib.orm.db import models
 
-from ..errors.api_error import ApiError
-
+from rbac_lib.utils.api_error import ApiError
 
 def create_role(
     request: Request,

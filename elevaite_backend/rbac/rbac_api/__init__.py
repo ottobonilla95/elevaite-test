@@ -1,1 +1,1 @@
-from .validators import route_validator_map, RBACValidatorProvider
+from rbac_lib.validators import route_validator_map, RBACValidatorProvider

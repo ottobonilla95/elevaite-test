@@ -13,8 +13,8 @@ from pydantic import EmailStr
 from elevaitelib.schemas import auth as auth_schemas, permission as permission_schemas
 
 from elevaitelib.orm.db import models
-from ..errors.api_error import ApiError
-from rbac_api import RBACValidatorProvider
+from rbac_lib.utils.api_error import ApiError
+from rbac_lib import RBACValidatorProvider
 import os
 
 
@@ -101,7 +101,7 @@ def register_user(
             default_project = models.Project(
                 id=default_project_id,
                 account_id=default_account.id,
-                creator=user_email,
+                creator_id=db_user.id,
                 name="elevAIte Default Project",
                 description="elevAIte Default Project desc",
                 created_at=datetime.now(),

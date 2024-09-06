@@ -9,7 +9,7 @@ from uuid import UUID
 from datetime import datetime
 from pprint import pprint
 from pydantic import EmailStr
-from ..errors.api_error import ApiError
+from rbac_lib.utils.api_error import ApiError
 from datetime import UTC
 import secrets
 
@@ -22,7 +22,7 @@ from elevaitelib.schemas import (
 )
 from elevaitelib.orm.db import models
 
-from rbac_api.utils.cte import (
+from rbac_lib.utils.cte import (
     delete_user_project_associations_for_subprojects_of_user,
     delete_user_project_associations_for_subprojects_of_user_list,
 )

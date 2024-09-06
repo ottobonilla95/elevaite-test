@@ -19,10 +19,10 @@ sqlalchemy = "^2.0.30"
 psycopg2-binary = "^2.9.9"
 alembic = "^1.13.1"
 qdrant-client = "^1.9.1"
-rbac_api = { path = "../rbac", develop = true }
-elevaitelib = { path = "../elevaitedblib", develop = true }
 flytekit = "~1.12.0"
 fastjsonschema = "^2.19.1"
+elevaitelib = { path = "../elevaitedblib", develop = true }
+rbac_lib = { path = "../rbac-lib", develop = true }
 
 [build-system]
 requires = ["poetry-core"]
