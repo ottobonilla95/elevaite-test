@@ -96,8 +96,8 @@ export enum ACCESS_MANAGEMENT_TABS {
 };
 
 export enum CONTRACTS_TABS {
-    SUPPLIER_CONTRACTS = "Supplier Contracts",
-    CUSTOMER_CONTRACTS = "Customer Contracts",
+    SUPPLIER_CONTRACTS = "VSOW",
+    CUSTOMER_CONTRACTS = "CSOW",
     SUPPLIER_POS = "Supplier POs",
     SUPPLIER_INVOICES = "Supplier Invoices",
 }
