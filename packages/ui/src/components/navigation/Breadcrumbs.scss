@@ -1,6 +1,6 @@
 
 
-.breadcrumbs {
+div.breadcrumbs {
   display: flex;
   align-items: center;
 
@@ -10,6 +10,7 @@
   
 
   & .breadcrumbItem {
+    height: auto;
     color: var(--ev-colors-uiText);
     font-size: 16px;
     font-weight: 500;

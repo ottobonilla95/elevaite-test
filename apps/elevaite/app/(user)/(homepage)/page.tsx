@@ -17,7 +17,7 @@ export default function Page(): JSX.Element {
       {applications.map((app) => (
         <CardHolder key={app.key} title={app.title}>
           {app.cards.map((card) => (
-            <Link href={card.link ?? "/"} key={card.id} rel="noopener noreferrer" target="_blank">
+            <Link href={card.link ?? "/"} key={card.id} rel="noopener noreferrer" target={card.openInNewTab ? "_blank" : ""}>
               <Card {...card}/>
             </Link>
           ))}

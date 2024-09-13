@@ -1,7 +1,7 @@
 import type { CommonMenuItem } from "@repo/ui/components";
 import { CommonButton, CommonMenu, ElevaiteIcons } from "@repo/ui/components";
 import dayjs from "dayjs";
-import { type SortingObject } from "../../../../lib/interfaces";
+import { CONTRACT_STATUS, type SortingObject } from "../interfaces";
 import "./ListRow.scss";
 
 
@@ -14,6 +14,8 @@ export enum specialHandlingListRowFields {
     EMAIL = "email",
     COUNT = "count",
     DATE = "date",
+    SHORT_DATE = "sortDate",
+    CONTRACTS_STATUS = "contractsStatus",
 }
 
 
@@ -37,6 +39,7 @@ export interface ListNormalRow<RowObjectType> {
     menuToTop?: boolean;
     onSort?: never;
     sorting?: never;
+    onClick?: (object: RowObjectType) => void;
 }
 
 interface ListHeaderRow<RowObjectType> {
@@ -100,6 +103,19 @@ export function ListRow<RowObjectType>(props: ListRowProps<RowObjectType>): JSX.
             case specialHandlingListRowFields.COUNT: return (props.rowItem?.[item.field] !== undefined ? <div className="count">{props.rowItem[item.field]}</div> : "");
             case specialHandlingListRowFields.EMAIL: return (props.rowItem?.[item.field] ? <a className="email" href={`mailto:${props.rowItem[item.field] as string}`}>{props.rowItem[item.field]}</a> : "");
             case specialHandlingListRowFields.DATE: return (props.rowItem?.[item.field] ? dayjs(props.rowItem[item.field] as string).format("DD-MMM-YYYY hh:mm a") : "");
+            case specialHandlingListRowFields.SHORT_DATE: return (
+                <span title={props.rowItem?.[item.field] ? `${dayjs(props.rowItem[item.field] as string).format("DD-MMM-YYYY")}\n${dayjs(props.rowItem[item.field] as string).format("hh:mm a")}` : ""}>
+                    {props.rowItem?.[item.field] ? dayjs(props.rowItem[item.field] as string).format("DD-MMM-YYYY") : ""}</span>
+                );
+            case specialHandlingListRowFields.CONTRACTS_STATUS: return (
+                <div className={["contract-status", props.rowItem?.[item.field] as string].join(" ")} title={props.rowItem?.[item.field] as string}>
+                    {props.rowItem?.[item.field] === CONTRACT_STATUS.READY ? <ElevaiteIcons.SVGCheckmark/> : 
+                        props.rowItem?.[item.field] === CONTRACT_STATUS.PROGRESS ? <ElevaiteIcons.SVGInstanceProgress/> :
+                        props.rowItem?.[item.field] === CONTRACT_STATUS.FAILED ? <ElevaiteIcons.SVGXmark/> :
+                        undefined
+                    }
+                </div>
+            );
             default: return "";
         }
     }
@@ -110,13 +126,26 @@ export function ListRow<RowObjectType>(props: ListRowProps<RowObjectType>): JSX.
         props.onSort(item.field, item.specialHandling);
     }
 
+    function handleRowClick(): void {
+        if ("onClick" in props && props.onClick) 
+        props.onClick(props.rowItem);
+    }
+
 
     return (
-        <div className={["access-management-list-row-container", "isHeader" in props ? "header" : undefined].filter(Boolean).join(" ")}>
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- Sure, we can fix that at some point.
+        <div
+            className={[
+                "list-row-container",
+                "isHeader" in props ? "header" : undefined,
+                "onClick" in props && props.onClick ? "clickable" : undefined,
+            ].filter(Boolean).join(" ")}
+            onClick={"onClick" in props ? handleRowClick : undefined}
+        >
 
             {!props.menu ? undefined : 
-                "isHeader" in props || props.menu.length === 0 ? <div className="access-management-list-row-cell menu"/> :
-                <div className="access-management-list-row-cell menu">
+                "isHeader" in props || props.menu.length === 0 ? <div className="list-row-cell menu"/> :
+                <div className="list-row-cell menu">
                     <CommonMenu
                         item={props.rowItem}
                         menu={props.menu}
@@ -132,7 +161,7 @@ export function ListRow<RowObjectType>(props: ListRowProps<RowObjectType>): JSX.
             
                 <CommonButton key={structureItem.field}
                     className={[
-                        "access-management-list-row-cell header",
+                        "list-row-cell header",
                         structureItem.field,
                         structureItem.align,
                         structureItem.style,
@@ -162,7 +191,7 @@ export function ListRow<RowObjectType>(props: ListRowProps<RowObjectType>): JSX.
                     
                     <CommonButton key={structureItem.field}
                         className={[
-                            "access-management-list-row-cell",
+                            "list-row-cell",
                             structureItem.field,
                             structureItem.align,
                             structureItem.style,
@@ -182,7 +211,7 @@ export function ListRow<RowObjectType>(props: ListRowProps<RowObjectType>): JSX.
 
                 <div key={structureItem.field}
                     className={[
-                        "access-management-list-row-cell",
+                        "list-row-cell",
                         structureItem.field,
                         structureItem.align,
                         structureItem.style,

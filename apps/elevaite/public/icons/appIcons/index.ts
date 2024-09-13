@@ -6,6 +6,7 @@ import supportBot from "./supportBot.svg";
 import deckBuilder from "./deckBuilder.svg";
 import insights from "./insights.svg";
 import campaignBuilder from "./campaignBuilder.svg";
+import contracts from "./contracts.svg";
 
 interface SvgType {
   src: string;
@@ -21,6 +22,7 @@ export const ApplicationIcons = {
   applications: {
     supportBot: { src: (supportBot as SvgType).src, alt: "Support Bot" },
     deckBuilder: { src: (deckBuilder as SvgType).src, alt: "Deck Builder" },
+    contracts: { src: (contracts as SvgType).src, alt: "Contract Co-Pilot" },
     insights: { src: (insights as SvgType).src, alt: "ElevAIte Insights" },
     campaignBuilder: { src: (campaignBuilder as SvgType).src, alt: "Campaign Builder" },
   },

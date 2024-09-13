@@ -95,6 +95,25 @@ export enum ACCESS_MANAGEMENT_TABS {
     ROLES = "Roles",
 };
 
+export enum CONTRACTS_TABS {
+    SUPPLIER_CONTRACTS = "Supplier Contracts",
+    CUSTOMER_CONTRACTS = "Customer Contracts",
+    SUPPLIER_POS = "Supplier POs",
+    SUPPLIER_INVOICES = "Supplier Invoices",
+}
+
+export enum CONTRACT_STATUS {
+    READY = "Ready",
+    PROGRESS = "In Progress",
+    FAILED = "Failed",
+}
+
+export enum CONTRACT_TYPES {
+    CONTRACT = "contract",
+    PURCHASE_ORDER = "po",
+    INVOICE = "invoice",
+}
+
 export enum ROLE_PERMISSIONS {
     ACTION_CREATE = "ACTION_CREATE",
     ACTION_READ = "ACTION_READ",
@@ -458,6 +477,27 @@ export interface HuggingfaceDatasetObject {
     gated: boolean;
 }
 
+
+
+// CONTRACTS
+////////////////
+
+export interface ContractObject {
+    id: string;
+    name: string;
+    type: CONTRACT_TYPES;
+    status: CONTRACT_STATUS;
+    pdf: File|string|undefined;
+    extractedData: ContractExtractionDictionary|undefined;
+    fileSize?: string | number;
+    tags: string[];
+    createdAt: string;
+    updatedAt?: string;
+}
+
+export type ContractExtractionPageItem = string | Record<string, string>[];
+export type ContractExtractionPage = Record<string, ContractExtractionPageItem>;
+export type ContractExtractionDictionary = Record<`page_${number}`, ContractExtractionPage>;
 
 
 

@@ -1,0 +1,38 @@
+
+
+
+.pdf-display-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border-radius: 8px;
+    padding: 20px;
+    background-color: var(--ev-colors-primary);
+
+    & .pdf-display-header {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    & .pdf-display-contents {
+        flex-grow: 1;
+        position: relative;
+
+        & .loading {
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            & > svg {
+                height: 40px;
+                width: 40px;
+            }
+        }
+    }
+
+}

@@ -43,6 +43,10 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
         label: "Applications",
         link: "/",
     },
+    contracts: {
+      label: "Contracts",
+      link: "/contracts"
+    }
 };
 
 const sidebarIcons: SidebarIconObject[] = [

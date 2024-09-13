@@ -1,11 +1,11 @@
 import { CommonModal, ElevaiteIcons, type CommonMenuItem } from "@repo/ui/components";
 import { useEffect, useState } from "react";
+import { ListHeader } from "../../../lib/components/ListHeader";
+import { ListRow, specialHandlingListRowFields, type RowStructure } from "../../../lib/components/ListRow";
 import { useRoles } from "../../../lib/contexts/RolesContext";
 import { type ExtendedProjectObject, type ProjectObject, type SortingObject } from "../../../lib/interfaces";
 import { AddEditProject } from "./Add Edit Modals/AddEditProject";
 import "./ProjectsList.scss";
-import { ListHeader } from "./smallParts/ListHeader";
-import { ListRow, specialHandlingListRowFields, type RowStructure } from "./smallParts/ListRow";
 
 
 

@@ -95,6 +95,11 @@ const appLinks: Record<string, { development: string; production: string; test: 
     production: "https://arlo.opexwise.ai",
     test: "",
   },
+  contracts: {
+    development: "/contracts",
+    production: "/contracts",
+    test: "",
+  }
 };
 
 export function getApplications(
@@ -114,6 +119,7 @@ export function getApplications(
           id: "supportBot",
           miscLabel: "Version 2.0",
           subtitle: "By Elevaite",
+          openInNewTab: true,
         },
       ],
     },
@@ -130,6 +136,18 @@ export function getApplications(
           id: "deckBuilder",
           miscLabel: "Version 2.0",
           subtitle: "By Elevaite",
+          openInNewTab: true,
+        },
+        {
+          icon: ApplicationIcons.applications.contracts.src,
+          description: "Quickly discover and evaluate important data in your contracts and invoices",
+          iconAlt: ApplicationIcons.applications.contracts.alt,
+          title: "Contract Co-Pilot",
+          link: appLinks.contracts[env],
+          id: "contracts",
+          miscLabel: "Version 1.0",
+          subtitle: "By Elevaite",
+          openInNewTab: false,
         },
       ],
     },
@@ -146,6 +164,7 @@ export function getApplications(
           id: "insights",
           miscLabel: "Version 2.0",
           subtitle: "By Elevaite",
+          openInNewTab: true,
         },
         {
           icon: ApplicationIcons.applications.campaignBuilder.src,
@@ -155,6 +174,7 @@ export function getApplications(
           id: "campaignBuilder",
           miscLabel: "Version 2.0",
           subtitle: "By Elevaite",
+          openInNewTab: true,
         },
       ],
     },

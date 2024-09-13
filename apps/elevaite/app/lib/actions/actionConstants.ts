@@ -14,6 +14,7 @@ export enum cacheTags {
   endpoints = "ENDPOINTS",
   datasets = "DATASETS",
   evaluations = "EVALUATIONS",
+  contracts = "CONTRACTS",
   rbac = "RBAC",
   users = "USERS",
 };

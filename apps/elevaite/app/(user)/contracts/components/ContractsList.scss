@@ -1,0 +1,155 @@
+
+
+
+.contracts-list-container {    
+    display: flex;
+    flex-direction: column;
+    background-color: var(--ev-colors-backgroundHighContrast);
+    border: 1px solid var(--ev-colors-borderColor);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 12px;
+
+
+
+    & .tabs-container {
+        display: flex;
+        align-items: center;
+        margin: 0 10px;
+        border-bottom: 1px solid var(--ev-colors-borderColor);
+
+        & > button.tab-button {
+            padding: 10px 20px;
+            margin-bottom: -1px;
+            border-bottom: 2px solid transparent;
+            border-radius: 0;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            color: var(--ev-colors-secondaryText);
+
+            &.active {
+                color: var(--ev-colors-highlight);
+                border-bottom-color: var(--ev-colors-highlight);
+            }
+        }
+    }
+
+
+
+
+
+    & .contracts-list-table-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+
+
+
+        & .table-controls-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+
+            & .tags-container {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex-wrap: wrap;
+                max-height: 70px;
+                overflow-y: auto;
+                @include scrollbar();
+
+                & .filter-tag {
+                    border: 1px solid var(--ev-colors-borderColor);
+                    border-radius: 20px;
+                    padding: 5px 10px;
+                    background-color: var(--ev-colors-backgroundHighContrast);
+
+                    &:hover {
+                        background-color: var(--ev-colors-background);
+                    }
+
+
+                    &.active {
+                        background-color: var(--ev-colors-highlight);
+                        color: var(--ev-colors-text);
+                    }
+                }
+            }
+
+            & .controls-container {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+
+
+                & .upload-button {
+                    color: var(--ev-colors-highlight);
+                    background-color: var(--ev-colors-primary);
+                    border-radius: 4px;
+                }
+            }
+
+        }
+
+
+        & .contracts-list-table-contents {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 80px minmax(200px, 2fr) 100px minmax(150px, 2fr) 1fr;
+            grid-auto-rows: min-content;
+            align-content: flex-start;
+            gap: 0;
+            
+            overflow-y: auto;
+            @include scrollbar();
+    
+            & .table-span {
+                border: 1px solid var(--ev-colors-borderColor);
+                border-top: none;
+                border-radius: 0 0 8px 8px;
+                padding: 50px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 20px;
+        
+                & > svg {
+                    height: 20px;
+                    width: 20px;
+                }
+            }
+    
+            & .empty {
+                grid-column: 1 / -1;
+                color: var(--ev-colors-secondaryText);
+                font-size: 14px;
+            }
+
+            & .list-row-container.header .list-row-cell.header {
+                &:first-child {
+                    border-top-left-radius: 8px;
+                }
+                &:last-child {
+                    border-top-right-radius: 8px;
+                }
+            }
+
+
+            & .list-row-cell.tags {
+                & .tag {
+                    background-color: var(--ev-colors-primary);
+                    border-radius: 16px;
+                    padding: 2px 10px;
+                }
+            }
+        }
+        
+    }
+
+
+
+}

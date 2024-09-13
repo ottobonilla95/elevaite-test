@@ -1,12 +1,12 @@
 "use client";
 import { CommonModal, ElevaiteIcons, type CommonMenuItem } from "@repo/ui/components";
 import { useEffect, useState } from "react";
+import { ListHeader } from "../../../lib/components/ListHeader";
+import { ListRow, specialHandlingListRowFields, type RowStructure } from "../../../lib/components/ListRow";
 import { useRoles } from "../../../lib/contexts/RolesContext";
 import { type AccountObject, type ExtendedAccountObject, type SortingObject } from "../../../lib/interfaces";
 import "./AccountsList.scss";
 import { AddEditAccount } from "./Add Edit Modals/AddEditAccount";
-import { ListHeader } from "./smallParts/ListHeader";
-import { ListRow, specialHandlingListRowFields, type RowStructure } from "./smallParts/ListRow";
 
 
 

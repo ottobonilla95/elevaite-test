@@ -2,7 +2,7 @@ import { type CommonMenuItem } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { useRoles } from "../../../../lib/contexts/RolesContext";
 import { type ExtendedUserObject } from "../../../../lib/interfaces";
-import { ListRow, type RowStructure } from "./ListRow";
+import { ListRow, type RowStructure } from "../../../../lib/components/ListRow";
 import "./UserRolesListRow.scss";
 
 

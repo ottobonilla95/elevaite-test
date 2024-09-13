@@ -4,8 +4,8 @@ import { useRoles } from "../../../lib/contexts/RolesContext";
 import { type RoleObject } from "../../../lib/interfaces";
 import { type DisplayPermission, getDisplayPermissions } from "../../../lib/rbacHelpers";
 import "./RolesList.scss";
-import { ListHeader } from "./smallParts/ListHeader";
-import { ListRow, specialHandlingListRowFields, type RowStructure } from "./smallParts/ListRow";
+import { ListHeader } from "../../../lib/components/ListHeader";
+import { ListRow, specialHandlingListRowFields, type RowStructure } from "../../../lib/components/ListRow";
 import { RoleCard } from "./smallParts/RoleCard";
 
 
