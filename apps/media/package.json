@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\chatbot\\Dockerfile\" -t chatbot:latest \".\""
+    "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\media\\Dockerfile\" -t media:latest \".\""
   },
   "dependencies": {
     "@auth/core": "^0.29.0",
