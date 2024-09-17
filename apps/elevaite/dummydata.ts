@@ -99,6 +99,11 @@ const appLinks: Record<string, { development: string; production: string; test: 
     development: "/contracts",
     production: "/contracts",
     test: "",
+  },
+  mediaplan: {
+    development: "http://localhost:3004/homepage",
+    production: "http://localhost:3004/homepage",
+    test: "",
   }
 };
 
@@ -120,7 +125,7 @@ export function getApplications(
           miscLabel: "Version 2.0",
           subtitle: "By Elevaite",
           openInNewTab: true,
-        },
+        }
       ],
     },
     {
@@ -131,7 +136,7 @@ export function getApplications(
           icon: ApplicationIcons.applications.deckBuilder.src,
           description: "Convert your spreadsheets to presentations and ask questions",
           iconAlt: ApplicationIcons.applications.deckBuilder.alt,
-          title: "AI Deck Builder",
+          title: "",
           link: appLinks.excletoppt[env],
           id: "deckBuilder",
           miscLabel: "Version 2.0",
@@ -168,11 +173,12 @@ export function getApplications(
         },
         {
           icon: ApplicationIcons.applications.campaignBuilder.src,
-          description: "Analyze attributes of past campaign metrics to build successful future campaigns.",
+          description: "Analyze creatives, generate tailored media plans, and unlock insights from your creative data.",
           iconAlt: ApplicationIcons.applications.campaignBuilder.alt,
-          title: "AI Campaign Builder",
-          id: "campaignBuilder",
-          miscLabel: "Version 2.0",
+          title: "Media and Marketing",
+          link: appLinks.mediaplan[env],
+          id: "mediaplan",
+          miscLabel: "Version 1.0",
           subtitle: "By Elevaite",
           openInNewTab: true,
         },
