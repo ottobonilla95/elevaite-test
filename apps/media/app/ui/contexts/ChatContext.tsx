@@ -422,7 +422,8 @@ export function ChatContextProvider(
     conversation_payload = conversation_payload.reverse();
     console.log("CONVERSATION_PAYLOAD:", conversation_payload);
 
-    const response = await fetch("http://127.0.0.1:8000/", {
+    MEDIA_BACKEND_URL = process.env.MEDIA_BACKEND_URL;
+    const response = await fetch(MEDIA_BACKEND_URL, {
     // const response = await fetch("http://vmo-dlnx-rcdn-1:8000/", {
       method: 'POST',
       headers: {
