@@ -19,10 +19,8 @@ const s3Client = new S3Client({
 function parseS3Url(url: string): { bucketName: string; key: string } {
   try {
     const parsedUrl = new URL(url);
-
     const bucketName = parsedUrl.hostname.split(".")[0];
-
-    const key = parsedUrl.pathname.slice(1).replace(/%20/g, " "); // Remove leading slash and replace blanks
+    const key = parsedUrl.pathname.slice(1).replace(/%20/g, " ");
 
     if (!bucketName || !key) {
       throw new Error("Invalid S3 URL format.");
@@ -35,20 +33,22 @@ function parseS3Url(url: string): { bucketName: string; key: string } {
   }
 }
 
-function streamToBuffer(stream: Readable): Promise<Buffer> {
+function streamToFile(stream: Readable, filename: string): Promise<File> {
   const chunks: Buffer[] = [];
   return new Promise((resolve, reject) => {
     stream.on("data", (chunk: Buffer) => chunks.push(chunk));
     stream.on("end", () => {
-      resolve(Buffer.concat(chunks));
+      const buffer = Buffer.concat(chunks);
+      const blob = new Blob([buffer]);
+      const file = new File([blob], filename);
+      resolve(file);
     });
     stream.on("error", reject);
   });
 }
 
-export async function getFileFromS3(url: string): Promise<Buffer> {
+export async function getFileFromS3(url: string): Promise<File> {
   const { bucketName, key } = parseS3Url(url);
-
   const { Body } = await s3Client.send(
     new GetObjectCommand({
       Bucket: bucketName,
@@ -56,5 +56,5 @@ export async function getFileFromS3(url: string): Promise<Buffer> {
     })
   );
 
-  return streamToBuffer(Body as Readable);
+  return streamToFile(Body as Readable, key);
 }
