@@ -505,7 +505,7 @@ export interface ContractObject {
     response: ContractExtractionDictionary|null;
     po_number?: string|null;
     supplier?: string|null;
-    verification?: unknown;
+    verification?: ContractObjectVerification;
     highlight?: ContractObjectEmphasis;
     tags?: string[];
     creation_date: string;
@@ -522,8 +522,27 @@ export interface ContractObjectEmphasis {
     total_amount: string|null;
 }
 
-export type ContractExtractionPageItem = string | Record<string, string>[];
-export type ContractExtractionPage = Record<string, ContractExtractionPageItem>;
+export interface ContractObjectVerification {
+    verification_status: boolean;
+    vsow: ContractObjectVerificationItem[];
+    invoice: ContractObjectVerificationItem[];
+    po?: ContractObjectVerificationItem;
+}
+
+export interface ContractObjectVerificationItem {
+    verification_status: boolean;
+    file_ref: string;
+    po_number?: VerificationItem;
+    supplier?: VerificationItem;
+    total_amount?: VerificationItem;
+}
+export interface VerificationItem {
+    verification_status: boolean;
+    value?: string;
+}
+
+export type ContractExtractionPageItem = string | Record<string, string>;
+export type ContractExtractionPage = Record<string, ContractExtractionPageItem> & Record<`Line Item ${number}`, Record<string, string>>;
 export type ContractExtractionDictionary = Record<`page_${number}`, ContractExtractionPage>;
 
 

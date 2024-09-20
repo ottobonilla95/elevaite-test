@@ -1,5 +1,5 @@
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { Readable } from "node:stream";
+import { type NextRequest } from "next/server";
 
 const region = process.env.AWS_REGION;
 const accessKeyId = process.env.AWS_AKID;
@@ -16,38 +16,29 @@ const s3Client = new S3Client({
   },
 });
 
-export async function GET(req, res) {
+export async function GET(req: NextRequest): Promise<Response> {
   const bucketName = "elevaite-contract-assurance";
   const searchParams = req.nextUrl.searchParams;
-  const filekey = searchParams.get("key");
+  const filekey = searchParams.get("key") ?? "";
 
-  const downloadParams = {
-    Key: filekey,
-    Bucket: bucketName,
-  };
+  try {
+    const { Body } = await s3Client.send(
+      new GetObjectCommand({
+        Bucket: bucketName,
+        Key: filekey,
+      })
+    );
 
-  const { Body } = await s3Client.send(
-    new GetObjectCommand({
-      Bucket: bucketName,
-      Key: filekey,
-    })
-  );
-  //   console.log(Body);
+    if (!Body) {
+      return new Response("File not found", { status: 404 });
+    }
 
-  //   const arrayBuffer = await Body?.transformToWebStream();
-  //   const buffer = Buffer.from(arrayBuffer);
-
-  const headers = new Headers();
-
-  headers.set("Content-Type", `application/pdf`);
-  headers.set("Content-Disposition", `attachment; filename=${filekey}`);
-  //   res
-  //     .status(200)
-  //     .setHeader("Content-Type", `application/pdf`)
-  //     .setHeader("Content-Disposition", `attachment; filename=${filekey}`)
-  //     .send(Body?.transformToWebStream());
-  //   Readable.from(Body?.transformToByteArray).pipe(res);
-  return new Response(Body, { status: 200, statusText: "OK", headers });
-
-  //   res.formData({ file: Body });
+    const headers = new Headers();
+    headers.set("Content-Type", `application/pdf`);
+    headers.set("Content-Disposition", `attachment; filename=${filekey}`);
+    
+    return new Response(Body as ReadableStream, { status: 200, statusText: "OK", headers });
+  } catch (error) {
+    return new Response("Internal Server Error", { status: 500 });
+  }
 }

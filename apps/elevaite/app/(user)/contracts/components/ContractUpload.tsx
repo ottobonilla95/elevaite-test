@@ -7,7 +7,8 @@ import "./ContractUpload.scss";
 
 
 const contractTypesOptions: CommonSelectOption[] = [
-    { label: "Contract", value: CONTRACT_TYPES.VSOW, disabled: true },
+    { label: "VSOW", value: CONTRACT_TYPES.VSOW },
+    { label: "CSOW", value: CONTRACT_TYPES.CSOW, disabled: true },
     { label: "Invoice", value: CONTRACT_TYPES.INVOICE },
     { label: "Purchase Order", value: CONTRACT_TYPES.PURCHASE_ORDER },    
 ];
@@ -79,8 +80,10 @@ export function ContractUpload(props: ContractUploadProps): JSX.Element {
                     <CommonSelect
                         options={contractTypesOptions}
                         onSelectedValueChange={handleContractTypeChange}
-                        defaultValue={props.selectedTab === CONTRACTS_TABS.SUPPLIER_INVOICES ? "invoice":
-                                        props.selectedTab === CONTRACTS_TABS.SUPPLIER_POS ? "po" : undefined
+                        defaultValue={props.selectedTab === CONTRACTS_TABS.SUPPLIER_INVOICES ? CONTRACT_TYPES.INVOICE :
+                                        props.selectedTab === CONTRACTS_TABS.SUPPLIER_POS ? CONTRACT_TYPES.PURCHASE_ORDER : 
+                                        props.selectedTab === CONTRACTS_TABS.CUSTOMER_CONTRACTS ? undefined : // CONTRACT_TYPES.CSOW :
+                                        CONTRACT_TYPES.VSOW
                         }
                         callbackOnDefaultValue
                     />

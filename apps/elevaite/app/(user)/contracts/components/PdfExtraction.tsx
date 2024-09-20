@@ -22,7 +22,7 @@ export function PdfExtraction(): JSX.Element {
         if (contractsContext.selectedContract?.response) {
             setExtractedBits(getExtractedBits(contractsContext.selectedContract.response));
         } else setExtractedBits([]);
-    }, [contractsContext.selectedContract]);
+    }, [contractsContext.selectedContract?.response]);
 
 
     function handleBitChange(pageKey: string, itemKey: string, newValue: string): void {
@@ -50,27 +50,36 @@ export function PdfExtraction(): JSX.Element {
 
     function getExtractedBits(extractedData: ContractExtractionDictionary): JSX.Element[] {
         const bits: JSX.Element[] = [];
+        const lineItems: Record<string, string>[] = [];
       
         Object.entries(extractedData).forEach(([pageKey, page]) => {
             
           Object.entries(page).forEach(([label, value]) => {
             if (typeof value === 'string') {
                 bits.push(<ExtractedBit
-                            key={label}
+                            key={pageKey + label}
                             label={label}
                             value={value}
                             onChange={(changeLabel, changeText) => { handleBitChange(pageKey, changeLabel, changeText); }}
                         />);
-            } else if (Array.isArray(value)) {
-                bits.push(<ExtractedTableBit
-                            key={label}
-                            label={label}
-                            data={value}
-                            onTableChange={(changeLabel, changeText) => { handleTableBitChange(pageKey, changeLabel, changeText); }}
-                        />);
+            } else {
+                lineItems.push(value);
+                // bits.push(<ExtractedTableBit
+                //             key={pageKey + label}
+                //             label={label}
+                //             data={value}
+                //             onTableChange={(changeLabel, changeText) => { handleTableBitChange(pageKey, changeLabel, changeText); }}
+                //         />);
             }
           });
         });
+
+        bits.unshift(<ExtractedTableBit
+                        key="line_items"
+                        label="Line Items"
+                        data={lineItems}
+                        onTableChange={(changeLabel, changeText) => { console.log("change", changeLabel, changeText)}}
+            />);
       
         return bits;
       }

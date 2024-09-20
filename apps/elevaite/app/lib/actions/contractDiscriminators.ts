@@ -17,6 +17,10 @@ export function isGetContractProjectsListReponse(data: unknown): data is Contrac
     return true;
 }
 
+export function isGetContractProjectByIdResponse(data: unknown): data is ContractProjectObject {
+    return isContractProjectObject(data);
+}
+
 
 export function isSubmitContractResponse(data: unknown): data is ContractObject {
     return isContractObject(data);

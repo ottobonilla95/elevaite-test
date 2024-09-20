@@ -2,7 +2,7 @@
 import { revalidateTag } from "next/cache";
 import { type ContractObject, type CONTRACT_TYPES, type ContractProjectObject } from "../interfaces";
 import { cacheTags, CONTRACT_PROJECTS_REVALIDATION_TIME } from "./actionConstants";
-import { isCreateProjectResponse, isGetContractProjectsListReponse, isSubmitContractResponse } from "./contractDiscriminators";
+import { isCreateProjectResponse, isGetContractProjectByIdResponse, isGetContractProjectsListReponse, isSubmitContractResponse } from "./contractDiscriminators";
 
 
 
@@ -25,6 +25,19 @@ export async function getContractProjectsList(): Promise<ContractProjectObject[]
   if (isGetContractProjectsListReponse(data)) return data;
   throw new Error("Invalid data type");
 }
+
+
+export async function getContractProjectById(projectId: string): Promise<ContractProjectObject> {
+  if (!CONTRACTS_URL) throw new Error("Missing base url");
+  const url = new URL(`${CONTRACTS_URL}/projects/${projectId}`);
+  const response = await fetch(url, { cache: "no-store", next: { revalidate: CONTRACT_PROJECTS_REVALIDATION_TIME, tags: [cacheTags.contractProjects] } });
+
+  if (!response.ok) throw new Error("Failed to fetch contract project");
+  const data: unknown = await response.json();
+  if (isGetContractProjectByIdResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
 
 
 

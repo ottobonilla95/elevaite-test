@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { CreateProject, getContractProjectsList, submitContract } from "../actions/contractActions";
+import { CreateProject, getContractProjectById, getContractProjectsList, submitContract } from "../actions/contractActions";
 import { CONTRACT_STATUS, CONTRACT_TYPES, type ContractExtractionDictionary, type ContractObject, type ContractProjectObject } from "../interfaces";
 
 
@@ -10,26 +10,26 @@ const exampleExtractedData: ContractExtractionDictionary = {
         "Invoice Number": "119329",
         "Invoice Date": "28-06-2023",
         "Due Date": "27-08-2023",
-        "Items": [
-            {
-            "Item": "High-speed internet router",
-            "Quantity": "5",
-            "Rate": "$500.00",
-            "Total Value": "$2,500.00",
-            },
-            {
-            "Item": "Data storage server",
-            "Quantity": "5",
-            "Rate": "$1,500.00",
-            "Total Value": "$7,500.00",
-            },
-            {
-            "Item": "High-performance laptops",
-            "Quantity": "5",
-            "Rate": "$1,000.00",
-            "Total Value": "$5,000.00",
-            }
-        ],
+        // "Items": [
+        //     {
+        //     "Item": "High-speed internet router",
+        //     "Quantity": "5",
+        //     "Rate": "$500.00",
+        //     "Total Value": "$2,500.00",
+        //     },
+        //     {
+        //     "Item": "Data storage server",
+        //     "Quantity": "5",
+        //     "Rate": "$1,500.00",
+        //     "Total Value": "$7,500.00",
+        //     },
+        //     {
+        //     "Item": "High-performance laptops",
+        //     "Quantity": "5",
+        //     "Rate": "$1,000.00",
+        //     "Total Value": "$5,000.00",
+        //     }
+        // ],
         "Subtotal": "$15,000.00",
         "Others": "$0.00",
         "VAT": "10%",
@@ -39,13 +39,13 @@ const exampleExtractedData: ContractExtractionDictionary = {
 
 
 const testContracts: ContractObject[] = [
-    {id: "01", label: "Test Invoice Label 01", filename: "Test Invoice 01", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.INVOICE, file_ref: "/testPdf.pdf", response: exampleExtractedData, filesize: 24000, tags: ["Finance"], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
-    {id: "02", label: "Test Contract Label 01", filename: "Test Contract 01", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.VSOW, file_ref: "/TC02.pdf", response: exampleExtractedData, filesize: 24000, tags: ["Tech"], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
-    {id: "03", label: "Test Purchase Order Label 01", filename: "Test Purchase Order 01", status: CONTRACT_STATUS.PROCESSING, content_type: CONTRACT_TYPES.PURCHASE_ORDER, file_ref: null, response: null, filesize: 24000, tags: [], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
-    {id: "04", label: "Test Purchase Order Label 02", filename: "Test Purchase Order 02", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.PURCHASE_ORDER, file_ref: "/testPdf.pdf", response: exampleExtractedData, filesize: 24000, tags: ["Finance"], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
-    {id: "05", label: "Test Invoice Label 02", filename: "Test Invoice 02", status: CONTRACT_STATUS.FAILED, content_type: CONTRACT_TYPES.INVOICE, file_ref: null, response: null, filesize: 24000, tags: ["Finance", "Tech"], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
-    {id: "06", label: "", filename: "Test Contract 02", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.VSOW, file_ref: "/testPdf.pdf", response: exampleExtractedData, filesize:24000, tags: [], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
-    {id: "07", label: "Test Contract Label 03", filename: "Test Contract 03", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.VSOW, file_ref: "/TC03.pdf", response: exampleExtractedData, filesize: 24000, tags: [], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
+    // {id: "01", label: "Test Invoice Label 01", filename: "Test Invoice 01", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.INVOICE, file_ref: "/testPdf.pdf", response: exampleExtractedData, filesize: 24000, tags: ["Finance"], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
+    // {id: "02", label: "Test Contract Label 01", filename: "Test Contract 01", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.VSOW, file_ref: "/TC02.pdf", response: exampleExtractedData, filesize: 24000, tags: ["Tech"], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
+    // {id: "03", label: "Test Purchase Order Label 01", filename: "Test Purchase Order 01", status: CONTRACT_STATUS.PROCESSING, content_type: CONTRACT_TYPES.PURCHASE_ORDER, file_ref: null, response: null, filesize: 24000, tags: [], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
+    // {id: "04", label: "Test Purchase Order Label 02", filename: "Test Purchase Order 02", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.PURCHASE_ORDER, file_ref: "/testPdf.pdf", response: exampleExtractedData, filesize: 24000, tags: ["Finance"], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
+    // {id: "05", label: "Test Invoice Label 02", filename: "Test Invoice 02", status: CONTRACT_STATUS.FAILED, content_type: CONTRACT_TYPES.INVOICE, file_ref: null, response: null, filesize: 24000, tags: ["Finance", "Tech"], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
+    // {id: "06", label: "", filename: "Test Contract 02", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.VSOW, file_ref: "/testPdf.pdf", response: exampleExtractedData, filesize:24000, tags: [], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
+    // {id: "07", label: "Test Contract Label 03", filename: "Test Contract 03", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.VSOW, file_ref: "/TC03.pdf", response: exampleExtractedData, filesize: 24000, tags: [], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
 ];
 
 
@@ -184,7 +184,7 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
     // }, [selectedProject]);
 
     useEffect(() => {
-        console.log("Selected Contract", selectedContract);        
+        console.log("Selected Contract", selectedContract);
     }, [selectedContract]);
 
 
@@ -281,6 +281,12 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
         return id;
     }
 
+    function replaceProject(newProject: ContractProjectObject): void {
+        setProjects((prevProjects) =>
+            prevProjects.map((project) => project.id === newProject.id ? newProject : project)
+        );
+    }
+
     function replaceTemporaryContractWithProcessed(id: string, data: ContractObject): void {
         // If the returned data's id exists, replace it, then delete the previous id.
         const existingReport = findReportById(data.id);
@@ -346,6 +352,7 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
             if (name) formData.append("label", name);
             const contractExtractionResults = await submitContract(projectId.toString(), formData, type);
             setProcessedContract({id: idOfNewEntry, data: contractExtractionResults});
+            await actionFetchProjectById(projectId);
         } catch(error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in submitting contract:", error);
@@ -384,6 +391,22 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
             setLoading(current => { return {...current, projects: false}} );
         }
     }
+
+    async function actionFetchProjectById(id: string|number): Promise<void> {
+        try {
+            // setLoading(current => { return {...current, projects: true}} );
+            // Stealth update            
+            const projectResult = await getContractProjectById(id.toString());
+            replaceProject(projectResult);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching contract projects:", error);
+        } finally {
+            // setLoading(current => { return {...current, projects: false}} );
+        }
+    }
+
+
 
 
 

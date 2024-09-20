@@ -57,7 +57,7 @@ function structureStatus(listItem: ContractObject): React.ReactNode {
     );
 }
 function structureApproval(listItem: ContractObject): React.ReactNode {
-    const isApproved = listItem.status === CONTRACT_STATUS.APPROVED;
+    const isApproved = listItem.status === CONTRACT_STATUS.APPROVED || listItem.verification?.verification_status === true;
     return (
         <span className={["contract-approval", !isApproved ? "pending" : undefined].filter(Boolean).join(" ")}>
             {isApproved ? "Approved" : "Pending"}

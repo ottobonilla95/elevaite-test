@@ -8,7 +8,6 @@ import { useContracts } from "../../../lib/contexts/ContractsContext";
 import { useDebouncedCallback } from "../../../lib/helpers";
 import { CONTRACT_TYPES, type ContractExtractionDictionary, type ContractExtractionPage, type ContractExtractionPageItem, type ContractObject } from "../../../lib/interfaces";
 import "./PdfDisplay.scss";
-import { getFileFromS3 } from "../../../lib/services/s3";
 
 
 
@@ -25,6 +24,7 @@ const fallbackUrl = "/testPdf.pdf";
 
 export function PdfDisplay(): JSX.Element {
     const contractsContext = useContracts();
+    const [isLoading, setIsLoading] = useState(false);
     const [pdfData, setPdfData] = useState<string>();
     const pageContainerRef = useRef<HTMLDivElement | null>(null);
     const pageRefs = useRef<Record<string, HTMLDivElement|null>>({});
@@ -85,12 +85,16 @@ export function PdfDisplay(): JSX.Element {
 
 
     async function formatPdfData(passedContract: ContractObject): Promise<void> {
+        setIsLoading(true);
         if (passedContract.file_ref) {
             let file: string|File|Blob = passedContract.file_ref;
             if (typeof file === "string") {
-                // setPdfData(passedContract.file_ref);
-                // return;
-                file = await getFileFromS3(file);
+                const url = new URL(`${window.location.origin}/api/contracts/`);
+                url.searchParams.set("key", file);
+                const response = await fetch(url, {method: "GET"});
+                const blob = await response.blob();
+                const newBlob = new Blob([blob]);
+                file = newBlob;
             }
             const reader = new FileReader();
             reader.onload = (event: ProgressEvent<FileReader>) => {
@@ -100,6 +104,7 @@ export function PdfDisplay(): JSX.Element {
             };
             reader.readAsDataURL(file);
         } else setPdfData(fallbackUrl);
+        setIsLoading(false);
     }
 
     function formatSearchTerms(data: ContractExtractionDictionary): void {
@@ -244,26 +249,28 @@ export function PdfDisplay(): JSX.Element {
                 className="pdf-display-contents"
                 onScroll={onScroll}
             >
-                <Document
-                    file={pdfData}
-                    onLoadSuccess={getPagesAmount}
-                    loading={<div className="loading large"><ElevaiteIcons.SVGSpinner/></div>}
-                >
-                    {Array.from(new Array(pagesAmount),
-                        (entry, index) => (
-                            <div
-                                key={`page_${(index + 1).toString()}`}
-                                ref={item => { pageRefs.current[index + 1] = item;}}
-                            >
-                                <Page                                    
-                                    pageNumber={index + 1}   
-                                    customTextRenderer={textRenderer}
-                                    loading={<div className="loading"><ElevaiteIcons.SVGSpinner/></div>}
-                                />
-                            </div>
-                        ),
-                    )}
-                </Document>
+                {isLoading ? <div className="loading large"><ElevaiteIcons.SVGSpinner/></div> :
+                    <Document
+                        file={pdfData}
+                        onLoadSuccess={getPagesAmount}
+                        loading={<div className="loading large"><ElevaiteIcons.SVGSpinner/></div>}
+                    >
+                        {Array.from(new Array(pagesAmount),
+                            (entry, index) => (
+                                <div
+                                    key={`page_${(index + 1).toString()}`}
+                                    ref={item => { pageRefs.current[index + 1] = item;}}
+                                >
+                                    <Page                                    
+                                        pageNumber={index + 1}   
+                                        customTextRenderer={textRenderer}
+                                        loading={<div className="loading"><ElevaiteIcons.SVGSpinner/></div>}
+                                    />
+                                </div>
+                            ),
+                        )}
+                    </Document>
+                }
             </div>
 
             <div className="pdf-controls-container">
