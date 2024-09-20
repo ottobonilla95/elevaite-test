@@ -5,6 +5,7 @@ import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 const region = process.env.AWS_REGION;
 const accessKeyId = process.env.AWS_AKID;
 const secretAccessKey = process.env.AWS_SAK;
+const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME;
 
 if (!region || !accessKeyId || !secretAccessKey)
   throw new Error("AWS credential or region are not set in env..");
@@ -21,7 +22,7 @@ function parseS3Url(url: string): { bucketName: string; key: string } {
   try {
     const parsedUrl = new URL(url);
     const bucketName = parsedUrl.hostname.split(".")[0];
-    const key = parsedUrl.pathname.slice(1).replace(/%20|\+/g, " ");;
+    const key = parsedUrl.pathname.slice(1).replace(/%20|\+/g, " ");
 
     if (!bucketName || !key) {
       throw new Error("Invalid S3 URL format.");
@@ -48,11 +49,10 @@ function streamToFile(stream: Readable, filename: string): Promise<File> {
   });
 }
 
-export async function getFileFromS3(url: string): Promise<File> {
-  const { bucketName, key } = parseS3Url(url);
+export async function getFileFromS3(key: string): Promise<File> {
   const { Body } = await s3Client.send(
     new GetObjectCommand({
-      Bucket: bucketName,
+      Bucket: AWS_BUCKET_NAME,
       Key: key,
     })
   );
