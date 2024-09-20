@@ -1,4 +1,4 @@
-import { type ContractExtractionDictionary, type ContractExtractionPage, type ContractExtractionPageItem } from "../interfaces";
+import { type ContractProjectObject, type ContractExtractionDictionary, type ContractExtractionPage, type ContractExtractionPageItem } from "../interfaces";
 import { isObject } from "./generalDiscriminators";
 
 
@@ -9,10 +9,22 @@ import { isObject } from "./generalDiscriminators";
 /////////////
 
 
+export function isGetContractProjectsListReponse(data: unknown): data is ContractProjectObject[] {
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (!isContractProjectObject(item)) return false;
+    }
+    return true;
+}
 
 
 export function isSubmitContractResponse(data: unknown): data is ContractExtractionDictionary {
     return isContractExtractionDictionaryObject(data);
+}
+
+
+export function isCreateProjectResponse(data: unknown): data is ContractProjectObject {
+    return isContractProjectObject(data);
 }
 
 
@@ -22,6 +34,16 @@ export function isSubmitContractResponse(data: unknown): data is ContractExtract
 ///////////
 
 
+
+export function isContractProjectObject(item: unknown): item is ContractProjectObject {
+    return isObject(item) &&
+        "id" in item &&
+        "creation_date" in item &&
+        "name" in item &&
+        "description" in item &&
+        "reports" in item &&
+        Array.isArray(item.reports);
+}
 
 export function isContractExtractionDictionaryObject(item: unknown): item is ContractExtractionDictionary {
     if (isObject(item)) {

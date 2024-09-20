@@ -21,6 +21,13 @@ const nextConfig = {
       },
     ],
   },
+  experimental: {
+    turbo: {
+      resolveAlias: {
+        canvas: './empty-module.ts',
+      },
+    },
+  },
   // experimental: {
   //   serverActions: {
   //     allowedOrigins: ["elevaite.com"],
