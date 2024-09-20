@@ -1,8 +1,21 @@
-import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
-import { useEffect, useRef, useState } from "react";
-import { PdfHighlighter, type PdfHighlighterUtils, PdfLoader } from "react-pdf-highlighter-extended";
+import { CommonButton, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
+import { type PDFDocumentProxy } from "pdfjs-dist";
+import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 import { useContracts } from "../../../lib/contexts/ContractsContext";
+import { useDebouncedCallback } from "../../../lib/helpers";
+import { CONTRACT_TYPES, type ContractExtractionDictionary, type ContractExtractionPage, type ContractExtractionPageItem, type ContractObject } from "../../../lib/interfaces";
 import "./PdfDisplay.scss";
+import { getFileFromS3 } from "../../../lib/services/s3";
+
+
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url,
+).toString();
 
 
 
@@ -10,22 +23,74 @@ const fallbackUrl = "/testPdf.pdf";
 
 
 
-
 export function PdfDisplay(): JSX.Element {
     const contractsContext = useContracts();
-    const highlighterUtilsRef = useRef<PdfHighlighterUtils>();
-    const [pdfData, setPdfData] = useState<string | null>(null);
+    const [pdfData, setPdfData] = useState<string>();
+    const pageContainerRef = useRef<HTMLDivElement | null>(null);
+    const pageRefs = useRef<Record<string, HTMLDivElement|null>>({});
+    const [pagesAmount, setPagesAmount] = useState<number>();
+    const [pageNumber, setPageNumber] = useState(1);
+    const [inputNumber, setInputNumber] = useState("");
+    const movePage = useRef(false);
+    const [highlightTerms, setHighlightTerms] = useState<string[]>([]);
+    const [selectedTab, setSelectedTab] = useState<CONTRACT_TYPES|undefined>();
 
+    const observer = new IntersectionObserver(
+        (entries) => {
+            entries.forEach((entry) => {
+                // console.log("Entry", entry);
+                if (entry.isIntersecting) {
+                    const child = entry.target.firstChild;
+                    if (child instanceof Element) {
+                        const elementNumber = child.getAttribute("data-page-number");
+                        if (elementNumber) {
+                            // setDisplayPageNumber(elementNumber);
+                            setPageNumber(parseInt(elementNumber));
+                        }
+                    }
+                }
+            });
+            observer.disconnect();
+        },
+        { threshold: 0.5 }
+    );
+
+    const pdfTabsArray: {value: CONTRACT_TYPES, label: string, isDisabled?: boolean}[] = [
+        { value: CONTRACT_TYPES.VSOW, label: "VSOW" },
+        { value: CONTRACT_TYPES.PURCHASE_ORDER, label: "PO" },
+        { value: CONTRACT_TYPES.INVOICE, label: "Invoice" },
+    ];
 
     useEffect(() => {
         if (!contractsContext.selectedContract) {
-            setPdfData(null);
+            setPdfData(undefined);
             return;
         }
-        if (contractsContext.selectedContract.pdf) {
-            if (typeof contractsContext.selectedContract.pdf === "string") {
-                setPdfData(contractsContext.selectedContract.pdf);
-                return;
+        void formatPdfData(contractsContext.selectedContract);
+        setSelectedTab(contractsContext.selectedContract.content_type);
+        // if (contractsContext.selectedContract.extractedData)
+        //     formatSearchTerms(contractsContext.selectedContract.extractedData);
+    }, [contractsContext.selectedContract]);
+
+
+    useEffect(() => {
+        if (!movePage.current) return;
+        if (pageRefs.current[pageNumber]) {
+            pageRefs.current[pageNumber].scrollIntoView({ behavior: "smooth" });
+        }
+        movePage.current = false;
+    }, [pageNumber]);
+
+
+
+
+    async function formatPdfData(passedContract: ContractObject): Promise<void> {
+        if (passedContract.file_ref) {
+            let file: string|File|Blob = passedContract.file_ref;
+            if (typeof file === "string") {
+                // setPdfData(passedContract.file_ref);
+                // return;
+                file = await getFileFromS3(file);
             }
             const reader = new FileReader();
             reader.onload = (event: ProgressEvent<FileReader>) => {
@@ -33,15 +98,118 @@ export function PdfDisplay(): JSX.Element {
                     setPdfData(event.target.result as string);
                 } else setPdfData(fallbackUrl);
             };
-            reader.readAsDataURL(contractsContext.selectedContract.pdf);
+            reader.readAsDataURL(file);
         } else setPdfData(fallbackUrl);
-    }, [contractsContext.selectedContract]);
+    }
 
+    function formatSearchTerms(data: ContractExtractionDictionary): void {
+        const searchTerms: string[] = [];
+        // Iterate over each page in the dictionary
+        Object.entries(data).forEach(([pageKey, page]: [string, ContractExtractionPage]) => {
+            // Add the page key to search terms
+            searchTerms.push(pageKey);
 
+            // Iterate over each item on the page
+            Object.entries(page).forEach(([itemKey, pageItem]: [string, ContractExtractionPageItem]) => {
+                // Add the item key to search terms
+                searchTerms.push(itemKey);
+
+                if (typeof pageItem === "string") {
+                    // If it's a string, add it directly as a search term
+                    searchTerms.push(pageItem);
+                } else if (Array.isArray(pageItem)) {
+                    // If it's an array of objects, collect all keys and values from the objects
+                    pageItem.forEach((obj: Record<string, string>) => {
+                        Object.entries(obj).forEach(([key, value]) => {
+                            searchTerms.push(key);
+                            searchTerms.push(value);
+                        });
+                    });
+                }
+            });
+        });
+        // console.log("Search Terms", searchTerms);
+        setHighlightTerms(searchTerms);
+    }
 
     function onClose(): void {
         contractsContext.setSelectedContract(undefined);
     }
+
+    function handleTabSelection(passedTab: CONTRACT_TYPES): void {
+        setSelectedTab(passedTab);
+    }
+
+
+
+    function getPagesAmount(document: PDFDocumentProxy): void {
+        setPagesAmount(document.numPages);
+        setPageNumber(1);
+    }
+
+    function previousPage(): void { changePage(-1); }    
+    function nextPage(): void { changePage(1); }
+    function changePage(offset: number): void {
+        movePage.current = true;
+        setPageNumber(prevPageNumber => prevPageNumber + offset);
+    }
+
+    function handleInputNumber(input: string): void {    
+        setInputNumber(input);
+    }
+    function handleInputBlur(): void {
+        setPageByInput();
+    }
+    function handleKeyDown(key: string, event: KeyboardEvent<HTMLInputElement>): void {
+        if (key !== "Enter") return;
+        setPageByInput();
+        if (event.target instanceof HTMLElement)
+            event.target.blur();
+    }
+    function setPageByInput(): void {
+        const parsedInput = parseInt(inputNumber);
+        if (!pagesAmount || isNaN(parsedInput) || parsedInput < 1 || parsedInput > pagesAmount) {
+            setInputNumber("");
+            return;
+        }
+        movePage.current = true;
+        setPageNumber(parsedInput);
+        setInputNumber("");
+    }
+
+    const onScroll = useDebouncedCallback(() => {
+        for (const pageRef of Object.values(pageRefs.current)) {
+            if (!pageRef) continue;
+            observer.observe(pageRef);
+        }
+    }, 200);
+
+
+
+    function highlightPattern(text: string, patterns: (string | RegExp)[], ignoreCase = true): string {
+        let processedText = text;
+        patterns.forEach((pattern) => {
+            let regex: RegExp;            
+            // If the pattern is a string, create a RegExp with optional case insensitivity
+            if (typeof pattern === "string") {
+                const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                regex = new RegExp(escapedPattern, ignoreCase ? 'gi' : 'g');
+            } else {
+                // If it's already a RegExp, respect its original flags
+                regex = new RegExp(pattern.source, pattern.flags + (ignoreCase && !pattern.flags.includes('i') ? 'i' : ''));
+            }    
+            processedText = processedText.replace(regex, (value) => `<mark>${value}</mark>`);
+        });        
+        return processedText;
+    }
+
+    const textRenderer = useCallback(
+        (textItem: {str: string}) => highlightPattern(textItem.str, highlightTerms),
+        [highlightTerms]
+    );
+
+
+
 
 
 
@@ -55,32 +223,82 @@ export function PdfDisplay(): JSX.Element {
                 <span>Preview</span>
             </div>
 
-            <div className="pdf-display-contents">
-                {!pdfData ? 
-                    <div className="loading"><ElevaiteIcons.SVGSpinner/></div>
-                :
-                    <PdfLoader
-                        document={pdfData}
+            <div className="tabs-container">
+                {pdfTabsArray.map((item: {label: string, value: CONTRACT_TYPES, isDisabled?: boolean}) => 
+                    <CommonButton
+                        key={item.value}
+                        className={[
+                            "tab-button",
+                            selectedTab === item.value ? "active" : undefined,
+                        ].filter(Boolean).join(" ")}                        
+                        onClick={() => { handleTabSelection(item.value)}}
+                        disabled={item.isDisabled}
                     >
-                        {(pdfDocument) => (
-                            <PdfHighlighter
-                                pdfDocument={pdfDocument}
-                                highlights={[]}
-                                utilsRef={(_pdfHighlighterUtils) => {
-                                    highlighterUtilsRef.current = _pdfHighlighterUtils;
-                                }}
+                        {item.label}
+                    </CommonButton>
+                )}
+            </div>
+
+            <div
+                ref={pageContainerRef}
+                className="pdf-display-contents"
+                onScroll={onScroll}
+            >
+                <Document
+                    file={pdfData}
+                    onLoadSuccess={getPagesAmount}
+                    loading={<div className="loading large"><ElevaiteIcons.SVGSpinner/></div>}
+                >
+                    {Array.from(new Array(pagesAmount),
+                        (entry, index) => (
+                            <div
+                                key={`page_${(index + 1).toString()}`}
+                                ref={item => { pageRefs.current[index + 1] = item;}}
                             >
-                                <div>Test</div>
-                            </PdfHighlighter>
-                        )}
-                    </PdfLoader>
-                }
+                                <Page                                    
+                                    pageNumber={index + 1}   
+                                    customTextRenderer={textRenderer}
+                                    loading={<div className="loading"><ElevaiteIcons.SVGSpinner/></div>}
+                                />
+                            </div>
+                        ),
+                    )}
+                </Document>
+            </div>
+
+            <div className="pdf-controls-container">
+                <div className="page-display">
+                    <span>Page:</span>
+                    <div className="page-input-container">
+                        <div className="page-number">{pageNumber}</div>
+                        <SimpleInput
+                            value={inputNumber}
+                            onChange={handleInputNumber}
+                            onBlur={handleInputBlur}
+                            onKeyDown={handleKeyDown}
+                        />
+                    </div>
+                    <span>/ {pagesAmount}</span>
+                </div>
+
+
+                <div className="page-buttons">
+                    <CommonButton
+                        onClick={previousPage}
+                        disabled={pageNumber <= 1}
+                    >
+                        <ElevaiteIcons.SVGChevron type="right" />
+                    </CommonButton>
+                    <CommonButton
+                        onClick={nextPage}
+                        disabled={!pagesAmount || pageNumber >= pagesAmount}
+                    >
+                        <ElevaiteIcons.SVGChevron type="right" />
+                    </CommonButton>
+                </div>
+
             </div>
             
         </div>
     );
 }
-
-
-// beforeLoad={<PdfLoading/>}
-// (progress: OnProgressParameters): ReactNode

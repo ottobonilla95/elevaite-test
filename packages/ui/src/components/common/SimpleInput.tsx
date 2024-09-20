@@ -13,7 +13,7 @@ interface SimpleInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEleme
     passedRef?: MutableRefObject<HTMLInputElement|null>;
     value: string;
     onChange: (value: string) => void;
-    onKeyDown?: (key: string) => void;
+    onKeyDown?: (key: string, event: KeyboardEvent<HTMLInputElement>) => void;
 }
 
 export function SimpleInput({wrapperClassName, useCommonStyling, leftIcon, hideLeftIcon, rightIcon, hideRightIcon, passedRef, value, onChange, onKeyDown, ...props}: SimpleInputProps): JSX.Element {
@@ -23,7 +23,7 @@ export function SimpleInput({wrapperClassName, useCommonStyling, leftIcon, hideL
     }
 
     function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
-        if (onKeyDown) onKeyDown(event.key);
+        if (onKeyDown) onKeyDown(event.key, event);
     }
 
 

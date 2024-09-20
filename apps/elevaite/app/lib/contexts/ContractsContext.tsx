@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { submitContract } from "../actions/contractActions";
-import { CONTRACT_STATUS, CONTRACT_TYPES, type ContractExtractionDictionary, type ContractObject } from "../interfaces";
+import { CreateProject, getContractProjectsList, submitContract } from "../actions/contractActions";
+import { CONTRACT_STATUS, CONTRACT_TYPES, type ContractExtractionDictionary, type ContractObject, type ContractProjectObject } from "../interfaces";
 
 
 
@@ -39,12 +39,45 @@ const exampleExtractedData: ContractExtractionDictionary = {
 
 
 const testContracts: ContractObject[] = [
-    {id: "01", name: "Test Invoice 01", status: CONTRACT_STATUS.READY, type: CONTRACT_TYPES.INVOICE, pdf: "/testPdf.pdf", extractedData: exampleExtractedData, fileSize: "24 MB", tags: ["Finance"], createdAt: new Date().toISOString()},
-    {id: "02", name: "Test Contract 01", status: CONTRACT_STATUS.READY, type: CONTRACT_TYPES.CONTRACT, pdf: "/testPdf.pdf", extractedData: exampleExtractedData, fileSize: "24 MB", tags: ["Tech"], createdAt: new Date().toISOString()},
-    {id: "03", name: "Test Purchase Order 01", status: CONTRACT_STATUS.PROGRESS, type: CONTRACT_TYPES.PURCHASE_ORDER, pdf: undefined, extractedData: undefined, fileSize: "24 MB", tags: [], createdAt: new Date().toISOString()},
-    {id: "04", name: "Test Purchase Order 02", status: CONTRACT_STATUS.READY, type: CONTRACT_TYPES.PURCHASE_ORDER, pdf: "/testPdf.pdf", extractedData: exampleExtractedData, fileSize: "24 MB", tags: ["Finance"], createdAt: new Date().toISOString()},
-    {id: "05", name: "Test Invoice 02", status: CONTRACT_STATUS.FAILED, type: CONTRACT_TYPES.INVOICE, pdf: undefined, extractedData: undefined, tags: ["Finance", "Tech"], createdAt: new Date().toISOString()},
-    {id: "06", name: "Test Contract 02", status: CONTRACT_STATUS.READY, type: CONTRACT_TYPES.CONTRACT, pdf: "/testPdf.pdf", extractedData: exampleExtractedData, fileSize: "24 MB", tags: [], createdAt: new Date().toISOString()},
+    {id: "01", label: "Test Invoice Label 01", filename: "Test Invoice 01", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.INVOICE, file_ref: "/testPdf.pdf", response: exampleExtractedData, filesize: 24000, tags: ["Finance"], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
+    {id: "02", label: "Test Contract Label 01", filename: "Test Contract 01", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.VSOW, file_ref: "/TC02.pdf", response: exampleExtractedData, filesize: 24000, tags: ["Tech"], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
+    {id: "03", label: "Test Purchase Order Label 01", filename: "Test Purchase Order 01", status: CONTRACT_STATUS.PROCESSING, content_type: CONTRACT_TYPES.PURCHASE_ORDER, file_ref: null, response: null, filesize: 24000, tags: [], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
+    {id: "04", label: "Test Purchase Order Label 02", filename: "Test Purchase Order 02", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.PURCHASE_ORDER, file_ref: "/testPdf.pdf", response: exampleExtractedData, filesize: 24000, tags: ["Finance"], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
+    {id: "05", label: "Test Invoice Label 02", filename: "Test Invoice 02", status: CONTRACT_STATUS.FAILED, content_type: CONTRACT_TYPES.INVOICE, file_ref: null, response: null, filesize: 24000, tags: ["Finance", "Tech"], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
+    {id: "06", label: "", filename: "Test Contract 02", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.VSOW, file_ref: "/testPdf.pdf", response: exampleExtractedData, filesize:24000, tags: [], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
+    {id: "07", label: "Test Contract Label 03", filename: "Test Contract 03", status: CONTRACT_STATUS.COMPLETED, content_type: CONTRACT_TYPES.VSOW, file_ref: "/TC03.pdf", response: exampleExtractedData, filesize: 24000, tags: [], creation_date: new Date().toISOString(), checksum: "", project_id: 0},
+];
+
+
+const testProjects: ContractProjectObject[] = [
+    {
+        id: 1,
+        name: "Test Project",
+        description: "This is a test project",
+        creation_date: new Date().toISOString(),
+        reports: testContracts,
+    },
+    {
+        id: 2,
+        name: "Empty Test Project",
+        description: "This is an empty project",
+        creation_date: new Date().toISOString(),
+        reports: [],
+    },
+    {
+        id: 4,
+        name: "Second Empty Test Project",
+        description: "This is an empty project with a much larger description, just to show how this is going to be handled",
+        creation_date: new Date().toISOString(),
+        reports: [],
+    },
+    {
+        id: 5,
+        name: "Another Empty Test Project",
+        description: "This is an empty project",
+        creation_date: new Date().toISOString(),
+        reports: [],
+    },
 ];
 
 
@@ -52,6 +85,7 @@ const testContracts: ContractObject[] = [
 // STATIC OBJECTS
 
 const defaultLoadingList: LoadingListObject = {
+    projects: undefined,
     contracts: undefined,
     submittingContract: false,
 };
@@ -61,6 +95,7 @@ const defaultLoadingList: LoadingListObject = {
 // INTERFACES
 
 interface LoadingListObject {
+    projects: boolean|undefined;
     contracts: boolean|undefined;
     submittingContract: boolean;
 }
@@ -72,24 +107,31 @@ interface LoadingListObject {
 // STRUCTURE 
 
 export interface ContractsContextStructure {
-    contracts: ContractObject[];
+    projects: ContractProjectObject[];
+    selectedProject: ContractProjectObject|undefined;
+    setSelectedProjectById: (id: string|number|undefined) => void;
     selectedContract: ContractObject | undefined;
     setSelectedContract: (contract: ContractObject|undefined) => void;
     changeSelectedContractBit: (pageKey: `page_${number}`, itemKey: string, newValue: string) => void;
     changeSelectedContractTableBit: (pageKey: `page_${number}`, tableKey: string, newTableData: Record<string, string>[]) => void;
-    submitCurrentContractPdf: (pdf: File|undefined, type: CONTRACT_TYPES, name?: string) => void;
+    submitCurrentContractPdf: (pdf: File|undefined, type: CONTRACT_TYPES, projectId: string|number, name?: string) => void;
+    createProject: (name: string, description?: string) => Promise<boolean>;
     loading: LoadingListObject;
 }
 
 
 
 export const ContractsContext = createContext<ContractsContextStructure>({
-    contracts: [],
+    projects: [],
+    selectedProject: undefined,
+    setSelectedProjectById: () => {/**/},
     selectedContract: undefined,
     setSelectedContract: () => {/**/},
     changeSelectedContractBit: () => {/**/},
     changeSelectedContractTableBit: () => {/**/},
     submitCurrentContractPdf: () => undefined,
+    // eslint-disable-next-line @typescript-eslint/require-await -- We don't need to await for the core structure.
+    createProject: async () => { return false; },
     loading: defaultLoadingList,
 });
 
@@ -114,9 +156,10 @@ interface ContractsContextProviderProps {
 
 
 export function ContractsContextProvider(props: ContractsContextProviderProps): JSX.Element {
-    const [displayContracts, setDisplayContracts] = useState<ContractObject[]>([]);
+    const [projects, setProjects] = useState<ContractProjectObject[]>([]);
+    const [selectedProject, setSelectedProject] = useState<ContractProjectObject|undefined>();
     const [selectedContract, setSelectedContract] = useState<ContractObject|undefined>();
-    const [currentContractExtractionData, setCurrentContractExtractionData] = useState<{id: string, data: ContractExtractionDictionary}|undefined>();
+    const [processedContract, setProcessedContract] = useState<{id: string, data: ContractObject}|undefined>();
     const [hasCurrentContractFailed, setHasCurrentContractFailed] = useState("");
     const [loading, setLoading] = useState<LoadingListObject>(defaultLoadingList);
     
@@ -125,33 +168,31 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
 
 
     useEffect(() => {
-        fetchContracts();
+        void actionFetchProjectsList();
     }, []);
 
 
     useEffect(() => {
-        // console.log("display contracts", displayContracts);
-        if (selectedContract) {
-            if (selectedContractChangedByUser.current) {
-                selectedContractChangedByUser.current = false;
-                return;
-            }
-            const updatedContract = displayContracts.find(item => item.id === selectedContract.id);
-            if (updatedContract) setSelectedContract(updatedContract);
-        }
-    }, [displayContracts]);
+        if (!selectedProject) return;
+        const newSelection = projects.find(item => item.id === selectedProject.id);
+        setSelectedProject(newSelection);
+    }, [projects]);
+
+
+    // useEffect(() => {
+    //     console.log("Selected Project", selectedProject);
+    // }, [selectedProject]);
 
     useEffect(() => {
-        // console.log("Selected Contract changed:", selectedContract);
-        setDisplayContracts(current => 
-            current.map(contract => contract.id === selectedContract?.id ? selectedContract : contract )
-        )
+        console.log("Selected Contract", selectedContract);        
     }, [selectedContract]);
 
-    useEffect(() => {
-        if (!currentContractExtractionData) return;
-        addExtractionDataToContractInList(currentContractExtractionData.id, currentContractExtractionData.data);
-    }, [currentContractExtractionData]);
+
+    useEffect(() => {       
+        if (!processedContract) return;
+        replaceTemporaryContractWithProcessed(processedContract.id, processedContract.data);
+    }, [processedContract]);
+
 
     useEffect(() => {
         if (!hasCurrentContractFailed) return;
@@ -160,18 +201,23 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
 
 
 
-    function fetchContracts(): void {
-        setLoading(current => {return {...current, contracts: true}} );
-        setDisplayContracts(testContracts);
-        setLoading(current => {return {...current, contracts: false}} );
+
+    function setSelectedProjectById(id: string|number|undefined): void {
+        if (projects.length === 0) return;
+        if (id === undefined) {
+            setSelectedProject(undefined);
+            return;
+        }
+        const foundProject = projects.find(item => item.id === id);
+        if (foundProject) setSelectedProject(foundProject);
     }
 
     function changeSelectedContractBit(pageKey: `page_${number}`, itemKey: string, newValue: string): void {
         selectedContractChangedByUser.current = true;
         setSelectedContract(current => { 
             if (!current) return;
-            const oldData = current.extractedData;
-            const newData: ContractExtractionDictionary|undefined = oldData === undefined ? undefined : {
+            const oldData = current.response;
+            const newData: ContractExtractionDictionary|null = oldData === null ? null : {
                 ...oldData,
                 [pageKey]: {
                     ...oldData[pageKey],
@@ -186,8 +232,8 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
         selectedContractChangedByUser.current = true;
         setSelectedContract(current => { 
             if (!current) return;
-            const oldData = current.extractedData;
-            const newData: ContractExtractionDictionary|undefined = oldData === undefined ? undefined : {
+            const oldData = current.response;
+            const newData: ContractExtractionDictionary|null = oldData === null ? null : {
                 ...oldData,
                 [pageKey]: {
                     ...oldData[pageKey],
@@ -201,82 +247,161 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
 
 
 
-    function submitCurrentContractPdf(pdf: File|undefined, type: CONTRACT_TYPES, name?: string): void {;
+    function submitCurrentContractPdf(pdf: File|undefined, type: CONTRACT_TYPES, projectId: string|number, name?: string): void {;
         if (pdf) {
-            void actionSubmitContract(pdf, type, name);
+            void actionSubmitContract(pdf, type, projectId, name);
         }
     }
 
-    function appendContractToContractsList(pdf: File, type: CONTRACT_TYPES, name?: string): string {
-        const id = (displayContracts.length + 1).toString();
-        setDisplayContracts(current => {
-            return [...current, {
-                id,
-                status: CONTRACT_STATUS.PROGRESS,
-                type,
-                name: name ? name : (type === CONTRACT_TYPES.PURCHASE_ORDER ? "New Purchase Order" : type === CONTRACT_TYPES.INVOICE ? "New Invoice" : "New Contract"),
-                pdf,
-                extractedData: undefined,
-                fileSize: `${Math.floor(pdf.size / 1000).toString() } MB`,
-                tags: [],
-                createdAt: new Date().toISOString(),
-            }]}
+    function appendContractToContractsList(project: ContractProjectObject, pdf: File, type: CONTRACT_TYPES, name?: string): string {
+        const id = `NewContract_${project.id.toString()}_${(project.reports.length + 1).toString()}`;
+
+        const newContract: ContractObject = {
+            id,
+            project_id: selectedProject?.id ?? "none",
+            status: CONTRACT_STATUS.PROCESSING,
+            content_type: type,
+            label: name,
+            filename: pdf.name,
+            filesize: pdf.size,
+            file_ref: pdf,
+            response: null,
+            tags: [],
+            creation_date: new Date().toISOString(),
+            checksum: "",
+        }
+
+        setProjects((prevProjects) =>
+            prevProjects.map((currentProject) =>
+                currentProject.id === project.id ?
+                    { ...currentProject, reports: [...currentProject.reports, newContract] }
+                    : currentProject
+            )
         );
         return id;
     }
 
-    function addExtractionDataToContractInList(id: string, data: ContractExtractionDictionary): void {
-        setDisplayContracts(current =>
-            current.map(contract => 
-                contract.id === id ? 
-                    {...contract, status: CONTRACT_STATUS.READY, extractedData: data }
-                : contract
-            )
-        )
+    function replaceTemporaryContractWithProcessed(id: string, data: ContractObject): void {
+        // If the returned data's id exists, replace it, then delete the previous id.
+        const existingReport = findReportById(data.id);
+        if (existingReport) {
+            // Replace the data of the original report (data.id)
+            setProjects((currentProjects) =>
+                currentProjects.map((project) => ({
+                    ...project,
+                    reports: project.reports.map((report) =>
+                        report.id === data.id ? data : report
+                    ),
+                }))
+            );
+            // Delete the temporary line item (id)
+            setProjects((prevProjects) =>
+                prevProjects.map((project) => ({
+                    ...project,
+                    reports: project.reports.filter((report) => report.id !== id),
+                }))
+            );
+        }
+
+        // Otherwise, replace the previous id with the new item
+        setProjects((currentProjects) =>
+            currentProjects.map((project) => ({
+                ...project,
+                reports: project.reports.map((report) =>
+                    report.id === id ? data : report
+                ),
+            }))
+        );
+
+        function findReportById(itemId: string|number): ContractObject|undefined {
+            for (const project of projects) {
+                const foundItem = project.reports.find((report) => report.id === itemId);
+                if (foundItem) { return foundItem; }
+            } return undefined;
+          };
     }
 
     function changeStatusToContractInList(id: string, status: CONTRACT_STATUS): void {
-        setDisplayContracts(current =>
-            current.map(contract => 
-                contract.id === id ? 
-                    {...contract, status }
-                : contract
-            )
-        )
+        setProjects((currentProjects) =>
+            currentProjects.map((project) => ({
+                ...project,
+                reports: project.reports.map((report) =>
+                    report.id === id ? { ...report, status } : report
+                ),
+            }))
+        );
     }
 
 
 
 
-    async function actionSubmitContract(submittedPdf: File, type: CONTRACT_TYPES, name?: string): Promise<void> {
+    async function actionSubmitContract(submittedPdf: File, type: CONTRACT_TYPES, projectId: string|number, name?: string): Promise<void> {
+        if (!selectedProject) return;
         setHasCurrentContractFailed("");
-        const id = appendContractToContractsList(submittedPdf, type, name);
+        const idOfNewEntry = appendContractToContractsList(selectedProject, submittedPdf, type, name);
         try {
             setLoading(current => { return {...current, submittingContract: true}} );
             const formData = new FormData();
             formData.append("file", submittedPdf);
-            const contractExtractionResults = await submitContract(formData, type);
-            setCurrentContractExtractionData({id, data: contractExtractionResults});
+            if (name) formData.append("label", name);
+            const contractExtractionResults = await submitContract(projectId.toString(), formData, type);
+            setProcessedContract({id: idOfNewEntry, data: contractExtractionResults});
         } catch(error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in submitting contract:", error);
-            setHasCurrentContractFailed(id);
+            setHasCurrentContractFailed(idOfNewEntry);
         } finally {
             setLoading(current => { return {...current, submittingContract: false}} );
         }
     }
+
+    async function actionCreateProject(name: string, description?: string): Promise<boolean> {
+        try {
+            setLoading(current => { return {...current, projects: true}} );
+            
+            const createProjectResult = await CreateProject(name, description);
+            setProjects(current => [...current, createProjectResult]);
+            return true;
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in creating contract project:", error);
+            return false;
+        } finally {
+            setLoading(current => { return {...current, projects: false}} );
+        }
+    }
+
+    async function actionFetchProjectsList(): Promise<void> {
+        try {
+            setLoading(current => { return {...current, projects: true}} );
+            
+            const projectsListResults = await getContractProjectsList();
+            setProjects(projectsListResults);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching contract projects:", error);
+        } finally {
+            setLoading(current => { return {...current, projects: false}} );
+        }
+    }
+
+
+
 
 
   
     return (
         <ContractsContext.Provider
             value={ {
-                contracts: displayContracts,
+                projects,
+                selectedProject,
+                setSelectedProjectById,
                 selectedContract,
                 setSelectedContract,
                 changeSelectedContractBit,
                 changeSelectedContractTableBit,
                 submitCurrentContractPdf,
+                createProject: actionCreateProject,
                 loading,
             } }
         >

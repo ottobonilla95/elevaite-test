@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect } from "react";
 
 
 
@@ -12,15 +12,7 @@ export function useAutosizeTextArea(textAreaRef: HTMLTextAreaElement | null, val
         // Set the height directly
         textAreaRef.style.height = `${scrollHeight.toString()}px`
     }, [textAreaRef, value])
-  }
-
-
-
-
-
-
-
-
+}
 
 
 

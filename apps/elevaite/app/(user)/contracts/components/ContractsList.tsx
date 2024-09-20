@@ -2,7 +2,8 @@ import { CommonButton, CommonModal, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { ListRow, type RowStructure, specialHandlingListRowFields } from "../../../lib/components/ListRow";
 import { useContracts } from "../../../lib/contexts/ContractsContext";
-import { CONTRACT_TYPES, type ContractObject, CONTRACTS_TABS } from "../../../lib/interfaces";
+import { formatBytes } from "../../../lib/helpers";
+import { CONTRACT_STATUS, CONTRACT_TYPES, type ContractObject, CONTRACTS_TABS } from "../../../lib/interfaces";
 import "./ContractsList.scss";
 import { ContractUpload } from "./ContractUpload";
 
@@ -22,13 +23,48 @@ const ContractsTabsArray: {label: CONTRACTS_TABS, tooltip?: string, isDisabled?:
 ];
 
 const contractsListStructure: RowStructure<ContractObject>[] = [
-    { header: "Status", field: "status", isSortable: true, specialHandling: specialHandlingListRowFields.CONTRACTS_STATUS, align: "center" },
-    { header: "Name", field: "name", isSortable: true },
-    { header: "File Size", field: "fileSize", isSortable: true, style: "block", align: "center" },
+    { header: "Status", field: "status", isSortable: true, formattingFunction: structureStatus, align: "center" },
+    { header: "Name", field: "label", isSortable: true, formattingFunction: structureName, },
+    { header: "Contract No.", field: "id", isSortable: true, },
+    { header: "File Size", field: "filesize", isSortable: true, style: "block", align: "center", formattingFunction: structureFileSize, },
     { header: "Tags", field: "tags", isSortable: false, specialHandling: specialHandlingListRowFields.TAGS },
-    { header: "Created at", field: "createdAt", isSortable: true, specialHandling: specialHandlingListRowFields.SHORT_DATE, align: "right" },
+    { header: "Approval", field: "approval", isSortable: true, formattingFunction: structureApproval, },
+    // { header: "Created at", field: "creation_date", isSortable: true, specialHandling: specialHandlingListRowFields.SHORT_DATE, align: "right" },
 ];
 
+// List structure formatting functions
+function structureName(listItem: ContractObject): string {
+    return listItem.label && listItem.label.length > 0 ? listItem.label : listItem.filename;
+}
+function structureFileSize(listItem: ContractObject): string {
+    if (!listItem.filesize) return "";
+    return formatBytes(listItem.filesize);
+}
+function structureStatus(listItem: ContractObject): React.ReactNode {
+    function statusSwitch(status: CONTRACT_STATUS): JSX.Element {
+        switch (status) {
+            case CONTRACT_STATUS.COMPLETED: return <ElevaiteIcons.SVGCheckmark/>;
+            case CONTRACT_STATUS.APPROVED: return <ElevaiteIcons.SVGCheckmark/>;
+            case CONTRACT_STATUS.PROCESSING: return <ElevaiteIcons.SVGInstanceProgress/>;
+            case CONTRACT_STATUS.FAILED: return <ElevaiteIcons.SVGXmark/>;
+            case CONTRACT_STATUS.REJECTED: return <ElevaiteIcons.SVGXmark/>;
+        }
+    }
+    return (
+        <div className={["contract-status", listItem.status].join(" ")} title={listItem.status}>
+            {statusSwitch(listItem.status)}
+        </div>
+    );
+}
+function structureApproval(listItem: ContractObject): React.ReactNode {
+    const isApproved = listItem.status === CONTRACT_STATUS.APPROVED;
+    return (
+        <span className={["contract-approval", !isApproved ? "pending" : undefined].filter(Boolean).join(" ")}>
+            {isApproved ? "Approved" : "Pending"}
+        </span>
+    );
+}
+///////////////////////////////////////
 
 
 
@@ -43,9 +79,12 @@ export function ContractsList(): JSX.Element {
 
 
     useEffect(() => {
-        setContracts(contractsContext.contracts);
-        setFilterTags(getFilterTags());
-    }, [contractsContext.contracts]);
+        setContracts(contractsContext.selectedProject?.reports ?? []);
+    }, [contractsContext.selectedProject?.reports]);
+
+    useEffect(() => {        
+        setFilterTags(getFilterTags(getTabContracts(contracts, selectedTab)));
+    }, [contracts, selectedTab]);
 
     useEffect(() => {
         formatDisplayContracts(contracts);
@@ -53,8 +92,8 @@ export function ContractsList(): JSX.Element {
 
     
 
-    function getFilterTags(): FilterTag[] {
-        const uniqueTags = Array.from(new Set(contractsContext.contracts.flatMap(contract => contract.tags)));
+    function getFilterTags(contractsWithTags: ContractObject[]): FilterTag[] {
+        const uniqueTags = Array.from(new Set(contractsWithTags.flatMap(contract => contract.tags ?? [])));
         return uniqueTags.map(tag => ({ label: tag, isActive: false }));
     }
 
@@ -77,18 +116,18 @@ export function ContractsList(): JSX.Element {
     function getTabContracts(allContracts: ContractObject[], tab: CONTRACTS_TABS): ContractObject[] {
         let contractType: CONTRACT_TYPES;
         switch (tab) {
-            case CONTRACTS_TABS.CUSTOMER_CONTRACTS: contractType = CONTRACT_TYPES.CONTRACT; break;
-            case CONTRACTS_TABS.SUPPLIER_CONTRACTS: contractType = CONTRACT_TYPES.CONTRACT; break;
+            case CONTRACTS_TABS.CUSTOMER_CONTRACTS: contractType = CONTRACT_TYPES.VSOW; break;
+            case CONTRACTS_TABS.SUPPLIER_CONTRACTS: contractType = CONTRACT_TYPES.VSOW; break;
             case CONTRACTS_TABS.SUPPLIER_INVOICES: contractType = CONTRACT_TYPES.INVOICE; break;
             case CONTRACTS_TABS.SUPPLIER_POS: contractType = CONTRACT_TYPES.PURCHASE_ORDER; break;
         }
-        return allContracts.filter(contract => contract.type === contractType);
+        return allContracts.filter(contract => contract.content_type === contractType);
     }
 
     function getTaggedContracts(tabbedContracts: ContractObject[], filters: FilterTag[]): ContractObject[] {
         if (getActiveTagsAmount() <= 0) return tabbedContracts;
         const activeTags = filters.filter(item => item.isActive).map(tag => tag.label);
-        return tabbedContracts.filter(contract => activeTags.some(tag => contract.tags.includes(tag)));
+        return tabbedContracts.filter(contract => activeTags.some(tag => contract.tags?.includes(tag)));
     }
 
 
@@ -137,65 +176,79 @@ export function ContractsList(): JSX.Element {
 
             <div className="contracts-list-table-container">
 
-                <div className="table-controls-container">
-                    <div className="tags-container">
-                        {filterTags.map(tag => 
-                            <CommonButton 
-                                key={tag.label}
-                                className={["filter-tag", tag.isActive ? "active" : undefined].filter(Boolean).join(" ")}
-                                onClick={() => { handleFilterTagClick(tag)}}
-                            >
-                                {tag.label}
+                {!contractsContext.selectedProject ? 
+                    <div className="no-project">
+                        <span>No selected project</span>
+                        <span>Select one from the list to the left</span>
+                    </div>
+                :
+                <>
+                    <div className="cross-match-container">
+                        <CrossMatchBit value={10} label="Total invoices pending approval" />
+                        <CrossMatchBit value={8} label="PO matches failed" />
+                        <CrossMatchBit value={2} label="VSOW matches failed" />
+                    </div>
+                    <div className="table-controls-container">
+                        <div className="tags-container">
+                            {filterTags.map(tag => 
+                                <CommonButton 
+                                    key={tag.label}
+                                    className={["filter-tag", tag.isActive ? "active" : undefined].filter(Boolean).join(" ")}
+                                    onClick={() => { handleFilterTagClick(tag)}}
+                                >
+                                    {tag.label}
+                                </CommonButton>
+                            )}
+                        </div>
+                        <div className="controls-container">
+                            {/* <CommonButton>
+                                <ElevaiteIcons.SVGFilter/>
                             </CommonButton>
+                            <CommonButton>
+                                <ElevaiteIcons.SVGMagnifyingGlass/>
+                            </CommonButton> */}
+                            <CommonButton
+                                className="upload-button"
+                                onClick={handleUpload}
+                            >
+                                Upload
+                            </CommonButton>
+                        </div>
+                    </div>
+                    
+
+                    
+                    <div className="contracts-list-table-contents">
+                        <ListRow<ContractObject>
+                            isHeader
+                            structure={contractsListStructure}
+                            // onSort={handleSort}
+                            // sorting={sorting}
+                        />
+                        {displayContracts.length === 0 && contractsContext.loading.contracts ?
+                            <div className="table-span empty">
+                                <ElevaiteIcons.SVGSpinner/>
+                                <span>Loading...</span>
+                            </div>
+                            : displayContracts.length === 0 ? 
+                            <div className="table-span empty">
+                                There are no entries.
+                            </div>
+
+                        :
+
+                        displayContracts.map((account, index) => 
+                            <ListRow<ContractObject>
+                                key={account.id}
+                                rowItem={account}
+                                structure={contractsListStructure}
+                                onClick={handleRowClick}
+                                menuToTop={displayContracts.length > 4 && index > (displayContracts.length - 4) }
+                            />
                         )}
                     </div>
-                    <div className="controls-container">
-                        {/* <CommonButton>
-                            <ElevaiteIcons.SVGFilter/>
-                        </CommonButton>
-                        <CommonButton>
-                            <ElevaiteIcons.SVGMagnifyingGlass/>
-                        </CommonButton> */}
-                        <CommonButton
-                            className="upload-button"
-                            onClick={handleUpload}
-                        >
-                            Upload
-                        </CommonButton>
-                    </div>
-                </div>
-                
-
-                
-                <div className="contracts-list-table-contents">
-                    <ListRow<ContractObject>
-                        isHeader
-                        structure={contractsListStructure}
-                        // onSort={handleSort}
-                        // sorting={sorting}
-                    />
-                    {displayContracts.length === 0 && contractsContext.loading.contracts ?
-                        <div className="table-span empty">
-                            <ElevaiteIcons.SVGSpinner/>
-                            <span>Loading...</span>
-                        </div>
-                        : displayContracts.length === 0 ? 
-                        <div className="table-span empty">
-                            There are no contracts to display.
-                        </div>
-
-                    :
-
-                    displayContracts.map((account, index) => 
-                        <ListRow<ContractObject>
-                            key={account.id}
-                            rowItem={account}
-                            structure={contractsListStructure}
-                            onClick={handleRowClick}
-                            menuToTop={displayContracts.length > 4 && index > (displayContracts.length - 4) }
-                        />
-                    )}
-                </div>
+                </>
+                }
 
             </div>
 
@@ -215,3 +268,22 @@ export function ContractsList(): JSX.Element {
         </div>
     );
 }
+
+
+
+
+interface CrossMatchBitProps {
+    value: number;
+    label: string;
+}
+
+function CrossMatchBit(props: CrossMatchBitProps): JSX.Element {
+    return (
+        <div className="cross-match-bit-container">
+            <span className="cross-bit-value">{props.value}</span>
+            <span className="cross-bit-label">{props.label}</span>
+        </div>
+    );
+}
+
+

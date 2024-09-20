@@ -4,9 +4,9 @@
 .pdf-display-container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 10px;
     border-radius: 8px;
-    padding: 20px;
+    padding: 10px 20px;
     background-color: var(--ev-colors-primary);
 
     & .pdf-display-header {
@@ -18,19 +18,110 @@
         font-weight: 600;
     }
 
+    & .tabs-container {
+        display: flex;
+        align-items: center;
+        margin: 0 10px;
+        border-bottom: 1px solid var(--ev-colors-borderColor);
+
+        & > button.tab-button {
+            padding: 10px 20px;
+            margin-bottom: -1px;
+            border-bottom: 2px solid transparent;
+            border-radius: 0;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            color: var(--ev-colors-secondaryText);
+
+            &.active {
+                color: var(--ev-colors-highlight);
+                border-bottom-color: var(--ev-colors-highlight);
+            }
+        }
+    }
+
     & .pdf-display-contents {
         flex-grow: 1;
-        position: relative;
+        display: flex;
+        flex-direction: column;
+        // position: relative;
+        overflow: auto;
+        margin-right: -10px;
+        padding-right: 10px;
+        @include scrollbar();
 
         & .loading {
-            height: 100%;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-end;
+
+            &.large {
+                min-height: 300px;
+            }
 
             & > svg {
                 height: 40px;
                 width: 40px;
+            }
+        }
+    }
+
+
+    & .pdf-controls-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        user-select: none;
+
+        & .page-display {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+
+            & .page-input-container {
+                display: grid;
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr;
+
+                &:focus-within > .page-number {
+                    opacity: 0;
+                }
+
+                & .page-number {
+                    grid-row: 1;
+                    grid-column: 1;
+                    width: 42px;
+                    height: 30px;
+                    line-height: 30px;
+                    text-align: center;
+                }
+
+                & .simple-input-container {
+                    grid-row: 1;
+                    grid-column: 1;
+                    width: 42px;
+
+                    & > input {
+                        width: 32px;
+                        text-align: center;
+                    }
+                }
+            }
+        }
+
+        & .page-buttons {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+
+            & > button {
+                background-color: var(--ev-colors-primary);
+            
+                &:first-child > svg {
+                    transform: rotate(180deg);
+                }
             }
         }
     }

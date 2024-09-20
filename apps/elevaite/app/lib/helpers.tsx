@@ -4,6 +4,7 @@ import { S3DataRetrievalAppPipelineStructure } from "./dataRetrievalApps";
 import type { AppInstanceObject, ApplicationType, ChartDataObject, FilterGroupStructure, FiltersStructure, Initializers, ModelDatasetObject, ModelObject, PipelineObject, PipelineStep, PipelineStepAddedInfo } from "./interfaces";
 import { StepDataSource, StepDataType } from "./interfaces";
 import { S3PreprocessingAppPipelineStructure } from "./preprocessingApps";
+import { useCallback, useRef } from "react";
 
 
 
@@ -125,6 +126,18 @@ export function getIsPositiveIntegerOrZero(token: string|number): boolean {
 }
 
 
+export function formatBytes(bytes: number, decimals = 0): string {
+    if (!Number(bytes)) return "0 B"
+
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm)).toString()} ${sizes[i]}`;
+}
+
 
 export function getElapsedTime(start: string, end?: string): string {
     let duration = dayjs(end ?? undefined).diff(dayjs(start)) / 1000;
@@ -177,6 +190,34 @@ export function getPearsonCorrelation(x: number[], y: number[]): number {
     }  
     return numerator / denominator;
 }
+
+
+
+
+export const useDebouncedCallback = <T extends (...args: unknown[]) => void>(
+        callback: T,
+        delay: number
+    ): (...args: Parameters<T>) => void => {
+    const callbackRef = useRef(callback);
+    const timerRef = useRef<number | undefined>(undefined);
+  
+    callbackRef.current = callback;
+  
+    return useCallback(
+        (...args: Parameters<T>) => {
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+            }
+    
+            timerRef.current = window.setTimeout(() => {
+                callbackRef.current(...args);
+            }, delay);
+        },
+        [delay]
+    );
+};
+
+
 
 
 

@@ -1,3 +1,4 @@
+"use server";
 import type { Readable } from "node:stream";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 
@@ -20,7 +21,7 @@ function parseS3Url(url: string): { bucketName: string; key: string } {
   try {
     const parsedUrl = new URL(url);
     const bucketName = parsedUrl.hostname.split(".")[0];
-    const key = parsedUrl.pathname.slice(1).replace(/%20/g, " ");
+    const key = parsedUrl.pathname.slice(1).replace(/%20|\+/g, " ");;
 
     if (!bucketName || !key) {
       throw new Error("Invalid S3 URL format.");

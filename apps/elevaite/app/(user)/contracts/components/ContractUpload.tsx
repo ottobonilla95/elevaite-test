@@ -7,7 +7,7 @@ import "./ContractUpload.scss";
 
 
 const contractTypesOptions: CommonSelectOption[] = [
-    { label: "Contract", value: CONTRACT_TYPES.CONTRACT, disabled: true },
+    { label: "Contract", value: CONTRACT_TYPES.VSOW, disabled: true },
     { label: "Invoice", value: CONTRACT_TYPES.INVOICE },
     { label: "Purchase Order", value: CONTRACT_TYPES.PURCHASE_ORDER },    
 ];
@@ -47,8 +47,8 @@ export function ContractUpload(props: ContractUploadProps): JSX.Element {
     }
 
     function handleSubmit(): void {
-        if (!uploadingFile || !pdfType) return;
-        contractsContext.submitCurrentContractPdf(uploadingFile, pdfType, name);
+        if (!uploadingFile || !pdfType || !contractsContext.selectedProject?.id) return;
+        contractsContext.submitCurrentContractPdf(uploadingFile, pdfType, contractsContext.selectedProject.id, name);
         props.onClose();
     }
 

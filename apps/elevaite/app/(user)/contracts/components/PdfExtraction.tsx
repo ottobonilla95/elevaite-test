@@ -1,8 +1,9 @@
-import { ElevaiteIcons, SimpleInput } from "@repo/ui/components";
+import { CommonButton, CommonDialog, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { useContracts } from "../../../lib/contexts/ContractsContext";
 import { CONTRACT_STATUS, type ContractExtractionDictionary } from "../../../lib/interfaces";
 import "./PdfExtraction.scss";
+import { PdfExtractionEmphasis } from "./PdfExtractionEmphasis";
 
 
 
@@ -14,11 +15,12 @@ import "./PdfExtraction.scss";
 export function PdfExtraction(): JSX.Element {
     const contractsContext = useContracts();
     const [extractedBits, setExtractedBits] = useState<JSX.Element[]>([]);
+    const [isApprovalConfirmationOpen, setIsApprovalConfirmationOpen] = useState(false);
 
 
     useEffect(() => {
-        if (contractsContext.selectedContract?.extractedData) {
-            setExtractedBits(getExtractedBits(contractsContext.selectedContract.extractedData));
+        if (contractsContext.selectedContract?.response) {
+            setExtractedBits(getExtractedBits(contractsContext.selectedContract.response));
         } else setExtractedBits([]);
     }, [contractsContext.selectedContract]);
 
@@ -33,6 +35,15 @@ export function PdfExtraction(): JSX.Element {
         const pagePattern = /^page_\d+$/;
         if (!pagePattern.test(pageKey)) return;
         contractsContext.changeSelectedContractTableBit(pageKey as `page_${number}`, tableKey, newTableData);
+    }
+
+    function handleManualApproval(): void {
+        setIsApprovalConfirmationOpen(true);
+    }
+
+    function confimedApproval(): void {        
+        console.log("Handling manual approval of", contractsContext.selectedContract?.label ?? contractsContext.selectedContract?.filename);
+        setIsApprovalConfirmationOpen(false);
     }
 
 
@@ -70,13 +81,20 @@ export function PdfExtraction(): JSX.Element {
 
             <div className="pdf-extraction-header">
                 <span>Extraction</span>
+                <CommonButton
+                    onClick={handleManualApproval}
+                    // disabled
+                >
+                    Approve
+                </CommonButton>
             </div>
 
             <div className="pdf-extraction-scroller">
-                <div className="pdf-extraction-contents">
+                <div className="pdf-extraction-contents">                    
+                    <PdfExtractionEmphasis />
                     {extractedBits.length === 0 ? 
                         <div className="empty-bits">
-                            {contractsContext.selectedContract?.status === CONTRACT_STATUS.PROGRESS ? 
+                            {contractsContext.selectedContract?.status === CONTRACT_STATUS.PROCESSING ? 
                                 <><ElevaiteIcons.SVGSpinner/><span>Extraction in progress...</span></>
                                 : <span>No extracted data</span>
                             }                            
@@ -86,6 +104,19 @@ export function PdfExtraction(): JSX.Element {
                     }
                 </div>
             </div>
+
+            {!isApprovalConfirmationOpen || !contractsContext.selectedContract ? undefined :
+                <CommonDialog
+                    title={`Approve ${contractsContext.selectedContract.content_type}?`}
+
+                    onConfirm={confimedApproval}
+                    onCancel={() => { setIsApprovalConfirmationOpen(false); }}
+                >
+                    <span>
+                        You will manually approve {contractsContext.selectedContract.content_type} {contractsContext.selectedContract.label ?? contractsContext.selectedContract.filename}
+                    </span>
+                </CommonDialog>
+            }
 
         </div>
     );

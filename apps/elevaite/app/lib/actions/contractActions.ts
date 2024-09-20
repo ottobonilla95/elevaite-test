@@ -1,6 +1,6 @@
 "use server";
 import { revalidateTag } from "next/cache";
-import { type CONTRACT_TYPES, type ContractExtractionDictionary, type ContractProjectObject } from "../interfaces";
+import { type ContractObject, type CONTRACT_TYPES, type ContractProjectObject } from "../interfaces";
 import { cacheTags, CONTRACT_PROJECTS_REVALIDATION_TIME } from "./actionConstants";
 import { isCreateProjectResponse, isGetContractProjectsListReponse, isSubmitContractResponse } from "./contractDiscriminators";
 
@@ -71,7 +71,7 @@ export async function CreateProject(name: string, description?: string): Promise
 
 
 
-export async function submitContract(projectId: string, formData: FormData, type: CONTRACT_TYPES): Promise<ContractExtractionDictionary> {
+export async function submitContract(projectId: string, formData: FormData, type: CONTRACT_TYPES): Promise<ContractObject> {
   if (!CONTRACTS_URL) throw new Error("Missing base url");
 
   const url = new URL(`${CONTRACTS_URL}/project/${projectId}/files/`);
@@ -82,7 +82,7 @@ export async function submitContract(projectId: string, formData: FormData, type
     body: formData,
   });
 
-  revalidateTag(cacheTags.contracts);
+  revalidateTag(cacheTags.contractProjects);
   if (!response.ok) {
     // if (response.status === 422) {
       const errorData: unknown = await response.json();

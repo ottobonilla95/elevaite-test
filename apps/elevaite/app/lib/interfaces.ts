@@ -506,11 +506,20 @@ export interface ContractObject {
     po_number?: string|null;
     supplier?: string|null;
     verification?: unknown;
-    highlight?: unknown;
+    highlight?: ContractObjectEmphasis;
     tags?: string[];
     creation_date: string;
     checksum: string; // MD5
     index_key?: string;
+}
+
+export interface ContractObjectEmphasis {
+    invoice_number: string|null;
+    po_number: string|null;
+    supplier: string|null;
+    rec_charges: string|null;
+    non_rec_charges: string|null;
+    total_amount: string|null;
 }
 
 export type ContractExtractionPageItem = string | Record<string, string>[];
