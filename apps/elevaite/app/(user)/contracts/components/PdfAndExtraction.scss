@@ -3,8 +3,19 @@
 .pdf-and-extraction-container {
     flex-grow: 1;
     display: grid;
-    grid-template-columns: minmax(50%, 1fr) minmax(50%, 1fr);
+    grid-template-columns: minmax(calc(50% - 10px), 1fr) minmax(calc(50% - 10px), 1fr);
     grid-template-rows: 100%;
     column-gap: 20px;
     min-height: 0;
+    transition: grid-template-columns 200ms ease-in-out, column-gap 200ms ease-in-out;
+
+    &.expanded {
+        grid-template-columns: 100% 0fr;
+        column-gap: 0;
+
+        & .pdf-extraction-container {
+            padding-left: 0;
+            padding-right: 0;
+        }
+    }
 }

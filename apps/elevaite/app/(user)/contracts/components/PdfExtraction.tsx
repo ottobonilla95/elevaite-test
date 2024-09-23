@@ -1,11 +1,9 @@
-import { CommonButton, CommonDialog, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
+import { CommonButton, CommonDialog, ElevaiteIcons, SimpleInput, SimpleTextarea } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { useContracts } from "../../../lib/contexts/ContractsContext";
 import { CONTRACT_STATUS, type ContractExtractionDictionary } from "../../../lib/interfaces";
 import "./PdfExtraction.scss";
 import { PdfExtractionEmphasis } from "./PdfExtractionEmphasis";
-
-
 
 
 
@@ -74,12 +72,13 @@ export function PdfExtraction(): JSX.Element {
           });
         });
 
-        bits.unshift(<ExtractedTableBit
-                        key="line_items"
-                        label="Line Items"
-                        data={lineItems}
-                        onTableChange={(changeLabel, changeText) => { console.log("change", changeLabel, changeText)}}
-            />);
+        if (lineItems.length > 0)
+            bits.unshift(<ExtractedTableBit
+                            key="line_items"
+                            label="Line Items"
+                            data={lineItems}
+                            onTableChange={(changeLabel, changeText) => { console.log("change", changeLabel, changeText)}}
+                        />);
       
         return bits;
       }
@@ -90,12 +89,14 @@ export function PdfExtraction(): JSX.Element {
 
             <div className="pdf-extraction-header">
                 <span>Extraction</span>
-                <CommonButton
-                    onClick={handleManualApproval}
-                    // disabled
-                >
-                    Approve
-                </CommonButton>
+                {contractsContext.selectedContract?.verification?.verification_status === true ? undefined :
+                    <CommonButton
+                        onClick={handleManualApproval}
+                        // disabled
+                    >
+                        Approve
+                    </CommonButton>
+                }
             </div>
 
             <div className="pdf-extraction-scroller">
@@ -153,12 +154,23 @@ function ExtractedBit(props: ExtractedBitProps): JSX.Element {
                 <div className="label">{props.label}</div>
                 {/* <div className="date"></div> */}
             </div>
-            <SimpleInput
-                value={manualValue}
-                onChange={handleChange}
-                useCommonStyling
-                placeholder={!props.value ? "Value not found. Insert manually" : ""}
-            />
+            {manualValue.length > 70 ? 
+                <SimpleTextarea
+                    value={manualValue}
+                    onChange={handleChange}
+                    useCommonStyling
+                    placeholder={!props.value ? "Value not found. Insert manually" : ""}
+                    rows={Math.min(Math.ceil(manualValue.length / 70), 5)}
+                    // title={manualValue.length > 30 ? manualValue: ""}
+                />
+            :
+                <SimpleInput
+                    value={manualValue}
+                    onChange={handleChange}
+                    useCommonStyling
+                    placeholder={!props.value ? "Value not found. Insert manually" : ""}
+                />
+            }
         </div>
     );
 }
@@ -171,8 +183,9 @@ interface ExtractedTableBitProps {
 }
 
 function ExtractedTableBit(props: ExtractedTableBitProps): JSX.Element {
+    const TABLE_NUMBER_LABEL = "No.";
     const [tableData, setTableData] = useState(props.data);
-    const headers = tableData.length > 0 ? Object.keys(tableData[0]) : [];
+    const headers = tableData.length > 0 ? [TABLE_NUMBER_LABEL, ...Object.keys(tableData[0])] : [];
 
 
     function handleChange(rowIndex: number, columnKey: string, newValue: string): void {
@@ -216,11 +229,19 @@ function ExtractedTableBit(props: ExtractedTableBitProps): JSX.Element {
                             {props.data.map((row, rowIndex) => (
                                 <tr key={row[0] + rowIndex.toString()}>
                                     {headers.map(header => (
-                                        <td key={header}>                                            
-                                            <SimpleInput
-                                                value={row[header]}
-                                                onChange={(newValue) => { handleChange(rowIndex, header, newValue); }}
-                                            />
+                                        <td key={header}>
+                                            {header === TABLE_NUMBER_LABEL ? 
+                                                <SimpleInput
+                                                    value={(rowIndex+1).toString()}
+                                                    disabled
+                                                />
+                                            :
+                                                <SimpleInput
+                                                    value={row[header]}
+                                                    onChange={(newValue) => { handleChange(rowIndex, header, newValue); }}
+                                                    title={row[header].length > 30 ? row[header]: ""}
+                                                />
+                                            }
                                         </td>
                                     ))}
                                 </tr>

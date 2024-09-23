@@ -12,10 +12,33 @@
     & .pdf-display-header {
         flex-shrink: 0;
         display: flex;
+        justify-content: space-between;
         align-items: center;
         gap: 20px;
         font-size: 16px;
         font-weight: 600;
+
+        & .controls-box {            
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        & .reset {
+            min-width: 70px;
+            justify-content: center;
+        }
+
+        & .expansion-arrow {
+            & > svg {
+                height: 20px;
+                width: 20px;
+                transition: transform 200ms ease-in-out;
+            }
+            &.expanded > svg {
+                transform: rotateY(180deg);
+            }
+        }
     }
 
     & .tabs-container {

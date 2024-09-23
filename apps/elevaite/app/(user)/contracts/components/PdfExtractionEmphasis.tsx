@@ -52,6 +52,7 @@ function EmphasisBit(props: EmphasisBitProps): React.ReactNode {
             label={props.label}
             initialValue={value}
             disabled
+            noDisabledTooltip
         />
     );
 }

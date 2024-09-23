@@ -14,22 +14,18 @@ interface FilterTag {
     isActive?: boolean;
 }
 
+interface CrossMatchFields {
+    [CONTRACT_TYPES.INVOICE]: number,
+    [CONTRACT_TYPES.PURCHASE_ORDER]: number,
+    [CONTRACT_TYPES.VSOW]: number
+}
+
 
 const ContractsTabsArray: {label: CONTRACTS_TABS, tooltip?: string, isDisabled?: boolean}[] = [
     { label: CONTRACTS_TABS.SUPPLIER_CONTRACTS },
     { label: CONTRACTS_TABS.CUSTOMER_CONTRACTS },
     { label: CONTRACTS_TABS.SUPPLIER_POS, tooltip: "Supplier Purchase Orders" },
     { label: CONTRACTS_TABS.SUPPLIER_INVOICES },
-];
-
-const contractsListStructure: RowStructure<ContractObject>[] = [
-    { header: "Status", field: "status", isSortable: true, formattingFunction: structureStatus, align: "center" },
-    { header: "Name", field: "label", isSortable: true, formattingFunction: structureName, },
-    { header: "Contract No.", field: "id", isSortable: true, },
-    { header: "File Size", field: "filesize", isSortable: true, style: "block", align: "center", formattingFunction: structureFileSize, },
-    { header: "Tags", field: "tags", isSortable: false, specialHandling: specialHandlingListRowFields.TAGS },
-    { header: "Approval", field: "approval", isSortable: true, formattingFunction: structureApproval, },
-    // { header: "Created at", field: "creation_date", isSortable: true, specialHandling: specialHandlingListRowFields.SHORT_DATE, align: "right" },
 ];
 
 // List structure formatting functions
@@ -64,6 +60,22 @@ function structureApproval(listItem: ContractObject): React.ReactNode {
         </span>
     );
 }
+function structureVerification(listItem: ContractObject, checkingType: CONTRACT_TYPES): React.ReactNode {
+    let isVerified = false;
+
+    switch (checkingType) {
+        case CONTRACT_TYPES.INVOICE: isVerified = listItem.verification?.invoice.every(item => item.verification_status) ?? false; break;
+        case CONTRACT_TYPES.PURCHASE_ORDER: isVerified = listItem.verification?.po?.verification_status ?? false; break;
+        default: isVerified = listItem.verification?.vsow.every(item => item.verification_status) ?? false;
+    }
+
+    return (
+        isVerified ? 
+            <span className="verified"><ElevaiteIcons.SVGCheckmark/></span>
+        :
+            <span className="not-verified"><ElevaiteIcons.SVGXmark/></span>
+    );
+}
 ///////////////////////////////////////
 
 
@@ -72,8 +84,10 @@ function structureApproval(listItem: ContractObject): React.ReactNode {
 export function ContractsList(): JSX.Element {
     const contractsContext = useContracts();
     const [selectedTab, setSelectedTab] = useState(CONTRACTS_TABS.SUPPLIER_CONTRACTS);
+    const [displayRowsStructure, setDisplayRowsStructure] = useState<RowStructure<ContractObject>[]>([]);
     const [contracts, setContracts] = useState<ContractObject[]>([]);
     const [displayContracts, setDisplayContracts] = useState<ContractObject[]>([]);
+    const [crossMatches, setCrossMatches] = useState<CrossMatchFields>();
     const [filterTags, setFilterTags] = useState<FilterTag[]>([]);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
 
@@ -82,8 +96,13 @@ export function ContractsList(): JSX.Element {
         setContracts(contractsContext.selectedProject?.reports ?? []);
     }, [contractsContext.selectedProject?.reports]);
 
+    useEffect(() => {    
+        setCrossMatches(getCrossMatches(contracts));
+    }, [contracts]);
+
     useEffect(() => {        
         setFilterTags(getFilterTags(getTabContracts(contracts, selectedTab)));
+        setDisplayRowsStructure(getRowListStructure(selectedTab));
     }, [contracts, selectedTab]);
 
     useEffect(() => {
@@ -99,6 +118,39 @@ export function ContractsList(): JSX.Element {
 
     function getActiveTagsAmount(): number {
         return filterTags.filter(tag => tag.isActive).length;
+    }
+
+    function getRowListStructure(tab: CONTRACTS_TABS): RowStructure<ContractObject>[] {
+        const structure: RowStructure<ContractObject>[] = [];
+
+        structure.push({ header: "Status", field: "status", isSortable: true, formattingFunction: structureStatus, align: "center" });
+        structure.push({ header: "Name", field: "label", isSortable: true, formattingFunction: structureName, });
+
+        switch (tab) {
+            case CONTRACTS_TABS.SUPPLIER_INVOICES: structure.push({ header: "Invoice Number", field: "invoice_number", isSortable: true, }); break;
+            case CONTRACTS_TABS.SUPPLIER_POS: structure.push({ header: "PO Number", field: "po_number", isSortable: true, }); break;
+            default: structure.push({ header: "Contract Number", field: "contract_number", isSortable: true, });
+        }
+
+        structure.push({ header: "File Size", field: "filesize", isSortable: true, style: "block", align: "center", formattingFunction: structureFileSize, });
+        structure.push({ header: "Tags", field: "tags", isSortable: false, specialHandling: specialHandlingListRowFields.TAGS });
+        structure.push({ header: "Approval", field: "approval", isSortable: true, formattingFunction: structureApproval, });
+        // structure.push({ header: "Created at", field: "creation_date", isSortable: true, specialHandling: specialHandlingListRowFields.SHORT_DATE, align: "right" });
+        
+        switch (tab) {
+            case CONTRACTS_TABS.SUPPLIER_INVOICES: 
+                structure.push({ header: "VSOW", field: "inv_vsow_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.VSOW), });
+                structure.push({ header: "PO", field: "inv_po_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.PURCHASE_ORDER), });
+                break;
+            case CONTRACTS_TABS.SUPPLIER_POS:
+                structure.push({ header: "VSOW", field: "po_vsow_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.VSOW), });
+                structure.push({ header: "Inv.", field: "po_inv_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.INVOICE), });
+                break;
+            default:
+                structure.push({ header: "Inv.", field: "vsow_inv_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.INVOICE), });
+                structure.push({ header: "PO", field: "vsow_po_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.PURCHASE_ORDER), });
+        }
+        return structure;
     }
 
 
@@ -130,6 +182,18 @@ export function ContractsList(): JSX.Element {
         return tabbedContracts.filter(contract => activeTags.some(tag => contract.tags?.includes(tag)));
     }
 
+    function getCrossMatches(contractsToCheck: ContractObject[]): CrossMatchFields {
+        const invoiceFailures = contractsToCheck.filter(item => item.content_type === CONTRACT_TYPES.INVOICE && item.verification?.verification_status === false).length;
+        const poFailures = contractsToCheck.filter(item => item.content_type === CONTRACT_TYPES.PURCHASE_ORDER && item.verification?.verification_status === false).length;
+        const vsowFailures = contractsToCheck.filter(item => item.content_type === CONTRACT_TYPES.VSOW && item.verification?.verification_status === false).length;
+
+        return {
+            [CONTRACT_TYPES.INVOICE]: invoiceFailures,
+            [CONTRACT_TYPES.PURCHASE_ORDER]: poFailures,
+            [CONTRACT_TYPES.VSOW]: vsowFailures,
+        }
+    }
+
 
 
     function handleTabSelection(passedTab: CONTRACTS_TABS): void {
@@ -157,6 +221,12 @@ export function ContractsList(): JSX.Element {
     return (
         <div className="contracts-list-container">
 
+            <div className={["cross-match-container", !contractsContext.selectedProject ? "concealed" : undefined ].filter(Boolean).join(" ")}>
+                <CrossMatchBit value={crossMatches?.[CONTRACT_TYPES.VSOW]} label="VSOW matches failed" />
+                <CrossMatchBit value={crossMatches?.[CONTRACT_TYPES.PURCHASE_ORDER]} label="PO matches failed" />
+                <CrossMatchBit value={crossMatches?.[CONTRACT_TYPES.INVOICE]} label="Total invoices pending approval" />
+            </div>
+
             <div className="tabs-container">
                 {ContractsTabsArray.map((item: {label: CONTRACTS_TABS, tooltip?: string, isDisabled?: boolean}) => 
                     <CommonButton
@@ -182,12 +252,7 @@ export function ContractsList(): JSX.Element {
                         <span>Select one from the list to the left</span>
                     </div>
                 :
-                <>
-                    <div className="cross-match-container">
-                        <CrossMatchBit value={10} label="Total invoices pending approval" />
-                        <CrossMatchBit value={8} label="PO matches failed" />
-                        <CrossMatchBit value={2} label="VSOW matches failed" />
-                    </div>
+                <>                    
                     <div className="table-controls-container">
                         <div className="tags-container">
                             {filterTags.map(tag => 
@@ -221,7 +286,7 @@ export function ContractsList(): JSX.Element {
                     <div className="contracts-list-table-contents">
                         <ListRow<ContractObject>
                             isHeader
-                            structure={contractsListStructure}
+                            structure={displayRowsStructure}
                             // onSort={handleSort}
                             // sorting={sorting}
                         />
@@ -241,7 +306,7 @@ export function ContractsList(): JSX.Element {
                             <ListRow<ContractObject>
                                 key={account.id}
                                 rowItem={account}
-                                structure={contractsListStructure}
+                                structure={displayRowsStructure}
                                 onClick={handleRowClick}
                                 menuToTop={displayContracts.length > 4 && index > (displayContracts.length - 4) }
                             />
@@ -273,14 +338,16 @@ export function ContractsList(): JSX.Element {
 
 
 interface CrossMatchBitProps {
-    value: number;
+    value?: number;
     label: string;
 }
 
 function CrossMatchBit(props: CrossMatchBitProps): JSX.Element {
     return (
-        <div className="cross-match-bit-container">
-            <span className="cross-bit-value">{props.value}</span>
+        <div className={["cross-match-bit-container", props.value !== undefined && props.value === 0 ? "success" : undefined].filter(Boolean).join(" ")}>
+            {props.value === undefined ? <ElevaiteIcons.SVGSpinner/> :
+                <span className="cross-bit-value">{props.value}</span>
+            }
             <span className="cross-bit-label">{props.label}</span>
         </div>
     );

@@ -4,6 +4,7 @@ import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "re
 import { Document, Page, pdfjs } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+import { useResizeDetector } from "react-resize-detector";
 import { useContracts } from "../../../lib/contexts/ContractsContext";
 import { useDebouncedCallback } from "../../../lib/helpers";
 import { CONTRACT_TYPES, type ContractExtractionDictionary, type ContractExtractionPage, type ContractExtractionPageItem, type ContractObject } from "../../../lib/interfaces";
@@ -11,22 +12,27 @@ import "./PdfDisplay.scss";
 
 
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-).toString();
-
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 
 const fallbackUrl = "/testPdf.pdf";
 
 
+interface PdfDisplayProps {
+    handleExpansion: () => void;
+    isExpanded: boolean;
+}
 
-export function PdfDisplay(): JSX.Element {
+export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     const contractsContext = useContracts();
     const [isLoading, setIsLoading] = useState(false);
     const [pdfData, setPdfData] = useState<string>();
-    const pageContainerRef = useRef<HTMLDivElement | null>(null);
+    const pageContainerRef = useRef<HTMLDivElement | null>(null);  
+    const { width: pageContainerWidth } = useResizeDetector<HTMLDivElement>({
+        targetRef: pageContainerRef,
+        refreshMode: "debounce",
+        refreshRate: 200 });
+    const [pdfZoom, setPdfZoom] = useState<number|undefined>();
     const pageRefs = useRef<Record<string, HTMLDivElement|null>>({});
     const [pagesAmount, setPagesAmount] = useState<number>();
     const [pageNumber, setPageNumber] = useState(1);
@@ -75,16 +81,16 @@ export function PdfDisplay(): JSX.Element {
 
     useEffect(() => {
         if (!movePage.current) return;
-        if (pageRefs.current[pageNumber]) {
-            pageRefs.current[pageNumber].scrollIntoView({ behavior: "smooth" });
+        const page = pageRefs.current[pageNumber];
+        if (page) {
+            page.scrollIntoView({ behavior: "smooth" });
         }
         movePage.current = false;
     }, [pageNumber]);
 
 
-
-
     async function formatPdfData(passedContract: ContractObject): Promise<void> {
+        // TODO: If checksum is the same, don't change pdfData.
         setIsLoading(true);
         if (passedContract.file_ref) {
             let file: string|File|Blob = passedContract.file_ref;
@@ -143,6 +149,22 @@ export function PdfDisplay(): JSX.Element {
 
     function handleTabSelection(passedTab: CONTRACT_TYPES): void {
         setSelectedTab(passedTab);
+    }
+
+    function handleExpansion(): void {
+        props.handleExpansion();
+    }
+
+    function handleZoom(type: "in"|"out"|"reset"): void {
+        if (type === "in") {
+            setPdfZoom(current => 
+                current ? parseFloat((current + 0.1).toFixed(2)) : 1.1
+            )
+        } else if (type === "out") {
+            setPdfZoom(current => 
+                current ? parseFloat((current - 0.1).toFixed(2)) : 0.9
+            )
+        } else setPdfZoom(undefined);
     }
 
 
@@ -222,10 +244,46 @@ export function PdfDisplay(): JSX.Element {
         <div className="pdf-display-container">
 
             <div className="pdf-display-header">
-                <CommonButton onClick={onClose}>
-                    <ElevaiteIcons.SVGArrowBack/>
-                </CommonButton>
-                <span>Preview</span>
+                <div className="controls-box">
+                    <CommonButton onClick={onClose}>
+                        <ElevaiteIcons.SVGArrowBack/>
+                    </CommonButton>
+                    <span>Preview</span>
+                </div>
+                <div className="controls-box">
+                    <CommonButton
+                        onClick={() => { handleZoom("out"); }}
+                        noBackground
+                        disabled={pdfZoom !== undefined && pdfZoom <= 0.1}
+                        title="Zoom out"
+                    >
+                        <ElevaiteIcons.SVGZoom type="out" />
+                    </CommonButton>
+                    <CommonButton
+                        className="reset"
+                        onClick={() => { handleZoom("reset"); }}
+                        noBackground
+                        title="Reset zoom"
+                    >
+                        {pdfZoom ? `${(pdfZoom * 100).toFixed(0).toString()} %` : "100%"}
+                    </CommonButton>
+                    <CommonButton
+                        onClick={() => { handleZoom("in"); }}
+                        noBackground
+                        disabled={pdfZoom !== undefined && pdfZoom >= 3}
+                        title="Zoom in"
+                    >
+                        <ElevaiteIcons.SVGZoom/>
+                    </CommonButton>
+                    <CommonButton
+                        className={["expansion-arrow", props.isExpanded ? "expanded" : undefined].filter(Boolean).join(" ")}
+                        onClick={handleExpansion}
+                        noBackground
+                        title="Maximize pdf view"
+                    >
+                        <ElevaiteIcons.SVGSideArrow />
+                    </CommonButton>
+                </div>
             </div>
 
             <div className="tabs-container">
@@ -262,7 +320,9 @@ export function PdfDisplay(): JSX.Element {
                                     ref={item => { pageRefs.current[index + 1] = item;}}
                                 >
                                     <Page                                    
-                                        pageNumber={index + 1}   
+                                        pageNumber={index + 1}
+                                        width={pageContainerWidth ? pageContainerWidth : 1}
+                                        scale={pdfZoom}
                                         customTextRenderer={textRenderer}
                                         loading={<div className="loading"><ElevaiteIcons.SVGSpinner/></div>}
                                     />
