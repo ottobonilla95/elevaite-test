@@ -20,6 +20,13 @@
         font-size: 16px;
         font-weight: 600;
 
+        & .approved-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--ev-colors-success);
+        }
+
         & > button {
             background-color: var(--ev-colors-highlight);
             font-size: 12px;

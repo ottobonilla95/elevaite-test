@@ -60,13 +60,22 @@ function structureApproval(listItem: ContractObject): React.ReactNode {
         </span>
     );
 }
+function structureContractNumber(listItem: ContractObject): React.ReactNode {
+    switch (listItem.content_type) {
+        case CONTRACT_TYPES.INVOICE: return listItem.highlight?.invoice_number ?? "";
+        case CONTRACT_TYPES.PURCHASE_ORDER: return listItem.highlight?.po_number ?? "";
+        default: return listItem.highlight?.contract_number ?? "";
+    }
+}
 function structureVerification(listItem: ContractObject, checkingType: CONTRACT_TYPES): React.ReactNode {
     let isVerified = false;
 
     switch (checkingType) {
-        case CONTRACT_TYPES.INVOICE: isVerified = listItem.verification?.invoice.every(item => item.verification_status) ?? false; break;
+        case CONTRACT_TYPES.INVOICE: isVerified = listItem.verification?.invoice.length
+                                                    ? listItem.verification.invoice.every(item => item.verification_status) : false; break;
         case CONTRACT_TYPES.PURCHASE_ORDER: isVerified = listItem.verification?.po?.verification_status ?? false; break;
-        default: isVerified = listItem.verification?.vsow.every(item => item.verification_status) ?? false;
+        default: isVerified = listItem.verification?.vsow.length
+                                ? listItem.verification.vsow.every(item => item.verification_status) : false;        
     }
 
     return (
@@ -127,10 +136,10 @@ export function ContractsList(): JSX.Element {
         structure.push({ header: "Name", field: "label", isSortable: true, formattingFunction: structureName, });
 
         switch (tab) {
-            case CONTRACTS_TABS.SUPPLIER_INVOICES: structure.push({ header: "Invoice Number", field: "invoice_number", isSortable: true, }); break;
-            case CONTRACTS_TABS.SUPPLIER_POS: structure.push({ header: "PO Number", field: "po_number", isSortable: true, }); break;
-            default: structure.push({ header: "Contract Number", field: "contract_number", isSortable: true, });
-        }
+            case CONTRACTS_TABS.SUPPLIER_INVOICES: structure.push({ header: "Invoice Number", field: "invoice_number", isSortable: true, formattingFunction: structureContractNumber, }); break;
+            case CONTRACTS_TABS.SUPPLIER_POS: structure.push({ header: "PO Number", field: "po_number", isSortable: true, formattingFunction: structureContractNumber, }); break;
+            default: structure.push({ header: "Contract Number", field: "contract_number", isSortable: true, formattingFunction: structureContractNumber, });
+        };
 
         structure.push({ header: "File Size", field: "filesize", isSortable: true, style: "block", align: "center", formattingFunction: structureFileSize, });
         structure.push({ header: "Tags", field: "tags", isSortable: false, specialHandling: specialHandlingListRowFields.TAGS });

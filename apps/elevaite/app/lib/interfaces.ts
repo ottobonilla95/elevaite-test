@@ -516,6 +516,7 @@ export interface ContractObject {
 export interface ContractObjectEmphasis {
     invoice_number: string|null;
     po_number: string|null;
+    contract_number: string|null;
     supplier: string|null;
     rec_charges: string|null;
     non_rec_charges: string|null;

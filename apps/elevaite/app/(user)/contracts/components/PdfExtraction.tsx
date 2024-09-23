@@ -89,7 +89,12 @@ export function PdfExtraction(): JSX.Element {
 
             <div className="pdf-extraction-header">
                 <span>Extraction</span>
-                {contractsContext.selectedContract?.verification?.verification_status === true ? undefined :
+                {contractsContext.selectedContract?.verification?.verification_status === true ? 
+                    <div className="approved-label">
+                        <ElevaiteIcons.SVGCheckmark/>
+                        <span>Approved</span>
+                    </div>
+                :
                     <CommonButton
                         onClick={handleManualApproval}
                         // disabled
