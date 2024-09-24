@@ -197,6 +197,10 @@
                 }
             }
 
+            & .contract-name {
+                word-break: break-all;
+            }
+
             
             & .contract-status {
                 &.completed { color: var(--ev-colors-success); }

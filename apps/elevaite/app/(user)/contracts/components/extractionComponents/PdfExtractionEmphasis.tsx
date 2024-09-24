@@ -1,7 +1,7 @@
 import { CommonInput } from "@repo/ui/components";
 import { useEffect, useState } from "react";
-import { useContracts } from "../../../lib/contexts/ContractsContext";
-import { type ContractObjectEmphasis } from "../../../lib/interfaces";
+import { useContracts } from "../../../../lib/contexts/ContractsContext";
+import { type ContractObjectEmphasis } from "../../../../lib/interfaces";
 import "./PdfExtractionEmphasis.scss";
 
 

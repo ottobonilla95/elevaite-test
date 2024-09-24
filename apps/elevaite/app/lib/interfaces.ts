@@ -525,6 +525,7 @@ export interface ContractObjectEmphasis {
 
 export interface ContractObjectVerification {
     verification_status: boolean;
+    line_items: boolean;
     vsow: ContractObjectVerificationItem[];
     invoice: ContractObjectVerificationItem[];
     po?: ContractObjectVerificationItem;
@@ -532,7 +533,8 @@ export interface ContractObjectVerification {
 
 export interface ContractObjectVerificationItem {
     verification_status: boolean;
-    file_ref: string;
+    file_ref?: string;
+    file_id?: string | number;
     po_number?: VerificationItem;
     supplier?: VerificationItem;
     total_amount?: VerificationItem;

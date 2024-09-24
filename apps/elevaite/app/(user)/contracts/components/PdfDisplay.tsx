@@ -149,6 +149,33 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
 
     function handleTabSelection(passedTab: CONTRACT_TYPES): void {
         setSelectedTab(passedTab);
+        switch(passedTab) {
+            case CONTRACT_TYPES.INVOICE: {
+                    if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE &&
+                        contractsContext.selectedContract?.verification?.invoice[0]?.file_id)
+                        contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.invoice[0].file_id);
+                        break;
+                    }
+            case CONTRACT_TYPES.PURCHASE_ORDER: {
+                    if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.PURCHASE_ORDER &&
+                        contractsContext.selectedContract?.verification?.po?.file_id)
+                        contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.po.file_id);
+                        break;
+                    }
+            case CONTRACT_TYPES.VSOW: {
+                        if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.VSOW &&
+                            contractsContext.selectedContract?.verification?.vsow[0]?.file_id)
+                            contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.vsow[0].file_id);
+                            break;
+                        }
+            // case CONTRACT_TYPES.CSOW: {
+            //             if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.PURCHASE_ORDER &&
+            //                 contractsContext.selectedContract?.verification?.csow[0]?.file_id)
+            //                 contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.csow[0].file_id);
+            //                 break;
+            //             }
+            default: break;
+        }
     }
 
     function handleExpansion(): void {

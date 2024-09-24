@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { CreateProject, getContractProjectById, getContractProjectsList, submitContract } from "../actions/contractActions";
-import { CONTRACT_STATUS, CONTRACT_TYPES, type ContractExtractionDictionary, type ContractObject, type ContractProjectObject } from "../interfaces";
+import { CONTRACT_STATUS, type CONTRACT_TYPES, type ContractExtractionDictionary, type ContractObject, type ContractProjectObject } from "../interfaces";
 
 
 
@@ -112,6 +112,7 @@ export interface ContractsContextStructure {
     setSelectedProjectById: (id: string|number|undefined) => void;
     selectedContract: ContractObject | undefined;
     setSelectedContract: (contract: ContractObject|undefined) => void;
+    setSelectedContractById: (id: string|number|undefined) => void;
     changeSelectedContractBit: (pageKey: `page_${number}`, itemKey: string, newValue: string) => void;
     changeSelectedContractTableBit: (pageKey: `page_${number}`, tableKey: string, newTableData: Record<string, string>[]) => void;
     submitCurrentContractPdf: (pdf: File|undefined, type: CONTRACT_TYPES, projectId: string|number, name?: string) => void;
@@ -127,6 +128,7 @@ export const ContractsContext = createContext<ContractsContextStructure>({
     setSelectedProjectById: () => {/**/},
     selectedContract: undefined,
     setSelectedContract: () => {/**/},
+    setSelectedContractById: () => {/**/},
     changeSelectedContractBit: () => {/**/},
     changeSelectedContractTableBit: () => {/**/},
     submitCurrentContractPdf: () => undefined,
@@ -184,7 +186,8 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
     // }, [selectedProject]);
 
     useEffect(() => {
-        console.log("Selected Contract", selectedContract);
+        if (selectedContract)
+            console.log("Selected Contract", selectedContract);
     }, [selectedContract]);
 
 
@@ -210,6 +213,16 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
         }
         const foundProject = projects.find(item => item.id === id);
         if (foundProject) setSelectedProject(foundProject);
+    }
+
+    function setSelectedContractById(id: string|number|undefined): void {
+        if (projects.length === 0) return;
+        if (id === undefined) {
+            setSelectedContract(undefined);
+            return;
+        }
+        const foundContract = projects.flatMap(project => project.reports).find(contract => contract.id === id);
+        if (foundContract) setSelectedContract(foundContract);
     }
 
     function changeSelectedContractBit(pageKey: `page_${number}`, itemKey: string, newValue: string): void {
@@ -421,6 +434,7 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
                 setSelectedProjectById,
                 selectedContract,
                 setSelectedContract,
+                setSelectedContractById,
                 changeSelectedContractBit,
                 changeSelectedContractTableBit,
                 submitCurrentContractPdf,

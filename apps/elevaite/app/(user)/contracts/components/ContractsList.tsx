@@ -29,8 +29,12 @@ const ContractsTabsArray: {label: CONTRACTS_TABS, tooltip?: string, isDisabled?:
 ];
 
 // List structure formatting functions
-function structureName(listItem: ContractObject): string {
-    return listItem.label && listItem.label.length > 0 ? listItem.label : listItem.filename;
+function structureName(listItem: ContractObject): React.ReactNode {
+    return (
+        <span className="contract-name" title={listItem.label ? listItem.filename : ""}>
+            {listItem.label && listItem.label.length > 0 ? listItem.label : listItem.filename}
+        </span>
+    );
 }
 function structureFileSize(listItem: ContractObject): string {
     if (!listItem.filesize) return "";
@@ -177,7 +181,7 @@ export function ContractsList(): JSX.Element {
     function getTabContracts(allContracts: ContractObject[], tab: CONTRACTS_TABS): ContractObject[] {
         let contractType: CONTRACT_TYPES;
         switch (tab) {
-            case CONTRACTS_TABS.CUSTOMER_CONTRACTS: contractType = CONTRACT_TYPES.VSOW; break;
+            case CONTRACTS_TABS.CUSTOMER_CONTRACTS: contractType = CONTRACT_TYPES.CSOW; break;
             case CONTRACTS_TABS.SUPPLIER_CONTRACTS: contractType = CONTRACT_TYPES.VSOW; break;
             case CONTRACTS_TABS.SUPPLIER_INVOICES: contractType = CONTRACT_TYPES.INVOICE; break;
             case CONTRACTS_TABS.SUPPLIER_POS: contractType = CONTRACT_TYPES.PURCHASE_ORDER; break;
