@@ -1,7 +1,7 @@
 import { CommonButton, CommonDialog, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { useContracts } from "../../../lib/contexts/ContractsContext";
-import { CONTRACT_STATUS, type ContractExtractionDictionary } from "../../../lib/interfaces";
+import { CONTRACT_STATUS, CONTRACT_TYPES, type ContractExtractionDictionary } from "../../../lib/interfaces";
 import "./PdfExtraction.scss";
 import { ExtractedBit } from "./extractionComponents/ExtractedBit";
 import { ExtractedTableBit } from "./extractionComponents/ExtractedTableBit";
@@ -117,7 +117,8 @@ export function PdfExtraction(): JSX.Element {
                         </CommonButton>
                     }
                 </div>
-                {contractsContext.selectedContract?.verification?.verification_status === true ? 
+                {contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE ? undefined :
+                 contractsContext.selectedContract.verification?.verification_status === true ? 
                     <div className="approved-label">
                         <ElevaiteIcons.SVGCheckmark/>
                         <span>Approved</span>

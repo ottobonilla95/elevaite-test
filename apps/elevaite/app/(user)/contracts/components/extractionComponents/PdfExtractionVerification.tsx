@@ -2,7 +2,7 @@ import { CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { isObject } from "../../../../lib/actions/generalDiscriminators";
 import { useContracts } from "../../../../lib/contexts/ContractsContext";
-import { type ContractExtractionDictionary, type ContractObjectVerification, type ContractObjectVerificationItem } from "../../../../lib/interfaces";
+import { CONTRACT_TYPES, type ContractExtractionDictionary, type ContractObjectVerification, type ContractObjectVerificationItem } from "../../../../lib/interfaces";
 import { ExtractedTableBit } from "./ExtractedTableBit";
 import "./PdfExtractionVerification.scss";
 
@@ -51,22 +51,24 @@ export function PdfExtractionVerification(): JSX.Element {
                     </div>
                 :
                 <>                    
-                    <div className="pdf-verification-block">
-                        <div className="pdf-verification-label">
-                            Purchase Order Information
-                        </div>
-                        {!verificationData.po ? 
-                            <div className="no-info">
-                                No verification information.
+                    {contractsContext.selectedContract?.content_type === CONTRACT_TYPES.PURCHASE_ORDER ? undefined :
+                        <div className="pdf-verification-block">
+                            <div className="pdf-verification-label">
+                                Purchase Order Information
                             </div>
-                        :
-                            <>
-                                <VerificationBit data={verificationData.po} valueKey="po_number" label="PO Number" />
-                                <VerificationBit data={verificationData.po} valueKey="supplier" label="Supplier" />
-                                <VerificationBit data={verificationData.po} valueKey="total_amount" label="Total Amount" />
-                            </>
-                        }
-                    </div>
+                            {!verificationData.po ? 
+                                <div className="no-info">
+                                    No verification information.
+                                </div>
+                            :
+                                <>
+                                    <VerificationBit data={verificationData.po} valueKey="po_number" label="PO Number" />
+                                    <VerificationBit data={verificationData.po} valueKey="supplier" label="Supplier" />
+                                    <VerificationBit data={verificationData.po} valueKey="total_amount" label="Total Amount" />
+                                </>
+                            }
+                        </div>
+                    }
                     <div className="pdf-verification-block table">
                         <div className="pdf-verification-label">
                             Line Items
@@ -83,42 +85,46 @@ export function PdfExtractionVerification(): JSX.Element {
                             />
                         }
                     </div>
-                    <div className="pdf-verification-block">
-                        <div className="pdf-verification-label">
-                            Contracts
-                        </div>
-                        {verificationData.vsow.length === 0 ? 
-                            <div className="no-info">
-                                No contract information.
-                            </div>
+                        {verificationData.vsow.length === 0 ? undefined
                         :
-                            verificationData.vsow.map((vsow, index) => 
-                                <div className="fragment" key={`${vsow.file_id?.toString() ?? ""}_vsow_${index.toString()}`}>
-                                    <VerificationBit data={vsow} valueKey="po_number" label="PO Number" />
-                                    <VerificationBit data={vsow} valueKey="supplier" label="Supplier" />
-                                    <VerificationBit data={vsow} valueKey="total_amount" label="Total Amount" />
+                            <div className="pdf-verification-block">
+                                <div className="pdf-verification-label">
+                                    VSOW
                                 </div>
-                            )
-                        }
-                    </div>
-                    <div className="pdf-verification-block">
-                        <div className="pdf-verification-label">
-                            Invoices
-                        </div>
-                        {verificationData.invoice.length === 0 ? 
-                            <div className="no-info">
-                                No invoice information.
+                                {verificationData.vsow.map((vsow, index) => 
+                                    <div className="fragment" key={`${vsow.file_id?.toString() ?? ""}_vsow_${index.toString()}`}>
+                                        <VerificationBit data={vsow} valueKey="po_number" label="PO Number" />
+                                        <VerificationBit data={vsow} valueKey="supplier" label="Supplier" />
+                                        <VerificationBit data={vsow} valueKey="total_amount" label="Total Amount" />
+                                    </div>
+                                )}
                             </div>
-                        :
-                            verificationData.invoice.map((invoice, index) => 
-                                <div className="fragment" key={`${invoice.file_id?.toString() ?? ""}_invoice_${index.toString()}`}>
-                                    <VerificationBit data={invoice} valueKey="po_number" label="PO Number" />
-                                    <VerificationBit data={invoice} valueKey="supplier" label="Supplier" />
-                                    <VerificationBit data={invoice} valueKey="total_amount" label="Total Amount" />
-                                </div>
-                            )
                         }
-                    </div>                
+                        {verificationData.invoice.length === 0 ? undefined
+                        :
+                            <div className="pdf-verification-block">
+                                <div className="pdf-verification-label">
+                                    Invoices
+                                </div>
+                                {verificationData.invoice.map((invoice, index) => 
+                                    <div className="fragment" key={`${invoice.file_id?.toString() ?? ""}_invoice_${index.toString()}`}>
+                                        <VerificationBit data={invoice} valueKey="po_number" label="PO Number" />
+                                        <VerificationBit data={invoice} valueKey="supplier" label="Supplier" />
+                                        <VerificationBit data={invoice} valueKey="total_amount" label="Total Amount" />
+                                    </div>
+                                )}
+                            </div> 
+                        }
+                        {contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE ? undefined :
+                            <div className="pdf-verification-block">
+                                <div className="pdf-verification-label">
+                                    Comments
+                                </div>
+                                <div className="no-info">
+                                    No Comments for this invoice.
+                                </div>
+                            </div> 
+                        }
 
                 </>
             }

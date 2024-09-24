@@ -147,7 +147,10 @@ export function ContractsList(): JSX.Element {
 
         structure.push({ header: "File Size", field: "filesize", isSortable: true, style: "block", align: "center", formattingFunction: structureFileSize, });
         structure.push({ header: "Tags", field: "tags", isSortable: false, specialHandling: specialHandlingListRowFields.TAGS });
-        structure.push({ header: "Approval", field: "approval", isSortable: true, formattingFunction: structureApproval, });
+        
+        if (selectedTab === CONTRACTS_TABS.SUPPLIER_INVOICES)
+            structure.push({ header: "Approval", field: "approval", isSortable: true, formattingFunction: structureApproval, });
+
         // structure.push({ header: "Created at", field: "creation_date", isSortable: true, specialHandling: specialHandlingListRowFields.SHORT_DATE, align: "right" });
         
         switch (tab) {
@@ -296,7 +299,8 @@ export function ContractsList(): JSX.Element {
                     
 
                     
-                    <div className="contracts-list-table-contents">
+                    <div className={["contracts-list-table-contents",
+                        selectedTab === CONTRACTS_TABS.SUPPLIER_INVOICES ? "invoice" : undefined].filter(Boolean).join(" ")}>
                         <ListRow<ContractObject>
                             isHeader
                             structure={displayRowsStructure}

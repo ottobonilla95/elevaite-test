@@ -27,19 +27,19 @@
             flex: 1 0 95%;
             margin-right: 10px;
             padding: 0 0 0 20px;
-            font-size: 14px;
-            color: var(--ev-colors-secondaryText);
+            font-size: 16px;
             border-bottom: 1px solid var(--ev-colors-borderColor);
         }
 
         & .no-info {
             padding: 30px;
+            color: var(--ev-colors-secondaryText);
         }
 
         & .fragment {
             display: contents;
             & > div {
-                flex-grow: 1;
+                flex: 1 1 40%;
             }
         }
 
@@ -50,7 +50,7 @@
         }
 
         & > div {
-            flex-grow: 1;
+            flex: 1 1 40%;
         }
     }
 

@@ -166,6 +166,7 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
     const [loading, setLoading] = useState<LoadingListObject>(defaultLoadingList);
     
     const selectedContractChangedByUser = useRef<boolean>();
+    const updateSelectedContract = useRef<string|number|undefined>();
 
 
 
@@ -178,6 +179,10 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
         if (!selectedProject) return;
         const newSelection = projects.find(item => item.id === selectedProject.id);
         setSelectedProject(newSelection);
+        if (updateSelectedContract.current) {
+            setSelectedContractById(updateSelectedContract.current);
+            updateSelectedContract.current = undefined;
+        }
     }, [projects]);
 
 
@@ -302,7 +307,9 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
 
     function replaceTemporaryContractWithProcessed(id: string, data: ContractObject): void {
         // If the returned data's id exists, replace it, then delete the previous id.
-        const existingReport = findReportById(data.id);
+        const existingReport = projects.flatMap(project => project.reports).find(contract => contract.id === data.id);
+        updateSelectedContract.current = data.id;
+
         if (existingReport) {
             // Replace the data of the original report (data.id)
             setProjects((currentProjects) =>
@@ -331,13 +338,6 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
                 ),
             }))
         );
-
-        function findReportById(itemId: string|number): ContractObject|undefined {
-            for (const project of projects) {
-                const foundItem = project.reports.find((report) => report.id === itemId);
-                if (foundItem) { return foundItem; }
-            } return undefined;
-          };
     }
 
     function changeStatusToContractInList(id: string, status: CONTRACT_STATUS): void {

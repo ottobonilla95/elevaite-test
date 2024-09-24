@@ -17,6 +17,18 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 
 const fallbackUrl = "/testPdf.pdf";
 
+interface PdfTabs {
+    value: CONTRACT_TYPES,
+    label: string,
+    isDisabled?: boolean
+}
+
+const pdfTabsArrayDefault: PdfTabs[] = [
+    { value: CONTRACT_TYPES.VSOW, label: "VSOW" },
+    { value: CONTRACT_TYPES.PURCHASE_ORDER, label: "PO" },
+    { value: CONTRACT_TYPES.INVOICE, label: "Invoice" },
+];
+
 
 interface PdfDisplayProps {
     handleExpansion: () => void;
@@ -39,7 +51,9 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     const [inputNumber, setInputNumber] = useState("");
     const movePage = useRef(false);
     const [highlightTerms, setHighlightTerms] = useState<string[]>([]);
+    const [pdfTabsArray, setPdfTabsArray] = useState<PdfTabs[]>(pdfTabsArrayDefault);
     const [selectedTab, setSelectedTab] = useState<CONTRACT_TYPES|undefined>();
+
 
     const observer = new IntersectionObserver(
         (entries) => {
@@ -61,11 +75,6 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         { threshold: 0.5 }
     );
 
-    const pdfTabsArray: {value: CONTRACT_TYPES, label: string, isDisabled?: boolean}[] = [
-        { value: CONTRACT_TYPES.VSOW, label: "VSOW" },
-        { value: CONTRACT_TYPES.PURCHASE_ORDER, label: "PO" },
-        { value: CONTRACT_TYPES.INVOICE, label: "Invoice" },
-    ];
 
     useEffect(() => {
         if (!contractsContext.selectedContract) {
@@ -73,6 +82,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
             return;
         }
         void formatPdfData(contractsContext.selectedContract);
+        setPdfTabsArray(getPdfTabsArray());
         setSelectedTab(contractsContext.selectedContract.content_type);
         // if (contractsContext.selectedContract.extractedData)
         //     formatSearchTerms(contractsContext.selectedContract.extractedData);
@@ -145,6 +155,28 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
 
     function onClose(): void {
         contractsContext.setSelectedContract(undefined);
+    }
+
+    function getPdfTabsArray(): PdfTabs[] {
+        const tabs: PdfTabs[] = [];
+        const contract = contractsContext.selectedContract;
+
+        tabs.push({
+            value: CONTRACT_TYPES.VSOW,
+            label: "VSOW",
+            isDisabled: !(contract?.content_type === CONTRACT_TYPES.VSOW || Boolean(contract?.verification?.vsow.length))
+        })
+        tabs.push({
+            value: CONTRACT_TYPES.PURCHASE_ORDER,
+            label: "PO",
+            isDisabled: !(contract?.content_type === CONTRACT_TYPES.PURCHASE_ORDER || Boolean(contract?.verification?.po))
+        })
+        tabs.push({
+            value: CONTRACT_TYPES.INVOICE,
+            label: "Invoice",
+            isDisabled: !(contract?.content_type === CONTRACT_TYPES.INVOICE || Boolean(contract?.verification?.invoice.length))
+        })
+        return tabs;
     }
 
     function handleTabSelection(passedTab: CONTRACT_TYPES): void {

@@ -149,13 +149,17 @@
         & .contracts-list-table-contents {
             flex-grow: 1;
             display: grid;
-            grid-template-columns: 80px minmax(160px, 2fr) minmax(150px, 1fr) 100px minmax(150px, 2fr) minmax(100px, 1fr) 50px 65px;
+            grid-template-columns: 80px minmax(160px, 2fr) minmax(150px, 1fr) 100px minmax(150px, 2fr) 50px 65px;
             grid-auto-rows: min-content;
             align-content: flex-start;
             gap: 0;
             
             overflow-y: auto;
             @include scrollbar();
+
+            &.invoice {
+                grid-template-columns: 80px minmax(160px, 2fr) minmax(150px, 1fr) 100px minmax(150px, 2fr) minmax(100px, 1fr) 50px 65px;
+            }
     
             & .table-span {
                 border: 1px solid var(--ev-colors-borderColor);
