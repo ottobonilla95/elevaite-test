@@ -64,3 +64,20 @@ function getRandomInRange(min: number, max: number): number {
 
 const LOREM = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ut turpis est. Quisque dictum libero eu auctor tristique. Cras tincidunt blandit iaculis. Aliquam erat volutpat. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Vestibulum ac neque lacinia, maximus purus in, sodales neque. Nulla convallis aliquam sem, a iaculis augue porta vitae. Donec gravida magna ut odio egestas feugiat. Ut quis neque volutpat dui interdum fringilla. Pellentesque id tincidunt nulla. Suspendisse varius, turpis a commodo ultricies, urna elit faucibus nunc, a sollicitudin risus risus cursus nisi. Nulla sit amet magna faucibus mi dictum facilisis vitae ut eros.
 In vel ultrices massa, et feugiat ex. Proin vel odio lorem. Nunc dignissim quam dolor, quis mollis dolor dignissim vitae. Morbi ut condimentum felis, at posuere massa. Sed aliquam elit dignissim, sagittis libero a, cursus tellus. Ut non placerat elit. Aliquam scelerisque urna a nunc ornare, eget dapibus dolor gravida. Phasellus rutrum venenatis bibendum.`
+
+
+export function extractMediaUrls(response: string): string[] {
+    const mediaUrlRegex = /https?:\/\/[^\s"'<>]+/g; // Regex to find clean URLs
+    const matches = response.match(mediaUrlRegex) || []; // Get matches or an empty array
+    return matches.map(url => url.replace(/&quot;/g, '')); // Remove HTML entities like &quot;
+}
+
+export function extractMediaNames(response: string): string[] {
+    const regex = /<td class="brand_name">(.*?)<\/td>\s*<td class="product_name">(.*?)<\/td>/g;
+    const matches: string[] = [];
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(response)) !== null) {
+        matches.push(`${match[1]} - ${match[2]}`);
+    }
+    return matches;
+}

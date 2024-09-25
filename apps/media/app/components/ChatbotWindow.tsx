@@ -6,13 +6,10 @@ import { ChatMessage } from "./ChatMessage";
 import "./ChatbotWindow.scss";
 import { SessionSummary } from "./SessionSummary";
 
-
-
 export function ChatbotWindow(): JSX.Element {
     const chatContext = useContext(ChatContext);
-    const messageListRef = useRef<HTMLDivElement|null>(null);
+    const messageListRef = useRef<HTMLDivElement | null>(null);
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
-
 
     useEffect(() => {
         if (chatContext.selectedSession?.messages.length && chatContext.selectedSession.messages.length > 0) {
@@ -42,8 +39,6 @@ export function ChatbotWindow(): JSX.Element {
         handleClose();
     }
 
-
-
     return (
         <div className="chatbot-window-container">
 
@@ -65,29 +60,22 @@ export function ChatbotWindow(): JSX.Element {
                 <span>{chatContext.selectedSession?.label}</span>
             </div>
 
-
             <div className="chatbot-window-scroller">
-
                 <div className="chatbot-window-message-list" ref={messageListRef}>
-
                     {chatContext.selectedSession?.messages.length === 0 ? null :
                         chatContext.selectedSession?.messages.map(message => 
                             <ChatMessage key={message.id} {...message} />
                         )
                     }
-
                 </div>
-
             </div>
 
             {!chatContext.isChatLoading ? null : 
                 <div className="chatbot-window-loader">
-                    <LoadingBar/>
+                    <LoadingBar />
                     <span>{chatContext.chatLoadingMessage ? chatContext.chatLoadingMessage : "\u200B"}</span>
                 </div>
             }
-
-
         </div>
     );
 }

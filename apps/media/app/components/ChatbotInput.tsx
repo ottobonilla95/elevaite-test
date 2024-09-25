@@ -64,7 +64,7 @@ export function ChatbotInput(): JSX.Element {
             />
 
             <CommonButton
-                className="summarize-button"
+                className=".export-button"
                 overrideClass
                 onClick={handleExport}
                 // disabled={chatContext.isChatLoading}

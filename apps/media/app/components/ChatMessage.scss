@@ -56,7 +56,6 @@ $profile-backdrop-bot: #585679;
         }
 
 
-
         & .details-container {
             display: flex;
             align-items: center;
@@ -136,6 +135,7 @@ $profile-backdrop-bot: #585679;
                     }
                 }
             }
+            
         }
 
 
@@ -151,6 +151,24 @@ $profile-backdrop-bot: #585679;
 
             & .feedback-accordion {
                 overflow: hidden;
+            }
+        }
+
+        & .show-creatives-button {
+            height: 40px;
+            min-width: 120px; // Adjust as needed
+            justify-content: center;
+            gap: 15px;
+            padding: 0 20px;
+            font-weight: 600;
+            background-color: var(--ev-colors-primary);
+            border: 1px solid var(--ev-colors-borderColor);
+            color: var(--ev-colors-text); 
+    
+            &:hover {
+                background-color: var(--ev-colors-secondary); // Optional hover effect
+                color: var(--ev-colors-text); 
+                & > svg { color: var(--ev-colors-highlight); }
             }
         }
 

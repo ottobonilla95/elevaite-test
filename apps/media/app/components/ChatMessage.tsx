@@ -12,16 +12,19 @@ import { ChatContext } from "../ui/contexts/ChatContext";
 import "./ChatMessage.scss";
 import { ChatMessageFeedback } from "./ChatMessageFeedback";
 import { ChatMessageFiles } from "./ChatMessageFiles";
-
-
+import { extractMediaUrls , extractMediaNames} from '../lib/testData';
+import Modal from "./Modal.tsx"; // Import the Modal component
 
 export function ChatMessage(props: ChatMessageObject): JSX.Element {
   const chatContext = useContext(ChatContext);
   const filesButtonRef = useRef<HTMLButtonElement | null>(null);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isFilesOpen, setIsFilesOpen] = useState(false);
-
-
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
+  const [mediaNames, setmediaNames] = useState<string[]>([]);
+  const [mediaTypes, setMediaTypes] = useState<('image' | 'video')[]>([]);
 
   function handleVote(vote: 1 | -1): void {
     const newVote = props.vote === vote ? 0 : vote;
@@ -37,14 +40,26 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
     setIsFilesOpen((current) => !current);
   }
 
-
+  function handleShowCreatives(): void {
+    if (chatContext.latestResponse) {
+        const urls = extractMediaUrls(chatContext.latestResponse);
+        const names = extractMediaNames(chatContext.latestResponse);
+        if (urls.length > 0) {
+            const types = urls.map(url => url.endsWith('.mp4') ? 'video' : 'image');
+            setMediaUrls(urls);
+            setmediaNames(names);
+            setMediaTypes(types);
+            setIsModalOpen(true);
+        }
+    }
+}
 
   return (
     <div
       className={["chat-message-container", props.isBot ? "bot" : undefined]
         .filter(Boolean)
         .join(" ")}
-    >
+    > 
       <div className="profile-image-container">
         <div
           className={["profile-image-backdrop", props.isBot ? "bot" : undefined]
@@ -63,7 +78,7 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
         <div className="details-container">
           {props.isBot ? (
             <span>
-              elevAIte AdPlan
+              ELEV<span className="highlight">AI</span>TE
             </span>
           ) : (
             <span>{props.userName}</span>
@@ -80,6 +95,16 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
 
         {!props.isBot ? null : (
           <div className="controls-container">
+            
+            {/* Show Creatives Button */}
+            <CommonButton
+              onClick={handleShowCreatives}
+              className="show-creatives-button"
+            >
+              <ChatbotIcons.SVGDocument />
+              Show Creatives
+            </CommonButton>
+
             <div className="voting-buttons">
               <CommonButton
                 className={props.vote === 1 ? "active" : ""}
@@ -125,7 +150,7 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
                 ignoredRefs={[filesButtonRef]}
               >
                 <div
-                  className={[
+                  className={[ 
                     "files-dropdown-container",
                     isFilesOpen ? "open" : undefined,
                   ]
@@ -143,7 +168,7 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
 
         {!props.isBot ? null : (
           <div
-            className={[
+            className={[ 
               "feedback-container",
               isFeedbackOpen ? "open" : undefined,
             ]
@@ -160,6 +185,17 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
           </div>
         )}
       </div>
+
+      {/* Modal to show media */}
+      {isModalOpen && (
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          mediaUrls={mediaUrls}
+          mediaTypes={mediaTypes}
+          mediaNames={mediaNames}
+        />
+      )}
     </div>
   );
 }
