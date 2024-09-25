@@ -90,22 +90,37 @@ export async function submitContract(projectId: string, formData: FormData, type
   const url = new URL(`${CONTRACTS_URL}/project/${projectId}/files/`);
   url.searchParams.set("content_type", type);
 
-  const response = await fetch(url, {
-    method: "POST",
-    body: formData,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, 360000); // 6 minutes
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      body: formData,
+      signal: controller.signal,
+    });
 
-  revalidateTag(cacheTags.contractProjects);
-  if (!response.ok) {
-    // if (response.status === 422) {
+    revalidateTag(cacheTags.contractProjects);
+
+    if (!response.ok) {
+      // if (response.status === 422) {
       const errorData: unknown = await response.json();
       // eslint-disable-next-line no-console -- Need this in case this breaks like that.
       console.dir(errorData, { depth: null });
-    // }
-    throw new Error("Failed to submit contract");
-  }
-  const data: unknown = await response.json();
-  if (isSubmitContractResponse(data)) return data;
-  throw new Error("Invalid data type");
-}
+      // }
+      throw new Error("Failed to submit contract");
+    }
 
+    const data: unknown = await response.json();
+    if (isSubmitContractResponse(data)) return data;
+    throw new Error("Invalid data type");
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error("Request timed out");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout); // clear the timeout once the request completes
+  }
+}
