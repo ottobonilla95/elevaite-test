@@ -101,7 +101,7 @@ export function ContractUpload(props: ContractUploadProps): JSX.Element {
                         ref={hiddenFileInput}
                         className="hidden-input"
                         type="file"
-                        accept="application/pdf"
+                        accept=".pdf,.doc,.docx"
                         onChange={handleFileChange}
                     />
                     <CommonButton

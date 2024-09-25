@@ -43,6 +43,13 @@
             }
         }
 
+        & .verification-comments {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-size: 14px;
+        }
+
         & .verification-icon {
             margin-right: 10px;
             &.success { color: var(--ev-colors-success); }

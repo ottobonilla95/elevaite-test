@@ -74,6 +74,11 @@
         padding-right: 10px;
         @include scrollbar();
 
+        & .no-file {
+            padding: 50px;
+            color: var(--ev-colors-secondaryText);
+        }
+
         & .loading {
             display: flex;
             justify-content: center;

@@ -503,9 +503,11 @@ export interface ContractObject {
     filesize: number; // Bytes
     file_ref: File|string|null; // Url
     response: ContractExtractionDictionary|null;
+    response_comments?: string[];
     po_number?: string|null;
     supplier?: string|null;
     verification?: ContractObjectVerification;
+    line_items?: ContractObjectVerificationLineItem[];
     highlight?: ContractObjectEmphasis;
     tags?: string[];
     creation_date: string;
@@ -521,6 +523,25 @@ export interface ContractObjectEmphasis {
     rec_charges: string|null;
     non_rec_charges: string|null;
     total_amount: string|null;
+}
+
+export interface ContractObjectVerificationLineItem {
+    id: number;
+    action: string;
+    amount: number;
+    description: string;
+    need_by_date: string;
+    part_number: string;
+    quantity: string;
+    unit_price: number;
+    verification: ContractObjectVerificationLineItemVerification;
+}
+
+export interface ContractObjectVerificationLineItemVerification {
+    verification_status: boolean;
+    vsow: boolean;
+    po: boolean;
+    invoice: boolean;
 }
 
 export interface ContractObjectVerification {

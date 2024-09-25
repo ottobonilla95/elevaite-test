@@ -11,11 +11,9 @@ import { CONTRACT_TYPES, type ContractExtractionDictionary, type ContractExtract
 import "./PdfDisplay.scss";
 
 
-
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 
-const fallbackUrl = "/testPdf.pdf";
 
 interface PdfTabs {
     value: CONTRACT_TYPES,
@@ -109,17 +107,18 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                 url.searchParams.set("key", file);
                 const response = await fetch(url, {method: "GET"});
                 const blob = await response.blob();
-                const newBlob = new Blob([blob]);
-                file = newBlob;
+                file = blob;
             }
-            const reader = new FileReader();
-            reader.onload = (event: ProgressEvent<FileReader>) => {
-                if (event.target?.result) {
-                    setPdfData(event.target.result as string);
-                } else setPdfData(fallbackUrl);
-            };
-            reader.readAsDataURL(file);
-        } else setPdfData(fallbackUrl);
+            if (file.type === "application/pdf") {
+                const reader = new FileReader();
+                reader.onload = (event: ProgressEvent<FileReader>) => {
+                    if (event.target?.result) {
+                        setPdfData(event.target.result as string);
+                    } else setPdfData(undefined);
+                };
+                reader.readAsDataURL(file);
+            } else setPdfData(undefined);
+        } else setPdfData(undefined);
         setIsLoading(false);
     }
 
@@ -309,40 +308,42 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                     </CommonButton>
                     <span>Preview</span>
                 </div>
-                <div className="controls-box">
-                    <CommonButton
-                        onClick={() => { handleZoom("out"); }}
-                        noBackground
-                        disabled={pdfZoom !== undefined && pdfZoom <= 0.1}
-                        title="Zoom out"
-                    >
-                        <ElevaiteIcons.SVGZoom type="out" />
-                    </CommonButton>
-                    <CommonButton
-                        className="reset"
-                        onClick={() => { handleZoom("reset"); }}
-                        noBackground
-                        title="Reset zoom"
-                    >
-                        {pdfZoom ? `${(pdfZoom * 100).toFixed(0).toString()} %` : "100%"}
-                    </CommonButton>
-                    <CommonButton
-                        onClick={() => { handleZoom("in"); }}
-                        noBackground
-                        disabled={pdfZoom !== undefined && pdfZoom >= 3}
-                        title="Zoom in"
-                    >
-                        <ElevaiteIcons.SVGZoom/>
-                    </CommonButton>
-                    <CommonButton
-                        className={["expansion-arrow", props.isExpanded ? "expanded" : undefined].filter(Boolean).join(" ")}
-                        onClick={handleExpansion}
-                        noBackground
-                        title="Maximize pdf view"
-                    >
-                        <ElevaiteIcons.SVGSideArrow />
-                    </CommonButton>
-                </div>
+                {!pdfData ? undefined :
+                    <div className="controls-box">
+                        <CommonButton
+                            onClick={() => { handleZoom("out"); }}
+                            noBackground
+                            disabled={pdfZoom !== undefined && pdfZoom <= 0.1}
+                            title="Zoom out"
+                        >
+                            <ElevaiteIcons.SVGZoom type="out" />
+                        </CommonButton>
+                        <CommonButton
+                            className="reset"
+                            onClick={() => { handleZoom("reset"); }}
+                            noBackground
+                            title="Reset zoom"
+                        >
+                            {pdfZoom ? `${(pdfZoom * 100).toFixed(0).toString()} %` : "100%"}
+                        </CommonButton>
+                        <CommonButton
+                            onClick={() => { handleZoom("in"); }}
+                            noBackground
+                            disabled={pdfZoom !== undefined && pdfZoom >= 3}
+                            title="Zoom in"
+                        >
+                            <ElevaiteIcons.SVGZoom/>
+                        </CommonButton>
+                        <CommonButton
+                            className={["expansion-arrow", props.isExpanded ? "expanded" : undefined].filter(Boolean).join(" ")}
+                            onClick={handleExpansion}
+                            noBackground
+                            title="Maximize pdf view"
+                        >
+                            <ElevaiteIcons.SVGSideArrow />
+                        </CommonButton>
+                    </div>
+                }
             </div>
 
             <div className="tabs-container">
@@ -367,6 +368,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                 onScroll={onScroll}
             >
                 {isLoading ? <div className="loading large"><ElevaiteIcons.SVGSpinner/></div> :
+                    !pdfData ? <div className="no-file">No pdf attached.</div> :
                     <Document
                         file={pdfData}
                         onLoadSuccess={getPagesAmount}
@@ -392,38 +394,40 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                 }
             </div>
 
-            <div className="pdf-controls-container">
-                <div className="page-display">
-                    <span>Page:</span>
-                    <div className="page-input-container">
-                        <div className="page-number">{pageNumber}</div>
-                        <SimpleInput
-                            value={inputNumber}
-                            onChange={handleInputNumber}
-                            onBlur={handleInputBlur}
-                            onKeyDown={handleKeyDown}
-                        />
+            {!pdfData ? undefined :
+                <div className="pdf-controls-container">
+                    <div className="page-display">
+                        <span>Page:</span>
+                        <div className="page-input-container">
+                            <div className="page-number">{pageNumber}</div>
+                            <SimpleInput
+                                value={inputNumber}
+                                onChange={handleInputNumber}
+                                onBlur={handleInputBlur}
+                                onKeyDown={handleKeyDown}
+                            />
+                        </div>
+                        <span>/ {pagesAmount}</span>
                     </div>
-                    <span>/ {pagesAmount}</span>
+
+
+                    <div className="page-buttons">
+                        <CommonButton
+                            onClick={previousPage}
+                            disabled={pageNumber <= 1}
+                        >
+                            <ElevaiteIcons.SVGChevron type="right" />
+                        </CommonButton>
+                        <CommonButton
+                            onClick={nextPage}
+                            disabled={!pagesAmount || pageNumber >= pagesAmount}
+                        >
+                            <ElevaiteIcons.SVGChevron type="right" />
+                        </CommonButton>
+                    </div>
+
                 </div>
-
-
-                <div className="page-buttons">
-                    <CommonButton
-                        onClick={previousPage}
-                        disabled={pageNumber <= 1}
-                    >
-                        <ElevaiteIcons.SVGChevron type="right" />
-                    </CommonButton>
-                    <CommonButton
-                        onClick={nextPage}
-                        disabled={!pagesAmount || pageNumber >= pagesAmount}
-                    >
-                        <ElevaiteIcons.SVGChevron type="right" />
-                    </CommonButton>
-                </div>
-
-            </div>
+            }
             
         </div>
     );
