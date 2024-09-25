@@ -6,6 +6,8 @@ import { CONTRACT_STATUS, type CONTRACT_TYPES, type ContractExtractionDictionary
 
 
 
+const REFETCH_TIME_IN_MILLISECONDS = 10000;
+
 
 
 // STATIC OBJECTS
@@ -96,10 +98,14 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
 
 
 
+    useInterval(() => { 
+        void actionFetchProjectsList(true);
+     }, REFETCH_TIME_IN_MILLISECONDS);
+
+
     useEffect(() => {
         void actionFetchProjectsList();
     }, []);
-
 
     useEffect(() => {
         if (!selectedProject) return;
@@ -132,6 +138,30 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
         if (!hasCurrentContractFailed) return;
         changeStatusToContractInList(hasCurrentContractFailed, CONTRACT_STATUS.FAILED);
     }, [hasCurrentContractFailed]);
+
+
+
+    
+    function useInterval(callback: () => void, delay: number): void {
+        const savedCallback = useRef<() => void>();      
+        // Remember the latest callback.
+        useEffect(() => {
+            savedCallback.current = callback;
+        }, [callback]);
+      
+        // Set up the interval.
+        useEffect(() => {
+            function tick(): void {
+                if (savedCallback.current) {
+                    savedCallback.current();
+                }
+            }
+          const intervalId = setInterval(tick, delay);
+          return () => { clearInterval(intervalId); };
+        }, [delay]);
+    }
+
+
 
 
 
@@ -317,9 +347,9 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
         }
     }
 
-    async function actionFetchProjectsList(): Promise<void> {
+    async function actionFetchProjectsList(noLoading?: boolean): Promise<void> {
         try {
-            setLoading(current => { return {...current, projects: true}} );
+            if (!noLoading) setLoading(current => { return {...current, projects: true}} );
             
             const projectsListResults = await getContractProjectsList();
             setProjects(projectsListResults);
@@ -327,7 +357,7 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in fetching contract projects:", error);
         } finally {
-            setLoading(current => { return {...current, projects: false}} );
+            if (!noLoading) setLoading(current => { return {...current, projects: false}} );
         }
     }
 
