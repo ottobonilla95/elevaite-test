@@ -28,6 +28,7 @@ export function PdfExtraction(): JSX.Element {
         if (contractsContext.selectedContract?.response) {
             setExtractedBits(getExtractedBits(contractsContext.selectedContract.response));
         } else setExtractedBits([]);
+        if (!contractsContext.selectedContract?.verification) setSelectedTab(ExtractionTabs.EXTRACTION);
     }, [contractsContext.selectedContract, contractsContext.selectedContract?.response]);
 
 

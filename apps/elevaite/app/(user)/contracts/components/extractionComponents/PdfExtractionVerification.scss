@@ -8,6 +8,9 @@
 
 
     & .no-verification {
+        display: flex;
+        align-items: center;
+        gap: 20px;
         padding: 40px;
         color: var(--ev-colors-secondaryText);
     }

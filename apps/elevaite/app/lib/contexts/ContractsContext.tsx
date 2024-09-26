@@ -112,15 +112,21 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
         const newSelection = projects.find(item => item.id === selectedProject.id);
         setSelectedProject(newSelection);
         if (updateSelectedContract.current) {
-            setSelectedContractById(updateSelectedContract.current);
+            if (selectedContract) setSelectedContractById(updateSelectedContract.current);
             updateSelectedContract.current = undefined;
         }
     }, [projects]);
 
 
-    // useEffect(() => {
-    //     console.log("Selected Project", selectedProject);
-    // }, [selectedProject]);
+    useEffect(() => {
+        if (!selectedProject || !selectedContract) return;
+        const foundSelectedContract = selectedProject.reports.find(contract => contract.id === selectedContract.id);
+        if (foundSelectedContract) {
+            if (foundSelectedContract.status !== selectedContract.status) {
+                setSelectedContractById(foundSelectedContract.id);
+            }
+        }
+    }, [selectedProject]);
 
     useEffect(() => {
         if (selectedContract)

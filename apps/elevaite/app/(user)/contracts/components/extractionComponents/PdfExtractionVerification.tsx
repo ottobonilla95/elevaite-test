@@ -2,7 +2,7 @@ import { CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { isObject } from "../../../../lib/actions/generalDiscriminators";
 import { useContracts } from "../../../../lib/contexts/ContractsContext";
-import { CONTRACT_TYPES, type ContractObjectVerification, type ContractObjectVerificationItem } from "../../../../lib/interfaces";
+import { CONTRACT_STATUS, CONTRACT_TYPES, type ContractObjectVerification, type ContractObjectVerificationItem } from "../../../../lib/interfaces";
 import "./PdfExtractionVerification.scss";
 import { VerificationLineItems } from "./VerificationLineItems";
 
@@ -23,7 +23,11 @@ export function PdfExtractionVerification(): JSX.Element {
     return (
         <div className="pdf-extraction-verification-container">
 
-            {!verificationData ? 
+            {contractsContext.selectedContract?.status === CONTRACT_STATUS.PROCESSING ? 
+                <div className="no-verification">
+                    <ElevaiteIcons.SVGSpinner/><span>Verification in progress...</span>
+                </div>
+            : !verificationData || (!verificationData.po && !verificationData.invoice.length && !verificationData.vsow.length) ?
                     <div className="no-verification">
                         There is no verification data for this document.
                     </div>
