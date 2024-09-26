@@ -18,7 +18,7 @@ interface VerificationLineItemsProps {
 }
 
 export function VerificationLineItems(props: VerificationLineItemsProps): JSX.Element {
-    const headers = ["No.", "Amount", "Quantity", "Unit Price", "Part Number", "Need by", "Description"];
+    const headers = ["Ver.", "Amount", "Quantity", "Unit Price", "Part Number", "Need by", "Description"];
     const [tableData, setTableData] = useState<TableDataItem[]>();
 
 
@@ -75,7 +75,7 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
                                                     `VSOW: ${row.verification.vsow ? "Verified" : "Failed"}\nPO: ${row.verification.po ? "Verified" : "Failed"}\nInvoice: ${row.verification.invoice ? "Verified" : "Failed"}\n`
                                                 }
                                             >
-                                                <div>{cell !== null ? cell.toString() : ""}</div>
+                                                {/* <div>{cell !== null ? cell.toString() : ""}</div> */}
                                                 {row.verification.verification_status ? <ElevaiteIcons.SVGCheckmark/> : <ElevaiteIcons.SVGXmark/>}
                                             </div>
                                         :
