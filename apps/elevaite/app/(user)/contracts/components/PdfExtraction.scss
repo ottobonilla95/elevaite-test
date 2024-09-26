@@ -77,6 +77,21 @@
         }
     }
 
+
+
+
+}
+
+
+.invoice-approval-dialog-contents {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    & .warning {
+        color: var(--ev-colors-danger);
+        text-align: end;
+    }
 }
 
 

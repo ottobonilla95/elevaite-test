@@ -161,11 +161,15 @@ export function PdfExtraction(): JSX.Element {
                     title={`Approve ${contractsContext.selectedContract.content_type}?`}
 
                     onConfirm={confimedApproval}
+                    disableConfirm
                     onCancel={() => { setIsApprovalConfirmationOpen(false); }}
                 >
-                    <span>
-                        You will manually approve {contractsContext.selectedContract.content_type} {contractsContext.selectedContract.label ?? contractsContext.selectedContract.filename}
-                    </span>
+                    <div className="invoice-approval-dialog-contents">
+                        <div>
+                            You will manually approve {contractsContext.selectedContract.content_type} {contractsContext.selectedContract.label ?? contractsContext.selectedContract.filename}
+                        </div>
+                        <div className="warning">This functionality has not been implemented yet.</div>
+                    </div>
                 </CommonDialog>
             }
 
