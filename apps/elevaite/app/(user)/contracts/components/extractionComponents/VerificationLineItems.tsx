@@ -7,7 +7,7 @@ import "./VerificationLineItems.scss";
 
 
 interface TableDataItem {
-    value: (string | number)[];
+    value: (string | number | null)[];
     verification: ContractObjectVerificationLineItemVerification;
 }
 
@@ -75,13 +75,13 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
                                                     `VSOW: ${row.verification.vsow ? "Verified" : "Failed"}\nPO: ${row.verification.po ? "Verified" : "Failed"}\nInvoice: ${row.verification.invoice ? "Verified" : "Failed"}\n`
                                                 }
                                             >
-                                                <div>{cell ? cell.toString() : ""}</div>
+                                                <div>{cell !== null ? cell.toString() : ""}</div>
                                                 {row.verification.verification_status ? <ElevaiteIcons.SVGCheckmark/> : <ElevaiteIcons.SVGXmark/>}
                                             </div>
                                         :
                                             <SimpleInput
-                                                value={cell ? cell.toString() : ""}
-                                                title={cell && cell.toString().length > 30 ? cell.toString() : ""}
+                                                value={cell !== null ? cell.toString() : ""}
+                                                title={cell !== null && cell.toString().length > 30 ? cell.toString() : ""}
                                                 disabled
                                             />
                                         }
