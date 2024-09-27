@@ -6,7 +6,8 @@ import "./ExtractedBit.scss";
 interface ExtractedBitProps {
     label: string;
     value: string; 
-    onChange: (label: string, newValue: string) => void;
+    onChange?: (label: string, newValue: string) => void;
+    disabled?: boolean;
 }
 
 export function ExtractedBit(props: ExtractedBitProps): JSX.Element {
@@ -14,7 +15,7 @@ export function ExtractedBit(props: ExtractedBitProps): JSX.Element {
 
     function handleChange(text :string): void {
         setManualValue(text);
-        props.onChange(props.label, text);
+        if (props.onChange) props.onChange(props.label, text);
     }
 
     return (
@@ -31,6 +32,7 @@ export function ExtractedBit(props: ExtractedBitProps): JSX.Element {
                     placeholder={!props.value ? "Value not found. Insert manually" : ""}
                     rows={Math.min(Math.ceil(manualValue.length / 70), 5)}
                     // title={manualValue.length > 30 ? manualValue: ""}
+                    disabled={props.disabled}
                 />
             :
                 <SimpleInput
@@ -38,6 +40,7 @@ export function ExtractedBit(props: ExtractedBitProps): JSX.Element {
                     onChange={handleChange}
                     useCommonStyling
                     placeholder={!props.value ? "Value not found. Insert manually" : ""}
+                    disabled={props.disabled}
                 />
             }
         </div>

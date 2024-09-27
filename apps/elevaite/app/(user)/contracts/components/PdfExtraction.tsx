@@ -16,8 +16,12 @@ enum ExtractionTabs {
 };
 
 
+interface PdfExtractionProps {
+    handleExpansion: () => void;
+    isExpanded: boolean;
+}
 
-export function PdfExtraction(): JSX.Element {
+export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
     const contractsContext = useContracts();
     const [extractedBits, setExtractedBits] = useState<JSX.Element[]>([]);
     const [isApprovalConfirmationOpen, setIsApprovalConfirmationOpen] = useState(false);
@@ -48,6 +52,10 @@ export function PdfExtraction(): JSX.Element {
         setIsApprovalConfirmationOpen(true);
     }
 
+    function handleExpansion(): void {
+        props.handleExpansion();
+    }
+
     function confimedApproval(): void {        
         console.log("Handling manual approval of", contractsContext.selectedContract?.label ?? contractsContext.selectedContract?.filename);
         setIsApprovalConfirmationOpen(false);
@@ -69,14 +77,23 @@ export function PdfExtraction(): JSX.Element {
                                 value={value}
                                 onChange={(changeLabel, changeText) => { handleBitChange(pageKey, changeLabel, changeText); }}
                             />);
-                } else {
+                } else if (Array.isArray(value)) {
+                    bits.push(<ExtractedBit
+                        key={pageKey + label}
+                        label={label}
+                        value={`- ${value.join("\n- ")}`}
+                        disabled
+                    />);
+                } else if (label.startsWith("Line Item")){
                     lineItems.push(value);
-                    // bits.push(<ExtractedTableBit
-                    //             key={pageKey + label}
-                    //             label={label}
-                    //             data={value}
-                    //             onTableChange={(changeLabel, changeText) => { handleTableBitChange(pageKey, changeLabel, changeText); }}
-                    //         />);
+                } else { // Dictionary keys that don't start with "Line Item"
+                    bits.push(<ExtractedTableBit
+                                key={pageKey + label}
+                                label={label}
+                                data={[value]}
+                                onTableChange={(changeLabel, changeText) => { handleTableBitChange(pageKey, changeLabel, changeText); }}
+                                hideNumber
+                            />);
                 }
           });
         });
@@ -96,27 +113,37 @@ export function PdfExtraction(): JSX.Element {
         <div className="pdf-extraction-container">
 
             <div className="pdf-extraction-header">
-                <div className="tabs-container">
+                <div className="pdf-extraction-controls">
                     <CommonButton
-                        className={[
-                            "tab-button",
-                            selectedTab === ExtractionTabs.EXTRACTION ? "active" : undefined,
-                        ].filter(Boolean).join(" ")}                        
-                        onClick={() => { setSelectedTab(ExtractionTabs.EXTRACTION) }}
+                        className={["expansion-arrow", props.isExpanded ? "expanded" : undefined].filter(Boolean).join(" ")}
+                        onClick={handleExpansion}
+                        noBackground
+                        title={props.isExpanded ? "Restore views" : "Maximize Extraction / Verification view"}
                     >
-                        {ExtractionTabs.EXTRACTION}
+                        <ElevaiteIcons.SVGSideArrow />
                     </CommonButton>
-                    {!contractsContext.selectedContract?.verification ? undefined : 
+                    <div className="tabs-container">
                         <CommonButton
                             className={[
                                 "tab-button",
-                                selectedTab === ExtractionTabs.VERIFICATION ? "active" : undefined,
+                                selectedTab === ExtractionTabs.EXTRACTION ? "active" : undefined,
                             ].filter(Boolean).join(" ")}                        
-                            onClick={() => { setSelectedTab(ExtractionTabs.VERIFICATION) }}
+                            onClick={() => { setSelectedTab(ExtractionTabs.EXTRACTION) }}
                         >
-                            {ExtractionTabs.VERIFICATION}
+                            {ExtractionTabs.EXTRACTION}
                         </CommonButton>
-                    }
+                        {!contractsContext.selectedContract?.verification ? undefined : 
+                            <CommonButton
+                                className={[
+                                    "tab-button",
+                                    selectedTab === ExtractionTabs.VERIFICATION ? "active" : undefined,
+                                ].filter(Boolean).join(" ")}                        
+                                onClick={() => { setSelectedTab(ExtractionTabs.VERIFICATION) }}
+                            >
+                                {ExtractionTabs.VERIFICATION}
+                            </CommonButton>
+                        }
+                    </div>
                 </div>
                 {contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE ? undefined :
                  contractsContext.selectedContract.verification?.verification_status === true ? 

@@ -32,6 +32,18 @@
             padding: 0 0 0 20px;
             font-size: 16px;
             border-bottom: 1px solid var(--ev-colors-borderColor);
+
+            &.expanded {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 10px;
+
+                & button > svg {
+                    height: 18px;
+                    width: 18px;
+                }
+            }
         }
 
         & .no-info {

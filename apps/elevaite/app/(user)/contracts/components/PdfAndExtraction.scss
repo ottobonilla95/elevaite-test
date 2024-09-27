@@ -10,12 +10,21 @@
     transition: grid-template-columns 200ms ease-in-out, column-gap 200ms ease-in-out;
 
     &.expanded {
-        grid-template-columns: 100% 0fr;
         column-gap: 0;
-
-        & .pdf-extraction-container {
-            padding-left: 0;
-            padding-right: 0;
+        &.pdf {
+            grid-template-columns: 100% 0fr;
+            & .pdf-extraction-container {
+                padding-left: 0;
+                padding-right: 0;
+            }
         }
+        &.data {
+            grid-template-columns: 0 100%;
+            & .pdf-display-container {
+                padding-left: 0;
+                padding-right: 0;
+            }
+        }
+
     }
 }

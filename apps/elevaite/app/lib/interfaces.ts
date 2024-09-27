@@ -565,7 +565,7 @@ export interface VerificationItem {
     value?: string;
 }
 
-export type ContractExtractionPageItem = string | Record<string, string>;
+export type ContractExtractionPageItem = string | string[] | Record<string, string>;
 export type ContractExtractionPage = Record<string, ContractExtractionPageItem> & Record<`Line Item ${number}`, Record<string, string>>;
 export type ContractExtractionDictionary = Record<`page_${number}`, ContractExtractionPage>;
 

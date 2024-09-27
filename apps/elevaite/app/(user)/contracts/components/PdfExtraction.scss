@@ -7,7 +7,7 @@
     flex-direction: column;
     gap: 20px;
     border-radius: 8px;
-    padding: 20px;
+    padding: 10px 20px;
     background-color: var(--ev-colors-primary);
     transition: padding 200ms ease-in-out;
 
@@ -25,6 +25,28 @@
             align-items: center;
             gap: 10px;
             color: var(--ev-colors-success);
+        }
+        
+        & .pdf-extraction-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+
+            & .tab-button {
+                padding: 5px 20px;
+            }
+        }
+
+        & .expansion-arrow {
+            & > svg {
+                height: 20px;
+                width: 20px;
+                transition: transform 200ms ease-in-out;
+                transform: rotateY(180deg);
+            }
+            &.expanded > svg {
+                transform: rotateY(0);
+            }
         }
 
         & > button {

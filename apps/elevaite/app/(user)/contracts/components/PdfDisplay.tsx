@@ -7,7 +7,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { useResizeDetector } from "react-resize-detector";
 import { useContracts } from "../../../lib/contexts/ContractsContext";
 import { useDebouncedCallback } from "../../../lib/helpers";
-import { CONTRACT_TYPES, type ContractExtractionDictionary, type ContractExtractionPage, type ContractExtractionPageItem, type ContractObject } from "../../../lib/interfaces";
+import { CONTRACT_TYPES, type ContractObject } from "../../../lib/interfaces";
 import "./PdfDisplay.scss";
 
 
@@ -48,7 +48,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     const [pageNumber, setPageNumber] = useState(1);
     const [inputNumber, setInputNumber] = useState("");
     const movePage = useRef(false);
-    const [highlightTerms, setHighlightTerms] = useState<string[]>([]);
+    // const [highlightTerms, setHighlightTerms] = useState<string[]>([]);
     const [pdfTabsArray, setPdfTabsArray] = useState<PdfTabs[]>(pdfTabsArrayDefault);
     const [selectedTab, setSelectedTab] = useState<CONTRACT_TYPES|undefined>();
 
@@ -122,35 +122,35 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         setIsLoading(false);
     }
 
-    function formatSearchTerms(data: ContractExtractionDictionary): void {
-        const searchTerms: string[] = [];
-        // Iterate over each page in the dictionary
-        Object.entries(data).forEach(([pageKey, page]: [string, ContractExtractionPage]) => {
-            // Add the page key to search terms
-            searchTerms.push(pageKey);
+    // function formatSearchTerms(data: ContractExtractionDictionary): void {
+    //     const searchTerms: string[] = [];
+    //     // Iterate over each page in the dictionary
+    //     Object.entries(data).forEach(([pageKey, page]: [string, ContractExtractionPage]) => {
+    //         // Add the page key to search terms
+    //         searchTerms.push(pageKey);
 
-            // Iterate over each item on the page
-            Object.entries(page).forEach(([itemKey, pageItem]: [string, ContractExtractionPageItem]) => {
-                // Add the item key to search terms
-                searchTerms.push(itemKey);
+    //         // Iterate over each item on the page
+    //         Object.entries(page).forEach(([itemKey, pageItem]: [string, ContractExtractionPageItem]) => {
+    //             // Add the item key to search terms
+    //             searchTerms.push(itemKey);
 
-                if (typeof pageItem === "string") {
-                    // If it's a string, add it directly as a search term
-                    searchTerms.push(pageItem);
-                } else if (Array.isArray(pageItem)) {
-                    // If it's an array of objects, collect all keys and values from the objects
-                    pageItem.forEach((obj: Record<string, string>) => {
-                        Object.entries(obj).forEach(([key, value]) => {
-                            searchTerms.push(key);
-                            searchTerms.push(value);
-                        });
-                    });
-                }
-            });
-        });
-        // console.log("Search Terms", searchTerms);
-        setHighlightTerms(searchTerms);
-    }
+    //             if (typeof pageItem === "string") {
+    //                 // If it's a string, add it directly as a search term
+    //                 searchTerms.push(pageItem);
+    //             } else if (Array.isArray(pageItem)) {
+    //                 // If it's an array of objects, collect all keys and values from the objects
+    //                 pageItem.forEach((obj: Record<string, string>) => {
+    //                     Object.entries(obj).forEach(([key, value]) => {
+    //                         searchTerms.push(key);
+    //                         searchTerms.push(value);
+    //                     });
+    //                 });
+    //             }
+    //         });
+    //     });
+    //     // console.log("Search Terms", searchTerms);
+    //     setHighlightTerms(searchTerms);
+    // }
 
     function onClose(): void {
         contractsContext.setSelectedContract(undefined);
@@ -288,10 +288,10 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         return processedText;
     }
 
-    const textRenderer = useCallback(
-        (textItem: {str: string}) => highlightPattern(textItem.str, highlightTerms),
-        [highlightTerms]
-    );
+    // const textRenderer = useCallback(
+    //     (textItem: {str: string}) => highlightPattern(textItem.str, highlightTerms),
+    //     [highlightTerms]
+    // );
 
 
 
@@ -338,7 +338,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                             className={["expansion-arrow", props.isExpanded ? "expanded" : undefined].filter(Boolean).join(" ")}
                             onClick={handleExpansion}
                             noBackground
-                            title="Maximize pdf view"
+                            title={props.isExpanded ? "Restore views" : "Maximize pdf view"}
                         >
                             <ElevaiteIcons.SVGSideArrow />
                         </CommonButton>
@@ -364,9 +364,10 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
 
             <div
                 ref={pageContainerRef}
-                className="pdf-display-contents"
+                className="pdf-display-scroller"
                 onScroll={onScroll}
             >
+                <div className="pdf-display-contents">
                 {isLoading ? <div className="loading large"><ElevaiteIcons.SVGSpinner/></div> :
                     !pdfData ? <div className="no-file">No pdf attached.</div> :
                     <Document
@@ -384,7 +385,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                                         pageNumber={index + 1}
                                         width={pageContainerWidth ? pageContainerWidth : 1}
                                         scale={pdfZoom}
-                                        customTextRenderer={textRenderer}
+                                        // customTextRenderer={textRenderer}
                                         loading={<div className="loading"><ElevaiteIcons.SVGSpinner/></div>}
                                     />
                                 </div>
@@ -392,6 +393,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                         )}
                     </Document>
                 }
+                </div>
             </div>
 
             {!pdfData ? undefined :

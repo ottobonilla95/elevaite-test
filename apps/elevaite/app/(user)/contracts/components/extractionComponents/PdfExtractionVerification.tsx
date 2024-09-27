@@ -1,4 +1,4 @@
-import { CommonInput, ElevaiteIcons } from "@repo/ui/components";
+import { CommonButton, CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { isObject } from "../../../../lib/actions/generalDiscriminators";
 import { useContracts } from "../../../../lib/contexts/ContractsContext";
@@ -12,6 +12,7 @@ import { VerificationLineItems } from "./VerificationLineItems";
 export function PdfExtractionVerification(): JSX.Element {
     const contractsContext = useContracts();
     const [verificationData, setVerificationData] = useState<ContractObjectVerification>();
+    const [isLineItemsFullScreen, setIsLineItemsFullScreen] = useState(false);
 
     
     useEffect(() => {
@@ -52,15 +53,27 @@ export function PdfExtractionVerification(): JSX.Element {
                         </div>
                     }
                     <div className="pdf-verification-block table">
-                        <div className="pdf-verification-label">
-                            Line Items
+                        <div className="pdf-verification-label expanded">
+                            <span>Line Items</span>                            
+                            {(!contractsContext.selectedContract?.line_items) || contractsContext.selectedContract.line_items.length === 0 ? undefined :
+                                <CommonButton
+                                    onClick={() => { setIsLineItemsFullScreen(true); }}
+                                    noBackground
+                                >
+                                    <ElevaiteIcons.SVGZoom/>
+                                </CommonButton>
+                            }
                         </div>
                         {(!contractsContext.selectedContract?.line_items) || contractsContext.selectedContract.line_items.length === 0 ? 
                             <div className="no-info">
                                 No line items.
                             </div>
                         :
-                            <VerificationLineItems lineItems={contractsContext.selectedContract.line_items} />
+                            <VerificationLineItems
+                                lineItems={contractsContext.selectedContract.line_items}
+                                fullScreen={isLineItemsFullScreen}
+                                onFullScreenClose={() => { setIsLineItemsFullScreen(false); }}
+                            />
                         }
                     </div>
                     {verificationData.vsow.length === 0 ? undefined
