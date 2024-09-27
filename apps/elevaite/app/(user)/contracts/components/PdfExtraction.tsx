@@ -85,8 +85,8 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
                         disabled
                     />);
                 // TODO: Handle non-string values (recursion of record type, OR pester the model team to be consistent)
-                } else if (label.startsWith("Line Item") && typeof value === "string") {
-                    lineItems.push(value);
+                } else if (label.startsWith("Line Item")) {
+                    lineItems.push(value as Record<string, string>);
                 } else if (typeof value === "string") { // Dictionary keys that don't start with "Line Item"
                     bits.push(<ExtractedTableBit
                                 key={pageKey + label}
