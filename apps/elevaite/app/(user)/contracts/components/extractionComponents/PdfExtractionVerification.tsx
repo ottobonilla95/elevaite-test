@@ -12,11 +12,13 @@ import { VerificationLineItems } from "./VerificationLineItems";
 export function PdfExtractionVerification(): JSX.Element {
     const contractsContext = useContracts();
     const [verificationData, setVerificationData] = useState<ContractObjectVerification>();
+    const [supplier, setSupplier] = useState<string|undefined>();
     const [isLineItemsFullScreen, setIsLineItemsFullScreen] = useState(false);
 
     
     useEffect(() => {
         setVerificationData(contractsContext.selectedContract?.verification);
+        setSupplier(contractsContext.selectedContract?.highlight?.supplier ? contractsContext.selectedContract.highlight.supplier : undefined);
     }, [contractsContext.selectedContract]);
 
 
@@ -46,7 +48,7 @@ export function PdfExtractionVerification(): JSX.Element {
                             :
                                 <>
                                     <VerificationBit data={verificationData.po} valueKey="po_number" label="PO Number" />
-                                    <VerificationBit data={verificationData.po} valueKey="supplier" label="Supplier" />
+                                    <VerificationBit data={verificationData.po} valueKey="supplier" label="Supplier" overrideValue={supplier} />
                                     <VerificationBit data={verificationData.po} valueKey="total_amount" label="Total Amount" />
                                 </>
                             }
@@ -85,7 +87,7 @@ export function PdfExtractionVerification(): JSX.Element {
                             {verificationData.vsow.map((vsow, index) => 
                                 <div className="fragment" key={`${vsow.file_id?.toString() ?? ""}_vsow_${index.toString()}`}>
                                     <VerificationBit data={vsow} valueKey="po_number" label="PO Number" />
-                                    <VerificationBit data={vsow} valueKey="supplier" label="Supplier" />
+                                    <VerificationBit data={vsow} valueKey="supplier" label="Supplier" overrideValue={supplier} />
                                     <VerificationBit data={vsow} valueKey="total_amount" label="Total Amount" />
                                 </div>
                             )}
@@ -100,7 +102,7 @@ export function PdfExtractionVerification(): JSX.Element {
                             {verificationData.invoice.map((invoice, index) => 
                                 <div className="fragment" key={`${invoice.file_id?.toString() ?? ""}_invoice_${index.toString()}`}>
                                     <VerificationBit data={invoice} valueKey="po_number" label="PO Number" />
-                                    <VerificationBit data={invoice} valueKey="supplier" label="Supplier" />
+                                    <VerificationBit data={invoice} valueKey="supplier" label="Supplier" overrideValue={supplier} />
                                     <VerificationBit data={invoice} valueKey="total_amount" label="Total Amount" />
                                 </div>
                             )}
@@ -141,6 +143,7 @@ export function PdfExtractionVerification(): JSX.Element {
 interface VerificationBitProps {
     data: ContractObjectVerificationItem;
     valueKey: keyof ContractObjectVerificationItem;
+    overrideValue?: string;
     label: string;
 }
 
@@ -151,10 +154,10 @@ function VerificationBit(props: VerificationBitProps): React.ReactNode {
     useEffect(() => {
         const item = props.data[props.valueKey];
         if (isObject(item)) {
-            setValue(item.value);
+            setValue(props.overrideValue ?? item.value);
             setIsVerified(item.verification_status);
         }
-    }, [props.data, props.valueKey]);
+    }, [props.data, props.valueKey, props.overrideValue]);
 
     return (
         !value || typeof value !== "string" ? undefined :
