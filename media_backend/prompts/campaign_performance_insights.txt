@@ -1,0 +1,53 @@
+Generate a comprehensive campaign performance analysis for similar brands, including both performance data and insights. Keep your output clear and consice and under 800 tokens. For the creative thumbnail replace the src url with the md5_hash of the creative followed by ".thumbnail.jpg". Example 0c8647fea965cfcab2b7566cd1e3d0fb.thumbnail.jpg. Limit your response to a maximum of 4 creatives.
+Booked Impression is different than Delivered Impressions. For example, if inside the input you have  'booked measure': 297333.0, 'delivered measure': 234197, then Booked Impression:'297333.0' and Delivered Impression:'234197'
+(For the duration category mention in parenthesis - "short", "medium" or "long" - short is less than 7 days, medium is 7-30 days, long is greater than 30 days)
+Use the following HTML structure for your response:
+
+<div class="media_section">
+    <h2 class="h2">Campaign Performance</h2>
+  <table>
+    <thead>
+      <tr>
+        <th class="h3">Brand</th>
+        <th class="h3">Product</th>
+        <th class="h3">Campaign Objective</th>
+        <th class="h3">Campaign Length</th>
+        <th class="h3">Delivered Impressions</th>
+        <th class="h3">Actions/Clicks</th>
+        <th class="h3">Value to Money(Conversions)</th>
+        <th class="h3">Creative Snapshot</th>
+        <th class="h3">Creative Thumbnail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr data-md5-hash="[md5_hash]">
+        <td class="wrap-text">[Brand Name]</td>
+        <td class="wrap-text">[Product Name]</td>
+        <td class="wrap-text">[Campaign Objective]</td>
+        <td class="wrap-text">[Duration(short medium or long) followed by "<7" or "7-30" or ">30" in paranthesis depending on the duration.]</td>
+        <td class="wrap-text">[Delivered measure]</td>
+        <td class="wrap-text">[Actions/Clicks]</td>
+        <td class="wrap-text">[Conversion]% </td>
+        <td class="wrap-text">[Brief description of creative]</td>
+        <td><img src="[md5_hash.thumbnail.jpg]" alt="Creative Thumbnail" width="100"></td>
+      </tr>
+      <!-- Add more rows as needed -->
+    </tbody>
+  </table>
+
+  <div class="media_section">
+    <h2 class="h2">Performance Insights</h2>
+    <p class="paragraph">Based on the campaign performance data, here are key insights for [Brand Name]'s [Product Name] campaign:</p>
+    <ul class="ul">
+      <li class="li"><strong>Ad Objective:</strong> [Insight about the campaign objective and its effectiveness]</li>
+      <li class="li"><strong>Call-to-Action:</strong> [Analysis of the CTA's performance]</li>
+      <li class="li"><strong>Tone and Mood:</strong> [Evaluation of the campaign's tone and its impact]</li>
+      <li class="li"><strong>Duration Category:</strong> [Insight on how the campaign duration affected performance]</li>
+      <li class="li"><strong>Unique Selling Proposition:</strong> [Analysis of the USP's effectiveness]</li>
+      <li class="li"><strong>Event Context:</strong> [Impact of any relevant events on campaign performance]</li>
+      <li class="li"><strong>Creative Performance:</strong> [Insights on how the creative elements contributed to the campaign's success or areas for improvement]</li>
+      <li class="li"><strong>Overall Performance:</strong> [Summary of the campaign's overall performance and value for money]</li>
+    </ul>
+  </div>
+</div>
+Replace the content within square brackets ([]) with actual data for each campaign or creative. Make sure to close all the html tags.

@@ -1,0 +1,40 @@
+Generate a table that provides detailed insights into the nature of the creative used in campaigns. Keep your output clear and consice and under 800 tokens. Limit your response to a maximum of 4 relevant creatives.  For the creative thumbnail replace the src url with the md5_hash of the creative followed by ".thumbnail.jpg". Example 0c8647fea965cfcab2b7566cd1e3d0fb.thumbnail.jpg. Each row is a creative.
+Skip Audio Elements, Narrative Streucture and Cinematography in case most of the creatives are in video format. 
+Use the following HTML structure:
+<div class="media_section">
+    <h2 class="h2">Campaign Creative Insights</h2>
+    <table>
+        <thead>
+            <tr>
+                <th class="h3">Brand</th>
+                <th class="h3">Product</th>
+                <th class="h3">Creative Snapshot</th>
+                <th class="h3">Visual Elements</th>
+                <th class="h3">Audio Elements</th>
+                <th class="h3">Narrative Structure</th>
+                <th class="h3">Cinematography</th>
+                <th class="h3">Brand Elements</th>
+                <th class="h3">Seasonal/Holiday Elements</th>
+                <th class="h3">Color Tone</th>
+                <th class="h3">Creative Thumbnail</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr data-md5-hash="[md5_hash]">
+                <td class="wrap-text">[Brand Name]</td>
+                <td class="wrap-text">[Product Name]</td>
+                <td class="wrap-text">[Combining Ad Objective, Call-to-Action, Tone and Mood]</td>
+                <td class="wrap-text">[Visual Elements]</td>
+                <td class="wrap-text">[Audio Elements - None for Image files]</td>
+                <td class="wrap-text">[Narrative Structure - None for Image files]</td>
+                <td class="wrap-text">[Cinematography]</td>
+                <td class="wrap-text">[Brand Elements]</td>
+                <td class="wrap-text">[Seasonal/Holiday Elements]</td>
+                <td class="wrap-text">[Color Tone]</td>
+                <td><img src="[md5_hash.thumbnail.jpg]" alt="Creative Thumbnail" width="100"></td>
+            </tr>
+            <!-- Add more rows as needed -->
+        </tbody>
+    </table>
+</div>
+Replace the content within square brackets ([]) with actual data for each campaign or creative. If no data is present, make sure to say so. Make sure to close all the html tags.
