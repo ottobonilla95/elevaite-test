@@ -422,9 +422,10 @@ export function ChatContextProvider(
     conversation_payload = conversation_payload.reverse();
     console.log("CONVERSATION_PAYLOAD:", conversation_payload);
 
-    MEDIA_BACKEND_URL = process.env.MEDIA_BACKEND_URL;
-    const response = await fetch(MEDIA_BACKEND_URL, {
-    // const response = await fetch("http://vmo-dlnx-rcdn-1:8000/", {
+    // MEDIA_BACKEND_URL = process.env.MEDIA_BACKEND_URL;
+    // const response = await fetch(MEDIA_BACKEND_URL,
+    const response = await fetch("http://127.0.0.1:8000/", {
+
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -440,13 +441,16 @@ export function ChatContextProvider(
       })
     });
     const res = await response.json();
-    setLatestResponse(res['response']);
-    updateSessionListWithNewMessage(
-      formatMessageFromServerResponse({ text: res['response'], refs: [] }),
-      newSession
-    );
+    res.responses.forEach(response => {
+        setLatestResponse(prevResponse => prevResponse + response.response);
+        updateSessionListWithNewMessage(
+            formatMessageFromServerResponse({ text: response.response, refs: [] }),
+            newSession
+        );
+    });
+
     setIsChatLoading(false);
-  }
+}
 
   return (
     <ChatContext.Provider

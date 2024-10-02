@@ -9,8 +9,8 @@ class AdCreative(BaseModel):
     file_size: Optional[int] = None
     file_type: Optional[str] = None
     type: Optional[str] = None
-    booked_measure_impressions: Optional[int] = None
-    delivered_measure_impressions: Optional[int] = None
+    booked_measure_impressions: Optional[float] = None
+    delivered_measure_impressions: Optional[float] = None
     duration_days: Optional[int] = None
     duration_category: Optional[str] = None
     industry: Optional[str] = None
@@ -23,6 +23,8 @@ class AdCreative(BaseModel):
     tone_mood: Optional[str] = None
     clicks: Optional[int] = None
     conversion: Optional[float] = None
+    creative_url: Optional[str] = None
+    md5_hash: Optional[str] = None
     full_data: Optional[Dict[str, Any]] = Field(default=None)
 
     @classmethod

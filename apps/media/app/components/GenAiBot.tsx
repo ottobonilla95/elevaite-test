@@ -9,9 +9,9 @@ import "./GenAiBot.scss";
 const genAIBotOptions: CommonSelectOption[] = [
     // { value: ChatBotGenAI.Pan, label: "Hardware Firewall Provider", selectedLabel: "Firewall" },
     // { value: ChatBotGenAI.Cisco, label: "Collaboration Provider", selectedLabel: "Collab" },
-    { value: ChatBotGenAI.CiscoClo, label: "Media" },
-    // { value: ChatBotGenAI.Creative, label: "Creative" },
-    // { value: ChatBotGenAI.BGPInsights, label: "BGP Insights" }
+    { value: ChatBotGenAI.CiscoClo, label: "Media Performance" },
+    { value: ChatBotGenAI.Creative, label: "Ideate to Create" },
+    { value: ChatBotGenAI.BGPInsights, label: "Contracts and Billing" }
 ];
 
 

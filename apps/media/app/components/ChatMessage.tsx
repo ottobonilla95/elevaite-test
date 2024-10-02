@@ -60,22 +60,24 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
         .filter(Boolean)
         .join(" ")}
     > 
-      <div className="profile-image-container">
-        <div
-          className={["profile-image-backdrop", props.isBot ? "bot" : undefined]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          {props.isBot ? (
-            <ChatbotIcons.ChatbotProfileLogo />
-          ) : (
-            getInitials(props.userName)
-          )}
-        </div>
-      </div>
+
 
       <div className="main-message-container">
+        
         <div className="details-container">
+            <div className="profile-image-container">
+            <div
+              className={["profile-image-backdrop", props.isBot ? "bot" : undefined]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {props.isBot ? (
+                <ChatbotIcons.ChatbotProfileLogo />
+              ) : (
+                getInitials(props.userName)
+              )}
+            </div>
+          </div>
           {props.isBot ? (
             <span>
               ELEV<span className="highlight">AI</span>TE
@@ -83,14 +85,12 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
           ) : (
             <span>{props.userName}</span>
           )}
-          <div>•</div>
           <span className="date">
             {dayjs(props.date).format("MMMM DD, YYYY — hh:mm a")}
           </span>
         </div>
 
-        <div className="message">
-          <div dangerouslySetInnerHTML={{ __html: props.text }} />
+        <div className="message"  dangerouslySetInnerHTML={{ __html: props.text }}>
         </div>
 
         {!props.isBot ? null : (

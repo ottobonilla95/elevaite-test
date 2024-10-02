@@ -41,9 +41,13 @@ $profile-backdrop-bot: #585679;
         display: flex;
         flex-direction: column;
         gap: 10px;
-
+        max-width: 100%;
         
         & .message {
+            display: flex;
+            flex-wrap: wrap;
+            max-width: 100%;
+            min-width: 200px;
             & ol {
                 list-style: decimal;
                 & ul {
