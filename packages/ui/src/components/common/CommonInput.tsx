@@ -16,7 +16,10 @@ export interface CommonInputProps {
     info?: string;
     placeholder?: string;
     errorMessage?: string;
+    labelIcon?: React.ReactNode;
+    tooltip?: string;
     disabled?: boolean;
+    noDisabledTooltip?: boolean;
     initialValue?: string;
     controlledValue?: string; // Use this to control the value externally
     className?: string;
@@ -77,6 +80,9 @@ export function CommonInput(props: CommonInputProps): JSX.Element {
                         <div className="info" title={props.info}><ElevaiteIcons.SVGInfo/></div>
                     }
                     <div className="error-message">{props.errorMessage ? props.errorMessage : requiredWarning}</div>
+                    {!props.labelIcon ? undefined :
+                        <div className="label-icon">{props.labelIcon}</div>
+                    }
                 </div>
             }
             <input
@@ -86,7 +92,7 @@ export function CommonInput(props: CommonInputProps): JSX.Element {
                 placeholder={props.placeholder}
                 value={value}
                 disabled={props.disabled}
-                title={props.disabled ? "This field is disabled." : ""}
+                title={props.tooltip ?? (props.disabled && !props.noDisabledTooltip ? "This field is disabled." : "")}
             />
         </div>
     );
