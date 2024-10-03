@@ -149,6 +149,13 @@
             }
         }
 
+
+        & .contract-status {
+            &.Ready { color: var(--ev-colors-success); }
+            &.Progress { color: var(--ev-colors-highlight); }
+            &.Failed { color: var(--ev-colors-danger); }
+        }
+
     }
 }
 

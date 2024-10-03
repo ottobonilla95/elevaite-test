@@ -1,7 +1,7 @@
 import type { CommonMenuItem } from "@repo/ui/components";
 import { CommonButton, CommonMenu, ElevaiteIcons } from "@repo/ui/components";
 import dayjs from "dayjs";
-import { type SortingObject } from "../interfaces";
+import { CONTRACT_STATUS, type SortingObject } from "../interfaces";
 import "./ListRow.scss";
 
 
@@ -15,6 +15,7 @@ export enum specialHandlingListRowFields {
     COUNT = "count",
     DATE = "date",
     SHORT_DATE = "sortDate",
+    CONTRACTS_STATUS = "contractsStatus",
 }
 
 
@@ -23,7 +24,6 @@ export interface RowStructure<RowObjectType> {
     field: string;
     isSortable?: boolean;
     onClick?: (rowItem: RowObjectType) => void;
-    formattingFunction?: (rowItem: RowObjectType) => React.ReactNode;
     specialHandling?: specialHandlingListRowFields;
     align?: "left" | "right" | "center";
     style?: "block";
@@ -107,6 +107,15 @@ export function ListRow<RowObjectType>(props: ListRowProps<RowObjectType>): JSX.
                 <span title={props.rowItem?.[item.field] ? `${dayjs(props.rowItem[item.field] as string).format("DD-MMM-YYYY")}\n${dayjs(props.rowItem[item.field] as string).format("hh:mm a")}` : ""}>
                     {props.rowItem?.[item.field] ? dayjs(props.rowItem[item.field] as string).format("DD-MMM-YYYY") : ""}</span>
                 );
+            case specialHandlingListRowFields.CONTRACTS_STATUS: return (
+                <div className={["contract-status", props.rowItem?.[item.field] as string].join(" ")} title={props.rowItem?.[item.field] as string}>
+                    {props.rowItem?.[item.field] === CONTRACT_STATUS.READY ? <ElevaiteIcons.SVGCheckmark/> : 
+                        props.rowItem?.[item.field] === CONTRACT_STATUS.PROGRESS ? <ElevaiteIcons.SVGInstanceProgress/> :
+                        props.rowItem?.[item.field] === CONTRACT_STATUS.FAILED ? <ElevaiteIcons.SVGXmark/> :
+                        undefined
+                    }
+                </div>
+            );
             default: return "";
         }
     }
@@ -193,8 +202,7 @@ export function ListRow<RowObjectType>(props: ListRowProps<RowObjectType>): JSX.
                         disabled={!structureItem.isSortable}
                         overrideClass
                     >                    
-                        {structureItem.formattingFunction ? structureItem.formattingFunction(props.rowItem) :
-                            structureItem.specialHandling ? getSpecialItem(structureItem) :
+                        {structureItem.specialHandling ? getSpecialItem(structureItem) :
                             props.rowItem[structureItem.field] ? props.rowItem[structureItem.field] : ""
                         }
                     </CommonButton>
@@ -211,8 +219,7 @@ export function ListRow<RowObjectType>(props: ListRowProps<RowObjectType>): JSX.
                         structureItem.capitalize ? "capitalize" : undefined,
                     ].filter(Boolean).join(" ")}
                 >
-                    {structureItem.formattingFunction ? structureItem.formattingFunction(props.rowItem) :
-                        structureItem.specialHandling ? getSpecialItem(structureItem) :
+                    {structureItem.specialHandling ? getSpecialItem(structureItem) :
                         props.rowItem[structureItem.field] ? props.rowItem[structureItem.field] : ""
                     }
                 </div>

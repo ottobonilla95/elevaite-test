@@ -1,7 +1,6 @@
 
 
 .simple-input-container {
-    position: relative;
     display: flex;
     align-items: center;
     gap: 5px;
@@ -22,14 +21,6 @@
         &:focus {
             outline: none;
         }
-    }
-
-    & .autosize-area {
-        position: absolute;
-        visibility: hidden;
-        white-space: pre;
-        font-family: inherit;
-        font-size: inherit;
     }
 
     &.common-style {

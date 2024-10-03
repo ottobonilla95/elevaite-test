@@ -45,7 +45,6 @@ import SVGAccess from "./svgAccess";
 import SVGAccounts from "./svgAccounts";
 import SVGProjects from "./svgProjects";
 import SVGUser from "./svgUser";
-import SVGZoom from "./svgZoom";
 
 
 export const ElevaiteIcons = {
@@ -96,5 +95,4 @@ export const ElevaiteIcons = {
     SVGAccounts,
     SVGProjects,
     SVGUser,
-    SVGZoom,
 };

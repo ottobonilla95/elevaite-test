@@ -2,81 +2,20 @@
 
 
 .pdf-extraction-container {
-    overflow: hidden;
     display: flex;
     flex-direction: column;
     gap: 20px;
     border-radius: 8px;
-    padding: 10px 20px;
+    padding: 20px;
     background-color: var(--ev-colors-primary);
-    transition: padding 200ms ease-in-out;
 
     & .pdf-extraction-header {
         flex-shrink: 0;
         display: flex;
-        justify-content: space-between;
         align-items: center;
         gap: 20px;
         font-size: 16px;
         font-weight: 600;
-
-        & .approved-label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: var(--ev-colors-success);
-        }
-        
-        & .pdf-extraction-controls {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-
-            & .tab-button {
-                padding: 5px 20px;
-            }
-        }
-
-        & .expansion-arrow {
-            & > svg {
-                height: 20px;
-                width: 20px;
-                transition: transform 200ms ease-in-out;
-                transform: rotateY(180deg);
-            }
-            &.expanded > svg {
-                transform: rotateY(0);
-            }
-        }
-
-        & > button {
-            background-color: var(--ev-colors-highlight);
-            font-size: 12px;
-            padding: 5px 20px;
-        }
-    }
-
-    & .tabs-container {
-        display: flex;
-        align-items: center;
-        margin: 0 10px;
-        border-bottom: 1px solid var(--ev-colors-borderColor);
-
-        & > button.tab-button {
-            padding: 10px 20px;
-            margin-bottom: -1px;
-            border-bottom: 2px solid transparent;
-            border-radius: 0;
-            font-size: 14px;
-            font-weight: 600;
-            white-space: nowrap;
-            color: var(--ev-colors-secondaryText);
-
-            &.active {
-                color: var(--ev-colors-highlight);
-                border-bottom-color: var(--ev-colors-highlight);
-            }
-        }
     }
     
     & .pdf-extraction-scroller {
@@ -99,21 +38,97 @@
         }
     }
 
-
-
-
 }
 
 
-.invoice-approval-dialog-contents {
+.extracted-bit-container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 10px;
+    padding: 0 10px;
 
-    & .warning {
-        color: var(--ev-colors-danger);
-        text-align: end;
+    & .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        & .label {
+            font-size: 14px;
+            font-weight: 700;            
+        }
+        & .date {
+            color: var(--ev-colors-secondaryText);
+            font-size: 12px;            
+        }
     }
 }
 
+.extracted-table-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0 10px;
 
+    & .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        & .label {
+            font-size: 14px;
+            font-weight: 700;            
+        }
+    }
+
+    & .table-scroller {
+        width: 100%;
+        max-height: 400px;
+        overflow: auto;
+        overscroll-behavior: auto;
+        @include scrollbar();
+
+        padding: 10px;
+        background-color: var(--ev-colors-background);
+        border: 1px solid var(--ev-colors-borderColor);
+        border-radius: 8px;
+    }
+
+    & table.extracted-table {
+        border-collapse: collapse;
+        width: 100%;
+
+        & th {
+            padding: 5px 10px;
+            background-color: var(--ev-colors-backgroundHighContrast);
+            border: 1px solid var(--ev-colors-background);
+            text-align: left;
+            &:first-child { border-top-left-radius: 8px; }
+            &:last-child { border-top-right-radius: 8px; }
+        }
+
+        & tr:last-child {
+            & td:first-child { border-bottom-left-radius: 8px; }
+            & td:last-child { border-bottom-right-radius: 8px; }
+        }
+
+        & td {
+            padding: 5px 10px;
+            background-color: var(--ev-colors-primary);
+            border: 1px solid var(--ev-colors-background);
+
+            & .simple-input-container {
+                border: 1px solid transparent;
+                width: fit-content;
+                &:focus-within {
+                    background-color: var(--ev-colors-background);
+                    border: 1px solid var(--ev-colors-highlight);
+                }
+
+                & > input {
+                    field-sizing: content;
+                    max-width: 250px;
+                }
+            }
+        }
+    }
+}

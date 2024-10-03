@@ -2,7 +2,6 @@
 
 export const DEFAULT_AVAILABLE_MODELS_LIMIT = "10";
 export const APP_REVALIDATION_TIME = 3600; // one hour
-export const CONTRACT_PROJECTS_REVALIDATION_TIME = 10; //5 * 60; // X minutes
 export const INSTANCE_REVALIDATION_TIME = 5 * 60; // X minutes
 export const MODEL_REVALIDATION_TIME = 30; // seconds
 export const DATASET_REVALIDATION_TIME = 30; // seconds
@@ -15,7 +14,7 @@ export enum cacheTags {
   endpoints = "ENDPOINTS",
   datasets = "DATASETS",
   evaluations = "EVALUATIONS",
-  contractProjects = "CONTRACT_PROJECTS",
+  contracts = "CONTRACTS",
   rbac = "RBAC",
   users = "USERS",
 };
