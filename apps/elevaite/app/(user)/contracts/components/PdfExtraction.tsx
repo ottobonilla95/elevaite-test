@@ -70,31 +70,30 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
         Object.entries(extractedData).forEach(([pageKey, page]) => {
             
             Object.entries(page).forEach(([label, value]) => {
-                if (typeof value === 'string') {
+                if (typeof value === "string") {
                     bits.push(<ExtractedBit
                                 key={pageKey + label}
                                 label={label}
                                 value={value}
                                 onChange={(changeLabel, changeText) => { handleBitChange(pageKey, changeLabel, changeText); }}
                             />);
-                } else if (Array.isArray(value)) {
-                    bits.push(<ExtractedBit
-                        key={pageKey + label}
-                        label={label}
-                        value={`- ${value.join("\n- ")}`}
-                        disabled
-                    />);
-                // TODO: Handle non-string values (recursion of record type, OR pester the model team to be consistent)
+                // } else if (Array.isArray(value) && value.every(v => typeof v === "string")) {
+                //     bits.push(<ExtractedBit
+                //         key={pageKey + label}
+                //         label={label}
+                //         value={`- ${value.join("\n- ")}`}
+                //         disabled
+                //     />);
                 } else if (label.startsWith("Line Item")) {
                     lineItems.push(value as Record<string, string>);
-                } else if (typeof value === "string") { // Dictionary keys that don't start with "Line Item"
-                    bits.push(<ExtractedTableBit
-                                key={pageKey + label}
-                                label={label}
-                                data={[value]}
-                                onTableChange={(changeLabel, changeText) => { handleTableBitChange(pageKey, changeLabel, changeText); }}
-                                hideNumber
-                            />);
+                // } else if (typeof value === "string") { // Dictionary keys that don't start with "Line Item"
+                //     bits.push(<ExtractedTableBit
+                //                 key={pageKey + label}
+                //                 label={label}
+                //                 data={[value]}
+                //                 onTableChange={(changeLabel, changeText) => { handleTableBitChange(pageKey, changeLabel, changeText); }}
+                //                 hideNumber
+                //             />);
                 }
           });
         });

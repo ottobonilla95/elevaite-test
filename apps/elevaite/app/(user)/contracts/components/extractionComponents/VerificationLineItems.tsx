@@ -7,7 +7,7 @@ import "./VerificationLineItems.scss";
 
 
 interface TableDataItem {
-    value: (string | number | null)[];
+    value: (string | number | null | undefined)[];
     verification: ContractObjectVerificationLineItemVerification;
 }
 
@@ -20,13 +20,21 @@ interface VerificationLineItemsProps {
 }
 
 export function VerificationLineItems(props: VerificationLineItemsProps): JSX.Element {
-    const headers = ["Ver.", "Amount", "Quantity", "Unit Price", "Part Number", "Need by", "Description"];
+    const headers = ["Ver.", "Amount", "Quantity", "Unit Price", "Product Code", "Part Number", "Need by", "Description"];
+    const [displayHeaders, setDisplayHeaders] = useState<string[]>(headers);
     const [tableData, setTableData] = useState<TableDataItem[]>();
 
 
     useEffect(() => {
-        if (props.lineItems)
-            setTableData(getTableData(props.lineItems));
+        console.log("Table Data:", tableData);        
+    }, [tableData]);
+
+    useEffect(() => {
+        if (props.lineItems) {
+            const data = getTableData(props.lineItems);
+            setTableData(data.table);
+            setDisplayHeaders(data.headers);
+        }            
     }, [props.lineItems]);
 
 
@@ -35,19 +43,50 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
     }
 
 
-    function getTableData(lineItems: ContractObjectVerificationLineItem[]): TableDataItem[] {
-        return lineItems.map((item, index) => ({
-            value: [
-                index + 1, // "No." (Using id here for uniqueness)
-                item.amount, // "Amount"
-                item.quantity, // "Quantity"
-                item.unit_price, // "Unit Price"
-                item.part_number, // "Part Number"
-                item.need_by_date, // "Need by"
-                item.description, // "Description"
-            ],
-            verification: item.verification
-        }));
+    function getTableData(lineItems: ContractObjectVerificationLineItem[]): { table: TableDataItem[], headers: string[]} {
+        const isColumnEmpty = Array(headers.length).fill(true);
+
+        lineItems.forEach((item) => {
+            const values = [
+                true,
+                item.amount,
+                item.quantity,
+                item.unit_price,
+                item.product_code,
+                item.part_number,
+                item.need_by_date,
+                item.description,
+            ];    
+            values.forEach((value, i) => {
+                if (value !== null && value !== undefined && value !== "") {
+                    isColumnEmpty[i] = false;
+                }
+            });
+        });
+        
+        const filteredHeaders = headers.filter((_, index) => !isColumnEmpty[index]);
+
+        const data = lineItems.map((item, index) => {
+            const values = [
+                index + 1,
+                item.amount,
+                item.quantity,
+                item.unit_price,
+                item.product_code,
+                item.part_number,
+                item.need_by_date,
+                item.description,
+            ];
+            const filteredValues = values.filter((_, i) => !isColumnEmpty[i]);
+    
+            return {
+                value: filteredValues,
+                verification: item.verification,
+            };
+        });
+
+
+        return { table: data, headers: filteredHeaders };
     };
 
 
@@ -58,7 +97,7 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
                     <div>No tabular data available</div>
                 :
                     <VerificationTableStructure
-                        headers={headers}
+                        headers={displayHeaders}
                         data={tableData}
                     />                
                 }
@@ -79,7 +118,7 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
                     </div>   
                     <div className="table-scroller">
                         <VerificationTableStructure
-                            headers={headers}
+                            headers={displayHeaders}
                             data={tableData}
                         />
                     </div>
@@ -130,8 +169,8 @@ function VerificationTableStructure(props: VerificationTableStructureProps): JSX
                                     </div>
                                 :
                                     <SimpleInput
-                                        value={cell !== null ? cell.toString() : ""}
-                                        title={cell !== null && cell.toString().length > 30 ? cell.toString() : ""}
+                                        value={cell !== null && cell !== undefined ? cell.toString() : ""}
+                                        title={cell !== null && cell !== undefined && cell.toString().length > 30 ? cell.toString() : ""}
                                         autoSize
                                         disabled
                                     />

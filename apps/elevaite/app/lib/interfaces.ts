@@ -527,13 +527,14 @@ export interface ContractObjectEmphasis {
 
 export interface ContractObjectVerificationLineItem {
     id: number;
-    action: string;
-    amount: number;
-    description: string;
-    need_by_date: string;
-    part_number: string;
-    quantity: string;
-    unit_price: number;
+    action?: string | null;
+    amount?: number | null;
+    description?: string | null;
+    need_by_date?: string | null;
+    part_number?: string | null;
+    product_code?: string | null;
+    quantity?: string | null;
+    unit_price?: number | null;
     verification: ContractObjectVerificationLineItemVerification;
 }
 
