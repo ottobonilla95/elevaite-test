@@ -506,6 +506,9 @@ export interface ContractObject {
     response_comments?: string[];
     po_number?: string|null;
     supplier?: string|null;
+    matched_supplier?: string|null;
+    normalized_supplier?: string|null;
+    total_amount?: string|null;
     verification?: ContractObjectVerification;
     line_items?: ContractObjectVerificationLineItem[];
     highlight?: ContractObjectEmphasis;

@@ -26,10 +26,6 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
 
 
     useEffect(() => {
-        console.log("Table Data:", tableData);        
-    }, [tableData]);
-
-    useEffect(() => {
         if (props.lineItems) {
             const data = getTableData(props.lineItems);
             setTableData(data.table);

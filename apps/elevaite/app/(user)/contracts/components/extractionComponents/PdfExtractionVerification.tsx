@@ -48,7 +48,8 @@ export function PdfExtractionVerification(): JSX.Element {
                             :
                                 <>
                                     <VerificationBit data={verificationData.po} valueKey="po_number" label="PO Number" />
-                                    <VerificationBit data={verificationData.po} valueKey="supplier" label="Supplier" overrideValue={supplier} />
+                                    <VerificationBit data={verificationData.po} valueKey="supplier" label="Supplier" />
+                                    {/* <VerificationBit data={verificationData.po} valueKey="supplier" label="Supplier" overrideValue={supplier} /> */}
                                     <VerificationBit data={verificationData.po} valueKey="total_amount" label="Total Amount" />
                                 </>
                             }
@@ -87,7 +88,8 @@ export function PdfExtractionVerification(): JSX.Element {
                             {verificationData.vsow.map((vsow, index) => 
                                 <div className="fragment" key={`${vsow.file_id?.toString() ?? ""}_vsow_${index.toString()}`}>
                                     <VerificationBit data={vsow} valueKey="po_number" label="PO Number" />
-                                    <VerificationBit data={vsow} valueKey="supplier" label="Supplier" overrideValue={supplier} />
+                                    <VerificationBit data={vsow} valueKey="supplier" label="Supplier" />
+                                    {/* <VerificationBit data={vsow} valueKey="supplier" label="Supplier" overrideValue={supplier} /> */}
                                     <VerificationBit data={vsow} valueKey="total_amount" label="Total Amount" />
                                 </div>
                             )}
