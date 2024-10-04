@@ -26,7 +26,6 @@
   ],
   "dependencies": {
     "next": "^14.0.4",
-    "pdfjs-dist": "^4.4.168",
     "sass": "^1.69.7"
   }
 }

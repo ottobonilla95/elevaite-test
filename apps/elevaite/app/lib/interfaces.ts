@@ -95,6 +95,13 @@ export enum ACCESS_MANAGEMENT_TABS {
     ROLES = "Roles",
 };
 
+export enum ROLE_PERMISSIONS {
+    ACTION_CREATE = "ACTION_CREATE",
+    ACTION_READ = "ACTION_READ",
+    ACTION_UPDATE = "ACTION_UPDATE",
+    ACTION_DELETE = "ACTION_DELETE",
+}
+
 export enum CONTRACTS_TABS {
     SUPPLIER_CONTRACTS = "VSOW",
     CUSTOMER_CONTRACTS = "CSOW",
@@ -103,22 +110,18 @@ export enum CONTRACTS_TABS {
 }
 
 export enum CONTRACT_STATUS {
-    READY = "Ready",
-    PROGRESS = "In Progress",
-    FAILED = "Failed",
+    COMPLETED = "completed",
+    PROCESSING = "processing",
+    FAILED = "failed",
+    APPROVED = "approved",
+    REJECTED = "rejected"
 }
 
 export enum CONTRACT_TYPES {
-    CONTRACT = "contract",
+    VSOW = "vsow",
+    CSOW = "csow",
     PURCHASE_ORDER = "po",
     INVOICE = "invoice",
-}
-
-export enum ROLE_PERMISSIONS {
-    ACTION_CREATE = "ACTION_CREATE",
-    ACTION_READ = "ACTION_READ",
-    ACTION_UPDATE = "ACTION_UPDATE",
-    ACTION_DELETE = "ACTION_DELETE",
 }
 
 
@@ -482,21 +485,88 @@ export interface HuggingfaceDatasetObject {
 // CONTRACTS
 ////////////////
 
-export interface ContractObject {
-    id: string;
+export interface ContractProjectObject {
+    id: string|number;
     name: string;
-    type: CONTRACT_TYPES;
-    status: CONTRACT_STATUS;
-    pdf: File|string|undefined;
-    extractedData: ContractExtractionDictionary|undefined;
-    fileSize?: string | number;
-    tags: string[];
-    createdAt: string;
-    updatedAt?: string;
+    description: string;
+    creation_date: string;
+    reports: ContractObject[];
 }
 
-export type ContractExtractionPageItem = string | Record<string, string>[];
-export type ContractExtractionPage = Record<string, ContractExtractionPageItem>;
+export interface ContractObject {
+    id: string|number;
+    project_id: string|number;
+    status: CONTRACT_STATUS;
+    content_type: CONTRACT_TYPES;
+    label?: string|null;
+    filename: string;
+    filesize: number; // Bytes
+    file_ref: File|string|null; // Url
+    response: ContractExtractionDictionary|null;
+    response_comments?: string[];
+    po_number?: string|null;
+    supplier?: string|null;
+    verification?: ContractObjectVerification;
+    line_items?: ContractObjectVerificationLineItem[];
+    highlight?: ContractObjectEmphasis;
+    tags?: string[];
+    creation_date: string;
+    checksum: string; // MD5
+    index_key?: string;
+}
+
+export interface ContractObjectEmphasis {
+    invoice_number: string|null;
+    po_number: string|null;
+    contract_number: string|null;
+    supplier: string|null;
+    rec_charges: string|null;
+    non_rec_charges: string|null;
+    total_amount: string|null;
+}
+
+export interface ContractObjectVerificationLineItem {
+    id: number;
+    action: string;
+    amount: number;
+    description: string;
+    need_by_date: string;
+    part_number: string;
+    quantity: string;
+    unit_price: number;
+    verification: ContractObjectVerificationLineItemVerification;
+}
+
+export interface ContractObjectVerificationLineItemVerification {
+    verification_status: boolean;
+    vsow: boolean;
+    po: boolean;
+    invoice: boolean;
+}
+
+export interface ContractObjectVerification {
+    verification_status: boolean;
+    line_items: boolean;
+    vsow: ContractObjectVerificationItem[];
+    invoice: ContractObjectVerificationItem[];
+    po?: ContractObjectVerificationItem;
+}
+
+export interface ContractObjectVerificationItem {
+    verification_status: boolean;
+    file_ref?: string;
+    file_id?: string | number;
+    po_number?: VerificationItem;
+    supplier?: VerificationItem;
+    total_amount?: VerificationItem;
+}
+export interface VerificationItem {
+    verification_status: boolean;
+    value?: string;
+}
+
+export type ContractExtractionPageItem = string | string[] | Record<string, unknown>;
+export type ContractExtractionPage = Record<string, ContractExtractionPageItem> & Record<`Line Item ${number}`, Record<string, string>>;
 export type ContractExtractionDictionary = Record<`page_${number}`, ContractExtractionPage>;
 
 

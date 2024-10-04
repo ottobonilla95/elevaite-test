@@ -7,7 +7,8 @@ import "./ContractUpload.scss";
 
 
 const contractTypesOptions: CommonSelectOption[] = [
-    { label: "Contract", value: CONTRACT_TYPES.CONTRACT, disabled: true },
+    { label: "VSOW", value: CONTRACT_TYPES.VSOW },
+    { label: "CSOW", value: CONTRACT_TYPES.CSOW, disabled: true },
     { label: "Invoice", value: CONTRACT_TYPES.INVOICE },
     { label: "Purchase Order", value: CONTRACT_TYPES.PURCHASE_ORDER },    
 ];
@@ -47,8 +48,8 @@ export function ContractUpload(props: ContractUploadProps): JSX.Element {
     }
 
     function handleSubmit(): void {
-        if (!uploadingFile || !pdfType) return;
-        contractsContext.submitCurrentContractPdf(uploadingFile, pdfType, name);
+        if (!uploadingFile || !pdfType || !contractsContext.selectedProject?.id) return;
+        contractsContext.submitCurrentContractPdf(uploadingFile, pdfType, contractsContext.selectedProject.id, name);
         props.onClose();
     }
 
@@ -79,8 +80,10 @@ export function ContractUpload(props: ContractUploadProps): JSX.Element {
                     <CommonSelect
                         options={contractTypesOptions}
                         onSelectedValueChange={handleContractTypeChange}
-                        defaultValue={props.selectedTab === CONTRACTS_TABS.SUPPLIER_INVOICES ? "invoice":
-                                        props.selectedTab === CONTRACTS_TABS.SUPPLIER_POS ? "po" : undefined
+                        defaultValue={props.selectedTab === CONTRACTS_TABS.SUPPLIER_INVOICES ? CONTRACT_TYPES.INVOICE :
+                                        props.selectedTab === CONTRACTS_TABS.SUPPLIER_POS ? CONTRACT_TYPES.PURCHASE_ORDER : 
+                                        props.selectedTab === CONTRACTS_TABS.CUSTOMER_CONTRACTS ? undefined : // CONTRACT_TYPES.CSOW :
+                                        CONTRACT_TYPES.VSOW
                         }
                         callbackOnDefaultValue
                     />
@@ -98,7 +101,7 @@ export function ContractUpload(props: ContractUploadProps): JSX.Element {
                         ref={hiddenFileInput}
                         className="hidden-input"
                         type="file"
-                        accept="application/pdf"
+                        accept=".pdf,.doc,.docx"
                         onChange={handleFileChange}
                     />
                     <CommonButton
