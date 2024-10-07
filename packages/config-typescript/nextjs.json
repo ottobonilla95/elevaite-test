@@ -1,20 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "display": "Next.js",
+  "extends": "./base.json",
   "compilerOptions": {
-    "composite": false,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
-    "inlineSources": false,
-    "isolatedModules": true,
-    "moduleResolution": "Bundler",
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "preserveWatchOutput": true,
-    "skipLibCheck": true,
-    "strictNullChecks": true,
     "plugins": [{ "name": "next" }],
     "allowJs": true,
     "declaration": false,
@@ -25,7 +13,7 @@
     "module": "esnext",
     "resolveJsonModule": true,
     "strict": false,
-    "target": "es5"
+    "target": "ES2018"
   },
   "include": ["src", "next-env.d.ts"],
   "exclude": ["node_modules"]

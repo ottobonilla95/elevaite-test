@@ -16,7 +16,7 @@
     "@repo/lib": "*",
     "@repo/ui": "*",
     "dayjs": "^1.11.10",
-    "next": "14.2.1",
+    "next": "^14.2.10",
     "next-auth": "5.0.0-beta.16",
     "prismjs": "^1.29.0",
     "react": "^18",
