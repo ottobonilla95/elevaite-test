@@ -94,6 +94,16 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
                 //                 onTableChange={(changeLabel, changeText) => { handleTableBitChange(pageKey, changeLabel, changeText); }}
                 //                 hideNumber
                 //             />);
+                } else if (label.startsWith("Estimated Monthly Billing")) {
+                    const extractedBilling = Object.entries(value as Record<string, string>).map(([itemKey, itemValue]) => {
+                        return { Date: itemKey, Amount: itemValue}
+                    });
+                    bits.push(<ExtractedTableBit
+                                key="monthlyBilling"
+                                label="Estimated Monthly Billing"
+                                data={extractedBilling as Record<string, string>[]}
+                                hideNumber
+                            />)
                 }
           });
         });

@@ -30,7 +30,7 @@ export async function getContractProjectsList(): Promise<ContractProjectObject[]
 export async function getContractProjectById(projectId: string): Promise<ContractProjectObject> {
   if (!CONTRACTS_URL) throw new Error("Missing base url");
   const url = new URL(`${CONTRACTS_URL}/projects/${projectId}`);
-  const response = await fetch(url, { cache: "no-store", next: { revalidate: CONTRACT_PROJECTS_REVALIDATION_TIME, tags: [cacheTags.contractProjects] } });
+  const response = await fetch(url, { next: { revalidate: CONTRACT_PROJECTS_REVALIDATION_TIME, tags: [cacheTags.contractProjects] } });
 
   if (!response.ok) throw new Error("Failed to fetch contract project");
   const data: unknown = await response.json();

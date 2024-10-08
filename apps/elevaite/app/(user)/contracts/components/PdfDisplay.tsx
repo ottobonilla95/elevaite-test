@@ -1,6 +1,6 @@
 import { CommonButton, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
 import { type PDFDocumentProxy } from "pdfjs-dist";
-import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -98,6 +98,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
 
 
     async function formatPdfData(passedContract: ContractObject): Promise<void> {
+        setPagesAmount(undefined);
         // TODO: If checksum is the same, don't change pdfData.
         setIsLoading(true);
         if (passedContract.file_ref) {
@@ -375,7 +376,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                         onLoadSuccess={getPagesAmount}
                         loading={<div className="loading large"><ElevaiteIcons.SVGSpinner/></div>}
                     >
-                        {Array.from(new Array(pagesAmount),
+                        {pagesAmount === undefined ? undefined : Array.from(new Array(pagesAmount),
                             (entry, index) => (
                                 <div
                                     key={`page_${(index + 1).toString()}`}
@@ -386,7 +387,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                                         width={pageContainerWidth ? pageContainerWidth : 1}
                                         scale={pdfZoom}
                                         // customTextRenderer={textRenderer}
-                                        loading={<div className="loading"><ElevaiteIcons.SVGSpinner/></div>}
+                                        loading={<div className="loading large"><ElevaiteIcons.SVGSpinner/></div>}
                                     />
                                 </div>
                             ),

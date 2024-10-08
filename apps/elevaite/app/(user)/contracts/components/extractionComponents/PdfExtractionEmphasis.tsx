@@ -19,7 +19,8 @@ export function PdfExtractionEmphasis(): React.ReactNode {
         !emphasisData ? undefined :
         <div className="pdf-extraction-emphasis-container">
             <div className="pdf-emphasis-block">
-                <EmphasisBit emphasisData={emphasisData} label="PO Number" valueKey="po_number" />
+            <EmphasisBit emphasisData={emphasisData} label="PO Number" valueKey="po_number" />
+            <EmphasisBit emphasisData={emphasisData} label="Customer PO Number" valueKey="customer_po_number" />
                 <EmphasisBit emphasisData={emphasisData} label="Invoice Number" valueKey="invoice_number" />
                 <EmphasisBit emphasisData={emphasisData} label="Supplier" valueKey="supplier" />
             </div>
@@ -50,7 +51,7 @@ function EmphasisBit(props: EmphasisBitProps): React.ReactNode {
         !value || typeof value !== "string" ? undefined :
         <CommonInput
             label={props.label}
-            initialValue={value}
+            controlledValue={value}
             disabled
             noDisabledTooltip
         />
