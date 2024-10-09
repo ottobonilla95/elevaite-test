@@ -4,4 +4,5 @@ collections_config = {
   "cisco_clo":"cisco_clo_poc",
   "servicenow":"servicenow-1536",
   "bgpinsights":"bgp_logs_kb",
+  "alswitchlogs":"al_switch_logs"
 }

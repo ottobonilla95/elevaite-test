@@ -120,6 +120,8 @@ def get_Agent_incidentSolver(query: str, uid: str, sid: str, collection: str):
             cleaned_query = remove_pattern_from_text(bgp_pattern, cleaned_query)
             print(f"cleaned query {cleaned_query}")
             result, refs = answer_from_cache(uid, sid, cleaned_query, collection)
+    elif collection == 'alswitchlogs':
+        result, refs = answer_from_cache(uid, sid, cleaned_query, collection)
     else:
         result, refs = streaming_request_upgraded(uid, sid, query, collection, isUpsell=False, withRefs=True)
     data = {"text": result, "refs": refs}

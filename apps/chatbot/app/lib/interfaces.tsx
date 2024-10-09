@@ -22,6 +22,7 @@ export enum ChatBotGenAI {
     CiscoClo = "cisco_clo",
     ServiceNow = "servicenow",
     BGPInsights = "bgpinsights",
+    ALSwitchLogs = 'alswitchlogs'
 }
 export const defaultGenAIBotOption = ChatBotGenAI.CiscoClo;
 
