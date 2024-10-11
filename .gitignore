@@ -54,3 +54,4 @@ logfile
 # pytest coverage
 .coverage 
 htmlcov
+/media_backend/static/images

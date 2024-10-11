@@ -54,7 +54,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, mediaUrls, mediaTypes, m
           <img src={mediaUrls[currentIndex]} alt={mediaNames[currentIndex] || "Media"} loading="lazy" />
         )}
         <div className="slider-info">
-          <p>{mediaNames[currentIndex]}</p>
+          <p>Creative: {mediaNames[currentIndex]}</p>
           <p>
             {currentIndex + 1} of {mediaUrls.length}
           </p>

@@ -69,8 +69,8 @@ export function ChatbotInput(): JSX.Element {
                 onClick={handleExport}
                 // disabled={chatContext.isChatLoading}
             >
-                <ChatbotIcons.SVGClipboard/>
-                <span>Export to CSV</span>
+                <ChatbotIcons.SVGDownload/>
+                <span>Export</span>
             </CommonButton>
         </div>
     );

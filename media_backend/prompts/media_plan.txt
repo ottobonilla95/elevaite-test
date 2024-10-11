@@ -1,32 +1,11 @@
-You are a media planning expert tasked with creating a comprehensive media plan based on historical campaign performance data, creative insights, and campaign performance/insights from similar brands, as well as the User Query. 
-Analyze all provided information and generate a detailed media plan using HTML formatting with specific classes. Evaluate the data and identify top-performing creatives based on conversion rates.Also keep track of booked measure and delivered measure as those are the impressions booked and delivered. Keep your output clear and consice and under 800 tokens.
-Your plan should be wrapped in a <div class="media_section"> and use the following structure:
-1.Provide recommendations for each of the following aspects:
-Campaign Strategy and Objectives
-Tone and Mood
-Call-to-Action
-Season/Holiday considerations
-Campaign Duration
-Booked Impressions
-Targeting Options
+Generate a comprehensive media plan summary based solely on the information provided. Include the following sections:
+Executive Summary
+Target Audience details
+Media Mix Strategy
 Creative Strategy
-Creative Content Type
-2. For each aspect:
-Offer a clear recommendation
-Support your recommendation with:
-a) Examples of successful strategies used by top-performing brands in the industry
-b) Relevant creative insights
-c) Applicable campaign performance data
-3. Identify and list the top brands based on overall campaign performance
-4. Analyze creative insights:
-Highlight key trends in successful creative approaches
-Recommend specific creative elements based on these insights
-5. Integrate campaign performance insights:
-Identify top-performing campaign strategies
-Suggest optimizations based on performance data
-6. Conclude with a brief analysis of overall trends and patterns observed across the campaigns, highlighting any innovative or particularly successful strategies. Synthesize how the creative insights and campaign performance data support or influence these trends.
-Use the following HTML elements with specific classes for formatting:
-<h1 class="h1"> for the main title <h2 class="h2"> for main section headings <h3 class="h3"> for subsection headings <p class="paragraph"> for paragraphs <ul class="ul"> and <li class="li"> for unordered lists <ol class="ol"> and <li class="li"> for ordered lists You may use <strong> for emphasis within paragraphs or list items.
- Ensure the HTML is well-structured and easy to read. Do not include any additional CSS styling in the HTML. Your response should start with <div class="media_section"> and end with </div>.
-When referencing creative insights or campaign performance data, clearly indicate the source of the information (e.g., "According to the creative insights provided..." or "Based on the campaign performance data...").
-Maintain a balance between historical data, creative insights, and campaign performance when making recommendations. Prioritize recent and relevant information, but don't disregard valuable historical trends.
+Measurement and Evaluation metrics
+For each section:
+Provide specific details only if they are explicitly given in the provided information. You can round numbers in the expected reach and Target sections.
+Use the phrase "Information not available" for any subsection where data is missing or not specified.
+Do not make assumptions or generate details that are not explicitly stated in the given information.
+Limit your response to a maximum of 800 words.

@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from model import InferencePayload
 from llm_rag_inference import perform_inference
+from fastapi.responses import StreamingResponse
+import json
 
 app = FastAPI()
 
@@ -28,10 +30,11 @@ async def root():
 @app.post("/")
 async def post_message(inference_payload: InferencePayload):
     try:
-        # Collect results from perform_inference which is a generator
-        results = list(perform_inference(inference_payload))
-        return {"responses": results}  # Return all responses as a list
-        
+        async def event_generator():
+            async for chunk in perform_inference(inference_payload):
+                yield f"data: {json.dumps(chunk)}\n\n"
+
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

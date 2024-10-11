@@ -1,6 +1,6 @@
 "use client";
 import { useSession } from "next-auth/react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef  } from "react";
 import { fetchChatbotResponse, fetchSessionSummary } from "../../lib/actions";
 import type {
   ChatBotGenAI,
@@ -20,7 +20,6 @@ import {
   defaultSession,
 } from "../../lib/interfaces";
 import { getLoadingMessageFromAgentStatus , tableToCsv, downloadCsv } from "./ChatContextHelpers";
-
 // STRUCTURE
 
 export interface ChatContextStructure {
@@ -42,6 +41,7 @@ export interface ChatContextStructure {
   handleExportTable: (response: string) => void;
   latestResponse: string; // Add this line
   setLatestResponse: (response: string) => void; 
+  
 }
 
 export const ChatContext = createContext<ChatContextStructure>({
@@ -108,10 +108,20 @@ export function ChatContextProvider(
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
   const [chatLoadingMessage, setChatLoadingMessage] = useState<string>("");
   const [latestResponse, setLatestResponse] = useState<string>("");
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   // Initializations
   // useEffect(() => {
   //     console.log("Sessions changed", sessions);
   // }, [sessions]);
+
+  // const scrollPosition = chatContainerRef.current?.scrollTop;
+
+  // useEffect(() => {
+  //   if (chatContainerRef.current && scrollPosition !== undefined) {
+  //     chatContainerRef.current.scrollTop = scrollPosition;
+  //   }
+  // }, [selectedSession?.messages]);
+  
 
   useEffect(() => {
     if (!selectedSession) return;
@@ -384,72 +394,187 @@ export function ChatContextProvider(
     // Download the CSV file
     downloadCsv(csvContent, 'media-plan.csv');
   }
-  
+
   async function addNewUserMessageWithLastMessages(messageText: string): Promise<void> {
     const MAX_PAYLOAD_HISTORY = 3;
     if (!messageText || !selectedSession) return;
+
     const userIdNumbersList = selectedSession.messages
-      .filter((item) => !item.isBot)
-      .map((userItem) =>
-        Number(userItem.id.slice(USER_MESSAGE_ID_PREFIX.length))
-      );
-    const newId =
-      USER_MESSAGE_ID_PREFIX +
-      (userIdNumbersList.length > 0
+        .filter((item) => !item.isBot)
+        .map((userItem) =>
+            Number(userItem.id.slice(USER_MESSAGE_ID_PREFIX.length))
+        );
+    
+    const newId = USER_MESSAGE_ID_PREFIX + (userIdNumbersList.length > 0
         ? Math.max(...userIdNumbersList) + 1
-        : 0
-      ).toString();
+        : 0).toString();
+
     const newMessage: ChatMessageObject = {
-      id: newId,
-      date: new Date().toISOString(),
-      isBot: false,
-      userName: session.data?.user?.name ?? "You",
-      text: messageText,
+        id: newId,
+        date: new Date().toISOString(),
+        isBot: false,
+        userName: session.data?.user?.name ?? "You",
+        text: messageText,
     };
-    const newSession = updateSessionListWithNewMessage(
-      newMessage,
-      selectedSession
-    );
+
+    // Update session with new user message
+    const newSession = updateSessionListWithNewMessage(newMessage, selectedSession);
+
     let conversation_payload: ChatBotPayload[] = [];
     for (let i = 0; i < selectedSession.messages.length; i++) {
-      if (i > MAX_PAYLOAD_HISTORY) break;
-      const message = selectedSession.messages[selectedSession.messages.length - i - 1];
-      conversation_payload.push(
-        { "actor": message.isBot ? "system" : "user", "content": message.text }
-      );
+        if (i > MAX_PAYLOAD_HISTORY) break;
+        const message = selectedSession.messages[selectedSession.messages.length - i - 1];
+        conversation_payload.push(
+            { "actor": message.isBot ? "system" : "user", "content": message.text }
+        );
     }
+
     setIsChatLoading(true);
     conversation_payload = conversation_payload.reverse();
     console.log("CONVERSATION_PAYLOAD:", conversation_payload);
 
-    MEDIA_BACKEND_URL = process.env.MEDIA_BACKEND_URL;
-    const response = await fetch(MEDIA_BACKEND_URL, {
-    // const response = await fetch("http://vmo-dlnx-rcdn-1:8000/", {
+    // Fetching with streaming
+    const response = await fetch("http://127.0.0.1:8000/", {
       method: 'POST',
       headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        "X-Token": "coneofsilence",
-        'Access-Control-Allow-Origin':'*',
-        'Access-Control-Allow-Methods':'POST,PATCH,OPTIONS'
+          'Accept': 'text/event-stream',
+          'Content-Type': 'application/json',
+          "X-Token": "coneofsilence",
       },
       body: JSON.stringify({
-        "conversation_payload": conversation_payload,
-        "query": messageText, // "Was there any breaches?"
-        "skip_llm_call": false,
+          "conversation_payload": conversation_payload,
+          "query": messageText,
+          "skip_llm_call": false,
       })
-    });
-    const res = await response.json();
-    res.responses.forEach(response => {
-        setLatestResponse(prevResponse => prevResponse + response.response);
-        updateSessionListWithNewMessage(
-            formatMessageFromServerResponse({ text: response.response, refs: [] }),
-            newSession
-        );
-    });
+  });
 
+  if (!response.body) {
+    console.error("Response body is null.");
     setIsChatLoading(false);
+    return;
+  }
+  if (!response.ok) {
+    console.error(`HTTP error! status: ${response.status}`);
+    setIsChatLoading(false);
+    return;
+  }
+  
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let buffer = '';
+  let fullResponse = '';
+  let mediaPlanContent = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const jsonStr = line.slice(6); // Remove 'data: ' prefix
+          const json = JSON.parse(jsonStr);
+          
+          // Check if this is media plan content
+          if (json.response.includes("MEDIA PLAN:")) {
+            mediaPlanContent += json.response;
+            // Update full response with media plan at the beginning
+            fullResponse = mediaPlanContent + fullResponse.replace(mediaPlanContent, '');
+          } else {
+            // Append other content after media plan
+            fullResponse = mediaPlanContent + (fullResponse.replace(mediaPlanContent, '') + json.response);
+          }
+
+          // Update state with the new combined response
+          setLatestResponse(fullResponse);
+
+          // Update session with new message
+          updateSessionListWithNewMessage(
+            formatMessageFromServerResponse({ text: fullResponse, refs: [] }),
+            newSession
+          );
+        } catch (e) {
+          console.error("Error parsing JSON:", e);
+        }
+      }
+    }
+  }
+  setIsChatLoading(false);
 }
+
+//   async function addNewUserMessageWithLastMessages(messageText: string): Promise<void> {
+
+
+//     const MAX_PAYLOAD_HISTORY = 3;
+//     if (!messageText || !selectedSession) return;
+//     const userIdNumbersList = selectedSession.messages
+//       .filter((item) => !item.isBot)
+//       .map((userItem) =>
+//         Number(userItem.id.slice(USER_MESSAGE_ID_PREFIX.length))
+//       );
+//     const newId =
+//       USER_MESSAGE_ID_PREFIX +
+//       (userIdNumbersList.length > 0
+//         ? Math.max(...userIdNumbersList) + 1
+//         : 0
+//       ).toString();
+//     const newMessage: ChatMessageObject = {
+//       id: newId,
+//       date: new Date().toISOString(),
+//       isBot: false,
+//       userName: session.data?.user?.name ?? "You",
+//       text: messageText,
+//     };
+//     const newSession = updateSessionListWithNewMessage(
+//       newMessage,
+//       selectedSession
+//     );
+
+
+//     let conversation_payload: ChatBotPayload[] = [];
+//     for (let i = 0; i < selectedSession.messages.length; i++) {
+//       if (i > MAX_PAYLOAD_HISTORY) break;
+//       const message = selectedSession.messages[selectedSession.messages.length - i - 1];
+//       conversation_payload.push(
+//         { "actor": message.isBot ? "system" : "user", "content": message.text }
+//       );
+//     }
+//     setIsChatLoading(true);
+//     conversation_payload = conversation_payload.reverse();
+//     console.log("CONVERSATION_PAYLOAD:", conversation_payload);
+
+//     // MEDIA_BACKEND_URL = process.env.MEDIA_BACKEND_URL;
+//     const response = await fetch("http://127.0.0.1:8000/", {
+//       // const response = await fetch("http://vmo-dlnx-rcdn-1:8000/", {
+//         method: 'POST',
+//         headers: {
+//         Accept: 'application/json',
+//         'Content-Type': 'application/json',
+//         "X-Token": "coneofsilence",
+//         'Access-Control-Allow-Origin':'*',
+//         'Access-Control-Allow-Methods':'POST,PATCH,OPTIONS'
+//       },
+//       body: JSON.stringify({
+//         "conversation_payload": conversation_payload,
+//         "query": messageText, // "Was there any breaches?"
+//         "skip_llm_call": false,
+//       })
+//     });
+//     const res = await response.json();
+//     res.responses.forEach(response => {
+//         setLatestResponse(prevResponse => prevResponse + response.response);
+//         updateSessionListWithNewMessage(
+//             formatMessageFromServerResponse({ text: response.response, refs: [] }),
+//             newSession
+//         );
+//     });
+
+//     setIsChatLoading(false);
+// }
 
   return (
     <ChatContext.Provider
