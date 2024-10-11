@@ -66,17 +66,24 @@ const LOREM = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ut
 In vel ultrices massa, et feugiat ex. Proin vel odio lorem. Nunc dignissim quam dolor, quis mollis dolor dignissim vitae. Morbi ut condimentum felis, at posuere massa. Sed aliquam elit dignissim, sagittis libero a, cursus tellus. Ut non placerat elit. Aliquam scelerisque urna a nunc ornare, eget dapibus dolor gravida. Phasellus rutrum venenatis bibendum.`
 
 export function extractMediaUrls(response: string): string[] {
-    const mediaUrlRegex = /https?:\/\/[^\s"'<>]+(?<!\.thumbnail\.jpg)(?=[\s"'<>]|$)/g;
+    const extensions = ['jpg', 'mov', 'png', 'gif', 'mp4'];
+    const extensionPattern = extensions.join('|');
+    const mediaUrlRegex = new RegExp(`(?:http:\/\/127\\.0\\.0\\.1:8000\/static\/images\/[^\\s"'<>]+\\.(?:${extensionPattern}))(?=[\\s"'<>]|$)`, 'g');
     const matches = response.match(mediaUrlRegex) || [];
-    return matches.map(url => url.replace(/&quot;/g, ''));
+    const filteredMatches = matches.filter(url => !url.includes('.thumbnail.'));
+    return [...new Set(filteredMatches)];
 }
-
 export function extractMediaNames(response: string): string[] {
-    const regex = /<td class="brand_name">(.*?)<\/td>\s*<td class="product_name">(.*?)<\/td>/g;
-    const matches: string[] = [];
+    const regex = /<h3 class="h3">Brand:\s*(.*?)<\/h3>.*?<h3 class="h3">Product:\s*(.*?)<\/h3>/gs;
+    const results: string[] = []; // Explicitly define the type as string[]
     let match: RegExpExecArray | null;
+
     while ((match = regex.exec(response)) !== null) {
-        matches.push(`${match[1]} - ${match[2]}`);
+        const brand = match[1]?.trim();
+        const product = match[2]?.trim();
+        if (brand && product) {
+            results.push(`${brand} - ${product}`);
+        }
     }
-    return matches;
+    return results;
 }

@@ -6,7 +6,7 @@ import {
 } from "@repo/ui/components";
 import { getInitials } from "@repo/ui/helpers";
 import dayjs from "dayjs";
-import { useRef, useState, useContext } from "react";
+import { useRef, useState, useContext, useEffect } from "react";
 import type { ChatMessageObject } from "../lib/interfaces";
 import { ChatContext } from "../ui/contexts/ChatContext";
 import "./ChatMessage.scss";
@@ -25,6 +25,56 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [mediaNames, setmediaNames] = useState<string[]>([]);
   const [mediaTypes, setMediaTypes] = useState<('image' | 'video')[]>([]);
+  
+  
+  // Function to open the media modal
+  // function openMediaModal(): void {
+  //   if (chatContext.latestResponse) {
+  //     const urls = extractMediaUrls(chatContext.latestResponse);
+  //     const names = extractMediaNames(chatContext.latestResponse);
+  
+  //     if (urls.length > 0) {
+  //       // Create an array of unique objects containing url, name, and type
+  //       const uniqueMedia = Array.from(new Set(urls.map((url, index) => {
+  //         return JSON.stringify({
+  //           url: url,
+  //           name: names[index] || '',
+  //           type: url.endsWith('.mp4') ? 'video' : 'image'
+  //         });
+  //       }))).map(item => JSON.parse(item));
+  
+  //       // Extract unique urls, names, and types from the uniqueMedia array
+  //       const uniqueUrls = uniqueMedia.map(item => item.url);
+  //       const uniqueNames = uniqueMedia.map(item => item.name);
+  //       const uniqueTypes = uniqueMedia.map(item => item.type);
+  
+  //       setMediaUrls(uniqueUrls);
+  //       setmediaNames(uniqueNames);
+  //       setMediaTypes(uniqueTypes);
+  //       setIsModalOpen(true); // Open the modal
+  //     }
+  //   }
+  // }
+
+  function openMediaModal(): void {
+    if (chatContext.latestResponse) {
+        const urls = extractMediaUrls(chatContext.latestResponse);
+        const names = extractMediaNames(chatContext.latestResponse);
+
+        if (urls.length > 0) {
+            const mediaItems = urls.map((url, index) => ({
+                url,
+                name: names[index] || '',
+                type: ['mov', 'mp4'].some(ext => url.endsWith(ext)) ? 'video' : 'image'
+            }));
+
+            setMediaUrls(mediaItems.map(item => item.url));
+            setmediaNames(mediaItems.map(item => item.name));
+            setMediaTypes(mediaItems.map((item): ("image" | "video") => item.type as "image" | "video"));
+            setIsModalOpen(true);
+        }
+    }
+}
 
   function handleVote(vote: 1 | -1): void {
     const newVote = props.vote === vote ? 0 : vote;
@@ -40,20 +90,39 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
     setIsFilesOpen((current) => !current);
   }
 
-  function handleShowCreatives(): void {
-    if (chatContext.latestResponse) {
-        const urls = extractMediaUrls(chatContext.latestResponse);
-        const names = extractMediaNames(chatContext.latestResponse);
-        if (urls.length > 0) {
-            const types = urls.map(url => url.endsWith('.mp4') ? 'video' : 'image');
-            setMediaUrls(urls);
-            setmediaNames(names);
-            setMediaTypes(types);
-            setIsModalOpen(true);
-        }
-    }
-}
+    // // Function to handle clicks on media inside the message (from `dangerouslySetInnerHTML`)
+    // function handleMediaClick(event: MouseEvent) {
+    //   const target = event.target as HTMLElement;
+      
+    //   if (target.tagName === 'IMG' || (target.tagName === 'A' && target.getAttribute('href'))) {
+    //     const url = target.tagName === 'IMG' ? target.getAttribute('src') : target.getAttribute('href');
+    //     const isVideo = url?.endsWith('.mp4');
+    //     const name = target.getAttribute('data-media-name') || "Untitled"; // You could customize this
+  
+    //     if (url) {
+    //       setMediaUrls([url]);
+    //       setmediaNames([name]);
+    //       setMediaTypes([isVideo ? 'video' : 'image']);
+    //       setIsModalOpen(true); // Open the modal
+    //     }
+    //   }
+    // }
+  
+    // // Add event listener to detect clicks on media content (once the component is rendered)
+    // useEffect(() => {
+    //   const messageContent = document.getElementById(props.id);  // Ensure each message has a unique ID
+    //   if (messageContent) {
+    //     messageContent.addEventListener('click', handleMediaClick);
+    //   }
+  
+    //   return () => {
+    //     if (messageContent) {
+    //       messageContent.removeEventListener('click', handleMediaClick);
+    //     }
+    //   };
+    // }, [props.id]);
 
+    
   return (
     <div
       className={["chat-message-container", props.isBot ? "bot" : undefined]
@@ -98,7 +167,7 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
             
             {/* Show Creatives Button */}
             <CommonButton
-              onClick={handleShowCreatives}
+              onClick={openMediaModal}
               className="show-creatives-button"
             >
               <ChatbotIcons.SVGDocument />

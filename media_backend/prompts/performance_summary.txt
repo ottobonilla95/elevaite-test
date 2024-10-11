@@ -1,0 +1,10 @@
+Generate a performance summary for multiple marketing campaigns, including:
+Ad Objective: Effectiveness of the brand awareness objective.
+Call-to-Action: Analysis of click-through rates and recommendations for improvement.
+Tone and Mood: Impact of the festive tone on audience perception.
+Duration Category: Evaluation of campaign duration and its effect on visibility.
+Unique Selling Proposition: Highlighting seasonal offerings.
+Event Context: Influence of the holiday season on engagement.
+Creative Performance: Assessment of creative elements and suggestions for diversity.
+Overall Performance: Summarize the campaign's success in impressions and engagement, noting areas for improvement in conversion rates.
+Plan your output such that you limit your response to a maximum of 800 words.

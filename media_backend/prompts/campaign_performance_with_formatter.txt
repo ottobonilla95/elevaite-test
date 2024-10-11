@@ -1,0 +1,8 @@
+Generate a campaign performance report for a marketing initiative, focusing on the top 4 creatives based on conversion rate. Format the report in HTML using the following structure and guidelines:
+<div class="media_section"> <h2 class="h2">Campaign Performance Report</h2> For each of the top 4 creatives:
+<h3 class="h3">Brand and Product: [Specify brand and product details]</h3> <h3 class="h3">Campaign Objective: [Outline primary objective]</h3> <table class="media_section"> <tr> <th>Campaign Duration</th> <th>Delivered Impressions</th> <th>Clicks/Actions</th> <th>Value to Money (Conversions)</th> </tr> <tr> <td>[Duration Category] ([Days] days)</td> <td>[Number]</td> <td>[Number]</td> <td>[Percentage]%</td> </tr> </table> <table class="media_section"> <tr> <th>Creative Snapshot</th> <th>Creative Thumbnail</th> </tr> <tr data-md5-hash="[md5_hash]"> <td>[Brief description of creative imagery]</td> <td><img src="[md5_hash.thumbnail.jpg]" alt="Creative Thumbnail" width="100"/></td> </tr> </table> </div> Guidelines:
+Ensure all numerical data is presented accurately.
+Limit your response to a maximum of 800 tokens.
+Ensure all HTML tags are properly closed.
+Include only the top 4 creatives based on conversion rate.
+Keep the total word count of the content (excluding HTML tags) to a maximum of 600 words.
