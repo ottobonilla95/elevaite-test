@@ -1,13 +1,6 @@
 import type { ChatMessageFileObject, ChatMessageObject, SessionObject } from "./interfaces";
 import { ChatMessageFileTypes } from "./interfaces";
 
-
-
-
-
-
-
-
 export function getTestSessionsList(amount: number): SessionObject[] {
     const list: SessionObject[] = [];
     for (let i=0; i<amount; i++) {
@@ -20,8 +13,6 @@ export function getTestSessionsList(amount: number): SessionObject[] {
     }
     return list;
 }
-
-
 
 
 export function getTestMessagesList(amount: number): ChatMessageObject[] {
@@ -66,12 +57,9 @@ const LOREM = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ut
 In vel ultrices massa, et feugiat ex. Proin vel odio lorem. Nunc dignissim quam dolor, quis mollis dolor dignissim vitae. Morbi ut condimentum felis, at posuere massa. Sed aliquam elit dignissim, sagittis libero a, cursus tellus. Ut non placerat elit. Aliquam scelerisque urna a nunc ornare, eget dapibus dolor gravida. Phasellus rutrum venenatis bibendum.`
 
 export function extractMediaUrls(response: string): string[] {
-    const extensions = ['jpg', 'mov', 'png', 'gif', 'mp4'];
-    const extensionPattern = extensions.join('|');
-    const mediaUrlRegex = new RegExp(`(?:http:\/\/127\\.0\\.0\\.1:8000\/static\/images\/[^\\s"'<>]+\\.(?:${extensionPattern}))(?=[\\s"'<>]|$)`, 'g');
-    const matches = response.match(mediaUrlRegex) || [];
-    const filteredMatches = matches.filter(url => !url.includes('.thumbnail.'));
-    return [...new Set(filteredMatches)];
+    const mediaUrlRegex = /http:\/\/127\.0\.0\.1:8000\/static\/images\/[^\s"'<>]+\.(?:jpg|mov|png|gif|mp4)(?=[\s"'<>]|$)/g;
+    const matches = response.match(mediaUrlRegex) ?? [];
+    return Array.from(new Set(matches.filter(url => !url.includes('.thumbnail.'))));
 }
 export function extractMediaNames(response: string): string[] {
     const regex = /<h3 class="h3">Brand:\s*(.*?)<\/h3>.*?<h3 class="h3">Product:\s*(.*?)<\/h3>/gs;
