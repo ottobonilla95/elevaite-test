@@ -522,6 +522,7 @@ export interface ContractObjectEmphasis {
     invoice_number: string|null;
     po_number: string|null;
     customer_po_number: string|null;
+    customer_name: string|null;
     contract_number: string|null;
     supplier: string|null;
     rec_charges: string|null;
