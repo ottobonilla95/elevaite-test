@@ -46,9 +46,6 @@ export function getTestMessageFiles(): ChatMessageFileObject[] {
     return files;
 }
 
-
-
-
 function getRandomInRange(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
@@ -58,9 +55,10 @@ In vel ultrices massa, et feugiat ex. Proin vel odio lorem. Nunc dignissim quam 
 
 export function extractMediaUrls(response: string): string[] {
     const mediaUrlRegex = /http:\/\/127\.0\.0\.1:8000\/static\/images\/[^\s"'<>]+\.(?:jpg|mov|png|gif|mp4)(?=[\s"'<>]|$)/g;
-    const matches = response.match(mediaUrlRegex) ?? [];
-    return Array.from(new Set(matches.filter(url => !url.includes('.thumbnail.'))));
+    const matches = (response.match(mediaUrlRegex) ?? []) as string[];
+    return Array.from(new Set(matches.filter((url: string) => !url.includes('.thumbnail.'))));
 }
+
 export function extractMediaNames(response: string): string[] {
     const regex = /<h3 class="h3">Brand:\s*(.*?)<\/h3>.*?<h3 class="h3">Product:\s*(.*?)<\/h3>/gs;
     const results: string[] = []; // Explicitly define the type as string[]

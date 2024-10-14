@@ -639,10 +639,10 @@ async def perform_inference(inference_payload: InferencePayload):
     try:
         conversation_history = inference_payload.conversation_payload or []
         if conversation_history:
-            yield {"response": "Received conversation payload\n"}
+            print("response : Received conversation payload\n")
         intent_data = determine_intent(inference_payload.query, conversation_history)
         if not intent_data:
-            yield {"response": "Retrying Intent\n"}
+            print("Retrying Intent\n")
             intent_data = determine_intent(inference_payload.query, conversation_history)
         required_outcomes = intent_data.get('required_outcomes')
         if 0 in required_outcomes:
