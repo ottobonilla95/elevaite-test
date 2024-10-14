@@ -522,6 +522,7 @@ export interface ContractObjectEmphasis {
     invoice_number: string|null;
     po_number: string|null;
     customer_po_number: string|null;
+    customer_name: string|null;
     contract_number: string|null;
     supplier: string|null;
     rec_charges: string|null;
@@ -553,6 +554,7 @@ export interface ContractObjectVerification {
     verification_status: boolean;
     line_items: boolean;
     vsow: ContractObjectVerificationItem[];
+    csow?: ContractObjectVerificationItem[];
     invoice: ContractObjectVerificationItem[];
     po?: ContractObjectVerificationItem;
 }
