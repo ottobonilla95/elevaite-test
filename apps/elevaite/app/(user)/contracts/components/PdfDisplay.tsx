@@ -167,6 +167,11 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
             isDisabled: !(contract?.content_type === CONTRACT_TYPES.VSOW || Boolean(contract?.verification?.vsow.length))
         })
         tabs.push({
+            value: CONTRACT_TYPES.CSOW,
+            label: "CSOW",
+            isDisabled: !(contract?.content_type === CONTRACT_TYPES.CSOW || Boolean(contract?.verification?.csow?.length))
+        })
+        tabs.push({
             value: CONTRACT_TYPES.PURCHASE_ORDER,
             label: "PO",
             isDisabled: !(contract?.content_type === CONTRACT_TYPES.PURCHASE_ORDER || Boolean(contract?.verification?.po))

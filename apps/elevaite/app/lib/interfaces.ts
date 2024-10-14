@@ -554,6 +554,7 @@ export interface ContractObjectVerification {
     verification_status: boolean;
     line_items: boolean;
     vsow: ContractObjectVerificationItem[];
+    csow?: ContractObjectVerificationItem[];
     invoice: ContractObjectVerificationItem[];
     po?: ContractObjectVerificationItem;
 }
