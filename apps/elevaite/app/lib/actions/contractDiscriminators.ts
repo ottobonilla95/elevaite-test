@@ -26,6 +26,10 @@ export function isSubmitContractResponse(data: unknown): data is ContractObject 
     return isContractObject(data);
 }
 
+export function isReprocessContractResponse(data: unknown): data is ContractObject {
+    return isContractObject(data);
+}
+
 
 export function isCreateProjectResponse(data: unknown): data is ContractProjectObject {
     return isContractProjectObject(data);

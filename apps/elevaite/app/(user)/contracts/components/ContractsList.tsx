@@ -168,8 +168,10 @@ export function ContractsList(): JSX.Element {
                 break;
             case CONTRACTS_TABS.CUSTOMER_CONTRACTS:
                 structure.push({ header: "VSOW", field: "csow_vsow_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.VSOW), });
+                structure.push({ header: "PO", field: "vsow_po_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.PURCHASE_ORDER), });
                 break;
             case CONTRACTS_TABS.SUPPLIER_CONTRACTS:
+                structure.push({ header: "CSOW", field: "vsow_csow_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.VSOW), });
                 structure.push({ header: "Inv.", field: "vsow_inv_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.INVOICE), });
                 structure.push({ header: "PO", field: "vsow_po_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.PURCHASE_ORDER), });
                 break;
@@ -312,7 +314,7 @@ export function ContractsList(): JSX.Element {
                     
                     <div className={["contracts-list-table-contents",
                         selectedTab === CONTRACTS_TABS.SUPPLIER_INVOICES ? "invoice" :
-                        selectedTab === CONTRACTS_TABS.CUSTOMER_CONTRACTS ? "csow" : undefined].filter(Boolean).join(" ")}>
+                        selectedTab === CONTRACTS_TABS.SUPPLIER_CONTRACTS ? "vsow" : undefined].filter(Boolean).join(" ")}>
                         <ListRow<ContractObject>
                             isHeader
                             structure={displayRowsStructure}

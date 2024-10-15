@@ -56,6 +56,10 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
         props.handleExpansion();
     }
 
+    function handleReprocess(): void {
+        contractsContext.reprocessSelectedContract();
+    }
+
     function confimedApproval(): void {        
         console.log("Handling manual approval of", contractsContext.selectedContract?.label ?? contractsContext.selectedContract?.filename);
         setIsApprovalConfirmationOpen(false);
@@ -154,6 +158,14 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
                             </CommonButton>
                         }
                     </div>
+                    <CommonButton
+                        className="reprocess-button"
+                        onClick={handleReprocess}
+                        noBackground
+                        title="Reprocess file"
+                    >
+                        <ElevaiteIcons.SVGRefresh />
+                    </CommonButton>
                 </div>
                 {contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE ? undefined :
                  contractsContext.selectedContract.verification?.verification_status === true ? 

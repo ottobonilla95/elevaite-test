@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { CreateProject, getContractProjectById, getContractProjectsList, submitContract } from "../actions/contractActions";
+import { CreateProject, getContractProjectById, getContractProjectsList, reprocessContract, submitContract } from "../actions/contractActions";
 import { CONTRACT_STATUS, type CONTRACT_TYPES, type ContractExtractionDictionary, type ContractObject, type ContractProjectObject } from "../interfaces";
 
 
@@ -41,6 +41,7 @@ export interface ContractsContextStructure {
     selectedContract: ContractObject | undefined;
     setSelectedContract: (contract: ContractObject|undefined) => void;
     setSelectedContractById: (id: string|number|undefined) => void;
+    reprocessSelectedContract: () => void;
     changeSelectedContractBit: (pageKey: `page_${number}`, itemKey: string, newValue: string) => void;
     changeSelectedContractTableBit: (pageKey: `page_${number}`, tableKey: string, newTableData: Record<string, string>[]) => void;
     submitCurrentContractPdf: (pdf: File|undefined, type: CONTRACT_TYPES, projectId: string|number, name?: string) => void;
@@ -57,6 +58,7 @@ export const ContractsContext = createContext<ContractsContextStructure>({
     selectedContract: undefined,
     setSelectedContract: () => {/**/},
     setSelectedContractById: () => {/**/},
+    reprocessSelectedContract: () => {/**/},
     changeSelectedContractBit: () => {/**/},
     changeSelectedContractTableBit: () => {/**/},
     submitCurrentContractPdf: () => undefined,
@@ -337,6 +339,18 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
         }
     }
 
+    async function actionReprocessContract(): Promise<void> {
+        if (!selectedProject || !selectedContract) return;
+        try {
+            // Stealth reprocess            
+            const reprocessResult = await reprocessContract(selectedProject.id.toString(), selectedContract.id.toString());
+            console.log("Reprocessing result");
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in reprocessing contract:", error);
+        }
+    }
+
     async function actionCreateProject(name: string, description?: string): Promise<boolean> {
         try {
             setLoading(current => { return {...current, projects: true}} );
@@ -397,6 +411,7 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
                 selectedContract,
                 setSelectedContract,
                 setSelectedContractById,
+                reprocessSelectedContract: actionReprocessContract,
                 changeSelectedContractBit,
                 changeSelectedContractTableBit,
                 submitCurrentContractPdf,
