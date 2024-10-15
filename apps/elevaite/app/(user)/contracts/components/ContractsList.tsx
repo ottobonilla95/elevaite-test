@@ -18,6 +18,7 @@ interface CrossMatchFields {
     [CONTRACT_TYPES.INVOICE]: number,
     [CONTRACT_TYPES.PURCHASE_ORDER]: number,
     [CONTRACT_TYPES.VSOW]: number
+    [CONTRACT_TYPES.CSOW]: number
 }
 
 
@@ -75,11 +76,14 @@ function structureVerification(listItem: ContractObject, checkingType: CONTRACT_
     let isVerified = false;
 
     switch (checkingType) {
-        case CONTRACT_TYPES.INVOICE: isVerified = listItem.verification?.invoice.length
-                                                    ? listItem.verification.invoice.every(item => item.verification_status) : false; break;
-        case CONTRACT_TYPES.PURCHASE_ORDER: isVerified = listItem.verification?.po?.verification_status ?? false; break;
-        default: isVerified = listItem.verification?.vsow.length
-                                ? listItem.verification.vsow.every(item => item.verification_status) : false;        
+        case CONTRACT_TYPES.INVOICE: isVerified = listItem.verification?.invoice?.length
+                                                ? listItem.verification.invoice.every(item => item.verification_status) : false; break;
+        case CONTRACT_TYPES.PURCHASE_ORDER: isVerified = listItem.verification?.po?.length
+                                                ?  listItem.verification.po.every(item => item.verification_status) : false; break;
+        case CONTRACT_TYPES.VSOW: isVerified = listItem.verification?.vsow?.length
+                                                ? listItem.verification.vsow.every(item => item.verification_status) : false; break;
+        case CONTRACT_TYPES.CSOW: isVerified = listItem.verification?.csow?.length
+                                                ? listItem.verification.csow.every(item => item.verification_status) : false; break;
     }
 
     return (
@@ -162,9 +166,13 @@ export function ContractsList(): JSX.Element {
                 structure.push({ header: "VSOW", field: "po_vsow_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.VSOW), });
                 structure.push({ header: "Inv.", field: "po_inv_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.INVOICE), });
                 break;
-            default:
+            case CONTRACTS_TABS.CUSTOMER_CONTRACTS:
+                structure.push({ header: "VSOW", field: "csow_vsow_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.VSOW), });
+                break;
+            case CONTRACTS_TABS.SUPPLIER_CONTRACTS:
                 structure.push({ header: "Inv.", field: "vsow_inv_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.INVOICE), });
                 structure.push({ header: "PO", field: "vsow_po_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.PURCHASE_ORDER), });
+                break;
         }
         return structure;
     }
@@ -202,11 +210,13 @@ export function ContractsList(): JSX.Element {
         const invoiceFailures = contractsToCheck.filter(item => item.content_type === CONTRACT_TYPES.INVOICE && item.verification?.verification_status === false).length;
         const poFailures = contractsToCheck.filter(item => item.content_type === CONTRACT_TYPES.PURCHASE_ORDER && item.verification?.verification_status === false).length;
         const vsowFailures = contractsToCheck.filter(item => item.content_type === CONTRACT_TYPES.VSOW && item.verification?.verification_status === false).length;
+        const csowFailures = contractsToCheck.filter(item => item.content_type === CONTRACT_TYPES.CSOW && item.verification?.verification_status === false).length;
 
         return {
             [CONTRACT_TYPES.INVOICE]: invoiceFailures,
             [CONTRACT_TYPES.PURCHASE_ORDER]: poFailures,
             [CONTRACT_TYPES.VSOW]: vsowFailures,
+            [CONTRACT_TYPES.CSOW]: csowFailures,
         }
     }
 
@@ -239,6 +249,7 @@ export function ContractsList(): JSX.Element {
 
             <div className={["cross-match-container", !contractsContext.selectedProject ? "concealed" : undefined ].filter(Boolean).join(" ")}>
                 <CrossMatchBit value={crossMatches?.[CONTRACT_TYPES.VSOW]} label="VSOW matches failed" />
+                <CrossMatchBit value={crossMatches?.[CONTRACT_TYPES.CSOW]} label="CSOW matches failed" />
                 <CrossMatchBit value={crossMatches?.[CONTRACT_TYPES.PURCHASE_ORDER]} label="PO matches failed" />
                 <CrossMatchBit value={crossMatches?.[CONTRACT_TYPES.INVOICE]} label="Total invoices pending approval" />
             </div>
@@ -300,7 +311,8 @@ export function ContractsList(): JSX.Element {
 
                     
                     <div className={["contracts-list-table-contents",
-                        selectedTab === CONTRACTS_TABS.SUPPLIER_INVOICES ? "invoice" : undefined].filter(Boolean).join(" ")}>
+                        selectedTab === CONTRACTS_TABS.SUPPLIER_INVOICES ? "invoice" :
+                        selectedTab === CONTRACTS_TABS.CUSTOMER_CONTRACTS ? "csow" : undefined].filter(Boolean).join(" ")}>
                         <ListRow<ContractObject>
                             isHeader
                             structure={displayRowsStructure}

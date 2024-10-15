@@ -15,7 +15,7 @@
 
     & .cross-match-container {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
         gap: 20px;
         padding: 0 10px 20px;
 
@@ -25,9 +25,10 @@
 
         & .cross-match-bit-container {
             display: flex;
-            flex-direction: column;
+            // flex-direction: column;
             justify-content: space-between;
-            gap: 0;
+            align-items: flex-end;
+            gap: 20px;
             padding: 10px 10px;
             border: 1px solid var(--ev-colors-borderColor);
             border-radius: 4px;
@@ -159,6 +160,9 @@
 
             &.invoice {
                 grid-template-columns: 80px minmax(160px, 2fr) minmax(150px, 1fr) 100px minmax(150px, 2fr) minmax(100px, 1fr) 50px 65px;
+            }
+            &.csow {
+                grid-template-columns: 80px minmax(160px, 2fr) minmax(150px, 1fr) 100px minmax(150px, 2fr) 65px;
             }
     
             & .table-span {

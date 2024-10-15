@@ -164,7 +164,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         tabs.push({
             value: CONTRACT_TYPES.VSOW,
             label: "VSOW",
-            isDisabled: !(contract?.content_type === CONTRACT_TYPES.VSOW || Boolean(contract?.verification?.vsow.length))
+            isDisabled: !(contract?.content_type === CONTRACT_TYPES.VSOW || Boolean(contract?.verification?.vsow?.length))
         })
         tabs.push({
             value: CONTRACT_TYPES.CSOW,
@@ -174,12 +174,12 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         tabs.push({
             value: CONTRACT_TYPES.PURCHASE_ORDER,
             label: "PO",
-            isDisabled: !(contract?.content_type === CONTRACT_TYPES.PURCHASE_ORDER || Boolean(contract?.verification?.po))
+            isDisabled: !(contract?.content_type === CONTRACT_TYPES.PURCHASE_ORDER || Boolean(contract?.verification?.po?.length))
         })
         tabs.push({
             value: CONTRACT_TYPES.INVOICE,
             label: "Invoice",
-            isDisabled: !(contract?.content_type === CONTRACT_TYPES.INVOICE || Boolean(contract?.verification?.invoice.length))
+            isDisabled: !(contract?.content_type === CONTRACT_TYPES.INVOICE || Boolean(contract?.verification?.invoice?.length))
         })
         return tabs;
     }
@@ -189,28 +189,28 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         switch(passedTab) {
             case CONTRACT_TYPES.INVOICE: {
                     if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE &&
-                        contractsContext.selectedContract?.verification?.invoice[0]?.file_id)
+                        contractsContext.selectedContract?.verification?.invoice?.[0]?.file_id)
                         contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.invoice[0].file_id);
                         break;
                     }
             case CONTRACT_TYPES.PURCHASE_ORDER: {
                     if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.PURCHASE_ORDER &&
-                        contractsContext.selectedContract?.verification?.po?.file_id)
-                        contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.po.file_id);
+                        contractsContext.selectedContract?.verification?.po?.[0]?.file_id)
+                        contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.po[0].file_id);
                         break;
                     }
             case CONTRACT_TYPES.VSOW: {
                         if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.VSOW &&
-                            contractsContext.selectedContract?.verification?.vsow[0]?.file_id)
+                            contractsContext.selectedContract?.verification?.vsow?.[0]?.file_id)
                             contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.vsow[0].file_id);
                             break;
                         }
-            // case CONTRACT_TYPES.CSOW: {
-            //             if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.PURCHASE_ORDER &&
-            //                 contractsContext.selectedContract?.verification?.csow[0]?.file_id)
-            //                 contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.csow[0].file_id);
-            //                 break;
-            //             }
+            case CONTRACT_TYPES.CSOW: {
+                        if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.PURCHASE_ORDER &&
+                            contractsContext.selectedContract?.verification?.csow?.[0]?.file_id)
+                            contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.csow[0].file_id);
+                            break;
+                        }
             default: break;
         }
     }
