@@ -15,14 +15,22 @@ import asyncio
 
 
 def timer_decorator(func):
-    def wrapper(*args, **kwargs):
+    async def async_wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        result = await func(*args, **kwargs)
+        end = time.perf_counter()
+        print(f"{func.__name__} took {end - start:.6f} seconds")
+        return result
+    def sync_wrapper(*args, **kwargs):
         start = time.perf_counter()
         result = func(*args, **kwargs)
         end = time.perf_counter()
         print(f"{func.__name__} took {end - start:.6f} seconds")
         return result
-    return wrapper
-
+    if asyncio.iscoroutinefunction(func):
+        return async_wrapper
+    else:
+        return sync_wrapper
 
 def load_prompt(prompt_name):
     with open(f'prompts/{prompt_name}.txt', 'r') as file:
@@ -49,7 +57,7 @@ try:
 except Exception as e:
     print(f"Error initializing OpenAI client: {e}")
     client = None
-
+@timer_decorator 
 def get_embedding(text):
     try:
         response = client.embeddings.create(
@@ -62,6 +70,7 @@ def get_embedding(text):
         return None
     
 # def search_qdrant(parameters: Dict[str, Any], query_text: str, conversation_payload: list) -> SearchResult:
+@timer_decorator 
 def search_qdrant( query_text: str, conversation_payload: list) -> SearchResult:
     # Needs to be improved - Issues with filtering.
     formatted_history = format_conversation_payload(conversation_payload)
@@ -129,7 +138,7 @@ def search_qdrant( query_text: str, conversation_payload: list) -> SearchResult:
             # print(f"Error in fallback search: {e}")
             # return SearchResult(results=[], total=0)
 
-    print(f"Total results obtained: {len(search_result)}")
+    # print(f"Total results obtained: {len(search_result)}")
 
     # Track IDs of initial results to avoid duplicates
     initial_result_ids = {hit.id for hit in search_result}
@@ -148,11 +157,11 @@ def search_qdrant( query_text: str, conversation_payload: list) -> SearchResult:
         try:
             ad_creative = AdCreative(**payload)
             results_with_scores.append((ad_creative, score))
-            print(f"Processed result with score {score}: {payload.get('campaign_folder')}")
+            # print(f"Processed result with score {score}: {payload.get('campaign_folder')}")
         except ValueError as e:
             print(f"Error processing media creative: {e}")
 
-    print(f"Number of results after relevance filtering: {len(results_with_scores)}")
+    # print(f"Number of results after relevance filtering: {len(results_with_scores)}")
 
     # Enforce campaign folder limits
     campaign_count = {}
@@ -170,7 +179,7 @@ def search_qdrant( query_text: str, conversation_payload: list) -> SearchResult:
             limited_results.append(ad_creative)
             campaign_count[campaign_folder] = 1
 
-    print(f"Number of results after campaign folder limit: {len(limited_results)}")
+    # print(f"Number of results after campaign folder limit: {len(limited_results)}")
 
     # Ensure at least 5 results
     if len(limited_results) < 4:
@@ -204,7 +213,7 @@ def search_qdrant( query_text: str, conversation_payload: list) -> SearchResult:
 
             # Reapply relevance filtering
             additional_relevant_results = [result for result, score in results_with_scores if score >= relevance_threshold]
-            print(f"Number of additional results after relevance filtering: {len(additional_relevant_results)}")
+            # print(f"Number of additional results after relevance filtering: {len(additional_relevant_results)}")
 
             # Combine and enforce campaign folder limits
             combined_results = limited_results + additional_relevant_results
@@ -274,6 +283,7 @@ def determine_intent(user_query: str, conversation_history: List[ConversationPay
         print(f"Error determining intent: {e}")
         print("Query that led to error:", user_query)
         return {}
+@timer_decorator   
 def format_search_results(search_result: SearchResult) -> str:
     formatted_results = []
     print("Formatting the search results")
@@ -296,6 +306,7 @@ def format_search_results(search_result: SearchResult) -> str:
     print("Sucesss fully completed format search")
     return "\n".join(formatted_results)
 
+@timer_decorator
 async def generate_response(
     query: str,
     system_prompt: str,
@@ -332,14 +343,14 @@ async def generate_response(
         if response_class:
             request_params["response_format"] = response_class
 
-        total_tokens = len(str(request_params))
-        print("Total tokens before request:", total_tokens)
+        # total_tokens = len(str(request_params))
+        # print("Total tokens before request:", total_tokens)
 
         response = await asyncio.to_thread(client.beta.chat.completions.parse, **request_params)
 
         response_content = response.choices[0].message.content.strip()
         total_tokens = response.usage.total_tokens
-        print("total tokens used:", total_tokens)
+        # print("total tokens used:", total_tokens)
         if response_class:
             try:
                 response_class.model_validate_json(response_content)
@@ -351,7 +362,7 @@ async def generate_response(
         print(f"Error in generating response: {e} at the response class: {system_prompt}")
         return "I apologize, but I couldn't generate a response at this time."
 
-@timer_decorator
+@timer_decorator   
 async def formatter(final_output: str = None, prompt_file_name: str = "formatter") -> str:
     system_prompt = load_prompt(prompt_file_name)
     query = f"Content to be formatted: {final_output}"
@@ -361,7 +372,7 @@ async def formatter(final_output: str = None, prompt_file_name: str = "formatter
         max_tokens=4000
     )
     return formatted_output
-
+@timer_decorator 
 def extract_specific_fields(search_result: SearchResult, fields: List[str], full_data_fields: List[str] = None) -> str:
     extracted_data = []
     for ad_creative in search_result.results:
@@ -406,8 +417,8 @@ async def media_plan(filtered_data: SearchResult, query: str, conversation_histo
     essential_data = extract_specific_fields(filtered_data,fields_to_extract,full_data_fields_to_extract)
 
     system_prompt = load_prompt("media_plan")
-    print("media plan Input len:",len(query)+len(system_prompt)+len(essential_data)+len(conversation_history))
-    print("Query, system, filtered, convo history:",len(query),len(system_prompt),len(essential_data),len(conversation_history))
+    # print("media plan Input len:",len(query)+len(system_prompt)+len(essential_data)+len(conversation_history))
+    # print("Query, system, filtered, convo history:",len(query),len(system_prompt),len(essential_data),len(conversation_history))
     raw_response = await generate_response(
         query=query,
         system_prompt=system_prompt,
@@ -416,7 +427,7 @@ async def media_plan(filtered_data: SearchResult, query: str, conversation_histo
         response_class=MediaPlanOutput,
         max_tokens=2500,
     )
-    print("Media_plan outputlen:",len(raw_response))
+    # print("Media_plan outputlen:",len(raw_response))
     return await formatter(raw_response,"formatter_media_plan")
 
 @timer_decorator
@@ -484,7 +495,7 @@ async def analysis_of_trends(filtered_data: SearchResult, query: str, conversati
     # Assuming load_prompt is a quick operation, keep it synchronous
     system_prompt = load_prompt("analysis_of_trends")
     
-    print("analysis Input len:", len(query) + len(system_prompt) + len(essential_data) + len(conversation_history))
+    # print("analysis Input len:", len(query) + len(system_prompt) + len(essential_data) + len(conversation_history))
     
     raw_response = await generate_response(
         query=query,
@@ -494,7 +505,7 @@ async def analysis_of_trends(filtered_data: SearchResult, query: str, conversati
         response_class=AnalysisOfTrends
     )
     
-    print("Analysis of trends len:", len(raw_response))
+    # print("Analysis of trends len:", len(raw_response))
 
     formatted_response = await formatter(raw_response, "formatter_analysis_of_trends")
     
@@ -532,7 +543,7 @@ async def creative_insights(filtered_data: SearchResult, query: str, conversatio
     # Assuming load_prompt is a quick operation, keep it synchronous
     system_prompt = load_prompt("creative_insights")
     
-    print("creative insight Input len:", len(query) + len(system_prompt) + len(essential_data) + len(conversation_history))
+    # print("creative insight Input len:", len(query) + len(system_prompt) + len(essential_data) + len(conversation_history))
     
     # Use the async version of generate_response
     raw_response = await generate_response(
@@ -542,7 +553,7 @@ async def creative_insights(filtered_data: SearchResult, query: str, conversatio
         conversation_history=conversation_history,
         response_class=CreativeInsightsReport
     )
-    print("Creative Insights len:", len(raw_response))
+    # print("Creative Insights len:", len(raw_response))
     formatted_response = await formatter(raw_response, "formatter_creative_insights")
     return formatted_response
 
@@ -551,7 +562,7 @@ async def performance_summary(query: str, output_parts: Dict[str, str]) -> str:
     # Assuming load_prompt is a quick operation, keep it synchronous
     system_prompt = load_prompt("performance_summary")
     
-    print("performance summary Input len:", len(query) + len(system_prompt) + len(str(output_parts)))
+    # print("performance summary Input len:", len(query) + len(system_prompt) + len(str(output_parts)))
     
     # Use the async version of generate_response
     raw_response = await generate_response(
@@ -560,7 +571,7 @@ async def performance_summary(query: str, output_parts: Dict[str, str]) -> str:
         output_parts=output_parts,
         response_class=PerformanceSummary
     )
-    print("Performance summary len:", len(raw_response))
+    # print("Performance summary len:", len(raw_response))
     # Use the async version of formatter
     formatted_response = await formatter(raw_response, "formatter_performance_summary")
     return formatted_response
@@ -595,12 +606,12 @@ def replace_hash_with_url(S):
     # Replace openMediaModal hashes
     S = re.sub(openMediaModal_pattern, replace_openMediaModal, S)
     return S
-
+@timer_decorator 
 def get_url_for_hash(hash, extension):
     base_url = "http://127.0.0.1:8000/static/images"
     directory_structure = f"{hash[:2]}/{hash[2:4]}/{hash}"
     return f"{base_url}/{directory_structure}.{extension}"
-
+@timer_decorator 
 def get_extension_for_hash(hash):
     # Use forward slashes for cross-platform compatibility
     base_path = "static/images"  # Change to your actual path
@@ -616,14 +627,14 @@ def get_extension_for_hash(hash):
 
     return "unknown"  # or raise an exception if preferred
 
-
+@timer_decorator 
 def remove_html_prefix(s):
     s = re.sub(r'```html', '', s)
     s = re.sub(r'```', '<br>', s)
     s = re.sub(r'### (.*)\n', r'<h2><strong>\1</strong></h2><br>\n', s)
     s = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', s)
     return s
-
+@timer_decorator 
 def format_conversation_payload(conversation_payload: List[ConversationPayload]) -> str:
     # Format the conversation history into a single string
     formatted_history = ""
@@ -710,7 +721,7 @@ async def perform_inference(inference_payload: InferencePayload):
     except Exception as e:
         print("An error occurred:", e)
         yield {"response": f"An error occurred: {e}\n"}
-
+@timer_decorator 
 async def get_insight_function(outcome):
     """ Maps required outcomes to their corresponding async functions. """
     mapping = {
