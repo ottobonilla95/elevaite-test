@@ -2,6 +2,7 @@ import { CommonButton, CommonModal, ElevaiteIcons, SimpleInput } from "@repo/ui/
 import { useEffect, useState } from "react";
 import { type ContractObjectVerificationLineItem, type ContractObjectVerificationLineItemVerification } from "../../../../lib/interfaces";
 import "./VerificationLineItems.scss";
+import { useContracts } from "../../../../lib/contexts/ContractsContext";
 
 
 
@@ -20,18 +21,20 @@ interface VerificationLineItemsProps {
 }
 
 export function VerificationLineItems(props: VerificationLineItemsProps): JSX.Element {
-    const headers = ["Ver.", "Amount", "Quantity", "Unit Price", "Product Code", "Part Number", "Need by", "Description"];
-    const [displayHeaders, setDisplayHeaders] = useState<string[]>(headers);
+    const contractsContext = useContracts();
+    const [displayHeaders, setDisplayHeaders] = useState<string[]>(getFullHeaderData());
     const [tableData, setTableData] = useState<TableDataItem[]>();
 
 
     useEffect(() => {
         if (props.lineItems) {
-            const data = getTableData(props.lineItems);
+            console.log("labels:", contractsContext.selectedProject?.settings.labels);
+            const data = getTableData(props.lineItems, getFullHeaderData());
             setTableData(data.table);
             setDisplayHeaders(data.headers);
         }            
     }, [props.lineItems]);
+
 
 
     function handleClose(): void {
@@ -39,7 +42,28 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
     }
 
 
-    function getTableData(lineItems: ContractObjectVerificationLineItem[]): { table: TableDataItem[], headers: string[]} {
+    function getFullHeaderData(): string[] {
+        const originalHeaders = ["Ver.", "Amount", "Quantity", "Unit Price", "Product Code", "Need by", "Description"];
+        if (!props.lineItems || !contractsContext.selectedProject?.settings?.labels) return originalHeaders;
+        const formattedHeaders = ["Ver."];
+        const labels = contractsContext.selectedProject?.settings?.labels;
+
+        // Consider making this automated by iterating keys (ordering, though?)
+        formattedHeaders.push(labels.total_cost ?? "Total Cost");
+        formattedHeaders.push(labels.quantity ?? "Quantity");
+        formattedHeaders.push(labels.unit_cost ?? "Unit Cost");
+        formattedHeaders.push(labels.product_identifier ?? "Product Identifier");
+        formattedHeaders.push(labels.need_by_date ?? "Need By");
+        formattedHeaders.push(labels.ibx ?? "IBX");
+        formattedHeaders.push(labels.site_name ?? "Site Name");
+        formattedHeaders.push(labels.site_address ?? "Site Address");
+        formattedHeaders.push(labels.description ?? "Description");
+
+        return formattedHeaders;
+    }
+
+
+    function getTableData(lineItems: ContractObjectVerificationLineItem[], headers: string[]): { table: TableDataItem[], headers: string[]} {
         const isColumnEmpty = Array(headers.length).fill(true);
 
         lineItems.forEach((item) => {
@@ -48,9 +72,11 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
                 item.amount,
                 item.quantity,
                 item.unit_price,
-                item.product_code,
-                item.part_number,
+                item.product_identifier,
                 item.need_by_date,
+                item.ibx,
+                item.site_name,
+                item.site_address,
                 item.description,
             ];    
             values.forEach((value, i) => {
@@ -68,9 +94,11 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
                 item.amount,
                 item.quantity,
                 item.unit_price,
-                item.product_code,
-                item.part_number,
+                item.product_identifier,
                 item.need_by_date,
+                item.ibx,
+                item.site_name,
+                item.site_address,
                 item.description,
             ];
             const filteredValues = values.filter((_, i) => !isColumnEmpty[i]);
