@@ -77,13 +77,13 @@ function structureVerification(listItem: ContractObject, checkingType: CONTRACT_
 
     switch (checkingType) {
         case CONTRACT_TYPES.INVOICE: isVerified = listItem.verification?.invoice?.length
-                                                ? listItem.verification.invoice.every(item => item.verification_status) : false; break;
+                                                ? listItem.verification.invoice.some(item => item.verification_status) : false; break;
         case CONTRACT_TYPES.PURCHASE_ORDER: isVerified = listItem.verification?.po?.length
-                                                ?  listItem.verification.po.every(item => item.verification_status) : false; break;
+                                                ?  listItem.verification.po.some(item => item.verification_status) : false; break;
         case CONTRACT_TYPES.VSOW: isVerified = listItem.verification?.vsow?.length
-                                                ? listItem.verification.vsow.every(item => item.verification_status) : false; break;
+                                                ? listItem.verification.vsow.some(item => item.verification_status) : false; break;
         case CONTRACT_TYPES.CSOW: isVerified = listItem.verification?.csow?.length
-                                                ? listItem.verification.csow.every(item => item.verification_status) : false; break;
+                                                ? listItem.verification.csow.some(item => item.verification_status) : false; break;
     }
 
     return (
