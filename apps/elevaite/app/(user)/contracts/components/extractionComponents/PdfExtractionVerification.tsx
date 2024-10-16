@@ -127,7 +127,7 @@ export function PdfExtractionVerification(): JSX.Element {
                             )}
                         </div> 
                     }
-                    {contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE ? undefined :
+                    {!contractsContext.selectedContract?.response_comments ? undefined :
                         <div className="pdf-verification-block">
                             <div className="pdf-verification-label">
                                 Comments
