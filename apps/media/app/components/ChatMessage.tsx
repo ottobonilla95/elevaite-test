@@ -13,6 +13,7 @@ import "./ChatMessage.scss";
 import { ChatMessageFeedback } from "./ChatMessageFeedback";
 import { ChatMessageFiles } from "./ChatMessageFiles";
 import { extractMediaUrls , extractMediaNames} from '../lib/testData';
+import MarkdownMessage from './MarkdownMessage'; 
 import Modal from "./Modal.tsx"; // Import the Modal component
 
 export function ChatMessage(props: ChatMessageObject): JSX.Element {
@@ -159,8 +160,11 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
           </span>
         </div>
 
-        <div className="message"  dangerouslySetInnerHTML={{ __html: props.text }}>
+        <div className="message">
+          <MarkdownMessage text={props.text} /> 
         </div>
+        {/* <div className="message"  dangerouslySetInnerHTML={{ __html: props.text }}>
+        </div> */}
 
         {!props.isBot ? null : (
           <div className="controls-container">

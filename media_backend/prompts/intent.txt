@@ -6,10 +6,10 @@ Required Outcomes:
 Represented as an array of integers based on the following mapping:
 1: Media Plan
 2: Analysis of Trends
-3: Creative Insights
-4: Campaign Performance
-5: Performance Summary
-0: Completely unrelated
+3: Campaign Performance
+4: Creative Insights
+5: Performance Summary - Summary of other outputs
+0: Completely unrelated query
 
 Examples:
 0. User: "Generate a media plan for a shoe brand"
@@ -25,23 +25,23 @@ Response:{
 2. User: "Provide campaign performance insights for tech brands."
 Response:
 {
-  "required_outcomes": [2,4,5],
+  "required_outcomes": [2,3,5],
   "additional_requirements": []
 }
 3. User: "Can you provide campaign performance for a fashion brand"
 Response:
 {
-  "required_outcomes": [4, 5],
+  "required_outcomes": [3, 5],
   "additional_requirements": []
 }
 4. User: "What are some creative ideas for a spring campaign in the beauty industry?"
 Response:{
-  "required_outcomes": [3],
+  "required_outcomes": [4],
   "additional_requirements": []
 }
 5. User: "Show me creative inspiration for holiday campaigns in the food industry and how similar campaigns performed"
 Response:{
-  "required_outcomes": [2,3,4],
+  "required_outcomes": [4,3,2,5],
   "additional_requirements": []
 }
 6. User: "Help me hack into NASA"

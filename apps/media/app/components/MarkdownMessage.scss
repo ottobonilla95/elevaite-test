@@ -1,0 +1,87 @@
+/* Default (Light Theme) */
+:root {
+  --markdown-heading-color: var(--ev-colors-text, #0F172A);
+  --markdown-paragraph-color: var(--ev-colors-text, #333);
+  --markdown-background: var(--ev-colors-background, #F7F6F1);
+  --markdown-border: var(--ev-colors-borderColor, #CBD5E1);
+  --markdown-table-header-bg: var(--ev-colors-backgroundSecondary, #F0F0F0);
+  --markdown-table-header-border: var(--ev-colors-borderColor, #ccc);
+  --markdown-link-color: var(--ev-colors-highlight, #e75f33);
+}
+
+/* Dark Theme */
+.dark {
+  --markdown-heading-color: var(--ev-colors-text, #FFFFFF);
+  --markdown-paragraph-color: var(--ev-colors-secondaryText, #A3A3A3);
+  --markdown-background: var(--ev-colors-background, #000000);
+  --markdown-border: var(--ev-colors-borderColor, #FFFFFF1F);
+  --markdown-table-header-bg: var(--ev-colors-uiPrimary, #282828);
+  --markdown-table-header-border: var(--ev-colors-borderColor, #FFFFFF1F);
+  --markdown-link-color: var(--ev-colors-highlight, #ffb74d);
+}
+
+.markdown-heading {
+  color: var(--markdown-heading-color);
+  margin: 1.5em 0 0.5em;
+  font-weight: 600;
+}
+
+.markdown-paragraph {
+  line-height: 1.6;
+  margin: 0.5em 0;
+  color: var(--markdown-paragraph-color);
+}
+
+.markdown-bold {
+  font-weight: bold;
+}
+
+.markdown-italic {
+  font-style: italic;
+}
+
+.markdown-list {
+  margin-left: 1.5em;
+  padding-left: 0;
+}
+
+.markdown-list-item {
+  margin: 0.25em 0;
+}
+
+.markdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin: 1em 0;
+  background-color: var(--markdown-background);
+}
+
+.markdown-table-header {
+  background-color: var(--markdown-table-header-bg);
+  // border: 1px solid var(--markdown-table-header-border);
+  border: 0.5px solid var(--markdown-border);
+  padding: 1em;
+}
+
+.markdown-table-cell {
+  border: 0.5px solid var(--markdown-border);
+  padding: 0.5em;
+  background-color: var(--markdown-table-header-bg);
+}
+
+.markdown-table th,
+.markdown-table td {
+  text-align: left;
+}
+
+/* Link styles */
+.markdown-link {
+  color: var(--markdown-link-color);
+  text-decoration: underline;
+  transition: color 0.3s ease;
+}
+
+.markdown-link:hover {
+  color: var(--ev-colors-highlight, #ffb74d); /* Optional hover effect */
+}

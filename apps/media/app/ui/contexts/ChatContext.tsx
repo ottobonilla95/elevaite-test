@@ -376,6 +376,7 @@ export function ChatContextProvider(
         };
       }),
     };
+    console.log("Newmessage:",newMessage);
     return newMessage;
   }
 
@@ -398,7 +399,6 @@ export function ChatContextProvider(
   async function addNewUserMessageWithLastMessages(messageText: string): Promise<void> {
     const MAX_PAYLOAD_HISTORY = 3;
     if (!messageText || !selectedSession) return;
-
     const userIdNumbersList = selectedSession.messages
         .filter((item) => !item.isBot)
         .map((userItem) =>
@@ -458,7 +458,7 @@ export function ChatContextProvider(
     setIsChatLoading(false);
     return;
   }
-  
+  console.log("RESPONSE:",response);
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
   let buffer = '';
@@ -474,36 +474,27 @@ export function ChatContextProvider(
     buffer = lines.pop() || '';
 
     for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        try {
-          const jsonStr = line.slice(6); // Remove 'data: ' prefix
-          const json = JSON.parse(jsonStr);
-          
-          // Check if this is media plan content
-          if (json.response.includes("MEDIA PLAN:")) {
-            mediaPlanContent += json.response;
-            // Update full response with media plan at the beginning
-            fullResponse = mediaPlanContent + fullResponse.replace(mediaPlanContent, '');
-          } else {
-            // Append other content after media plan
-            fullResponse = mediaPlanContent + (fullResponse.replace(mediaPlanContent, '') + json.response);
-          }
-
-          // Update state with the new combined response
-          setLatestResponse(fullResponse);
-
-          // Update session with new message
-          updateSessionListWithNewMessage(
-            formatMessageFromServerResponse({ text: fullResponse, refs: [] }),
-            newSession
-          );
-        } catch (e) {
-          console.error("Error parsing JSON:", e);
+        if (line.startsWith('data: ')) {
+            try {
+                const jsonStr = line.slice(6); // Remove 'data: ' prefix
+                const json = JSON.parse(jsonStr);
+                console.log("Parsed JSON:", json.response);
+                const responseText = json.response; 
+                fullResponse += responseText; // Append to fullResponse
+                // Update state with the new combined response
+                setLatestResponse(fullResponse);
+                // Update session with new message
+                updateSessionListWithNewMessage(
+                    formatMessageFromServerResponse({ text: fullResponse, refs: [] }),
+                    newSession
+                );
+            } catch (e) {
+                console.error("Error parsing JSON:", e);
+            }
         }
-      }
     }
-  }
-  setIsChatLoading(false);
+}
+setIsChatLoading(false);
 }
 
 //   async function addNewUserMessageWithLastMessages(messageText: string): Promise<void> {

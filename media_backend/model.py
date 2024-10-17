@@ -99,8 +99,8 @@ class OverallTrend(BaseModel):
     top_brands: List[str]
 
 class InsightRecommendation(BaseModel):
-    supporting_insight: str
     recommendation: str
+    supporting_insight: str
 
 class CampaignStrategy(BaseModel):
     objective: str

@@ -12,6 +12,7 @@ from typing import List,Generator, Type, Dict, Any, Optional
 from pydantic import BaseModel
 import time
 import asyncio
+from collections import OrderedDict
 
 
 def timer_decorator(func):
@@ -371,7 +372,7 @@ async def formatter(final_output: str = None, prompt_file_name: str = "formatter
         system_prompt=system_prompt,
         max_tokens=4000
     )
-    return formatted_output
+    return formatted_output+"\n"
 @timer_decorator 
 def extract_specific_fields(search_result: SearchResult, fields: List[str], full_data_fields: List[str] = None) -> str:
     extracted_data = []
@@ -627,12 +628,11 @@ def get_extension_for_hash(hash):
 
     return "unknown"  # or raise an exception if preferred
 
-@timer_decorator 
 def remove_html_prefix(s):
-    s = re.sub(r'```html', '', s)
-    s = re.sub(r'```', '<br>', s)
-    s = re.sub(r'### (.*)\n', r'<h2><strong>\1</strong></h2><br>\n', s)
-    s = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', s)
+    s = re.sub(r'```markdown', '', s)
+    s = re.sub(r'```', '\n---', s)
+    # s = re.sub(r'### (.*)\n', r'<h2><strong>\1</strong></h2><br>\n', s)
+    # s = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', s)
     return s
 @timer_decorator 
 def format_conversation_payload(conversation_payload: List[ConversationPayload]) -> str:
@@ -644,18 +644,19 @@ def format_conversation_payload(conversation_payload: List[ConversationPayload])
         formatted_history += f"{actor}: {content}\n"
     return formatted_history.strip()
 
-
 @timer_decorator
 async def perform_inference(inference_payload: InferencePayload):
     try:
         conversation_history = inference_payload.conversation_payload or []
         if conversation_history:
             print("response : Received conversation payload\n")
+        
         intent_data = determine_intent(inference_payload.query, conversation_history)
         if not intent_data:
             print("Retrying Intent\n")
             intent_data = determine_intent(inference_payload.query, conversation_history)
-        required_outcomes = intent_data.get('required_outcomes')
+
+        required_outcomes = intent_data.get('required_outcomes', [])
         if 0 in required_outcomes:
             yield {"response": "I am unable to provide a response to your query.\n"}
             return
@@ -665,53 +666,34 @@ async def perform_inference(inference_payload: InferencePayload):
             yield {"response": "I couldn't find any relevant information based on your query. Could you please rephrase or provide more details?\n"}
             return
 
-        output_parts = {}
+        output_parts = OrderedDict()
         ordered_keys = ["media_plan", "analysis_of_trends", "campaign_performance", "creative_insights", "performance_summary"]
-        
+
         async def process_insight(outcome):
             insight_function = await get_insight_function(outcome)
             result = await insight_function(filtered_data, inference_payload.query, conversation_history)
             return outcome, replace_hash_with_url(remove_html_prefix(result))
 
-        # Process Media_plan first if it's in required_outcomes
-        if 1 in required_outcomes:
-            media_plan_result = await process_insight(1)
-            full_media_plan = media_plan_result[1]
-            import re
-            parts = re.split(r'<h2\s+class="h2">\s*Target Audience\s*</h2>', full_media_plan, 1)
-            
-            if len(parts) > 1:
-                executive_summary = parts[0].strip()
-                rest_of_media_plan = f'<h2 class="h2">Target Audience</h2>{parts[1]}'
-                output_parts[ordered_keys[0]] = full_media_plan
-                # Send only the Executive Summary
-                print(f"Sending Executive Summary for {ordered_keys[0]}")
-                yield {"response": executive_summary}
-                await asyncio.sleep(0.1)
-                # Send the rest of the media plan separately
-                print(f"Sending rest of Media Plan for {ordered_keys[0]}")
-                yield {"response": rest_of_media_plan}
-            else:
-                # If "Target Audience" is not found, send the entire media plan
-                print(f"Sending full Media Plan for {ordered_keys[0]}")
-                yield {"response": full_media_plan}
+        # Create tasks for all required outcomes
+        tasks = {outcome: process_insight(outcome) for outcome in required_outcomes if outcome in [1, 2, 3, 4]}
+        
+        # Gather results
+        results = await asyncio.gather(*tasks.values(), return_exceptions=True)
 
-        # Process other insights
-        other_tasks = [
-            process_insight(outcome)
-            for outcome in required_outcomes if outcome in [2, 3, 4]
-        ]
+        # Yield results in the order specified by required_outcomes
+        for outcome in required_outcomes:
+            if outcome in tasks:  # Check if it was part of the tasks
+                result = results.pop(0)  # Get the result in the order they were added
+                if isinstance(result, Exception):
+                    print(f"Error processing outcome {outcome}: {result}")
+                    yield {"response": f"An error occurred while processing outcome {outcome}: {result}\n"}
+                else:
+                    output_parts[ordered_keys[outcome - 1]] = result
+                    # print(f"Completed outcome {outcome}: {result}")
 
-        if other_tasks:
-            print("Processing other insights.")
-            other_results = await asyncio.gather(*other_tasks)
-            
-            for outcome, result in other_results:
-                output_parts[ordered_keys[outcome-1]] = result
-                print(f"Sending response for {ordered_keys[outcome-1]}: {result}")
-                yield {"response": result}
+                    yield {"response": result[1]}
 
-        # Call performance_summary with the gathered insights if needed
+        # Process performance_summary if needed
         if 5 in required_outcomes:
             performance_summary_result = await performance_summary(inference_payload.query, output_parts)
             performance_summary_result = replace_hash_with_url(remove_html_prefix(performance_summary_result))
@@ -721,6 +703,7 @@ async def perform_inference(inference_payload: InferencePayload):
     except Exception as e:
         print("An error occurred:", e)
         yield {"response": f"An error occurred: {e}\n"}
+
 @timer_decorator 
 async def get_insight_function(outcome):
     """ Maps required outcomes to their corresponding async functions. """
@@ -732,5 +715,80 @@ async def get_insight_function(outcome):
         5: performance_summary,
     }
     return mapping.get(outcome)
+
+# @timer_decorator
+# async def perform_inference(inference_payload: InferencePayload):
+#     try:
+#         conversation_history = inference_payload.conversation_payload or []
+#         if conversation_history:
+#             print("response : Received conversation payload\n")
+#         intent_data = determine_intent(inference_payload.query, conversation_history)
+#         print("Intent Received:",intent_data)
+#         if not intent_data:
+#             print("Retrying Intent\n")
+#             intent_data = determine_intent(inference_payload.query, conversation_history)
+#         required_outcomes = intent_data.get('required_outcomes')
+#         if 0 in required_outcomes:
+#             yield {"response": "I am unable to provide a response to your query.\n Could you please rephrase or provide more details?."}
+#             return
+
+#         filtered_data = search_qdrant(inference_payload.query, conversation_history)
+#         if not filtered_data.results:
+#             yield {"response": "I couldn't find any relevant information based on your query. Could you please rephrase or provide more details?\n"}
+#             return
+
+#         output_parts = {}
+#         ordered_keys = ["media_plan", "analysis_of_trends", "campaign_performance", "creative_insights", "performance_summary"]
+        
+#         async def process_insight(outcome):
+#             insight_function = await get_insight_function(outcome)
+#             result = await insight_function(filtered_data, inference_payload.query, conversation_history)
+#             return outcome, replace_hash_with_url(remove_html_prefix(result))
+
+#         # Process Media_plan first if it's in required_outcomes
+#         if 1 in required_outcomes:
+#             media_plan_result = await process_insight(1)
+#             # print("Media_plan_tobesent:",media_plan_result)
+#             full_media_plan = media_plan_result[1]
+#             # Send the full Media Plan directly
+#             # print(f"Sending full Media Plan for {ordered_keys[0]}")
+#             yield {"response": full_media_plan}
+
+#         # Process other insights
+#         other_tasks = [
+#             process_insight(outcome)
+#             for outcome in required_outcomes if outcome in [2, 3, 4]
+#         ]
+
+#         if other_tasks:
+#             print("Processing other insights.")
+#             other_results = await asyncio.gather(*other_tasks)
+            
+#             for outcome, result in other_results:
+#                 output_parts[ordered_keys[outcome-1]] = result
+#                 print(f"Sending response for {ordered_keys[outcome-1]}: {result}")
+#                 yield {"response": result}
+
+#         # Call performance_summary with the gathered insights if needed
+#         if 5 in required_outcomes:
+#             performance_summary_result = await performance_summary(inference_payload.query, output_parts)
+#             performance_summary_result = replace_hash_with_url(remove_html_prefix(performance_summary_result))
+#             output_parts["performance_summary"] = performance_summary_result
+#             yield {"response": f"{performance_summary_result}\n\n"}
+
+#     except Exception as e:
+#         print("An error occurred:", e)
+#         yield {"response": f"An error occurred: {e}\n"}
+# @timer_decorator 
+# async def get_insight_function(outcome):
+#     """ Maps required outcomes to their corresponding async functions. """
+#     mapping = {
+#         1: media_plan,          
+#         2: analysis_of_trends, 
+#         3: campaign_performance,
+#         4: creative_insights,
+#         5: performance_summary,
+#     }
+#     return mapping.get(outcome)
 
 
