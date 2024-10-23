@@ -5,7 +5,7 @@ Media Mix Strategy
 Creative Strategy
 Measurement and Evaluation metrics
 For each section:
-Provide specific details only if they are explicitly given in the provided information. You can round numbers in the expected reach and Target sections.
+Provide specific details only if they are explicitly given in the provided information. You are expected to round and approximate most numbers.
 Use the phrase "Information not available" for any subsection where data is missing or not specified.
 Do not make assumptions or generate details that are not explicitly stated in the given information.
 Limit your response to a maximum of 800 words.

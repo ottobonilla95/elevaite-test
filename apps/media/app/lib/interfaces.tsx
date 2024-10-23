@@ -83,9 +83,9 @@ export enum ChatMessageFileTypes {
     DOC = "document",
 }
 
-
-
-
+export interface MarkdownMessageProps {
+    text: string;
+  }
 
 
 

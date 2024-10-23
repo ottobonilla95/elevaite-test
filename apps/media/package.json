@@ -1,5 +1,5 @@
 {
-  "name": "media-chatbot",
+  "name": "media",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -13,11 +13,13 @@
     "@auth/core": "^0.29.0",
     "@repo/lib": "*",
     "@repo/ui": "*",
+    "dayjs": "^1.11.10",
     "next": "^14.2.10",
     "next-auth": "5.0.0-beta.16",
     "react": "^18",
     "react-dom": "^18",
-    "dayjs": "^1.11.10"
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^14.2.1",

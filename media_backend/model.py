@@ -56,8 +56,8 @@ class InferencePayload(BaseModel):
 
 class IntentOutput(BaseModel):
     required_outcomes: List[int]
-    # filter_parameters: Dict[str, str]
-    additional_requirements: List[str]
+    unrelated_query: bool
+    parameters: Optional[Dict[str,str]]
 class ExecutiveSummary(BaseModel):
     objectives: str
     target_audience: str
@@ -99,8 +99,8 @@ class OverallTrend(BaseModel):
     top_brands: List[str]
 
 class InsightRecommendation(BaseModel):
-    supporting_insight: str
     recommendation: str
+    supporting_insight: str
 
 class CampaignStrategy(BaseModel):
     objective: str
@@ -159,17 +159,17 @@ class AnalysisOfTrends(BaseModel):
     creative_content_type: CreativeContentType
 
 # Campaign Performance Currently not using class.
-# class CampaignPerformance(BaseModel):
-#     brand: str
-#     product: str
-#     campaign_objective: str
-#     campaign_duration: str
-#     delivered_impressions: int
-#     actions_clicks: int
-#     value_to_money: float  # conversion rate in percentage
-#     creative_snapshot: str
-# class CampaignPerformanceReport(BaseModel):
-#     campaigns: List[CampaignPerformance]
+class CampaignPerformance(BaseModel):
+    brand: str
+    product: str
+    campaign_objective: str
+    campaign_duration: str
+    delivered_impressions: int
+    actions_clicks: int
+    value_to_money: float  # conversion rate in percentage
+    creative_snapshot: str
+class CampaignPerformanceReport(BaseModel):
+    campaigns: List[CampaignPerformance]
 
 # Creative Insights
 class CreativeElements(BaseModel):

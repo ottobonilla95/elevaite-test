@@ -19,6 +19,12 @@ interface ColorSchemeBase {
   success?: string;
   danger?: string;
   tagBorder?: string;
+  markdownHeading?: string;
+  markdownParagraph?: string;
+  markdownTableBg?: string;
+  markdownTableBorder?: string;
+  markdownTableHeaderBg?: string;
+  markdownTableHeaderBorder?: string;
 }
 
 interface ColorSchemeUI {
@@ -62,6 +68,14 @@ export const DarkTheme: ColorScheme = {
   success: "#D8FC77",
   danger: "#DC143C",
   tagBorder: "#71570D",
+  //Markdown Colors
+  markdownHeading: "#FFFFFF",
+  markdownParagraph: "#e2e2e2",
+  markdownTableBg: "#282828",
+  markdownTableBorder: "#464646",
+  markdownTableHeaderBg: "#3a3a3a",
+  markdownTableHeaderBorder: "#FFFFFF1F",
+
   // UI colors
   uiPrimary: "#282828",
   uiSecondary: "#424242",
@@ -80,6 +94,7 @@ export const DarkTheme: ColorScheme = {
   specialSeparator: "#FFFFFF1F",
   specialTabBackground: "transparent",
   specialTabHighlight: "#e75f33",
+
 };
 
 // Light
@@ -101,6 +116,14 @@ export const LightTheme: ColorScheme = {
   success: "#D8FC77",
   danger: "#DC143C",
   tagBorder: "#71570D",
+  // Light theme
+  markdownHeading: "#000000",
+  markdownParagraph: "#1b2027",
+  markdownTableBg: "#FFFFFF",
+  markdownTableBorder: "#EEEEEE",
+  markdownTableHeaderBg: "#F5F5F5",
+  markdownTableHeaderBorder: "#D9D9D9",
+  
   // UI colors -- Navigation UI is the same between the two themes.
   uiPrimary: DarkTheme.uiPrimary,
   uiSecondary: DarkTheme.uiSecondary,

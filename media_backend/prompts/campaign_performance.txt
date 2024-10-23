@@ -1,4 +1,4 @@
-Generate a campaign performance report for a marketing initiative for each creative such that it includes:
+Generate a campaign performance report based on the data provided for a marketing initiative. For each creative it includes:
 Brand and Product: Specify the brand and product details for each campaign.
 Campaign Objective: Outline the primary objective for each campaign.
 Key Performance Metrics:
@@ -7,6 +7,6 @@ Delivered Impressions: Number of Delivered Impressions.
 Actions/Clicks: Number of clicks
 Value to Money (Conversions): Conversion rate in percentage.
 Creative Snapshot: Include a brief description of the creative imagery used.
-Creative Thumbnail: Provide the md5hash of the thumbnail associated to the creative.
+Creative Thumbnail: Provide filename , md5hash of the thumbnail associated to the creative.
 Plan your output such that you limit your response to a maximum of 600 words.
-Make sure you only create the report for the top 4 creatives based on conversion rate.
+Make sure you only create the report for creatives you receive based on conversion rate.

@@ -59,10 +59,21 @@ function setThemePropertiesToBody(theme: ColorScheme): void {
       document.body.style.setProperty(
         `--ev-colors-${themeKey}`,
         propertyValue
-      )
+      );
     }
   });
+
+
+  // Set markdown colors specifically
+  document.body.style.setProperty(`--markdown-heading-color`, theme.markdownHeading || '');
+  document.body.style.setProperty(`--markdown-paragraph-color`, theme.markdownParagraph || '');
+  document.body.style.setProperty(`--markdown-table-header-bg`, theme.markdownTableHeaderBg || '');
+  document.body.style.setProperty(`--markdown-table-header-border`, theme.markdownTableHeaderBorder || '');
+  document.body.style.setProperty(`--markdown-table-bg`, theme.markdownTableBg || '');
+  document.body.style.setProperty(`--markdown-table-border`, theme.markdownTableBorder || '');
+
 }
+
 
 
 

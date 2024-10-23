@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import './Modal.scss';
 
 interface ModalProps {
@@ -7,10 +7,21 @@ interface ModalProps {
   mediaUrls: string[];
   mediaTypes: ('image' | 'video')[];
   mediaNames: string[];
+  currentIndex: number;
+  onNext: () => void;
+  onPrevious: () => void;
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, mediaUrls, mediaTypes, mediaNames }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
+const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  mediaUrls,
+  mediaTypes,
+  mediaNames,
+  currentIndex,
+  onNext,
+  onPrevious,
+}) => {
   const [videoSrc, setVideoSrc] = useState<string | undefined>(undefined); // Use undefined instead of null
 
   useEffect(() => {
@@ -37,14 +48,6 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, mediaUrls, mediaTypes, m
 
   if (!isOpen) return null;
 
-  const handleNext = () => {
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % mediaUrls.length);
-  };
-
-  const handlePrev = () => {
-    setCurrentIndex((prevIndex) => (prevIndex - 1 + mediaUrls.length) % mediaUrls.length);
-  };
-
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()} aria-modal="true" role="dialog">
@@ -60,8 +63,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, mediaUrls, mediaTypes, m
           </p>
         </div>
         <div className="slider-controls">
-          <button className="slider-buttons" onClick={handlePrev} disabled={mediaUrls.length <= 1}>Previous</button>
-          <button className="slider-buttons" onClick={handleNext} disabled={mediaUrls.length <= 1}>Next</button>
+          <button className="slider-buttons" onClick={onPrevious} disabled={mediaUrls.length <= 1}>Previous</button>
+          <button className="slider-buttons" onClick={onNext} disabled={mediaUrls.length <= 1}>Next</button>
         </div>
         <button className="close-button" onClick={onClose}>Close</button>
       </div>

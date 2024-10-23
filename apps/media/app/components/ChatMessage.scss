@@ -8,10 +8,9 @@ $profile-backdrop-bot: #585679;
 .chat-message-container {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
-    padding: 10px;
+    gap: 1em;
+    padding: 24px;
     border-radius: 8px;
-
     color: var(--ev-colors-text);
     font-size: 14px;
     font-weight: 400;
@@ -45,9 +44,11 @@ $profile-backdrop-bot: #585679;
         
         & .message {
             display: flex;
+            gap: 0.25em;
             flex-wrap: wrap;
             max-width: 100%;
             min-width: 200px;
+            flex-direction: column;
             & ol {
                 list-style: decimal;
                 & ul {
