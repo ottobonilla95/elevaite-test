@@ -115,10 +115,22 @@ interface TableStructureProps {
 
 
 function TableStructure(props: TableStructureProps): JSX.Element {
+    const [tableData, setTableData] = useState(props.data);
+
+    useEffect(() => {
+        setTableData(filterTableData(props.data, props.headers));
+    }, [props.data, props.headers]);
 
     function handleChange(rowIndex: number, columnKey: string, newValue: string): void {
         if (props.onChange)
             props.onChange(rowIndex, columnKey, newValue);
+    }
+
+    // Removes rows with irrelevant data to our line items.
+    function filterTableData(tableData: Record<string, string>[], headers: string[]): Record<string, string>[] {
+        return tableData.filter(row => 
+            headers.some(header => row.hasOwnProperty(header) && row[header] !== "")
+        );
     }
 
     return (
@@ -133,7 +145,7 @@ function TableStructure(props: TableStructureProps): JSX.Element {
                 </tr>
             </thead>
             <tbody>
-                {props.data.map((row, rowIndex) => (
+                {tableData.map((row, rowIndex) => (
                     <tr key={row[0] + rowIndex.toString()}>
                         {props.headers.map(header => (
                             <td key={header}>

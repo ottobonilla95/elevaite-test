@@ -2,7 +2,7 @@
 import { revalidateTag } from "next/cache";
 import { type ContractObject, type CONTRACT_TYPES, type ContractProjectObject } from "../interfaces";
 import { cacheTags, CONTRACT_PROJECTS_REVALIDATION_TIME } from "./actionConstants";
-import { isCreateProjectResponse, isGetContractProjectByIdResponse, isGetContractProjectsListReponse, isSubmitContractResponse } from "./contractDiscriminators";
+import { isCreateProjectResponse, isGetContractProjectByIdResponse, isGetContractProjectsListReponse, isReprocessContractResponse, isSubmitContractResponse } from "./contractDiscriminators";
 
 
 
@@ -47,6 +47,32 @@ export async function getContractProjectById(projectId: string): Promise<Contrac
 //////////////////
 
 
+
+export async function reprocessContract(projectId: string, contractId: string): Promise<ContractObject> {
+  if (!CONTRACTS_URL) throw new Error("Missing base url");
+
+  const url = new URL(`${CONTRACTS_URL}/project/${projectId}/files/${contractId}/process`);
+
+  const headers = new Headers();
+  headers.append("Content-Type", "application/json");
+  const response = await fetch(url, {
+    method: "POST",
+    headers,
+  });
+
+  revalidateTag(cacheTags.contractProjects);
+  if (!response.ok) {
+    // if (response.status === 422) {
+      const errorData: unknown = await response.json();
+      // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+      console.dir(errorData, { depth: null });
+    // }
+    throw new Error("Failed to reprocess contract");
+  }
+  const data: unknown = await response.json();
+  if (isReprocessContractResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
 
 
 

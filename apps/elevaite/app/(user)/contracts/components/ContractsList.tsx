@@ -77,13 +77,13 @@ function structureVerification(listItem: ContractObject, checkingType: CONTRACT_
 
     switch (checkingType) {
         case CONTRACT_TYPES.INVOICE: isVerified = listItem.verification?.invoice?.length
-                                                ? listItem.verification.invoice.every(item => item.verification_status) : false; break;
+                                                ? listItem.verification.invoice.some(item => item.verification_status) : false; break;
         case CONTRACT_TYPES.PURCHASE_ORDER: isVerified = listItem.verification?.po?.length
-                                                ?  listItem.verification.po.every(item => item.verification_status) : false; break;
+                                                ?  listItem.verification.po.some(item => item.verification_status) : false; break;
         case CONTRACT_TYPES.VSOW: isVerified = listItem.verification?.vsow?.length
-                                                ? listItem.verification.vsow.every(item => item.verification_status) : false; break;
+                                                ? listItem.verification.vsow.some(item => item.verification_status) : false; break;
         case CONTRACT_TYPES.CSOW: isVerified = listItem.verification?.csow?.length
-                                                ? listItem.verification.csow.every(item => item.verification_status) : false; break;
+                                                ? listItem.verification.csow.some(item => item.verification_status) : false; break;
     }
 
     return (
@@ -168,8 +168,10 @@ export function ContractsList(): JSX.Element {
                 break;
             case CONTRACTS_TABS.CUSTOMER_CONTRACTS:
                 structure.push({ header: "VSOW", field: "csow_vsow_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.VSOW), });
+                structure.push({ header: "PO", field: "vsow_po_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.PURCHASE_ORDER), });
                 break;
             case CONTRACTS_TABS.SUPPLIER_CONTRACTS:
+                structure.push({ header: "CSOW", field: "vsow_csow_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.VSOW), });
                 structure.push({ header: "Inv.", field: "vsow_inv_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.INVOICE), });
                 structure.push({ header: "PO", field: "vsow_po_verification", align: "center", isSortable: false, formattingFunction: (item) => structureVerification(item, CONTRACT_TYPES.PURCHASE_ORDER), });
                 break;
@@ -312,7 +314,7 @@ export function ContractsList(): JSX.Element {
                     
                     <div className={["contracts-list-table-contents",
                         selectedTab === CONTRACTS_TABS.SUPPLIER_INVOICES ? "invoice" :
-                        selectedTab === CONTRACTS_TABS.CUSTOMER_CONTRACTS ? "csow" : undefined].filter(Boolean).join(" ")}>
+                        selectedTab === CONTRACTS_TABS.SUPPLIER_CONTRACTS ? "vsow" : undefined].filter(Boolean).join(" ")}>
                         <ListRow<ContractObject>
                             isHeader
                             structure={displayRowsStructure}

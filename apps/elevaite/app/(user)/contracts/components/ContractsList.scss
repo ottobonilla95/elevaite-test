@@ -161,8 +161,8 @@
             &.invoice {
                 grid-template-columns: 80px minmax(160px, 2fr) minmax(150px, 1fr) 100px minmax(150px, 2fr) minmax(100px, 1fr) 50px 65px;
             }
-            &.csow {
-                grid-template-columns: 80px minmax(160px, 2fr) minmax(150px, 1fr) 100px minmax(150px, 2fr) 65px;
+            &.vsow {
+                grid-template-columns: 80px minmax(160px, 2fr) minmax(150px, 1fr) 100px minmax(150px, 2fr) 50px 50px 65px;
             }
     
             & .table-span {

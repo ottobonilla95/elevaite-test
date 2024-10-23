@@ -30,7 +30,7 @@ export function PdfExtractionVerification(): JSX.Element {
                 <div className="no-verification">
                     <ElevaiteIcons.SVGSpinner/><span>Verification in progress...</span>
                 </div>
-            : !verificationData || (!verificationData.po && !verificationData.invoice.length && !verificationData.vsow.length) ?
+            : !verificationData || (!verificationData.po?.length && !verificationData.invoice?.length && !verificationData.vsow?.length && !verificationData.csow?.length) ?
                     <div className="no-verification">
                         There is no verification data for this document.
                     </div>
@@ -41,18 +41,19 @@ export function PdfExtractionVerification(): JSX.Element {
                             <div className="pdf-verification-label">
                                 Purchase Order Information
                             </div>
-                            {!verificationData.po ? 
+                            {!verificationData.po || verificationData.po.length === 0 ? 
                                 <div className="no-info">
                                     No verification information.
                                 </div>
-                            :
-                                <>
-                                    <VerificationBit data={verificationData.po} valueKey="po_number" label="PO Number" />
-                                    <VerificationBit data={verificationData.po} valueKey="supplier" label="Supplier" />
-                                    {/* <VerificationBit data={verificationData.po} valueKey="supplier" label="Supplier" overrideValue={supplier} /> */}
-                                    <VerificationBit data={verificationData.po} valueKey="total_amount" label="Total Amount" />
-                                </>
-                            }
+                                :
+                                verificationData.po.map((po, index) => 
+                                    <div className="fragment" key={`${po.file_id?.toString() ?? ""}_po_${index.toString()}`}>
+                                        <VerificationBit data={po} valueKey="po_number" label="PO Number" />
+                                        <VerificationBit data={po} valueKey="supplier" label="Supplier" />
+                                        {/* <VerificationBit data={po} valueKey="supplier" label="Supplier" overrideValue={supplier} /> */}
+                                        <VerificationBit data={po} valueKey="total_amount" label="Total Amount" />
+                                    </div>
+                                )}
                         </div>
                     }
                     <div className="pdf-verification-block table">
@@ -79,13 +80,13 @@ export function PdfExtractionVerification(): JSX.Element {
                             />
                         }
                     </div>
-                    {verificationData.vsow.length === 0 ? undefined
+                    {verificationData.vsow?.length === 0 ? undefined
                     :
                         <div className="pdf-verification-block">
                             <div className="pdf-verification-label">
                                 VSOW
                             </div>
-                            {verificationData.vsow.map((vsow, index) => 
+                            {verificationData.vsow?.map((vsow, index) => 
                                 <div className="fragment" key={`${vsow.file_id?.toString() ?? ""}_vsow_${index.toString()}`}>
                                     <VerificationBit data={vsow} valueKey="po_number" label="PO Number" />
                                     <VerificationBit data={vsow} valueKey="supplier" label="Supplier" />
@@ -95,13 +96,29 @@ export function PdfExtractionVerification(): JSX.Element {
                             )}
                         </div>
                     }
-                    {verificationData.invoice.length === 0 ? undefined
+                    {verificationData.csow?.length === 0 ? undefined
+                    :
+                        <div className="pdf-verification-block">
+                            <div className="pdf-verification-label">
+                                CSOW
+                            </div>
+                            {verificationData.csow?.map((csow, index) => 
+                                <div className="fragment" key={`${csow.file_id?.toString() ?? ""}_csow_${index.toString()}`}>
+                                    <VerificationBit data={csow} valueKey="po_number" label="PO Number" />
+                                    <VerificationBit data={csow} valueKey="supplier" label="Supplier" />
+                                    {/* <VerificationBit data={csow} valueKey="supplier" label="Supplier" overrideValue={supplier} /> */}
+                                    <VerificationBit data={csow} valueKey="total_amount" label="Total Amount" />
+                                </div>
+                            )}
+                        </div>
+                    }
+                    {verificationData.invoice?.length === 0 ? undefined
                     :
                         <div className="pdf-verification-block">
                             <div className="pdf-verification-label">
                                 Invoices
                             </div>
-                            {verificationData.invoice.map((invoice, index) => 
+                            {verificationData.invoice?.map((invoice, index) => 
                                 <div className="fragment" key={`${invoice.file_id?.toString() ?? ""}_invoice_${index.toString()}`}>
                                     <VerificationBit data={invoice} valueKey="po_number" label="PO Number" />
                                     <VerificationBit data={invoice} valueKey="supplier" label="Supplier" overrideValue={supplier} />
@@ -110,7 +127,7 @@ export function PdfExtractionVerification(): JSX.Element {
                             )}
                         </div> 
                     }
-                    {contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE ? undefined :
+                    {!contractsContext.selectedContract?.response_comments ? undefined :
                         <div className="pdf-verification-block">
                             <div className="pdf-verification-label">
                                 Comments

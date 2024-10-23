@@ -321,16 +321,16 @@ interface MemoryLayers {
  }
 interface MemoryBit { value_bytes: number; value_str: string; }
 interface ParametersCountObject {
-    F64?: number,
-    F32?: number,
-    F16?: number,
-    BF16?: number,
-    I64?: number,
-    I32?: number,
-    I16?: number,
-    I8?: number,
-    U8?: number,
-    BOOL?: number,
+    F64?: number;
+    F32?: number;
+    F16?: number;
+    BF16?: number;
+    I64?: number;
+    I32?: number;
+    I16?: number;
+    I8?: number;
+    U8?: number;
+    BOOL?: number;
 }
 
 
@@ -491,6 +491,42 @@ export interface ContractProjectObject {
     description: string;
     creation_date: string;
     reports: ContractObject[];
+    settings: ContractSettings;
+}
+
+export interface ContractSettings {
+    strings: {
+        li_keys_to_exclude: string[];
+        li_amount: string[];
+        li_qty: string[];
+        li_desc: string[];
+        li_ibx: string[];
+        li_product_identifier: string[];
+        li_nbd: string[];
+        li_unit_price: string[];
+        li_action: string[];
+        po_number: string[];
+        customer_po_number: string[];
+        total_amount: string[];
+        non_rec_charges: string[];
+        rec_charges: string[];
+        date_issued: string[];
+        contr_number: string[];
+        inv_number: string[];
+        customer_name: string[];
+    },
+    labels: {
+        // [K in keyof Omit<ContractObjectVerificationLineItem, "id" | "verification">]: string;
+        description: string;
+        product_identifier: string;
+        quantity: string;
+        total_cost: string;
+        unit_cost: string;
+        need_by_date: string;
+        ibx: string;
+        site_name: string;
+        site_address: string;
+    },
 }
 
 export interface ContractObject {
@@ -532,14 +568,16 @@ export interface ContractObjectEmphasis {
 
 export interface ContractObjectVerificationLineItem {
     id: number;
-    action?: string | null;
-    amount?: number | null;
     description?: string | null;
-    need_by_date?: string | null;
-    part_number?: string | null;
-    product_code?: string | null;
+    product_identifier?: string | null;
     quantity?: string | null;
+    need_by_date?: string | null;
     unit_price?: number | null;
+    amount?: number | null;
+    action?: string | null;
+    ibx?: string | null;
+    site_name?: string | null;
+    site_address?: string | null;
     verification: ContractObjectVerificationLineItemVerification;
 }
 
@@ -642,7 +680,7 @@ export interface ProjectObject {
     creator?: string;
     parent_project_id?: string;
     is_disabled?: boolean;
-    datasets: RbacDatasetObject[],
+    datasets: RbacDatasetObject[];
     created_at: string;
     updated_at: string;
 }
