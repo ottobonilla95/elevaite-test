@@ -19,10 +19,10 @@ interface ColorSchemeBase {
   success?: string;
   danger?: string;
   tagBorder?: string;
-  markdownHeadingColor?: string;
-  markdownParagraphColor?: string;
-  markdownBackgroundColor?: string;
-  markdownBorderColor?: string;
+  markdownHeading?: string;
+  markdownParagraph?: string;
+  markdownTableBg?: string;
+  markdownTableBorder?: string;
   markdownTableHeaderBg?: string;
   markdownTableHeaderBorder?: string;
 }
@@ -69,12 +69,13 @@ export const DarkTheme: ColorScheme = {
   danger: "#DC143C",
   tagBorder: "#71570D",
   //Markdown Colors
-  markdownHeadingColor: "#FFFFFF",
-  markdownParagraphColor: "#A3A3A3",
-  markdownBackgroundColor: "#161616",
-  markdownBorderColor: "#FFFFFF1F",
-  markdownTableHeaderBg: "#282828",
+  markdownHeading: "#FFFFFF",
+  markdownParagraph: "#e2e2e2",
+  markdownTableBg: "#282828",
+  markdownTableBorder: "#464646",
+  markdownTableHeaderBg: "#3a3a3a",
   markdownTableHeaderBorder: "#FFFFFF1F",
+
   // UI colors
   uiPrimary: "#282828",
   uiSecondary: "#424242",
@@ -116,12 +117,13 @@ export const LightTheme: ColorScheme = {
   danger: "#DC143C",
   tagBorder: "#71570D",
   // Light theme
-  markdownHeadingColor: "#0F172A",
-  markdownParagraphColor: "#333",
-  markdownBackgroundColor: "#F7F6F1",
-  markdownBorderColor: "#CBD5E1",
-  markdownTableHeaderBg: "#F0F0F0",
-  markdownTableHeaderBorder: "#ccc",
+  markdownHeading: "#000000",
+  markdownParagraph: "#1b2027",
+  markdownTableBg: "#FFFFFF",
+  markdownTableBorder: "#EEEEEE",
+  markdownTableHeaderBg: "#F5F5F5",
+  markdownTableHeaderBorder: "#D9D9D9",
+  
   // UI colors -- Navigation UI is the same between the two themes.
   uiPrimary: DarkTheme.uiPrimary,
   uiSecondary: DarkTheme.uiSecondary,

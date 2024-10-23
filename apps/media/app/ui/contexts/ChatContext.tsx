@@ -38,10 +38,6 @@ export interface ChatContextStructure {
   getSessionSummary: () => void;
   removeExpectedDisplayFromSelectedSessionSummary: () => void;
   addNewUserMessageWithLastMessages: (message: string) => void;
-  handleExportTable: (response: string) => void;
-  latestResponse: string; // Add this line
-  setLatestResponse: (response: string) => void; 
-  
 }
 
 export const ChatContext = createContext<ChatContextStructure>({
@@ -82,9 +78,6 @@ export const ChatContext = createContext<ChatContextStructure>({
   addNewUserMessageWithLastMessages: () => {
     /**/
   },
-  handleExportTable: () => {},
-  latestResponse: "",
-  setLatestResponse: () => {}
 });
 
 // PROVIDER
@@ -107,8 +100,6 @@ export function ChatContextProvider(
     useState<ChatbotV>(defaultChatbotV);
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
   const [chatLoadingMessage, setChatLoadingMessage] = useState<string>("");
-  const [latestResponse, setLatestResponse] = useState<string>("");
-  const chatContainerRef = useRef<HTMLDivElement>(null);
   // Initializations
   // useEffect(() => {
   //     console.log("Sessions changed", sessions);
@@ -380,22 +371,6 @@ export function ChatContextProvider(
     return newMessage;
   }
 
-
-  function handleExportTable(response: string) {
-    // Example: Retrieve latest response HTML table
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(response, 'text/html');
-    const tableHtml = doc.querySelector('table')?.outerHTML;
-
-    if (!tableHtml) {
-      console.error('No table HTML available for export');
-      return;
-    }
-    const csvContent = tableToCsv(tableHtml);
-    // Download the CSV file
-    downloadCsv(csvContent, 'media-plan.csv');
-  }
-
   async function addNewUserMessageWithLastMessages(messageText: string): Promise<void> {
     const MAX_PAYLOAD_HISTORY = 3;
     if (!messageText || !selectedSession) return;
@@ -482,8 +457,9 @@ export function ChatContextProvider(
                 const responseText = json.response; 
                 fullResponse += responseText; // Append to fullResponse
                 // Update state with the new combined response
-                setLatestResponse(fullResponse);
+                // setLatestResponse(fullResponse);
                 // Update session with new message
+                const markdownContent = `<div className="message"><MarkdownMessage text="${responseText}" /></div>`;
                 updateSessionListWithNewMessage(
                     formatMessageFromServerResponse({ text: fullResponse, refs: [] }),
                     newSession
@@ -496,76 +472,6 @@ export function ChatContextProvider(
 }
 setIsChatLoading(false);
 }
-
-//   async function addNewUserMessageWithLastMessages(messageText: string): Promise<void> {
-
-
-//     const MAX_PAYLOAD_HISTORY = 3;
-//     if (!messageText || !selectedSession) return;
-//     const userIdNumbersList = selectedSession.messages
-//       .filter((item) => !item.isBot)
-//       .map((userItem) =>
-//         Number(userItem.id.slice(USER_MESSAGE_ID_PREFIX.length))
-//       );
-//     const newId =
-//       USER_MESSAGE_ID_PREFIX +
-//       (userIdNumbersList.length > 0
-//         ? Math.max(...userIdNumbersList) + 1
-//         : 0
-//       ).toString();
-//     const newMessage: ChatMessageObject = {
-//       id: newId,
-//       date: new Date().toISOString(),
-//       isBot: false,
-//       userName: session.data?.user?.name ?? "You",
-//       text: messageText,
-//     };
-//     const newSession = updateSessionListWithNewMessage(
-//       newMessage,
-//       selectedSession
-//     );
-
-
-//     let conversation_payload: ChatBotPayload[] = [];
-//     for (let i = 0; i < selectedSession.messages.length; i++) {
-//       if (i > MAX_PAYLOAD_HISTORY) break;
-//       const message = selectedSession.messages[selectedSession.messages.length - i - 1];
-//       conversation_payload.push(
-//         { "actor": message.isBot ? "system" : "user", "content": message.text }
-//       );
-//     }
-//     setIsChatLoading(true);
-//     conversation_payload = conversation_payload.reverse();
-//     console.log("CONVERSATION_PAYLOAD:", conversation_payload);
-
-//     // MEDIA_BACKEND_URL = process.env.MEDIA_BACKEND_URL;
-//     const response = await fetch("http://127.0.0.1:8000/", {
-//       // const response = await fetch("http://vmo-dlnx-rcdn-1:8000/", {
-//         method: 'POST',
-//         headers: {
-//         Accept: 'application/json',
-//         'Content-Type': 'application/json',
-//         "X-Token": "coneofsilence",
-//         'Access-Control-Allow-Origin':'*',
-//         'Access-Control-Allow-Methods':'POST,PATCH,OPTIONS'
-//       },
-//       body: JSON.stringify({
-//         "conversation_payload": conversation_payload,
-//         "query": messageText, // "Was there any breaches?"
-//         "skip_llm_call": false,
-//       })
-//     });
-//     const res = await response.json();
-//     res.responses.forEach(response => {
-//         setLatestResponse(prevResponse => prevResponse + response.response);
-//         updateSessionListWithNewMessage(
-//             formatMessageFromServerResponse({ text: response.response, refs: [] }),
-//             newSession
-//         );
-//     });
-
-//     setIsChatLoading(false);
-// }
 
   return (
     <ChatContext.Provider
@@ -585,9 +491,6 @@ setIsChatLoading(false);
         getSessionSummary,
         removeExpectedDisplayFromSelectedSessionSummary,
         addNewUserMessageWithLastMessages,
-        handleExportTable,
-        latestResponse, 
-        setLatestResponse,
       }}
     >
       {props.children}

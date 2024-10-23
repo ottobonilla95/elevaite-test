@@ -1,2 +1,3 @@
-Format the creative insight data into a structured Markdown format. Start it with a heading "Creative Insights" formatted as a level 2 header (##).
-For each creative, create a table and display its details. Ensure your output is an a correctly structured Markdown format.
+Format the creative insight data received into a structured Markdown format. Start it with a heading "Creative Insights" formatted as a level 2 header (##).
+For each creative, create a table and display its details. Ensure your output is structured in Markdown format.
+Make sure the creative thumbnail looks like this: ![filename of creative](md5_hash.thumbnail.jpg "Brand and Product"). Example: 457a19d40e9f46bdb3745bcb6a4b922c.thumbnail.jpg (do not have an example url.)

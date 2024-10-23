@@ -1,7 +1,7 @@
-Generate a campaign performance report for a marketing initiative, focusing on the top 4 creatives based on conversion rate. Format in Markdown using the following guidelines:
+Generate a Campaign Performance Report for a marketing initiative given data on the top 4 creatives based on conversion rate. Format in Markdown using the following guidelines:
 Include "Campaign Performance Report" as a level 2 header(##).
 For each of the campaigns use the following structure:
-**Brand and Product:**[Specify brand and product details] 
+**Brand and Product:** [Specify brand and product details] 
 **Campaign Objective:** [Outline primary objective]
 
 | Campaign Duration                 | Delivered Impressions | Clicks/Actions  | Value to Money (Conversions) |
@@ -12,4 +12,4 @@ For each of the campaigns use the following structure:
 |----------------------------------------|----------------------------------------------|
 | [Brief description of creative imagery]| ![Creative Thumbnail](md5_hash.thumbnail.jpg)|
 
-Limit your response to a maximum of 800 tokens.
+Limit your response to a maximum of 800 tokens. Make sure the creative thumbnail looks like this: 457a19d40e9f46bdb3745bcb6a4b922c.thumbnail.jpg (do not have an example url)

@@ -12,7 +12,7 @@ import { ChatContext } from "../ui/contexts/ChatContext";
 import "./ChatMessage.scss";
 import { ChatMessageFeedback } from "./ChatMessageFeedback";
 import { ChatMessageFiles } from "./ChatMessageFiles";
-import { extractMediaUrls , extractMediaNames} from '../lib/testData';
+import { extractUniqueMediaData} from '../lib/testData';
 import MarkdownMessage from './MarkdownMessage'; 
 import Modal from "./Modal.tsx"; // Import the Modal component
 
@@ -24,57 +24,57 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
-  const [mediaNames, setmediaNames] = useState<string[]>([]);
+  const [mediaNames, setMediaNames] = useState<string[]>([]);
   const [mediaTypes, setMediaTypes] = useState<('image' | 'video')[]>([]);
-  
-  
-  // Function to open the media modal
-  // function openMediaModal(): void {
-  //   if (chatContext.latestResponse) {
-  //     const urls = extractMediaUrls(chatContext.latestResponse);
-  //     const names = extractMediaNames(chatContext.latestResponse);
-  
-  //     if (urls.length > 0) {
-  //       // Create an array of unique objects containing url, name, and type
-  //       const uniqueMedia = Array.from(new Set(urls.map((url, index) => {
-  //         return JSON.stringify({
-  //           url: url,
-  //           name: names[index] || '',
-  //           type: url.endsWith('.mp4') ? 'video' : 'image'
-  //         });
-  //       }))).map(item => JSON.parse(item));
-  
-  //       // Extract unique urls, names, and types from the uniqueMedia array
-  //       const uniqueUrls = uniqueMedia.map(item => item.url);
-  //       const uniqueNames = uniqueMedia.map(item => item.name);
-  //       const uniqueTypes = uniqueMedia.map(item => item.type);
-  
-  //       setMediaUrls(uniqueUrls);
-  //       setmediaNames(uniqueNames);
-  //       setMediaTypes(uniqueTypes);
-  //       setIsModalOpen(true); // Open the modal
-  //     }
-  //   }
-  // }
+  const [currentIndex, setCurrentIndex] = useState(0);
+
 
   function openMediaModal(): void {
-    if (chatContext.latestResponse) {
-        const urls = extractMediaUrls(chatContext.latestResponse);
-        const names = extractMediaNames(chatContext.latestResponse);
-
-        if (urls.length > 0) {
-            const mediaItems = urls.map((url, index) => ({
-                url,
-                name: names[index] || '',
-                type: ['mov', 'mp4'].some(ext => url.endsWith(ext)) ? 'video' : 'image'
-            }));
-
-            setMediaUrls(mediaItems.map(item => item.url));
-            setmediaNames(mediaItems.map(item => item.name));
-            setMediaTypes(mediaItems.map((item): ("image" | "video") => item.type as "image" | "video"));
-            setIsModalOpen(true);
-        }
+    const { urls, names } = extractUniqueMediaData(props.text);
+  
+    if (urls.length > 0) {
+      const mediaItems = urls.map((url, index) => ({
+        url,
+        name: names[index] || '',
+        type: ['mov', 'mp4'].some(ext => url.endsWith(ext)) ? 'video' : 'image',
+      }));
+  
+      // Set the media types with correct type assertions
+      setMediaUrls(mediaItems.map(item => item.url));
+      setMediaNames(mediaItems.map(item => item.name));
+      setMediaTypes(mediaItems.map(item => item.type as 'image' | 'video')); // Ensure types are correct
+      setIsModalOpen(true);
     }
+  }
+  
+  function openImageModal(url: string, alt: string, title: string): void {
+    const baseUrl = url.replace(/\.thumbnail\.jpg$/, '');
+    const extension = alt.includes('.') ? alt.split('.').pop() : 'jpg';
+    const fullUrl = `${baseUrl}.${extension}`;
+  
+    const { urls, names } = extractUniqueMediaData(props.text);
+    const mediaItems = urls.map((url, index) => ({
+      url,
+      name: names[index] || '',
+      type: ['mov', 'mp4'].some(ext => url.endsWith(ext)) ? 'video' : 'image',
+    }));
+  
+    setMediaUrls(mediaItems.map(item => item.url));
+    setMediaNames(mediaItems.map(item => item.name));
+    setMediaTypes(mediaItems.map(item => item.type as 'image' | 'video')); // Ensure types are correct
+  
+    const currentIndex = mediaItems.findIndex(item => item.url === fullUrl);
+    setCurrentIndex(currentIndex !== -1 ? currentIndex : 0);
+  
+    setIsModalOpen(true);
+  }
+  
+function goToNext(): void {
+  setCurrentIndex((prevIndex) => (prevIndex + 1) % mediaUrls.length);
+}
+
+function goToPrevious(): void {
+  setCurrentIndex((prevIndex) => (prevIndex - 1 + mediaUrls.length) % mediaUrls.length);
 }
 
   function handleVote(vote: 1 | -1): void {
@@ -90,39 +90,6 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
   function toggleFiles(): void {
     setIsFilesOpen((current) => !current);
   }
-
-    // // Function to handle clicks on media inside the message (from `dangerouslySetInnerHTML`)
-    // function handleMediaClick(event: MouseEvent) {
-    //   const target = event.target as HTMLElement;
-      
-    //   if (target.tagName === 'IMG' || (target.tagName === 'A' && target.getAttribute('href'))) {
-    //     const url = target.tagName === 'IMG' ? target.getAttribute('src') : target.getAttribute('href');
-    //     const isVideo = url?.endsWith('.mp4');
-    //     const name = target.getAttribute('data-media-name') || "Untitled"; // You could customize this
-  
-    //     if (url) {
-    //       setMediaUrls([url]);
-    //       setmediaNames([name]);
-    //       setMediaTypes([isVideo ? 'video' : 'image']);
-    //       setIsModalOpen(true); // Open the modal
-    //     }
-    //   }
-    // }
-  
-    // // Add event listener to detect clicks on media content (once the component is rendered)
-    // useEffect(() => {
-    //   const messageContent = document.getElementById(props.id);  // Ensure each message has a unique ID
-    //   if (messageContent) {
-    //     messageContent.addEventListener('click', handleMediaClick);
-    //   }
-  
-    //   return () => {
-    //     if (messageContent) {
-    //       messageContent.removeEventListener('click', handleMediaClick);
-    //     }
-    //   };
-    // }, [props.id]);
-
     
   return (
     <div
@@ -161,7 +128,7 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
         </div>
 
         <div className="message">
-          <MarkdownMessage text={props.text} /> 
+          <MarkdownMessage text={props.text} onImageClick={openImageModal} />
         </div>
         {/* <div className="message"  dangerouslySetInnerHTML={{ __html: props.text }}>
         </div> */}
@@ -261,12 +228,15 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
 
       {/* Modal to show media */}
       {isModalOpen && (
-        <Modal
+          <Modal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           mediaUrls={mediaUrls}
           mediaTypes={mediaTypes}
           mediaNames={mediaNames}
+          currentIndex={currentIndex}
+          onNext={goToNext}
+          onPrevious={goToPrevious}
         />
       )}
     </div>

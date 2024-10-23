@@ -2,10 +2,9 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-// import rehypeRaw from 'rehype-raw';
-import './MarkdownMessage.scss'
+import './MarkdownMessage.scss';
 
-const MarkdownMessage: React.FC<{ text: string }> = ({ text }) => {
+const MarkdownMessage: React.FC<{ text: string; onImageClick: (url: string, alt: string, title: string) => void }> = ({ text, onImageClick }) => {
   const createRenderer = (className: string, Element: keyof JSX.IntrinsicElements = 'span') => {
     return ({ node, children, ...props }: any) => {
       return <Element className={className} {...props}>{children}</Element>;
@@ -13,9 +12,9 @@ const MarkdownMessage: React.FC<{ text: string }> = ({ text }) => {
   };
 
   const renderers = {
-    h1: createRenderer("markdown-heading", 'h1'),
-    h2: createRenderer("markdown-heading", 'h2'),
-    h3: createRenderer("markdown-heading", 'h3'),
+    h1: createRenderer("markdown-heading-h1", 'h1'),
+    h2: createRenderer("markdown-heading-h2", 'h2'),
+    h3: createRenderer("markdown-heading-h3", 'h3'),
     p: createRenderer("markdown-paragraph", 'p'),
     strong: createRenderer("markdown-bold", 'strong'),
     em: createRenderer("markdown-italic", 'em'),
@@ -31,18 +30,23 @@ const MarkdownMessage: React.FC<{ text: string }> = ({ text }) => {
     tbody: createRenderer("markdown-table-body", 'tbody'),
     tr: createRenderer("markdown-table-row", 'tr'),
     th: createRenderer("markdown-table-header", 'th'),
-    td: createRenderer("markdown-table-cell", 'td'),
+    td: createRenderer("markdown-table-cell", 'td'), 
+    img: ({ src, alt, title }) => (
+      <img 
+        src={src} 
+        alt={alt} 
+        onClick={() => onImageClick(src, alt || 'Image',title || 'No title provided')}
+        style={{ cursor: 'pointer' }} // Optional: Add pointer cursor for clarity
+      />
+    )
   };
 
   return (
-    <div className="prose inline leading-normal break-words min-w-0 [word-break:break-word]">
-      <ReactMarkdown
-        children={text}
-        remarkPlugins={[remarkGfm]}
-        // rehypePlugins={[rehypeRaw]}
-        components={renderers}
-      />
-    </div>
+    <ReactMarkdown
+      children={text}
+      remarkPlugins={[remarkGfm]}
+      components={renderers}
+    />
   );
 };
 

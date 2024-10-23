@@ -63,13 +63,15 @@ function setThemePropertiesToBody(theme: ColorScheme): void {
     }
   });
 
+
   // Set markdown colors specifically
-  document.body.style.setProperty(`--markdown-heading-color`, theme.markdownHeadingColor || '');
-  document.body.style.setProperty(`--markdown-paragraph-color`, theme.markdownParagraphColor || '');
-  document.body.style.setProperty(`--markdown-background-color`, theme.markdownBackgroundColor || '');
-  document.body.style.setProperty(`--markdown-border-color`, theme.markdownBorderColor || '');
+  document.body.style.setProperty(`--markdown-heading-color`, theme.markdownHeading || '');
+  document.body.style.setProperty(`--markdown-paragraph-color`, theme.markdownParagraph || '');
   document.body.style.setProperty(`--markdown-table-header-bg`, theme.markdownTableHeaderBg || '');
   document.body.style.setProperty(`--markdown-table-header-border`, theme.markdownTableHeaderBorder || '');
+  document.body.style.setProperty(`--markdown-table-bg`, theme.markdownTableBg || '');
+  document.body.style.setProperty(`--markdown-table-border`, theme.markdownTableBorder || '');
+
 }
 
 

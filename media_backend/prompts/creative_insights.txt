@@ -1,7 +1,7 @@
 Generate creative insights for multiple marketing campaigns. For each creative, provide:
 Brand and product details
 Creative snapshot summary
-Creative thumbnail:md5_hash of creative
+Creative thumbnail:filename,md5_hash of creative
 Brand elements
 Seasonal/Holiday elements
 Visual elements
