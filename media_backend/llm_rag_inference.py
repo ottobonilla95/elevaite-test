@@ -71,7 +71,7 @@ def get_embedding(text):
         return None
     
 @timer_decorator     
-def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[str, Any]) -> SearchResult:
+def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[str, Any], use_vector_search: bool = False) -> SearchResult:
     formatted_history = format_conversation_payload(conversation_payload)
     enriched_query_text = f"{formatted_history}\nUser Query: {query_text}"
     
@@ -80,6 +80,29 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
         print("No valid query vector obtained from the text.")
         return SearchResult(results=[], total=0)
 
+    if use_vector_search:
+        try:
+            search_result = Qclient.search(
+                collection_name=os.getenv("COLLECTION_NAME", "Media_Performance"),
+                query_vector=query_vector,
+                limit=4,  
+            )
+            print("Pure vector search completed.")
+        except Exception as e:
+            print(f"Error in vector search: {e}")
+            return SearchResult(results=[], total=0)
+        ad_creatives = []
+        for hit in search_result:
+            payload = hit.payload
+            try:
+                ad_creative = AdCreative.parse_obj(payload)
+                ad_creatives.append(ad_creative)
+                print(f"Processed result: {payload.get('campaign_folder')}")
+            except ValueError as e:
+                print(f"Error processing media creative: {e}")
+        return SearchResult(results=ad_creatives, total=len(ad_creatives))
+
+    # Build filters for the search
     filter_conditions = []
     numeric_fields = ["file_size", "booked_measure_impressions", "delivered_measure_impressions", "clicks", "conversion", "duration"]
     text_fields = ["file_type", "industry", "targeting", "duration_category", "brand", "season_holiday"]
@@ -117,10 +140,9 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
     print("Filter Conditions:", filter_conditions)
 
     search_filter = Filter(must=filter_conditions) if filter_conditions else None
-
     print("Search Filter Conditions:", search_filter)
 
-    # print("Search Filter Conditions:", search_filter)
+    # Search with filters
     try:
         search_result = Qclient.search(
             collection_name=os.getenv("COLLECTION_NAME", "Media_Performance"),
@@ -132,22 +154,14 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
         print(f"Error searching Qdrant: {e}")
         return SearchResult(results=[], total=0)
 
-    if not search_result or len(search_result) < 4:
-        print("No results found with filters. Falling back to vector search.")
-        try:
-            search_result = Qclient.search(
-                collection_name=os.getenv("COLLECTION_NAME", "Media_Performance"),
-                query_vector=query_vector,
-                limit=20,
-            )
-            print("Fallback search completed.")
-        except Exception as e:
-            print(f"Error in fallback search: {e}")
-            return SearchResult(results=[], total=0)
-
     print(f"Total results obtained: {len(search_result)}")
 
     # Process results and create AdCreative instances
+    ad_creatives = process_results(search_result)
+
+    return SearchResult(results=ad_creatives, total=len(ad_creatives))
+
+def process_results(search_result) -> List[AdCreative]:
     ad_creatives = []
     brands_seen = set()
     for hit in search_result:
@@ -166,66 +180,9 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
                     break
         except ValueError as e:
             print(f"Error processing media creative: {e}")
-
-    print(f"Number of results after processing: {len(ad_creatives)}")
     
-    # Check for brand diversity
-    if len(brands_seen) < 3:
-        print("Not enough brand diversity. Performing a vector search for additional results.")
-        try:
-            additional_results = Qclient.search(
-                collection_name=os.getenv("COLLECTION_NAME", "Media_Performance"),
-                query_vector=query_vector,
-                limit=20,  # Adjust limit as needed
-            )
-            for hit in additional_results:
-                if hit.score <= 0.79:
-                    break  # Stop processing if score below threshold
-                payload = hit.payload
-                try:
-                    ad_creative = AdCreative.parse_obj(payload)
-                    brand = ad_creative.brand.lower()
-                    if brand not in brands_seen:
-                        ad_creatives.append(ad_creative)
-                        brands_seen.add(brand)
-                        print(f"Added additional result with score {hit.score}: {payload.get('campaign_folder')} (Brand: {brand})")
-                        if len(ad_creatives) == 5:
-                            break
-                except ValueError as e:
-                    print(f"Error processing media creative: {e}")
-        except Exception as e:
-            print(f"Error in additional vector search: {e}")
-
-    # Check final brand diversity
-    if len(brands_seen) == 1 and len(ad_creatives) < 4:
-        print("Only one brand present. Searching for more creatives from the same brand.")
-        brand = ad_creatives[0].brand.lower()  # Get the brand of the initial creative
-        try:
-            more_creatives = Qclient.search(
-                collection_name=os.getenv("COLLECTION_NAME", "Media_Performance"),
-                query_vector=query_vector,
-                query_filter=Filter(must=[FieldCondition(key="brand", match=MatchValue(value=brand))]),
-                limit=4  # Limit to fetch more creatives from the same brand
-            )
-            for hit in more_creatives:
-                if hit.score <= 0.79:
-                    break  # Stop processing if score below threshold
-                payload = hit.payload
-                try:
-                    ad_creative = AdCreative.parse_obj(payload)
-                    if ad_creative.brand.lower() == brand and ad_creative not in ad_creatives:
-                        ad_creatives.append(ad_creative)
-                        print(f"Added more result from same brand: {payload.get('campaign_folder')} (Brand: {brand})")
-                        if len(ad_creatives) >= 5:
-                            break
-                except ValueError as e:
-                    print(f"Error processing media creative: {e}")
-        except Exception as e:
-            print(f"Error in brand-specific search: {e}")
-
-    print(f"Final number of results: {len(ad_creatives)}")
-
-    return SearchResult(results=ad_creatives, total=len(ad_creatives))
+    print(f"Number of results after processing: {len(ad_creatives)}")
+    return ad_creatives
 
 @timer_decorator   
 def determine_intent(user_query: str, conversation_history: List[ConversationPayload]) -> dict:
@@ -409,7 +366,7 @@ async def media_plan(filtered_data: SearchResult, query: str, conversation_histo
         response_class=MediaPlanOutput,
         max_tokens=2500,
     )
-    # print("Media_plan outputlen:",len(raw_response))
+    print("Media_plan Raw text:",raw_response)
     return await formatter(raw_response,"formatter_media_plan",query)
 
 @timer_decorator
@@ -487,7 +444,7 @@ async def analysis_of_trends(filtered_data: SearchResult, query: str, conversati
         response_class=AnalysisOfTrends
     )
     
-    # print("Analysis of trends len:", len(raw_response))
+    print("Analysis of trends raw text:", raw_response)
 
     formatted_response = await formatter(raw_response, "formatter_analysis_of_trends")
     
@@ -526,7 +483,7 @@ async def creative_insights(filtered_data: SearchResult, query: str, conversatio
     # Assuming load_prompt is a quick operation, keep it synchronous
     system_prompt = load_prompt("creative_insights")
     
-    # print("creative insight Input len:", len(query) + len(system_prompt) + len(essential_data) + len(conversation_history))
+    print("creative insight Input:",essential_data)
     
     # Use the async version of generate_response
     raw_response = await generate_response(
@@ -536,7 +493,7 @@ async def creative_insights(filtered_data: SearchResult, query: str, conversatio
         conversation_history=conversation_history,
         response_class=CreativeInsightsReport
     )
-    # print("Creative Insights len:", len(raw_response))
+    print("Creative Insights Raw:", (raw_response))
     formatted_response = await formatter(raw_response, "formatter_creative_insights")
     return formatted_response
 
@@ -646,6 +603,7 @@ async def perform_inference(inference_payload: InferencePayload):
         
         if not filtered_data.results:
             yield {"response":"I'm sorry, but I lack infromation on media campaigns related to your query. However I can respond to your query using campaign data most related with your query."}
+            filtered_data = search_qdrant(inference_payload.query, conversation_history, parameters, use_vector_search=True)
 
         output_parts = OrderedDict()
         ordered_keys = ["media_plan", "analysis_of_trends", "campaign_performance", "creative_insights", "performance_summary"]
