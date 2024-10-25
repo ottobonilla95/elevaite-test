@@ -1,5 +1,5 @@
 import { CommonButton, CommonInput, ElevaiteIcons } from "@repo/ui/components";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { isObject } from "../../../../lib/actions/generalDiscriminators";
 import { useContracts } from "../../../../lib/contexts/ContractsContext";
 import { CONTRACT_STATUS, CONTRACT_TYPES, type ContractObjectVerification, type ContractObjectVerificationItem } from "../../../../lib/interfaces";
@@ -11,7 +11,7 @@ import { VerificationLineItems } from "./VerificationLineItems";
 
 export function PdfExtractionVerification(): JSX.Element {
     const contractsContext = useContracts();
-    const [verificationData, setVerificationData] = useState<ContractObjectVerification>();
+    const [verificationData, setVerificationData] = useState<ContractObjectVerification|null>();
     const [supplier, setSupplier] = useState<string|undefined>();
     const [isLineItemsFullScreen, setIsLineItemsFullScreen] = useState(false);
 
@@ -21,6 +21,19 @@ export function PdfExtractionVerification(): JSX.Element {
         setSupplier(contractsContext.selectedContract?.highlight?.supplier ? contractsContext.selectedContract.highlight.supplier : undefined);
     }, [contractsContext.selectedContract]);
 
+
+    function getFormattedComments(comments: string[]): React.ReactElement[] {
+        const commentCount = comments.reduce<Record<string, number>>((acc, comment) => {
+            acc[comment] = (acc[comment] || 0) + 1;
+            return acc;
+        }, {});
+
+        return Object.keys(commentCount).map((comment) => (
+            <div key={comment}>
+                {comment} {commentCount[comment] > 1 && `(x${commentCount[comment]})`}
+            </div>
+        ));
+    }
 
 
     return (
@@ -132,15 +145,13 @@ export function PdfExtractionVerification(): JSX.Element {
                             <div className="pdf-verification-label">
                                 Comments
                             </div>
-                            {!contractsContext.selectedContract.response_comments ? 
+                            {contractsContext.selectedContract.response_comments.length === 0 ? 
                                 <div className="no-info">
-                                    No Comments for this invoice.
+                                    No Comments for this file.
                                 </div>
                             :
                                 <div className="verification-comments">
-                                    {contractsContext.selectedContract.response_comments.map(comment => 
-                                        <div key={comment}>{comment}</div>
-                                    )}
+                                    {getFormattedComments(contractsContext.selectedContract.response_comments)}
                                 </div>
                             }
                         </div> 

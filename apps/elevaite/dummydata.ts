@@ -80,6 +80,16 @@ export const ingestionMethods: CardProps[] = [
 ];
 
 const appLinks: Record<string, { development: string; production: string; test: string }> = {
+  arloSupport: {
+    development: "https://elevaite-arlocb.iopex.ai",
+    production: "https://elevaite-arlocb.iopex.ai",
+    test: "",
+  },
+  logsSupport: {
+    development: "https://elevaite-logs.iopex.ai",
+    production: "https://elevaite-logs.iopex.ai",
+    test: "",
+  },
   supportBot: {
     development: "http://localhost:3002",
     production: "https://elevaite-cb.iopex.ai/",
@@ -98,6 +108,11 @@ const appLinks: Record<string, { development: string; production: string; test: 
   contracts: {
     development: "/contracts",
     production: "/contracts",
+    test: "",
+  },
+  contractsIopex: {
+    development: "/contracts-iopex",
+    production: "/contracts-iopex",
     test: "",
   },
   mediaplan: {
@@ -125,7 +140,29 @@ export function getApplications(
           miscLabel: "Version 2.0",
           subtitle: "By Elevaite",
           openInNewTab: true,
-        }
+        },
+        {
+          icon: ApplicationIcons.applications.arloSupport.src,
+          description: "Your AI-powered Bot guiding you through setup, troubleshooting, and to answer your product related queries.",
+          iconAlt: ApplicationIcons.applications.arloSupport.alt,
+          title: "Arlo Support",
+          link: appLinks.arloSupport[env],
+          id: "arloSupport",
+          miscLabel: "Version 2.0",
+          subtitle: "By Elevaite",
+          openInNewTab: true,
+        },
+        {
+          icon: ApplicationIcons.applications.logsSupport.src,
+          description: "Your AI-powered Bot to guide you through the log analysis.",
+          iconAlt: ApplicationIcons.applications.logsSupport.alt,
+          title: "Logs Support",
+          link: appLinks.logsSupport[env],
+          id: "logsSupport",
+          miscLabel: "Version 2.0",
+          subtitle: "By Elevaite",
+          openInNewTab: true,
+        },
       ],
     },
     {
@@ -136,7 +173,7 @@ export function getApplications(
           icon: ApplicationIcons.applications.deckBuilder.src,
           description: "Convert your spreadsheets to presentations and ask questions",
           iconAlt: ApplicationIcons.applications.deckBuilder.alt,
-          title: "",
+          title: "Deck Builder",
           link: appLinks.excletoppt[env],
           id: "deckBuilder",
           miscLabel: "Version 2.0",
@@ -150,6 +187,17 @@ export function getApplications(
           title: "Contract Co-Pilot",
           link: appLinks.contracts[env],
           id: "contracts",
+          miscLabel: "Version 1.0",
+          subtitle: "By Elevaite",
+          openInNewTab: false,
+        },
+        {
+          icon: ApplicationIcons.applications.contractsIopex.src,
+          description: " Quickly discover and approve contracts, invoices and PO's",
+          iconAlt: ApplicationIcons.applications.contractsIopex.alt,
+          title: "Contract Co-Pilot (iOPEX)",
+          link: appLinks.contractsIopex[env],
+          id: "contractsIopex",
           miscLabel: "Version 1.0",
           subtitle: "By Elevaite",
           openInNewTab: false,

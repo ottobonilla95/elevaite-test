@@ -2,8 +2,6 @@
 
 
 .verification-line-items-container {
-
-
     & .table-scroller {
         width: 100%;
         max-height: 400px;
@@ -15,6 +13,13 @@
         background-color: var(--ev-colors-background);
         border: 1px solid var(--ev-colors-borderColor);
         border-radius: 8px;
+    }
+
+    & .loading {
+        height: 100px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
 
 }

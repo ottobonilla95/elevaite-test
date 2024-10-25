@@ -1,4 +1,4 @@
-import { CommonInput } from "@repo/ui/components";
+import { CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { useContracts } from "../../../../lib/contexts/ContractsContext";
 import { type ContractObjectEmphasis } from "../../../../lib/interfaces";
@@ -9,14 +9,19 @@ import "./PdfExtractionEmphasis.scss";
 
 export function PdfExtractionEmphasis(): React.ReactNode {
     const contractsContext = useContracts();
-    const [emphasisData, setEmphasisData] = useState<ContractObjectEmphasis>();
+    const [emphasisData, setEmphasisData] = useState<ContractObjectEmphasis|null>();
 
     useEffect(() => {
         setEmphasisData(contractsContext.selectedContract?.highlight);
     }, [contractsContext.selectedContract]);
 
-    return (
-        !emphasisData ? undefined :
+    return (        
+        contractsContext.loading.contractEmphasis[contractsContext.selectedContract?.id ?? ""] ?
+            <div className="pdf-extraction-emphasis-container">
+                <div className="loading"><ElevaiteIcons.SVGSpinner/></div>
+            </div>
+        : !emphasisData ? undefined :
+        
         <div className="pdf-extraction-emphasis-container">
             <div className="pdf-emphasis-block">
                 <EmphasisBit emphasisData={emphasisData} label="PO Number" valueKey="po_number" />

@@ -1,7 +1,8 @@
 "use client";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { CreateProject, getContractProjectById, getContractProjectsList, reprocessContract, submitContract } from "../actions/contractActions";
-import { CONTRACT_STATUS, type CONTRACT_TYPES, type ContractExtractionDictionary, type ContractObject, type ContractProjectObject } from "../interfaces";
+import { CreateProject, getContractObjectEmphasis, getContractObjectLineItems, getContractObjectVerification, getContractProjectById, getContractProjectContracts, getContractProjectSettings, getContractProjectsList, reprocessContract, submitContract } from "../actions/contractActions";
+import { useInterval } from "../hooks";
+import { CONTRACT_STATUS, ContractObjectEmphasis, ContractObjectVerification, ContractObjectVerificationLineItem, ContractSettings, ContractVariations, ProjectObject, type CONTRACT_TYPES, type ContractExtractionDictionary, type ContractObject, type ContractProjectObject } from "../interfaces";
 
 
 
@@ -16,6 +17,11 @@ const defaultLoadingList: LoadingListObject = {
     projects: undefined,
     contracts: undefined,
     submittingContract: false,
+    projectReports: {},
+    projectSettings: {},
+    contractEmphasis: {},
+    contractLineItems: {},
+    contractVerification: {},
 };
 
 
@@ -26,6 +32,11 @@ interface LoadingListObject {
     projects: boolean|undefined;
     contracts: boolean|undefined;
     submittingContract: boolean;
+    projectReports: Record<string, boolean>;
+    projectSettings: Record<string, boolean>;
+    contractEmphasis: Record<string, boolean>;
+    contractLineItems: Record<string, boolean>;
+    contractVerification: Record<string, boolean>;
 }
 
 
@@ -83,25 +94,26 @@ export const ContractsContext = createContext<ContractsContextStructure>({
 // PROVIDER
 
 interface ContractsContextProviderProps {
+    variation: ContractVariations;
     children: React.ReactNode;
 }
 
 
 export function ContractsContextProvider(props: ContractsContextProviderProps): JSX.Element {
+    const variation = props.variation;
     const [projects, setProjects] = useState<ContractProjectObject[]>([]);
     const [selectedProject, setSelectedProject] = useState<ContractProjectObject|undefined>();
     const [selectedContract, setSelectedContract] = useState<ContractObject|undefined>();
     const [processedContract, setProcessedContract] = useState<{id: string, data: ContractObject}|undefined>();
     const [hasCurrentContractFailed, setHasCurrentContractFailed] = useState("");
-    const [loading, setLoading] = useState<LoadingListObject>(defaultLoadingList);
-    
+    const [loading, setLoading] = useState<LoadingListObject>(defaultLoadingList);    
     const selectedContractChangedByUser = useRef<boolean>();
     const updateSelectedContract = useRef<string|number|undefined>();
 
-
+    
 
     useInterval(() => { 
-        void actionFetchProjectsList(true);
+        // void actionFetchProjectsList(true);
      }, REFETCH_TIME_IN_MILLISECONDS);
 
 
@@ -110,6 +122,7 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
     }, []);
 
     useEffect(() => {
+        // console.log("Projects", projects);
         if (!selectedProject) return;
         const newSelection = projects.find(item => item.id === selectedProject.id);
         setSelectedProject(newSelection);
@@ -121,7 +134,10 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
 
 
     useEffect(() => {
-        if (!selectedProject || !selectedContract) return;
+        if (!selectedProject) return;
+        fetchProjectDetails(selectedProject);
+
+        if (!selectedProject.reports || !selectedContract) return;
         const foundSelectedContract = selectedProject.reports.find(contract => contract.id === selectedContract.id);
         if (foundSelectedContract) {
             if (foundSelectedContract.status !== selectedContract.status) {
@@ -131,8 +147,9 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
     }, [selectedProject]);
 
     useEffect(() => {
-        if (selectedContract)
-            console.log("Selected Contract", selectedContract);
+        if (!selectedContract) return;
+        console.log("Selected Contract", selectedContract);
+        fetchContractDetails(selectedContract);
     }, [selectedContract]);
 
 
@@ -150,29 +167,12 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
 
 
     
-    function useInterval(callback: () => void, delay: number): void {
-        const savedCallback = useRef<() => void>();      
-        // Remember the latest callback.
-        useEffect(() => {
-            savedCallback.current = callback;
-        }, [callback]);
-      
-        // Set up the interval.
-        useEffect(() => {
-            function tick(): void {
-                if (savedCallback.current) {
-                    savedCallback.current();
-                }
-            }
-          const intervalId = setInterval(tick, delay);
-          return () => { clearInterval(intervalId); };
-        }, [delay]);
-    }
 
 
 
 
 
+    // Data handling - updating information on the projectsList and selected items
 
     function setSelectedProjectById(id: string|number|undefined): void {
         if (projects.length === 0) return;
@@ -190,9 +190,139 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
             setSelectedContract(undefined);
             return;
         }
-        const foundContract = projects.flatMap(project => project.reports).find(contract => contract.id === id);
+        const foundContract = projects.flatMap(project => project.reports ?? []).find(contract => contract.id.toString() === id.toString());
         if (foundContract) setSelectedContract(foundContract);
     }
+
+    function replaceProject(newProject: ContractProjectObject): void {
+        setProjects((prevProjects) =>
+            prevProjects.map((project) => project.id === newProject.id ? newProject : project)
+        );
+    }
+
+    function appendSettingsOnProject(id: string|number, settings: ContractSettings): void {
+        setProjects(currentProjects => 
+                currentProjects.map(project => 
+                    project.id === id ? {...project, settings: settings} : project
+                )
+        );
+    }
+
+    function appendReportsOnProject(id: string|number, reports: ContractObject[]): void {
+        setProjects(currentProjects => 
+                currentProjects.map(project => 
+                    project.id === id ? {...project, reports: reports} : project
+                )
+        );
+    }
+
+    function appendEmphasisOnContract(projectId: string, contractId: string, emphasis: ContractObjectEmphasis): void {
+        updateSelectedContract.current = contractId;
+        setProjects(currentProjects => 
+            currentProjects.map(project =>
+                project.id.toString() !== projectId ? project :
+                {...project,
+                    reports: project.reports?.map(report => 
+                        report.id.toString() !== contractId ? report :
+                        {...report, highlight: emphasis}
+                    )
+                }
+            )
+        );
+    }
+
+    function appendLineItemsOnContract(projectId: string, contractId: string, lineItems: ContractObjectVerificationLineItem[]): void {     
+        updateSelectedContract.current = contractId;   
+        setProjects(currentProjects => 
+            currentProjects.map(project =>
+                project.id.toString() !== projectId ? project :
+                {...project,
+                    reports: project.reports?.map(report => 
+                        report.id.toString() !== contractId ? report :
+                        {...report, line_items: lineItems}
+                    )
+                }
+            )
+        );
+    }
+
+    function appendVerificationOnContract(projectId: string, contractId: string, verification: ContractObjectVerification): void {
+        updateSelectedContract.current = contractId;
+        setProjects(currentProjects => 
+            currentProjects.map(project =>
+                project.id.toString() !== projectId ? project :
+                {...project,
+                    reports: project.reports?.map(report => 
+                        report.id.toString() !== contractId ? report :
+                        {...report, verification: verification}
+                    )
+                }
+            )
+        );
+    }
+    
+    function replaceTemporaryContractWithProcessed(id: string, data: ContractObject): void {
+        // If the returned data's id exists, replace it, then delete the previous id.
+        const existingReport = projects.flatMap(project => project.reports).find(contract => contract?.id === data.id);
+        updateSelectedContract.current = data.id;
+
+        if (existingReport) {
+            // Replace the data of the original report (data.id)
+            setProjects((currentProjects) =>
+                currentProjects.map((project) => ({
+                    ...project,
+                    reports: project.reports?.map((report) =>
+                        report.id === data.id ? data : report
+                    ),
+                }))
+            );
+            // Delete the temporary line item (id)
+            setProjects((prevProjects) =>
+                prevProjects.map((project) => ({
+                    ...project,
+                    reports: project.reports?.filter((report) => report.id !== id),
+                }))
+            );
+        }
+
+        // Otherwise, replace the previous id with the new item
+        setProjects((currentProjects) =>
+            currentProjects.map((project) => ({
+                ...project,
+                reports: project.reports?.map((report) =>
+                    report.id === id ? data : report
+                ),
+            }))
+        );
+    }
+
+    function changeStatusToContractInList(id: string, status: CONTRACT_STATUS): void {
+        setProjects((currentProjects) =>
+            currentProjects.map((project) => ({
+                ...project,
+                reports: project.reports?.map((report) =>
+                    report.id === id ? { ...report, status } : report
+                ),
+            }))
+        );
+    }
+
+    
+    // Fetching convenience handlers
+
+    function fetchProjectDetails(passedProject: ContractProjectObject): void {
+        if (passedProject.settings === null) void actionFetchProjectSettings(passedProject.id);
+        if (passedProject.reports === null) void actionFetchProjectReports(passedProject.id);
+    }
+
+    function fetchContractDetails(passedContract: ContractObject): void {
+        if (passedContract.highlight === null) void actionFetchContractEmphasis(passedContract.project_id, passedContract.id);
+        if (passedContract.verification === null) void actionFetchContractVerification(passedContract.project_id, passedContract.id);
+        if (passedContract.line_items === null) void actionFetchContractLineItems(passedContract.project_id, passedContract.id);
+    }
+
+
+    // Contract details editing - only front-end for now.
 
     function changeSelectedContractBit(pageKey: `page_${number}`, itemKey: string, newValue: string): void {
         selectedContractChangedByUser.current = true;
@@ -228,15 +358,14 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
 
 
 
+    // Misc
 
     function submitCurrentContractPdf(pdf: File|undefined, type: CONTRACT_TYPES, projectId: string|number, name?: string): void {;
-        if (pdf) {
-            void actionSubmitContract(pdf, type, projectId, name);
-        }
+        if (pdf) { void actionSubmitContract(pdf, type, projectId, name); }
     }
 
     function appendContractToContractsList(project: ContractProjectObject, pdf: File, type: CONTRACT_TYPES, name?: string): string {
-        const id = `NewContract_${project.id.toString()}_${(project.reports.length + 1).toString()}`;
+        const id = `NewContract_${project.id.toString()}_${((project.reports?.length ?? 0) + 1).toString()}`;
 
         const newContract: ContractObject = {
             id,
@@ -256,66 +385,18 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
         setProjects((prevProjects) =>
             prevProjects.map((currentProject) =>
                 currentProject.id === project.id ?
-                    { ...currentProject, reports: [...currentProject.reports, newContract] }
+                    { ...currentProject, reports: [...(currentProject.reports || []), newContract] }
                     : currentProject
             )
         );
         return id;
     }
 
-    function replaceProject(newProject: ContractProjectObject): void {
-        setProjects((prevProjects) =>
-            prevProjects.map((project) => project.id === newProject.id ? newProject : project)
-        );
-    }
-
-    function replaceTemporaryContractWithProcessed(id: string, data: ContractObject): void {
-        // If the returned data's id exists, replace it, then delete the previous id.
-        const existingReport = projects.flatMap(project => project.reports).find(contract => contract.id === data.id);
-        updateSelectedContract.current = data.id;
-
-        if (existingReport) {
-            // Replace the data of the original report (data.id)
-            setProjects((currentProjects) =>
-                currentProjects.map((project) => ({
-                    ...project,
-                    reports: project.reports.map((report) =>
-                        report.id === data.id ? data : report
-                    ),
-                }))
-            );
-            // Delete the temporary line item (id)
-            setProjects((prevProjects) =>
-                prevProjects.map((project) => ({
-                    ...project,
-                    reports: project.reports.filter((report) => report.id !== id),
-                }))
-            );
-        }
-
-        // Otherwise, replace the previous id with the new item
-        setProjects((currentProjects) =>
-            currentProjects.map((project) => ({
-                ...project,
-                reports: project.reports.map((report) =>
-                    report.id === id ? data : report
-                ),
-            }))
-        );
-    }
-
-    function changeStatusToContractInList(id: string, status: CONTRACT_STATUS): void {
-        setProjects((currentProjects) =>
-            currentProjects.map((project) => ({
-                ...project,
-                reports: project.reports.map((report) =>
-                    report.id === id ? { ...report, status } : report
-                ),
-            }))
-        );
-    }
 
 
+
+
+    // Actions - Create / Edit
 
 
     async function actionSubmitContract(submittedPdf: File, type: CONTRACT_TYPES, projectId: string|number, name?: string): Promise<void> {
@@ -327,7 +408,7 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
             const formData = new FormData();
             formData.append("file", submittedPdf);
             if (name) formData.append("label", name);
-            const contractExtractionResults = await submitContract(projectId.toString(), formData, type);
+            const contractExtractionResults = await submitContract(projectId.toString(), formData, type, variation === ContractVariations.Iopex);
             setProcessedContract({id: idOfNewEntry, data: contractExtractionResults});
             await actionFetchProjectById(projectId);
         } catch(error) {
@@ -339,23 +420,11 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
         }
     }
 
-    async function actionReprocessContract(): Promise<void> {
-        if (!selectedProject || !selectedContract) return;
-        try {
-            // Stealth reprocess            
-            const reprocessResult = await reprocessContract(selectedProject.id.toString(), selectedContract.id.toString());
-            console.log("Reprocessing result");
-        } catch(error) {
-            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
-            console.error("Error in reprocessing contract:", error);
-        }
-    }
-
     async function actionCreateProject(name: string, description?: string): Promise<boolean> {
         try {
             setLoading(current => { return {...current, projects: true}} );
             
-            const createProjectResult = await CreateProject(name, description);
+            const createProjectResult = await CreateProject(name, variation === ContractVariations.Iopex, description);
             setProjects(current => [...current, createProjectResult]);
             return true;
         } catch(error) {
@@ -367,11 +436,26 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
         }
     }
 
+    async function actionReprocessContract(): Promise<void> {
+        if (!selectedProject || !selectedContract) return;
+        try {
+            // Stealth reprocess            
+            const reprocessResult = await reprocessContract(selectedProject.id.toString(), selectedContract.id.toString(), variation === ContractVariations.Iopex);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in reprocessing contract:", error);
+        }
+    }
+
+
+
+    // Actions - Fetching
+
     async function actionFetchProjectsList(noLoading?: boolean): Promise<void> {
         try {
             if (!noLoading) setLoading(current => { return {...current, projects: true}} );
             
-            const projectsListResults = await getContractProjectsList();
+            const projectsListResults = await getContractProjectsList(variation === ContractVariations.Iopex);
             setProjects(projectsListResults);
         } catch(error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
@@ -385,13 +469,78 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
         try {
             // setLoading(current => { return {...current, projects: true}} );
             // Stealth update            
-            const projectResult = await getContractProjectById(id.toString());
+            const projectResult = await getContractProjectById(id.toString(), variation === ContractVariations.Iopex);
             replaceProject(projectResult);
         } catch(error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in fetching contract projects:", error);
         } finally {
             // setLoading(current => { return {...current, projects: false}} );
+        }
+    }
+
+    async function actionFetchProjectSettings(id: string|number): Promise<void> {
+        try {
+            setLoading(current => { return {...current, projectSettings: { ...current.projectSettings, [id]: true } }})
+            const projectSettingsResult = await getContractProjectSettings(id.toString(), variation === ContractVariations.Iopex);
+            appendSettingsOnProject(id, projectSettingsResult);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching projects's settings:", error);
+        } finally {
+            setLoading(current => { return {...current, projectSettings: { ...current.projectSettings, [id]: false } }})
+        }
+    }
+
+    async function actionFetchProjectReports(id: string|number): Promise<void> {
+        try {
+            setLoading(current => { return {...current, projectReports: { ...current.projectReports, [id]: true } }})
+            const projectReportsResult = await getContractProjectContracts(id.toString(), variation === ContractVariations.Iopex);
+            appendReportsOnProject(id, projectReportsResult);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching projects's reports:", error);
+        } finally {
+            setLoading(current => { return {...current, projectReports: { ...current.projectReports, [id]: false } }})
+        }
+    }
+
+    async function actionFetchContractEmphasis(projectId: string|number, id: string|number): Promise<void> {
+        try {
+            setLoading(current => { return {...current, contractEmphasis: { ...current.contractEmphasis, [id]: true } }})
+            const contractEmphasisResult = await getContractObjectEmphasis(projectId.toString(), id.toString(), variation === ContractVariations.Iopex);
+            appendEmphasisOnContract(projectId.toString(), id.toString(), contractEmphasisResult);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching contract's emphasis:", error);
+        } finally {
+            setLoading(current => { return {...current, contractEmphasis: { ...current.contractEmphasis, [id]: false } }})
+        }
+    }
+
+    async function actionFetchContractVerification(projectId: string|number, id: string|number): Promise<void> {
+        try {
+            setLoading(current => { return {...current, contractVerification: { ...current.contractVerification, [id]: true } }})
+            const contractVerificationResult = await getContractObjectVerification(projectId.toString(), id.toString(), variation === ContractVariations.Iopex);
+            appendVerificationOnContract(projectId.toString(), id.toString(), contractVerificationResult);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching contract's verification:", error);
+        } finally {
+            setLoading(current => { return {...current, contractVerification: { ...current.contractVerification, [id]: false } }})
+        }
+    }
+
+    async function actionFetchContractLineItems(projectId: string|number, id: string|number): Promise<void> {
+        try {
+            setLoading(current => { return {...current, contractLineItems: { ...current.contractLineItems, [id]: true } }})
+            const contractLineItemsResult = await getContractObjectLineItems(projectId.toString(), id.toString(), variation === ContractVariations.Iopex);
+            appendLineItemsOnContract(projectId.toString(), id.toString(), contractLineItemsResult);
+        } catch(error) {
+            // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
+            console.error("Error in fetching contract's line items:", error);
+        } finally {
+            setLoading(current => { return {...current, contractLineItems: { ...current.contractLineItems, [id]: false } }})
         }
     }
 

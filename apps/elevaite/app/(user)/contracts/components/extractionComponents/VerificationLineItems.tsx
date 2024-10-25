@@ -28,7 +28,6 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
 
     useEffect(() => {
         if (props.lineItems) {
-            console.log("labels:", contractsContext.selectedProject?.settings.labels);
             const data = getTableData(props.lineItems, getFullHeaderData());
             setTableData(data.table);
             setDisplayHeaders(data.headers);
@@ -117,7 +116,9 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
     return (
         <div className="verification-line-items-container">
             <div className="table-scroller">
-                {!tableData ? 
+                {contractsContext.loading.contractLineItems[contractsContext.selectedContract?.id ?? ""] ? 
+                    <div className="loading"><ElevaiteIcons.SVGSpinner/></div>
+                : !tableData ? 
                     <div>No tabular data available</div>
                 :
                     <VerificationTableStructure

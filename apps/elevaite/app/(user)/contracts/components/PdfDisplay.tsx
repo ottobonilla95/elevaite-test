@@ -36,6 +36,7 @@ interface PdfDisplayProps {
 export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     const contractsContext = useContracts();
     const [isLoading, setIsLoading] = useState(false);
+    const [pdfReference, setPdfReference] = useState<string|File|null>(null);
     const [pdfData, setPdfData] = useState<string>();
     const pageContainerRef = useRef<HTMLDivElement | null>(null);  
     const { width: pageContainerWidth } = useResizeDetector<HTMLDivElement>({
@@ -56,7 +57,6 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     const observer = new IntersectionObserver(
         (entries) => {
             entries.forEach((entry) => {
-                // console.log("Entry", entry);
                 if (entry.isIntersecting) {
                     const child = entry.target.firstChild;
                     if (child instanceof Element) {
@@ -79,12 +79,16 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
             setPdfData(undefined);
             return;
         }
-        void formatPdfData(contractsContext.selectedContract);
+        if (contractsContext.selectedContract.file_ref !== pdfReference) setPdfReference(contractsContext.selectedContract.file_ref);
         setPdfTabsArray(getPdfTabsArray());
         setSelectedTab(contractsContext.selectedContract.content_type);
         // if (contractsContext.selectedContract.extractedData)
         //     formatSearchTerms(contractsContext.selectedContract.extractedData);
     }, [contractsContext.selectedContract]);
+
+    useEffect(() => {        
+        void formatPdfData(pdfReference);
+    }, [pdfReference]);
 
 
     useEffect(() => {
@@ -97,12 +101,12 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     }, [pageNumber]);
 
 
-    async function formatPdfData(passedContract: ContractObject): Promise<void> {
+    async function formatPdfData(fileReference: string|File|null): Promise<void> {
         setPagesAmount(undefined);
         // TODO: If checksum is the same, don't change pdfData.
         setIsLoading(true);
-        if (passedContract.file_ref) {
-            let file: string|File|Blob = passedContract.file_ref;
+        if (fileReference) {
+            let file: string|File|Blob = fileReference;
             if (typeof file === "string") {
                 const url = new URL(`${window.location.origin}/api/contracts/`);
                 url.searchParams.set("key", file);
@@ -206,7 +210,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                             break;
                         }
             case CONTRACT_TYPES.CSOW: {
-                        if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.PURCHASE_ORDER &&
+                        if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.CSOW &&
                             contractsContext.selectedContract?.verification?.csow?.[0]?.file_id)
                             contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.csow[0].file_id);
                             break;

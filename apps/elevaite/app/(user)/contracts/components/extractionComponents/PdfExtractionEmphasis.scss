@@ -24,4 +24,11 @@
         flex-grow: 1;
         border-bottom: 1px solid var(--ev-colors-borderColor);
     }
+
+    & .loading {
+        height: 100px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
 }

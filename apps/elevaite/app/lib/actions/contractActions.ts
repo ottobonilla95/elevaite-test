@@ -1,12 +1,22 @@
 "use server";
 import { revalidateTag } from "next/cache";
-import { type ContractObject, type CONTRACT_TYPES, type ContractProjectObject } from "../interfaces";
+import { type ContractObject, type CONTRACT_TYPES, type ContractProjectObject, ContractSettings, ContractObjectEmphasis, ContractObjectVerification, ContractObjectVerificationLineItem } from "../interfaces";
 import { cacheTags, CONTRACT_PROJECTS_REVALIDATION_TIME } from "./actionConstants";
-import { isCreateProjectResponse, isGetContractProjectByIdResponse, isGetContractProjectsListReponse, isReprocessContractResponse, isSubmitContractResponse } from "./contractDiscriminators";
+import { isCreateProjectResponse, isGetContractObjectEmphasisResponse, isGetContractObjectResponse, isGetContractObjectVerificationLineItemsResponse, isGetContractObjectVerificationResponse, isGetContractProjectByIdResponse, isGetContractProjectContractsResponse, isGetContractProjectSettingsByIdResponse, isGetContractProjectsListReponse, isReprocessContractResponse, isSubmitContractResponse } from "./contractDiscriminators";
 
 
 
-const CONTRACTS_URL = process.env.NEXT_PUBLIC_CONTRACTS_API_URL;
+
+// Helpers
+
+function getBaseUrl(isAlt: boolean): string | undefined {
+  const CONTRACTS_URL = process.env.NEXT_PUBLIC_CONTRACTS_API_URL;
+  const CONTRACTS_IOPEX_URL = process.env.NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL;
+
+  return isAlt ? CONTRACTS_IOPEX_URL : CONTRACTS_URL;
+}
+
+
 
 
 
@@ -15,9 +25,10 @@ const CONTRACTS_URL = process.env.NEXT_PUBLIC_CONTRACTS_API_URL;
 //////////////////
 
 
-export async function getContractProjectsList(): Promise<ContractProjectObject[]> {
-  if (!CONTRACTS_URL) throw new Error("Missing base url");
-  const url = new URL(`${CONTRACTS_URL}/projects/`);
+export async function getContractProjectsList(isAlt: boolean): Promise<ContractProjectObject[]> {
+  const baseUrl = getBaseUrl(isAlt);
+  if (!baseUrl) throw new Error("Missing base url");
+  const url = new URL(`${baseUrl}/projects/`);
   const response = await fetch(url, { next: { revalidate: CONTRACT_PROJECTS_REVALIDATION_TIME, tags: [cacheTags.contractProjects] } });
 
   if (!response.ok) throw new Error("Failed to fetch contract projects list");
@@ -27,9 +38,10 @@ export async function getContractProjectsList(): Promise<ContractProjectObject[]
 }
 
 
-export async function getContractProjectById(projectId: string): Promise<ContractProjectObject> {
-  if (!CONTRACTS_URL) throw new Error("Missing base url");
-  const url = new URL(`${CONTRACTS_URL}/projects/${projectId}`);
+export async function getContractProjectById(projectId: string, isAlt: boolean): Promise<ContractProjectObject> {
+  const baseUrl = getBaseUrl(isAlt);
+  if (!baseUrl) throw new Error("Missing base url");
+  const url = new URL(`${baseUrl}/projects/${projectId}`);
   const response = await fetch(url, { next: { revalidate: CONTRACT_PROJECTS_REVALIDATION_TIME, tags: [cacheTags.contractProjects] } });
 
   if (!response.ok) throw new Error("Failed to fetch contract project");
@@ -38,8 +50,82 @@ export async function getContractProjectById(projectId: string): Promise<Contrac
   throw new Error("Invalid data type");
 }
 
+export async function getContractProjectSettings(projectId: string, isAlt: boolean): Promise<ContractSettings> {
+  const baseUrl = getBaseUrl(isAlt);
+  if (!baseUrl) throw new Error("Missing base url");
+  const url = new URL(`${baseUrl}/projects/${projectId}/settings`);
+  const response = await fetch(url, { next: { revalidate: CONTRACT_PROJECTS_REVALIDATION_TIME, tags: [cacheTags.contractProjects] } });
 
+  if (!response.ok) throw new Error("Failed to fetch contract project");
+  const data: unknown = await response.json();
+  if (isGetContractProjectSettingsByIdResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
 
+export async function getContractProjectContracts(projectId: string, isAlt: boolean): Promise<ContractObject[]> {
+  const baseUrl = getBaseUrl(isAlt);
+  if (!baseUrl) throw new Error("Missing base url");
+    const url = new URL(`${baseUrl}/projects/${projectId}/files`);
+    const response = await fetch(url, { next: { revalidate: CONTRACT_PROJECTS_REVALIDATION_TIME, tags: [cacheTags.contractProjects] } });
+    
+    if (!response.ok) throw new Error("Failed to fetch contract project");
+    const data: unknown = await response.json();
+    if (isGetContractProjectContractsResponse(data)) return data;
+    throw new Error("Invalid data type");
+}
+
+export async function getContractObjectById(projectId: string, contractId: string, isAlt: boolean): Promise<ContractObject> {  
+  const baseUrl = getBaseUrl(isAlt);
+  if (!baseUrl) throw new Error("Missing base url");
+  const url = new URL(`${baseUrl}/projects/${projectId}/files/${contractId}`);
+  const response = await fetch(url, {
+      next: {
+          revalidate: CONTRACT_PROJECTS_REVALIDATION_TIME,
+          tags: [cacheTags.contractProjects],
+      },
+  });
+
+  if (!response.ok) throw new Error("Failed to fetch contract project");
+  const data: unknown = await response.json();
+  if (isGetContractObjectResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+export async function getContractObjectEmphasis(projectId: string, contractId: string, isAlt: boolean): Promise<ContractObjectEmphasis> {  
+  const baseUrl = getBaseUrl(isAlt);
+  if (!baseUrl) throw new Error("Missing base url");
+  const url = new URL(`${baseUrl}/projects/${projectId}/files/${contractId}/highlight`);
+  const response = await fetch(url, { next: { revalidate: CONTRACT_PROJECTS_REVALIDATION_TIME, tags: [cacheTags.contractProjects] } });
+
+  if (!response.ok) throw new Error("Failed to fetch contract project");
+  const data: unknown = await response.json();
+  if (isGetContractObjectEmphasisResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+export async function getContractObjectVerification(projectId: string, contractId: string, isAlt: boolean): Promise<ContractObjectVerification> {  
+  const baseUrl = getBaseUrl(isAlt);
+  if (!baseUrl) throw new Error("Missing base url");
+  const url = new URL(`${baseUrl}/projects/${projectId}/files/${contractId}/verification`);
+  const response = await fetch(url, { next: { revalidate: CONTRACT_PROJECTS_REVALIDATION_TIME, tags: [cacheTags.contractProjects] } });
+
+  if (!response.ok) throw new Error("Failed to fetch contract project");
+  const data: unknown = await response.json();
+  if (isGetContractObjectVerificationResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+export async function getContractObjectLineItems(projectId: string, contractId: string, isAlt: boolean): Promise<ContractObjectVerificationLineItem[]> {  
+  const baseUrl = getBaseUrl(isAlt);
+  if (!baseUrl) throw new Error("Missing base url");
+  const url = new URL(`${baseUrl}/projects/${projectId}/files/${contractId}/line_items`);
+  const response = await fetch(url, { next: { revalidate: CONTRACT_PROJECTS_REVALIDATION_TIME, tags: [cacheTags.contractProjects] } });
+
+  if (!response.ok) throw new Error("Failed to fetch contract project");
+  const data: unknown = await response.json();
+  if (isGetContractObjectVerificationLineItemsResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
 
 
 
@@ -48,10 +134,11 @@ export async function getContractProjectById(projectId: string): Promise<Contrac
 
 
 
-export async function reprocessContract(projectId: string, contractId: string): Promise<ContractObject> {
-  if (!CONTRACTS_URL) throw new Error("Missing base url");
+export async function reprocessContract(projectId: string, contractId: string, isAlt: boolean): Promise<ContractObject> {
+  const baseUrl = getBaseUrl(isAlt);
+  if (!baseUrl) throw new Error("Missing base url");
 
-  const url = new URL(`${CONTRACTS_URL}/project/${projectId}/files/${contractId}/process`);
+  const url = new URL(`${baseUrl}/project/${projectId}/files/${contractId}/process`);
 
   const headers = new Headers();
   headers.append("Content-Type", "application/json");
@@ -76,14 +163,15 @@ export async function reprocessContract(projectId: string, contractId: string): 
 
 
 
-export async function CreateProject(name: string, description?: string): Promise<ContractProjectObject> {
-  if (!CONTRACTS_URL) throw new Error("Missing base url");
+export async function CreateProject(name: string, isAlt: boolean, description?: string): Promise<ContractProjectObject> {
+  const baseUrl = getBaseUrl(isAlt);
+  if (!baseUrl) throw new Error("Missing base url");
   const dto = {
     name,
     description,
   };
 
-  const url = new URL(`${CONTRACTS_URL}/projects/`);
+  const url = new URL(`${baseUrl}/projects/`);
 
   const headers = new Headers();
   headers.append("Content-Type", "application/json");
@@ -110,10 +198,11 @@ export async function CreateProject(name: string, description?: string): Promise
 
 
 
-export async function submitContract(projectId: string, formData: FormData, type: CONTRACT_TYPES): Promise<ContractObject> {
-  if (!CONTRACTS_URL) throw new Error("Missing base url");
+export async function submitContract(projectId: string, formData: FormData, type: CONTRACT_TYPES, isAlt: boolean): Promise<ContractObject> {
+  const baseUrl = getBaseUrl(isAlt);
+  if (!baseUrl) throw new Error("Missing base url");
 
-  const url = new URL(`${CONTRACTS_URL}/project/${projectId}/files/`);
+  const url = new URL(`${baseUrl}/project/${projectId}/files/`);
   url.searchParams.set("content_type", type);
 
   const response = await fetch(url, {
