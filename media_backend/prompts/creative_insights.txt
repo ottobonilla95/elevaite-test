@@ -7,7 +7,7 @@ Seasonal/Holiday elements
 Visual elements
 Color tone (including specific colors used)
 Cinematography
-Audio elements
-Narrative structure
+Audio elements - Leave it as a blank string for images.
+Narrative structure - Leave it as a blank string for images.
 Analyze each creative, highlighting key design choices, branding strategies, and seasonal relevance. 
 Plan your output such that you limit your response to a maximum of 800 words.

@@ -7,13 +7,15 @@ import os
 import re
 from dotenv import load_dotenv
 import json
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List,Generator, Type, Dict, Any, Optional, AsyncGenerator
+from typing import List, Type, Dict, Any, Optional
 from pydantic import BaseModel
 import time
 import asyncio
 from collections import OrderedDict
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def timer_decorator(func):
     async def async_wrapper(*args, **kwargs):
@@ -70,36 +72,40 @@ def get_embedding(text):
         print(f"Error getting embedding: {e}")
         return None
     
-@timer_decorator     
-def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[str, Any], use_vector_search: bool = False) -> SearchResult:
+def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[str, Any], use_vector_search: bool = False, number_of_results: int = 4) -> SearchResult:
     formatted_history = format_conversation_payload(conversation_payload)
     enriched_query_text = f"{formatted_history}\nUser Query: {query_text}"
-    
     query_vector = get_embedding(enriched_query_text)
+
     if not query_vector or len(query_vector) == 0:
         print("No valid query vector obtained from the text.")
         return SearchResult(results=[], total=0)
 
+    ad_creatives = []
+
+    # Perform vector search
     if use_vector_search:
         try:
+            dummy_filter = Filter(should=[FieldCondition(key="dummy", match=MatchValue(value="any_value"))])
             search_result = Qclient.search(
                 collection_name=os.getenv("COLLECTION_NAME", "Media_Performance"),
                 query_vector=query_vector,
-                limit=4,  
+                query_filter = dummy_filter,
+                limit=number_of_results,
             )
-            print("Pure vector search completed.")
+            print("Pure vector search completed:", search_result)
         except Exception as e:
             print(f"Error in vector search: {e}")
             return SearchResult(results=[], total=0)
-        ad_creatives = []
+
+        # Process vector search results
         for hit in search_result:
-            payload = hit.payload
             try:
-                ad_creative = AdCreative.parse_obj(payload)
+                ad_creative = AdCreative.parse_obj(hit.payload)
                 ad_creatives.append(ad_creative)
-                print(f"Processed result: {payload.get('campaign_folder')}")
-            except ValueError as e:
-                print(f"Error processing media creative: {e}")
+            except Exception as e:
+                print(f"Error processing search result: {e}, Data: {hit}")
+        print("Additional Search prepared output:", SearchResult(results=ad_creatives, total=len(ad_creatives)))
         return SearchResult(results=ad_creatives, total=len(ad_creatives))
 
     # Build filters for the search
@@ -137,52 +143,46 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
             )
             print(f"Added text filter for {key}: {normalized_value}")
 
-    print("Filter Conditions:", filter_conditions)
-
-    search_filter = Filter(must=filter_conditions) if filter_conditions else None
+    search_filter = Filter(should=filter_conditions) if filter_conditions else None
     print("Search Filter Conditions:", search_filter)
 
-    # Search with filters
     try:
         search_result = Qclient.search(
             collection_name=os.getenv("COLLECTION_NAME", "Media_Performance"),
             query_vector=query_vector,
             query_filter=search_filter,
-            limit=10, 
+            limit=number_of_results,
         )
+        logger.debug(f"Raw search results: {search_result}")
     except Exception as e:
-        print(f"Error searching Qdrant: {e}")
+        logger.error(f"Error searching Qdrant: {e}")
         return SearchResult(results=[], total=0)
 
-    print(f"Total results obtained: {len(search_result)}")
+    logger.info(f"Total results obtained: {len(search_result)}")
 
-    # Process results and create AdCreative instances
-    ad_creatives = process_results(search_result)
-
-    return SearchResult(results=ad_creatives, total=len(ad_creatives))
-
-def process_results(search_result) -> List[AdCreative]:
-    ad_creatives = []
-    brands_seen = set()
-    for hit in search_result:
-        print("hit.scores:", hit.score)
-        if hit.score <= 0.79:
-            break  # Stop processing if score below threshold
-        payload = hit.payload
+    # Process filtered search results with brand limit
+    brand_count = {}
+    for index, hit in enumerate(search_result):
+        payload = hit.payload  # Assuming payload is structured correctly
+        logger.debug(f"Processing result {index + 1}: {payload}")
         try:
             ad_creative = AdCreative.parse_obj(payload)
-            brand = ad_creative.brand.lower()
-            if brand not in brands_seen:
+            brand_name = ad_creative.brand
+            if brand_name not in brand_count:
+                brand_count[brand_name] = 0
+            
+            if brand_count[brand_name] < 2:  # Limit to 2 per brand
                 ad_creatives.append(ad_creative)
-                brands_seen.add(brand)
-                print(f"Processed result with score {hit.score}: {payload.get('campaign_folder')} (Brand: {brand})")
-                if len(ad_creatives) == 5:
-                    break
+                brand_count[brand_name] += 1
+                logger.debug(f"Added AdCreative for brand: {brand_name}")
+            else:
+                logger.debug(f"Skipped AdCreative for brand: {brand_name}")
         except ValueError as e:
-            print(f"Error processing media creative: {e}")
+            logger.error(f"Error processing media creative {index + 1}: {e}")
+            logger.error(f"Problematic payload: {payload}")
     
-    print(f"Number of results after processing: {len(ad_creatives)}")
-    return ad_creatives
+    logger.info(f"Processed AdCreatives: {len(ad_creatives)}")
+    return SearchResult(results=ad_creatives, total=len(ad_creatives))
 
 @timer_decorator   
 def determine_intent(user_query: str, conversation_history: List[ConversationPayload]) -> dict:
@@ -198,13 +198,10 @@ def determine_intent(user_query: str, conversation_history: List[ConversationPay
         response = client.beta.chat.completions.parse(
             model="gpt-4o-mini",
             messages=messages,
-            # response_format=IntentOutput,
+            response_format=IntentOutput,
             max_tokens=400
         )
-        
         response_content = response.choices[0].message.content
-        # print(f"Response content: {response_content}")  # Log response content for debugging
-        
         try:
             parsed_response = json.loads(response_content)
             validated_response = IntentOutput(**parsed_response)
@@ -220,28 +217,28 @@ def determine_intent(user_query: str, conversation_history: List[ConversationPay
         print(f"Error determining intent: {e}")
         print("Query that led to error:", user_query)
         return {}
-@timer_decorator   
-def format_search_results(search_result: SearchResult) -> str:
-    formatted_results = []
-    print("Formatting the search results")
-    for ad in search_result.results:
-        formatted_ad = f"ID: {ad.id}\n"
-        formatted_ad += f"Brand: {ad.brand}\n"
-        formatted_ad += f"Product/Service: {ad.product_service}\n"
-        formatted_ad += f"Objective: {ad.ad_objective}\n"
-        formatted_ad += f"Tone/Mood: {ad.tone_mood}\n"
-        formatted_ad += f"File Type: {ad.file_type}\n"
-        formatted_ad += f"Industry: {ad.industry}\n"
-        formatted_ad += f"Duration Category: {ad.duration_category}\n"
-        formatted_ad += f"Impressions: {ad.delivered_measure_impressions}\n"
-        formatted_ad += f"Clicks: {ad.clicks}\n"
-        formatted_ad += f"Conversions: {ad.conversion}\n"
-        formatted_ad += f"Md5_hash:{ad.md5_hash}"  # Include the image
-        formatted_ad += f"File Name:{ad.file_name}"
-        formatted_ad += "---"
-        formatted_results.append(formatted_ad)
-    print("Sucesss fully completed format search")
-    return "\n".join(formatted_results)
+# @timer_decorator   
+# def format_search_results(search_result: SearchResult) -> str:
+#     formatted_results = []
+#     print("Formatting the search results")
+#     for ad in search_result.results:
+#         formatted_ad = f"ID: {ad.id}\n"
+#         formatted_ad += f"Brand: {ad.brand}\n"
+#         formatted_ad += f"Product/Service: {ad.product_service}\n"
+#         formatted_ad += f"Objective: {ad.ad_objective}\n"
+#         formatted_ad += f"Tone/Mood: {ad.tone_mood}\n"
+#         formatted_ad += f"File Type: {ad.file_type}\n"
+#         formatted_ad += f"Industry: {ad.industry}\n"
+#         formatted_ad += f"Duration Category: {ad.duration_category}\n"
+#         formatted_ad += f"Impressions: {ad.delivered_measure_impressions}\n"
+#         formatted_ad += f"Clicks: {ad.clicks}\n"
+#         formatted_ad += f"Conversions: {ad.conversion}\n"
+#         formatted_ad += f"Md5_hash:{ad.md5_hash}"  # Include the image
+#         formatted_ad += f"File Name:{ad.file_name}"
+#         formatted_ad += "---"
+#         formatted_results.append(formatted_ad)
+#     print("Sucesss fully completed format search")
+#     return "\n".join(formatted_results)
 
 @timer_decorator
 async def generate_response(
@@ -279,15 +276,8 @@ async def generate_response(
         }
         if response_class:
             request_params["response_format"] = response_class
-
-        # total_tokens = len(str(request_params))
-        # print("Total tokens before request:", total_tokens)
-
         response = await asyncio.to_thread(client.beta.chat.completions.parse, **request_params)
-
         response_content = response.choices[0].message.content.strip()
-        total_tokens = response.usage.total_tokens
-        # print("total tokens used:", total_tokens)
         if response_class:
             try:
                 response_class.model_validate_json(response_content)
@@ -314,7 +304,9 @@ async def formatter(final_output: str = None, prompt_file_name: str = "formatter
 @timer_decorator 
 def extract_specific_fields(search_result: SearchResult, fields: List[str], full_data_fields: List[str] = None) -> str:
     extracted_data = []
+    print("Search Results:\n\n",search_result)
     for ad_creative in search_result.results:
+        # print(ad_creative)
         item = {}
         # Extract specified fields from AdCreative
         for field in fields:
@@ -326,6 +318,7 @@ def extract_specific_fields(search_result: SearchResult, fields: List[str], full
                 if field in ad_creative.full_data:
                     item[f"full_data_{field}"] = ad_creative.full_data[field]
         extracted_data.append(item)
+    print("Extracted Data")
     return str(extracted_data)
 
 @timer_decorator    
@@ -356,8 +349,8 @@ async def media_plan(filtered_data: SearchResult, query: str, conversation_histo
     essential_data = extract_specific_fields(filtered_data,fields_to_extract,full_data_fields_to_extract)
 
     system_prompt = load_prompt("media_plan")
-    # print("media plan Input len:",len(query)+len(system_prompt)+len(essential_data)+len(conversation_history))
-    # print("Query, system, filtered, convo history:",len(query),len(system_prompt),len(essential_data),len(conversation_history))
+    print("media plan Input len:",len(query)+len(system_prompt)+len(essential_data)+len(conversation_history))
+    print("Query, system, filtered, convo history:",len(query),len(system_prompt),len(essential_data),len(conversation_history))
     raw_response = await generate_response(
         query=query,
         system_prompt=system_prompt,
@@ -501,9 +494,7 @@ async def creative_insights(filtered_data: SearchResult, query: str, conversatio
 async def performance_summary(query: str, output_parts: Dict[str, str]) -> str:
     # Assuming load_prompt is a quick operation, keep it synchronous
     system_prompt = load_prompt("performance_summary")
-    
     # print("performance summary Input len:", len(query) + len(system_prompt) + len(str(output_parts)))
-    
     # Use the async version of generate_response
     raw_response = await generate_response(
         query=query,
@@ -520,21 +511,12 @@ async def performance_summary(query: str, output_parts: Dict[str, str]) -> str:
 @timer_decorator
 def replace_hash_with_url(S):
     md5_pattern_thumbnail = r'\b([a-fA-F0-9]{32})(?:\.thumbnail\.jpg)?\b'
-    # openMediaModal_pattern = r"openMediaModal\('([a-fA-F0-9]{32})'"
-
     def replace_thumbnail(match):
         hash_value = match.group(1)
         return get_url_for_hash(hash_value, "thumbnail.jpg")
-
-    # def replace_openMediaModal(match):
-    #     hash_value = match.group(1)
-    #     file_extension = get_extension_for_hash(hash_value)
-    #     return f"openMediaModal('{get_url_for_hash(hash_value, file_extension)}'"
-
     # Replace thumbnail URLs
     S = re.sub(md5_pattern_thumbnail, replace_thumbnail, S)
-    # # Replace openMediaModal hashes
-    # S = re.sub(openMediaModal_pattern, replace_openMediaModal, S)
+
     return S
 @timer_decorator 
 def get_url_for_hash(hash, extension):
@@ -576,10 +558,10 @@ def format_conversation_payload(conversation_payload: List[ConversationPayload])
 @timer_decorator
 async def perform_inference(inference_payload: InferencePayload):
     try:
+        threshold = 3
         conversation_history = inference_payload.conversation_payload or []
         intent_data = determine_intent(inference_payload.query, conversation_history)
         print("Intent:", intent_data)
-
         # if not intent_data:
         #     print("Retrying Intent\n")
         #     intent_data = determine_intent(inference_payload.query, conversation_history)
@@ -595,28 +577,41 @@ async def perform_inference(inference_payload: InferencePayload):
             return
         
         parameters = intent_data.get('parameters', {}) 
-        filtered_data = search_qdrant(inference_payload.query, conversation_history, parameters)
-
-        # if not filtered_data.results:
-        #     yield {"response": "I couldn't find any relevant information based on your query. Could you please rephrase or provide more details?\n"}
-        #     return
+        filtered_data = search_qdrant(inference_payload.query, conversation_history, parameters, False, 10)
+        print(len(filtered_data.results))
         
         if not filtered_data.results:
             yield {"response":"I'm sorry, but I lack infromation on media campaigns related to your query. However I can respond to your query using campaign data most related with your query."}
-            filtered_data = search_qdrant(inference_payload.query, conversation_history, parameters, use_vector_search=True)
+            filtered_data = search_qdrant(inference_payload.query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
 
+        print(filtered_data)
+        currently_present_ids = [i.id for i in filtered_data.results]
+        print("Present IDs:",currently_present_ids)
+
+        if len(filtered_data.results) < threshold:
+            # print("Only one result found. Performing additional vector search.")
+            additional_data = search_qdrant(inference_payload.query, conversation_history, parameters, use_vector_search=True, number_of_results=(threshold - len(filtered_data.results)))
+            for additional_result in additional_data.results:
+                if additional_result.id not in currently_present_ids:
+                    filtered_data.results.extend(additional_result)
+                    filtered_data.total = filtered_data.total + 1
+            print(f"Total results after additional search: {filtered_data.total}")
+        
         output_parts = OrderedDict()
         ordered_keys = ["media_plan", "analysis_of_trends", "campaign_performance", "creative_insights", "performance_summary"]
 
+        print("Required outcomes:",required_outcomes)
         for outcome in required_outcomes:
+
             if outcome in [1, 2, 3, 4]:
                 insight_function = await get_insight_function(outcome)
+                print("Insight function:",insight_function,"Filtred data:",filtered_data)
                 result = await insight_function(filtered_data, inference_payload.query, conversation_history)
-                # print("Before:",result)
+                print("Before:",result)
                 result = replace_hash_with_url(remove_markdown_prefix(result))
                 # print("After",result)
                 output_parts[ordered_keys[outcome - 1]] = result
-                # print(f"Completed outcome {outcome}: {result}")
+                print(f"Completed outcome {outcome}: {result}")
                 yield {"response": result}  # Stream response
 
         # Process performance_summary if needed
