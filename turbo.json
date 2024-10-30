@@ -1,8 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [
-    "**/.env.*local"
-  ],
+  "globalDependencies": ["**/.env.*local"],
   "globalEnv": [
     "AUTH_SECRET",
     "AWS_REGION",
@@ -19,25 +17,22 @@
     "FUSIONAUTH_API_KEY",
     "FUSIONAUTH_TENTANT_ID",
     "FUSIONAUTH_APPLICATION_ID",
+    "MODELS_PASSWORD",
+    "MODELS_USERNAME",
     "NEXTAUTH_URL",
     "NEXTAUTH_URL_INTERNAL",
     "NEXT_PUBLIC_BACKEND_URL",
     "NEXT_PUBLIC_MODELS_API_URL",
     "NEXT_PUBLIC_CONTRACTS_API_URL",
+    "NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL",
     "ELEVAITE_HOMEPAGE",
     "ORG_ID",
     "RBAC_BACKEND_URL"
   ],
   "tasks": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "dist/**",
-        ".next/**",
-        "!.next/cache/**"
-      ]
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "lint": {
       "cache": false

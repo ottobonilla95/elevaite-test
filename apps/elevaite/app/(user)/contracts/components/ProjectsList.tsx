@@ -98,8 +98,8 @@ function ProjectCard(props: ProjectCardProps): JSX.Element {
         >
             <div className="line">
                 <span>{props.project.name}</span>
-                <span title={props.project.creation_date ? `${dayjs(props.project.creation_date).format("YYYY-MM-DD")}\n${dayjs(props.project.creation_date).format("hh:mm a")}` : ""}>
-                    {props.project.creation_date ? dayjs(props.project.creation_date).format("YYYY-MM-DD") : ""}
+                <span title={props.project.create_date ? `${dayjs(props.project.create_date).format("YYYY-MM-DD")}\n${dayjs(props.project.create_date).format("hh:mm a")}` : ""}>
+                    {props.project.create_date ? dayjs(props.project.create_date).format("YYYY-MM-DD") : ""}
                 </span>
             </div>
             <div className="line">

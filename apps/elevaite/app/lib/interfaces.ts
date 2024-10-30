@@ -124,6 +124,10 @@ export enum CONTRACT_TYPES {
     INVOICE = "invoice",
 }
 
+export enum ContractVariations {
+    Default = 0,
+    Iopex = 1,
+};
 
 
 
@@ -486,68 +490,76 @@ export interface HuggingfaceDatasetObject {
 ////////////////
 
 export interface ContractProjectObject {
-    id: string|number;
+    id: string | number;
     name: string;
     description: string;
-    creation_date: string;
-    reports: ContractObject[];
-    settings: ContractSettings;
+    create_date: string;
+    update_date: string;
+    reports?: ContractObject[];
+    settings?: ContractSettings;
 }
 
 export interface ContractSettings {
-    strings: {
-        li_keys_to_exclude: string[];
-        li_amount: string[];
-        li_qty: string[];
-        li_desc: string[];
-        li_ibx: string[];
-        li_product_identifier: string[];
-        li_nbd: string[];
-        li_unit_price: string[];
-        li_action: string[];
-        po_number: string[];
-        customer_po_number: string[];
-        total_amount: string[];
-        non_rec_charges: string[];
-        rec_charges: string[];
-        date_issued: string[];
-        contr_number: string[];
-        inv_number: string[];
-        customer_name: string[];
-    },
-    labels: {
-        // [K in keyof Omit<ContractObjectVerificationLineItem, "id" | "verification">]: string;
-        description: string;
-        product_identifier: string;
-        quantity: string;
-        total_cost: string;
-        unit_cost: string;
-        need_by_date: string;
-        ibx: string;
-        site_name: string;
-        site_address: string;
-    },
+    strings: ContractSettingsStrings;
+    labels: ContractSettingsLabels;
+}
+
+export interface ContractSettingsStrings {
+    li_keys_to_exclude: string[];
+    li_amount: string[];
+    li_qty: string[];
+    li_desc: string[];
+    li_ibx: string[];
+    li_product_identifier: string[];
+    li_nbd: string[];
+    li_unit_price: string[];
+    li_action: string[];
+    po_number: string[];
+    customer_po_number: string[];
+    total_amount: string[];
+    non_rec_charges: string[];
+    rec_charges: string[];
+    date_issued: string[];
+    contr_number: string[];
+    inv_number: string[];
+    customer_name: string[];
+    service_start_date: string[];
+    service_end_date: string[];
+    service_combined_date: string[];
+}
+
+export interface ContractSettingsLabels {
+    // [K in keyof Omit<ContractObjectVerificationLineItem, "id" | "verification">]: string;
+    description: string;
+    product_identifier: string;
+    quantity: string;
+    total_cost: string;
+    unit_cost: string;
+    need_by_date: string;
+    ibx: string;
+    site_name: string;
+    site_address: string;
 }
 
 export interface ContractObject {
-    id: string|number;
-    project_id: string|number;
+    id: string | number;
+    project_id: string | number;
     status: CONTRACT_STATUS;
     content_type: CONTRACT_TYPES;
-    label?: string|null;
+    label?: string | null;
     filename: string;
     filesize: number; // Bytes
-    file_ref: File|string|null; // Url
-    response: ContractExtractionDictionary|null;
+    file_ref: File | string | null; // Url
+    response: ContractExtractionDictionary | null;
     response_comments?: string[];
-    po_number?: string|null;
-    supplier?: string|null;
-    matched_supplier?: string|null;
-    normalized_supplier?: string|null;
-    total_amount?: string|null;
-    verification?: ContractObjectVerification;
-    line_items?: ContractObjectVerificationLineItem[];
-    highlight?: ContractObjectEmphasis;
+    po_number?: string | null;
+    supplier?: string | null;
+    matched_supplier?: string | null;
+    normalized_supplier?: string | null;
+    total_amount?: string | null;
+    verification?: ContractObjectVerification | null;
+    line_items?: ContractObjectVerificationLineItem[] | null;
+    highlight?: ContractObjectEmphasis | null;
     tags?: string[];
     creation_date: string;
     checksum: string; // MD5
@@ -555,15 +567,15 @@ export interface ContractObject {
 }
 
 export interface ContractObjectEmphasis {
-    invoice_number: string|null;
-    po_number: string|null;
-    customer_po_number: string|null;
-    customer_name: string|null;
-    contract_number: string|null;
-    supplier: string|null;
-    rec_charges: string|null;
-    non_rec_charges: string|null;
-    total_amount: string|null;
+    invoice_number: string | null;
+    po_number: string | null;
+    customer_po_number: string | null;
+    customer_name: string | null;
+    contract_number: string | null;
+    supplier: string | null;
+    rec_charges: string | null;
+    non_rec_charges: string | null;
+    total_amount: string | null;
 }
 
 export interface ContractObjectVerificationLineItem {
@@ -586,6 +598,9 @@ export interface ContractObjectVerificationLineItemVerification {
     vsow: boolean;
     po: boolean;
     invoice: boolean;
+    csow: boolean;
+    line_item_match_id?: number;
+    line_item_match_report_id?: number;
 }
 
 export interface ContractObjectVerification {
