@@ -35,28 +35,38 @@ async def download_image(url: str):
     except Exception as e:
         print(f"Error downloading image: {e}")
         return None
-
 async def parse_markdown_table(lines):
     table_data = []
+    
     for line in lines:
         if line.strip() and not all(char in '-|' for char in line.strip()):
             row = [cell.strip() for cell in line.split('|') if cell.strip()]
             processed_row = []
             for cell in row:
                 cleaned_cell = cell.replace('**', '').strip()
-                img_match = re.search(r'!\[(.*?)\]\((.*?)\s+"(.*?)"\)', cleaned_cell)
+                
+                # Regex to capture image URL correctly
+                img_match = re.search(r'!\[(.*?)\]\((http[^\s)]+)(?:\s+"[^"]*")?\)', cleaned_cell)
                 if img_match:
-                    _, img_url, _ = img_match.groups()
-                    img_data = await download_image(img_url)
-                    if img_data:
-                        processed_row.append(img_data)  # Store image data as BytesIO
-                    else:
-                        processed_row.append(Paragraph("Image not available", getSampleStyleSheet()['Normal']))
+                    _, img_url = img_match.groups()
+                    img_url = img_url.strip()  # Clean up the URL
+                    print(f"Processing image URL: {img_url}")  # Debug output
+                    try:
+                        img_data = await download_image(img_url)
+                        if img_data:
+                            processed_row.append(img_data)
+                        else:
+                            processed_row.append(Paragraph("Image not available", getSampleStyleSheet()['Normal']))
+                    except Exception as e:
+                        print(f"Error downloading image: {e}")  # Log the error
+                        processed_row.append(Paragraph("Error loading image", getSampleStyleSheet()['Normal']))
                 else:
                     processed_row.append(Paragraph(cleaned_cell, getSampleStyleSheet()['Normal']))
             if processed_row:
                 table_data.append(processed_row)
     return table_data
+
+
 @app.post("/generate-pdf")
 async def generate_pdf(request: MarkdownRequest):
     try:
@@ -84,6 +94,7 @@ async def generate_pdf(request: MarkdownRequest):
             else:
                 if in_table:
                     if table_lines:
+                        story.append(Spacer(1, 12))
                         table_data = await parse_markdown_table(table_lines)
                         num_columns = len(table_data[0])
                         col_widths = [table_width / num_columns] * num_columns
@@ -154,7 +165,7 @@ async def generate_pdf(request: MarkdownRequest):
                         img = Image(cell, width=100, height=75)  # Use BytesIO directly
                         wrapped_row.append(img)
                     else:
-                        wrapped_row.append(Paragraph(str(cell), normal_style))
+                        wrapped_row.append(cell)
                 wrapped_table_data.append(wrapped_row)
 
             table = Table(wrapped_table_data, colWidths=col_widths)

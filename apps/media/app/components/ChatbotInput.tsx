@@ -8,6 +8,7 @@ import "./MarkdownMessage.scss";
 export function ChatbotInput(): JSX.Element {
     const chatContext = useContext(ChatContext);
     const [text, setText] = useState("");
+    const [isExporting, setIsExporting] = useState(false); 
 
     function handleTextChange(value: string): void {
         if (chatContext.isChatLoading) return;
@@ -35,7 +36,7 @@ export function ChatbotInput(): JSX.Element {
         if (!selectedSession || selectedSession.messages.length === 0) return;
     
         const markdownMessages = selectedSession.messages.map(message => message.text).join("\n\n");
-    
+        setIsExporting(true);
         try {
             const response = await fetch('http://localhost:8000/generate-pdf', {
                 method: 'POST',
@@ -61,6 +62,8 @@ export function ChatbotInput(): JSX.Element {
             document.body.removeChild(link);
         } catch (error) {
             console.error('Error exporting chat session:', error);
+        } finally {
+            setIsExporting(false);
         }
     }
     return (
@@ -91,8 +94,9 @@ export function ChatbotInput(): JSX.Element {
                 onClick={async () => {
                     await handleExport();
                 }}
+                disabled={isExporting || chatContext.isChatLoading} // Disable if exporting or loading
             >
-                <ChatbotIcons.SVGDownload/>
+                {isExporting ? <ChatbotIcons.SVGSpinnerExport /> : <ChatbotIcons.SVGDownloadExport/>}
             </CommonButton>
         </div>
     );

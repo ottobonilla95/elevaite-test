@@ -56,26 +56,27 @@ In vel ultrices massa, et feugiat ex. Proin vel odio lorem. Nunc dignissim quam 
 export function extractUniqueMediaData(markdown: string): { urls: string[]; names: string[] } {
     const urlsSet = new Set<string>();
     const namesSet = new Set<string>();
-
+    
     // Regex to match image markdown format and capture alt text and title
-    const imageRegex = /!\[(.*?)\]\((http[^)]+)\.thumbnail\.jpg\s*"(.*?)"\)/g;
+    const imageRegex = /!\[(.*?)\]\(\s*(http[^\s)]+)\.thumbnail\.jpg\s*"(.*?)"\s*\)/g;
 
     let match: RegExpExecArray | null;
 
     while ((match = imageRegex.exec(markdown)) !== null) {
         const altText: string = match[1].trim(); // Alt text for uniqueness
-        const baseUrl: string = match[2].trim(); // Base URL without extension
+        const baseUrl: string = match[2].trim(); // Base URL without .thumbnail.jpg
         const title: string = match[3].trim(); // Title for namesSet
         const filename: string = altText.split('/').pop() || ''; // Get the filename from alt text
         const extension = filename.split('.').pop(); // Extract the extension
         
-        const url: string = extension ? `${baseUrl}.${extension}` : `${baseUrl}.jpg`; // Full URL with correct extension
-        
-        // Add unique title based on alt text
-        if (!namesSet.has(title)) {
-            namesSet.add(title); // Add unique title
+        const url: string = extension ? `${baseUrl}.${extension}` : `${baseUrl}.jpg`; // Full URL
+        const uniqueKey = `${title}|${altText}`; // Use a separator to ensure uniqueness
+
+        if (!namesSet.has(uniqueKey)) {
+            namesSet.add(uniqueKey); // Add unique key
             urlsSet.add(url); // Add unique URL only if the title is added
         }
+        console.log("Title:", title, "URL:", url);
     }
 
     return {

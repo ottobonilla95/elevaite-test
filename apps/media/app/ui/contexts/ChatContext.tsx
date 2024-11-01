@@ -438,7 +438,6 @@ export function ChatContextProvider(
   const decoder = new TextDecoder("utf-8");
   let buffer = '';
   let fullResponse = '';
-  let mediaPlanContent = '';
 
   while (true) {
     const { done, value } = await reader.read();
@@ -459,7 +458,6 @@ export function ChatContextProvider(
                 // Update state with the new combined response
                 // setLatestResponse(fullResponse);
                 // Update session with new message
-                const markdownContent = `<div className="message"><MarkdownMessage text="${responseText}" /></div>`;
                 updateSessionListWithNewMessage(
                     formatMessageFromServerResponse({ text: fullResponse, refs: [] }),
                     newSession
