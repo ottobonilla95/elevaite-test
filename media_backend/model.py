@@ -229,3 +229,6 @@ class MediaPlanCreative(BaseModel):
 class MediaPlanSearchResult(BaseModel):
     results: List[MediaPlanCreative]
     total: int
+
+class MarkdownRequest(BaseModel):
+    markdown: str

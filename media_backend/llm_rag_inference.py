@@ -7,26 +7,28 @@ import os
 import re
 from dotenv import load_dotenv
 import json
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List,Generator, Type, Dict, Any, Optional, AsyncGenerator
+from typing import List, Type, Dict, Any, Optional
 from pydantic import BaseModel
 import time
 import asyncio
 from collections import OrderedDict
 
+import logging
+# logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def timer_decorator(func):
     async def async_wrapper(*args, **kwargs):
         start = time.perf_counter()
         result = await func(*args, **kwargs)
         end = time.perf_counter()
-        print(f"{func.__name__} took {end - start:.6f} seconds")
+      #  logger.debug(f"{func.__name__} took {end - start:.6f} seconds")
         return result
     def sync_wrapper(*args, **kwargs):
         start = time.perf_counter()
         result = func(*args, **kwargs)
         end = time.perf_counter()
-        print(f"{func.__name__} took {end - start:.6f} seconds")
+      #  logger.debug(f"{func.__name__} took {end - start:.6f} seconds")
         return result
     if asyncio.iscoroutinefunction(func):
         return async_wrapper
@@ -47,7 +49,7 @@ try:
         port=int(os.getenv("QDRANT_PORT", 6333))
     )
 except Exception as e:
-    print(f"Error initializing Qdrant client: {e}")
+    logger.error(f"Error initializing Qdrant client: {e}")
     Qclient = None
 
 # Initialize OpenAI client
@@ -56,7 +58,7 @@ try:
         api_key=os.environ.get("OPENAI_API_KEY"),
     )
 except Exception as e:
-    print(f"Error initializing OpenAI client: {e}")
+    logger.error(f"Error initializing OpenAI client: {e}")
     client = None
 @timer_decorator 
 def get_embedding(text):
@@ -67,164 +69,117 @@ def get_embedding(text):
         )
         return response.data[0].embedding
     except Exception as e:
-        print(f"Error getting embedding: {e}")
+        logger.error(f"Error getting embedding: {e}")
         return None
     
-@timer_decorator     
-def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[str, Any]) -> SearchResult:
+def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[str, Any], use_vector_search: bool = False, number_of_results: int = 4) -> SearchResult:
     formatted_history = format_conversation_payload(conversation_payload)
     enriched_query_text = f"{formatted_history}\nUser Query: {query_text}"
-    
     query_vector = get_embedding(enriched_query_text)
+
     if not query_vector or len(query_vector) == 0:
-        print("No valid query vector obtained from the text.")
+        logger.error("No valid query vector obtained from the text.")
         return SearchResult(results=[], total=0)
 
-    filter_conditions = []
-    numeric_fields = ["file_size", "booked_measure_impressions", "delivered_measure_impressions", "clicks", "conversion", "duration"]
-    text_fields = ["file_type", "industry", "targeting", "duration_category", "brand", "season_holiday"]
+    ad_creatives = []
 
-    def normalize_text(value: str) -> str:
-        return value.lower()
-
-    # Add filters for season and holiday
-    season = parameters.get('season')
-    holiday = parameters.get('holiday')
-    if season or holiday:
-        season_holiday_values = [item for item in [season, holiday] if item]
-        filter_conditions.append(
-            FieldCondition(
-                key="season_holiday",
-                match=MatchAny(any=season_holiday_values)
-            )
-        )
-        print(f"Added season/holiday filter: {season_holiday_values}")
-
-    # Add other filters based on parameters
-    for key, value in parameters.items():
-        if key in numeric_fields and value is not None:
-            filter_conditions.append(
-                FieldCondition(key=key, range=Range(gte=float(value)))
-            )
-            print(f"Added numeric filter for {key}: {value}")
-        elif key in text_fields and value:
-            normalized_value = normalize_text(value)
-            filter_conditions.append(
-                FieldCondition(key=key, match=MatchValue(value=normalized_value))
-            )
-            print(f"Added text filter for {key}: {normalized_value}")
-
-    print("Filter Conditions:", filter_conditions)
-
-    search_filter = Filter(must=filter_conditions) if filter_conditions else None
-
-    print("Search Filter Conditions:", search_filter)
-
-    # print("Search Filter Conditions:", search_filter)
-    try:
-        search_result = Qclient.search(
-            collection_name=os.getenv("COLLECTION_NAME", "Media_Performance"),
-            query_vector=query_vector,
-            query_filter=search_filter,
-            limit=10, 
-        )
-    except Exception as e:
-        print(f"Error searching Qdrant: {e}")
-        return SearchResult(results=[], total=0)
-
-    if not search_result or len(search_result) < 4:
-        print("No results found with filters. Falling back to vector search.")
+    # If vector search is to be performed
+    if use_vector_search:
+        brand_count = {}  # Dictionary to count creatives per brand
         try:
             search_result = Qclient.search(
                 collection_name=os.getenv("COLLECTION_NAME", "Media_Performance"),
                 query_vector=query_vector,
-                limit=20,
+                limit=number_of_results,
             )
-            print("Fallback search completed.")
         except Exception as e:
-            print(f"Error in fallback search: {e}")
+            logger.error(f"Error in vector search: {e}")
             return SearchResult(results=[], total=0)
 
-    print(f"Total results obtained: {len(search_result)}")
-
-    # Process results and create AdCreative instances
-    ad_creatives = []
-    brands_seen = set()
-    for hit in search_result:
-        print("hit.scores:", hit.score)
-        if hit.score <= 0.79:
-            break  # Stop processing if score below threshold
-        payload = hit.payload
-        try:
-            ad_creative = AdCreative.parse_obj(payload)
-            brand = ad_creative.brand.lower()
-            if brand not in brands_seen:
-                ad_creatives.append(ad_creative)
-                brands_seen.add(brand)
-                print(f"Processed result with score {hit.score}: {payload.get('campaign_folder')} (Brand: {brand})")
-                if len(ad_creatives) == 5:
-                    break
-        except ValueError as e:
-            print(f"Error processing media creative: {e}")
-
-    print(f"Number of results after processing: {len(ad_creatives)}")
-    
-    # Check for brand diversity
-    if len(brands_seen) < 3:
-        print("Not enough brand diversity. Performing a vector search for additional results.")
-        try:
-            additional_results = Qclient.search(
-                collection_name=os.getenv("COLLECTION_NAME", "Media_Performance"),
-                query_vector=query_vector,
-                limit=20,  # Adjust limit as needed
-            )
-            for hit in additional_results:
-                if hit.score <= 0.79:
-                    break  # Stop processing if score below threshold
-                payload = hit.payload
+        # Process vector search results
+        for hit in search_result:
+            if hit.score > 0.78: # Magic number
                 try:
-                    ad_creative = AdCreative.parse_obj(payload)
-                    brand = ad_creative.brand.lower()
-                    if brand not in brands_seen:
+                    print("Vector search score:", hit.score)
+                    ad_creative = AdCreative.parse_obj(hit.payload)
+                    brand_name = ad_creative.brand
+                    if brand_name not in brand_count:
+                        brand_count[brand_name] = 0
+                    if brand_count[brand_name] < 2:  # Limit to 2 per brand
                         ad_creatives.append(ad_creative)
-                        brands_seen.add(brand)
-                        print(f"Added additional result with score {hit.score}: {payload.get('campaign_folder')} (Brand: {brand})")
-                        if len(ad_creatives) == 5:
-                            break
-                except ValueError as e:
-                    print(f"Error processing media creative: {e}")
-        except Exception as e:
-            print(f"Error in additional vector search: {e}")
+                        brand_count[brand_name] += 1
+                    else:
+                        logger.debug(f"Skipped AdCreative for brand: {brand_name}")
+                except Exception as e:
+                    logger.error(f"Error processing vector search result: {e}, Data: {hit}")
 
-    # Check final brand diversity
-    if len(brands_seen) == 1 and len(ad_creatives) < 4:
-        print("Only one brand present. Searching for more creatives from the same brand.")
-        brand = ad_creatives[0].brand.lower()  # Get the brand of the initial creative
-        try:
-            more_creatives = Qclient.search(
-                collection_name=os.getenv("COLLECTION_NAME", "Media_Performance"),
-                query_vector=query_vector,
-                query_filter=Filter(must=[FieldCondition(key="brand", match=MatchValue(value=brand))]),
-                limit=4  # Limit to fetch more creatives from the same brand
+    # Build filters for the search if not using vector search
+    if not use_vector_search:
+        filter_conditions = []
+        numeric_fields = ["file_size", "booked_measure_impressions", "delivered_measure_impressions", "clicks", "conversion", "duration"]
+        text_fields = ["file_type", "industry", "targeting", "duration_category", "brand", "season_holiday"]
+
+        def normalize_text(value: str) -> str:
+            return value.lower()
+
+        # Add filters for season and holiday
+        season = parameters.get('season')
+        holiday = parameters.get('holiday')
+        if season or holiday:
+            season_holiday_values = [item for item in [season, holiday] if item]
+            filter_conditions.append(
+                FieldCondition(
+                    key="season_holiday",
+                    match=MatchAny(any=season_holiday_values)
+                )
             )
-            for hit in more_creatives:
-                if hit.score <= 0.79:
-                    break  # Stop processing if score below threshold
-                payload = hit.payload
-                try:
-                    ad_creative = AdCreative.parse_obj(payload)
-                    if ad_creative.brand.lower() == brand and ad_creative not in ad_creatives:
-                        ad_creatives.append(ad_creative)
-                        print(f"Added more result from same brand: {payload.get('campaign_folder')} (Brand: {brand})")
-                        if len(ad_creatives) >= 5:
-                            break
-                except ValueError as e:
-                    print(f"Error processing media creative: {e}")
+
+        # Add other filters based on parameters
+        for key, value in parameters.items():
+            if key in numeric_fields and value is not None:
+                filter_conditions.append(
+                    FieldCondition(key=key, range=Range(gte=float(value)))
+                )
+            elif key in text_fields and value:
+                normalized_value = normalize_text(value)
+                filter_conditions.append(
+                    FieldCondition(key=key, match=MatchValue(value=normalized_value))
+                )
+
+        search_filter = Filter(should=filter_conditions) if filter_conditions else None
+
+        try:
+            search_result = Qclient.search(
+                collection_name=os.getenv("COLLECTION_NAME", "Media_Performance"),
+                query_vector = query_vector,
+                query_filter=search_filter,
+                limit=number_of_results,
+            )
         except Exception as e:
-            print(f"Error in brand-specific search: {e}")
+            logger.error(f"Error searching Qdrant: {e}")
+            return SearchResult(results=[], total=0)
 
-    print(f"Final number of results: {len(ad_creatives)}")
+        # Process filtered search results with brand limit
+        brand_count = {}
+        for index, hit in enumerate(search_result):
+            if hit.score>0.78: # Magic Number
+                try:
+                    print("Filtered score:",hit.score)
+                    payload = hit.payload
+                    ad_creative = AdCreative.parse_obj(payload)
+                    brand_name = ad_creative.brand
+                    if brand_name not in brand_count:
+                        brand_count[brand_name] = 0
+                    if brand_count[brand_name] < 2:  # Limit to 2 per brand
+                        ad_creatives.append(ad_creative)
+                        brand_count[brand_name] += 1
+                    else:
+                        logger.debug(f"Skipped AdCreative for brand: {brand_name}")
+                except ValueError as e:
+                    logger.error(f"Error processing media creative {index + 1}: {e}")
+                    logger.error(f"Problematic payload: {payload}")
 
+    logger.info(f"Total AdCreatives processed: {len(ad_creatives)}")
     return SearchResult(results=ad_creatives, total=len(ad_creatives))
 
 @timer_decorator   
@@ -241,51 +196,25 @@ def determine_intent(user_query: str, conversation_history: List[ConversationPay
         response = client.beta.chat.completions.parse(
             model="gpt-4o-mini",
             messages=messages,
-            # response_format=IntentOutput,
+            response_format=IntentOutput,
             max_tokens=400
         )
-        
         response_content = response.choices[0].message.content
-        # print(f"Response content: {response_content}")  # Log response content for debugging
-        
         try:
             parsed_response = json.loads(response_content)
             validated_response = IntentOutput(**parsed_response)
             return validated_response.model_dump()  # Ensure this method exists
         except json.JSONDecodeError as json_error:
-            print(f"JSON parsing error: {json_error}")
+            logger.error(f"JSON parsing error: {json_error}")
             return {"error": "Failed to parse JSON response"}
         except ValueError as validation_error:
-            print(f"Validation error: {validation_error}")
+            logger.error(f"Validation error: {validation_error}")
             return {"error": "Response did not match expected format"}
         
     except Exception as e:
-        print(f"Error determining intent: {e}")
-        print("Query that led to error:", user_query)
+        logger.error(f"Error determining intent: {e}")
+        logger.error(f"Query that led to error:{user_query}")
         return {}
-@timer_decorator   
-def format_search_results(search_result: SearchResult) -> str:
-    formatted_results = []
-    print("Formatting the search results")
-    for ad in search_result.results:
-        formatted_ad = f"ID: {ad.id}\n"
-        formatted_ad += f"Brand: {ad.brand}\n"
-        formatted_ad += f"Product/Service: {ad.product_service}\n"
-        formatted_ad += f"Objective: {ad.ad_objective}\n"
-        formatted_ad += f"Tone/Mood: {ad.tone_mood}\n"
-        formatted_ad += f"File Type: {ad.file_type}\n"
-        formatted_ad += f"Industry: {ad.industry}\n"
-        formatted_ad += f"Duration Category: {ad.duration_category}\n"
-        formatted_ad += f"Impressions: {ad.delivered_measure_impressions}\n"
-        formatted_ad += f"Clicks: {ad.clicks}\n"
-        formatted_ad += f"Conversions: {ad.conversion}\n"
-        formatted_ad += f"Md5_hash:{ad.md5_hash}"  # Include the image
-        formatted_ad += f"File Name:{ad.file_name}"
-        formatted_ad += "---"
-        formatted_results.append(formatted_ad)
-    print("Sucesss fully completed format search")
-    return "\n".join(formatted_results)
-
 @timer_decorator
 async def generate_response(
     query: str,
@@ -322,24 +251,17 @@ async def generate_response(
         }
         if response_class:
             request_params["response_format"] = response_class
-
-        # total_tokens = len(str(request_params))
-        # print("Total tokens before request:", total_tokens)
-
         response = await asyncio.to_thread(client.beta.chat.completions.parse, **request_params)
-
         response_content = response.choices[0].message.content.strip()
-        total_tokens = response.usage.total_tokens
-        # print("total tokens used:", total_tokens)
         if response_class:
             try:
                 response_class.model_validate_json(response_content)
             except Exception as validation_error:
-                print(f"Warning: Response validation failed: {validation_error}")
-                print("Returning raw response string.")
+                logger.error(f"Warning: Response validation failed: {validation_error}")
+              ##  logger.debug("Returning raw response string.")
         return response_content
     except Exception as e:
-        print(f"Error in generating response: {e} at the response class: {system_prompt}")
+        logger.error(f"Error in generating response: {e} at the response class: {system_prompt}")
         return "I apologize, but I couldn't generate a response at this time."
 
 @timer_decorator   
@@ -357,7 +279,9 @@ async def formatter(final_output: str = None, prompt_file_name: str = "formatter
 @timer_decorator 
 def extract_specific_fields(search_result: SearchResult, fields: List[str], full_data_fields: List[str] = None) -> str:
     extracted_data = []
+  ##  logger.debug(f"Search Results:\n\n{search_result}")
     for ad_creative in search_result.results:
+        # print(ad_creative)
         item = {}
         # Extract specified fields from AdCreative
         for field in fields:
@@ -369,6 +293,7 @@ def extract_specific_fields(search_result: SearchResult, fields: List[str], full
                 if field in ad_creative.full_data:
                     item[f"full_data_{field}"] = ad_creative.full_data[field]
         extracted_data.append(item)
+  ##  logger.debug("Extracted Data")
     return str(extracted_data)
 
 @timer_decorator    
@@ -399,8 +324,8 @@ async def media_plan(filtered_data: SearchResult, query: str, conversation_histo
     essential_data = extract_specific_fields(filtered_data,fields_to_extract,full_data_fields_to_extract)
 
     system_prompt = load_prompt("media_plan")
-    # print("media plan Input len:",len(query)+len(system_prompt)+len(essential_data)+len(conversation_history))
-    # print("Query, system, filtered, convo history:",len(query),len(system_prompt),len(essential_data),len(conversation_history))
+    # logger.debug("media plan Input len:",len(query)+len(system_prompt)+len(essential_data)+len(conversation_history))
+    # logger.debug("Query, system, filtered, convo history:",len(query),len(system_prompt),len(essential_data),len(conversation_history))
     raw_response = await generate_response(
         query=query,
         system_prompt=system_prompt,
@@ -409,7 +334,7 @@ async def media_plan(filtered_data: SearchResult, query: str, conversation_histo
         response_class=MediaPlanOutput,
         max_tokens=2500,
     )
-    # print("Media_plan outputlen:",len(raw_response))
+  ##  logger.debug(f"Media_plan Raw text:{raw_response}")
     return await formatter(raw_response,"formatter_media_plan",query)
 
 @timer_decorator
@@ -435,7 +360,8 @@ async def campaign_performance(filtered_data: SearchResult, query: str, conversa
 
     system_prompt = load_prompt("formatter_campaign_performance")
 
-    print("Campaign performance inputs: ",str(query)+str(system_prompt)+str(essential_data))
+    # logger.debug("Campaign performance inputs: ",str(query)+str(system_prompt)+str(essential_data))
+    print("Extracted data campaign performance:",essential_data)
     raw_response = await generate_response(
         query=query,
         system_prompt=system_prompt,
@@ -487,7 +413,7 @@ async def analysis_of_trends(filtered_data: SearchResult, query: str, conversati
         response_class=AnalysisOfTrends
     )
     
-    # print("Analysis of trends len:", len(raw_response))
+    # logger.debug("Analysis of trends raw text:", raw_response)
 
     formatted_response = await formatter(raw_response, "formatter_analysis_of_trends")
     
@@ -519,14 +445,13 @@ async def creative_insights(filtered_data: SearchResult, query: str, conversatio
         "national events",
         "sport events",
     ]
-    
     # Assuming extract_specific_fields is a quick operation, keep it synchronous
     essential_data = extract_specific_fields(filtered_data, fields_to_extract, full_data_fields_to_extract)
 
     # Assuming load_prompt is a quick operation, keep it synchronous
     system_prompt = load_prompt("creative_insights")
     
-    # print("creative insight Input len:", len(query) + len(system_prompt) + len(essential_data) + len(conversation_history))
+    # print(f"creative insight Input:{essential_data}; prompt: {system_prompt};Conversation:{conversation_history},response_class:{CreativeInsightsReport},query:{query}")
     
     # Use the async version of generate_response
     raw_response = await generate_response(
@@ -536,7 +461,8 @@ async def creative_insights(filtered_data: SearchResult, query: str, conversatio
         conversation_history=conversation_history,
         response_class=CreativeInsightsReport
     )
-    # print("Creative Insights len:", len(raw_response))
+  #  logger.debug(f"Creative Insights Raw: {raw_response}")
+    # print(f"raw_response: {raw_response}")
     formatted_response = await formatter(raw_response, "formatter_creative_insights")
     return formatted_response
 
@@ -544,9 +470,7 @@ async def creative_insights(filtered_data: SearchResult, query: str, conversatio
 async def performance_summary(query: str, output_parts: Dict[str, str]) -> str:
     # Assuming load_prompt is a quick operation, keep it synchronous
     system_prompt = load_prompt("performance_summary")
-    
     # print("performance summary Input len:", len(query) + len(system_prompt) + len(str(output_parts)))
-    
     # Use the async version of generate_response
     raw_response = await generate_response(
         query=query,
@@ -563,21 +487,12 @@ async def performance_summary(query: str, output_parts: Dict[str, str]) -> str:
 @timer_decorator
 def replace_hash_with_url(S):
     md5_pattern_thumbnail = r'\b([a-fA-F0-9]{32})(?:\.thumbnail\.jpg)?\b'
-    # openMediaModal_pattern = r"openMediaModal\('([a-fA-F0-9]{32})'"
-
     def replace_thumbnail(match):
         hash_value = match.group(1)
         return get_url_for_hash(hash_value, "thumbnail.jpg")
-
-    # def replace_openMediaModal(match):
-    #     hash_value = match.group(1)
-    #     file_extension = get_extension_for_hash(hash_value)
-    #     return f"openMediaModal('{get_url_for_hash(hash_value, file_extension)}'"
-
     # Replace thumbnail URLs
     S = re.sub(md5_pattern_thumbnail, replace_thumbnail, S)
-    # # Replace openMediaModal hashes
-    # S = re.sub(openMediaModal_pattern, replace_openMediaModal, S)
+
     return S
 @timer_decorator 
 def get_url_for_hash(hash, extension):
@@ -619,10 +534,10 @@ def format_conversation_payload(conversation_payload: List[ConversationPayload])
 @timer_decorator
 async def perform_inference(inference_payload: InferencePayload):
     try:
+        threshold = 3
         conversation_history = inference_payload.conversation_payload or []
         intent_data = determine_intent(inference_payload.query, conversation_history)
-        print("Intent:", intent_data)
-
+      #  logger.debug(f"Intent:{intent_data}")
         # if not intent_data:
         #     print("Retrying Intent\n")
         #     intent_data = determine_intent(inference_payload.query, conversation_history)
@@ -638,27 +553,50 @@ async def perform_inference(inference_payload: InferencePayload):
             return
         
         parameters = intent_data.get('parameters', {}) 
-        filtered_data = search_qdrant(inference_payload.query, conversation_history, parameters)
-
-        # if not filtered_data.results:
-        #     yield {"response": "I couldn't find any relevant information based on your query. Could you please rephrase or provide more details?\n"}
-        #     return
+        filtered_data = search_qdrant(inference_payload.query, conversation_history, parameters, False, 10)
+        print(f"Original data:{filtered_data}")
+      #  logger.debug(len(filtered_data.results))
         
         if not filtered_data.results:
-            yield {"response":"I'm sorry, but I lack infromation on media campaigns related to your query. However I can respond to your query using campaign data most related with your query."}
+            yield {"response":"I'm sorry, but I lack infromation on media campaigns directly related to your query. Searching for data most related with your query...\n"}
+            filtered_data = search_qdrant(inference_payload.query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
+            if len(filtered_data.results)<1:
+                yield {"response":"Media Campaign Information related to your query were not found. Please try a different query.\n"}
+                return
+            print(f"Vector searche data: {filtered_data}")
 
+        elif len(filtered_data.results) < threshold:
+            yield {"response":"Found and filtered some relevant data. Searching for additional data most relevant to your query...\n"}
+            # print("Only one result found. Performing additional vector search.")
+            currently_present_ids = [i.id for i in filtered_data.results]
+            additional_data = search_qdrant(inference_payload.query, conversation_history, parameters, use_vector_search=True, number_of_results=(threshold - len(filtered_data.results)))
+            print("Additional_Data:",additional_data)
+            if len(additional_data.results)>0:
+                yield {"response":"Incorporating additional data to your response.\n"}
+                for additional_result in additional_data.results:
+                    if additional_result.id not in currently_present_ids:
+                        filtered_data.results.append(additional_result)
+                        filtered_data.total += 1
+            else:
+                yield {"response","Relevant additional data not found."}
+
+          #  logger.debug(f"Total results after additional search: {filtered_data.total}")
+        print(f"Combined Data:{filtered_data}")
         output_parts = OrderedDict()
         ordered_keys = ["media_plan", "analysis_of_trends", "campaign_performance", "creative_insights", "performance_summary"]
 
+      #  logger.debug(f"Required outcomes:{required_outcomes}")
         for outcome in required_outcomes:
+
             if outcome in [1, 2, 3, 4]:
                 insight_function = await get_insight_function(outcome)
+              #  logger.debug(f"Insight function:{insight_function}  Filtred data:{filtered_data}")
                 result = await insight_function(filtered_data, inference_payload.query, conversation_history)
-                # print("Before:",result)
+              #  logger.debug(f"Before:{result}")
                 result = replace_hash_with_url(remove_markdown_prefix(result))
                 # print("After",result)
                 output_parts[ordered_keys[outcome - 1]] = result
-                # print(f"Completed outcome {outcome}: {result}")
+              #  logger.debug(f"Completed outcome {outcome}: {result}")
                 yield {"response": result}  # Stream response
 
         # Process performance_summary if needed
@@ -669,7 +607,7 @@ async def perform_inference(inference_payload: InferencePayload):
             yield {"response": f"{performance_summary_result}\n\n"}
 
     except Exception as e:
-        print("An error occurred:", e)
+        logger.error(f"An error occurred:{e}")
         yield {"response": f"An error occurred: {e}\n"}
 
 @timer_decorator 
