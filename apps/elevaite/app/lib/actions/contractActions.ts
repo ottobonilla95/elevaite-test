@@ -1,13 +1,13 @@
 "use server";
 import { revalidateTag } from "next/cache";
 import {
-  type ContractObject,
   type CONTRACT_TYPES,
-  type ContractProjectObject,
-  ContractSettings,
+  type ContractObject,
   ContractObjectEmphasis,
   ContractObjectVerification,
   ContractObjectVerificationLineItem,
+  type ContractProjectObject,
+  ContractSettings,
 } from "../interfaces";
 import {
   cacheTags,
@@ -15,6 +15,9 @@ import {
 } from "./actionConstants";
 import {
   isCreateProjectResponse,
+  isDeleteContractResponse,
+  isDeleteProjectResponse,
+  isEditProjectResponse,
   isGetContractObjectEmphasisResponse,
   isGetContractObjectResponse,
   isGetContractObjectVerificationLineItemsResponse,
@@ -280,6 +283,73 @@ export async function CreateProject(
   throw new Error("Invalid data type");
 }
 
+export async function EditProject(
+  projectId: string,
+  name: string,
+  isAlt: boolean,
+  description?: string
+): Promise<ContractProjectObject> {
+  const baseUrl = getBaseUrl(isAlt);
+  if (!baseUrl) throw new Error("Missing base url");
+  const dto = {
+    name,
+    description,
+  };
+
+  const url = new URL(`${baseUrl}/projects/${projectId}`);
+
+  const headers = new Headers();
+  headers.append("Content-Type", "application/json");
+  const response = await fetch(url, {
+    method: "PUT",
+    body: JSON.stringify(dto),
+    headers,
+  });
+
+  revalidateTag(cacheTags.contractProjects);
+  if (!response.ok) {
+    // if (response.status === 422) {
+    const errorData: unknown = await response.json();
+    // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+    console.dir(errorData, { depth: null });
+    // }
+    throw new Error("Failed to edit contract project");
+  }
+  const data: unknown = await response.json();
+  if (isEditProjectResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+export async function DeleteProject(
+  projectId: string,
+  isAlt: boolean,
+): Promise<ContractProjectObject> {
+  const baseUrl = getBaseUrl(isAlt);
+  if (!baseUrl) throw new Error("Missing base url");
+
+  const url = new URL(`${baseUrl}/projects/${projectId}`);
+
+  const headers = new Headers();
+  headers.append("Content-Type", "application/json");
+  const response = await fetch(url, {
+    method: "DELETE",
+    headers,
+  });
+
+  revalidateTag(cacheTags.contractProjects);
+  if (!response.ok) {
+    // if (response.status === 422) {
+    const errorData: unknown = await response.json();
+    // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+    console.dir(errorData, { depth: null });
+    // }
+    throw new Error("Failed to delete contract project");
+  }
+  const data: unknown = await response.json();
+  if (isDeleteProjectResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
 export async function submitContract(
   projectId: string,
   formData: FormData,
@@ -308,5 +378,33 @@ export async function submitContract(
   }
   const data: unknown = await response.json();
   if (isSubmitContractResponse(data)) return data;
+  throw new Error("Invalid data type");
+}
+
+export async function deleteContract(
+  projectId: string,
+  contractId: string,
+  isAlt: boolean
+): Promise<ContractObject> {
+  const baseUrl = getBaseUrl(isAlt);
+  if (!baseUrl) throw new Error("Missing base url");
+
+  const url = new URL(`${baseUrl}/projects/${projectId}/files/${contractId}`);
+
+  const response = await fetch(url, {
+    method: "DELETE",
+  });
+
+  revalidateTag(cacheTags.contractProjects);
+  if (!response.ok) {
+    if (response.status === 422) {
+      const errorData: unknown = await response.json();
+      // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+      console.dir(errorData, { depth: null });
+    }
+    throw new Error("Failed to delete contract");
+  }
+  const data: unknown = await response.json();
+  if (isDeleteContractResponse(data)) return data;
   throw new Error("Invalid data type");
 }

@@ -21,13 +21,14 @@ export function ProjectsList(): JSX.Element {
     return (
         <div className="projects-list-container">
             <div className="projects-list-header">
-                <span>Project List</span>
+                <span>Projects</span>
                 <div className="projects-list-controls">
                     <CommonButton
                         onClick={handleAddProject}
+                        title="Add Project"
                     >
                         <ElevaiteIcons.SVGCross/>
-                        <span>Add Project</span>
+                        {/* <span>Add Project</span> */}
                     </CommonButton>
                 </div>
             </div>
@@ -97,14 +98,18 @@ function ProjectCard(props: ProjectCardProps): JSX.Element {
             onKeyDown={onKeyDown}
         >
             <div className="line">
-                <span>{props.project.name}</span>
-                <span title={props.project.create_date ? `${dayjs(props.project.create_date).format("YYYY-MM-DD")}\n${dayjs(props.project.create_date).format("hh:mm a")}` : ""}>
-                    {props.project.create_date ? dayjs(props.project.create_date).format("YYYY-MM-DD") : ""}
+                <span title={props.project.create_date ? `Created on:\n${dayjs(props.project.create_date).format("YYYY-MM-DD")}\n${dayjs(props.project.create_date).format("hh:mm a")}` : ""}>
+                    {props.project.name}
+                    </span>
+                <span className="selection-arrow">
+                    <ElevaiteIcons.SVGSelectionArrow/>
                 </span>
             </div>
-            <div className="line">
-                <span>{props.project.description}</span>
-            </div>
+            {!props.project.description ? undefined :
+                <div className="line">
+                    <span>{props.project.description}</span>
+                </div>
+            }
         </div>
     )
 }

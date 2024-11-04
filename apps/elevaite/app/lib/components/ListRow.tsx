@@ -23,7 +23,7 @@ export interface RowStructure<RowObjectType> {
     field: string;
     isSortable?: boolean;
     onClick?: (rowItem: RowObjectType) => void;
-    formattingFunction?: (rowItem: RowObjectType) => React.ReactNode;
+    formattingFunction?: (rowItem: RowObjectType, index?: number) => React.ReactNode;
     specialHandling?: specialHandlingListRowFields;
     align?: "left" | "right" | "center";
     style?: "block";
@@ -39,6 +39,7 @@ export interface ListNormalRow<RowObjectType> {
     menuToTop?: boolean;
     onSort?: never;
     sorting?: never;
+    index?: number;
     onClick?: (object: RowObjectType) => void;
 }
 
@@ -49,6 +50,7 @@ interface ListHeaderRow<RowObjectType> {
     menu?: CommonMenuItem<RowObjectType>[];
     onSort?: (field: string, specialHandling?: string) => void;
     sorting?: SortingObject<RowObjectType>;
+    index?: number;
 }
 
 type ListRowProps<RowObjectType> = ListNormalRow<RowObjectType> | ListHeaderRow<RowObjectType>;
@@ -193,7 +195,7 @@ export function ListRow<RowObjectType>(props: ListRowProps<RowObjectType>): JSX.
                         disabled={!structureItem.isSortable}
                         overrideClass
                     >                    
-                        {structureItem.formattingFunction ? structureItem.formattingFunction(props.rowItem) :
+                        {structureItem.formattingFunction ? structureItem.formattingFunction(props.rowItem, props.index) :
                             structureItem.specialHandling ? getSpecialItem(structureItem) :
                             props.rowItem[structureItem.field] ? props.rowItem[structureItem.field] : ""
                         }
@@ -211,7 +213,7 @@ export function ListRow<RowObjectType>(props: ListRowProps<RowObjectType>): JSX.
                         structureItem.capitalize ? "capitalize" : undefined,
                     ].filter(Boolean).join(" ")}
                 >
-                    {structureItem.formattingFunction ? structureItem.formattingFunction(props.rowItem) :
+                    {structureItem.formattingFunction ? structureItem.formattingFunction(props.rowItem, props.index) :
                         structureItem.specialHandling ? getSpecialItem(structureItem) :
                         props.rowItem[structureItem.field] ? props.rowItem[structureItem.field] : ""
                     }

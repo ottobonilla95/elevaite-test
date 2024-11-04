@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ListRow, type RowStructure, specialHandlingListRowFields } from "../../../lib/components/ListRow";
 import { useContracts } from "../../../lib/contexts/ContractsContext";
 import { formatBytes } from "../../../lib/helpers";
-import { CONTRACT_STATUS, CONTRACT_TYPES, type ContractObject, CONTRACTS_TABS } from "../../../lib/interfaces";
+import { ContractStatus, CONTRACT_TYPES, type ContractObject, CONTRACTS_TABS } from "../../../lib/interfaces";
 import "./ContractsList.scss";
 import { ContractUpload } from "./ContractUpload";
 
@@ -42,13 +42,14 @@ function structureFileSize(listItem: ContractObject): string {
     return formatBytes(listItem.filesize);
 }
 function structureStatus(listItem: ContractObject): React.ReactNode {
-    function statusSwitch(status: CONTRACT_STATUS): JSX.Element {
+    function statusSwitch(status: ContractStatus): JSX.Element {
         switch (status) {
-            case CONTRACT_STATUS.COMPLETED: return <ElevaiteIcons.SVGCheckmark/>;
-            case CONTRACT_STATUS.APPROVED: return <ElevaiteIcons.SVGCheckmark/>;
-            case CONTRACT_STATUS.PROCESSING: return <ElevaiteIcons.SVGInstanceProgress/>;
-            case CONTRACT_STATUS.FAILED: return <ElevaiteIcons.SVGXmark/>;
-            case CONTRACT_STATUS.REJECTED: return <ElevaiteIcons.SVGXmark/>;
+            case ContractStatus.Extracted: return <ElevaiteIcons.SVGCheckmark/>;
+            case ContractStatus.Matched: return <ElevaiteIcons.SVGCheckmark/>;
+            case ContractStatus.Extracting: return <ElevaiteIcons.SVGInstanceProgress/>;
+            case ContractStatus.ExtractionFailed: return <ElevaiteIcons.SVGXmark/>;
+            case ContractStatus.Rejected: return <ElevaiteIcons.SVGXmark/>;
+            default: return <div/>
         }
     }
     return (
@@ -58,7 +59,7 @@ function structureStatus(listItem: ContractObject): React.ReactNode {
     );
 }
 function structureApproval(listItem: ContractObject): React.ReactNode {
-    const isApproved = listItem.status === CONTRACT_STATUS.APPROVED || listItem.verification?.verification_status === true;
+    const isApproved = listItem.status === ContractStatus.Matched || listItem.verification?.verification_status === true;
     return (
         <span className={["contract-approval", !isApproved ? "pending" : undefined].filter(Boolean).join(" ")}>
             {isApproved ? "Approved" : "Pending"}

@@ -18,6 +18,7 @@ interface VerificationLineItemsProps {
     lineItems?: ContractObjectVerificationLineItem[];
     fullScreen?: boolean;
     onFullScreenClose?: () => void;
+    hideValidatedItems?: boolean;
 }
 
 export function VerificationLineItems(props: VerificationLineItemsProps): JSX.Element {
@@ -124,6 +125,7 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
                     <VerificationTableStructure
                         headers={displayHeaders}
                         data={tableData}
+                        hideValidatedItems={props.hideValidatedItems}
                     />                
                 }
             </div>
@@ -145,6 +147,7 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
                         <VerificationTableStructure
                             headers={displayHeaders}
                             data={tableData}
+                            hideValidatedItems={props.hideValidatedItems}
                         />
                     </div>
                 </CommonModal>
@@ -159,6 +162,7 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
 interface VerificationTableStructureProps {
     headers: string[];    
     data: TableDataItem[];
+    hideValidatedItems?: boolean;
 }
 
 
@@ -175,7 +179,13 @@ function VerificationTableStructure(props: VerificationTableStructureProps): JSX
                 </tr>
             </thead>
             <tbody>
-                {props.data.map((row, rowIndex) => (
+                {props.data.length === 0 ? <tr><td colSpan={props.headers.length} className="empty-table">There are no line items</td></tr> :
+                    props.hideValidatedItems && props.data.every(item => item.verification.verification_status === true) ? 
+                    <tr><td colSpan={props.headers.length} className="empty-table">There are no mismatched items</td></tr> :
+                
+                props.data.map((row, rowIndex) => (
+                    props.hideValidatedItems && row.verification.verification_status ? undefined
+                    :
                     <tr key={`line_${rowIndex.toString()}`}>
                         {row.value.map((cell, cellIndex) => 
                             <td

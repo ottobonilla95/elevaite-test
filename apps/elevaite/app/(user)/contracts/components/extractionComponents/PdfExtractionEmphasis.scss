@@ -10,6 +10,11 @@
     border: 1px solid var(--ev-colors-borderColor);
     border-radius: 8px;
 
+    &.borderless {
+        padding: 0;
+        border: none;
+    }
+
     & .pdf-emphasis-block {
         display: flex;
         flex-wrap: wrap;

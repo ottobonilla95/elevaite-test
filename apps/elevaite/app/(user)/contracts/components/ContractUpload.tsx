@@ -17,7 +17,8 @@ const contractTypesOptions: CommonSelectOption[] = [
 
 
 interface ContractUploadProps {
-    selectedTab: CONTRACTS_TABS;
+    selectedTab?: CONTRACTS_TABS;
+    selectedType?: CONTRACT_TYPES;
     onClose: () => void;
 }
 
@@ -80,7 +81,8 @@ export function ContractUpload(props: ContractUploadProps): JSX.Element {
                     <CommonSelect
                         options={contractTypesOptions}
                         onSelectedValueChange={handleContractTypeChange}
-                        defaultValue={props.selectedTab === CONTRACTS_TABS.SUPPLIER_INVOICES ? CONTRACT_TYPES.INVOICE :
+                        defaultValue={props.selectedType ? props.selectedType :
+                                        props.selectedTab === CONTRACTS_TABS.SUPPLIER_INVOICES ? CONTRACT_TYPES.INVOICE :
                                         props.selectedTab === CONTRACTS_TABS.SUPPLIER_POS ? CONTRACT_TYPES.PURCHASE_ORDER : 
                                         props.selectedTab === CONTRACTS_TABS.CUSTOMER_CONTRACTS ? CONTRACT_TYPES.CSOW :
                                         CONTRACT_TYPES.VSOW

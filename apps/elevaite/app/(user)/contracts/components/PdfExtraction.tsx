@@ -1,7 +1,7 @@
 import { CommonButton, CommonDialog, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { useContracts } from "../../../lib/contexts/ContractsContext";
-import { CONTRACT_STATUS, CONTRACT_TYPES, type ContractExtractionDictionary } from "../../../lib/interfaces";
+import { ContractStatus, CONTRACT_TYPES, type ContractExtractionDictionary } from "../../../lib/interfaces";
 import "./PdfExtraction.scss";
 import { ExtractedBit } from "./extractionComponents/ExtractedBit";
 import { ExtractedTableBit } from "./extractionComponents/ExtractedTableBit";
@@ -190,7 +190,7 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
                         <PdfExtractionEmphasis />
                         {extractedBits.length === 0 ? 
                             <div className="empty-bits">
-                                {contractsContext.selectedContract?.status === CONTRACT_STATUS.PROCESSING ? 
+                                {contractsContext.selectedContract?.status === ContractStatus.Extracting ? 
                                     <><ElevaiteIcons.SVGSpinner/><span>Extraction in progress...</span></>
                                     : <span>No extracted data</span>
                                 }                            
