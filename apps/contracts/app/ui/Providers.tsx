@@ -1,5 +1,4 @@
 import { ColorContextProvider } from "@repo/ui/contexts";
-import { SessionWrapper } from "./SessionWrapper";
 
 
 interface ProvidersProps {
@@ -9,11 +8,9 @@ interface ProvidersProps {
 
 export default function Providers({ children }: ProvidersProps): JSX.Element {
   return (
-    <SessionWrapper>
-          <ColorContextProvider>
-            {children}
-          </ColorContextProvider>
-    </SessionWrapper>
+    <ColorContextProvider>
+      {children}
+    </ColorContextProvider>
   );
 }
 

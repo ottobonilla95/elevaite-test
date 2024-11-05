@@ -3,8 +3,7 @@ import "./layout.scss";
 import "./layout.css"
 import Providers from "./ui/Providers";
 import { Metadata } from "next";
-import AppLayout from "./ui/AppLayout";
-import { ElevaiteIcons, SidebarIconObject } from "@repo/ui/components";
+import { NavBar } from "@repo/ui/components";
 
 
 const font = Inter({ subsets: ["latin"] });
@@ -15,54 +14,11 @@ interface RootLayoutProps {
 }
 
 const breadcrumbLabels: Record<string, { label: string; link: string }> = {
-  models: {
-    label: "Models",
-    link: "/models",
-  },
-  datasets: {
-    label: "Datasets",
-    link: "/datasets",
-  },
-  access: {
-    label: "Access Management",
-    link: "/access",
-  },
-  workbench: {
-    label: "Workbench",
-    link: "/workbench",
-  },
-  cost: {
-      label: "Billing and Costs",
-      link: "/cost",
-  },
-  application: {
-    label: "Application",
-    link: "/application",
-  },
   home: {
     label: "Applications",
     link: "/",
-  },
-  homepage: {
-    label: "Applications",
-    link: "/",
-  },
-  contracts: {
-    label: "Contracts",
-    link: "/contracts"
   }
 };
-
-const sidebarIcons: SidebarIconObject[] = [
-  { icon: <ElevaiteIcons.SVGAccess />, link: "/access", description: "Access Management" },
-  { icon: <ElevaiteIcons.Datasets />, link: "/datasets", description: "Datasets" },
-  { icon: <ElevaiteIcons.SVGModels />, link: "/models", description: "Models" },
-  { icon: <ElevaiteIcons.Workbench />, link: "/workbench", description: "Workbench" },
-  { icon: <ElevaiteIcons.SVGCost />, link: "/cost", description: "Billing & Costs" },
-  { icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" },
-];
-
-
 
 export const metadata: Metadata = {
     title: "Contract Co-Pilot",
@@ -71,13 +27,29 @@ export const metadata: Metadata = {
 
 export default function RootLayout({children}: RootLayoutProps): JSX.Element {
 
+  async function handleSearchInput(term: string): Promise<void> {
+    "use server"
+  }
+
+  async function logOut(): Promise<void> {
+    "use server"
+  }
+
     return (
         <html lang="en">
-            <body className={font.className}>
+            <body className={font.className + " elevaite-main-container"}>
                 <Providers>
-                    <AppLayout breadcrumbLabels={breadcrumbLabels} layout="user" sidebarIcons={sidebarIcons}>
+
+                  <NavBar
+                    breadcrumbLabels={breadcrumbLabels}
+                    handleSearchInput={handleSearchInput}
+                    logOut={logOut}
+                    searchResults={[]}
+                    user={undefined}
+                  />
+                  <div className="children-container">
                     {children}
-                    </AppLayout>
+                  </div>
                 </Providers>
             </body>
         </html>

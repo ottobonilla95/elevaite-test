@@ -105,11 +105,12 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         setPagesAmount(undefined);
         // TODO: If checksum is the same, don't change pdfData.
         setIsLoading(true);
-        if (fileReference) {
+        if (fileReference && contractsContext.selectedProject && contractsContext.selectedContract) {
             let file: string|File|Blob = fileReference;
             if (typeof file === "string") {
                 const url = new URL(`${window.location.origin}/api/contracts/`);
-                url.searchParams.set("key", file);
+                url.searchParams.set("projectId", contractsContext.selectedProject?.id.toString());
+                url.searchParams.set("contractId", contractsContext.selectedContract?.id.toString());
                 const response = await fetch(url, {method: "GET"});
                 const blob = await response.blob();
                 file = blob;
