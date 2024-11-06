@@ -1,0 +1,51 @@
+
+
+
+.comparison-select-container {
+    max-width: 100%;
+
+
+    & .common-select-display {
+        width: 100%;
+        max-width: 500px;
+        background-color: var(--ev-colors-secondary);
+        padding: 5px 20px;
+        border-radius: 20px;
+
+        & > span {            
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        & > svg {
+            color: var(--ev-colors-highlight);
+        }
+    }
+
+    & .common-select-options-container {
+        max-width: 500px;
+        max-height: 50vh;
+
+        & .common-select-option {
+            transition: filter 0.2s ease-in-out, background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+            &:hover {
+                transition: none;
+                & > span {
+                    color: var(--ev-colors-highlight);
+                }
+            }
+            & > span {
+                max-width: 100%;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            &.selected {
+                & > span { color: var(--ev-colors-highlight); }
+                & > svg { color: var(--ev-colors-highlight); }
+            }
+        }
+    }
+}

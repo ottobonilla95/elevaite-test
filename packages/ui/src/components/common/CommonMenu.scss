@@ -55,6 +55,15 @@
                     background-color: var(--ev-colors-secondary);
                     color: var(--ev-colors-highlight);
                 }
+
+                & .menu-label {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    &.short { max-width: 150px; }
+                    &.medium { max-width: 300px; }
+                    &.long { max-width: 450px; }
+                }
             }
         }
     }

@@ -2,7 +2,7 @@ import { CommonButton, CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import React, { useEffect, useState } from "react";
 import { isObject } from "../../../../lib/actions/generalDiscriminators";
 import { useContracts } from "../../../../lib/contexts/ContractsContext";
-import { CONTRACT_STATUS, CONTRACT_TYPES, type ContractObjectVerification, type ContractObjectVerificationItem } from "../../../../lib/interfaces";
+import { ContractStatus, CONTRACT_TYPES, type ContractObjectVerification, type ContractObjectVerificationItem } from "../../../../lib/interfaces";
 import "./PdfExtractionVerification.scss";
 import { VerificationLineItems } from "./VerificationLineItems";
 
@@ -39,7 +39,7 @@ export function PdfExtractionVerification(): JSX.Element {
     return (
         <div className="pdf-extraction-verification-container">
 
-            {contractsContext.selectedContract?.status === CONTRACT_STATUS.PROCESSING ? 
+            {contractsContext.selectedContract?.status === ContractStatus.Extracting ? 
                 <div className="no-verification">
                     <ElevaiteIcons.SVGSpinner/><span>Verification in progress...</span>
                 </div>
@@ -76,6 +76,7 @@ export function PdfExtractionVerification(): JSX.Element {
                                 <CommonButton
                                     onClick={() => { setIsLineItemsFullScreen(true); }}
                                     noBackground
+                                    title="View the table in full-screen"
                                 >
                                     <ElevaiteIcons.SVGZoom/>
                                 </CommonButton>

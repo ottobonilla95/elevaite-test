@@ -12,6 +12,7 @@ export interface CommonSelectOption {
     selectedLabel?: string; // Use this instead of label when it is the selected item
     icon?: React.ReactElement;
     disabled?: boolean;
+    isSeparator?: React.ReactElement | boolean;
     extras?: {
         prefix?: { label: string, tooltip?: string };
         postfix?: { label: string, tooltip?: string };

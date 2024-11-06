@@ -4,7 +4,7 @@ const nextConfig = {
     transpilePackages: ["@repo/ui"],    
     sassOptions: {
         includePaths: ["./app/ui"],
-        prependData: `@import "@repo/sass-config/mainSass.scss";`,
+        prependData: `@use "@repo/sass-config/mainSass.scss" as *;`,
     },
     images: {
         remotePatterns: [

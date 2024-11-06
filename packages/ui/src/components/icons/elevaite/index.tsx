@@ -46,6 +46,9 @@ import SVGAccounts from "./svgAccounts";
 import SVGProjects from "./svgProjects";
 import SVGUser from "./svgUser";
 import SVGZoom from "./svgZoom";
+import SVGSelectionArrow from "./svgSelectionArrow";
+import SVGUpload from "./svgUpload";
+import SVGQuestionMark from "./svgQuestionMark";
 
 
 export const ElevaiteIcons = {
@@ -97,4 +100,7 @@ export const ElevaiteIcons = {
     SVGProjects,
     SVGUser,
     SVGZoom,
+    SVGSelectionArrow,
+    SVGUpload,
+    SVGQuestionMark,
 };

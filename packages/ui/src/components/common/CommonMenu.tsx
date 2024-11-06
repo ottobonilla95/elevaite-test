@@ -9,6 +9,8 @@ import "./CommonMenu.scss";
 export interface CommonMenuItem<T> {
     label: string;
     onClick: (item: T) => void;
+    tooltip?: string;
+    isDisabled?: boolean;
 }
 
 
@@ -21,6 +23,8 @@ interface CommonMenuProps {
     left?: boolean;
     sideCover?: boolean;
     menuIcon?: React.ReactNode;
+    tooltip?: string;
+    labelWidth?: "short" | "medium" | "long";
 }
 
 export function CommonMenu(props: CommonMenuProps): JSX.Element {
@@ -47,6 +51,7 @@ export function CommonMenu(props: CommonMenuProps): JSX.Element {
                 noBackground
                 passedRef={buttonRef}
                 onClick={toggleMenu}
+                title={props.tooltip}
             >
                 {props.menuIcon ? props.menuIcon : <ElevaiteIcons.SVGMenuDots/>}
             </CommonButton>
@@ -66,8 +71,12 @@ export function CommonMenu(props: CommonMenuProps): JSX.Element {
                                 <CommonButton
                                     key={menuItem.label}
                                     onClick={() => { handleClick(menuItem) }}
+                                    title={menuItem.tooltip}
+                                    disabled={menuItem.isDisabled}
                                 >
-                                    {menuItem.label}
+                                    <span className={["menu-label", props.labelWidth].filter(Boolean).join(" ")}>
+                                        {menuItem.label}
+                                    </span>
                                 </CommonButton>
                             )}
                         </div>

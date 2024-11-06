@@ -30,6 +30,10 @@ export function isSubmitContractResponse(data: unknown): data is ContractObject 
     return isContractObject(data);
 }
 
+export function isDeleteContractResponse(data: unknown): data is ContractObject {
+    return isContractObject(data);
+}
+
 export function isGetContractProjectSettingsByIdResponse(data: unknown): data is ContractSettings {
     return isContractProjectSettingsObject(data);
 }
@@ -64,6 +68,12 @@ export function isReprocessContractResponse(data: unknown): data is ContractObje
 
 
 export function isCreateProjectResponse(data: unknown): data is ContractProjectObject {
+    return isContractProjectObject(data);
+}
+export function isEditProjectResponse(data: unknown): data is ContractProjectObject {
+    return isContractProjectObject(data);
+}
+export function isDeleteProjectResponse(data: unknown): data is ContractProjectObject {
     return isContractProjectObject(data);
 }
 

@@ -105,16 +105,18 @@ export enum ROLE_PERMISSIONS {
 export enum CONTRACTS_TABS {
     SUPPLIER_CONTRACTS = "VSOW",
     CUSTOMER_CONTRACTS = "CSOW",
-    SUPPLIER_POS = "Supplier POs",
-    SUPPLIER_INVOICES = "Supplier Invoices",
+    SUPPLIER_POS = "PO", // SUPPLIER_POS = "Supplier POs",
+    SUPPLIER_INVOICES = "Invoices", // SUPPLIER_INVOICES = "Supplier Invoices",
 }
 
-export enum CONTRACT_STATUS {
-    COMPLETED = "completed",
-    PROCESSING = "processing",
-    FAILED = "failed",
-    APPROVED = "approved",
-    REJECTED = "rejected"
+export enum ContractStatus {
+    Extracting = "extracting",
+    Extracted = "extracted",
+    ExtractionFailed = "extraction_failed",
+    Matched = "matched",
+    MatchFailed = "match_failed",
+    Rejected = "rejected",
+    Uploading = "uploading", // Front-end status only
 }
 
 export enum CONTRACT_TYPES {
@@ -544,7 +546,7 @@ export interface ContractSettingsLabels {
 export interface ContractObject {
     id: string | number;
     project_id: string | number;
-    status: CONTRACT_STATUS;
+    status: ContractStatus;
     content_type: CONTRACT_TYPES;
     label?: string | null;
     filename: string;
@@ -558,6 +560,7 @@ export interface ContractObject {
     normalized_supplier?: string | null;
     total_amount?: string | null;
     verification?: ContractObjectVerification | null;
+    verificationQuickList?: VerificationQuickList; // This is front-end only
     line_items?: ContractObjectVerificationLineItem[] | null;
     highlight?: ContractObjectEmphasis | null;
     tags?: string[];
@@ -624,6 +627,27 @@ export interface VerificationItem {
     verification_status: boolean;
     value?: string;
 }
+
+export interface VerificationQuickList {
+    vsow: VerificationQuickListItem;
+    csow: VerificationQuickListItem;
+    po: VerificationQuickListItem;
+    invoice: VerificationQuickListItem;
+}
+
+export interface VerificationQuickListItem {
+    irrelevant?: boolean;
+    verified?: boolean;
+    unverifiedItems: UnverifiedItem[];
+}
+
+export interface UnverifiedItem {
+    id?: string|number;
+    ref?: string;
+    label?: string;
+    fileName?: string;
+}
+
 
 export type ContractExtractionPageItem = string | string[] | Record<string, unknown>;
 export type ContractExtractionPage = Record<string, ContractExtractionPageItem> & Record<`Line Item ${number}`, Record<string, string>>;

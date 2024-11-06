@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3006",
+    "dev": "next dev --turbopack -p 3006",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -12,13 +12,12 @@
   },
   "dependencies": {
     "@auth/core": "^0.29.0",
-    "@aws-sdk/client-s3": "^3.654.0",
     "@repo/lib": "*",
     "@repo/ui": "*",
     "@types/react-datepicker": "^6.2.0",
     "chart.js": "^4.4.3",
     "dayjs": "^1.11.10",
-    "next": "^14.2.10",
+    "next": "15.0.2",
     "next-auth": "5.0.0-beta.16",
     "pdfjs-dist": "4.4.168",
     "react": "^18",
@@ -32,7 +31,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "^14.2.1",
+    "@next/eslint-plugin-next": "15.0.2",
     "@repo/eslint-config": "*",
     "@repo/sass-config": "*",
     "@repo/tailwind-config": "*",

@@ -43,6 +43,10 @@
     & .common-select-display {
         justify-content: space-between;
 
+        & > svg {
+            flex-shrink: 0;
+        }
+
         & .spinner {
             height: 16px;
             width: 16px;
@@ -95,6 +99,28 @@
             & .empty-list {
                 color: var(--ev-colors-secondaryText);
                 text-align: center;
+            }
+
+            & .common-select-option {
+                
+                & > svg { flex-shrink: 0; }
+            }
+
+            & .select-separator-container {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 10px;
+                color: var(--ev-colors-secondaryText);
+                
+                & .select-separator {
+                    flex-grow: 1;
+                    border-bottom: 1px solid var(--ev-colors-borderColor);
+                    &.start {
+                        flex-grow: 0;
+                        width: 20px;
+                    }
+                }
             }
 
 

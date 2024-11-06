@@ -57,6 +57,11 @@ table.line-items-table {
     border-collapse: collapse;
     width: 100%;
 
+    & .empty-table {
+        padding: 20px;
+        color: var(--ev-colors-secondaryText);
+    }
+
     & th {
         padding: 5px 10px;
         background-color: var(--ev-colors-backgroundHighContrast);

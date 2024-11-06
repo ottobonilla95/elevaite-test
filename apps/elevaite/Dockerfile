@@ -30,8 +30,8 @@ RUN npx --yes turbo run build --filter=elevaite...
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Don't run production as root
 RUN addgroup --system --gid 1001 nodejs
@@ -51,6 +51,6 @@ USER nextjs
 
 EXPOSE 3101
 
-ENV PORT 3101
+ENV PORT=3101
 
 CMD node apps/elevaite/server.js

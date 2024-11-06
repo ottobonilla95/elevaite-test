@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@auth/core": "^0.29.0",
-    "@aws-sdk/client-s3": "^3.654.0",
     "@repo/lib": "*",
     "@repo/ui": "*",
     "@types/react-datepicker": "^6.2.0",

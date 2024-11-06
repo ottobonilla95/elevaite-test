@@ -1,0 +1,70 @@
+
+
+
+.contract-comparison-container {    
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: minmax(calc(50% - 10px), 1fr) minmax(calc(50% - 10px), 1fr);
+    grid-template-rows: 30px auto;
+    gap: 10px 20px;
+    min-height: 0;
+
+
+
+    & .contract-comparison-header {
+        grid-column: 1 / span 2;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+
+
+        & .comparison-breadcrumbs {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--ev-colors-secondaryText);
+
+            & .current-page {
+                color: var(--ev-colors-highlight);
+                user-select: none;
+            }
+        }
+
+        & .matching-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+    }
+
+}
+
+
+.full-screen-compare-line-items-modal {
+
+    & .common-modal-contents {
+        overflow: hidden;
+    }
+
+    & .full-screen-compare-container {
+        max-height: 99vh;
+        display: grid;
+        grid-template-columns: repeat(2, calc(50% - 5px));
+        grid-template-rows: 30px calc(100% - 40px);
+        gap: 10px;
+
+        & .close-button-container {
+            grid-column: 1 / span 2;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 0 10px;
+        }
+
+        & .contract-comparison-block-scroller {
+            margin: 0;
+            padding: 0;
+        }
+    }
+}

@@ -55,10 +55,32 @@
         justify-content: flex-end;
         gap: 10px;
 
+        &.editing {
+            justify-content: space-between;
+        }
+
+        & .pair {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        & .cancel-button {
+            flex-shrink: 0;            
+            padding: 10px 20px;
+            background-color: var(--ev-colors-secondary);
+        }
         & .submit-button {
             flex-shrink: 0;
             padding: 10px 20px;
             background-color: var(--ev-colors-highlight);
+        }
+        & .delete-button {
+            flex-shrink: 0;
+            padding: 10px 20px;
+            background-color: var(--ev-colors-primary);
+            border: 1px solid var(--ev-colors-danger);
+            color: var(--ev-colors-danger);
         }
     }
 

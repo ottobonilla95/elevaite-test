@@ -28,7 +28,8 @@ const nextConfig = {
   // },
   sassOptions: {
     includePaths: ["./app/ui"],
-    prependData: `@import "@repo/sass-config/mainSass.scss";`,
+    prependData: `@use "@repo/sass-config/mainSass.scss" as *;`,
+    silenceDeprecations: ['legacy-js-api', "mixed-decls"],
   },
 };
 
