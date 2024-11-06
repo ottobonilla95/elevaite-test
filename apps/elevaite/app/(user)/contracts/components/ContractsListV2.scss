@@ -69,6 +69,7 @@ $unique-color-blue: #0089FF;
         display: flex;
         align-items: center;
         gap: 10px;
+          
 
         & .status-separator {
             height: 100%;
@@ -306,6 +307,20 @@ $unique-color-blue: #0089FF;
         &.success { color: var(--ev-colors-success); }
         &.danger { color: var(--ev-colors-danger); }
         &.blue { color: $unique-color-blue; }
+    }
+
+    
+
+
+    
+    @media (max-width: 1250px) {
+        & .contracts-list-v2-status-row .contract-list-status-block-container {
+            grid-template-columns: 1fr 20px;
+            grid-template-rows: 1fr;
+
+            & .amount { grid-column: unset; }
+            & .title { grid-column: 1 / span 2 }
+        }
     }
 
 }
