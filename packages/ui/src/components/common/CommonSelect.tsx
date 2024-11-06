@@ -33,7 +33,7 @@ export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> 
 
 export function CommonSelect({
     options, defaultValue, controlledValue, callbackOnDefaultValue, noSelectionMessage,
-    anchor, showTitles, emptyListLabel, onSelectedValueChange, onAdd, addLabel, useCommonStyling,
+    anchor, showTitles, showSelected, emptyListLabel, onSelectedValueChange, onAdd, addLabel, useCommonStyling,
     noDoubleClick, isLoading, AdvancedOptionComponent, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
     const [selectedOption, setSelectedOption] = useState<CommonSelectOption>();
     const [isOpen, setIsOpen] = useState(false);
@@ -149,23 +149,23 @@ export function CommonSelect({
                             :
                             options.map((option) => 
                                 option.isSeparator ? typeof option.isSeparator === "boolean" ? 
-                                    <div className="select-separator-container">
+                                    <div key={option.value} className="select-separator-container">
                                         {!option.label ? undefined : <><div className="select-separator start"/><span>{option.label}</span></>}
                                         <div className="select-separator"/>
                                     </div>
-                                : option.isSeparator :
+                                : <div key={option.value}>{option.isSeparator}</div> :
                                     AdvancedOptionComponent ? 
                                     <AdvancedOptionComponent key={option.value} {...option} onOptionClick={handleClick} showTitles={showTitles} />
                                 :
                                 <CommonButton
-                                    className={["common-select-option", props.showSelected && selectedOption?.value === option.value ? "selected" : undefined].filter(Boolean).join(" ")}
+                                    className={["common-select-option", showSelected && selectedOption?.value === option.value ? "selected" : undefined].filter(Boolean).join(" ")}
                                     key={option.value}
                                     onClick={() => { handleClick(option); } }
                                     noBackground
                                     disabled={option.disabled}
                                     title={showTitles ? (option.label ? option.label : option.value) : ""}
                                 >
-                                    {!props.showSelected || selectedOption?.value !== option.value ? undefined :
+                                    {!showSelected || selectedOption?.value !== option.value ? undefined :
                                         <ElevaiteIcons.SVGCheckmark />
                                     }
                                     <span>{option.label ? option.label : option.value}</span>

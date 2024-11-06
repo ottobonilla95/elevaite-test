@@ -2,10 +2,11 @@
 
 
 .comparison-select-container {
-    
+    max-width: 100%;
 
 
     & .common-select-display {
+        width: 100%;
         max-width: 500px;
         background-color: var(--ev-colors-secondary);
         padding: 5px 20px;

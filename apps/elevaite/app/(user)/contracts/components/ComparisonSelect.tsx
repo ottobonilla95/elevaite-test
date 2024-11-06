@@ -29,7 +29,6 @@ export function ComparisonSelect(props: ComparisonSelectProps): JSX.Element {
 
 
     function handleSelection(value: string) {
-        console.log("Selected", value);
         if (props.secondary) contractsContext.setSecondarySelectedContractById(value);
         else contractsContext.setSelectedContractById(value);
     }

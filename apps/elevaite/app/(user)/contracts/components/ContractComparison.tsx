@@ -127,25 +127,23 @@ export function ContractComparison(props: ContractComparisonProps): JSX.Element 
                                 <ElevaiteIcons.SVGXmark />
                             </CommonButton>
                         </div>   
-                        <div className="comparison-contents">                        
-                            <ContractComparisonBlock
-                                showValidatedItems={isShowingMatching}
-                                isOverviewMinimized={isOverviewMinimized}
-                                onToggleOverview={handleToggleOverview}
-                                scrollRef={scrollableRefMainFull}
-                                onScroll={handleScrollMainFull}
-                                barebones
-                            />
-                            <ContractComparisonBlock
-                                secondary
-                                showValidatedItems={isShowingMatching}
-                                isOverviewMinimized={isOverviewMinimized}
-                                onToggleOverview={handleToggleOverview}
-                                scrollRef={scrollableRefSecondaryFull}
-                                onScroll={handleScrollSecondaryFull}
-                                barebones
-                            />
-                        </div>
+                        <ContractComparisonBlock
+                            showValidatedItems={isShowingMatching}
+                            isOverviewMinimized={isOverviewMinimized}
+                            onToggleOverview={handleToggleOverview}
+                            scrollRef={scrollableRefMainFull}
+                            onScroll={handleScrollMainFull}
+                            barebones
+                        />
+                        <ContractComparisonBlock
+                            secondary
+                            showValidatedItems={isShowingMatching}
+                            isOverviewMinimized={isOverviewMinimized}
+                            onToggleOverview={handleToggleOverview}
+                            scrollRef={scrollableRefSecondaryFull}
+                            onScroll={handleScrollSecondaryFull}
+                            barebones
+                        />
                     </div>
                 </CommonModal>
             }
