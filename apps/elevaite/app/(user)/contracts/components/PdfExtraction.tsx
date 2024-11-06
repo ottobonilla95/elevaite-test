@@ -60,7 +60,7 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
         contractsContext.reprocessSelectedContract();
     }
 
-    function confimedApproval(): void {        
+    function confimedApproval(): void {
         console.log("Handling manual approval of", contractsContext.selectedContract?.label ?? contractsContext.selectedContract?.filename);
         setIsApprovalConfirmationOpen(false);
     }
@@ -70,57 +70,62 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
     function getExtractedBits(extractedData: ContractExtractionDictionary): JSX.Element[] {
         const bits: JSX.Element[] = [];
         const lineItems: Record<string, string>[] = [];
-      
+
         Object.entries(extractedData).forEach(([pageKey, page]) => {
-            
+
             Object.entries(page).forEach(([label, value]) => {
                 if (typeof value === "string") {
                     bits.push(<ExtractedBit
-                                key={pageKey + label}
-                                label={label}
-                                value={value}
-                                onChange={(changeLabel, changeText) => { handleBitChange(pageKey, changeLabel, changeText); }}
-                            />);
-                // } else if (Array.isArray(value) && value.every(v => typeof v === "string")) {
-                //     bits.push(<ExtractedBit
-                //         key={pageKey + label}
-                //         label={label}
-                //         value={`- ${value.join("\n- ")}`}
-                //         disabled
-                //     />);
+                        key={pageKey + label}
+                        label={label}
+                        value={value}
+                        onChange={(changeLabel, changeText) => { handleBitChange(pageKey, changeLabel, changeText); }}
+                    />);
+                    // } else if (Array.isArray(value) && value.every(v => typeof v === "string")) {
+                    //     bits.push(<ExtractedBit
+                    //         key={pageKey + label}
+                    //         label={label}
+                    //         value={`- ${value.join("\n- ")}`}
+                    //         disabled
+                    //     />);
                 } else if (label.startsWith("Line Item")) {
-                    lineItems.push(value as Record<string, string>);
-                // } else if (typeof value === "string") { // Dictionary keys that don't start with "Line Item"
-                //     bits.push(<ExtractedTableBit
-                //                 key={pageKey + label}
-                //                 label={label}
-                //                 data={[value]}
-                //                 onTableChange={(changeLabel, changeText) => { handleTableBitChange(pageKey, changeLabel, changeText); }}
-                //                 hideNumber
-                //             />);
+                    if (!Array.isArray(value)) {
+                        const res = Object.fromEntries(
+                            Object.entries(value).filter(([key, _value]) => typeof _value === 'string')
+                        ) as Record<string, string>;
+                        lineItems.push(res as Record<string, string>);
+                    }
+                    // } else if (typeof value === "string") { // Dictionary keys that don't start with "Line Item"
+                    //     bits.push(<ExtractedTableBit
+                    //                 key={pageKey + label}
+                    //                 label={label}
+                    //                 data={[value]}
+                    //                 onTableChange={(changeLabel, changeText) => { handleTableBitChange(pageKey, changeLabel, changeText); }}
+                    //                 hideNumber
+                    //             />);
                 } else if (label.startsWith("Estimated Monthly Billing")) {
                     const extractedBilling = Object.entries(value as Record<string, string>).map(([itemKey, itemValue]) => {
-                        return { Date: itemKey, Amount: itemValue}
+                        return { Date: itemKey, Amount: itemValue }
                     });
                     bits.push(<ExtractedTableBit
-                                key="monthlyBilling"
-                                label="Estimated Monthly Billing"
-                                data={extractedBilling as Record<string, string>[]}
-                                hideNumber
-                            />)
+                        key="monthlyBilling"
+                        label="Estimated Monthly Billing"
+                        data={extractedBilling as Record<string, string>[]}
+                        hideNumber
+                    />)
                 }
-          });
+            });
         });
 
         if (lineItems.length > 0)
             bits.unshift(<ExtractedTableBit
-                            key="line_items"
-                            label="Line Items"
-                            data={lineItems}
-                        />);
-      
+                key="line_items"
+                label="Line Items"
+                data={lineItems}
+            />);
+
         return bits;
-      }
+    }
 
 
     return (
@@ -141,17 +146,17 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
                             className={[
                                 "tab-button",
                                 selectedTab === ExtractionTabs.EXTRACTION ? "active" : undefined,
-                            ].filter(Boolean).join(" ")}                        
+                            ].filter(Boolean).join(" ")}
                             onClick={() => { setSelectedTab(ExtractionTabs.EXTRACTION) }}
                         >
                             {ExtractionTabs.EXTRACTION}
                         </CommonButton>
-                        {!contractsContext.selectedContract?.verification ? undefined : 
+                        {!contractsContext.selectedContract?.verification ? undefined :
                             <CommonButton
                                 className={[
                                     "tab-button",
                                     selectedTab === ExtractionTabs.VERIFICATION ? "active" : undefined,
-                                ].filter(Boolean).join(" ")}                        
+                                ].filter(Boolean).join(" ")}
                                 onClick={() => { setSelectedTab(ExtractionTabs.VERIFICATION) }}
                             >
                                 {ExtractionTabs.VERIFICATION}
@@ -168,38 +173,38 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
                     </CommonButton>
                 </div>
                 {contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE ? undefined :
-                 contractsContext.selectedContract.verification?.verification_status === true ? 
-                    <div className="approved-label">
-                        <ElevaiteIcons.SVGCheckmark/>
-                        <span>Approved</span>
-                    </div>
-                :
-                    <CommonButton
-                        onClick={handleManualApproval}
+                    contractsContext.selectedContract.verification?.verification_status === true ?
+                        <div className="approved-label">
+                            <ElevaiteIcons.SVGCheckmark />
+                            <span>Approved</span>
+                        </div>
+                        :
+                        <CommonButton
+                            onClick={handleManualApproval}
                         // disabled
-                    >
-                        Approve
-                    </CommonButton>
+                        >
+                            Approve
+                        </CommonButton>
                 }
             </div>
 
             <div className="pdf-extraction-scroller">
                 <div className="pdf-extraction-contents">
-                    {selectedTab === ExtractionTabs.EXTRACTION ? 
-                    <>
-                        <PdfExtractionEmphasis />
-                        {extractedBits.length === 0 ? 
-                            <div className="empty-bits">
-                                {contractsContext.selectedContract?.status === ContractStatus.Extracting ? 
-                                    <><ElevaiteIcons.SVGSpinner/><span>Extraction in progress...</span></>
-                                    : <span>No extracted data</span>
-                                }                            
-                            </div>
-                            :
-                            extractedBits
-                        }
-                    </>
-                    :
+                    {selectedTab === ExtractionTabs.EXTRACTION ?
+                        <>
+                            <PdfExtractionEmphasis />
+                            {extractedBits.length === 0 ?
+                                <div className="empty-bits">
+                                    {contractsContext.selectedContract?.status === ContractStatus.Extracting ?
+                                        <><ElevaiteIcons.SVGSpinner /><span>Extraction in progress...</span></>
+                                        : <span>No extracted data</span>
+                                    }
+                                </div>
+                                :
+                                extractedBits
+                            }
+                        </>
+                        :
                         <PdfExtractionVerification />
                     }
                 </div>

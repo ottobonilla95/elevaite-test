@@ -13,11 +13,11 @@ import {
 import { isArrayOfStrings } from "./generalDiscriminators";
 
 const MODELS_URL = process.env.NEXT_PUBLIC_MODELS_API_URL;
-const MODELS_ELEVAITE_URL = MODELS_URL + "/elevaite";
+const MODELS_ELEVAITE_URL = `${MODELS_URL}/elevaite`;
 const MODELS_USERNAME = process.env.MODELS_USERNAME;
 const MODELS_PASSWORD = process.env.MODELS_PASSWORD;
 const MODELS_AUTH_HEADER = new Headers({
-  Authorization: `Basic ${btoa(MODELS_USERNAME + ":" + MODELS_PASSWORD)}`,
+  Authorization: `Basic ${btoa(`${MODELS_USERNAME}:${MODELS_PASSWORD}`)}`,
 });
 
 // TODO: This is temporary
@@ -111,7 +111,7 @@ export async function registerDataset(
   headers.append("Content-Type", "application/json");
   headers.append(
     "Authorization",
-    `Basic ${btoa(MODELS_USERNAME + ":" + MODELS_PASSWORD)}`
+    `Basic ${btoa(`${MODELS_USERNAME}:${MODELS_PASSWORD}`)}`
   );
   const response = await fetch(`${MODELS_ELEVAITE_URL}/datasets`, {
     method: "POST",

@@ -1,9 +1,9 @@
-import { CommonButton, CommonDialog, CommonMenu, CommonMenuItem, CommonModal, ElevaiteIcons } from "@repo/ui/components";
+import { CommonButton, CommonDialog, CommonMenu, type CommonMenuItem, CommonModal, ElevaiteIcons } from "@repo/ui/components";
 import React, { useEffect, useState } from "react";
-import { ListRow, RowStructure } from "../../../lib/components/ListRow";
+import { ListRow, type RowStructure } from "../../../lib/components/ListRow";
 import { useContracts } from "../../../lib/contexts/ContractsContext";
 import { formatBytes } from "../../../lib/helpers";
-import { CONTRACT_TYPES, ContractObject, CONTRACTS_TABS, ContractStatus, SortingObject, UnverifiedItem, VerificationQuickList, VerificationQuickListItem } from "../../../lib/interfaces";
+import { CONTRACT_TYPES, type ContractObject, CONTRACTS_TABS, ContractStatus, type SortingObject, type UnverifiedItem, type VerificationQuickList, type VerificationQuickListItem } from "../../../lib/interfaces";
 import "./ContractsListV2.scss";
 import { ContractUpload } from "./ContractUpload";
 import { AddProject } from "./AddProject";
@@ -59,9 +59,9 @@ export function ContractsListV2(): JSX.Element {
     const [statusFilterNumbers, setStatusFilterNumbers] = useState<StatusFilterNumbers>(cleanFilterNumbers);
     const [selectedStatus, setSelectedStatus] = useState<ExtractionStatus | MatchingStatus | undefined>();
     const [isUploadOpen, setIsUploadOpen] = useState(false);
-    const [sorting, setSorting] = useState<SortingObject<ContractObject>>({field: undefined});
+    const [sorting, setSorting] = useState<SortingObject<ContractObject>>({ field: undefined });
     const [isProjectEditOpen, setIsProjectEditOpen] = useState(false);
-    const [contractForDeletion, setContractForDeletion] = useState<ContractObject|undefined>();
+    const [contractForDeletion, setContractForDeletion] = useState<ContractObject | undefined>();
     const [isDeleteContractDialogOpen, setIsDeleteContractDialogOpen] = useState(false);
 
 
@@ -137,7 +137,7 @@ export function ContractsListV2(): JSX.Element {
 
     function handleConfirmedContractDeletion(): void {
         if (!contractsContext.selectedProject || !contractForDeletion) return;
-        contractsContext.deleteContract(contractsContext.selectedProject.id.toString(), contractForDeletion.id.toString());
+        void contractsContext.deleteContract(contractsContext.selectedProject.id.toString(), contractForDeletion.id.toString());
         setContractForDeletion(undefined);
         setIsDeleteContractDialogOpen(false);
     }
@@ -148,10 +148,10 @@ export function ContractsListV2(): JSX.Element {
 
     function handleSort(field: keyof ContractObject): void {
         let sortingResult: SortingObject<ContractObject> = {};
-        if (sorting.field !== field) sortingResult = {field};
+        if (sorting.field !== field) sortingResult = { field };
         if (sorting.field === field) {
-            if (sorting.isDesc) sortingResult = {field: undefined};
-            else sortingResult = {field, isDesc: true};
+            if (sorting.isDesc) sortingResult = { field: undefined };
+            else sortingResult = { field, isDesc: true };
         }
         setSorting(sortingResult);
     }
@@ -180,22 +180,23 @@ export function ContractsListV2(): JSX.Element {
                 po: getQuickList(contract, CONTRACT_TYPES.PURCHASE_ORDER),
                 invoice: getQuickList(contract, CONTRACT_TYPES.INVOICE),
             }
-            return {...contract, verificationQuickList: quickList}
+            return { ...contract, verificationQuickList: quickList }
         });
         return verifiedContracts;
 
         function getQuickList(contract: ContractObject, type: CONTRACT_TYPES): VerificationQuickListItem {
             return {
                 irrelevant: contract.content_type === type,
-                verified: contract.verification?.[type]?.every(item => item.verification_status === true),
-                unverifiedItems: contract.verification?.[type]?.filter(item => item.verification_status === false).map(item => {
-                const relevantContract = contractsContext.getContractById(item.file_id ?? "");
-                return {
-                    id: item.file_id,
-                    ref: item.file_ref,
-                    label: relevantContract?.label ?? undefined,
-                    fileName: relevantContract?.filename,
-                };}) ?? [],
+                verified: contract.verification?.[type]?.every(item => item.verification_status),
+                unverifiedItems: contract.verification?.[type]?.filter(item => !item.verification_status).map(item => {
+                    const relevantContract = contractsContext.getContractById(item.file_id ?? "");
+                    return {
+                        id: item.file_id,
+                        ref: item.file_ref,
+                        label: relevantContract?.label ?? undefined,
+                        fileName: relevantContract?.filename,
+                    };
+                }) ?? [],
             }
         }
     }
@@ -207,7 +208,7 @@ export function ContractsListV2(): JSX.Element {
 
     function getFilterStatusContracts(allContracts: ContractObject[], status?: ExtractionStatus | MatchingStatus): ContractObject[] {
         if (!status) return allContracts;
-        switch(status) {
+        switch (status) {
             case ExtractionStatus.Uploading: return allContracts.filter(item => item.status === ContractStatus.Uploading);
             case ExtractionStatus.Extracting: return allContracts.filter(item => item.status === ContractStatus.Extracting);
             case ExtractionStatus.Failed: return allContracts.filter(item => item.status === ContractStatus.ExtractionFailed);
@@ -219,9 +220,9 @@ export function ContractsListV2(): JSX.Element {
     }
 
     function getSortedContracts(allContracts: ContractObject[]): ContractObject[] {
-        if (!sorting || !sorting.field) return allContracts;
+        if (!sorting.field) return allContracts;
 
-        allContracts.sort((a,b) => {
+        allContracts.sort((a, b) => {
             if (sorting.field === "label") {
                 return (a.label ?? a.filename).localeCompare(b.label ?? b.filename);
             } else if (sorting.field && typeof a[sorting.field] === "string" && typeof b[sorting.field] === "string" && !Array.isArray(a[sorting.field]) && !Array.isArray(b[sorting.field])) {
@@ -272,10 +273,10 @@ export function ContractsListV2(): JSX.Element {
 
     function structureStatus(listItem: ContractObject): React.ReactNode {
         switch (listItem.status) {
-            case ContractStatus.Uploading: return <span title="Uploading"><StatusIcon status={ExtractionStatus.Uploading}/></span>
-            case ContractStatus.Extracting: return <span title="Extracting information"><StatusIcon status={ExtractionStatus.Extracting}/></span>
-            case ContractStatus.ExtractionFailed: return <span title="Process failed, please reupload"><StatusIcon status={ExtractionStatus.Failed}/></span>
-            default: return <span title="This file has been processed successfully"><StatusIcon status={ExtractionStatus.Complete}/></span>
+            case ContractStatus.Uploading: return <span title="Uploading"><StatusIcon status={ExtractionStatus.Uploading} /></span>
+            case ContractStatus.Extracting: return <span title="Extracting information"><StatusIcon status={ExtractionStatus.Extracting} /></span>
+            case ContractStatus.ExtractionFailed: return <span title="Process failed, please reupload"><StatusIcon status={ExtractionStatus.Failed} /></span>
+            default: return <span title="This file has been processed successfully"><StatusIcon status={ExtractionStatus.Complete} /></span>
         }
     }
     function structureFileSize(listItem: ContractObject): string {
@@ -295,7 +296,7 @@ export function ContractsListV2(): JSX.Element {
                 className="contract-name"
                 title={listItem.filename}
                 noBackground
-                onClick={() => handleContractClick(listItem)}
+                onClick={() => { handleContractClick(listItem); }}
             >
                 <span>
                     {listItem.label && listItem.label.length > 0 ? listItem.label : listItem.filename}
@@ -326,9 +327,9 @@ export function ContractsListV2(): JSX.Element {
             <div className="contract-verification">
                 {item.irrelevant ? <span className="irrelevant">—</span> :
                     listItem.status === ContractStatus.Extracting ? <span className="pending" title="This file is still being processed"><ElevaiteIcons.SVGInstanceProgress /></span> :
-                    listItem.status === ContractStatus.ExtractionFailed ? <span className="failed" title="This file failed to extract"><ElevaiteIcons.SVGXmark /></span> :
-                    item.verified ? <span className="verified" title="This cross-section has no issues"><ElevaiteIcons.SVGCheckmark /></span> :
-                    <MismatchButton contract={listItem} items={item.unverifiedItems} index={index} listLength={displayContracts.length} />
+                        listItem.status === ContractStatus.ExtractionFailed ? <span className="failed" title="This file failed to extract"><ElevaiteIcons.SVGXmark /></span> :
+                            item.verified ? <span className="verified" title="This cross-section has no issues"><ElevaiteIcons.SVGCheckmark /></span> :
+                                <MismatchButton contract={listItem} items={item.unverifiedItems} index={index} listLength={displayContracts.length} />
                 }
             </div>
         );
@@ -338,7 +339,7 @@ export function ContractsListV2(): JSX.Element {
 
 
 
-    
+
     return (
         <div className={["contracts-list-v2-container", contractsContext.selectedProject ? undefined : "empty"].filter(Boolean).join(" ")}>
 
@@ -350,16 +351,16 @@ export function ContractsListV2(): JSX.Element {
                 {!contractsContext.selectedProject ? undefined :
                     <div className="title-controls-container">
                         <CommonButton
-                                className="edit-project-button"
-                                onClick={handleEditProject}
-                            >
-                                Edit Project
+                            className="edit-project-button"
+                            onClick={handleEditProject}
+                        >
+                            Edit Project
                         </CommonButton>
                         <CommonButton
-                                className="upload-button"
-                                onClick={handleUpload}
-                            >
-                                Upload Files
+                            className="upload-button"
+                            onClick={handleUpload}
+                        >
+                            Upload Files
                         </CommonButton>
                     </div>
                 }
@@ -370,7 +371,7 @@ export function ContractsListV2(): JSX.Element {
                 <ContractListStatusBlock amount={statusFilterNumbers.extracting} title={ExtractionStatus.Extracting} selectedStatus={selectedStatus} onClick={handleStatusClick} />
                 <ContractListStatusBlock amount={statusFilterNumbers.failed} title={ExtractionStatus.Failed} selectedStatus={selectedStatus} onClick={handleStatusClick} />
                 <ContractListStatusBlock amount={statusFilterNumbers.complete} title={ExtractionStatus.Complete} selectedStatus={selectedStatus} onClick={handleStatusClick} />
-                <div className="status-separator"/>
+                <div className="status-separator" />
                 <ContractListStatusBlock amount={statusFilterNumbers.matched} title={MatchingStatus.Found} selectedStatus={selectedStatus} onClick={handleStatusClick} />
                 <ContractListStatusBlock amount={statusFilterNumbers.unmatched} title={MatchingStatus.Failed} selectedStatus={selectedStatus} onClick={handleStatusClick} />
             </div>
@@ -391,12 +392,12 @@ export function ContractsListV2(): JSX.Element {
 
             <div className="contracts-list-v2-table-container">
 
-                {!contractsContext.selectedProject ? 
+                {!contractsContext.selectedProject ?
                     <div className="no-project">
                         <span>No selected project</span>
                         <span>Select one from the list to the left</span>
                     </div>
-                :
+                    :
                     <div className="contracts-list-v2-table-contents">
                         <ListRow<ContractObject>
                             isHeader
@@ -405,28 +406,28 @@ export function ContractsListV2(): JSX.Element {
                             onSort={handleSort}
                             sorting={sorting}
                         />
-                        {contractsContext.loading.projectReports[contractsContext.selectedProject?.id ?? ""] ?
+                        {contractsContext.loading.projectReports[contractsContext.selectedProject.id ?? ""] ?
                             <div className="table-span empty">
-                                <ElevaiteIcons.SVGSpinner/>
+                                <ElevaiteIcons.SVGSpinner />
                                 <span>Loading...</span>
                             </div>
-                            : displayContracts.length === 0 ? 
-                            <div className="table-span empty">
-                                There are no entries.
-                            </div>
+                            : displayContracts.length === 0 ?
+                                <div className="table-span empty">
+                                    There are no entries.
+                                </div>
 
-                        :
+                                :
 
-                        displayContracts.map((contract, index) => 
-                            <ListRow<ContractObject>
-                                key={contract.id}
-                                rowItem={contract}
-                                index={index}
-                                structure={displayRowsStructure}
-                                menu={contractsListMenu}
-                                menuToTop={displayContracts.length > 4 && index > (displayContracts.length - 4) }
-                            />
-                        )}
+                                displayContracts.map((contract, index) =>
+                                    <ListRow<ContractObject>
+                                        key={contract.id}
+                                        rowItem={contract}
+                                        index={index}
+                                        structure={displayRowsStructure}
+                                        menu={contractsListMenu}
+                                        menuToTop={displayContracts.length > 4 && index > (displayContracts.length - 4)}
+                                    />
+                                )}
                     </div>
                 }
 
@@ -455,7 +456,7 @@ export function ContractsListV2(): JSX.Element {
                 </CommonModal>
             }
 
-            {!isDeleteContractDialogOpen || !contractForDeletion  ? undefined :
+            {!isDeleteContractDialogOpen || !contractForDeletion ? undefined :
                 <CommonDialog
                     title="Delete Report?"
                     onConfirm={handleConfirmedContractDeletion}
@@ -465,7 +466,7 @@ export function ContractsListV2(): JSX.Element {
                 >
                     <div className="delete-dialog-contents">
                         <span>{`Are you sure you want to delete the file "${contractForDeletion.label ?? contractForDeletion.filename}"?`}</span>
-                        <span>This action can't be undone.</span>
+                        <span>This action can&apos;t be undone.</span>
                     </div>
                 </CommonDialog>
             }
@@ -489,12 +490,12 @@ interface StatusIconProps {
 
 function StatusIcon(props: StatusIconProps): JSX.Element {
     switch (props.status) {
-        case ExtractionStatus.Uploading: return <div className="status-icon-container"><ElevaiteIcons.SVGUpload/></div> 
-        case ExtractionStatus.Extracting: return <div className="status-icon-container highlight"><ElevaiteIcons.SVGInstanceProgress/></div>
-        case ExtractionStatus.Failed: return <div className="status-icon-container danger"><ElevaiteIcons.SVGXmark/></div>
-        case ExtractionStatus.Complete: return <div className="status-icon-container blue"><ElevaiteIcons.SVGCheckmark/></div>
-        case MatchingStatus.Found: return <div className="status-icon-container success"><ElevaiteIcons.SVGCheckmark/></div>
-        case MatchingStatus.Failed: return <div className="status-icon-container"><ElevaiteIcons.SVGQuestionMark/></div>
+        case ExtractionStatus.Uploading: return <div className="status-icon-container"><ElevaiteIcons.SVGUpload /></div>
+        case ExtractionStatus.Extracting: return <div className="status-icon-container highlight"><ElevaiteIcons.SVGInstanceProgress /></div>
+        case ExtractionStatus.Failed: return <div className="status-icon-container danger"><ElevaiteIcons.SVGXmark /></div>
+        case ExtractionStatus.Complete: return <div className="status-icon-container blue"><ElevaiteIcons.SVGCheckmark /></div>
+        case MatchingStatus.Found: return <div className="status-icon-container success"><ElevaiteIcons.SVGCheckmark /></div>
+        case MatchingStatus.Failed: return <div className="status-icon-container"><ElevaiteIcons.SVGQuestionMark /></div>
     }
 }
 
@@ -540,7 +541,7 @@ function ContractListFilterPill(props: ContractListFilterPillProps): JSX.Element
     const [isSelected, setIsSelected] = useState(false);
 
     useEffect(() => {
-        switch(props.type) {
+        switch (props.type) {
             case CONTRACT_TYPES.VSOW: setLabel(CONTRACTS_TABS.SUPPLIER_CONTRACTS.toUpperCase()); break;
             case CONTRACT_TYPES.CSOW: setLabel(CONTRACTS_TABS.CUSTOMER_CONTRACTS.toUpperCase()); break;
             case CONTRACT_TYPES.PURCHASE_ORDER: setLabel(CONTRACTS_TABS.SUPPLIER_POS.toUpperCase()); break;
@@ -556,7 +557,7 @@ function ContractListFilterPill(props: ContractListFilterPillProps): JSX.Element
         props.onClick(props.type);
     }
 
-    return (        
+    return (
         <CommonButton
             className={["filter-pill-container", isSelected ? "active" : undefined].filter(Boolean).join(" ")}
             onClick={handleClick}
@@ -576,9 +577,9 @@ interface MismatchButtonProps {
 }
 
 function MismatchButton(props: MismatchButtonProps): JSX.Element {
+    const contractsContext = useContracts();
     if (props.items.length === 0) return <span className="failed"><ElevaiteIcons.SVGXmark /></span>
 
-    const contractsContext = useContracts();
 
     function handleMismatchMenuClick(clickedItem: UnverifiedItem): void {
         if (!clickedItem.id) return;
@@ -587,31 +588,32 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
     }
 
     if (props.items.length === 1)
-    return (
-        <CommonButton
-            title={`This cross-section has one issue, with file:\n${props.items[0].label ?? props.items[0].fileName ?? "Unknown File" ?? "Unknown"}`}
-            onClick={() => handleMismatchMenuClick(props.items[0])}
-        >
-            <ElevaiteIcons.SVGQuestionMark/>
-        </CommonButton>
-    );
+        return (
+            <CommonButton
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-binary-expression -- TODO: Take a look at this
+                title={`This cross-section has one issue, with file:\n${props.items[0].label ?? props.items[0].fileName ?? "Unknown File" ?? "Unknown"}`}
+                onClick={() => { handleMismatchMenuClick(props.items[0]); }}
+            >
+                <ElevaiteIcons.SVGQuestionMark />
+            </CommonButton>
+        );
 
     //--------------------
 
-    const mismatchMenu: CommonMenuItem<UnverifiedItem[]>[] = 
+    const mismatchMenu: CommonMenuItem<UnverifiedItem[]>[] =
         props.items.map(item => {
             return {
                 label: item.label ?? item.fileName ?? "Unknown File",
-                onClick: () => handleMismatchMenuClick(item),
+                onClick: () => { handleMismatchMenuClick(item); },
                 tooltip: item.fileName,
             }
         }
-    );
+        );
 
     return (
         <CommonMenu
             menu={mismatchMenu}
-            menuIcon={<ElevaiteIcons.SVGQuestionMark/>}
+            menuIcon={<ElevaiteIcons.SVGQuestionMark />}
             tooltip={`This cross-section has ${props.items.length} issues`}
             labelWidth="long"
             left

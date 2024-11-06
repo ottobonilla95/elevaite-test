@@ -16,7 +16,7 @@ export function AddProject(props: AddProjectProps): JSX.Element {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [editingProject, setEditingProject] = useState<ContractProjectObject|undefined>();
+    const [editingProject, setEditingProject] = useState<ContractProjectObject | undefined>();
     const [isDeletionConfirmationOpen, setIsDeletionConfirmationOpen] = useState(false);
 
 
@@ -70,7 +70,7 @@ export function AddProject(props: AddProjectProps): JSX.Element {
 
             {!isLoading ? undefined :
                 <div className="loading-overlay">
-                    <ElevaiteIcons.SVGSpinner/>
+                    <ElevaiteIcons.SVGSpinner />
                 </div>
             }
 
@@ -78,9 +78,9 @@ export function AddProject(props: AddProjectProps): JSX.Element {
                 <div className="add-project-title">
                     <span>{props.editingProjectId ? "Edit Project" : "Add Project"}</span>
                 </div>
-                <div className="close-button">                    
+                <div className="close-button">
                     <CommonButton onClick={handleCloseModal} noBackground>
-                        <ElevaiteIcons.SVGXmark/>
+                        <ElevaiteIcons.SVGXmark />
                     </CommonButton>
                 </div>
             </div>
@@ -93,11 +93,11 @@ export function AddProject(props: AddProjectProps): JSX.Element {
             />
 
             <CommonInput
-                label="Description"                
+                label="Description"
                 controlledValue={description}
                 onChange={setDescription}
             />
-            
+
             <div className={["submit-controls", !props.editingProjectId ? undefined : "editing"].filter(Boolean).join(" ")}>
 
                 {!props.editingProjectId ? undefined :
@@ -109,7 +109,7 @@ export function AddProject(props: AddProjectProps): JSX.Element {
                     </CommonButton>
                 }
 
-                <div className="pair">                    
+                <div className="pair">
                     <CommonButton
                         className="cancel-button"
                         onClick={handleCloseModal}
@@ -132,7 +132,7 @@ export function AddProject(props: AddProjectProps): JSX.Element {
                     title="Delete Project?"
                     confirmLabel="Delete"
                     onConfirm={handleConfirmedDelete}
-                    onCancel={() => setIsDeletionConfirmationOpen(false)}
+                    onCancel={() => { setIsDeletionConfirmationOpen(false); }}
                     dangerSubmit
                 >
                     <div className="delete-dialog-contents">

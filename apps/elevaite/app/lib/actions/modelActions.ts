@@ -42,11 +42,11 @@ import {
 } from "./modelDiscriminators";
 
 const MODELS_URL = process.env.NEXT_PUBLIC_MODELS_API_URL;
-const MODELS_ELEVAITE_URL = MODELS_URL + "/elevaite";
+const MODELS_ELEVAITE_URL = `${MODELS_URL}/elevaite`;
 const MODELS_USERNAME = process.env.MODELS_USERNAME;
 const MODELS_PASSWORD = process.env.MODELS_PASSWORD;
 const MODELS_AUTH_HEADER = new Headers({
-  Authorization: `Basic ${btoa(MODELS_USERNAME + ":" + MODELS_PASSWORD)}`,
+  Authorization: `Basic ${btoa(`${MODELS_USERNAME}:${MODELS_PASSWORD}`)}`,
 });
 
 // TODO: This is temporary
@@ -274,7 +274,7 @@ export async function registerModel(
   headers.append("Content-Type", "application/json");
   headers.append(
     "Authorization",
-    `Basic ${btoa(MODELS_USERNAME + ":" + MODELS_PASSWORD)}`
+    `Basic ${btoa(`${MODELS_USERNAME}:${MODELS_PASSWORD}`)}`
   );
   const response = await fetch(`${MODELS_ELEVAITE_URL}/models`, {
     method: "POST",
@@ -308,7 +308,7 @@ export async function deployModel(
   headers.append("Content-Type", "application/json");
   headers.append(
     "Authorization",
-    `Basic ${btoa(MODELS_USERNAME + ":" + MODELS_PASSWORD)}`
+    `Basic ${btoa(`${MODELS_USERNAME}:${MODELS_PASSWORD}`)}`
   );
   const response = await fetch(`${MODELS_ELEVAITE_URL}/endpoints`, {
     method: "POST",
@@ -348,7 +348,7 @@ export async function inferEndpointTextGeneration(
   headers.append("Content-Type", "application/json");
   headers.append(
     "Authorization",
-    `Basic ${btoa(MODELS_USERNAME + ":" + MODELS_PASSWORD)}`
+    `Basic ${btoa(`${MODELS_USERNAME}:${MODELS_PASSWORD}`)}`
   );
   const url = new URL(`${MODELS_URL}/inference/${endpointId}`);
 
@@ -385,7 +385,7 @@ export async function inferEndpointSummarization(
   headers.append("Content-Type", "application/json");
   headers.append(
     "Authorization",
-    `Basic ${btoa(MODELS_USERNAME + ":" + MODELS_PASSWORD)}`
+    `Basic ${btoa(`${MODELS_USERNAME}:${MODELS_PASSWORD}`)}`
   );
   const url = new URL(`${MODELS_URL}/inference/${endpointId}`);
 
@@ -426,7 +426,7 @@ export async function inferEndpointQuestionAnswering(
   headers.append("Content-Type", "application/json");
   headers.append(
     "Authorization",
-    `Basic ${btoa(MODELS_USERNAME + ":" + MODELS_PASSWORD)}`
+    `Basic ${btoa(`${MODELS_USERNAME}:${MODELS_PASSWORD}`)}`
   );
   const url = new URL(`${MODELS_URL}/inference/${endpointId}`);
 
@@ -466,7 +466,7 @@ export async function inferEndpointEmbedding(
   headers.append("Content-Type", "application/json");
   headers.append(
     "Authorization",
-    `Basic ${btoa(MODELS_USERNAME + ":" + MODELS_PASSWORD)}`
+    `Basic ${btoa(`${MODELS_USERNAME}:${MODELS_PASSWORD}`)}`
   );
   const url = new URL(`${MODELS_URL}/inference/${endpointId}`);
 
@@ -509,7 +509,7 @@ export async function requestModelEvaluation(
   headers.append("Content-Type", "application/json");
   headers.append(
     "Authorization",
-    `Basic ${btoa(MODELS_USERNAME + ":" + MODELS_PASSWORD)}`
+    `Basic ${btoa(`${MODELS_USERNAME}:${MODELS_PASSWORD}`)}`
   );
   const response = await fetch(`${MODELS_ELEVAITE_URL}/evaluations`, {
     method: "POST",
@@ -540,7 +540,7 @@ export async function undeployModel(endpointId: string): Promise<boolean> {
   headers.append("Content-Type", "application/json");
   headers.append(
     "Authorization",
-    `Basic ${btoa(MODELS_USERNAME + ":" + MODELS_PASSWORD)}`
+    `Basic ${btoa(`${MODELS_USERNAME}:${MODELS_PASSWORD}`)}`
   );
   const response = await fetch(
     `${MODELS_ELEVAITE_URL}/endpoints/${endpointId}`,
@@ -570,7 +570,7 @@ export async function deleteModel(modelId: string): Promise<boolean> {
   headers.append("Content-Type", "application/json");
   headers.append(
     "Authorization",
-    `Basic ${btoa(MODELS_USERNAME + ":" + MODELS_PASSWORD)}`
+    `Basic ${btoa(`${MODELS_USERNAME}:${MODELS_PASSWORD}`)}`
   );
   const response = await fetch(`${MODELS_ELEVAITE_URL}/models/${modelId}`, {
     method: "DELETE",

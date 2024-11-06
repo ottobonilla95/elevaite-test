@@ -26,6 +26,9 @@ module.exports = {
     project,
   },
   parser: "@typescript-eslint/parser",
+  plugins: [
+    "@typescript-eslint"
+  ],
   globals: {
     React: true,
     JSX: true,
@@ -67,6 +70,12 @@ module.exports = {
         },
       },
     ],
-    "@typescript-eslint/naming-convention": "off"
+    "@typescript-eslint/naming-convention": "off",
+    "@typescript-eslint/no-unnecessary-condition": "warn",
+    "@typescript-eslint/no-unnecessary-boolean-literal-compare": "warn",
+    "@typescript-eslint/restrict-template-expressions": "warn",
+    "@typescript-eslint/no-unnecessary-type-assertion": "warn",
+    "@typescript-eslint/no-shadow": "warn",
+    "no-prototype-builtins": "warn"
   },
 };

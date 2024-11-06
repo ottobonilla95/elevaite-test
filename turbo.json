@@ -27,7 +27,8 @@
     "NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL",
     "ELEVAITE_HOMEPAGE",
     "ORG_ID",
-    "RBAC_BACKEND_URL"
+    "RBAC_BACKEND_URL",
+    "NODE_TLS_REJECT_UNAUTHORIZED"
   ],
   "tasks": {
     "build": {
