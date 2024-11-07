@@ -36,22 +36,23 @@ interface PdfDisplayProps {
 export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     const contractsContext = useContracts();
     const [isLoading, setIsLoading] = useState(false);
-    const [pdfReference, setPdfReference] = useState<string|File|null>(null);
+    const [pdfReference, setPdfReference] = useState<string | File | null>(null);
     const [pdfData, setPdfData] = useState<string>();
-    const pageContainerRef = useRef<HTMLDivElement | null>(null);  
+    const pageContainerRef = useRef<HTMLDivElement | null>(null);
     const { width: pageContainerWidth } = useResizeDetector<HTMLDivElement>({
         targetRef: pageContainerRef,
         refreshMode: "debounce",
-        refreshRate: 200 });
-    const [pdfZoom, setPdfZoom] = useState<number|undefined>();
-    const pageRefs = useRef<Record<string, HTMLDivElement|null>>({});
+        refreshRate: 200
+    });
+    const [pdfZoom, setPdfZoom] = useState<number | undefined>();
+    const pageRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const [pagesAmount, setPagesAmount] = useState<number>();
     const [pageNumber, setPageNumber] = useState(1);
     const [inputNumber, setInputNumber] = useState("");
     const movePage = useRef(false);
     // const [highlightTerms, setHighlightTerms] = useState<string[]>([]);
     const [pdfTabsArray, setPdfTabsArray] = useState<PdfTabs[]>(pdfTabsArrayDefault);
-    const [selectedTab, setSelectedTab] = useState<CONTRACT_TYPES|undefined>();
+    const [selectedTab, setSelectedTab] = useState<CONTRACT_TYPES | undefined>();
 
 
     const observer = new IntersectionObserver(
@@ -86,7 +87,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         //     formatSearchTerms(contractsContext.selectedContract.extractedData);
     }, [contractsContext.selectedContract]);
 
-    useEffect(() => {        
+    useEffect(() => {
         void formatPdfData(pdfReference);
     }, [pdfReference]);
 
@@ -101,17 +102,17 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     }, [pageNumber]);
 
 
-    async function formatPdfData(fileReference: string|File|null): Promise<void> {
+    async function formatPdfData(fileReference: string | File | null): Promise<void> {
         setPagesAmount(undefined);
         // TODO: If checksum is the same, don't change pdfData.
         setIsLoading(true);
         if (fileReference && contractsContext.selectedProject && contractsContext.selectedContract) {
-            let file: string|File|Blob = fileReference;
+            let file: string | File | Blob = fileReference;
             if (typeof file === "string") {
                 const url = new URL(`${window.location.origin}/api/contracts/`);
-                url.searchParams.set("projectId", contractsContext.selectedProject?.id.toString());
-                url.searchParams.set("contractId", contractsContext.selectedContract?.id.toString());
-                const response = await fetch(url, {method: "GET"});
+                url.searchParams.set("projectId", contractsContext.selectedProject.id.toString());
+                url.searchParams.set("contractId", contractsContext.selectedContract.id.toString());
+                const response = await fetch(url, { method: "GET" });
                 const blob = await response.blob();
                 file = blob;
             }
@@ -191,31 +192,31 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
 
     function handleTabSelection(passedTab: CONTRACT_TYPES): void {
         setSelectedTab(passedTab);
-        switch(passedTab) {
+        switch (passedTab) {
             case CONTRACT_TYPES.INVOICE: {
-                    if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE &&
-                        contractsContext.selectedContract?.verification?.invoice?.[0]?.file_id)
-                        contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.invoice[0].file_id);
-                        break;
-                    }
+                if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE &&
+                    contractsContext.selectedContract?.verification?.invoice?.[0]?.file_id)
+                    contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.invoice[0].file_id);
+                break;
+            }
             case CONTRACT_TYPES.PURCHASE_ORDER: {
-                    if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.PURCHASE_ORDER &&
-                        contractsContext.selectedContract?.verification?.po?.[0]?.file_id)
-                        contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.po[0].file_id);
-                        break;
-                    }
+                if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.PURCHASE_ORDER &&
+                    contractsContext.selectedContract?.verification?.po?.[0]?.file_id)
+                    contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.po[0].file_id);
+                break;
+            }
             case CONTRACT_TYPES.VSOW: {
-                        if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.VSOW &&
-                            contractsContext.selectedContract?.verification?.vsow?.[0]?.file_id)
-                            contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.vsow[0].file_id);
-                            break;
-                        }
+                if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.VSOW &&
+                    contractsContext.selectedContract?.verification?.vsow?.[0]?.file_id)
+                    contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.vsow[0].file_id);
+                break;
+            }
             case CONTRACT_TYPES.CSOW: {
-                        if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.CSOW &&
-                            contractsContext.selectedContract?.verification?.csow?.[0]?.file_id)
-                            contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.csow[0].file_id);
-                            break;
-                        }
+                if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.CSOW &&
+                    contractsContext.selectedContract?.verification?.csow?.[0]?.file_id)
+                    contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.csow[0].file_id);
+                break;
+            }
             default: break;
         }
     }
@@ -224,13 +225,13 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         props.handleExpansion();
     }
 
-    function handleZoom(type: "in"|"out"|"reset"): void {
+    function handleZoom(type: "in" | "out" | "reset"): void {
         if (type === "in") {
-            setPdfZoom(current => 
+            setPdfZoom(current =>
                 current ? parseFloat((current + 0.1).toFixed(2)) : 1.1
             )
         } else if (type === "out") {
-            setPdfZoom(current => 
+            setPdfZoom(current =>
                 current ? parseFloat((current - 0.1).toFixed(2)) : 0.9
             )
         } else setPdfZoom(undefined);
@@ -243,14 +244,14 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         setPageNumber(1);
     }
 
-    function previousPage(): void { changePage(-1); }    
+    function previousPage(): void { changePage(-1); }
     function nextPage(): void { changePage(1); }
     function changePage(offset: number): void {
         movePage.current = true;
         setPageNumber(prevPageNumber => prevPageNumber + offset);
     }
 
-    function handleInputNumber(input: string): void {    
+    function handleInputNumber(input: string): void {
         setInputNumber(input);
     }
     function handleInputBlur(): void {
@@ -285,7 +286,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     function highlightPattern(text: string, patterns: (string | RegExp)[], ignoreCase = true): string {
         let processedText = text;
         patterns.forEach((pattern) => {
-            let regex: RegExp;            
+            let regex: RegExp;
             // If the pattern is a string, create a RegExp with optional case insensitivity
             if (typeof pattern === "string") {
                 const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -293,9 +294,9 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
             } else {
                 // If it's already a RegExp, respect its original flags
                 regex = new RegExp(pattern.source, pattern.flags + (ignoreCase && !pattern.flags.includes('i') ? 'i' : ''));
-            }    
+            }
             processedText = processedText.replace(regex, (value) => `<mark>${value}</mark>`);
-        });        
+        });
         return processedText;
     }
 
@@ -315,7 +316,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
             <div className="pdf-display-header">
                 <div className="controls-box">
                     <CommonButton onClick={onClose}>
-                        <ElevaiteIcons.SVGArrowBack/>
+                        <ElevaiteIcons.SVGArrowBack />
                     </CommonButton>
                     <span>Preview</span>
                 </div>
@@ -343,7 +344,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                             disabled={pdfZoom !== undefined && pdfZoom >= 3}
                             title="Zoom in"
                         >
-                            <ElevaiteIcons.SVGZoom/>
+                            <ElevaiteIcons.SVGZoom />
                         </CommonButton>
                         <CommonButton
                             className={["expansion-arrow", props.isExpanded ? "expanded" : undefined].filter(Boolean).join(" ")}
@@ -364,8 +365,8 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                         className={[
                             "tab-button",
                             selectedTab === item.value ? "active" : undefined,
-                        ].filter(Boolean).join(" ")}                        
-                        onClick={() => { handleTabSelection(item.value)}}
+                        ].filter(Boolean).join(" ")}
+                        onClick={() => { handleTabSelection(item.value) }}
                         disabled={item.isDisabled}
                     >
                         {item.label}
@@ -379,31 +380,31 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                 onScroll={onScroll}
             >
                 <div className="pdf-display-contents">
-                {isLoading ? <div className="loading large"><ElevaiteIcons.SVGSpinner/></div> :
-                    !pdfData ? <div className="no-file">No pdf attached.</div> :
-                    <Document
-                        file={pdfData}
-                        onLoadSuccess={getPagesAmount}
-                        loading={<div className="loading large"><ElevaiteIcons.SVGSpinner/></div>}
-                    >
-                        {pagesAmount === undefined ? undefined : Array.from(new Array(pagesAmount),
-                            (entry, index) => (
-                                <div
-                                    key={`page_${(index + 1).toString()}`}
-                                    ref={item => { pageRefs.current[index + 1] = item;}}
-                                >
-                                    <Page                                    
-                                        pageNumber={index + 1}
-                                        width={pageContainerWidth ? pageContainerWidth : 1}
-                                        scale={pdfZoom}
-                                        // customTextRenderer={textRenderer}
-                                        loading={<div className="loading large"><ElevaiteIcons.SVGSpinner/></div>}
-                                    />
-                                </div>
-                            ),
-                        )}
-                    </Document>
-                }
+                    {isLoading ? <div className="loading large"><ElevaiteIcons.SVGSpinner /></div> :
+                        !pdfData ? <div className="no-file">No pdf attached.</div> :
+                            <Document
+                                file={pdfData}
+                                onLoadSuccess={getPagesAmount}
+                                loading={<div className="loading large"><ElevaiteIcons.SVGSpinner /></div>}
+                            >
+                                {pagesAmount === undefined ? undefined : Array.from(new Array(pagesAmount),
+                                    (entry, index) => (
+                                        <div
+                                            key={`page_${(index + 1).toString()}`}
+                                            ref={item => { pageRefs.current[index + 1] = item; }}
+                                        >
+                                            <Page
+                                                pageNumber={index + 1}
+                                                width={pageContainerWidth ? pageContainerWidth : 1}
+                                                scale={pdfZoom}
+                                                // customTextRenderer={textRenderer}
+                                                loading={<div className="loading large"><ElevaiteIcons.SVGSpinner /></div>}
+                                            />
+                                        </div>
+                                    ),
+                                )}
+                            </Document>
+                    }
                 </div>
             </div>
 
@@ -441,7 +442,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
 
                 </div>
             }
-            
+
         </div>
     );
 }
