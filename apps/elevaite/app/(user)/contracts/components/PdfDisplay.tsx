@@ -357,7 +357,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                 }
             </div>
 
-            <div className="tabs-container">
+            {/* <div className="tabs-container">
                 {pdfTabsArray.map((item: {label: string, value: CONTRACT_TYPES, isDisabled?: boolean}) => 
                     <CommonButton
                         key={item.value}
@@ -371,7 +371,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                         {item.label}
                     </CommonButton>
                 )}
-            </div>
+            </div> */}
 
             <div
                 ref={pageContainerRef}

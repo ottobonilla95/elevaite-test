@@ -57,6 +57,10 @@
         }
     }
 
+    & .extraction-label {
+        flex-grow: 1;
+    }
+
     & .tabs-container {
         flex-grow: 1;
         display: flex;
