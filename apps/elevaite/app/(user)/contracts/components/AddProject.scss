@@ -85,3 +85,10 @@
     }
 
 }
+
+
+.delete-dialog-contents {
+    & .super-confirm {
+        margin-top: 20px;
+    }
+}

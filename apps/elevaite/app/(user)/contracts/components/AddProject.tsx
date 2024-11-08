@@ -1,8 +1,8 @@
 import { CommonButton, CommonDialog, CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { useContracts } from "../../../lib/contexts/ContractsContext";
+import { type ContractProjectObject } from "../../../lib/interfaces";
 import "./AddProject.scss";
-import { ContractProjectObject } from "../../../lib/interfaces";
 
 
 
@@ -18,6 +18,7 @@ export function AddProject(props: AddProjectProps): JSX.Element {
     const [isLoading, setIsLoading] = useState(false);
     const [editingProject, setEditingProject] = useState<ContractProjectObject | undefined>();
     const [isDeletionConfirmationOpen, setIsDeletionConfirmationOpen] = useState(false);
+    const [deleteConfirmationField, setDeleteConfirmationField] = useState("");
 
 
     useEffect(() => {
@@ -127,17 +128,25 @@ export function AddProject(props: AddProjectProps): JSX.Element {
 
             </div>
 
-            {!isDeletionConfirmationOpen ? undefined :
+            {!isDeletionConfirmationOpen || !editingProject ? undefined :
                 <CommonDialog
                     title="Delete Project?"
                     confirmLabel="Delete"
+                    disableConfirm={deleteConfirmationField.trim().toLowerCase() !== "delete"}
                     onConfirm={handleConfirmedDelete}
                     onCancel={() => { setIsDeletionConfirmationOpen(false); }}
                     dangerSubmit
                 >
                     <div className="delete-dialog-contents">
-                        <span>{`Are you sure you want to delete the project named "${editingProject?.name}"?`}</span>
+                        <span>{`Are you sure you want to delete the project named "${editingProject.name}"?`}</span>
                         <span>This action will delete the project and all its files and cannot be reverted.</span>
+                        <div className="super-confirm">
+                            <CommonInput
+                                label={"Please type the word \"Delete\" in the field below."}
+                                onChange={setDeleteConfirmationField}
+                                placeholder="Write 'Delete' to confirm."
+                            />
+                        </div>
                     </div>
                 </CommonDialog>
             }
