@@ -128,6 +128,18 @@ export interface ContractSettingsLabels {
     site_address: string;
 }
 
+export interface LoadingListObject {
+    projects: boolean | undefined;
+    contracts: boolean | undefined;
+    submittingContract: boolean;
+    deletingContract: boolean;
+    projectReports: Record<string, boolean>;
+    projectSettings: Record<string, boolean>;
+    contractEmphasis: Record<string, boolean>;
+    contractLineItems: Record<string, boolean>;
+    contractVerification: Record<string, boolean>;
+}
+
 export interface ContractObject {
     id: string | number;
     project_id: string | number;
