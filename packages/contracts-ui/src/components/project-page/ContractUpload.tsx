@@ -1,7 +1,6 @@
 import { CommonButton, CommonFormLabels, CommonInput, CommonSelect, type CommonSelectOption, ElevaiteIcons } from "@repo/ui/components";
 import { useRef, useState } from "react";
-import { useContracts } from "../../../lib/contexts/ContractsContext";
-import { CONTRACT_TYPES, CONTRACTS_TABS } from "../../../lib/interfaces";
+import { CONTRACT_TYPES, ContractProjectObject, CONTRACTS_TABS } from "@/interfaces";
 import "./ContractUpload.scss";
 
 
@@ -19,11 +18,12 @@ const contractTypesOptions: CommonSelectOption[] = [
 interface ContractUploadProps {
     selectedTab?: CONTRACTS_TABS;
     selectedType?: CONTRACT_TYPES;
+    selectedProject?: ContractProjectObject;
     onClose: () => void;
+    submitCurrentContractPdf: (pdf: File | undefined, type: CONTRACT_TYPES, projectId: string | number, name?: string) => void;
 }
 
 export function ContractUpload(props: ContractUploadProps): JSX.Element {
-    const contractsContext = useContracts();
     const hiddenFileInput = useRef<HTMLInputElement|null>(null);
     const [uploadingFile, setUploadingFile] = useState<File|undefined>();
     const [name, setName] = useState("");
@@ -49,8 +49,8 @@ export function ContractUpload(props: ContractUploadProps): JSX.Element {
     }
 
     function handleSubmit(): void {
-        if (!uploadingFile || !pdfType || !contractsContext.selectedProject?.id) return;
-        contractsContext.submitCurrentContractPdf(uploadingFile, pdfType, contractsContext.selectedProject.id, name);
+        if (!uploadingFile || !pdfType || !props.selectedProject?.id) return;
+        props.submitCurrentContractPdf(uploadingFile, pdfType, props.selectedProject.id, name);
         props.onClose();
     }
 

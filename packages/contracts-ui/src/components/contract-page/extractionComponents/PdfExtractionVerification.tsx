@@ -1,25 +1,25 @@
 import { CommonButton, CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import React, { useEffect, useState } from "react";
 import { isObject } from "@/actions/generalDiscriminators";
-import { useContracts } from "../../../../lib/contexts/ContractsContext";
-import { ContractStatus, CONTRACT_TYPES, type ContractObjectVerification, type ContractObjectVerificationItem } from "@/interfaces";
+import { ContractStatus, CONTRACT_TYPES, type ContractObjectVerification, type ContractObjectVerificationItem, ContractObject, LoadingListObject } from "@/interfaces";
 import "./PdfExtractionVerification.scss";
 import { VerificationLineItems } from "./VerificationLineItems";
 
+interface PdfExtractionVerificationProps {
+    selectedContract?: ContractObject;
+    loading: LoadingListObject;
+}
 
-
-
-export function PdfExtractionVerification(): JSX.Element {
-    const contractsContext = useContracts();
+export function PdfExtractionVerification(props: PdfExtractionVerificationProps ): JSX.Element {
     const [verificationData, setVerificationData] = useState<ContractObjectVerification | null>();
     const [supplier, setSupplier] = useState<string | undefined>();
     const [isLineItemsFullScreen, setIsLineItemsFullScreen] = useState(false);
 
 
     useEffect(() => {
-        setVerificationData(contractsContext.selectedContract?.verification);
-        setSupplier(contractsContext.selectedContract?.highlight?.supplier ? contractsContext.selectedContract.highlight.supplier : undefined);
-    }, [contractsContext.selectedContract]);
+        setVerificationData(props.selectedContract?.verification);
+        setSupplier(props.selectedContract?.highlight?.supplier ? props.selectedContract.highlight.supplier : undefined);
+    }, [props.selectedContract]);
 
 
     function getFormattedComments(comments: string[]): React.ReactElement[] {
@@ -39,7 +39,7 @@ export function PdfExtractionVerification(): JSX.Element {
     return (
         <div className="pdf-extraction-verification-container">
 
-            {contractsContext.selectedContract?.status === ContractStatus.Extracting ?
+            {props.selectedContract?.status === ContractStatus.Extracting ?
                 <div className="no-verification">
                     <ElevaiteIcons.SVGSpinner /><span>Verification in progress...</span>
                 </div>
@@ -49,7 +49,7 @@ export function PdfExtractionVerification(): JSX.Element {
                     </div>
                     :
                     <>
-                        {contractsContext.selectedContract?.content_type === CONTRACT_TYPES.PURCHASE_ORDER ? undefined :
+                        {props.selectedContract?.content_type === CONTRACT_TYPES.PURCHASE_ORDER ? undefined :
                             <div className="pdf-verification-block">
                                 <div className="pdf-verification-label">
                                     Purchase Order Information
@@ -72,7 +72,7 @@ export function PdfExtractionVerification(): JSX.Element {
                         <div className="pdf-verification-block table">
                             <div className="pdf-verification-label expanded">
                                 <span>Line Items</span>
-                                {(!contractsContext.selectedContract?.line_items) || contractsContext.selectedContract.line_items.length === 0 ? undefined :
+                                {(!props.selectedContract?.line_items) || props.selectedContract.line_items.length === 0 ? undefined :
                                     <CommonButton
                                         onClick={() => { setIsLineItemsFullScreen(true); }}
                                         noBackground
@@ -82,13 +82,14 @@ export function PdfExtractionVerification(): JSX.Element {
                                     </CommonButton>
                                 }
                             </div>
-                            {(!contractsContext.selectedContract?.line_items) || contractsContext.selectedContract.line_items.length === 0 ?
+                            {(!props.selectedContract?.line_items) || props.selectedContract.line_items.length === 0 ?
                                 <div className="no-info">
                                     No line items.
                                 </div>
                                 :
                                 <VerificationLineItems
-                                    lineItems={contractsContext.selectedContract.line_items}
+                                    loading={props.loading}
+                                    lineItems={props.selectedContract.line_items}
                                     fullScreen={isLineItemsFullScreen}
                                     onFullScreenClose={() => { setIsLineItemsFullScreen(false); }}
                                 />
@@ -141,18 +142,18 @@ export function PdfExtractionVerification(): JSX.Element {
                                 )}
                             </div>
                         }
-                        {!contractsContext.selectedContract?.response_comments ? undefined :
+                        {!props.selectedContract?.response_comments ? undefined :
                             <div className="pdf-verification-block">
                                 <div className="pdf-verification-label">
                                     Comments
                                 </div>
-                                {contractsContext.selectedContract.response_comments.length === 0 ?
+                                {props.selectedContract.response_comments.length === 0 ?
                                     <div className="no-info">
                                         No Comments for this file.
                                     </div>
                                     :
                                     <div className="verification-comments">
-                                        {getFormattedComments(contractsContext.selectedContract.response_comments)}
+                                        {getFormattedComments(props.selectedContract.response_comments)}
                                     </div>
                                 }
                             </div>

@@ -1,15 +1,11 @@
 import { CommonButton, CommonDialog, CommonMenu, type CommonMenuItem, CommonModal, ElevaiteIcons } from "@repo/ui/components";
 import React, { useEffect, useState } from "react";
-import { useContracts } from "../../../lib/contexts/ContractsContext";
 import { formatBytes } from "@/helpers";
-import { CONTRACT_TYPES, type ContractObject, ContractObjectVerificationItem, CONTRACTS_TABS, ContractStatus, type SortingObject, type UnverifiedItem, type VerificationQuickList, type VerificationQuickListItem } from "@/interfaces";
+import { CONTRACT_TYPES, type ContractObject, ContractObjectVerificationItem, ContractProjectObject, CONTRACTS_TABS, ContractStatus, LoadingListObject, type SortingObject, type UnverifiedItem, type VerificationQuickList, type VerificationQuickListItem } from "@/interfaces";
 import { AddProject } from "./AddProject";
 import "./ContractsListV2.scss";
 import { ContractUpload } from "./ContractUpload";
 import { ListRow, RowStructure } from "../ListRow";
-
-
-
 
 enum ExtractionStatus {
     Uploading = "Upload In\xa0Progress",
@@ -47,11 +43,23 @@ const cleanFilterNumbers: StatusFilterNumbers = {
     unmatched: 0,
 }
 
+interface ContractsListV2Props {
+    selectedContract?: ContractObject;
+    selectedProject?: ContractProjectObject;
+    setSelectedContract: (contract: ContractObject | undefined) => void;
+    setSecondarySelectedContract: (contract: ContractObject | CONTRACT_TYPES | undefined) => void;
+    setSecondarySelectedContractById: (id: string | number | undefined) => void;
+    getContractById: (id: string | number) => ContractObject | undefined;
+    deleteContract: (projectId: string, contractId: string) => Promise<boolean>;
+    loading: LoadingListObject;
+    createProject: (name: string, description?: string) => Promise<boolean>;
+    editProject: (projectId: string, name: string, description?: string) => Promise<boolean>;
+    deleteProject: (projectId: string) => Promise<boolean>;
+    projects: ContractProjectObject[];
+    submitCurrentContractPdf: (pdf: File | undefined, type: CONTRACT_TYPES, projectId: string | number, name?: string) => void;
+}
 
-
-
-export function ContractsListV2(): JSX.Element {
-    const contractsContext = useContracts();
+export function ContractsListV2(props: ContractsListV2Props ): JSX.Element {
     const [contracts, setContracts] = useState<ContractObject[]>([]);
     const [displayContracts, setDisplayContracts] = useState<ContractObject[]>([]);
     const [selectedContractTypes, setSelectedContractTypes] = useState<CONTRACT_TYPES[]>([]);
@@ -76,13 +84,13 @@ export function ContractsListV2(): JSX.Element {
     // }, [displayContracts]);
 
     useEffect(() => {
-        if (!contractsContext.selectedContract) clearUi();
-    }, [contractsContext.selectedProject]);
+        if (!props.selectedContract) clearUi();
+    }, [props.selectedProject]);
 
     useEffect(() => {
-        setContracts(contractsContext.selectedProject?.reports ?? []);
+        setContracts(props.selectedProject?.reports ?? []);
         setDisplayRowsStructure(getRowListStructure());
-    }, [contractsContext.selectedProject?.reports]);
+    }, [props.selectedProject?.reports]);
 
     useEffect(() => {
         updateStatusFilterNumbers(contracts);
@@ -124,9 +132,9 @@ export function ContractsListV2(): JSX.Element {
     }
 
     function handleContractClick(contract: ContractObject, compare?: boolean): void {
-        contractsContext.setSelectedContract(contract);
+        props.setSelectedContract(contract);
         if (compare) {
-            contractsContext.setSecondarySelectedContract(contract.content_type);
+            props.setSecondarySelectedContract(contract.content_type);
         }
     }
 
@@ -136,8 +144,8 @@ export function ContractsListV2(): JSX.Element {
     }
 
     function handleConfirmedContractDeletion(): void {
-        if (!contractsContext.selectedProject || !contractForDeletion) return;
-        void contractsContext.deleteContract(contractsContext.selectedProject.id.toString(), contractForDeletion.id.toString());
+        if (!props.selectedProject || !contractForDeletion) return;
+        void props.deleteContract(props.selectedProject.id.toString(), contractForDeletion.id.toString());
         setContractForDeletion(undefined);
         setIsDeleteContractDialogOpen(false);
     }
@@ -189,7 +197,7 @@ export function ContractsListV2(): JSX.Element {
                 irrelevant: contract.content_type === type,
                 verified: contract.verification?.[type]?.every(item => item.verification_status),
                 unverifiedItems: contract.verification?.[type]?.filter(item => !item.verification_status).map(item => {
-                    const relevantContract = contractsContext.getContractById(item.file_id ?? "");
+                    const relevantContract = props.getContractById(item.file_id ?? "");
                     return {
                         id: item.file_id,
                         ref: item.file_ref,
@@ -329,9 +337,9 @@ export function ContractsListV2(): JSX.Element {
                     listItem.status === ContractStatus.Extracting ? <span className="pending" title="This file is still being processed"><ElevaiteIcons.SVGInstanceProgress /></span> :
                         listItem.status === ContractStatus.ExtractionFailed ? <span className="failed" title="This file failed to extract"><ElevaiteIcons.SVGXmark /></span> :
                             item.verified ?
-                                <MatchButton contract={listItem} />
+                                <MatchButton contract={listItem} setSecondarySelectedContractById={props.setSecondarySelectedContractById} setSelectedContract={props.setSelectedContract}/>
                                 :
-                                <MismatchButton contract={listItem} items={item.unverifiedItems} index={index} listLength={displayContracts.length} />
+                                <MismatchButton contract={listItem} items={item.unverifiedItems} index={index} listLength={displayContracts.length} setSecondarySelectedContractById={props.setSecondarySelectedContractById} setSelectedContract={props.setSelectedContract}/>
                 }
             </div>
         );
@@ -343,14 +351,14 @@ export function ContractsListV2(): JSX.Element {
 
 
     return (
-        <div className={["contracts-list-v2-container", contractsContext.selectedProject ? undefined : "empty"].filter(Boolean).join(" ")}>
+        <div className={["contracts-list-v2-container", props.selectedProject ? undefined : "empty"].filter(Boolean).join(" ")}>
 
 
             <div className="contracts-list-v2-title-row">
                 <span className="title">
-                    {contractsContext.selectedProject?.name}
+                    {props.selectedProject?.name}
                 </span>
-                {!contractsContext.selectedProject ? undefined :
+                {!props.selectedProject ? undefined :
                     <div className="title-controls-container">
                         <CommonButton
                             className="edit-project-button"
@@ -394,7 +402,7 @@ export function ContractsListV2(): JSX.Element {
 
             <div className="contracts-list-v2-table-container">
 
-                {!contractsContext.selectedProject ?
+                {!props.selectedProject ?
                     <div className="no-project">
                         <span>No selected project</span>
                         <span>Select one from the list to the left</span>
@@ -408,7 +416,7 @@ export function ContractsListV2(): JSX.Element {
                             onSort={handleSort}
                             sorting={sorting}
                         />
-                        {contractsContext.loading.projectReports[contractsContext.selectedProject.id] ?
+                        {props.loading.projectReports[props.selectedProject.id] ?
                             <div className="table-span empty">
                                 <ElevaiteIcons.SVGSpinner />
                                 <span>Loading...</span>
@@ -442,18 +450,23 @@ export function ContractsListV2(): JSX.Element {
                 >
                     <ContractUpload
                         selectedType={selectedContractTypes.length >= 1 ? selectedContractTypes[0] : undefined}
+                        submitCurrentContractPdf={props.submitCurrentContractPdf}
                         onClose={() => { setIsUploadOpen(false); }}
                     />
                 </CommonModal>
             }
 
-            {!isProjectEditOpen || !contractsContext.selectedProject ? undefined :
+            {!isProjectEditOpen || !props.selectedProject ? undefined :
                 <CommonModal
                     onClose={() => { setIsProjectEditOpen(false); }}
                 >
                     <AddProject
                         onClose={() => { setIsProjectEditOpen(false); }}
-                        editingProjectId={contractsContext.selectedProject.id.toString()}
+                        editingProjectId={props.selectedProject.id.toString()}
+                        createProject={props.createProject}
+                        deleteProject={props.deleteProject}
+                        editProject={props.editProject}
+                        projects={props.projects}
                     />
                 </CommonModal>
             }
@@ -575,19 +588,19 @@ function ContractListFilterPill(props: ContractListFilterPillProps): JSX.Element
 
 interface MatchButtonProps {
     contract: ContractObject;
+    setSelectedContract: (contract: ContractObject | undefined) => void;
+    setSecondarySelectedContractById: (id: string | number | undefined) => void;
 }
 
 function MatchButton(props: MatchButtonProps): JSX.Element {
-    const contractsContext = useContracts();
-
     function handleMatchClick(): void {
         if (!props.contract.verification) return;
         const relevantContracts = Object.values(props.contract.verification)
             .filter((value): value is ContractObjectVerificationItem[] => Array.isArray(value)).flat();
 
         if (relevantContracts[0]) {
-            contractsContext.setSecondarySelectedContractById(relevantContracts[0].file_id);
-            contractsContext.setSelectedContract(props.contract);
+            props.setSecondarySelectedContractById(relevantContracts[0].file_id);
+            props.setSelectedContract(props.contract);
         }
     }
 
@@ -611,17 +624,18 @@ interface MismatchButtonProps {
     items: UnverifiedItem[];
     index?: number;
     listLength?: number;
+    setSelectedContract: (contract: ContractObject | undefined) => void;
+    setSecondarySelectedContractById: (id: string | number | undefined) => void;
 }
 
 function MismatchButton(props: MismatchButtonProps): JSX.Element {
-    const contractsContext = useContracts();
     if (props.items.length === 0) return <span className="failed"><ElevaiteIcons.SVGXmark /></span>
 
 
     function handleMismatchMenuClick(clickedItem: UnverifiedItem): void {
         if (!clickedItem.id) return;
-        contractsContext.setSecondarySelectedContractById(clickedItem.id);
-        contractsContext.setSelectedContract(props.contract);
+        props.setSecondarySelectedContractById(clickedItem.id);
+        props.setSelectedContract(props.contract);
     }
 
     if (props.items.length === 1)

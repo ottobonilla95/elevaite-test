@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
-import { useContracts } from "../../../lib/contexts/ContractsContext";
 import "./ContractComparisonBlock.scss";
-import { ContractObject } from "@/interfaces";
+import { CONTRACT_TYPES, ContractObject, LoadingListObject } from "@/interfaces";
 import { ComparisonSelect } from "./ComparisonSelect";
 import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 import { PdfExtractionEmphasis } from "./extractionComponents/PdfExtractionEmphasis";
 import { VerificationLineItems } from "./extractionComponents/VerificationLineItems";
-
-
 
 interface ContractComparisonBlockProps {
     secondary?: boolean;
@@ -18,24 +15,29 @@ interface ContractComparisonBlockProps {
     scrollRef?: React.RefObject<HTMLDivElement>;
     onFullScreenCompare?: () => void;
     barebones?: boolean;
+    selectedContract?: ContractObject;
+    secondarySelectedContract?: ContractObject | CONTRACT_TYPES;
+    setSelectedContractById: (id: string | number | undefined) => void;
+    setSecondarySelectedContractById: (id: string | number | undefined) => void;
+    setSelectedContract: (contract: ContractObject | undefined) => void;
+    loading: LoadingListObject;
 }
 
 export function ContractComparisonBlock(props: ContractComparisonBlockProps): JSX.Element {
-    const contracts = useContracts();
     const [currentContract, setCurrentContract] = useState<ContractObject>();
     const [isLineItemsFullScreen, setIsLineItemsFullScreen] = useState(false);
 
 
     useEffect(() => {
         if (props.secondary) {
-            if (contracts.secondarySelectedContract && typeof contracts.secondarySelectedContract === "object")
-                setCurrentContract(contracts.secondarySelectedContract);
+            if (props.secondarySelectedContract && typeof props.secondarySelectedContract === "object")
+                setCurrentContract(props.secondarySelectedContract);
             else
                 setCurrentContract(undefined);
         } else {
-            setCurrentContract(contracts.selectedContract);
+            setCurrentContract(props.selectedContract);
         }
-    }, [props.secondary, contracts.selectedContract, contracts.secondarySelectedContract]);
+    }, [props.secondary, props.selectedContract, props.secondarySelectedContract]);
 
     useEffect(() => {
         if (!props.scrollRef || !props.onScroll) return;
@@ -46,7 +48,7 @@ export function ContractComparisonBlock(props: ContractComparisonBlockProps): JS
         return () => {
             if (element && props.onScroll) element.removeEventListener("scroll", props.onScroll);
         };
-    }, [props.scrollRef, props.onScroll, props.secondary, contracts.selectedContract, contracts.secondarySelectedContract]);
+    }, [props.scrollRef, props.onScroll, props.secondary, props.selectedContract, props.secondarySelectedContract]);
 
 
     return (
@@ -54,7 +56,7 @@ export function ContractComparisonBlock(props: ContractComparisonBlockProps): JS
             {props.barebones ? undefined :
                 <>
                     <div className="contract-comparison-block-title">
-                        <ComparisonSelect secondary={props.secondary} listFor={!props.secondary ? undefined : contracts.selectedContract?.content_type} />
+                        <ComparisonSelect setSelectedContract={props.setSelectedContract} setSelectedContractById={props.setSelectedContractById} setSecondarySelectedContractById={props.setSecondarySelectedContractById} secondary={props.secondary} listFor={!props.secondary ? undefined : props.selectedContract?.content_type} />
                     </div>
                     <div className="separator long" />
                 </>
@@ -85,7 +87,7 @@ export function ContractComparisonBlock(props: ContractComparisonBlockProps): JS
                             !props.isOverviewMinimized ? "open" : undefined,
                         ].filter(Boolean).join(" ")}>
                             <div className="comparison-overview-contents">
-                                <PdfExtractionEmphasis secondary={props.secondary} borderless />
+                                <PdfExtractionEmphasis secondary={props.secondary} borderless loading={props.loading} />
                             </div>
                         </div>
 
@@ -123,6 +125,7 @@ export function ContractComparisonBlock(props: ContractComparisonBlockProps): JS
                     </div>
                     :
                     <VerificationLineItems
+                        loading={props.loading}
                         lineItems={currentContract.line_items}
                         fullScreen={isLineItemsFullScreen}
                         onFullScreenClose={() => { setIsLineItemsFullScreen(false); }}

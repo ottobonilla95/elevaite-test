@@ -1,27 +1,27 @@
 import { useEffect, useState } from "react";
-import { useContracts } from "../../../lib/contexts/ContractsContext";
 import { CONTRACT_TYPES, ContractObject } from "@/interfaces";
 import "./ComparisonSelect.scss";
 import { CommonSelect, CommonSelectOption } from "@repo/ui/components";
 
-
-
 interface ComparisonSelectProps {
     secondary?: boolean;
     listFor?: CONTRACT_TYPES;
+    selectedContract?: ContractObject;
+    selectedProject?: { reports?: ContractObject[] };
+    secondarySelectedContract?: ContractObject | CONTRACT_TYPES;
+    setSelectedContract: (contract: ContractObject | undefined) => void;
+    setSecondarySelectedContractById: (id: string) => void;
+    setSelectedContractById: (id: string) => void;
 }
 
 export function ComparisonSelect(props: ComparisonSelectProps): JSX.Element {
-    const contractsContext = useContracts();
-    const [selectedContract, setSelectedContract] = useState<ContractObject | undefined>();
     const [contractOptions, setContractOptions] = useState<CommonSelectOption[]>([]);
 
-
     useEffect(() => {
-        if (!props.secondary) setSelectedContract(contractsContext.selectedContract);
+        if (!props.secondary) props.setSelectedContract(props.selectedContract);
         else {
-            if (contractsContext.secondarySelectedContract && typeof contractsContext.secondarySelectedContract === "object")
-                setSelectedContract(contractsContext.secondarySelectedContract);
+            if (props.secondarySelectedContract && typeof props.secondarySelectedContract === "object")
+                props.setSelectedContract(props.secondarySelectedContract);
         }
         formatContractOptions(props.listFor);
 
@@ -29,13 +29,13 @@ export function ComparisonSelect(props: ComparisonSelectProps): JSX.Element {
 
 
     function handleSelection(value: string) {
-        if (props.secondary) contractsContext.setSecondarySelectedContractById(value);
-        else contractsContext.setSelectedContractById(value);
+        if (props.secondary) props.setSecondarySelectedContractById(value);
+        else props.setSelectedContractById(value);
     }
 
     function formatContractOptions(type?: CONTRACT_TYPES): void {
         const options: CommonSelectOption[] = [];
-        const contracts = contractsContext.selectedProject?.reports?.filter(report => !type ? report : report.content_type !== type);
+        const contracts = props.selectedProject?.reports?.filter(report => !type ? report : report.content_type !== type);
         if (!contracts || contracts.length === 0) {
             setContractOptions(options);
             return;
@@ -80,7 +80,7 @@ export function ComparisonSelect(props: ComparisonSelectProps): JSX.Element {
             <CommonSelect
                 options={contractOptions}
                 onSelectedValueChange={handleSelection}
-                controlledValue={selectedContract?.id.toString() ?? ""}
+                controlledValue={props.selectedContract?.id.toString() ?? ""}
                 showTitles
                 showSelected
             />

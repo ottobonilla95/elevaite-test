@@ -1,17 +1,19 @@
 import { CommonButton, CommonCheckbox, CommonModal, ElevaiteIcons } from "@repo/ui/components";
 import { useCallback, useRef, useState } from "react";
-import { useContracts } from "../../../lib/contexts/ContractsContext";
 import "./ContractComparison.scss";
 import { ContractComparisonBlock } from "./ContractComparisonBlock";
-
+import { CONTRACT_TYPES, ContractObject, LoadingListObject } from "@/interfaces";
 
 
 interface ContractComparisonProps {
-
+    loading: LoadingListObject;
+    setSelectedContract: (contract: ContractObject | undefined) => void;
+    setSelectedContractById: (id: string | number | undefined) => void;
+    setSecondarySelectedContract: (contract: ContractObject | CONTRACT_TYPES | undefined) => void;
+    setSecondarySelectedContractById: (id: string) => void;
 }
 
 export function ContractComparison(props: ContractComparisonProps): JSX.Element {
-    const contracts = useContracts();
     const [isShowingMatching, setIsShowingMatching] = useState(false);
     const [isOverviewMinimized, setIsOverviewMinimized] = useState(false);
     const scrollableRefMain = useRef<HTMLDivElement>(null);
@@ -22,12 +24,12 @@ export function ContractComparison(props: ContractComparisonProps): JSX.Element 
   
 
     function handleHome() {
-        contracts.setSelectedContract(undefined);
-        contracts.setSecondarySelectedContract(undefined);
+        props.setSelectedContract(undefined);
+        props.setSecondarySelectedContract(undefined);
     }
 
     function handleMainView() {
-        contracts.setSecondarySelectedContract(undefined);
+        props.setSecondarySelectedContract(undefined);
     }
 
     function handleToggleOverview() {
@@ -101,6 +103,10 @@ export function ContractComparison(props: ContractComparisonProps): JSX.Element 
                 scrollRef={scrollableRefMain}
                 onScroll={handleScrollMain}
                 onFullScreenCompare={handleFullScreenCompare}
+                loading={props.loading}
+                setSelectedContract={props.setSelectedContract}
+                setSelectedContractById={props.setSelectedContractById}
+                setSecondarySelectedContractById={props.setSecondarySelectedContractById}
             />
 
             <ContractComparisonBlock
@@ -111,6 +117,10 @@ export function ContractComparison(props: ContractComparisonProps): JSX.Element 
                 scrollRef={scrollableRefSecondary}
                 onScroll={handleScrollSecondary}
                 onFullScreenCompare={handleFullScreenCompare}
+                loading={props.loading}
+                setSelectedContract={props.setSelectedContract}
+                setSelectedContractById={props.setSelectedContractById}
+                setSecondarySelectedContractById={props.setSecondarySelectedContractById}
             />
 
             {!isFullScreenCompare ? undefined :
@@ -134,6 +144,11 @@ export function ContractComparison(props: ContractComparisonProps): JSX.Element 
                             scrollRef={scrollableRefMainFull}
                             onScroll={handleScrollMainFull}
                             barebones
+                            loading={props.loading}
+                            onFullScreenCompare={handleFullScreenCompare}
+                            setSelectedContract={props.setSelectedContract}
+                            setSelectedContractById={props.setSelectedContractById}
+                            setSecondarySelectedContractById={props.setSecondarySelectedContractById}
                         />
                         <ContractComparisonBlock
                             secondary
@@ -143,6 +158,11 @@ export function ContractComparison(props: ContractComparisonProps): JSX.Element 
                             scrollRef={scrollableRefSecondaryFull}
                             onScroll={handleScrollSecondaryFull}
                             barebones
+                            loading={props.loading}
+                            onFullScreenCompare={handleFullScreenCompare}
+                            setSelectedContract={props.setSelectedContract}
+                            setSelectedContractById={props.setSelectedContractById}
+                            setSecondarySelectedContractById={props.setSecondarySelectedContractById}
                         />
                     </div>
                 </CommonModal>

@@ -1,28 +1,24 @@
 import { CommonButton, CommonModal, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
 import { useEffect, useState } from "react";
-import { type ContractObjectVerificationLineItem, type ContractObjectVerificationLineItemVerification } from "@/interfaces";
+import {  ContractObject, ContractProjectObject, LoadingListObject, type ContractObjectVerificationLineItem, type ContractObjectVerificationLineItemVerification } from "@/interfaces";
 import "./VerificationLineItems.scss";
-import { useContracts } from "../../../../lib/contexts/ContractsContext";
-
-
-
 
 interface TableDataItem {
     value: (string | number | null | undefined)[];
     verification: ContractObjectVerificationLineItemVerification;
 }
 
-
-
 interface VerificationLineItemsProps {
     lineItems?: ContractObjectVerificationLineItem[];
     fullScreen?: boolean;
     onFullScreenClose?: () => void;
     hideValidatedItems?: boolean;
+    selectedProject?: ContractProjectObject;
+    loading: LoadingListObject;
+    selectedContract?: ContractObject;
 }
 
 export function VerificationLineItems(props: VerificationLineItemsProps): JSX.Element {
-    const contractsContext = useContracts();
     const [displayHeaders, setDisplayHeaders] = useState<string[]>(getFullHeaderData());
     const [tableData, setTableData] = useState<TableDataItem[]>();
 
@@ -44,9 +40,9 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
 
     function getFullHeaderData(): string[] {
         const originalHeaders = ["Ver.", "Amount", "Quantity", "Unit Price", "Product Code", "Need by", "Description"];
-        if (!props.lineItems || !contractsContext.selectedProject?.settings?.labels) return originalHeaders;
+        if (!props.lineItems || !props.selectedProject?.settings?.labels) return originalHeaders;
         const formattedHeaders = ["Ver."];
-        const labels = contractsContext.selectedProject?.settings?.labels;
+        const labels = props.selectedProject?.settings?.labels;
 
         // Consider making this automated by iterating keys (ordering, though?)
         formattedHeaders.push(labels.total_cost ?? "Total Cost");
@@ -117,7 +113,7 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
     return (
         <div className="verification-line-items-container">
             <div className="table-scroller">
-                {contractsContext.loading.contractLineItems[contractsContext.selectedContract?.id ?? ""] ?
+                {props.loading.contractLineItems[props.selectedContract?.id ?? ""] ?
                     <div className="loading"><ElevaiteIcons.SVGSpinner /></div>
                     : !tableData ?
                         <div>No tabular data available</div>

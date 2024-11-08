@@ -1,6 +1,5 @@
 import { CommonButton, CommonDialog, CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
-import { useContracts } from "../../../lib/contexts/ContractsContext";
 import "./AddProject.scss";
 import { ContractProjectObject } from "@/interfaces";
 
@@ -9,10 +8,13 @@ import { ContractProjectObject } from "@/interfaces";
 interface AddProjectProps {
     onClose: () => void;
     editingProjectId?: string;
+    projects: ContractProjectObject[];
+    deleteProject: (projectId: string) => Promise<boolean>;
+    createProject: (name: string, description?: string) => Promise<boolean>;
+    editProject: (projectId: string, name: string, description?: string) => Promise<boolean>;
 }
 
 export function AddProject(props: AddProjectProps): JSX.Element {
-    const contractsContext = useContracts();
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +27,7 @@ export function AddProject(props: AddProjectProps): JSX.Element {
             setEditingProject(undefined);
             return;
         }
-        setEditingProject(contractsContext.projects.find(project => project.id.toString() === props.editingProjectId));
+        setEditingProject(props.projects.find(project => project.id.toString() === props.editingProjectId));
     }, [props.editingProjectId]);
 
     useEffect(() => {
@@ -47,7 +49,7 @@ export function AddProject(props: AddProjectProps): JSX.Element {
         if (!editingProject?.id) return;
 
         setIsLoading(true);
-        await contractsContext.deleteProject(editingProject.id.toString());
+        await props.deleteProject(editingProject.id.toString());
         setIsLoading(false);
         props.onClose();
     }
@@ -56,9 +58,9 @@ export function AddProject(props: AddProjectProps): JSX.Element {
         if (!name) return;
         setIsLoading(true);
         if (editingProject) {
-            await contractsContext.editProject(editingProject.id.toString(), name, description);
+            await props.editProject(editingProject.id.toString(), name, description);
         } else {
-            await contractsContext.createProject(name, description);
+            await props.createProject(name, description);
         }
         setIsLoading(false);
         props.onClose();
