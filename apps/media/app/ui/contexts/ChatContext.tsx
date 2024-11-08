@@ -29,6 +29,7 @@ export interface ChatContextStructure {
   clearAllSessions: () => void;
   selectedSession: SessionObject | undefined;
   setSelectedSession: (sessionId: string) => void;
+  selectedGenAIBot: string |undefined;
   setSelectedGenAIBot: (value: ChatBotGenAI) => void;
   isChatLoading: boolean;
   chatLoadingMessage: string;
@@ -37,7 +38,7 @@ export interface ChatContextStructure {
   updateMessageFeedback: (messageId: string, passedFeedback: string) => void;
   getSessionSummary: () => void;
   removeExpectedDisplayFromSelectedSessionSummary: () => void;
-  addNewUserMessageWithLastMessages: (message: string) => void;
+  addNewUserMessageWithLastMessages: (message: string,file?: File) => void;
 }
 
 export const ChatContext = createContext<ChatContextStructure>({
@@ -55,6 +56,7 @@ export const ChatContext = createContext<ChatContextStructure>({
   setSelectedSession: () => {
     /**/
   },
+  selectedGenAIBot:undefined,
   setSelectedGenAIBot: () => {
     /**/
   },
@@ -113,6 +115,11 @@ export function ChatContextProvider(
   //   }
   // }, [selectedSession?.messages]);
   
+  useEffect(() => {
+    if (!selectedGenAIBot) return;
+    setSelectedGenAIBot(selectedGenAIBot);
+    // console.log("Setting Gen AI Bot:",selectedGenAIBot);
+  }, [selectedGenAIBot]);
 
   useEffect(() => {
     if (!selectedSession) return;
@@ -367,11 +374,11 @@ export function ChatContextProvider(
         };
       }),
     };
-    console.log("Newmessage:",newMessage);
+    // console.log("Newmessage:",newMessage);
     return newMessage;
   }
 
-  async function addNewUserMessageWithLastMessages(messageText: string): Promise<void> {
+  async function addNewUserMessageWithLastMessages(messageText: string, file?: File): Promise<void> {
     const MAX_PAYLOAD_HISTORY = 3;
     if (!messageText || !selectedSession) return;
     const userIdNumbersList = selectedSession.messages
@@ -406,8 +413,21 @@ export function ChatContextProvider(
 
     setIsChatLoading(true);
     conversation_payload = conversation_payload.reverse();
-    console.log("CONVERSATION_PAYLOAD:", conversation_payload);
+    // console.log("CONVERSATION_PAYLOAD:", conversation_payload);
 
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = error => reject(error);
+      });
+    }
+    let imageBase64;
+    if (file) {
+      imageBase64 = await fileToBase64(file);
+      // console.log(imageBase64);
+    }
     // Fetching with streaming
     const response = await fetch("http://127.0.0.1:8000/", {
       method: 'POST',
@@ -420,6 +440,7 @@ export function ChatContextProvider(
           "conversation_payload": conversation_payload,
           "query": messageText,
           "skip_llm_call": false,
+          "creative": imageBase64 
       })
   });
 
@@ -433,7 +454,7 @@ export function ChatContextProvider(
     setIsChatLoading(false);
     return;
   }
-  console.log("RESPONSE:",response);
+  // console.log("RESPONSE:",response);
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
   let buffer = '';
@@ -452,7 +473,7 @@ export function ChatContextProvider(
             try {
                 const jsonStr = line.slice(6); // Remove 'data: ' prefix
                 const json = JSON.parse(jsonStr);
-                console.log("Parsed JSON:", json.response);
+                // console.log("Parsed JSON:", json.response);
                 const responseText = json.response; 
                 fullResponse += responseText; // Append to fullResponse
                 // Update state with the new combined response
@@ -480,6 +501,7 @@ setIsChatLoading(false);
         clearAllSessions,
         selectedSession,
         setSelectedSession: setInternallySelectedSession,
+        selectedGenAIBot,
         setSelectedGenAIBot,
         isChatLoading,
         chatLoadingMessage,

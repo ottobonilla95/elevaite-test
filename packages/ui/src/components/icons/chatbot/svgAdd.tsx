@@ -2,7 +2,8 @@ import type { SVGProps } from "react"
 
 
 function SVGAdd(props: SVGProps<SVGSVGElement> & { size?: number }): JSX.Element {
-    let mainColor = "currentColor";
+    // let mainColor = "currentColor";
+    let mainColor = "var(--ev-colors-text)";
     if (props.color) mainColor = props.color;
 
     return (

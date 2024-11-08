@@ -100,7 +100,7 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
         for hit in search_result:
             if hit.score > 0.78: # Magic number
                 try:
-                    print("Vector search score:", hit.score)
+                    # print("Vector search score:", hit.score)
                     ad_creative = AdCreative.parse_obj(hit.payload)
                     brand_name = ad_creative.brand
                     if brand_name not in brand_count:
@@ -164,7 +164,7 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
         for index, hit in enumerate(search_result):
             if hit.score>0.78: # Magic Number
                 try:
-                    print("Filtered score:",hit.score)
+                    # print("Filtered score:",hit.score)
                     payload = hit.payload
                     ad_creative = AdCreative.parse_obj(payload)
                     brand_name = ad_creative.brand
@@ -183,10 +183,10 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
     return SearchResult(results=ad_creatives, total=len(ad_creatives))
 
 @timer_decorator   
-def determine_intent(user_query: str, conversation_history: List[ConversationPayload]) -> dict:
+def determine_intent(user_query: str, conversation_history: List[ConversationPayload],prompt_file: str) -> dict:
     try:
-        prompt1 = load_prompt('intent')
-        messages = [{"role": "system", "content": prompt1}]
+        prompt = load_prompt(prompt_file)
+        messages = [{"role": "system", "content": prompt}]
         
         for message in conversation_history:
             messages.append({"role": message.actor, "content": message.content})
@@ -215,6 +215,9 @@ def determine_intent(user_query: str, conversation_history: List[ConversationPay
         logger.error(f"Error determining intent: {e}")
         logger.error(f"Query that led to error:{user_query}")
         return {}
+
+
+
 @timer_decorator
 async def generate_response(
     query: str,
@@ -264,6 +267,103 @@ async def generate_response(
         logger.error(f"Error in generating response: {e} at the response class: {system_prompt}")
         return "I apologize, but I couldn't generate a response at this time."
 
+@timer_decorator
+def generate_response_with_creatives(    
+    creative :str, # Base 64 encoded image/video/gif
+    query: str,
+    system_prompt: str,
+    search_result: str = None,
+    conversation_history: List[ConversationPayload] = None,
+    combined_output: str = None,
+    output_parts: Dict[str, str] = None,
+    max_tokens: int = 2400, 
+    response_class: Optional[Type[BaseModel]] = None,):
+    
+    messages = [{"role": "system", "content": system_prompt}]
+
+    if search_result:
+        messages.append({"role": "system", "content": f"Search Results: {search_result}"})
+
+    if conversation_history:
+        for message in conversation_history:
+            messages.append({"role": message.actor, "content": message.content})
+
+    messages.append({"role": "user", "content": f"Query: {query}"})
+
+    if output_parts:
+        for key, value in output_parts.items():
+            messages.append({"role": "user", "content": f"{key.capitalize()}: {value}"})
+
+    if combined_output:
+        messages.append({"role": "user", "content": f"Combined Output: {combined_output}"})
+
+    if creative:
+        messages.append({
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "Here is the creative content."},
+                {"type": "image_url", "image_url": {"url": f"{creative}"}}
+            ]
+        })
+    try:
+        request_params = {
+            "model": "gpt-4o-mini",
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "n": 1,
+            "temperature": 0.1,
+        }
+        # print("Message sent:",request_params)
+        if response_class:
+            request_params["response_format"] = response_class
+        response = client.chat.completions.create(**request_params)
+        # print("Response:",response)
+        response_content = response.choices[0].message.content.strip()        
+        if response_class:
+            try:
+                response_class.model_validate_json(response_content)
+            except Exception as validation_error:
+                logger.error(f"Warning: Response validation failed: {validation_error}")
+        return response_content
+    except Exception as e:
+            logger.error(f"Error in generating response: {e} during the process with the system prompt: {system_prompt}")
+    return 
+    
+@timer_decorator
+def creative_to_features(creative: str)-> str:
+    prompt = load_prompt("creative_feature_extractor")
+    messages = [{"role": "system", "content": prompt}]
+    messages.append({"role":"user","content":[{
+                        "type": "image_url",
+                        "image_url": {"url": creative}}]})
+    try:
+        request_params = {
+            "model": "gpt-4o-mini",
+            "messages": messages,
+            "max_tokens": 300,
+            "n": 1,
+            "temperature": 0.1,
+        }
+        response = client.chat.completions.create(**request_params)
+        response_content = response.choices[0].message.content.strip()
+        return response_content
+    except Exception as e:
+            logger.error(f"Error in generating response: {e} during the process with the prompt: {prompt}")
+    return
+
+@timer_decorator
+def ideate_to_create_with_rag(user_query: str,creative:str,conversation_history:List[ConversationPayload],parameters:Dict[str, Any])-> str:
+    extracted_features = creative_to_features(creative)
+    search_result = search_qdrant(query_text= f"{user_query} Creatives: {extracted_features}", conversation_payload=conversation_history,parameters=parameters,use_vector_search = True, number_of_results = 2)
+    # print("Search Results :",search_result)
+    prompt = load_prompt("creative_trends")
+    return generate_response_with_creatives(creative=creative,query=user_query,search_result=search_result,system_prompt=prompt,conversation_history=conversation_history) 
+
+@timer_decorator
+def ideate_to_create_without_rag(user_query:str,creative:str,conversation_history:List[ConversationPayload])-> str:
+    prompt = load_prompt("creative_feedback")
+    return generate_response_with_creatives(creative=creative,query=user_query,system_prompt=prompt,conversation_history=conversation_history) 
+
 @timer_decorator   
 async def formatter(final_output: str = None, prompt_file_name: str = "formatter",query_content:str=None) -> str:
     system_prompt = load_prompt(prompt_file_name)
@@ -276,6 +376,7 @@ async def formatter(final_output: str = None, prompt_file_name: str = "formatter
         max_tokens=4000
     )
     return "\n"+formatted_output+"\n"
+
 @timer_decorator 
 def extract_specific_fields(search_result: SearchResult, fields: List[str], full_data_fields: List[str] = None) -> str:
     extracted_data = []
@@ -361,7 +462,7 @@ async def campaign_performance(filtered_data: SearchResult, query: str, conversa
     system_prompt = load_prompt("formatter_campaign_performance")
 
     # logger.debug("Campaign performance inputs: ",str(query)+str(system_prompt)+str(essential_data))
-    print("Extracted data campaign performance:",essential_data)
+    # print("Extracted data campaign performance:",essential_data)
     raw_response = await generate_response(
         query=query,
         system_prompt=system_prompt,
@@ -531,80 +632,101 @@ def format_conversation_payload(conversation_payload: List[ConversationPayload])
         formatted_history += f"{actor}: {content}\n"
     return formatted_history.strip()
 
+
+
 @timer_decorator
 async def perform_inference(inference_payload: InferencePayload):
     try:
         threshold = 3
         conversation_history = inference_payload.conversation_payload or []
-        intent_data = determine_intent(inference_payload.query, conversation_history)
-      #  logger.debug(f"Intent:{intent_data}")
-        # if not intent_data:
-        #     print("Retrying Intent\n")
-        #     intent_data = determine_intent(inference_payload.query, conversation_history)
 
-        required_outcomes = intent_data.get('required_outcomes', [])
-        unrelated_query = intent_data.get('unrelated_query',False)
+        if not inference_payload.creative:
+            intent_data = determine_intent(inference_payload.query, conversation_history,"intent")
 
-        if unrelated_query:
-            conversation_history = ""
+            required_outcomes = intent_data.get('required_outcomes', [])
+            unrelated_query = intent_data.get('unrelated_query',False)
 
-        if not required_outcomes:
-            yield {"response": "I apologize, but I'm not able to help with that request. I specialize in media marketing campaigns plan generation and historical data insights. Is there anything related to media campaigns that I can assist you with?\n"}
-            return
-        
-        parameters = intent_data.get('parameters', {}) 
-        filtered_data = search_qdrant(inference_payload.query, conversation_history, parameters, False, 10)
-        print(f"Original data:{filtered_data}")
-      #  logger.debug(len(filtered_data.results))
-        
-        if not filtered_data.results:
-            yield {"response":"I'm sorry, but I lack infromation on media campaigns directly related to your query. Searching for data most related with your query...\n"}
-            filtered_data = search_qdrant(inference_payload.query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
-            if len(filtered_data.results)<1:
-                yield {"response":"Media Campaign Information related to your query were not found. Please try a different query.\n"}
+            if unrelated_query:
+                conversation_history = ""
+
+            if not required_outcomes:
+                yield {"response": "I apologize, but I'm not able to help with that request. I specialize in media marketing campaigns plan generation and historical data insights. Is there anything related to media campaigns that I can assist you with?\n"}
                 return
-            print(f"Vector searche data: {filtered_data}")
+            
+            parameters = intent_data.get('parameters', {}) 
+            filtered_data = search_qdrant(inference_payload.query, conversation_history, parameters, False, 10)          
+            # print(f"Original data:{filtered_data}")
+            
+            if not filtered_data.results:
+                yield {"response":"I'm sorry, but I lack infromation on media campaigns directly related to your query. Searching for data most related with your query...\n"}
+                filtered_data = search_qdrant(inference_payload.query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
+                if len(filtered_data.results)<1:
+                    yield {"response":"Media Campaign Information related to your query were not found. Please try a different query.\n"}
+                    return
+                # print(f"Vector searche data: {filtered_data}")
 
-        elif len(filtered_data.results) < threshold:
-            yield {"response":"Found and filtered some relevant data. Searching for additional data most relevant to your query...\n"}
-            # print("Only one result found. Performing additional vector search.")
-            currently_present_ids = [i.id for i in filtered_data.results]
-            additional_data = search_qdrant(inference_payload.query, conversation_history, parameters, use_vector_search=True, number_of_results=(threshold - len(filtered_data.results)))
-            print("Additional_Data:",additional_data)
-            if len(additional_data.results)>0:
-                yield {"response":"Incorporating additional data to your response.\n"}
-                for additional_result in additional_data.results:
-                    if additional_result.id not in currently_present_ids:
-                        filtered_data.results.append(additional_result)
-                        filtered_data.total += 1
-            else:
-                yield {"response","Relevant additional data not found."}
+            elif len(filtered_data.results) < threshold:
+                yield {"response":"Found and filtered some relevant data. Searching for additional data most relevant to your query...\n"}
 
-          #  logger.debug(f"Total results after additional search: {filtered_data.total}")
-        print(f"Combined Data:{filtered_data}")
-        output_parts = OrderedDict()
-        ordered_keys = ["media_plan", "analysis_of_trends", "campaign_performance", "creative_insights", "performance_summary"]
+                currently_present_ids = [i.id for i in filtered_data.results]
+                additional_data = search_qdrant(inference_payload.query, conversation_history, parameters, use_vector_search=True, number_of_results=(threshold - len(filtered_data.results)))
+                # print("Additional_Data:",additional_data)
+                if len(additional_data.results)>0:
+                    yield {"response":"Incorporating additional data to your response.\n"}
+                    for additional_result in additional_data.results:
+                        if additional_result.id not in currently_present_ids:
+                            filtered_data.results.append(additional_result)
+                            filtered_data.total += 1
+                else:
+                    yield {"response","Relevant additional data not found."}
 
-      #  logger.debug(f"Required outcomes:{required_outcomes}")
-        for outcome in required_outcomes:
+            #  logger.debug(f"Total results after additional search: {filtered_data.total}")
+            # print(f"Combined Data:{filtered_data}")
+            output_parts = OrderedDict()
+            ordered_keys = ["media_plan", "analysis_of_trends", "campaign_performance", "creative_insights", "performance_summary"]
 
-            if outcome in [1, 2, 3, 4]:
-                insight_function = await get_insight_function(outcome)
-              #  logger.debug(f"Insight function:{insight_function}  Filtred data:{filtered_data}")
-                result = await insight_function(filtered_data, inference_payload.query, conversation_history)
-              #  logger.debug(f"Before:{result}")
-                result = replace_hash_with_url(remove_markdown_prefix(result))
-                # print("After",result)
-                output_parts[ordered_keys[outcome - 1]] = result
-              #  logger.debug(f"Completed outcome {outcome}: {result}")
-                yield {"response": result}  # Stream response
+        #  logger.debug(f"Required outcomes:{required_outcomes}")
+            for outcome in required_outcomes:
 
-        # Process performance_summary if needed
-        if 5 in required_outcomes:
-            performance_summary_result = await performance_summary(inference_payload.query, output_parts)
-            performance_summary_result = replace_hash_with_url(remove_markdown_prefix(performance_summary_result))
-            output_parts["performance_summary"] = performance_summary_result
-            yield {"response": f"{performance_summary_result}\n\n"}
+                if outcome in [1, 2, 3, 4]:
+                    insight_function = await get_insight_function(outcome)
+                #  logger.debug(f"Insight function:{insight_function}  Filtred data:{filtered_data}")
+                    result = await insight_function(filtered_data, inference_payload.query, conversation_history)
+                #  logger.debug(f"Before:{result}")
+                    result = replace_hash_with_url(remove_markdown_prefix(result))
+                    # print("After",result)
+                    output_parts[ordered_keys[outcome - 1]] = result
+                #  logger.debug(f"Completed outcome {outcome}: {result}")
+                    yield {"response": result}  # Stream response
+
+            # Process performance_summary if needed
+            if 5 in required_outcomes:
+                performance_summary_result = await performance_summary(inference_payload.query, output_parts)
+                performance_summary_result = replace_hash_with_url(remove_markdown_prefix(performance_summary_result))
+                output_parts["performance_summary"] = performance_summary_result
+                yield {"response": f"{performance_summary_result}\n\n"}
+            
+        else:
+            intent_data = determine_intent(inference_payload.query, conversation_history,"creative_intent")
+            required_outcomes = intent_data.get('required_outcomes', [])
+            # print("Required Outcomes:",required_outcomes)
+            unrelated_query = intent_data.get('unrelated_query',False)
+            parameters = intent_data.get('parameters', {}) 
+            if unrelated_query:
+                conversation_history = ""
+
+            if not required_outcomes:
+                yield {"response": "I apologize, but I'm not able to help with that request. I specialize in media creation and inisghts based on historical data. Is there anything related to media campaigns that I can assist you with?\n"}
+                return
+            
+            if 1 in required_outcomes:
+                result = ideate_to_create_without_rag(inference_payload.query,inference_payload.creative,conversation_history)
+                # print("LLM Response:",result)
+                yield {"response": result}
+            if 2 in required_outcomes:
+                result = ideate_to_create_with_rag(user_query=inference_payload.query,creative=inference_payload.creative,conversation_history=conversation_history,parameters=parameters)
+                # print("LLM Response:",result)
+                yield {"response": result}
 
     except Exception as e:
         logger.error(f"An error occurred:{e}")

@@ -53,6 +53,7 @@ class InferencePayload(BaseModel):
     conversation_payload: List[ConversationPayload]
     query: str
     skip_llm_call: bool
+    creative: Optional[str] = None 
 
 class IntentOutput(BaseModel):
     required_outcomes: List[int]

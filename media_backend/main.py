@@ -11,6 +11,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 import httpx
+import base64
 
 app = FastAPI()
 
@@ -208,6 +209,7 @@ async def post_message(inference_payload: InferencePayload):
                 
         return StreamingResponse(event_generator(), media_type="text/event-stream")
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
