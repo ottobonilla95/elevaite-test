@@ -141,7 +141,8 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
                     >
                         <ElevaiteIcons.SVGSideArrow />
                     </CommonButton>
-                    <div className="tabs-container">
+                    <div className="extraction-label">{ExtractionTabs.EXTRACTION}</div>
+                    {/* <div className="tabs-container">
                         <CommonButton
                             className={[
                                 "tab-button",
@@ -162,7 +163,7 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
                                 {ExtractionTabs.VERIFICATION}
                             </CommonButton>
                         }
-                    </div>
+                    </div> */}
                     <CommonButton
                         className="reprocess-button"
                         onClick={handleReprocess}

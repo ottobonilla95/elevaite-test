@@ -4,12 +4,14 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "eslint.config.js"
   ],
   "exclude": [
     "node_modules"
   ],
   "compilerOptions": {
+    "baseUrl": "./",
     "plugins": [
       {
         "name": "next"

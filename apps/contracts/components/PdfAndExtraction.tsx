@@ -1,10 +1,9 @@
 "use client";
 import { useState } from "react";
-import { useContracts } from "../lib/contexts/ContractsContext";
 import "./PdfAndExtraction.scss";
 import { PdfDisplay } from "./PdfDisplay";
 import { PdfExtraction } from "./PdfExtraction";
-import { ContractObject } from "@/lib/interfaces";
+import { type ContractObject } from "@/lib/interfaces";
 
 enum ExpandedPages {
   PDF = "pdf",

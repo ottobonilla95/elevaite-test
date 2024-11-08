@@ -4,10 +4,10 @@ import {
   type ContractObject,
   type CONTRACT_TYPES,
   type ContractProjectObject,
-  ContractSettings,
-  ContractObjectEmphasis,
-  ContractObjectVerification,
-  ContractObjectVerificationLineItem,
+  type ContractSettings,
+  type ContractObjectEmphasis,
+  type ContractObjectVerification,
+  type ContractObjectVerificationLineItem,
 } from "../interfaces";
 import {
   cacheTags,

@@ -5,7 +5,6 @@ import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { useResizeDetector } from "react-resize-detector";
-import { useContracts } from "../lib/contexts/ContractsContext";
 import { useDebouncedCallback } from "../lib/helpers";
 import { CONTRACT_TYPES, type ContractObject } from "../lib/interfaces";
 import "./PdfDisplay.scss";
@@ -89,18 +88,14 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     setPagesAmount(undefined);
     // TODO: If checksum is the same, don't change pdfData.
     setIsLoading(true);
-    if (fileReference) {
-      let file: Blob = fileReference;
-      if (file.type === "application/pdf") {
-        const reader = new FileReader();
-        reader.onload = (event: ProgressEvent<FileReader>) => {
-          if (event.target?.result) {
-            setPdfData(event.target.result as string);
-          } else setPdfData(undefined);
-        };
-        reader.readAsDataURL(file);
+    const file: Blob = fileReference;
+    const reader = new FileReader();
+    reader.onload = (event: ProgressEvent<FileReader>) => {
+      if (event.target?.result) {
+        setPdfData(event.target.result as string);
       } else setPdfData(undefined);
-    } else setPdfData(undefined);
+    };
+    reader.readAsDataURL(file);
     setIsLoading(false);
   }
 
@@ -311,7 +306,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         regex = new RegExp(
           pattern.source,
           pattern.flags +
-            (ignoreCase && !pattern.flags.includes("i") ? "i" : "")
+          (ignoreCase && !pattern.flags.includes("i") ? "i" : "")
         );
       }
       processedText = processedText.replace(
@@ -436,25 +431,25 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
               {pagesAmount === undefined
                 ? undefined
                 : Array.from(new Array(pagesAmount), (entry, index) => (
-                    <div
-                      key={`page_${(index + 1).toString()}`}
-                      ref={(item) => {
-                        pageRefs.current[index + 1] = item;
-                      }}
-                    >
-                      <Page
-                        pageNumber={index + 1}
-                        width={pageContainerWidth ? pageContainerWidth : 1}
-                        scale={pdfZoom}
-                        // customTextRenderer={textRenderer}
-                        loading={
-                          <div className="loading large">
-                            <ElevaiteIcons.SVGSpinner />
-                          </div>
-                        }
-                      />
-                    </div>
-                  ))}
+                  <div
+                    key={`page_${(index + 1).toString()}`}
+                    ref={(item) => {
+                      pageRefs.current[index + 1] = item;
+                    }}
+                  >
+                    <Page
+                      pageNumber={index + 1}
+                      width={pageContainerWidth ? pageContainerWidth : 1}
+                      scale={pdfZoom}
+                      // customTextRenderer={textRenderer}
+                      loading={
+                        <div className="loading large">
+                          <ElevaiteIcons.SVGSpinner />
+                        </div>
+                      }
+                    />
+                  </div>
+                ))}
             </Document>
           )}
         </div>

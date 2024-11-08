@@ -1,0 +1,39 @@
+
+
+
+.pdf-extraction-emphasis-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 10px;
+    margin: 0 10px;
+    border: 1px solid var(--ev-colors-borderColor);
+    border-radius: 8px;
+
+    &.borderless {
+        padding: 0;
+        border: none;
+    }
+
+    & .pdf-emphasis-block {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+
+        & > div {
+            flex: 1 1 40%;
+        }
+    }
+
+    & .separator {
+        flex-grow: 1;
+        border-bottom: 1px solid var(--ev-colors-borderColor);
+    }
+
+    & .loading {
+        height: 100px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+}

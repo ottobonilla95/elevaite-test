@@ -3,10 +3,10 @@ import React, { useEffect, useState } from "react";
 import { ListRow, type RowStructure } from "../../../lib/components/ListRow";
 import { useContracts } from "../../../lib/contexts/ContractsContext";
 import { formatBytes } from "../../../lib/helpers";
-import { CONTRACT_TYPES, type ContractObject, CONTRACTS_TABS, ContractStatus, type SortingObject, type UnverifiedItem, type VerificationQuickList, type VerificationQuickListItem } from "../../../lib/interfaces";
+import { CONTRACT_TYPES, type ContractObject, ContractObjectVerificationItem, CONTRACTS_TABS, ContractStatus, type SortingObject, type UnverifiedItem, type VerificationQuickList, type VerificationQuickListItem } from "../../../lib/interfaces";
+import { AddProject } from "./AddProject";
 import "./ContractsListV2.scss";
 import { ContractUpload } from "./ContractUpload";
-import { AddProject } from "./AddProject";
 
 
 
@@ -328,7 +328,9 @@ export function ContractsListV2(): JSX.Element {
                 {item.irrelevant ? <span className="irrelevant">—</span> :
                     listItem.status === ContractStatus.Extracting ? <span className="pending" title="This file is still being processed"><ElevaiteIcons.SVGInstanceProgress /></span> :
                         listItem.status === ContractStatus.ExtractionFailed ? <span className="failed" title="This file failed to extract"><ElevaiteIcons.SVGXmark /></span> :
-                            item.verified ? <span className="verified" title="This cross-section has no issues"><ElevaiteIcons.SVGCheckmark /></span> :
+                            item.verified ? 
+                                <MatchButton contract={listItem} />
+                            :
                                 <MismatchButton contract={listItem} items={item.unverifiedItems} index={index} listLength={displayContracts.length} />
                 }
             </div>
@@ -406,7 +408,7 @@ export function ContractsListV2(): JSX.Element {
                             onSort={handleSort}
                             sorting={sorting}
                         />
-                        {contractsContext.loading.projectReports[contractsContext.selectedProject.id ?? ""] ?
+                        {contractsContext.loading.projectReports[contractsContext.selectedProject.id] ?
                             <div className="table-span empty">
                                 <ElevaiteIcons.SVGSpinner />
                                 <span>Loading...</span>
@@ -509,7 +511,7 @@ interface ContractListStatusBlockProps {
 
 function ContractListStatusBlock(props: ContractListStatusBlockProps): JSX.Element {
 
-    function handleClick() {
+    function handleClick(): void {
         props.onClick(props.title);
     }
 
@@ -553,7 +555,7 @@ function ContractListFilterPill(props: ContractListFilterPillProps): JSX.Element
         setIsSelected(props.selectedPills.includes(props.type));
     }, [props.type, props.selectedPills]);
 
-    function handleClick() {
+    function handleClick(): void {
         props.onClick(props.type);
     }
 
@@ -567,6 +569,41 @@ function ContractListFilterPill(props: ContractListFilterPillProps): JSX.Element
         </CommonButton>
     );
 }
+
+
+
+
+interface MatchButtonProps {
+    contract: ContractObject;
+}
+
+function MatchButton(props: MatchButtonProps): JSX.Element {
+    const contractsContext = useContracts();
+    
+    function handleMatchClick(): void {
+        if (!props.contract.verification) return;
+        const relevantContracts = Object.values(props.contract.verification)
+            .filter((value): value is ContractObjectVerificationItem[] => Array.isArray(value)).flat();
+
+        if (relevantContracts[0]) {            
+            contractsContext.setSecondarySelectedContractById(relevantContracts[0].file_id);
+            contractsContext.setSelectedContract(props.contract);
+        }
+    }
+
+
+    return (
+        <CommonButton
+            className="verified"
+            title="This cross-section has no issues"
+            onClick={handleMatchClick}
+        >
+            <ElevaiteIcons.SVGCheckmark />
+        </CommonButton>
+    );
+}
+
+
 
 
 interface MismatchButtonProps {
@@ -606,15 +643,14 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
                 label: item.label ?? item.fileName ?? "Unknown File",
                 onClick: () => { handleMismatchMenuClick(item); },
                 tooltip: item.fileName,
-            }
-        }
+            }}
         );
 
     return (
         <CommonMenu
             menu={mismatchMenu}
             menuIcon={<ElevaiteIcons.SVGQuestionMark />}
-            tooltip={`This cross-section has ${props.items.length} issues`}
+            tooltip={`This cross-section has ${props.items.length.toString()} issues`}
             labelWidth="long"
             left
             top={Boolean(props.listLength && props.index && props.listLength > 4 && props.index > (props.listLength - 4))}
