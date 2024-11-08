@@ -1,6 +1,6 @@
-import { FilterGroupStructure, FiltersStructure } from "@/interfaces";
 import dayjs from "dayjs";
 import { useCallback, useRef } from "react";
+import { type FilterGroupStructure, type FiltersStructure } from "@/interfaces";
 
 
 

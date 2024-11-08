@@ -16,7 +16,16 @@
     "dev": "tailwindcss -i ./src/styles.css -o ./dist/index.css --watch",
     "type-check": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@repo/ui": "*",
+    "dayjs": "^1.11.10",
+    "pdfjs-dist": "4.4.168",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-pdf": "9.1.0",
+    "react-resize-detector": "^11.0.1",
+    "next": "^15.0"
+  },
   "peerDependencies": {
     "react": "^18.2.0",
     "dayjs": "^1.11.10"

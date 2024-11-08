@@ -5,38 +5,24 @@ import { Document, Page, pdfjs } from "react-pdf";
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { useResizeDetector } from "react-resize-detector";
-import { useContracts } from "../../../lib/contexts/ContractsContext";
-import { useDebouncedCallback } from "../../../lib/helpers";
-import { CONTRACT_TYPES, type ContractObject } from "@/interfaces";
+import { useRouter } from "next/navigation";
+import { useDebouncedCallback } from "@/helpers";
+import { type ContractObject } from "@/interfaces";
 import "./PdfDisplay.scss";
 
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 
-
-interface PdfTabs {
-    value: CONTRACT_TYPES,
-    label: string,
-    isDisabled?: boolean
-}
-
-const pdfTabsArrayDefault: PdfTabs[] = [
-    { value: CONTRACT_TYPES.VSOW, label: "VSOW" },
-    { value: CONTRACT_TYPES.PURCHASE_ORDER, label: "PO" },
-    { value: CONTRACT_TYPES.INVOICE, label: "Invoice" },
-];
-
-
 interface PdfDisplayProps {
     handleExpansion: () => void;
     isExpanded: boolean;
+    file: Blob;
+    contract: ContractObject;
+    projectId: string;
 }
 
 export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
-    const contractsContext = useContracts();
-    const [isLoading, setIsLoading] = useState(false);
-    const [pdfReference, setPdfReference] = useState<string | File | null>(null);
     const [pdfData, setPdfData] = useState<string>();
     const pageContainerRef = useRef<HTMLDivElement | null>(null);
     const { width: pageContainerWidth } = useResizeDetector<HTMLDivElement>({
@@ -50,9 +36,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     const [pageNumber, setPageNumber] = useState(1);
     const [inputNumber, setInputNumber] = useState("");
     const movePage = useRef(false);
-    // const [highlightTerms, setHighlightTerms] = useState<string[]>([]);
-    const [pdfTabsArray, setPdfTabsArray] = useState<PdfTabs[]>(pdfTabsArrayDefault);
-    const [selectedTab, setSelectedTab] = useState<CONTRACT_TYPES | undefined>();
+    const router = useRouter()
 
 
     const observer = new IntersectionObserver(
@@ -74,22 +58,17 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         { threshold: 0.5 }
     );
 
-
+    // TODO: We probably don't need these useEffects
     useEffect(() => {
-        if (!contractsContext.selectedContract) {
+        if (!props.contract) {
             setPdfData(undefined);
-            return;
+
         }
-        if (contractsContext.selectedContract.file_ref !== pdfReference) setPdfReference(contractsContext.selectedContract.file_ref);
-        setPdfTabsArray(getPdfTabsArray());
-        setSelectedTab(contractsContext.selectedContract.content_type);
-        // if (contractsContext.selectedContract.extractedData)
-        //     formatSearchTerms(contractsContext.selectedContract.extractedData);
-    }, [contractsContext.selectedContract]);
+    }, [props.contract]);
 
     useEffect(() => {
-        void formatPdfData(pdfReference);
-    }, [pdfReference]);
+        formatPdfData(props.file);
+    }, [props.file]);
 
 
     useEffect(() => {
@@ -102,123 +81,19 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     }, [pageNumber]);
 
 
-    async function formatPdfData(fileReference: string | File | null): Promise<void> {
+    function formatPdfData(file: Blob): void {
         setPagesAmount(undefined);
-        // TODO: If checksum is the same, don't change pdfData.
-        setIsLoading(true);
-        if (fileReference && contractsContext.selectedProject && contractsContext.selectedContract) {
-            let file: string | File | Blob = fileReference;
-            if (typeof file === "string") {
-                const url = new URL(`${window.location.origin}/api/contracts/`);
-                url.searchParams.set("projectId", contractsContext.selectedProject.id.toString());
-                url.searchParams.set("contractId", contractsContext.selectedContract.id.toString());
-                const response = await fetch(url, { method: "GET" });
-                const blob = await response.blob();
-                file = blob;
-            }
-            if (file.type === "application/pdf") {
-                const reader = new FileReader();
-                reader.onload = (event: ProgressEvent<FileReader>) => {
-                    if (event.target?.result) {
-                        setPdfData(event.target.result as string);
-                    } else setPdfData(undefined);
-                };
-                reader.readAsDataURL(file);
+        const reader = new FileReader();
+        reader.onload = (event: ProgressEvent<FileReader>) => {
+            if (event.target?.result) {
+                setPdfData(event.target.result as string);
             } else setPdfData(undefined);
-        } else setPdfData(undefined);
-        setIsLoading(false);
+        };
+        reader.readAsDataURL(file);
     }
-
-    // function formatSearchTerms(data: ContractExtractionDictionary): void {
-    //     const searchTerms: string[] = [];
-    //     // Iterate over each page in the dictionary
-    //     Object.entries(data).forEach(([pageKey, page]: [string, ContractExtractionPage]) => {
-    //         // Add the page key to search terms
-    //         searchTerms.push(pageKey);
-
-    //         // Iterate over each item on the page
-    //         Object.entries(page).forEach(([itemKey, pageItem]: [string, ContractExtractionPageItem]) => {
-    //             // Add the item key to search terms
-    //             searchTerms.push(itemKey);
-
-    //             if (typeof pageItem === "string") {
-    //                 // If it's a string, add it directly as a search term
-    //                 searchTerms.push(pageItem);
-    //             } else if (Array.isArray(pageItem)) {
-    //                 // If it's an array of objects, collect all keys and values from the objects
-    //                 pageItem.forEach((obj: Record<string, string>) => {
-    //                     Object.entries(obj).forEach(([key, value]) => {
-    //                         searchTerms.push(key);
-    //                         searchTerms.push(value);
-    //                     });
-    //                 });
-    //             }
-    //         });
-    //     });
-    //     // console.log("Search Terms", searchTerms);
-    //     setHighlightTerms(searchTerms);
-    // }
 
     function onClose(): void {
-        contractsContext.setSelectedContract(undefined);
-    }
-
-    function getPdfTabsArray(): PdfTabs[] {
-        const tabs: PdfTabs[] = [];
-        const contract = contractsContext.selectedContract;
-
-        tabs.push({
-            value: CONTRACT_TYPES.VSOW,
-            label: "VSOW",
-            isDisabled: !(contract?.content_type === CONTRACT_TYPES.VSOW || Boolean(contract?.verification?.vsow?.length))
-        })
-        tabs.push({
-            value: CONTRACT_TYPES.CSOW,
-            label: "CSOW",
-            isDisabled: !(contract?.content_type === CONTRACT_TYPES.CSOW || Boolean(contract?.verification?.csow?.length))
-        })
-        tabs.push({
-            value: CONTRACT_TYPES.PURCHASE_ORDER,
-            label: "PO",
-            isDisabled: !(contract?.content_type === CONTRACT_TYPES.PURCHASE_ORDER || Boolean(contract?.verification?.po?.length))
-        })
-        tabs.push({
-            value: CONTRACT_TYPES.INVOICE,
-            label: "Invoice",
-            isDisabled: !(contract?.content_type === CONTRACT_TYPES.INVOICE || Boolean(contract?.verification?.invoice?.length))
-        })
-        return tabs;
-    }
-
-    function handleTabSelection(passedTab: CONTRACT_TYPES): void {
-        setSelectedTab(passedTab);
-        switch (passedTab) {
-            case CONTRACT_TYPES.INVOICE: {
-                if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE &&
-                    contractsContext.selectedContract?.verification?.invoice?.[0]?.file_id)
-                    contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.invoice[0].file_id);
-                break;
-            }
-            case CONTRACT_TYPES.PURCHASE_ORDER: {
-                if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.PURCHASE_ORDER &&
-                    contractsContext.selectedContract?.verification?.po?.[0]?.file_id)
-                    contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.po[0].file_id);
-                break;
-            }
-            case CONTRACT_TYPES.VSOW: {
-                if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.VSOW &&
-                    contractsContext.selectedContract?.verification?.vsow?.[0]?.file_id)
-                    contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.vsow[0].file_id);
-                break;
-            }
-            case CONTRACT_TYPES.CSOW: {
-                if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.CSOW &&
-                    contractsContext.selectedContract?.verification?.csow?.[0]?.file_id)
-                    contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.csow[0].file_id);
-                break;
-            }
-            default: break;
-        }
+        router.push(`/${props.projectId}/`)
     }
 
     function handleExpansion(): void {
@@ -281,35 +156,6 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         }
     }, 200);
 
-
-
-    function highlightPattern(text: string, patterns: (string | RegExp)[], ignoreCase = true): string {
-        let processedText = text;
-        patterns.forEach((pattern) => {
-            let regex: RegExp;
-            // If the pattern is a string, create a RegExp with optional case insensitivity
-            if (typeof pattern === "string") {
-                const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                regex = new RegExp(escapedPattern, ignoreCase ? 'gi' : 'g');
-            } else {
-                // If it's already a RegExp, respect its original flags
-                regex = new RegExp(pattern.source, pattern.flags + (ignoreCase && !pattern.flags.includes('i') ? 'i' : ''));
-            }
-            processedText = processedText.replace(regex, (value) => `<mark>${value}</mark>`);
-        });
-        return processedText;
-    }
-
-    // const textRenderer = useCallback(
-    //     (textItem: {str: string}) => highlightPattern(textItem.str, highlightTerms),
-    //     [highlightTerms]
-    // );
-
-
-
-
-
-
     return (
         <div className="pdf-display-container">
 
@@ -358,52 +204,35 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
                 }
             </div>
 
-            {/* <div className="tabs-container">
-                {pdfTabsArray.map((item: {label: string, value: CONTRACT_TYPES, isDisabled?: boolean}) => 
-                    <CommonButton
-                        key={item.value}
-                        className={[
-                            "tab-button",
-                            selectedTab === item.value ? "active" : undefined,
-                        ].filter(Boolean).join(" ")}
-                        onClick={() => { handleTabSelection(item.value) }}
-                        disabled={item.isDisabled}
-                    >
-                        {item.label}
-                    </CommonButton>
-                )}
-            </div> */}
-
             <div
                 ref={pageContainerRef}
                 className="pdf-display-scroller"
                 onScroll={onScroll}
             >
                 <div className="pdf-display-contents">
-                    {isLoading ? <div className="loading large"><ElevaiteIcons.SVGSpinner /></div> :
-                        !pdfData ? <div className="no-file">No pdf attached.</div> :
-                            <Document
-                                file={pdfData}
-                                onLoadSuccess={getPagesAmount}
-                                loading={<div className="loading large"><ElevaiteIcons.SVGSpinner /></div>}
-                            >
-                                {pagesAmount === undefined ? undefined : Array.from(new Array(pagesAmount),
-                                    (entry, index) => (
-                                        <div
-                                            key={`page_${(index + 1).toString()}`}
-                                            ref={item => { pageRefs.current[index + 1] = item; }}
-                                        >
-                                            <Page
-                                                pageNumber={index + 1}
-                                                width={pageContainerWidth ? pageContainerWidth : 1}
-                                                scale={pdfZoom}
-                                                // customTextRenderer={textRenderer}
-                                                loading={<div className="loading large"><ElevaiteIcons.SVGSpinner /></div>}
-                                            />
-                                        </div>
-                                    ),
-                                )}
-                            </Document>
+                    {!pdfData ? <div className="no-file">No pdf attached.</div> :
+                        <Document
+                            file={pdfData}
+                            onLoadSuccess={getPagesAmount}
+                            loading={<div className="loading large"><ElevaiteIcons.SVGSpinner /></div>}
+                        >
+                            {pagesAmount === undefined ? undefined : Array.from(new Array(pagesAmount),
+                                (entry, index) => (
+                                    <div
+                                        key={`page_${(index + 1).toString()}`}
+                                        ref={item => { pageRefs.current[index + 1] = item; }}
+                                    >
+                                        <Page
+                                            pageNumber={index + 1}
+                                            width={pageContainerWidth ? pageContainerWidth : 1}
+                                            scale={pdfZoom}
+                                            // customTextRenderer={textRenderer}
+                                            loading={<div className="loading large"><ElevaiteIcons.SVGSpinner /></div>}
+                                        />
+                                    </div>
+                                ),
+                            )}
+                        </Document>
                     }
                 </div>
             </div>

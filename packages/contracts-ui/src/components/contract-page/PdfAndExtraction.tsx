@@ -4,6 +4,7 @@ import "./PdfAndExtraction.scss";
 import { ContractComparison } from "./ContractComparison";
 import { PdfDisplay } from "./PdfDisplay";
 import { PdfExtraction } from "./PdfExtraction";
+import { ContractObject } from "@/interfaces";
 
 
 enum ExpandedPages {
@@ -12,8 +13,21 @@ enum ExpandedPages {
 }
 
 
-export function PdfAndExtraction(): JSX.Element {
-    const contractsContext = useContracts();
+export function PdfAndExtraction({
+    projectId,
+    fileId,
+    contractsList,
+    contract,
+    secondaryContract,
+    file,
+}: {
+    projectId: string;
+    fileId: string;
+    contractsList: ContractObject[];
+    contract: ContractObject;
+    secondaryContract: ContractObject;
+    file: File | Blob;
+}): JSX.Element {
     const [expandedPage, setExpandedPage] = useState<ExpandedPages | undefined>();
 
     function handlePdfExpansion(): void {
@@ -24,13 +38,13 @@ export function PdfAndExtraction(): JSX.Element {
     }
 
     return (
-        <div className={["contracts-content", contractsContext.selectedContract ? "active" : undefined].filter(Boolean).join(" ")}>
+        <div className="contracts-content active">
 
-            {contractsContext.selectedContract && contractsContext.secondarySelectedContract ?
+            {contract && secondaryContract ?
                 <ContractComparison />
                 :
                 <div className={["pdf-and-extraction-container", expandedPage ? `expanded ${expandedPage}` : undefined].filter(Boolean).join(" ")}>
-                    <PdfDisplay handleExpansion={handlePdfExpansion} isExpanded={expandedPage === ExpandedPages.PDF} />
+                    <PdfDisplay handleExpansion={handlePdfExpansion} isExpanded={expandedPage === ExpandedPages.PDF} file={file} contract={contract} projectId={projectId} />
                     <PdfExtraction handleExpansion={handleDataExpansion} isExpanded={expandedPage === ExpandedPages.DATA} />
                 </div>
             }
