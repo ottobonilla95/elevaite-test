@@ -33,11 +33,11 @@ module.exports = {
       },
     },
   },
-  ignorePatterns: ["node_modules/", "dist/", ".eslintrc.js", "**/*.css"],
+  ignorePatterns: ["node_modules/", "dist/", "eslint.config.js", ".eslintrc.js", "**/*.css"],
   // add rules configurations here
   rules: {
     "import/no-default-export": "off",
-    "react/jsx-sort-props": [-1, {}],
+    "react/jsx-sort-props": [0, {}],
     "unicorn/filename-case": [
       "error",
       {
@@ -46,6 +46,7 @@ module.exports = {
           "pascalCase": true
         }
       }
-    ]
+    ],
+    "no-html-link-for-pages": "off"
   },
 };

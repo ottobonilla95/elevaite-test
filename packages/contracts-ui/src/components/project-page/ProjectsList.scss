@@ -1,0 +1,111 @@
+
+
+
+
+.projects-list-container {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--ev-colors-borderColor);
+    border-radius: 8px;
+    font-size: 12px;
+
+
+    & .projects-list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        background-color: var(--ev-colors-primary);
+        border-bottom: 1px solid var(--ev-colors-borderColor);
+        border-radius: 8px 8px 0 0;
+
+        & > span {
+            font-size: 14px;
+            color: var(--ev-colors-highlight);
+        }
+
+        & .projects-list-controls {
+
+            & button {
+                background-color: var(--ev-colors-highlight);
+                border-radius: 4px;
+                padding: 5px;
+                aspect-ratio: 1/1;
+
+                & > svg {
+                    height: 16px;
+                    width: 16px;
+                }
+            }
+        }
+
+    }
+
+
+
+    & .projects-list-scroller {
+        overflow-y: auto;
+        @include scrollbar();
+
+
+        & .projects-list-contents {
+            
+            & .loading-projects {
+                height: 300px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            & .no-projects {
+                padding: 30px 10px;
+                font-size: 16px;
+                color: var(--ev-colors-secondaryText);
+                text-align: center;
+            }
+
+            & .project-card-container {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px 20px;
+                background-color: var(--ev-colors-background);
+                border-bottom: 1px solid var(--ev-colors-borderColor);
+                transition: filter 200ms ease-in-out;
+                cursor: pointer;
+                user-select: none;
+
+                &:hover {
+                    filter: brightness(1.25);
+                    transition: none;
+                }
+
+                &.selected {
+                    box-shadow: inset 0 0 0 1px var(--ev-colors-highlight);
+
+                    & .line .selection-arrow { opacity: 1; }
+                }
+
+                & .line {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 10px;
+                    &:last-child {
+                        color: var(--ev-colors-secondaryText);
+                    }
+
+                    & .selection-arrow {
+                        opacity: 0;
+                        color: var(--ev-colors-highlight);
+                    }
+                }
+            }
+
+
+        }
+
+    }
+
+}

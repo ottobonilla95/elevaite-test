@@ -1,0 +1,155 @@
+
+
+.list-row-container {
+    display: contents;
+
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ev-colors-text);
+
+    &.clickable:hover {
+        & .list-row-cell {
+            cursor: pointer;
+            background-color: var(--ev-colors-secondary);
+        }
+    }
+
+    &.header {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ev-colors-secondaryText);
+
+        & > .list-row-cell {
+            background-color: var(--ev-colors-primary);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 1px solid var(--ev-colors-borderColor);
+
+            &:disabled {
+                opacity: 1;
+            }
+        }
+    }
+
+    &:last-child {
+        & > .list-row-cell {
+            border-bottom: 1px solid var(--ev-colors-borderColor);
+        }
+        & > .list-row-cell:first-child { border-bottom-left-radius: 8px; }
+        & > .list-row-cell:last-child { border-bottom-right-radius: 8px; }
+    }
+
+    & .list-row-cell {
+        min-height: 40px;
+        padding: 5px 5px 5px 10px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        border-top: 1px solid var(--ev-colors-borderColor);
+        
+        &:disabled {opacity: 1;}
+
+        &:first-child {
+            &:not(.menu) { padding-left: 20px; }
+            border-left: 1px solid var(--ev-colors-borderColor);
+        }
+        &:last-child {
+            padding-right: 20px;
+            border-right: 1px solid var(--ev-colors-borderColor);
+        }
+        &.left-border:not(:first-child) {            
+            border-left: 1px solid var(--ev-colors-borderColor);
+        }
+
+        &.left { justify-content: flex-start; }
+        &.right { justify-content: flex-end; }
+        &.center { justify-content: center; padding-left: 5px; }
+
+        &.block { 
+            background-color: var(--ev-colors-primary);
+            border-left: 1px solid var(--ev-colors-borderColor);
+            border-right: 1px solid var(--ev-colors-borderColor);
+        }
+
+        &.capitalize {
+            text-transform: uppercase;
+        }
+
+
+        & .sort-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+
+            &.asc > svg:first-child { opacity: 0; }
+            &.desc > svg:last-child { opacity: 0; }
+
+            & > svg {
+                height: 4px;
+                width: 8px;
+
+                &:first-child { transform: rotate(180deg); }
+            }
+        }
+
+        & .email {
+            // text-decoration: underline;
+            color: var(--ev-colors-highlight);
+        }
+
+        & .count {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 20px;
+            min-width: 20px;
+            border-radius: 4px;
+            font-weight: 700;
+            color: var(--ev-colors-background);
+            background-color: var(--ev-colors-secondaryText);
+        }
+
+        & .permission-field {
+            &.green { color: var(--ev-colors-success); }
+            &.red { color: var(--ev-colors-danger); }
+        }
+
+
+        & .roles-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            & .role {
+                user-select: none;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                padding: 1px 5px;
+                background-color: var(--ev-colors-primary);
+                border-radius: 4px;
+                color: var(--ev-colors-secondaryText);
+
+                & .label {
+                    color: var(--ev-colors-text);
+                    font-weight: 500;
+                }
+            }
+        }
+        & .roles-loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 10px;
+            color: var(--ev-colors-secondaryText);
+            & > svg {
+                height: 15px;
+                width: 15px;
+            }
+        }
+
+    }
+}
+
+
