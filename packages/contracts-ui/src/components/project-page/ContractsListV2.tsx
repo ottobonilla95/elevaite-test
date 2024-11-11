@@ -1,11 +1,11 @@
 import { CommonButton, CommonDialog, CommonMenu, type CommonMenuItem, CommonModal, ElevaiteIcons } from "@repo/ui/components";
 import React, { useEffect, useState } from "react";
-import { formatBytes } from "@/helpers";
-import { CONTRACT_TYPES, type ContractObject, ContractObjectVerificationItem, ContractProjectObject, CONTRACTS_TABS, ContractStatus, LoadingListObject, type SortingObject, type UnverifiedItem, type VerificationQuickList, type VerificationQuickListItem } from "@/interfaces";
+import { CONTRACT_TYPES, type ContractObject, type ContractObjectVerificationItem, type ContractProjectObject, CONTRACTS_TABS, ContractStatus, type LoadingListObject, type SortingObject, type UnverifiedItem, type VerificationQuickList, type VerificationQuickListItem } from "../../interfaces";
+import { ListRow, type RowStructure } from "../ListRow";
+import { formatBytes } from "../../helpers";
 import { AddProject } from "./AddProject";
-import "./ContractsListV2.scss";
 import { ContractUpload } from "./ContractUpload";
-import { ListRow, RowStructure } from "../ListRow";
+import "./ContractsListV2.scss";
 
 enum ExtractionStatus {
     Uploading = "Upload In\xa0Progress",
@@ -59,7 +59,7 @@ interface ContractsListV2Props {
     submitCurrentContractPdf: (pdf: File | undefined, type: CONTRACT_TYPES, projectId: string | number, name?: string) => void;
 }
 
-export function ContractsListV2(props: ContractsListV2Props ): JSX.Element {
+export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
     const [contracts, setContracts] = useState<ContractObject[]>([]);
     const [displayContracts, setDisplayContracts] = useState<ContractObject[]>([]);
     const [selectedContractTypes, setSelectedContractTypes] = useState<CONTRACT_TYPES[]>([]);
@@ -337,9 +337,9 @@ export function ContractsListV2(props: ContractsListV2Props ): JSX.Element {
                     listItem.status === ContractStatus.Extracting ? <span className="pending" title="This file is still being processed"><ElevaiteIcons.SVGInstanceProgress /></span> :
                         listItem.status === ContractStatus.ExtractionFailed ? <span className="failed" title="This file failed to extract"><ElevaiteIcons.SVGXmark /></span> :
                             item.verified ?
-                                <MatchButton contract={listItem} setSecondarySelectedContractById={props.setSecondarySelectedContractById} setSelectedContract={props.setSelectedContract}/>
+                                <MatchButton contract={listItem} setSecondarySelectedContractById={props.setSecondarySelectedContractById} setSelectedContract={props.setSelectedContract} />
                                 :
-                                <MismatchButton contract={listItem} items={item.unverifiedItems} index={index} listLength={displayContracts.length} setSecondarySelectedContractById={props.setSecondarySelectedContractById} setSelectedContract={props.setSelectedContract}/>
+                                <MismatchButton contract={listItem} items={item.unverifiedItems} index={index} listLength={displayContracts.length} setSecondarySelectedContractById={props.setSecondarySelectedContractById} setSelectedContract={props.setSelectedContract} />
                 }
             </div>
         );
@@ -641,8 +641,7 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
     if (props.items.length === 1)
         return (
             <CommonButton
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-binary-expression -- TODO: Take a look at this
-                title={`This cross-section has one issue, with file:\n${props.items[0].label ?? props.items[0].fileName ?? "Unknown File" ?? "Unknown"}`}
+                title={`This cross-section has one issue, with file:\n${props.items[0].label ?? props.items[0].fileName ?? "Unknown File"}`}
                 onClick={() => { handleMismatchMenuClick(props.items[0]); }}
             >
                 <ElevaiteIcons.SVGQuestionMark />

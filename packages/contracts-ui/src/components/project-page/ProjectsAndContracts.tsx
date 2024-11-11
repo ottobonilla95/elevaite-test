@@ -1,12 +1,12 @@
 "use client";
-import { ProjectsList } from "./ProjectsList";
-import { ContractsListV2 } from "./ContractsListV2";
 import {
   type CONTRACT_TYPES,
   type ContractObject,
   type ContractProjectObject,
   type LoadingListObject,
-} from "@/interfaces";
+} from "../../interfaces";
+import { ProjectsList } from "./ProjectsList";
+import { ContractsListV2 } from "./ContractsListV2";
 import "./ProjectsAndContracts.scss";
 
 interface ProjectsAndContractsProps {

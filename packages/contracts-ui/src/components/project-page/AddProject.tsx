@@ -1,7 +1,7 @@
 import { CommonButton, CommonDialog, CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import "./AddProject.scss";
-import { ContractProjectObject } from "@/interfaces";
+import { type ContractProjectObject } from "../../interfaces";
 
 
 

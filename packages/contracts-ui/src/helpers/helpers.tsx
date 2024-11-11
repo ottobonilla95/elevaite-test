@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { useCallback, useRef } from "react";
-import { type FilterGroupStructure, type FiltersStructure } from "@/interfaces";
+import { type FilterGroupStructure, type FiltersStructure } from "../interfaces";
 
 
 
@@ -63,7 +63,8 @@ export function formatBytes(bytes: number, decimals = 0): string {
 
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm)).toString()} ${sizes[i]}`;
+    const res = `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm)).toString()} ${sizes[i]}`;
+    return res
 }
 
 

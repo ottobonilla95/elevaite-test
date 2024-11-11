@@ -13,6 +13,7 @@
   "dependencies": {
     "@auth/core": "^0.29.0",
     "@repo/lib": "*",
+    "@repo/contracts-ui": "*",
     "@repo/ui": "*",
     "@types/react-datepicker": "^6.2.0",
     "chart.js": "^4.4.3",
