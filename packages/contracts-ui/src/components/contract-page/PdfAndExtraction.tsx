@@ -5,8 +5,8 @@ import { ContractComparison } from "./ContractComparison";
 import { PdfDisplay } from "./PdfDisplay";
 import { PdfExtraction } from "./PdfExtraction";
 import {
-  CONTRACT_TYPES,
-  LoadingListObject,
+  type CONTRACT_TYPES,
+  type LoadingListObject,
   type ContractObject,
 } from "@/interfaces";
 
