@@ -391,12 +391,16 @@ def extract_specific_fields(search_result: SearchResult, fields: List[str], full
         # Extract specified fields from full_data
         if full_data_fields and ad_creative.full_data:
             for field in full_data_fields:
-                if field in ad_creative.full_data:
-                    item[f"full_data_{field}"] = ad_creative.full_data[field]
+                normalized_field = field.replace(' ', '_')
+                if normalized_field in ad_creative.full_data:
+                    item[f"full_data_{normalized_field}"] = ad_creative.full_data[normalized_field]
+                    print(f"Extracting: {field}")
+                else:
+                    print(f"Didn't find: {field}")
+        
         extracted_data.append(item)
-  ##  logger.debug("Extracted Data")
+    
     return str(extracted_data)
-
 @timer_decorator    
 async def media_plan(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload]) -> str:
     # Media_plan Data filtered out
@@ -407,6 +411,7 @@ async def media_plan(filtered_data: SearchResult, query: str, conversation_histo
     "tone_mood",
     "booked_measure_impressions",
     "delivered_measure_impressions",
+    "budget",
     "conversion",
     ]
     full_data_fields_to_extract = [
@@ -446,6 +451,7 @@ async def campaign_performance(filtered_data: SearchResult, query: str, conversa
         "duration(days)",
         "duration_category",
         "delivered_measure_impressions",
+        "booked_measure_impressions",
         "clicks",
         "conversion",
         "md5_hash",
@@ -459,7 +465,7 @@ async def campaign_performance(filtered_data: SearchResult, query: str, conversa
     
     essential_data = extract_specific_fields(filtered_data, fields_to_extract, full_data_fields_to_extract)
 
-    system_prompt = load_prompt("formatter_campaign_performance")
+    system_prompt = load_prompt("campaign_performance_with_formatter")
 
     # logger.debug("Campaign performance inputs: ",str(query)+str(system_prompt)+str(essential_data))
     # print("Extracted data campaign performance:",essential_data)

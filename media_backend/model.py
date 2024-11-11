@@ -11,7 +11,7 @@ class AdCreative(BaseModel):
     type: Optional[str] = None
     booked_measure_impressions: Optional[float] = None
     delivered_measure_impressions: Optional[float] = None
-    duration_days: Optional[int] = None
+    duration_days: Optional[int] = Field(None, alias="duration(days)")
     duration_category: Optional[str] = None
     industry: Optional[str] = None
     brand: Optional[str] = None
@@ -25,7 +25,7 @@ class AdCreative(BaseModel):
     conversion: Optional[float] = None
     creative_url: Optional[str] = None
     md5_hash: Optional[str] = None
-    full_data: Optional[Dict[str, Any]] = Field(default=None)
+    full_data: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
     @classmethod
     def parse_obj(cls, obj):
@@ -34,7 +34,10 @@ class AdCreative(BaseModel):
             try:
                 obj['full_data'] = json.loads(obj['full_data'])
             except json.JSONDecodeError:
-                obj['full_data'] = None
+                obj['full_data'] = {}
+        # Normalize field names in full_data
+        if isinstance(obj.get('full_data'), dict):
+            obj['full_data'] = {k.replace(' ', '_'): v for k, v in obj['full_data'].items()}
         return super().parse_obj(obj)
 
     class Config:

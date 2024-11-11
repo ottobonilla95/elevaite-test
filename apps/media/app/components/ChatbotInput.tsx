@@ -99,6 +99,12 @@ export function ChatbotInput(): JSX.Element {
                     ) : null}
                 </div>
             )}
+                      
+            {!selectedFile && (<FileUpload
+                onFileSelect={handleFileSelect}
+                onUpload={() => console.log("File uploaded!")}
+                isUploading={isUploading}
+            />)}
 
             <SimpleInput
                 wrapperClassName="chatbot-input-field"
@@ -117,20 +123,13 @@ export function ChatbotInput(): JSX.Element {
                 }
             />
 
-            {isIdeatecreative?(            
-                <FileUpload
-                onFileSelect={handleFileSelect}
-                onUpload={() => console.log("File uploaded!")}
-                isUploading={isUploading}
-            />):      
-            // Export Button    
+    
             <CommonButton
             className="export-button"
             onClick={handleExport}
             disabled={isUploading || chatContext.isChatLoading || isExporting}>
             {isExporting ? <ChatbotIcons.SVGSpinnerExport /> : <ChatbotIcons.SVGDownloadExport />}
         </CommonButton>
-            }
         </div>
     );
 }

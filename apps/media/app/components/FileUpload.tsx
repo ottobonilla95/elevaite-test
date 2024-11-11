@@ -30,11 +30,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, isUploading, onUp
                 id="file-upload-input"
             />
             <CommonButton
-                className="export-button"
+                // className="expo  rt-button"
                 onClick={() => document.getElementById("file-upload-input")?.click()} // Trigger file selection
                 disabled={isUploading}
             >
-                {isUploading ? <ChatbotIcons.SVGSpinner /> : <ChatbotIcons.SVGAdd />}
+                {isUploading ? <ChatbotIcons.SVGSpinner /> : <ChatbotIcons.SVGPaperClip />}
             </CommonButton>
         </div>
     );

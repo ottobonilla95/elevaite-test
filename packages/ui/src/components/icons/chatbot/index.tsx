@@ -15,7 +15,7 @@ import SVGSpinnerExport from "./svgSpinnerExport";
 import SVGDownloadExport from "./svgDownloadExport";
 import SVGThumbs from "./svgThumbs";
 import SVGUpload from "./svgUpload";
-
+import SVGPaperClip from "./svgPaperClip";
 
 
 
@@ -37,4 +37,5 @@ export const ChatbotIcons = {
     SVGUpload,
     SVGSpinnerExport,
     SVGDownloadExport,
+    SVGPaperClip,
 };
