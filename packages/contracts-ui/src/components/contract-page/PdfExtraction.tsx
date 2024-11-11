@@ -35,19 +35,94 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
   );
 
   useEffect(() => {
+    function getExtractedBits(
+      extractedData: ContractExtractionDictionary
+    ): JSX.Element[] {
+      const bits: JSX.Element[] = [];
+      const lineItems: Record<string, string>[] = [];
+
+      Object.entries(extractedData).forEach(([pageKey, page]) => {
+        Object.entries(page).forEach(([label, value]) => {
+          if (typeof value === "string") {
+            bits.push(
+              <ExtractedBit
+                key={pageKey + label}
+                label={label}
+                value={value}
+                onChange={(changeLabel, changeText) => {
+                  handleBitChange(pageKey, changeLabel, changeText);
+                }}
+              />
+            );
+            // } else if (Array.isArray(value) && value.every(v => typeof v === "string")) {
+            //     bits.push(<ExtractedBit
+            //         key={pageKey + label}
+            //         label={label}
+            //         value={`- ${value.join("\n- ")}`}
+            //         disabled
+            //     />);
+          } else if (label.startsWith("Line Item")) {
+            if (!Array.isArray(value)) {
+              const res = Object.fromEntries(
+                Object.entries(value).filter(
+                  ([_key, _value]) => typeof _value === "string"
+                )
+              ) as Record<string, string>;
+              lineItems.push(res as Record<string, string>);
+            }
+            // } else if (typeof value === "string") { // Dictionary keys that don't start with "Line Item"
+            //     bits.push(<ExtractedTableBit
+            //                 key={pageKey + label}
+            //                 label={label}
+            //                 data={[value]}
+            //                 onTableChange={(changeLabel, changeText) => { handleTableBitChange(pageKey, changeLabel, changeText); }}
+            //                 hideNumber
+            //             />);
+          } else if (label.startsWith("Estimated Monthly Billing")) {
+            const extractedBilling = Object.entries(
+              value as Record<string, string>
+            ).map(([itemKey, itemValue]) => {
+              return { Date: itemKey, Amount: itemValue };
+            });
+            bits.push(
+              <ExtractedTableBit
+                key="monthlyBilling"
+                label="Estimated Monthly Billing"
+                data={extractedBilling as Record<string, string>[]}
+                hideNumber
+              />
+            );
+          }
+        });
+      });
+
+      if (lineItems.length > 0)
+        bits.unshift(
+          <ExtractedTableBit
+            key="line_items"
+            label="Line Items"
+            data={lineItems}
+          />
+        );
+
+      return bits;
+    }
+
     if (props.selectedContract?.response) {
       setExtractedBits(getExtractedBits(props.selectedContract.response));
     } else setExtractedBits([]);
     if (!props.selectedContract?.verification)
       setSelectedTab(ExtractionTabs.EXTRACTION);
-  }, [getExtractedBits, props.selectedContract, props.selectedContract?.response]);
+  }, [props.selectedContract, props.selectedContract?.response]);
 
   function handleBitChange(
-    pageKey: string,
+    _pageKey: string,
+    _itemKey: string,
+    _newValue: string
   ): void {
-    const pagePattern = /^page_\d+$/;
-    if (!pagePattern.test(pageKey)) return;
-    // props.changeSelectedContractBit(pageKey as `page_${number}`, itemKey, newValue);
+    // const pagePattern = /^page_\d+$/;
+    // if (!pagePattern.test(pageKey)) return;
+    // contractsContext.changeSelectedContractBit(pageKey as `page_${number}`, itemKey, newValue);
   }
 
   // function handleTableBitChange(
@@ -57,8 +132,8 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
   // ): void {
   //   const pagePattern = /^page_\d+$/;
   //   if (!pagePattern.test(pageKey)) return;
-  //   // props.changeSelectedContractTableBit(pageKey as `page_${number}`, tableKey, newTableData);
-  }
+  //   // contractsContext.changeSelectedContractTableBit(pageKey as `page_${number}`, tableKey, newTableData);
+  // }
 
   function handleManualApproval(): void {
     setIsApprovalConfirmationOpen(true);
@@ -73,84 +148,7 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
   }
 
   function confimedApproval(): void {
-    console.log(
-      "Handling manual approval of",
-      props.selectedContract?.label ?? props.selectedContract?.filename
-    );
     setIsApprovalConfirmationOpen(false);
-  }
-
-  function getExtractedBits(
-    extractedData: ContractExtractionDictionary
-  ): JSX.Element[] {
-    const bits: JSX.Element[] = [];
-    const lineItems: Record<string, string>[] = [];
-
-    Object.entries(extractedData).forEach(([pageKey, page]) => {
-      Object.entries(page).forEach(([label, value]) => {
-        if (typeof value === "string") {
-          bits.push(
-            <ExtractedBit
-              key={pageKey + label}
-              label={label}
-              value={value}
-              onChange={(changeLabel, changeText) => {
-                handleBitChange(pageKey, changeLabel, changeText);
-              }}
-            />
-          );
-          // } else if (Array.isArray(value) && value.every(v => typeof v === "string")) {
-          //     bits.push(<ExtractedBit
-          //         key={pageKey + label}
-          //         label={label}
-          //         value={`- ${value.join("\n- ")}`}
-          //         disabled
-          //     />);
-        } else if (label.startsWith("Line Item")) {
-          if (!Array.isArray(value)) {
-            const res = Object.fromEntries(
-              Object.entries(value).filter(
-                ([key, _value]) => typeof _value === "string"
-              )
-            ) as Record<string, string>;
-            lineItems.push(res);
-          }
-          // } else if (typeof value === "string") { // Dictionary keys that don't start with "Line Item"
-          //     bits.push(<ExtractedTableBit
-          //                 key={pageKey + label}
-          //                 label={label}
-          //                 data={[value]}
-          //                 onTableChange={(changeLabel, changeText) => { handleTableBitChange(pageKey, changeLabel, changeText); }}
-          //                 hideNumber
-          //             />);
-        } else if (label.startsWith("Estimated Monthly Billing")) {
-          const extractedBilling = Object.entries(
-            value as Record<string, string>
-          ).map(([itemKey, itemValue]) => {
-            return { Date: itemKey, Amount: itemValue };
-          });
-          bits.push(
-            <ExtractedTableBit
-              key="monthlyBilling"
-              label="Estimated Monthly Billing"
-              data={extractedBilling as Record<string, string>[]}
-              hideNumber
-            />
-          );
-        }
-      });
-    });
-
-    if (lineItems.length > 0)
-      bits.unshift(
-        <ExtractedTableBit
-          key="line_items"
-          label="Line Items"
-          data={lineItems}
-        />
-      );
-
-    return bits;
   }
 
   return (
@@ -185,7 +183,7 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
                         >
                             {ExtractionTabs.EXTRACTION}
                         </CommonButton>
-                        {!props.selectedContract?.verification ? undefined :
+                        {!contractsContext.selectedContract?.verification ? undefined :
                             <CommonButton
                                 className={[
                                     "tab-button",

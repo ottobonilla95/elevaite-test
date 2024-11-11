@@ -46,7 +46,6 @@ module.exports = {
           "pascalCase": true
         }
       }
-    ],
-    "no-html-link-for-pages": "off"
+    ]
   },
 };
