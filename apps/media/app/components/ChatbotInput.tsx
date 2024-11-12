@@ -1,36 +1,48 @@
 "use client";
 import { ChatbotIcons, CommonButton, SimpleInput } from "@repo/ui/components";
-import { useContext, useState } from "react";
+import { useContext, useState, useRef } from "react";
 import { ChatContext } from "../ui/contexts/ChatContext";
+import FileUpload from "./FileUpload";
 import "./ChatbotInput.scss";
 import "./MarkdownMessage.scss";
 
 export function ChatbotInput(): JSX.Element {
     const chatContext = useContext(ChatContext);
     const [text, setText] = useState("");
-    const [isExporting, setIsExporting] = useState(false); 
+    const [isExporting, setIsExporting] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     function handleTextChange(value: string): void {
         if (chatContext.isChatLoading) return;
         setText(value);
     }
 
-    function handleSend(): void {
+    async function handleSend(): Promise<void>  {
         if (chatContext.isChatLoading) return;
         const workingText = text;
         setText("");
-        if (!workingText.trim()) return;
-        chatContext.addNewUserMessageWithLastMessages(workingText)
-    }
+        if (!workingText.trim() && !selectedFile) return;
 
+        try {
+            console.log("Sending the file to the backend: ",selectedFile);
+            await chatContext.addNewUserMessageWithLastMessages(workingText, selectedFile || undefined);
+            setSelectedFile(null); // Clear the selected file after sending
+        } catch (error) {
+            console.error('Error sending message and file:', error);
+        }
+        // chatContext.addNewUserMessageWithLastMessages(workingText)
+    }
     function handleKeyDown(key: string): void {
         if (key === "Enter") handleSend();
     }
-
-    function handleSummarize(): void {
-        if (chatContext.isChatLoading) return;
-        chatContext.getSessionSummary();
+    function handleFileSelect(file: File): void {
+        setSelectedFile(file);
     }
+    // function handleSummarize(): void {
+    //     if (chatContext.isChatLoading) return;
+    //     chatContext.getSessionSummary();
+    // }
     async function handleExport(): Promise<void> {
         const { selectedSession } = chatContext;
         if (!selectedSession || selectedSession.messages.length === 0) return;
@@ -66,8 +78,34 @@ export function ChatbotInput(): JSX.Element {
             setIsExporting(false);
         }
     }
+    const isIdeatecreative = chatContext.selectedGenAIBot === "ideatecreative";
     return (
         <div className={["chatbot-input-container", chatContext.isChatLoading ? "loading" : undefined].filter(Boolean).join(" ")}>
+            {/* File Preview Container (Above the Input) */}
+            {selectedFile && (
+                <div className="uploaded-creative-container">
+                    {selectedFile.type.startsWith("image/") || selectedFile.type === "image/gif" ? (
+                        <img
+                            src={URL.createObjectURL(selectedFile)}
+                            alt="Uploaded Creative"
+                            className="uploaded-creative"
+                        />
+                    ) : selectedFile.type.startsWith("video/") ? (
+                        <video
+                            controls
+                            className="uploaded-creative"
+                            src={URL.createObjectURL(selectedFile)}
+                        />
+                    ) : null}
+                </div>
+            )}
+                      
+            {!selectedFile && (<FileUpload
+                onFileSelect={handleFileSelect}
+                onUpload={() => console.log("File uploaded!")}
+                isUploading={isUploading}
+            />)}
+
             <SimpleInput
                 wrapperClassName="chatbot-input-field"
                 value={text}
@@ -80,24 +118,18 @@ export function ChatbotInput(): JSX.Element {
                         onClick={handleSend}
                         disabled={chatContext.isChatLoading}
                     >
-                        {chatContext.isChatLoading ?
-                            <ChatbotIcons.SVGSpinner/> :
-                            <ChatbotIcons.SVGSend/>
-                        }
-                    </CommonButton>                    
+                        {chatContext.isChatLoading ? <ChatbotIcons.SVGSpinner /> : <ChatbotIcons.SVGSend />}
+                    </CommonButton>
                 }
             />
 
+    
             <CommonButton
-                className=".export-button"
-                overrideClass
-                onClick={async () => {
-                    await handleExport();
-                }}
-                disabled={isExporting || chatContext.isChatLoading} // Disable if exporting or loading
-            >
-                {isExporting ? <ChatbotIcons.SVGSpinnerExport /> : <ChatbotIcons.SVGDownloadExport/>}
-            </CommonButton>
+            className="export-button"
+            onClick={handleExport}
+            disabled={isUploading || chatContext.isChatLoading || isExporting}>
+            {isExporting ? <ChatbotIcons.SVGSpinnerExport /> : <ChatbotIcons.SVGDownloadExport />}
+        </CommonButton>
         </div>
     );
 }

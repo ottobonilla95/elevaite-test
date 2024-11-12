@@ -17,14 +17,13 @@ export enum ChatbotV {
 export const defaultChatbotV = ChatbotV.InWarranty;
 
 export enum ChatBotGenAI {
-    Pan = "pan",
-    Cisco = "cisco",
-    CiscoClo = "cisco_clo",
-    ServiceNow = "servicenow",
-    BGPInsights = "bgpinsights",
-    Creative = "Creative"
+    // Pan = "pan",
+    // Cisco = "cisco",
+    MediaPerformance = "mediaperformance",
+    IdeateCreative = "ideatecreative",
+    ContractsBilling = "contractsbilling",
 }
-export const defaultGenAIBotOption = ChatBotGenAI.CiscoClo;
+export const defaultGenAIBotOption = ChatBotGenAI.MediaPerformance;
 
 export interface ChatBotPayload {
     actor: string;
