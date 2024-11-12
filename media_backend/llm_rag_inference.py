@@ -364,6 +364,11 @@ def ideate_to_create_without_rag(user_query:str,creative:str,conversation_histor
     prompt = load_prompt("creative_feedback")
     return generate_response_with_creatives(creative=creative,query=user_query,system_prompt=prompt,conversation_history=conversation_history) 
 
+@timer_decorator
+def general_queries_without_rag(user_query:str,creative:str,conversation_history:List[ConversationPayload])-> str:
+    prompt = "You are an AI assistant. Be Polite and answer in markdown. You can answer questions based on uploaded creatives."
+    return generate_response_with_creatives(creative=creative,query=user_query,system_prompt=prompt,conversation_history=conversation_history) 
+
 @timer_decorator   
 async def formatter(final_output: str = None, prompt_file_name: str = "formatter",query_content:str=None) -> str:
     system_prompt = load_prompt(prompt_file_name)
@@ -715,7 +720,7 @@ async def perform_inference(inference_payload: InferencePayload):
         else:
             intent_data = determine_intent(inference_payload.query, conversation_history,"creative_intent")
             required_outcomes = intent_data.get('required_outcomes', [])
-            # print("Required Outcomes:",required_outcomes)
+            print("Required Outcomes:",required_outcomes)
             unrelated_query = intent_data.get('unrelated_query',False)
             parameters = intent_data.get('parameters', {}) 
             if unrelated_query:
@@ -729,10 +734,14 @@ async def perform_inference(inference_payload: InferencePayload):
                 result = ideate_to_create_without_rag(inference_payload.query,inference_payload.creative,conversation_history)
                 # print("LLM Response:",result)
                 yield {"response": result}
+            elif 3 in required_outcomes:
+                result = general_queries_without_rag(inference_payload.query,inference_payload.creative,conversation_history)
+                yield {"response": result}
             if 2 in required_outcomes:
                 result = ideate_to_create_with_rag(user_query=inference_payload.query,creative=inference_payload.creative,conversation_history=conversation_history,parameters=parameters)
                 # print("LLM Response:",result)
                 yield {"response": result}
+
 
     except Exception as e:
         logger.error(f"An error occurred:{e}")

@@ -28,7 +28,6 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
   const [mediaTypes, setMediaTypes] = useState<('image' | 'video')[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-
   function openMediaModal(): void {
     const { urls, names } = extractUniqueMediaData(props.text);
   
@@ -69,6 +68,24 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
     setIsModalOpen(true);
   }
   
+  function openModal(): void {
+    if (props.creative) {
+      // Check if it's a video (based on base64 mime type)
+      const isVideo = props.creative.startsWith('data:video/mp4') || props.creative.startsWith('data:video/quicktime');
+      const isGif = props.creative.startsWith('data:image/gif');
+      const isImage = props.creative.startsWith('data:image/jpeg') || props.creative.startsWith('data:image/png');
+      
+      // If it's a video or image, open the modal with the appropriate content
+      if (isVideo || isGif || isImage) {
+        setMediaUrls([props.creative]); // Single media item in this case
+        setMediaNames(['Uploaded Creative']);
+        setMediaTypes([isVideo ? 'video' : 'image']); // 'video' for video, 'image' for images
+        setIsModalOpen(true); // Open modal
+      }
+    }
+  }
+
+
 function goToNext(): void {
   setCurrentIndex((prevIndex) => (prevIndex + 1) % mediaUrls.length);
 }
@@ -128,6 +145,24 @@ function goToPrevious(): void {
         </div>
 
         <div className="message">
+          {!props.isBot && props.creative ? (
+          <div style={{ maxWidth: '300px', maxHeight: '300px', overflow: 'hidden', borderRadius: '12px' }} onClick={openModal} >
+            {props.creative.startsWith('data:video/mp4') || props.creative.startsWith('data:video/quicktime') ? (
+              <video 
+                src={props.creative} 
+                controls 
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }}
+              />
+            ) : props.creative.startsWith('data:image/gif') || props.creative.startsWith('data:image/jpeg') || props.creative.startsWith('data:image/png') ? (
+              <img 
+                src={props.creative} 
+                alt="Uploaded Creative" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }}
+              />
+            ) : null}
+          </div>
+        ) : null}
+
           <MarkdownMessage text={props.text} onImageClick={openImageModal} />
         </div>
         {/* <div className="message"  dangerouslySetInnerHTML={{ __html: props.text }}>

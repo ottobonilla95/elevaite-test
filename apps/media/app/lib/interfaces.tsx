@@ -63,6 +63,7 @@ export interface ChatMessageObject {
     userName: string;
     isBot: boolean;
     date: string;
+    creative?: string;
     text: string;
     vote?: 0 | 1 | -1;
     feedback?: string;

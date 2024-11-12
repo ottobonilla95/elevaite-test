@@ -3,6 +3,7 @@ Required Outcomes:
 Represented as an array of integers based on the following mapping:
 1: Constructive Feedback based on provided Creative.
 2: Trend Analysis based on historical data.
+3: General queries on the provided creative.
 
 unrelated_query: Check if the current Query is related to the conversation history.
 parameters: Extract season, holiday, industry, duration_category and brand if present in query.
@@ -38,6 +39,13 @@ User: "Show me similar ads"
 Response:
 {
   "required_outcomes": [2],
+  "unrelated_query": true,
+}
+4. Conversation_history: "" 
+User: "Whats going on in the image?"
+Response:
+{
+  "required_outcomes": [3],
   "unrelated_query": true,
 }
 5. Conversation_history: "" 
