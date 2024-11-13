@@ -1,4 +1,4 @@
-import { ProjectsAndContracts } from "@/components/ProjectsAndContracts";
+import { ProjectsAndContracts } from "@repo/contracts-ui/components";
 import "./page.scss";
 
 export default async function ProjectPage({
