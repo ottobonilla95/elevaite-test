@@ -82,8 +82,14 @@ export function ChatbotInput(): JSX.Element {
     return (
         <div className={["chatbot-input-container", chatContext.isChatLoading ? "loading" : undefined].filter(Boolean).join(" ")}>
             {/* File Preview Container (Above the Input) */}
-            {selectedFile && (
-                <div className="uploaded-creative-container">
+                {selectedFile && (
+                    <div className="uploaded-creative-container">
+                        <button
+                        className="close-icon"
+                        onClick={() => setSelectedFile(null)} // Clear the selected file
+                        >
+                        &times; {/* X symbol */}
+                        </button>
                     {selectedFile.type.startsWith("image/") || selectedFile.type === "image/gif" ? (
                         <img
                             src={URL.createObjectURL(selectedFile)}

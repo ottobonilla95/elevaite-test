@@ -381,6 +381,21 @@ export function ChatContextProvider(
   async function addNewUserMessageWithLastMessages(messageText: string, file?: File): Promise<void> {
     const MAX_PAYLOAD_HISTORY = 3;
     if (!messageText || !selectedSession) return;
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = error => reject(error);
+      });
+    }
+    let imageBase64;
+    if (file) {
+      imageBase64 = await fileToBase64(file);
+      // console.log(imageBase64);
+    }
+
     const userIdNumbersList = selectedSession.messages
         .filter((item) => !item.isBot)
         .map((userItem) =>
@@ -395,6 +410,7 @@ export function ChatContextProvider(
         id: newId,
         date: new Date().toISOString(),
         isBot: false,
+        creative:imageBase64,
         userName: session.data?.user?.name ?? "You",
         text: messageText,
     };
@@ -415,19 +431,7 @@ export function ChatContextProvider(
     conversation_payload = conversation_payload.reverse();
     // console.log("CONVERSATION_PAYLOAD:", conversation_payload);
 
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = error => reject(error);
-      });
-    }
-    let imageBase64;
-    if (file) {
-      imageBase64 = await fileToBase64(file);
-      // console.log(imageBase64);
-    }
+
     // Fetching with streaming
     const response = await fetch("http://127.0.0.1:8000/", {
       method: 'POST',

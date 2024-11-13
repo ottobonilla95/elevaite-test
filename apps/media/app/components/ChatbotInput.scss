@@ -20,6 +20,9 @@
     object-fit: cover; /* Scale the content to fit without distortion */
 }
 
+.close-icon {
+    position: absolute;
+}
 
 .chatbot-input-container {
     flex-shrink: 0;

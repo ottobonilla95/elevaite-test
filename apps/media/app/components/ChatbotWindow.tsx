@@ -11,11 +11,11 @@ export function ChatbotWindow(): JSX.Element {
     const messageListRef = useRef<HTMLDivElement | null>(null);
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
-    useEffect(() => {
-        if (chatContext.selectedSession?.messages.length && chatContext.selectedSession.messages.length > 0) {
-            scrollToLastMessage();
-        }
-    }, [chatContext.selectedSession?.messages.length]);
+    // useEffect(() => {
+    //     if (chatContext.selectedSession?.messages.length && chatContext.selectedSession.messages.length > 0) {
+    //         scrollToLastMessage();
+    //     }
+    // }, [chatContext.selectedSession?.messages.length]);
 
     useEffect(() => {
         if (chatContext.selectedSession?.summary?.isExpectingDisplay) {
@@ -56,9 +56,9 @@ export function ChatbotWindow(): JSX.Element {
                 </div>
             }
 
-            <div className="chatbot-window-header">
+            {/* <div className="chatbot-window-header">
                 <span>{chatContext.selectedSession?.label}</span>
-            </div>
+            </div> */}
 
             <div className="chatbot-window-scroller">
                 <div className="chatbot-window-message-list" ref={messageListRef}>

@@ -6,10 +6,10 @@ For each of the campaigns use the following structure:
 
 | Campaign Duration                 | Delivered Impressions | Delivered Impressions | Clicks/Actions  | Value to Money (Conversions) |
 |-----------------------------------|-----------------------|-----------------------|-----------------|------------------------------|
-| [Duration Category] ([Days] days) | [Number]              | [Number]              |[Number]         | [Percentage]%                |
+| [Duration Category] ([Days] days) |      [Number]         |        [Number]       |    [Number]     |        [Percentage]%         |
 
 | Creative Snapshot                      | Creative Thumbnail                           |
 |----------------------------------------|----------------------------------------------|
-| [Brief description of creative imagery]| ![creative filename](md5_hash.thumbnail.jpg "Brand and Product") |
+| [Brief description of creative imagery]| ![creative filename with extension](md5_hash.thumbnail.jpg "Brand and Product") |
 
-Limit your response to a maximum of 800 tokens. Make sure the creative thumbnail is formatted  like ![creative filename](md5_hash.thumbnail.jpg). Make sure that the url for the thumbnail is md5_hash.thumbnail.jpg!(NOT md5_hash.thumbnail.jpg.jpg)
+Limit your response to a maximum of 800 tokens. Make sure the creative thumbnail is formatted  like ![creative filename with extension](md5_hash.thumbnail.jpg). Make sure that the url for the thumbnail is md5_hash.thumbnail.jpg!(NOT md5_hash.thumbnail.jpg.jpg)
