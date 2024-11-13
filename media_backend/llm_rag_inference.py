@@ -732,13 +732,16 @@ async def perform_inference(inference_payload: InferencePayload):
             
             if 1 in required_outcomes:
                 result = ideate_to_create_without_rag(inference_payload.query,inference_payload.creative,conversation_history)
+                result = replace_hash_with_url(remove_markdown_prefix(result))
                 # print("LLM Response:",result)
                 yield {"response": result}
             elif 3 in required_outcomes:
                 result = general_queries_without_rag(inference_payload.query,inference_payload.creative,conversation_history)
+                result = replace_hash_with_url(remove_markdown_prefix(result))
                 yield {"response": result}
             if 2 in required_outcomes:
                 result = ideate_to_create_with_rag(user_query=inference_payload.query,creative=inference_payload.creative,conversation_history=conversation_history,parameters=parameters)
+                result = replace_hash_with_url(remove_markdown_prefix(result))
                 # print("LLM Response:",result)
                 yield {"response": result}
 
