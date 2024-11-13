@@ -85,6 +85,9 @@ interface ProjectCardProps {
 function ProjectCard(props: ProjectCardProps): JSX.Element {
   const router = useRouter();
 
+  function handleMouseOver(): void {
+    router.prefetch(`/${props.project.id}`);
+  }
   function handleClick(): void {
     if (props.selectedProjectId !== props.project.id.toString()) {
       // eslint-disable-next-line no-console -- .
@@ -109,6 +112,8 @@ function ProjectCard(props: ProjectCardProps): JSX.Element {
         .filter(Boolean)
         .join(" ")}
       onClick={handleClick}
+      onMouseOver={handleMouseOver}
+      onFocus={handleMouseOver}
       onKeyDown={onKeyDown}
     >
       <div className="line">
