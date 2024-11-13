@@ -102,7 +102,9 @@ function ProjectCard(props: ProjectCardProps): JSX.Element {
     <div
       className={[
         "project-card-container",
-        props.selectedProjectId === props.project.id ? "selected" : undefined,
+        props.selectedProjectId === props.project.id.toString()
+          ? "selected"
+          : undefined,
       ]
         .filter(Boolean)
         .join(" ")}
