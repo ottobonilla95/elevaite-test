@@ -7,12 +7,9 @@ import {
   ElevaiteIcons,
 } from "@repo/ui/components";
 import { useRef, useState } from "react";
-import {
-  CONTRACT_TYPES,
-  type ContractProjectObject,
-  CONTRACTS_TABS,
-} from "@/interfaces";
+import { CONTRACT_TYPES, CONTRACTS_TABS } from "@/interfaces";
 import "./ContractUpload.scss";
+import { submitCurrentContractPdf } from "@/actions/contractActions";
 
 const contractTypesOptions: CommonSelectOption[] = [
   { label: "VSOW", value: CONTRACT_TYPES.VSOW },
@@ -24,14 +21,8 @@ const contractTypesOptions: CommonSelectOption[] = [
 interface ContractUploadProps {
   selectedTab?: CONTRACTS_TABS;
   selectedType?: CONTRACT_TYPES;
-  selectedProject?: ContractProjectObject;
+  selectedProjectId?: string;
   onClose: () => void;
-  submitCurrentContractPdf: (
-    pdf: File | undefined,
-    type: CONTRACT_TYPES,
-    projectId: string | number,
-    name?: string
-  ) => void;
 }
 
 export function ContractUpload(props: ContractUploadProps): JSX.Element {
@@ -58,12 +49,11 @@ export function ContractUpload(props: ContractUploadProps): JSX.Element {
   }
 
   function handleSubmit(): void {
-    console.log(props.selectedProject?.id);
-    if (!uploadingFile || !pdfType || !props.selectedProject?.id) return;
-    props.submitCurrentContractPdf(
+    if (!uploadingFile || !pdfType || !props.selectedProjectId) return;
+    submitCurrentContractPdf(
       uploadingFile,
       pdfType,
-      props.selectedProject.id,
+      props.selectedProjectId,
       name
     );
     props.onClose();

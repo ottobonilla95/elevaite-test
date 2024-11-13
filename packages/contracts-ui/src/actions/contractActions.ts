@@ -3,11 +3,11 @@ import { revalidateTag } from "next/cache";
 import {
   type CONTRACT_TYPES,
   type ContractObject,
-  ContractObjectEmphasis,
-  ContractObjectVerification,
-  ContractObjectVerificationLineItem,
+  type ContractObjectEmphasis,
+  type ContractObjectVerification,
+  type ContractObjectVerificationLineItem,
   type ContractProjectObject,
-  ContractSettings,
+  type ContractSettings,
 } from "../interfaces";
 import {
   cacheTags,
@@ -322,7 +322,7 @@ export async function EditProject(
 
 export async function DeleteProject(
   projectId: string,
-  isAlt: boolean,
+  isAlt: boolean
 ): Promise<ContractProjectObject> {
   const baseUrl = getBaseUrl(isAlt);
   if (!baseUrl) throw new Error("Missing base url");
@@ -350,7 +350,19 @@ export async function DeleteProject(
   throw new Error("Invalid data type");
 }
 
-export async function submitContract(
+async function actionSubmitContract(
+  submittedPdf: File,
+  type: CONTRACT_TYPES,
+  projectId: string | number,
+  name?: string
+): Promise<void> {
+  const formData = new FormData();
+  formData.append("file", submittedPdf);
+  if (name) formData.append("label", name);
+  await submitContract(projectId.toString(), formData, type, false);
+}
+
+async function submitContract(
   projectId: string,
   formData: FormData,
   type: CONTRACT_TYPES,
@@ -379,6 +391,17 @@ export async function submitContract(
   const data: unknown = await response.json();
   if (isSubmitContractResponse(data)) return data;
   throw new Error("Invalid data type");
+}
+
+export async function submitCurrentContractPdf(
+  pdf: File | undefined,
+  type: CONTRACT_TYPES,
+  projectId: string | number,
+  name?: string
+): Promise<void> {
+  if (pdf) {
+    await actionSubmitContract(pdf, type, projectId, name);
+  }
 }
 
 export async function deleteContract(

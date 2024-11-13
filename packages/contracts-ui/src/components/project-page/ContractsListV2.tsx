@@ -775,6 +775,7 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
           }}
         >
           <ContractUpload
+            selectedProjectId={selectedProject?.id.toString()}
             selectedType={
               selectedContractTabs.length >= 1
                 ? selectedContractTabs[0]
