@@ -82,15 +82,15 @@ interface ContractsListV2Props {
   setSelectedContract: Dispatch<SetStateAction<ContractObject | undefined>>;
 }
 
-function useHandleContractClick(newContractId: string | undefined) {
+function useHandleContractClick() {
   const router = useRouter();
   const currentPath = usePathname();
 
-  return () => {
+  return (newContractId: string | number | undefined) => {
     if (!newContractId) return;
 
     const pathParts = currentPath.split("/");
-    pathParts[2] = newContractId;
+    pathParts[3] = newContractId.toString();
     const newPath = pathParts.join("/");
     router.replace(newPath);
   };
@@ -99,7 +99,7 @@ function useHandleContractClick(newContractId: string | undefined) {
 export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
   const router = useRouter();
 
-  const handleContractClick = useHandleContractClick(props.projectId);
+  const handleContractClick = useHandleContractClick();
 
   const [loading, setLoading] = useState<LoadingListObject>({
     projects: undefined,
@@ -224,10 +224,10 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
   ): void {
     switch (action) {
       case MenuActions.View:
-        handleContractClick();
+        handleContractClick(contract.id);
         break;
       case MenuActions.Compare:
-        handleContractClick();
+        handleContractClick(contract.id);
         break;
       case MenuActions.Delete:
         handleContractDeleteClick(contract);
@@ -543,7 +543,7 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
         title={listItem.filename}
         noBackground
         onClick={() => {
-          handleContractClick();
+          handleContractClick(listItem.id);
         }}
       >
         <span>
