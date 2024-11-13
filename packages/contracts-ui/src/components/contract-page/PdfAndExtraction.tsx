@@ -1,14 +1,10 @@
 "use client";
 import { useState } from "react";
 import "./PdfAndExtraction.scss";
-import { ContractComparison } from "./ContractComparison";
 import { PdfDisplay } from "./PdfDisplay";
 import { PdfExtraction } from "./PdfExtraction";
-import {
-  type CONTRACT_TYPES,
-  type LoadingListObject,
-  type ContractObject,
-} from "@/interfaces";
+import { ContractComparison } from "./ContractComparison";
+import { type LoadingListObject, type ContractObject } from "@/interfaces";
 
 enum ExpandedPages {
   PDF = "pdf",
@@ -17,20 +13,12 @@ enum ExpandedPages {
 
 interface PdfAndExtractionProps {
   projectId: string;
-  fileId: string;
+  primarycontract: ContractObject;
   contractsList: ContractObject[];
-  contract: ContractObject;
-  secondaryContract: ContractObject;
-  file: File | Blob;
   loading: LoadingListObject;
-  setSecondarySelectedContract: (
-    contract?: ContractObject | CONTRACT_TYPES
-  ) => void;
-  setSecondarySelectedContractById: (id: string) => void;
-  setSelectedContractById: (id?: string | number) => void;
-  setSelectedContract: (contract?: ContractObject) => void;
-  reprocessSelectedContract: () => void;
+  file: Blob;
 }
+
 export function PdfAndExtraction(props: PdfAndExtractionProps): JSX.Element {
   const [expandedPage, setExpandedPage] = useState<ExpandedPages | undefined>();
 
@@ -46,16 +34,20 @@ export function PdfAndExtraction(props: PdfAndExtractionProps): JSX.Element {
   }
 
   return (
-    <div className="contracts-content active">
-      {props.contract && props.secondaryContract ? (
+    <div
+      className={[
+        "contracts-content",
+        props.primarycontract ? "active" : undefined,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      {props.primarycontract && secondaryContract ? (
         <ContractComparison
           loading={props.loading}
-          setSecondarySelectedContract={props.setSecondarySelectedContract}
-          setSecondarySelectedContractById={
-            props.setSecondarySelectedContractById
-          }
-          setSelectedContract={props.setSelectedContract}
-          setSelectedContractById={props.setSelectedContractById}
+          projectId={props.projectId}
+          primaryContract={props.primarycontract}
+          contractsList={props.contractsList}
         />
       ) : (
         <div
@@ -69,13 +61,10 @@ export function PdfAndExtraction(props: PdfAndExtractionProps): JSX.Element {
           <PdfDisplay
             handleExpansion={handlePdfExpansion}
             isExpanded={expandedPage === ExpandedPages.PDF}
-            file={props.file}
-            contract={props.contract}
-            projectId={props.projectId}
           />
           <PdfExtraction
             loading={props.loading}
-            reprocessSelectedContract={props.reprocessSelectedContract}
+            projectId={props.projectId}
             handleExpansion={handleDataExpansion}
             isExpanded={expandedPage === ExpandedPages.DATA}
           />

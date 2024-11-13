@@ -1,13 +1,26 @@
 import {
   getContractObjectById,
   getContractProjectContracts,
-} from "@/lib/actions/contractActions";
+} from "@repo/contracts-ui/actions";
 import "./page.scss";
-import { PdfAndExtraction } from "@/components/PdfAndExtraction";
+import { PdfAndExtraction } from "@repo/contracts-ui/components";
+import { LoadingListObject } from "@repo/contracts-ui/interfaces";
 
 export default async function ContractPage({
   params,
 }: Readonly<{ params: Promise<{ projectId: string; fileId: string }> }>) {
+  const loading: LoadingListObject = {
+    projects: undefined,
+    contracts: true,
+    submittingContract: false,
+    projectReports: {},
+    projectSettings: {},
+    contractEmphasis: {},
+    contractLineItems: {},
+    contractVerification: {},
+    deletingContract: false,
+  };
+
   const { projectId, fileId } = await params;
 
   const contractPromise = getContractObjectById(projectId, fileId, false);
@@ -24,7 +37,7 @@ export default async function ContractPage({
   );
   const filePromise = fetch(url, { method: "GET" });
 
-  const [contract, contractsList, fileRes] = await Promise.all([
+  const [primaryContract, contractsList, fileRes] = await Promise.all([
     contractPromise,
     contractsListPromise,
     filePromise,
@@ -35,11 +48,11 @@ export default async function ContractPage({
   return (
     <div className="contracts-main-container">
       <PdfAndExtraction
-        fileId={fileId}
-        projectId={projectId}
-        contractsList={contractsList}
-        contract={contract}
         file={file}
+        loading={loading}
+        projectId={projectId}
+        primarycontract={primaryContract}
+        contractsList={contractsList}
       />
     </div>
   );
