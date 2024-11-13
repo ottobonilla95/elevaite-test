@@ -35,6 +35,7 @@ import { formatBytes } from "@/helpers";
 import {
   deleteContract,
   getContractProjectById,
+  getContractProjectContracts,
   getContractProjectsList,
 } from "@/actions/contractActions";
 
@@ -84,7 +85,17 @@ interface ContractsListV2Props {
 export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
   const router = useRouter();
 
-  const [loading, setLoading] = useState<LoadingListObject>();
+  const [loading, setLoading] = useState<LoadingListObject>({
+    projects: undefined,
+    contracts: undefined,
+    submittingContract: false,
+    projectReports: {},
+    projectSettings: {},
+    contractEmphasis: {},
+    contractLineItems: {},
+    contractVerification: {},
+    deletingContract: false,
+  });
   const [selectedProject, setSelectedProject] = useState<
     ContractProjectObject | undefined
   >();
@@ -140,19 +151,6 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
   // }, [displayContracts]);
 
   useEffect(() => {
-    setLoading({
-      projects: undefined,
-      contracts: undefined,
-      submittingContract: false,
-      projectReports: {},
-      projectSettings: {},
-      contractEmphasis: {},
-      contractLineItems: {},
-      contractVerification: {},
-    } as LoadingListObject);
-  }, []);
-
-  useEffect(() => {
     const fetchProject = async (): Promise<void> => {
       const project = props.projectId
         ? await getContractProjectById(props.projectId, false)
@@ -164,7 +162,13 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
   }, [props.projectId]);
 
   useEffect(() => {
-    setContracts(selectedProject?.reports ?? []);
+    if (props.projectId)
+      getContractProjectContracts(props.projectId, false).then((reports) => {
+        setContracts(reports);
+        setLoading((current) => {
+          return { ...current, contracts: false };
+        });
+      });
     setDisplayRowsStructure(getRowListStructure());
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Don't add the rest
   }, [selectedProject?.reports]);
@@ -1031,8 +1035,6 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
         <ElevaiteIcons.SVGQuestionMark />
       </CommonButton>
     );
-
-  //--------------------
 
   const mismatchMenu: CommonMenuItem<UnverifiedItem[]>[] = props.items.map(
     (item) => {
