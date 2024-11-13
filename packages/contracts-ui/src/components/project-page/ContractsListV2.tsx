@@ -82,8 +82,24 @@ interface ContractsListV2Props {
   setSelectedContract: Dispatch<SetStateAction<ContractObject | undefined>>;
 }
 
+function useHandleContractClick(newContractId: string | undefined) {
+  const router = useRouter();
+  const currentPath = usePathname();
+
+  return () => {
+    if (!newContractId) return;
+
+    const pathParts = currentPath.split("/");
+    pathParts[2] = newContractId;
+    const newPath = pathParts.join("/");
+    router.replace(newPath);
+  };
+}
+
 export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
   const router = useRouter();
+
+  const handleContractClick = useHandleContractClick(props.projectId);
 
   const [loading, setLoading] = useState<LoadingListObject>({
     projects: undefined,
@@ -208,10 +224,10 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
   ): void {
     switch (action) {
       case MenuActions.View:
-        UseHandleContractClick(props.projectId);
+        handleContractClick();
         break;
       case MenuActions.Compare:
-        UseHandleContractClick(props.projectId);
+        handleContractClick();
         break;
       case MenuActions.Delete:
         handleContractDeleteClick(contract);
@@ -219,17 +235,6 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
       default:
         break;
     }
-  }
-
-  function UseHandleContractClick(newContractId: string | undefined): void {
-    const currentPath = usePathname();
-    if (!newContractId) return;
-
-    const pathParts = currentPath.split("/");
-    pathParts[2] = newContractId;
-
-    const newPath = pathParts.join("/");
-    router.replace(newPath);
   }
 
   function handleContractDeleteClick(contract: ContractObject): void {
@@ -538,7 +543,7 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
         title={listItem.filename}
         noBackground
         onClick={() => {
-          UseHandleContractClick(props.projectId);
+          handleContractClick();
         }}
       >
         <span>
