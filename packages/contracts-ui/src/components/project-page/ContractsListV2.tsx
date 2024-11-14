@@ -6,11 +6,16 @@ import {
   CommonModal,
   ElevaiteIcons,
 } from "@repo/ui/components";
-import React, { useCallback, useEffect, useState } from "react";
+import React, {
+  useEffect,
+  useState,
+} from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { type AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { ListRow, type RowStructure } from "../ListRow";
 import { AddProject } from "./AddProject";
+import "./ContractsListV2.scss";
 import { ContractUpload } from "./ContractUpload";
-import { formatBytes } from "@/helpers";
 import {
   CONTRACT_TYPES,
   type ContractObject,
@@ -24,7 +29,11 @@ import {
   type VerificationQuickList,
   type VerificationQuickListItem,
 } from "@/interfaces";
-import "./ContractsListV2.scss";
+import { formatBytes } from "@/helpers";
+import {
+  deleteContract,
+  getContractProjectsList,
+} from "@/actions/contractActions";
 
 enum ExtractionStatus {
   Uploading = "Upload In\xa0Progress",
@@ -63,42 +72,52 @@ const cleanFilterNumbers: StatusFilterNumbers = {
 };
 
 interface ContractsListV2Props {
-  selectedContract?: ContractObject;
-  selectedProject?: ContractProjectObject;
-  setSelectedContract: (contract?: ContractObject) => void;
-  setSecondarySelectedContract: (
-    contract?: ContractObject | CONTRACT_TYPES
-  ) => void;
-  setSecondarySelectedContractById: (id?: string | number) => void;
-  getContractById: (id: string | number) => ContractObject | undefined;
-  deleteContract: (projectId: string, contractId: string) => Promise<boolean>;
-  loading: LoadingListObject;
-  createProject: (name: string, description?: string) => Promise<boolean>;
-  editProject: (
-    projectId: string,
-    name: string,
-    description?: string
-  ) => Promise<boolean>;
-  deleteProject: (projectId: string) => Promise<boolean>;
+  projectId?: string;
+  project?: ContractProjectObject;
+  contracts: ContractObject[];
   projects: ContractProjectObject[];
-  submitCurrentContractPdf: (
-    pdf: File | undefined,
-    type: CONTRACT_TYPES,
-    projectId: string | number,
-    name?: string
-  ) => void;
 }
 
-export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
-  const [contracts, setContracts] = useState<ContractObject[]>([]);
+function useHandleContractClick() {
+  const router = useRouter();
+  const currentPath = usePathname();
+
+  return (newContractId: string | number | undefined) => {
+    if (!newContractId) return;
+
+    const pathParts = currentPath.split("/");
+    pathParts[3] = newContractId.toString();
+    const newPath = pathParts.join("/");
+    router.replace(newPath);
+  };
+}
+
+export function ContractsListV2({
+  project: selectedProject,
+  contracts,
+  ...props
+}: ContractsListV2Props): JSX.Element {
+  const router = useRouter();
+
+  const handleContractClick = useHandleContractClick();
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- testing
+  const [loading, setLoading] = useState<LoadingListObject>({
+    projects: undefined,
+    contracts: undefined,
+    submittingContract: false,
+    projectReports: {},
+    projectSettings: {},
+    contractEmphasis: {},
+    contractLineItems: {},
+    contractVerification: {},
+    deletingContract: false,
+  });
   const [displayContracts, setDisplayContracts] = useState<ContractObject[]>(
     []
   );
-  const [selectedContractTypes, setSelectedContractTypes] = useState<
+  const [selectedContractTabs, setSelectedContractTabs] = useState<
     CONTRACT_TYPES[]
-  >([]);
-  const [displayRowsStructure, setDisplayRowsStructure] = useState<
-    RowStructure<ContractObject>[]
   >([]);
   const [statusFilterNumbers, setStatusFilterNumbers] =
     useState<StatusFilterNumbers>(cleanFilterNumbers);
@@ -116,34 +135,6 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
   const [isDeleteContractDialogOpen, setIsDeleteContractDialogOpen] =
     useState(false);
 
-  const handleContractClick = useCallback(
-    (contract: ContractObject, compare?: boolean): void => {
-      props.setSelectedContract(contract);
-      if (compare) {
-        props.setSecondarySelectedContract(contract.content_type);
-      }
-    },
-    [props]
-  );
-
-  function handleMenuClick(
-    contract: ContractObject,
-    action: MenuActions
-  ): void {
-    switch (action) {
-      case MenuActions.View:
-        handleContractClick(contract);
-        break;
-      case MenuActions.Compare:
-        handleContractClick(contract, true);
-        break;
-      case MenuActions.Delete:
-        handleContractDeleteClick(contract);
-        break;
-      default:
-        break;
-    }
-  }
   const contractsListMenu: CommonMenuItem<ContractObject>[] = [
     {
       label: MenuActions.View,
@@ -164,270 +155,20 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
       },
     },
   ];
-
-  // useEffect(() => {
-  //     console.log("Display Contracts:", displayContracts);
-  // }, [displayContracts]);
-
-  useEffect(() => {
-    if (!props.selectedContract) clearUi();
-  }, [props.selectedProject]);
-
-  useEffect(() => {
-    function structureName(listItem: ContractObject): React.ReactNode {
-      return (
-        <CommonButton
-          className="contract-name"
-          title={listItem.filename}
-          noBackground
-          onClick={() => {
-            handleContractClick(listItem);
-          }}
-        >
-          <span>
-            {listItem.label && listItem.label.length > 0
-              ? listItem.label
-              : listItem.filename}
-          </span>
-        </CommonButton>
-      );
-    }
-
-    function structureVerification(
-      listItem: ContractObject,
-      index: number,
-      type: CONTRACT_TYPES
-    ): React.ReactNode {
-      const item = listItem.verificationQuickList?.[type];
-      if (!item) return "";
-      return (
-        <div className="contract-verification">
-          {item.irrelevant ? (
-            <span className="irrelevant">—</span>
-          ) : listItem.status === ContractStatus.Extracting ? (
-            <span
-              className="pending"
-              title="This file is still being processed"
-            >
-              <ElevaiteIcons.SVGInstanceProgress />
-            </span>
-          ) : listItem.status === ContractStatus.ExtractionFailed ? (
-            <span className="failed" title="This file failed to extract">
-              <ElevaiteIcons.SVGXmark />
-            </span>
-          ) : item.verified ? (
-            <MatchButton
-              contract={listItem}
-              setSecondarySelectedContractById={
-                props.setSecondarySelectedContractById
-              }
-              setSelectedContract={props.setSelectedContract}
-            />
-          ) : (
-            <MismatchButton
-              contract={listItem}
-              items={item.unverifiedItems}
-              index={index}
-              listLength={displayContracts.length}
-              setSecondarySelectedContractById={
-                props.setSecondarySelectedContractById
-              }
-              setSelectedContract={props.setSelectedContract}
-            />
-          )}
-        </div>
-      );
-    }
-
-    function structureVerificationVsow(
-      listItem: ContractObject,
-      index: number
-    ): React.ReactNode {
-      return structureVerification(listItem, index, CONTRACT_TYPES.VSOW);
-    }
-    function structureVerificationCsow(
-      listItem: ContractObject,
-      index: number
-    ): React.ReactNode {
-      return structureVerification(listItem, index, CONTRACT_TYPES.CSOW);
-    }
-    function structureVerificationPo(
-      listItem: ContractObject,
-      index: number
-    ): React.ReactNode {
-      return structureVerification(
-        listItem,
-        index,
-        CONTRACT_TYPES.PURCHASE_ORDER
-      );
-    }
-    function structureVerificationInvoice(
-      listItem: ContractObject,
-      index: number
-    ): React.ReactNode {
-      return structureVerification(listItem, index, CONTRACT_TYPES.INVOICE);
-    }
-
-    function getRowListStructure(): RowStructure<ContractObject>[] {
-      const structure: RowStructure<ContractObject>[] = [];
-
-      structure.push({
-        header: "",
-        field: "status",
-        align: "center",
-        formattingFunction: structureStatus,
-      });
-      structure.push({
-        header: "Size",
-        field: "filesize",
-        isSortable: true,
-        align: "center",
-        formattingFunction: structureFileSize,
-      });
-      // structure.push({ header: "Number", field: "contract_number", isSortable: true, formattingFunction: structureContractNumber, });
-      structure.push({
-        header: "Title",
-        field: "label",
-        isSortable: true,
-        formattingFunction: structureName,
-      });
-      structure.push({
-        header: "Type",
-        field: "content_type",
-        isSortable: true,
-        formattingFunction: structureType,
-      });
-
-      structure.push({
-        header: "VSOW",
-        field: "1",
-        align: "center",
-        formattingFunction: structureVerificationVsow,
-      });
-      structure.push({
-        header: "CSOW",
-        field: "2",
-        align: "center",
-        formattingFunction: structureVerificationCsow,
-      });
-      structure.push({
-        header: "PO",
-        field: "3",
-        align: "center",
-        formattingFunction: structureVerificationPo,
-      });
-      structure.push({
-        header: "Invoice",
-        field: "4",
-        align: "center",
-        formattingFunction: structureVerificationInvoice,
-      });
-
-      return structure;
-    }
-
-    setContracts(props.selectedProject?.reports ?? []);
-    setDisplayRowsStructure(getRowListStructure());
-  }, [props.selectedProject?.reports]);
+  const displayRowsStructure = getRowListStructure();
 
   useEffect(() => {
     updateStatusFilterNumbers(contracts);
   }, [contracts]);
 
   useEffect(() => {
-    function getVerifiedContracts(
-      allContracts: ContractObject[]
-    ): ContractObject[] {
-      const verifiedContracts: ContractObject[] = allContracts.map(
-        (contract) => {
-          const quickList: VerificationQuickList = {
-            vsow: getQuickList(contract, CONTRACT_TYPES.VSOW),
-            csow: getQuickList(contract, CONTRACT_TYPES.CSOW),
-            po: getQuickList(contract, CONTRACT_TYPES.PURCHASE_ORDER),
-            invoice: getQuickList(contract, CONTRACT_TYPES.INVOICE),
-          };
-          return { ...contract, verificationQuickList: quickList };
-        }
-      );
-      return verifiedContracts;
-
-      function getQuickList(
-        contract: ContractObject,
-        type: CONTRACT_TYPES
-      ): VerificationQuickListItem {
-        return {
-          irrelevant: contract.content_type === type,
-          verified: contract.verification?.[type]?.every(
-            (item) => item.verification_status
-          ),
-          unverifiedItems:
-            contract.verification?.[type]
-              ?.filter((item) => !item.verification_status)
-              .map((item) => {
-                const relevantContract = props.getContractById(
-                  item.file_id ?? ""
-                );
-                return {
-                  id: item.file_id,
-                  ref: item.file_ref,
-                  label: relevantContract?.label ?? undefined,
-                  fileName: relevantContract?.filename,
-                };
-              }) ?? [],
-        };
-      }
-    }
-
-    function getSortedContracts(
-      allContracts: ContractObject[]
-    ): ContractObject[] {
-      if (!sorting.field) return allContracts;
-
-      allContracts.sort((a, b) => {
-        if (sorting.field === "label") {
-          return (a.label ?? a.filename).localeCompare(b.label ?? b.filename);
-        } else if (
-          sorting.field &&
-          typeof a[sorting.field] === "string" &&
-          typeof b[sorting.field] === "string" &&
-          !Array.isArray(a[sorting.field]) &&
-          !Array.isArray(b[sorting.field])
-        ) {
-          return (a[sorting.field] as string).localeCompare(
-            b[sorting.field] as string
-          );
-        } else if (
-          sorting.field &&
-          typeof a[sorting.field] === "number" &&
-          typeof b[sorting.field] === "number"
-        ) {
-          return (a[sorting.field] as number) - (b[sorting.field] as number);
-        }
-        return 0;
-      });
-      if (sorting.isDesc) {
-        allContracts.reverse();
-      }
-
-      return allContracts;
-    }
-
-    function formatDisplayContracts(passedContracts: ContractObject[]): void {
-      const clonedContracts = structuredClone(passedContracts);
-      const verifiedContracts = getVerifiedContracts(clonedContracts);
-      const filterPillContracts = getFilterPillContracts(
-        verifiedContracts,
-        selectedContractTypes
-      );
-      const filterStatusContracts = getFilterStatusContracts(
-        filterPillContracts,
-        selectedStatus
-      );
-      const sortContracts = getSortedContracts(filterStatusContracts);
-      setDisplayContracts(sortContracts);
-    }
     formatDisplayContracts(contracts);
-  }, [selectedContractTypes, selectedStatus, sorting]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Don't add the rest
+  }, [contracts, selectedContractTabs, selectedStatus, sorting]);
+
+  function handleSelectedContract(id: string): void {
+    router.push(`${props.projectId}/${id}`)
+  }
 
   function handleUpload(): void {
     setIsUploadOpen(true);
@@ -442,11 +183,30 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
   }
 
   function handleFilterPillClick(type: CONTRACT_TYPES): void {
-    setSelectedContractTypes((current) => {
+    setSelectedContractTabs((current) => {
       return current.includes(type)
         ? current.filter((pill) => pill !== type)
         : [...current, type];
     });
+  }
+
+  function handleMenuClick(
+    contract: ContractObject,
+    action: MenuActions
+  ): void {
+    switch (action) {
+      case MenuActions.View:
+        handleContractClick(contract.id);
+        break;
+      case MenuActions.Compare:
+        handleContractClick(contract.id);
+        break;
+      case MenuActions.Delete:
+        handleContractDeleteClick(contract);
+        break;
+      default:
+        break;
+    }
   }
 
   function handleContractDeleteClick(contract: ContractObject): void {
@@ -455,10 +215,11 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
   }
 
   function handleConfirmedContractDeletion(): void {
-    if (!props.selectedProject || !contractForDeletion) return;
-    void props.deleteContract(
-      props.selectedProject.id.toString(),
-      contractForDeletion.id.toString()
+    if (!selectedProject || !contractForDeletion) return;
+    void deleteContract(
+      selectedProject.id.toString(),
+      contractForDeletion.id.toString(),
+      false
     );
     setContractForDeletion(undefined);
     setIsDeleteContractDialogOpen(false);
@@ -478,9 +239,63 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
     setSorting(sortingResult);
   }
 
-  function clearUi(): void {
-    setSelectedContractTypes([]);
-    setSelectedStatus(undefined);
+  function formatDisplayContracts(passedContracts: ContractObject[]): void {
+    const clonedContracts = structuredClone(passedContracts);
+    const verifiedContracts = getVerifiedContracts(clonedContracts);
+    const filterPillContracts = getFilterPillContracts(
+      verifiedContracts,
+      selectedContractTabs
+    );
+    const filterStatusContracts = getFilterStatusContracts(
+      filterPillContracts,
+      selectedStatus
+    );
+    const sortContracts = getSortedContracts(filterStatusContracts);
+    setDisplayContracts(sortContracts);
+  }
+
+  function getVerifiedContracts(
+    allContracts: ContractObject[]
+  ): ContractObject[] {
+    const verifiedContracts: ContractObject[] = allContracts.map((contract) => {
+      const quickList: VerificationQuickList = {
+        vsow: getQuickList(contract, CONTRACT_TYPES.VSOW),
+        csow: getQuickList(contract, CONTRACT_TYPES.CSOW),
+        po: getQuickList(contract, CONTRACT_TYPES.PURCHASE_ORDER),
+        invoice: getQuickList(contract, CONTRACT_TYPES.INVOICE),
+      };
+      return { ...contract, verificationQuickList: quickList };
+    });
+    return verifiedContracts;
+
+    function getQuickList(
+      contract: ContractObject,
+      type: CONTRACT_TYPES
+    ): VerificationQuickListItem {
+      return {
+        irrelevant: contract.content_type === type,
+        verified: contract.verification?.[type]?.every(
+          (item) => item.verification_status
+        ),
+        unverifiedItems:
+          contract.verification?.[type]
+            ?.filter((item) => !item.verification_status)
+            .map((item) => {
+              let relevantContract: ContractObject | undefined;
+              getContractProjectsList(false).then((projects) => {
+                relevantContract = projects
+                  .flatMap((project) => project.reports ?? [])
+                  .find(() => contract.id === item.file_id);
+              });
+              return {
+                id: item.file_id,
+                ref: item.file_ref,
+                label: relevantContract?.label ?? undefined,
+                fileName: relevantContract?.filename,
+              };
+            }) ?? [],
+      };
+    }
   }
 
   function getFilterPillContracts(
@@ -531,6 +346,40 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
     }
   }
 
+  function getSortedContracts(
+    allContracts: ContractObject[]
+  ): ContractObject[] {
+    if (!sorting.field) return allContracts;
+
+    allContracts.sort((a, b) => {
+      if (sorting.field === "label") {
+        return (a.label ?? a.filename).localeCompare(b.label ?? b.filename);
+      } else if (
+        sorting.field &&
+        typeof a[sorting.field] === "string" &&
+        typeof b[sorting.field] === "string" &&
+        !Array.isArray(a[sorting.field]) &&
+        !Array.isArray(b[sorting.field])
+      ) {
+        return (a[sorting.field] as string).localeCompare(
+          b[sorting.field] as string
+        );
+      } else if (
+        sorting.field &&
+        typeof a[sorting.field] === "number" &&
+        typeof b[sorting.field] === "number"
+      ) {
+        return (a[sorting.field] as number) - (b[sorting.field] as number);
+      }
+      return 0;
+    });
+    if (sorting.isDesc) {
+      allContracts.reverse();
+    }
+
+    return allContracts;
+  }
+
   function updateStatusFilterNumbers(passedContracts: ContractObject[]): void {
     const numbers = cleanFilterNumbers;
     numbers.uploading = passedContracts.filter(
@@ -555,6 +404,64 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
       (item) => item.verification?.verification_status === false
     ).length;
     setStatusFilterNumbers(numbers);
+  }
+
+  function getRowListStructure(): RowStructure<ContractObject>[] {
+    const structure: RowStructure<ContractObject>[] = [];
+
+    structure.push({
+      header: "",
+      field: "status",
+      align: "center",
+      formattingFunction: structureStatus,
+    });
+    structure.push({
+      header: "Size",
+      field: "filesize",
+      isSortable: true,
+      align: "center",
+      formattingFunction: structureFileSize,
+    });
+    // structure.push({ header: "Number", field: "contract_number", isSortable: true, formattingFunction: structureContractNumber, });
+    structure.push({
+      header: "Title",
+      field: "label",
+      isSortable: true,
+      formattingFunction: structureName,
+    });
+    structure.push({
+      header: "Type",
+      field: "content_type",
+      isSortable: true,
+      formattingFunction: structureType,
+    });
+
+    structure.push({
+      header: "VSOW",
+      field: "1",
+      align: "center",
+      formattingFunction: structureVerificationVsow,
+    });
+    structure.push({
+      header: "CSOW",
+      field: "2",
+      align: "center",
+      formattingFunction: structureVerificationCsow,
+    });
+    structure.push({
+      header: "PO",
+      field: "3",
+      align: "center",
+      formattingFunction: structureVerificationPo,
+    });
+    structure.push({
+      header: "Invoice",
+      field: "4",
+      align: "center",
+      formattingFunction: structureVerificationInvoice,
+    });
+
+    return structure;
   }
 
   // Table formatting functions
@@ -587,10 +494,12 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
         );
     }
   }
+
   function structureFileSize(listItem: ContractObject): string {
     if (!listItem.filesize) return "";
     return formatBytes(listItem.filesize);
   }
+
   // function structureContractNumber(listItem: ContractObject): React.ReactNode {
   //     switch (listItem.content_type) {
   //         case CONTRACT_TYPES.INVOICE: return listItem.highlight?.invoice_number ?? "";
@@ -598,6 +507,25 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
   //         default: return listItem.highlight?.contract_number ?? "";
   //     }
   // }
+
+  function structureName(listItem: ContractObject): React.ReactNode {
+    return (
+      <CommonButton
+        className="contract-name"
+        title={listItem.filename}
+        noBackground
+        onClick={() => {
+          handleContractClick(listItem.id);
+        }}
+      >
+        <span>
+          {listItem.label && listItem.label.length > 0
+            ? listItem.label
+            : listItem.filename}
+        </span>
+      </CommonButton>
+    );
+  }
 
   function structureType(listItem: ContractObject): React.ReactNode {
     return (
@@ -613,20 +541,91 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
     );
   }
 
+  function structureVerificationVsow(
+    listItem: ContractObject,
+    index: number
+  ): React.ReactNode {
+    return structureVerification(listItem, index, CONTRACT_TYPES.VSOW);
+  }
+
+  function structureVerificationCsow(
+    listItem: ContractObject,
+    index: number
+  ): React.ReactNode {
+    return structureVerification(listItem, index, CONTRACT_TYPES.CSOW);
+  }
+
+  function structureVerificationPo(
+    listItem: ContractObject,
+    index: number
+  ): React.ReactNode {
+    return structureVerification(
+      listItem,
+      index,
+      CONTRACT_TYPES.PURCHASE_ORDER
+    );
+  }
+
+  function structureVerificationInvoice(
+    listItem: ContractObject,
+    index: number
+  ): React.ReactNode {
+    return structureVerification(listItem, index, CONTRACT_TYPES.INVOICE);
+  }
+
+  function structureVerification(
+    listItem: ContractObject,
+    index: number,
+    type: CONTRACT_TYPES
+  ): React.ReactNode {
+    const item = listItem.verificationQuickList?.[type];
+    if (!item) return "";
+    return (
+      <div className="contract-verification">
+        {item.irrelevant ? (
+          <span className="irrelevant">—</span>
+        ) : listItem.status === ContractStatus.Extracting ? (
+          <span className="pending" title="This file is still being processed">
+            <ElevaiteIcons.SVGInstanceProgress />
+          </span>
+        ) : listItem.status === ContractStatus.ExtractionFailed ? (
+          <span className="failed" title="This file failed to extract">
+            <ElevaiteIcons.SVGXmark />
+          </span>
+        ) : item.verified ? (
+          <MatchButton
+            contract={listItem}
+            setSelectedContract={handleSelectedContract}
+            router={router}
+          />
+        ) : (
+          <MismatchButton
+            contract={listItem}
+            items={item.unverifiedItems}
+            index={index}
+            listLength={displayContracts.length}
+            setSelectedContract={handleSelectedContract}
+            router={router}
+          />
+        )}
+      </div>
+    );
+  }
+
   ///////////////////////
 
   return (
     <div
       className={[
         "contracts-list-v2-container",
-        props.selectedProject ? undefined : "empty",
+        selectedProject ? undefined : "empty",
       ]
         .filter(Boolean)
         .join(" ")}
     >
       <div className="contracts-list-v2-title-row">
-        <span className="title">{props.selectedProject?.name}</span>
-        {!props.selectedProject ? undefined : (
+        <span className="title">{selectedProject?.name}</span>
+        {!selectedProject ? undefined : (
           <div className="title-controls-container">
             <CommonButton
               className="edit-project-button"
@@ -684,22 +683,22 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
       <div className="contracts-list-v2-filter-pills-row">
         <ContractListFilterPill
           type={CONTRACT_TYPES.VSOW}
-          selectedPills={selectedContractTypes}
+          selectedPills={selectedContractTabs}
           onClick={handleFilterPillClick}
         />
         <ContractListFilterPill
           type={CONTRACT_TYPES.CSOW}
-          selectedPills={selectedContractTypes}
+          selectedPills={selectedContractTabs}
           onClick={handleFilterPillClick}
         />
         <ContractListFilterPill
           type={CONTRACT_TYPES.PURCHASE_ORDER}
-          selectedPills={selectedContractTypes}
+          selectedPills={selectedContractTabs}
           onClick={handleFilterPillClick}
         />
         <ContractListFilterPill
           type={CONTRACT_TYPES.INVOICE}
-          selectedPills={selectedContractTypes}
+          selectedPills={selectedContractTabs}
           onClick={handleFilterPillClick}
         />
         <div className="filter-pills-controls-container">
@@ -710,7 +709,7 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
       </div>
 
       <div className="contracts-list-v2-table-container">
-        {!props.selectedProject ? (
+        {!selectedProject ? (
           <div className="no-project">
             <span>No selected project</span>
             <span>Select one from the list to the left</span>
@@ -724,7 +723,7 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
               onSort={handleSort}
               sorting={sorting}
             />
-            {props.loading.projectReports[props.selectedProject.id] ? (
+            {loading?.projectReports[selectedProject.id] ? (
               <div className="table-span empty">
                 <ElevaiteIcons.SVGSpinner />
                 <span>Loading...</span>
@@ -757,12 +756,12 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
           }}
         >
           <ContractUpload
+            selectedProjectId={selectedProject?.id.toString()}
             selectedType={
-              selectedContractTypes.length >= 1
-                ? selectedContractTypes[0]
+              selectedContractTabs.length >= 1
+                ? selectedContractTabs[0]
                 : undefined
             }
-            submitCurrentContractPdf={props.submitCurrentContractPdf}
             onClose={() => {
               setIsUploadOpen(false);
             }}
@@ -770,21 +769,18 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
         </CommonModal>
       )}
 
-      {!isProjectEditOpen || !props.selectedProject ? undefined : (
+      {!isProjectEditOpen || !selectedProject ? undefined : (
         <CommonModal
           onClose={() => {
             setIsProjectEditOpen(false);
           }}
         >
           <AddProject
+            projects={props.projects}
             onClose={() => {
               setIsProjectEditOpen(false);
             }}
-            editingProjectId={props.selectedProject.id.toString()}
-            createProject={props.createProject}
-            deleteProject={props.deleteProject}
-            editProject={props.editProject}
-            projects={props.projects}
+            editingProjectId={selectedProject.id.toString()}
           />
         </CommonModal>
       )}
@@ -937,10 +933,19 @@ function ContractListFilterPill(
   );
 }
 
+function UseSecondarySelectedContractById(
+  router: AppRouterInstance,
+  compareContractId?: string | number
+): void {
+  const currentUrl = usePathname();
+  if (!compareContractId) return;
+  router.push(`${currentUrl}/compare/${compareContractId}`);
+}
+
 interface MatchButtonProps {
   contract: ContractObject;
-  setSelectedContract: (contract?: ContractObject) => void;
-  setSecondarySelectedContractById: (id?: string | number) => void;
+  setSelectedContract: (id: string) => void;
+  router: AppRouterInstance;
 }
 
 function MatchButton(props: MatchButtonProps): JSX.Element {
@@ -953,8 +958,11 @@ function MatchButton(props: MatchButtonProps): JSX.Element {
       .flat();
 
     if (relevantContracts[0]) {
-      props.setSecondarySelectedContractById(relevantContracts[0].file_id);
-      props.setSelectedContract(props.contract);
+      UseSecondarySelectedContractById(
+        props.router,
+        relevantContracts[0].file_id
+      );
+      props.setSelectedContract(props.contract.id.toString());
     }
   }
 
@@ -974,8 +982,8 @@ interface MismatchButtonProps {
   items: UnverifiedItem[];
   index?: number;
   listLength?: number;
-  setSelectedContract: (contract?: ContractObject) => void;
-  setSecondarySelectedContractById: (id?: string | number) => void;
+  setSelectedContract: (id: string) => void;
+  router: AppRouterInstance;
 }
 
 function MismatchButton(props: MismatchButtonProps): JSX.Element {
@@ -988,14 +996,14 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
 
   function handleMismatchMenuClick(clickedItem: UnverifiedItem): void {
     if (!clickedItem.id) return;
-    props.setSecondarySelectedContractById(clickedItem.id);
-    props.setSelectedContract(props.contract);
+    UseSecondarySelectedContractById(props.router, clickedItem.id);
+    props.setSelectedContract(props.contract.id.toString());
   }
 
   if (props.items.length === 1)
     return (
       <CommonButton
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-binary-expression -- TODO: Take a look at this
+        // eslint-disable-next-line no-constant-binary-expression -- TODO: Take a look at this
         title={`This cross-section has one issue, with file:\n${props.items[0].label ?? props.items[0].fileName ?? "Unknown File" ?? "Unknown"}`}
         onClick={() => {
           handleMismatchMenuClick(props.items[0]);
@@ -1004,8 +1012,6 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
         <ElevaiteIcons.SVGQuestionMark />
       </CommonButton>
     );
-
-  //--------------------
 
   const mismatchMenu: CommonMenuItem<UnverifiedItem[]>[] = props.items.map(
     (item) => {
@@ -1028,9 +1034,9 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
       left
       top={Boolean(
         props.listLength &&
-          props.index &&
-          props.listLength > 4 &&
-          props.index > props.listLength - 4
+        props.index &&
+        props.listLength > 4 &&
+        props.index > props.listLength - 4
       )}
     />
   );

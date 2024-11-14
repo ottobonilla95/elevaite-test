@@ -65,40 +65,32 @@ $unique-color-blue: #0089FF;
         }
     }
 
+    & .contracts-list-v2-status-row-container {
+        margin: -15px 0;
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 150ms ease-in-out, margin 150ms ease-in-out;
+        pointer-events: none;
+        
+        &.open {
+            margin: 0px;
+            grid-template-rows: 1fr;
+            pointer-events: all;
+        }
+    }
+
     & .contracts-list-v2-status-row {
+        overflow: hidden;
         display: flex;
         align-items: center;
-        gap: 10px;
-          
+        gap: 10px;          
 
         & .status-separator {
             height: 100%;
             border-right: 2px solid var(--ev-colors-text);
         }
-
-
-        & .contract-list-status-block-container {
-            flex: 1 0 min-content;
-            background-color: var(--ev-colors-background);
-            display: grid;
-            grid-template-columns: 30px 1fr;
-            grid-template-rows: repeat(2, minmax(40px, 1fr));
-            padding: 10px;
-
-            &.active {                
-                box-shadow: inset 0 0 0 1px var(--ev-colors-highlight);
-            }
-
-            & .amount {
-                grid-column: 1 / span 2;
-                font-size: 30px;
-                font-weight: 800;
-                text-align: start;
-            }
-            & .title {
-                text-align: start;
-            }
-        }
+        
     }
 
 
@@ -107,19 +99,6 @@ $unique-color-blue: #0089FF;
         display: flex;
         align-items: center;
         gap: 10px;
-
-        & .filter-pill-container {
-            flex-shrink: 0;
-            font-size: 14px;
-            font-weight: 600;
-            padding: 5px 15px;
-            border: 1px solid var(--ev-colors-highlight);
-            border-radius: 15px;
-
-            &.active {
-                background-color: var(--ev-colors-highlight);
-            }
-        }
 
         & .filter-pills-controls-container {
             flex-grow: 1;
@@ -132,6 +111,20 @@ $unique-color-blue: #0089FF;
                 font-size: 14px;
                 background-color: var(--ev-colors-background);
                 padding: 5px 10px;
+            }
+        }
+
+        & .status-row-toggle {
+            background-color: var(--ev-colors-background);
+            border-radius: 4px;
+            padding: 5px 10px;
+
+            &.open > svg {
+                transform: rotateZ(-180deg);
+            }
+
+            & > svg {
+                transition: transform 150ms ease-in-out;
             }
         }
     }
@@ -164,7 +157,7 @@ $unique-color-blue: #0089FF;
             flex-grow: 1;
             display: grid;
             // grid-template-columns: 30px 30px 75px minmax(150px, 1fr) minmax(250px, 2fr) 100px repeat(4, 100px);
-            grid-template-columns: 30px 30px 75px minmax(250px, 2fr) 100px repeat(4, 100px);
+            grid-template-columns: 30px 30px 75px minmax(250px, 2fr) 100px 100px repeat(4, 100px);
             grid-auto-rows: min-content;
             align-content: flex-start;
             gap: 0;
@@ -206,11 +199,11 @@ $unique-color-blue: #0089FF;
                     & .list-row-cell.header {
                         &:first-child { border-top-left-radius: 8px; }
                         &:last-child { border-top-right-radius: 8px; }
-                        &:nth-child(5) { border-right: 1px solid var(--ev-colors-text); }
+                        &:nth-child(6) { border-right: 1px solid var(--ev-colors-text); }
                     }
                 }
                 & .list-row-cell {
-                    &:nth-child(5) { border-right: 1px solid var(--ev-colors-text); }
+                    &:nth-child(6) { border-right: 1px solid var(--ev-colors-text); }
                 }
             }
 

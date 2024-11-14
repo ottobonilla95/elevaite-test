@@ -131,6 +131,17 @@ export enum ContractVariations {
     Iopex = 1,
 };
 
+export enum ExtractionStatus {
+    Uploading = "Upload In\xa0Progress",
+    Extracting = "Extraction In\xa0Progress",
+    Failed = "Extraction Failed, Re-Upload",
+    Complete = "Extraction Complete",
+}
+
+export enum MatchingStatus {
+    Found = "Match Found, Auto-Approved",
+    Failed = "Match Failed, Pending",
+}
 
 
 
@@ -497,8 +508,8 @@ export interface ContractProjectObject {
     description: string;
     create_date: string;
     update_date: string;
-    reports?: ContractObject[];
-    settings?: ContractSettings;
+    reports?: ContractObject[] | null;
+    settings?: ContractSettings | null;
 }
 
 export interface ContractSettings {
@@ -579,6 +590,9 @@ export interface ContractObjectEmphasis {
     rec_charges: string | null;
     non_rec_charges: string | null;
     total_amount: string | null;
+    ibx: string | null;
+    service_start_date: string | null;
+    service_end_date: string | null;
 }
 
 export interface ContractObjectVerificationLineItem {

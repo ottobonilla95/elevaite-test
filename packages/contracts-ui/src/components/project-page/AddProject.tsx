@@ -5,20 +5,18 @@ import {
   ElevaiteIcons,
 } from "@repo/ui/components";
 import { useEffect, useState } from "react";
-import "./AddProject.scss";
 import { type ContractProjectObject } from "@/interfaces";
+import "./AddProject.scss";
+import {
+  CreateProject,
+  DeleteProject,
+  EditProject,
+} from "@/actions/contractActions";
 
 interface AddProjectProps {
   onClose: () => void;
   editingProjectId?: string;
   projects: ContractProjectObject[];
-  deleteProject: (projectId: string) => Promise<boolean>;
-  createProject: (name: string, description?: string) => Promise<boolean>;
-  editProject: (
-    projectId: string,
-    name: string,
-    description?: string
-  ) => Promise<boolean>;
 }
 
 export function AddProject(props: AddProjectProps): JSX.Element {
@@ -28,9 +26,9 @@ export function AddProject(props: AddProjectProps): JSX.Element {
   const [editingProject, setEditingProject] = useState<
     ContractProjectObject | undefined
   >();
-
   const [isDeletionConfirmationOpen, setIsDeletionConfirmationOpen] =
     useState(false);
+  const [deleteConfirmationField, setDeleteConfirmationField] = useState("");
 
   useEffect(() => {
     if (!props.editingProjectId) {
@@ -42,7 +40,7 @@ export function AddProject(props: AddProjectProps): JSX.Element {
         (project) => project.id.toString() === props.editingProjectId
       )
     );
-  }, [props.editingProjectId]);
+  }, [props.editingProjectId, props.projects]);
 
   useEffect(() => {
     setName(editingProject?.name ?? "");
@@ -62,7 +60,7 @@ export function AddProject(props: AddProjectProps): JSX.Element {
     if (!editingProject?.id) return;
 
     setIsLoading(true);
-    await props.deleteProject(editingProject.id.toString());
+    await DeleteProject(editingProject.id.toString(), false);
     setIsLoading(false);
     props.onClose();
   }
@@ -71,9 +69,9 @@ export function AddProject(props: AddProjectProps): JSX.Element {
     if (!name) return;
     setIsLoading(true);
     if (editingProject) {
-      await props.editProject(editingProject.id.toString(), name, description);
+      await EditProject(editingProject.id.toString(), name, false, description);
     } else {
-      await props.createProject(name, description);
+      await CreateProject(name, false, description);
     }
     setIsLoading(false);
     props.onClose();
@@ -131,7 +129,9 @@ export function AddProject(props: AddProjectProps): JSX.Element {
           </CommonButton>
           <CommonButton
             className="submit-button"
-            onClick={() => void handleSubmit()}
+            onClick={() => {
+              void handleSubmit();
+            }}
             disabled={!name}
           >
             {props.editingProjectId ? "Submit Changes" : "Submit"}
@@ -139,22 +139,34 @@ export function AddProject(props: AddProjectProps): JSX.Element {
         </div>
       </div>
 
-      {!isDeletionConfirmationOpen ? undefined : (
+      {!isDeletionConfirmationOpen || !editingProject ? undefined : (
         <CommonDialog
           title="Delete Project?"
           confirmLabel="Delete"
-          onConfirm={() => void handleConfirmedDelete()}
+          disableConfirm={
+            deleteConfirmationField.trim().toLowerCase() !== "delete"
+          }
+          onConfirm={() => {
+            void handleConfirmedDelete();
+          }}
           onCancel={() => {
             setIsDeletionConfirmationOpen(false);
           }}
           dangerSubmit
         >
           <div className="delete-dialog-contents">
-            <span>{`Are you sure you want to delete the project named "${editingProject?.name}"?`}</span>
+            <span>{`Are you sure you want to delete the project named "${editingProject.name}"?`}</span>
             <span>
               This action will delete the project and all its files and cannot
               be reverted.
             </span>
+            <div className="super-confirm">
+              <CommonInput
+                label='Please type the word "Delete" in the field below.'
+                onChange={setDeleteConfirmationField}
+                placeholder="Write 'Delete' to confirm."
+              />
+            </div>
           </div>
         </CommonDialog>
       )}

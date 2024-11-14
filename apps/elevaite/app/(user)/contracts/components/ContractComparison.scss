@@ -48,7 +48,8 @@
     }
 
     & .full-screen-compare-container {
-        max-height: 99vh;
+        height: 99vh;
+        width: 99vw;
         display: grid;
         grid-template-columns: repeat(2, calc(50% - 5px));
         grid-template-rows: 30px calc(100% - 40px);
@@ -66,5 +67,9 @@
             margin: 0;
             padding: 0;
         }
+    }
+
+    & .table-scroller table.line-items-table td .simple-input-container > input {
+        max-width: 40vw;
     }
 }

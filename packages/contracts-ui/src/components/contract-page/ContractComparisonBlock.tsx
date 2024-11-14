@@ -5,26 +5,26 @@ import { ComparisonSelect } from "./ComparisonSelect";
 import { PdfExtractionEmphasis } from "./extractionComponents/PdfExtractionEmphasis";
 import { VerificationLineItems } from "./extractionComponents/VerificationLineItems";
 import {
-  type CONTRACT_TYPES,
-  type ContractObject,
   type LoadingListObject,
+  type ContractObject,
+  type ContractProjectObject,
 } from "@/interfaces";
 
 interface ContractComparisonBlockProps {
-  secondary?: boolean;
-  showValidatedItems?: boolean;
+  secondary: boolean;
   isOverviewMinimized?: boolean;
   onToggleOverview?: () => void;
   onScroll?: () => void;
   scrollRef?: React.RefObject<HTMLDivElement>;
   onFullScreenCompare?: () => void;
   barebones?: boolean;
-  selectedContract?: ContractObject;
-  secondarySelectedContract?: ContractObject | CONTRACT_TYPES;
-  setSelectedContractById: (id?: string | number) => void;
-  setSecondarySelectedContractById: (id?: string | number) => void;
-  setSelectedContract: (contract?: ContractObject) => void;
+  selectedProject: ContractProjectObject;
+  comparisonContract?: ContractObject;
   loading: LoadingListObject;
+  projectId: string;
+  selectedContractId: string;
+  secondarySelectedContractId: string;
+  contractsList: ContractObject[];
 }
 
 export function ContractComparisonBlock(
@@ -34,21 +34,8 @@ export function ContractComparisonBlock(
   const [isLineItemsFullScreen, setIsLineItemsFullScreen] = useState(false);
 
   useEffect(() => {
-    if (props.secondary) {
-      if (
-        props.secondarySelectedContract &&
-        typeof props.secondarySelectedContract === "object"
-      )
-        setCurrentContract(props.secondarySelectedContract);
-      else setCurrentContract(undefined);
-    } else {
-      setCurrentContract(props.selectedContract);
-    }
-  }, [
-    props.secondary,
-    props.selectedContract,
-    props.secondarySelectedContract,
-  ]);
+    setCurrentContract(props.comparisonContract);
+  }, [props.secondary, props.comparisonContract]);
 
   useEffect(() => {
     if (!props.scrollRef || !props.onScroll) return;
@@ -64,8 +51,7 @@ export function ContractComparisonBlock(
     props.scrollRef,
     props.onScroll,
     props.secondary,
-    props.selectedContract,
-    props.secondarySelectedContract,
+    props.comparisonContract,
   ]);
 
   return (
@@ -81,16 +67,16 @@ export function ContractComparisonBlock(
         <>
           <div className="contract-comparison-block-title">
             <ComparisonSelect
-              setSelectedContract={props.setSelectedContract}
-              setSelectedContractById={props.setSelectedContractById}
-              setSecondarySelectedContractById={
-                props.setSecondarySelectedContractById
-              }
+              contractsList={props.contractsList}
+              comparisonContract={props.comparisonContract}
+              selectedContractId={props.selectedContractId}
+              secondarySelectedContractId={props.secondarySelectedContractId}
+              projectId={props.projectId}
               secondary={props.secondary}
               listFor={
                 !props.secondary
                   ? undefined
-                  : props.selectedContract?.content_type
+                  : props.comparisonContract?.content_type
               }
             />
           </div>
@@ -133,8 +119,7 @@ export function ContractComparisonBlock(
             >
               <div className="comparison-overview-contents">
                 <PdfExtractionEmphasis
-                  secondary={props.secondary}
-                  borderless
+                  selectedContract={props.comparisonContract}
                   loading={props.loading}
                 />
               </div>
@@ -175,13 +160,14 @@ export function ContractComparisonBlock(
           <div className="no-info">No line items.</div>
         ) : (
           <VerificationLineItems
+            selectedProject={props.selectedProject}
+            selectedContract={props.comparisonContract}
             loading={props.loading}
             lineItems={currentContract.line_items}
             fullScreen={isLineItemsFullScreen}
             onFullScreenClose={() => {
               setIsLineItemsFullScreen(false);
             }}
-            hideValidatedItems={!props.showValidatedItems}
           />
         )}
       </div>

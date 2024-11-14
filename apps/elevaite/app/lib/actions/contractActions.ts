@@ -1,33 +1,15 @@
 "use server";
 import { revalidateTag } from "next/cache";
 import {
-  type CONTRACT_TYPES,
-  type ContractObject,
-  ContractObjectEmphasis,
-  ContractObjectVerification,
-  ContractObjectVerificationLineItem,
-  type ContractProjectObject,
-  ContractSettings,
+  type CONTRACT_TYPES, type ContractObject, type ContractObjectEmphasis, type ContractObjectVerification, type ContractObjectVerificationLineItem,
+  type ContractProjectObject, type ContractSettings,
 } from "../interfaces";
+import { cacheTags, CONTRACT_PROJECTS_REVALIDATION_TIME, } from "./actionConstants";
 import {
-  cacheTags,
-  CONTRACT_PROJECTS_REVALIDATION_TIME,
-} from "./actionConstants";
-import {
-  isCreateProjectResponse,
-  isDeleteContractResponse,
-  isDeleteProjectResponse,
-  isEditProjectResponse,
-  isGetContractObjectEmphasisResponse,
-  isGetContractObjectResponse,
-  isGetContractObjectVerificationLineItemsResponse,
-  isGetContractObjectVerificationResponse,
-  isGetContractProjectByIdResponse,
-  isGetContractProjectContractsResponse,
-  isGetContractProjectSettingsByIdResponse,
-  isGetContractProjectsListReponse,
-  isReprocessContractResponse,
-  isSubmitContractResponse,
+  isCreateProjectResponse, isDeleteContractResponse, isDeleteProjectResponse, isEditProjectResponse, isGetContractObjectEmphasisResponse,
+  isGetContractObjectResponse, isGetContractObjectVerificationLineItemsResponse, isGetContractObjectVerificationResponse,
+  isGetContractProjectByIdResponse, isGetContractProjectContractsResponse, isGetContractProjectSettingsByIdResponse, isGetContractProjectsListReponse,
+  isReprocessContractResponse, isSubmitContractResponse,
 } from "./contractDiscriminators";
 
 // Helpers
@@ -146,7 +128,7 @@ export async function getContractObjectEmphasis(
   projectId: string,
   contractId: string,
   isAlt: boolean
-): Promise<ContractObjectEmphasis> {
+): Promise<ContractObjectEmphasis|null> {
   const baseUrl = getBaseUrl(isAlt);
   if (!baseUrl) throw new Error("Missing base url");
   const url = new URL(

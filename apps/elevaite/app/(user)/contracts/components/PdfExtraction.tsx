@@ -48,6 +48,11 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
         // contractsContext.changeSelectedContractTableBit(pageKey as `page_${number}`, tableKey, newTableData);
     }
 
+    function handleComparison(): void {
+        if (!contractsContext.selectedContract) return;
+        contractsContext.setSecondarySelectedContract(contractsContext.selectedContract.content_type);
+    }
+
     function handleManualApproval(): void {
         setIsApprovalConfirmationOpen(true);
     }
@@ -61,7 +66,7 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
     }
 
     function confimedApproval(): void {
-        console.log("Handling manual approval of", contractsContext.selectedContract?.label ?? contractsContext.selectedContract?.filename);
+        // console.log("Handling manual approval of", contractsContext.selectedContract?.label ?? contractsContext.selectedContract?.filename);
         setIsApprovalConfirmationOpen(false);
     }
 
@@ -93,7 +98,7 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
                         const res = Object.fromEntries(
                             Object.entries(value).filter(([key, _value]) => typeof _value === 'string')
                         ) as Record<string, string>;
-                        lineItems.push(res as Record<string, string>);
+                        lineItems.push(res);
                     }
                     // } else if (typeof value === "string") { // Dictionary keys that don't start with "Line Item"
                     //     bits.push(<ExtractedTableBit
@@ -164,6 +169,13 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
                             </CommonButton>
                         }
                     </div> */}
+                    <CommonButton
+                        className="comparison-button"
+                        onClick={handleComparison}
+                        title="Compare this file with another"
+                    >
+                        Comparison
+                    </CommonButton>
                     <CommonButton
                         className="reprocess-button"
                         onClick={handleReprocess}

@@ -7,7 +7,9 @@
   "exports": {
     "./styles.css": "./dist/index.css",
     "./components": "./src/components/index.ts",
-    "./pages": "./src/pages/index.ts"
+    "./pages": "./src/pages/index.ts",
+    "./actions": "./src/actions/contractActions.ts",
+    "./interfaces": "./src/interfaces.ts"
   },
   "license": "MIT",
   "scripts": {

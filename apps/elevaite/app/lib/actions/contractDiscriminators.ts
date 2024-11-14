@@ -46,8 +46,8 @@ export function isGetContractProjectContractsResponse(data: unknown): data is Co
     return true;
 }
 
-export function isGetContractObjectEmphasisResponse(data: unknown): data is ContractObjectEmphasis {
-    return isContractObjectEmphasis(data);
+export function isGetContractObjectEmphasisResponse(data: unknown): data is ContractObjectEmphasis | null {
+    return data === null || isContractObjectEmphasis(data);
 }
 
 export function isGetContractObjectVerificationResponse(data: unknown): data is ContractObjectVerification {
@@ -191,7 +191,10 @@ export function isContractObjectEmphasis(item: unknown): item is ContractObjectE
         "supplier" in item &&
         "rec_charges" in item &&
         "non_rec_charges" in item &&
-        "total_amount" in item
+        "total_amount" in item &&
+        "ibx" in item &&
+        "service_start_date" in item &&
+        "service_end_date" in item;
 }
 
 export function isContractObjectVerficationLineItem(item: unknown): item is ContractObjectVerificationLineItem {

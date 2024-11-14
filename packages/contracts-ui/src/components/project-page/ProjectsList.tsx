@@ -1,6 +1,8 @@
+"use client";
 import { CommonButton, CommonModal, ElevaiteIcons } from "@repo/ui/components";
 import dayjs from "dayjs";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { AddProject } from "./AddProject";
 import {
   type LoadingListObject,
@@ -8,21 +10,16 @@ import {
 } from "@/interfaces";
 import "./ProjectsList.scss";
 
-interface ProjectsListProps {
+export function ProjectsList({
+  projects,
+  projectId,
+  loading,
+}: {
   projects: ContractProjectObject[];
+  projectId?: string;
   loading: LoadingListObject;
-  selectedProject?: ContractProjectObject;
-  setSelectedProjectById: (id?: string | number) => void;
-  createProject: (name: string, description?: string) => Promise<boolean>;
-  editProject: (
-    projectId: string,
-    name: string,
-    description?: string
-  ) => Promise<boolean>;
-  deleteProject: (projectId: string) => Promise<boolean>;
-}
-
-export function ProjectsList(props: ProjectsListProps): JSX.Element {
+}): JSX.Element {
+  //   const contractsContext = useContracts();
   const [isProjectCreationOpen, setIsProjectCreationOpen] = useState(false);
 
   function handleAddProject(): void {
@@ -43,19 +40,18 @@ export function ProjectsList(props: ProjectsListProps): JSX.Element {
 
       <div className="projects-list-scroller">
         <div className="projects-list-contents">
-          {props.loading?.projects ? (
+          {loading.projects ? (
             <div className="loading-projects">
               <ElevaiteIcons.SVGSpinner />
             </div>
-          ) : props.projects.length === 0 ? (
+          ) : projects.length === 0 ? (
             <div className="no-projects">No Projects found</div>
           ) : (
-            props.projects.map((project) => (
+            projects.map((project) => (
               <ProjectCard
                 key={project.id}
                 project={project}
-                setSelectedProjectById={props.setSelectedProjectById}
-                selectedProject={props.selectedProject}
+                selectedProjectId={projectId}
               />
             ))
           )}
@@ -69,10 +65,8 @@ export function ProjectsList(props: ProjectsListProps): JSX.Element {
           }}
         >
           <AddProject
-            createProject={props.createProject}
-            deleteProject={props.deleteProject}
-            editProject={props.editProject}
-            projects={props.projects}
+            projects={projects}
+            editingProjectId={projectId}
             onClose={() => {
               setIsProjectCreationOpen(false);
             }}
@@ -85,15 +79,21 @@ export function ProjectsList(props: ProjectsListProps): JSX.Element {
 
 interface ProjectCardProps {
   project: ContractProjectObject;
-  selectedProject?: ContractProjectObject;
-  setSelectedProjectById: (id?: string | number) => void;
+  selectedProjectId?: string;
 }
 
 function ProjectCard(props: ProjectCardProps): JSX.Element {
+  const router = useRouter();
+
+  function handleMouseOver(): void {
+    router.prefetch(`/${props.project.id}`);
+  }
   function handleClick(): void {
-    if (props.selectedProject?.id === props.project.id)
-      props.setSelectedProjectById(undefined);
-    else props.setSelectedProjectById(props.project.id);
+    if (props.selectedProjectId !== props.project.id.toString()) {
+      // eslint-disable-next-line no-console -- .
+      console.dir(props);
+      router.push(`/${props.project.id}`);
+    }
   }
 
   function onKeyDown(): void {
@@ -105,11 +105,15 @@ function ProjectCard(props: ProjectCardProps): JSX.Element {
     <div
       className={[
         "project-card-container",
-        props.selectedProject?.id === props.project.id ? "selected" : undefined,
+        props.selectedProjectId === props.project.id.toString()
+          ? "selected"
+          : undefined,
       ]
         .filter(Boolean)
         .join(" ")}
       onClick={handleClick}
+      onMouseOver={handleMouseOver}
+      onFocus={handleMouseOver}
       onKeyDown={onKeyDown}
     >
       <div className="line">
