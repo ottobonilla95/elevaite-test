@@ -4,7 +4,11 @@ import "./PdfAndExtraction.scss";
 import { PdfDisplay } from "./PdfDisplay";
 import { PdfExtraction } from "./PdfExtraction";
 import { ContractComparison } from "./ContractComparison";
-import { type LoadingListObject, type ContractObject } from "@/interfaces";
+import {
+  type LoadingListObject,
+  type ContractObject,
+  type ContractProjectObject,
+} from "@/interfaces";
 
 enum ExpandedPages {
   PDF = "pdf",
@@ -13,7 +17,9 @@ enum ExpandedPages {
 
 interface PdfAndExtractionProps {
   projectId: string;
-  primarycontract: ContractObject;
+  selectedProject: ContractProjectObject;
+  selectedContract: ContractObject;
+  secondarySelectedContract?: ContractObject;
   contractsList: ContractObject[];
   loading: LoadingListObject;
   file: Blob;
@@ -37,16 +43,17 @@ export function PdfAndExtraction(props: PdfAndExtractionProps): JSX.Element {
     <div
       className={[
         "contracts-content",
-        props.primarycontract ? "active" : undefined,
+        props.selectedContract ? "active" : undefined,
       ]
         .filter(Boolean)
         .join(" ")}
     >
-      {props.primarycontract && secondaryContract ? (
+      {props.selectedContract && props.secondarySelectedContract ? (
         <ContractComparison
           loading={props.loading}
           projectId={props.projectId}
-          primaryContract={props.primarycontract}
+          selectedProject={props.selectedProject}
+          selectedContract={props.selectedContract}
           contractsList={props.contractsList}
         />
       ) : (
@@ -59,6 +66,9 @@ export function PdfAndExtraction(props: PdfAndExtractionProps): JSX.Element {
             .join(" ")}
         >
           <PdfDisplay
+            projectId={props.projectId}
+            selectedContract={props.selectedContract}
+            selectedProject={props.selectedProject}
             handleExpansion={handlePdfExpansion}
             isExpanded={expandedPage === ExpandedPages.PDF}
           />

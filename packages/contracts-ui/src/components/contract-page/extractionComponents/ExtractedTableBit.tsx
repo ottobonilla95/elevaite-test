@@ -36,7 +36,7 @@ export function ExtractedTableBit(props: ExtractedTableBitProps): JSX.Element {
         ? Object.keys(tableData[0])
         : [TABLE_NUMBER_LABEL, ...Object.keys(tableData[0])]
     );
-  }, [props.hideNumber, tableData]);
+  }, [tableData]);
 
   function handleChange(
     rowIndex: number,
@@ -127,19 +127,8 @@ function TableStructure(props: TableStructureProps): JSX.Element {
   const [tableData, setTableData] = useState(props.data);
 
   useEffect(() => {
-    // Removes rows with irrelevant data to our line items.
-    function filterTableData(headers: string[]): Record<string, string>[] {
-      return tableData.filter((row) =>
-        headers.some(
-          (header) =>
-            Object.prototype.hasOwnProperty.call(row, header) &&
-            row[header] !== ""
-        )
-      );
-    }
-
-    setTableData(filterTableData((props.data, props.headers)));
-  }, [props.data, props.headers, tableData]);
+    setTableData(filterTableData(props.headers));
+  }, [props.headers]);
 
   function handleChange(
     rowIndex: number,
@@ -147,6 +136,17 @@ function TableStructure(props: TableStructureProps): JSX.Element {
     newValue: string
   ): void {
     if (props.onChange) props.onChange(rowIndex, columnKey, newValue);
+  }
+
+  // Removes rows with irrelevant data to our line items.
+  function filterTableData(headers: string[]): Record<string, string>[] {
+    return tableData.filter((row) =>
+      headers.some(
+        (header) =>
+          Object.prototype.hasOwnProperty.call(row, header) &&
+          row[header] !== ""
+      )
+    );
   }
 
   return (

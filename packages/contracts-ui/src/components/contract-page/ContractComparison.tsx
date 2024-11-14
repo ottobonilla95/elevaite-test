@@ -8,12 +8,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import "./ContractComparison.scss";
 import { useRouter } from "next/navigation";
 import { ContractComparisonBlock } from "./ContractComparisonBlock";
-import { type LoadingListObject, type ContractObject } from "@/interfaces";
+import {
+  type LoadingListObject,
+  type ContractObject,
+  type ContractProjectObject,
+} from "@/interfaces";
 
 interface ContractComparisonProps {
-  primaryContract: ContractObject;
+  selectedContract: ContractObject;
   contractsList: ContractObject[];
   projectId: string;
+  selectedProject: ContractProjectObject;
   loading: LoadingListObject;
 }
 
@@ -23,10 +28,12 @@ export function ContractComparison(
   const router = useRouter();
 
   const [selectedContract, setSelectedContract] = useState<ContractObject>();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- .
   const [secondarySelectedContract, setSecondarySelectedContract] = useState<
     ContractObject | undefined
   >();
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- .
   const [isShowingMatching, setIsShowingMatching] = useState(false);
   const [isOverviewMinimized, setIsOverviewMinimized] = useState(false);
   const scrollableRefMain = useRef<HTMLDivElement>(null);
@@ -36,15 +43,15 @@ export function ContractComparison(
   const [isFullScreenCompare, setIsFullScreenCompare] = useState(false);
 
   useEffect(() => {
-    setSelectedContract(props.primaryContract);
-  }, [props.primaryContract]);
+    setSelectedContract(props.selectedContract);
+  }, [props.selectedContract]);
 
   function handleHome(): void {
-    router.back();
+    router.push(`/${props.projectId}`);
   }
 
   function handleMainView(): void {
-    setSecondarySelectedContract(undefined);
+    router.push(`/${props.projectId}/${props.selectedContract.id}`);
   }
 
   function handleToggleOverview(): void {
@@ -122,8 +129,9 @@ export function ContractComparison(
 
       <ContractComparisonBlock
         secondary={false}
+        projectId={props.projectId}
+        selectedProject={props.selectedProject}
         loading={props.loading}
-        showValidatedItems={isShowingMatching}
         isOverviewMinimized={isOverviewMinimized}
         onToggleOverview={handleToggleOverview}
         scrollRef={scrollableRefMain}
@@ -134,8 +142,9 @@ export function ContractComparison(
 
       <ContractComparisonBlock
         secondary
+        projectId={props.projectId}
+        selectedProject={props.selectedProject}
         loading={props.loading}
-        showValidatedItems={isShowingMatching}
         isOverviewMinimized={isOverviewMinimized}
         onToggleOverview={handleToggleOverview}
         scrollRef={scrollableRefSecondary}
@@ -157,8 +166,9 @@ export function ContractComparison(
             </div>
             <ContractComparisonBlock
               secondary={false}
+              projectId={props.projectId}
+              selectedProject={props.selectedProject}
               loading={props.loading}
-              showValidatedItems={isShowingMatching}
               isOverviewMinimized={isOverviewMinimized}
               onToggleOverview={handleToggleOverview}
               scrollRef={scrollableRefMainFull}
@@ -167,8 +177,9 @@ export function ContractComparison(
             />
             <ContractComparisonBlock
               secondary
+              projectId={props.projectId}
+              selectedProject={props.selectedProject}
               loading={props.loading}
-              showValidatedItems={isShowingMatching}
               isOverviewMinimized={isOverviewMinimized}
               onToggleOverview={handleToggleOverview}
               scrollRef={scrollableRefSecondaryFull}

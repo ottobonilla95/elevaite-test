@@ -1,18 +1,14 @@
 import { CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import {
-  type CONTRACT_TYPES,
-  type ContractObject,
   type LoadingListObject,
+  type ContractObject,
   type ContractObjectEmphasis,
 } from "@/interfaces";
 import "./PdfExtractionEmphasis.scss";
 
 interface PdfExtractionEmphasisProps {
-  secondary?: boolean;
-  borderless?: boolean;
   selectedContract?: ContractObject;
-  secondarySelectedContract?: ContractObject | CONTRACT_TYPES;
   loading: LoadingListObject;
 }
 
@@ -23,45 +19,17 @@ export function PdfExtractionEmphasis(
     useState<ContractObjectEmphasis | null>();
 
   useEffect(() => {
-    if (props.secondary) return;
     setEmphasisData(props.selectedContract?.highlight);
-  }, [props.secondary, props.selectedContract]);
-  useEffect(() => {
-    if (!props.secondary || typeof props.secondarySelectedContract !== "object")
-      return;
-    setEmphasisData(props.secondarySelectedContract?.highlight);
-  }, [props.secondarySelectedContract]);
+  }, [props.selectedContract]);
 
-  return ((props.secondary &&
-    props.loading.contractEmphasis[
-      typeof props.secondarySelectedContract === "object" &&
-      props.secondarySelectedContract?.id
-        ? props.secondarySelectedContract.id
-        : ""
-    ]) ??
-    (!props.secondary &&
-      props.loading.contractEmphasis[props.selectedContract?.id ?? ""])) ? (
-    <div
-      className={[
-        "pdf-extraction-emphasis-container",
-        props.borderless ? "borderless" : undefined,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
+  return props.loading.contractEmphasis[props.selectedContract?.id ?? ""] ? (
+    <div className="pdf-extraction-emphasis-container">
       <div className="loading">
         <ElevaiteIcons.SVGSpinner />
       </div>
     </div>
   ) : !emphasisData ? undefined : (
-    <div
-      className={[
-        "pdf-extraction-emphasis-container",
-        props.borderless ? "borderless" : undefined,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
+    <div className="pdf-extraction-emphasis-container">
       <div className="pdf-emphasis-block">
         <EmphasisBit
           emphasisData={emphasisData}

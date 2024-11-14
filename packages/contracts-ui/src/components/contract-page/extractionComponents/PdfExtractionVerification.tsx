@@ -1,20 +1,20 @@
 import { CommonButton, CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import React, { useEffect, useState } from "react";
 import { VerificationLineItems } from "./VerificationLineItems";
-import { isObject } from "@/actions/generalDiscriminators";
 import {
-  ContractStatus,
   CONTRACT_TYPES,
+  type LoadingListObject,
+  type ContractObject,
   type ContractObjectVerification,
   type ContractObjectVerificationItem,
-  type ContractObject,
-  type LoadingListObject,
+  ContractStatus,
 } from "@/interfaces";
 import "./PdfExtractionVerification.scss";
+import { isObject } from "@/actions/generalDiscriminators";
 
 interface PdfExtractionVerificationProps {
-  selectedContract?: ContractObject;
   loading: LoadingListObject;
+  selectedContract?: ContractObject;
 }
 
 export function PdfExtractionVerification(
@@ -112,7 +112,6 @@ export function PdfExtractionVerification(
                     setIsLineItemsFullScreen(true);
                   }}
                   noBackground
-                  title="View the table in full-screen"
                 >
                   <ElevaiteIcons.SVGZoom />
                 </CommonButton>
