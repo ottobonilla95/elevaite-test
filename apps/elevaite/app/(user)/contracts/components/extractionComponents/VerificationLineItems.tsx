@@ -46,18 +46,18 @@ export function VerificationLineItems(props: VerificationLineItemsProps): JSX.El
         const originalHeaders = ["Ver.", "Amount", "Quantity", "Unit Price", "Product Code", "Need by", "Description"];
         if (!props.lineItems || !contractsContext.selectedProject?.settings?.labels) return originalHeaders;
         const formattedHeaders = ["Ver."];
-        const labels = contractsContext.selectedProject?.settings?.labels;
+        const labels = contractsContext.selectedProject.settings.labels;
 
         // Consider making this automated by iterating keys (ordering, though?)
-        formattedHeaders.push(labels.total_cost ?? "Total Cost");
-        formattedHeaders.push(labels.quantity ?? "Quantity");
-        formattedHeaders.push(labels.unit_cost ?? "Unit Cost");
-        formattedHeaders.push(labels.product_identifier ?? "Product Identifier");
-        formattedHeaders.push(labels.need_by_date ?? "Need By");
-        formattedHeaders.push(labels.ibx ?? "IBX");
-        formattedHeaders.push(labels.site_name ?? "Site Name");
-        formattedHeaders.push(labels.site_address ?? "Site Address");
-        formattedHeaders.push(labels.description ?? "Description");
+        formattedHeaders.push(labels.total_cost);
+        formattedHeaders.push(labels.quantity);
+        formattedHeaders.push(labels.unit_cost);
+        formattedHeaders.push(labels.product_identifier);
+        formattedHeaders.push(labels.need_by_date);
+        formattedHeaders.push(labels.ibx);
+        formattedHeaders.push(labels.site_name);
+        formattedHeaders.push(labels.site_address);
+        formattedHeaders.push(labels.description);
 
         return formattedHeaders;
     }
@@ -180,7 +180,7 @@ function VerificationTableStructure(props: VerificationTableStructureProps): JSX
             </thead>
             <tbody>
                 {props.data.length === 0 ? <tr><td colSpan={props.headers.length} className="empty-table">There are no line items</td></tr> :
-                    props.hideValidatedItems && props.data.every(item => item.verification.verification_status === true) ? 
+                    props.hideValidatedItems && props.data.every(item => item.verification.verification_status) ? 
                     <tr><td colSpan={props.headers.length} className="empty-table">There are no mismatched items</td></tr> :
                 
                 props.data.map((row, rowIndex) => (

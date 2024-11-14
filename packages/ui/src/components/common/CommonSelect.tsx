@@ -1,13 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { ElevaiteIcons } from "../icons";
 import SVGChevron from "../icons/elevaite/svgChevron";
 import SVGSpinner from "../icons/elevaite/svgSpinner";
-import { CommonSelectOption } from "../interfaces";
-import { AdvancedSelectOptionProps } from "./AdvancedSelectOption";
+import { type CommonSelectOption } from "../interfaces";
+import { type AdvancedSelectOptionProps } from "./AdvancedSelectOption";
 import { ClickOutsideDetector } from "./ClickOutsideDetector";
 import { CommonButton } from "./CommonButton";
 import "./CommonSelect.scss";
-import { ElevaiteIcons } from "../icons";
 
 
 export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -45,17 +45,19 @@ export function CommonSelect({
         else if (controlledValue !== undefined && controlledValue !== selectedOption?.value) {
             findAndSelectOption(controlledValue, true);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- We don't want this to trigger when selectedOption changes
     }, [controlledValue, options.length]);
 
     useEffect(() => {
         if (defaultValue) {
             findAndSelectOption(defaultValue);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Wtf? I don't want to run this based on the function...
     }, [isLoading, defaultValue, options.length]);
 
 
     function findAndSelectOption(value: string, checkCallback?: boolean): void {
-        if (options.length === 0 || value === undefined) {
+        if (options.length === 0) {
             setSelectedOption(undefined);
             return;
         }
@@ -64,11 +66,9 @@ export function CommonSelect({
             setSelectedOption(foundOption);
             if (checkCallback || callbackOnDefaultValue) onSelectedValueChange(foundOption.value, foundOption.label ? foundOption.label : foundOption.value);
         }
-        else {
-            if (options[0]) {
-                setSelectedOption(options[0]);
-                if (checkCallback || callbackOnDefaultValue) onSelectedValueChange(options[0].value, options[0].label ? options[0].label : options[0].value);
-            }
+        else if (options[0]) {
+            setSelectedOption(options[0]);
+            if (checkCallback || callbackOnDefaultValue) onSelectedValueChange(options[0].value, options[0].label ? options[0].label : options[0].value);
         }
     }
 
@@ -118,7 +118,7 @@ export function CommonSelect({
                 onClick={handleToggle}
                 onDoubleClick={handleDoubleClick}
                 noBackground
-                title={selectedOption && (selectedOption?.selectedLabel || showTitles) ? (selectedOption.label ? selectedOption.label : selectedOption.value) : ""}
+                title={selectedOption && (selectedOption.selectedLabel || showTitles) ? (selectedOption.label ? selectedOption.label : selectedOption.value) : ""}
                 disabled={props.disabled || isLoading}
             >
                 <span>

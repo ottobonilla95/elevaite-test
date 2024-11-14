@@ -1,13 +1,12 @@
 "use client";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { CreateProject, deleteContract, DeleteProject, EditProject, getContractObjectEmphasis, getContractObjectLineItems, getContractObjectVerification, getContractProjectById, getContractProjectContracts, getContractProjectSettings, getContractProjectsList, reprocessContract, submitContract } from "../actions/contractActions";
-import { useInterval } from "../hooks";
-import { ContractStatus, ContractObjectEmphasis, ContractObjectVerification, ContractObjectVerificationLineItem, ContractSettings, ContractVariations, ProjectObject, type CONTRACT_TYPES, type ContractExtractionDictionary, type ContractObject, type ContractProjectObject } from "../interfaces";
+import { type ContractObjectEmphasis, type ContractObjectVerification, type ContractObjectVerificationLineItem, type ContractSettings, ContractStatus, ContractVariations, type CONTRACT_TYPES, type ContractExtractionDictionary, type ContractObject, type ContractProjectObject } from "../interfaces";
 
 
 
 
-const REFETCH_TIME_IN_MILLISECONDS = 10000;
+// const REFETCH_TIME_IN_MILLISECONDS = 10000;
 
 
 
@@ -248,7 +247,7 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
     function appendSettingsOnProject(id: string | number, settings: ContractSettings): void {
         setProjects(currentProjects =>
             currentProjects.map(project =>
-                project.id === id ? { ...project, settings: settings } : project
+                project.id === id ? { ...project, settings } : project
             )
         );
     }
@@ -256,7 +255,7 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
     function appendReportsOnProject(id: string | number, reports: ContractObject[]): void {
         setProjects(currentProjects =>
             currentProjects.map(project =>
-                project.id === id ? { ...project, reports: reports } : project
+                project.id === id ? { ...project, reports } : project
             )
         );
     }
@@ -305,7 +304,7 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
                         ...project,
                         reports: project.reports?.map(report =>
                             report.id.toString() !== contractId ? report :
-                                { ...report, verification: verification }
+                                { ...report, verification }
                         )
                     }
             )
@@ -544,7 +543,7 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
         if (!selectedProject || !selectedContract) return;
         try {
             // Stealth reprocess            
-            const reprocessResult = await reprocessContract(selectedProject.id.toString(), selectedContract.id.toString(), variation === ContractVariations.Iopex);
+            await reprocessContract(selectedProject.id.toString(), selectedContract.id.toString(), variation === ContractVariations.Iopex);
         } catch (error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in reprocessing contract:", error);
@@ -613,7 +612,7 @@ export function ContractsContextProvider(props: ContractsContextProviderProps): 
         try {
             setLoading(current => { return { ...current, contractEmphasis: { ...current.contractEmphasis, [id]: true } } })
             const contractEmphasisResult = await getContractObjectEmphasis(projectId.toString(), id.toString(), variation === ContractVariations.Iopex);
-            appendEmphasisOnContract(projectId.toString(), id.toString(), contractEmphasisResult, secondary);
+            if (contractEmphasisResult) appendEmphasisOnContract(projectId.toString(), id.toString(), contractEmphasisResult, secondary);
         } catch (error) {
             // eslint-disable-next-line no-console -- Current handling (consider a different error handling)
             console.error("Error in fetching contract's emphasis:", error);

@@ -1,27 +1,21 @@
-import { CommonButton, CommonDialog, CommonMenu, type CommonMenuItem, CommonModal, ElevaiteIcons } from "@repo/ui/components";
+import { CommonButton, CommonDialog, type CommonMenuItem, CommonModal, ElevaiteIcons } from "@repo/ui/components";
 import React, { useEffect, useState } from "react";
 import { ListRow, type RowStructure } from "../../../lib/components/ListRow";
 import { useContracts } from "../../../lib/contexts/ContractsContext";
 import { formatBytes } from "../../../lib/helpers";
-import { CONTRACT_TYPES, type ContractObject, ContractObjectVerificationItem, CONTRACTS_TABS, ContractStatus, type SortingObject, type UnverifiedItem, type VerificationQuickList, type VerificationQuickListItem } from "../../../lib/interfaces";
+import { CONTRACT_TYPES, type ContractObject, ContractStatus, ExtractionStatus, MatchingStatus, type SortingObject, type VerificationQuickList, type VerificationQuickListItem } from "../../../lib/interfaces";
 import { AddProject } from "./AddProject";
+import { ContractListFilterPill } from "./contractsListComponents/ContractListFilterPill";
+import { ContractListStatusBlock } from "./contractsListComponents/ContractListStatusBlock";
+import { MatchButton } from "./contractsListComponents/MatchButton";
+import { MismatchButton } from "./contractsListComponents/MismatchButton";
+import { StatusIcon } from "./contractsListComponents/StatusIcon";
 import "./ContractsListV2.scss";
 import { ContractUpload } from "./ContractUpload";
+import dayjs from "dayjs";
 
 
 
-
-enum ExtractionStatus {
-    Uploading = "Upload In\xa0Progress",
-    Extracting = "Extraction In\xa0Progress",
-    Failed = "Extraction Failed, Re-Upload",
-    Complete = "Extraction Complete",
-}
-
-enum MatchingStatus {
-    Found = "Match Found, Auto-Approved",
-    Failed = "Match Failed, Pending",
-}
 
 enum MenuActions {
     View = "View",
@@ -63,6 +57,7 @@ export function ContractsListV2(): JSX.Element {
     const [isProjectEditOpen, setIsProjectEditOpen] = useState(false);
     const [contractForDeletion, setContractForDeletion] = useState<ContractObject | undefined>();
     const [isDeleteContractDialogOpen, setIsDeleteContractDialogOpen] = useState(false);
+    const [isStatusRowVisible, setIsStatusRowVisible] = useState(false);
 
 
     const contractsListMenu: CommonMenuItem<ContractObject>[] = [
@@ -100,6 +95,10 @@ export function ContractsListV2(): JSX.Element {
 
     function handleEditProject(): void {
         setIsProjectEditOpen(true);
+    }
+
+    function handleStatusRowToggle(): void {
+        setIsStatusRowVisible(current => !current);
     }
 
     function handleStatusClick(status: ExtractionStatus | MatchingStatus): void {
@@ -220,11 +219,13 @@ export function ContractsListV2(): JSX.Element {
     }
 
     function getSortedContracts(allContracts: ContractObject[]): ContractObject[] {
-        if (!sorting.field) return allContracts;
+        if (!sorting.field) return allContracts.sort((a, b) => dayjs(a.creation_date).isSame(b.creation_date) ? 0 : dayjs(a.creation_date).isBefore(b.creation_date) ? 1 : -1);
 
         allContracts.sort((a, b) => {
             if (sorting.field === "label") {
                 return (a.label ?? a.filename).localeCompare(b.label ?? b.filename);
+            } else if (sorting.field === "creation_date") {
+                return dayjs(a.creation_date).isSame(b.creation_date) ? 0 : dayjs(a.creation_date).isBefore(b.creation_date) ? 1 : -1;
             } else if (sorting.field && typeof a[sorting.field] === "string" && typeof b[sorting.field] === "string" && !Array.isArray(a[sorting.field]) && !Array.isArray(b[sorting.field])) {
                 return (a[sorting.field] as string).localeCompare(b[sorting.field] as string);
             } else if (sorting.field && typeof a[sorting.field] === "number" && typeof b[sorting.field] === "number") {
@@ -258,6 +259,7 @@ export function ContractsListV2(): JSX.Element {
         structure.push({ header: "Size", field: "filesize", isSortable: true, align: "center", formattingFunction: structureFileSize, });
         // structure.push({ header: "Number", field: "contract_number", isSortable: true, formattingFunction: structureContractNumber, });
         structure.push({ header: "Title", field: "label", isSortable: true, formattingFunction: structureName, });
+        structure.push({ header: "Date", field: "date_issued", isSortable: true, formattingFunction: structureDate });
         structure.push({ header: "Type", field: "content_type", isSortable: true, formattingFunction: structureType });
 
         structure.push({ header: "VSOW", field: "1", align: "center", formattingFunction: structureVerificationVsow });
@@ -267,6 +269,7 @@ export function ContractsListV2(): JSX.Element {
 
         return structure;
     }
+
 
 
     // Table formatting functions
@@ -303,6 +306,9 @@ export function ContractsListV2(): JSX.Element {
                 </span>
             </CommonButton>
         );
+    }
+    function structureDate(listItem: ContractObject): React.ReactNode {
+        return listItem.creation_date ? dayjs(listItem.creation_date).format("DD-MMM-YYYY") : "Unknown";
     }
     function structureType(listItem: ContractObject): React.ReactNode {
         return (
@@ -345,7 +351,6 @@ export function ContractsListV2(): JSX.Element {
     return (
         <div className={["contracts-list-v2-container", contractsContext.selectedProject ? undefined : "empty"].filter(Boolean).join(" ")}>
 
-
             <div className="contracts-list-v2-title-row">
                 <span className="title">
                     {contractsContext.selectedProject?.name}
@@ -368,14 +373,16 @@ export function ContractsListV2(): JSX.Element {
                 }
             </div>
 
-            <div className="contracts-list-v2-status-row">
-                <ContractListStatusBlock amount={statusFilterNumbers.uploading} title={ExtractionStatus.Uploading} selectedStatus={selectedStatus} onClick={handleStatusClick} />
-                <ContractListStatusBlock amount={statusFilterNumbers.extracting} title={ExtractionStatus.Extracting} selectedStatus={selectedStatus} onClick={handleStatusClick} />
-                <ContractListStatusBlock amount={statusFilterNumbers.failed} title={ExtractionStatus.Failed} selectedStatus={selectedStatus} onClick={handleStatusClick} />
-                <ContractListStatusBlock amount={statusFilterNumbers.complete} title={ExtractionStatus.Complete} selectedStatus={selectedStatus} onClick={handleStatusClick} />
-                <div className="status-separator" />
-                <ContractListStatusBlock amount={statusFilterNumbers.matched} title={MatchingStatus.Found} selectedStatus={selectedStatus} onClick={handleStatusClick} />
-                <ContractListStatusBlock amount={statusFilterNumbers.unmatched} title={MatchingStatus.Failed} selectedStatus={selectedStatus} onClick={handleStatusClick} />
+            <div className={["contracts-list-v2-status-row-container", isStatusRowVisible ? "open" : undefined].filter(Boolean).join(" ")}>
+                <div className="contracts-list-v2-status-row">
+                    <ContractListStatusBlock amount={statusFilterNumbers.uploading} title={ExtractionStatus.Uploading} selectedStatus={selectedStatus} onClick={handleStatusClick} />
+                    <ContractListStatusBlock amount={statusFilterNumbers.extracting} title={ExtractionStatus.Extracting} selectedStatus={selectedStatus} onClick={handleStatusClick} />
+                    <ContractListStatusBlock amount={statusFilterNumbers.failed} title={ExtractionStatus.Failed} selectedStatus={selectedStatus} onClick={handleStatusClick} />
+                    <ContractListStatusBlock amount={statusFilterNumbers.complete} title={ExtractionStatus.Complete} selectedStatus={selectedStatus} onClick={handleStatusClick} />
+                    <div className="status-separator" />
+                    <ContractListStatusBlock amount={statusFilterNumbers.matched} title={MatchingStatus.Found} selectedStatus={selectedStatus} onClick={handleStatusClick} />
+                    <ContractListStatusBlock amount={statusFilterNumbers.unmatched} title={MatchingStatus.Failed} selectedStatus={selectedStatus} onClick={handleStatusClick} />
+                </div>
             </div>
 
             <div className="contracts-list-v2-filter-pills-row">
@@ -387,6 +394,14 @@ export function ContractsListV2(): JSX.Element {
                     {/* <CommonButton className="edit-button">
                         Edit
                     </CommonButton> */}
+                    <CommonButton
+                        className={["status-row-toggle", isStatusRowVisible ? "open" : undefined].filter(Boolean).join(" ")}
+                        onClick={handleStatusRowToggle}
+                        title={`${isStatusRowVisible ? "Close" : "Open"} the row of single-button status filters`}
+                    >
+                        <span>Status Filters</span>
+                        <ElevaiteIcons.SVGChevron type="down"/>
+                    </CommonButton>
                 </div>
             </div>
 
@@ -480,180 +495,3 @@ export function ContractsListV2(): JSX.Element {
 
 
 
-
-// SUB-COMPONENTS
-///////////////////
-
-
-
-interface StatusIconProps {
-    status: ExtractionStatus | MatchingStatus;
-}
-
-function StatusIcon(props: StatusIconProps): JSX.Element {
-    switch (props.status) {
-        case ExtractionStatus.Uploading: return <div className="status-icon-container"><ElevaiteIcons.SVGUpload /></div>
-        case ExtractionStatus.Extracting: return <div className="status-icon-container highlight"><ElevaiteIcons.SVGInstanceProgress /></div>
-        case ExtractionStatus.Failed: return <div className="status-icon-container danger"><ElevaiteIcons.SVGXmark /></div>
-        case ExtractionStatus.Complete: return <div className="status-icon-container blue"><ElevaiteIcons.SVGCheckmark /></div>
-        case MatchingStatus.Found: return <div className="status-icon-container success"><ElevaiteIcons.SVGCheckmark /></div>
-        case MatchingStatus.Failed: return <div className="status-icon-container"><ElevaiteIcons.SVGQuestionMark /></div>
-    }
-}
-
-
-interface ContractListStatusBlockProps {
-    amount: number;
-    title: ExtractionStatus | MatchingStatus;
-    selectedStatus: ExtractionStatus | MatchingStatus | undefined;
-    onClick: (status: ExtractionStatus | MatchingStatus) => void;
-}
-
-function ContractListStatusBlock(props: ContractListStatusBlockProps): JSX.Element {
-
-    function handleClick(): void {
-        props.onClick(props.title);
-    }
-
-    return (
-        <CommonButton
-            className={[
-                "contract-list-status-block-container",
-                props.title === props.selectedStatus ? "active" : undefined,
-            ].filter(Boolean).join(" ")}
-            onClick={handleClick}
-            disabled={props.amount === 0}
-        >
-            <div className="amount">{props.amount.toString().padStart(2, "0")}</div>
-            <StatusIcon status={props.title} />
-            <div className="title">{props.title}</div>
-        </CommonButton>
-    );
-}
-
-
-interface ContractListFilterPillProps {
-    type: CONTRACT_TYPES;
-    selectedPills: CONTRACT_TYPES[];
-    onClick: (selectedTab: CONTRACT_TYPES) => void;
-}
-
-function ContractListFilterPill(props: ContractListFilterPillProps): JSX.Element {
-    const [label, setLabel] = useState("");
-    const [isSelected, setIsSelected] = useState(false);
-
-    useEffect(() => {
-        switch (props.type) {
-            case CONTRACT_TYPES.VSOW: setLabel(CONTRACTS_TABS.SUPPLIER_CONTRACTS.toUpperCase()); break;
-            case CONTRACT_TYPES.CSOW: setLabel(CONTRACTS_TABS.CUSTOMER_CONTRACTS.toUpperCase()); break;
-            case CONTRACT_TYPES.PURCHASE_ORDER: setLabel(CONTRACTS_TABS.SUPPLIER_POS.toUpperCase()); break;
-            case CONTRACT_TYPES.INVOICE: setLabel(CONTRACTS_TABS.SUPPLIER_INVOICES.toUpperCase()); break;
-        }
-    }, [props.type]);
-
-    useEffect(() => {
-        setIsSelected(props.selectedPills.includes(props.type));
-    }, [props.type, props.selectedPills]);
-
-    function handleClick(): void {
-        props.onClick(props.type);
-    }
-
-    return (
-        <CommonButton
-            className={["filter-pill-container", isSelected ? "active" : undefined].filter(Boolean).join(" ")}
-            onClick={handleClick}
-            noBackground={!isSelected}
-        >
-            {label}
-        </CommonButton>
-    );
-}
-
-
-
-
-interface MatchButtonProps {
-    contract: ContractObject;
-}
-
-function MatchButton(props: MatchButtonProps): JSX.Element {
-    const contractsContext = useContracts();
-    
-    function handleMatchClick(): void {
-        if (!props.contract.verification) return;
-        const relevantContracts = Object.values(props.contract.verification)
-            .filter((value): value is ContractObjectVerificationItem[] => Array.isArray(value)).flat();
-
-        if (relevantContracts[0]) {            
-            contractsContext.setSecondarySelectedContractById(relevantContracts[0].file_id);
-            contractsContext.setSelectedContract(props.contract);
-        }
-    }
-
-
-    return (
-        <CommonButton
-            className="verified"
-            title="This cross-section has no issues"
-            onClick={handleMatchClick}
-        >
-            <ElevaiteIcons.SVGCheckmark />
-        </CommonButton>
-    );
-}
-
-
-
-
-interface MismatchButtonProps {
-    contract: ContractObject;
-    items: UnverifiedItem[];
-    index?: number;
-    listLength?: number;
-}
-
-function MismatchButton(props: MismatchButtonProps): JSX.Element {
-    const contractsContext = useContracts();
-    if (props.items.length === 0) return <span className="failed"><ElevaiteIcons.SVGXmark /></span>
-
-
-    function handleMismatchMenuClick(clickedItem: UnverifiedItem): void {
-        if (!clickedItem.id) return;
-        contractsContext.setSecondarySelectedContractById(clickedItem.id);
-        contractsContext.setSelectedContract(props.contract);
-    }
-
-    if (props.items.length === 1)
-        return (
-            <CommonButton
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-binary-expression -- TODO: Take a look at this
-                title={`This cross-section has one issue, with file:\n${props.items[0].label ?? props.items[0].fileName ?? "Unknown File" ?? "Unknown"}`}
-                onClick={() => { handleMismatchMenuClick(props.items[0]); }}
-            >
-                <ElevaiteIcons.SVGQuestionMark />
-            </CommonButton>
-        );
-
-    //--------------------
-
-    const mismatchMenu: CommonMenuItem<UnverifiedItem[]>[] =
-        props.items.map(item => {
-            return {
-                label: item.label ?? item.fileName ?? "Unknown File",
-                onClick: () => { handleMismatchMenuClick(item); },
-                tooltip: item.fileName,
-            }}
-        );
-
-    return (
-        <CommonMenu
-            menu={mismatchMenu}
-            menuIcon={<ElevaiteIcons.SVGQuestionMark />}
-            tooltip={`This cross-section has ${props.items.length.toString()} issues`}
-            labelWidth="long"
-            left
-            top={Boolean(props.listLength && props.index && props.listLength > 4 && props.index > (props.listLength - 4))}
-        />
-    );
-}

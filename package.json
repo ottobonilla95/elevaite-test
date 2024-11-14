@@ -25,6 +25,7 @@
     "packages/*"
   ],
   "dependencies": {
+    "fix": "^0.0.6",
     "next": "^14.2.10",
     "sass": "^1.69.7"
   }

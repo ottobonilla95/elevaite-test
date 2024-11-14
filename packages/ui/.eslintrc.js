@@ -5,4 +5,8 @@ module.exports = {
     tsconfigRootDir: __dirname,
     sourceType: "module",
   },
+  rules: {
+    "no-nested-ternary": "off",
+    "@typescript-eslint/prefer-nullish-coalescing": "off",
+  }
 };

@@ -6,11 +6,8 @@ import { ContractComparisonBlock } from "./ContractComparisonBlock";
 
 
 
-interface ContractComparisonProps {
 
-}
-
-export function ContractComparison(props: ContractComparisonProps): JSX.Element {
+export function ContractComparison(): JSX.Element {
     const contracts = useContracts();
     const [isShowingMatching, setIsShowingMatching] = useState(false);
     const [isOverviewMinimized, setIsOverviewMinimized] = useState(false);
@@ -21,24 +18,24 @@ export function ContractComparison(props: ContractComparisonProps): JSX.Element 
     const [isFullScreenCompare, setIsFullScreenCompare] = useState(false);
   
 
-    function handleHome() {
+    function handleHome(): void {
         contracts.setSelectedContract(undefined);
         contracts.setSecondarySelectedContract(undefined);
     }
 
-    function handleMainView() {
+    function handleMainView(): void {
         contracts.setSecondarySelectedContract(undefined);
     }
 
-    function handleToggleOverview() {
+    function handleToggleOverview(): void {
         setIsOverviewMinimized(current => !current);
     }
 
-    function handleFullScreenCompare() {
+    function handleFullScreenCompare(): void {
         setIsFullScreenCompare(true);
     }
 
-    function handleCloseFullScreenCompare() {
+    function handleCloseFullScreenCompare(): void {
         setIsFullScreenCompare(false);
     }
 
