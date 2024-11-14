@@ -3,3 +3,5 @@ uvicorn
 pydantic
 qdrant-client
 reportlab
+openai
+python-dotenv
