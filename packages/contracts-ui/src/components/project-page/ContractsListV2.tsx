@@ -7,8 +7,6 @@ import {
   ElevaiteIcons,
 } from "@repo/ui/components";
 import React, {
-  type Dispatch,
-  type SetStateAction,
   useEffect,
   useState,
 } from "react";
@@ -34,7 +32,6 @@ import {
 import { formatBytes } from "@/helpers";
 import {
   deleteContract,
-  getContractProjectContracts,
   getContractProjectsList,
 } from "@/actions/contractActions";
 
@@ -77,9 +74,8 @@ const cleanFilterNumbers: StatusFilterNumbers = {
 interface ContractsListV2Props {
   projectId?: string;
   project?: ContractProjectObject;
-  selectedContract: ContractObject | undefined;
+  contracts: ContractObject[];
   projects: ContractProjectObject[];
-  setSelectedContract: Dispatch<SetStateAction<ContractObject | undefined>>;
 }
 
 function useHandleContractClick() {
@@ -98,12 +94,14 @@ function useHandleContractClick() {
 
 export function ContractsListV2({
   project: selectedProject,
+  contracts,
   ...props
 }: ContractsListV2Props): JSX.Element {
   const router = useRouter();
 
   const handleContractClick = useHandleContractClick();
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- testing
   const [loading, setLoading] = useState<LoadingListObject>({
     projects: undefined,
     contracts: undefined,
@@ -115,15 +113,11 @@ export function ContractsListV2({
     contractVerification: {},
     deletingContract: false,
   });
-  const [contracts, setContracts] = useState<ContractObject[]>([]);
   const [displayContracts, setDisplayContracts] = useState<ContractObject[]>(
     []
   );
   const [selectedContractTabs, setSelectedContractTabs] = useState<
     CONTRACT_TYPES[]
-  >([]);
-  const [displayRowsStructure, setDisplayRowsStructure] = useState<
-    RowStructure<ContractObject>[]
   >([]);
   const [statusFilterNumbers, setStatusFilterNumbers] =
     useState<StatusFilterNumbers>(cleanFilterNumbers);
@@ -161,33 +155,7 @@ export function ContractsListV2({
       },
     },
   ];
-
-  // useEffect(() => {
-  //     console.log("Display Contracts:", displayContracts);
-  // }, [displayContracts]);
-
-  // useEffect(() => {
-  //   const fetchProject = async (): Promise<void> => {
-  //     const project = props.projectId
-  //       ? await getContractProjectById(props.projectId, false)
-  //       : undefined;
-  //     setSelectedProject(project);
-  //   };
-
-  //   void fetchProject();
-  // }, [props.projectId]);
-
-  useEffect(() => {
-    if (props.projectId)
-      getContractProjectContracts(props.projectId, false).then((reports) => {
-        setContracts(reports);
-        setLoading((current) => {
-          return { ...current, contracts: false };
-        });
-      });
-    setDisplayRowsStructure(getRowListStructure());
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Don't add the rest
-  }, [selectedProject?.reports]);
+  const displayRowsStructure = getRowListStructure();
 
   useEffect(() => {
     updateStatusFilterNumbers(contracts);
@@ -197,6 +165,10 @@ export function ContractsListV2({
     formatDisplayContracts(contracts);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Don't add the rest
   }, [contracts, selectedContractTabs, selectedStatus, sorting]);
+
+  function handleSelectedContract(id: string): void {
+    router.push(`${props.projectId}/${id}`)
+  }
 
   function handleUpload(): void {
     setIsUploadOpen(true);
@@ -623,7 +595,7 @@ export function ContractsListV2({
         ) : item.verified ? (
           <MatchButton
             contract={listItem}
-            setSelectedContract={props.setSelectedContract}
+            setSelectedContract={handleSelectedContract}
             router={router}
           />
         ) : (
@@ -632,7 +604,7 @@ export function ContractsListV2({
             items={item.unverifiedItems}
             index={index}
             listLength={displayContracts.length}
-            setSelectedContract={props.setSelectedContract}
+            setSelectedContract={handleSelectedContract}
             router={router}
           />
         )}
@@ -972,7 +944,7 @@ function UseSecondarySelectedContractById(
 
 interface MatchButtonProps {
   contract: ContractObject;
-  setSelectedContract: Dispatch<SetStateAction<ContractObject | undefined>>;
+  setSelectedContract: (id: string) => void;
   router: AppRouterInstance;
 }
 
@@ -990,7 +962,7 @@ function MatchButton(props: MatchButtonProps): JSX.Element {
         props.router,
         relevantContracts[0].file_id
       );
-      props.setSelectedContract(props.contract);
+      props.setSelectedContract(props.contract.id.toString());
     }
   }
 
@@ -1010,7 +982,7 @@ interface MismatchButtonProps {
   items: UnverifiedItem[];
   index?: number;
   listLength?: number;
-  setSelectedContract: Dispatch<SetStateAction<ContractObject | undefined>>;
+  setSelectedContract: (id: string) => void;
   router: AppRouterInstance;
 }
 
@@ -1025,7 +997,7 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
   function handleMismatchMenuClick(clickedItem: UnverifiedItem): void {
     if (!clickedItem.id) return;
     UseSecondarySelectedContractById(props.router, clickedItem.id);
-    props.setSelectedContract(props.contract);
+    props.setSelectedContract(props.contract.id.toString());
   }
 
   if (props.items.length === 1)
@@ -1062,9 +1034,9 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
       left
       top={Boolean(
         props.listLength &&
-          props.index &&
-          props.listLength > 4 &&
-          props.index > props.listLength - 4
+        props.index &&
+        props.listLength > 4 &&
+        props.index > props.listLength - 4
       )}
     />
   );

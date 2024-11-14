@@ -13,16 +13,16 @@ interface ProjectsAndContractsProps {
   projectId?: string;
   project?: ContractProjectObject;
   projects: ContractProjectObject[];
+  contracts: ContractObject[];
 }
 
 export function ProjectsAndContracts({
   projects,
   project,
+  contracts,
   ...props
 }: ProjectsAndContractsProps): JSX.Element {
-  const [selectedContract, setSelectedContract] = useState<
-    ContractObject | undefined
-  >();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- testing
   const [loading, setLoading] = useState<LoadingListObject>({
     projects: undefined,
     contracts: undefined,
@@ -37,7 +37,7 @@ export function ProjectsAndContracts({
 
   return (
     <div
-      className={["contracts-content", !selectedContract ? "active" : undefined]
+      className={["contracts-content active"]
         .filter(Boolean)
         .join(" ")}
     >
@@ -50,8 +50,7 @@ export function ProjectsAndContracts({
         <ContractsListV2
           projectId={props.projectId}
           project={project}
-          selectedContract={selectedContract}
-          setSelectedContract={setSelectedContract}
+          contracts={contracts}
           projects={projects}
         />
       </div>

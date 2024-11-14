@@ -6,7 +6,7 @@ export default async function Page(): Promise<JSX.Element> {
   const projects = await getContractProjectsList(false);
   return (
     <div className="contracts-main-container">
-      <ProjectsAndContracts projects={projects} />
+      <ProjectsAndContracts projects={projects} contracts={[]} />
     </div>
   );
 }
