@@ -54,6 +54,7 @@ export function PdfAndExtraction(props: PdfAndExtractionProps): JSX.Element {
           projectId={props.projectId}
           selectedProject={props.selectedProject}
           selectedContract={props.selectedContract}
+          secondarySelectedContract={props.secondarySelectedContract}
           contractsList={props.contractsList}
         />
       ) : (

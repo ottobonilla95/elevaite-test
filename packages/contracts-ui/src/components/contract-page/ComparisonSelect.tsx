@@ -1,35 +1,37 @@
 import { useEffect, useState } from "react";
 import { CommonSelect, type CommonSelectOption } from "@repo/ui/components";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { CONTRACT_TYPES, type ContractObject } from "@/interfaces";
 import "./ComparisonSelect.scss";
-import { getContractProjectContracts } from "@/actions/contractActions";
+
+function useHandleSelection(
+  secondary: boolean | undefined,
+  projectId: string,
+  primaryContractId: string | number | undefined,
+  secondaryContractId: string | number | undefined
+) {
+  const router = useRouter();
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Wrapper function
+  return (value: string, label: string) => {
+    if (!primaryContractId || !secondaryContractId || isNaN(Number(value)))
+      return;
+
+    if (secondary && primaryContractId !== value) {
+      router.push(`/${projectId}/${primaryContractId}/${value}`);
+    } else if (secondaryContractId !== value)
+      router.push(`/${projectId}/${value}/${secondaryContractId}`);
+  };
+}
 
 interface ComparisonSelectProps {
   secondary?: boolean;
   listFor?: CONTRACT_TYPES;
-  selectedContract?: ContractObject;
-  secondarySelectedContract?: ContractObject;
+  comparisonContract?: ContractObject;
+  selectedContractId: string;
+  secondarySelectedContractId: string;
   projectId: string;
-}
-
-function useHandleSelection(
-  secondary: boolean | undefined,
-  newContractId: string
-) {
-  const router = useRouter();
-  const currentPath = usePathname();
-
-  return () => {
-    const pathParts = currentPath.split("/");
-    if (!secondary) {
-      pathParts[2] = newContractId;
-    } else {
-      pathParts[4] = newContractId;
-    }
-    const newPath = pathParts.join("/");
-    router.replace(newPath);
-  };
+  contractsList: ContractObject[];
 }
 
 export function ComparisonSelect(props: ComparisonSelectProps): JSX.Element {
@@ -40,97 +42,95 @@ export function ComparisonSelect(props: ComparisonSelectProps): JSX.Element {
     []
   );
 
-  const handleSelection = useHandleSelection(props.secondary, props.projectId);
+  const handleSelection = useHandleSelection(
+    props.secondary,
+    props.projectId,
+    props.selectedContractId,
+    props.secondarySelectedContractId
+  );
 
   useEffect(() => {
-    if (!props.secondary) setSelectedContract(props.selectedContract);
-    else if (
-      props.secondarySelectedContract &&
-      typeof props.secondarySelectedContract === "object"
-    )
-      setSelectedContract(props.secondarySelectedContract);
+    setSelectedContract(props.comparisonContract);
     formatContractOptions(props.listFor);
   }, [props.listFor]);
 
   function formatContractOptions(type?: CONTRACT_TYPES): void {
     const options: CommonSelectOption[] = [];
-    getContractProjectContracts(props.projectId, false).then((contracts) => {
-      contracts.filter((report) =>
-        !type ? report : report.content_type !== type
+    props.contractsList.filter((report) =>
+      !type ? report : report.content_type !== type
+    );
+    if (props.contractsList.length === 0) {
+      setContractOptions(options);
+      return;
+    }
+    const vsow = props.contractsList.filter(
+      (contract) => contract.content_type === CONTRACT_TYPES.VSOW
+    );
+    if (vsow.length > 0) {
+      options.push({
+        value: "separatorVsow",
+        label: "VSOW",
+        isSeparator: true,
+      });
+      options.push(
+        ...sortByLabelOrFileName(vsow).map((item) => {
+          return {
+            value: item.id.toString(),
+            label: item.label ?? item.filename,
+          };
+        })
       );
-      if (!contracts || contracts.length === 0) {
-        setContractOptions(options);
-        return;
-      }
-      const vsow = contracts.filter(
-        (contract) => contract.content_type === CONTRACT_TYPES.VSOW
+    }
+    const csow = props.contractsList.filter(
+      (contract) => contract.content_type === CONTRACT_TYPES.CSOW
+    );
+    if (csow.length > 0) {
+      options.push({
+        value: "separatorCsow",
+        label: "CSOW",
+        isSeparator: true,
+      });
+      options.push(
+        ...sortByLabelOrFileName(csow).map((item) => {
+          return {
+            value: item.id.toString(),
+            label: item.label ?? item.filename,
+          };
+        })
       );
-      if (vsow && vsow.length > 0) {
-        options.push({
-          value: "separatorVsow",
-          label: "VSOW",
-          isSeparator: true,
-        });
-        options.push(
-          ...sortByLabelOrFileName(vsow).map((item) => {
-            return {
-              value: item.id.toString(),
-              label: item.label ?? item.filename,
-            };
-          })
-        );
-      }
-      const csow = contracts.filter(
-        (contract) => contract.content_type === CONTRACT_TYPES.CSOW
+    }
+    const po = props.contractsList.filter(
+      (contract) => contract.content_type === CONTRACT_TYPES.PURCHASE_ORDER
+    );
+    if (po.length > 0) {
+      options.push({ value: "separatorPo", label: "PO", isSeparator: true });
+      options.push(
+        ...sortByLabelOrFileName(po).map((item) => {
+          return {
+            value: item.id.toString(),
+            label: item.label ?? item.filename,
+          };
+        })
       );
-      if (csow && csow.length > 0) {
-        options.push({
-          value: "separatorCsow",
-          label: "CSOW",
-          isSeparator: true,
-        });
-        options.push(
-          ...sortByLabelOrFileName(csow).map((item) => {
-            return {
-              value: item.id.toString(),
-              label: item.label ?? item.filename,
-            };
-          })
-        );
-      }
-      const po = contracts.filter(
-        (contract) => contract.content_type === CONTRACT_TYPES.PURCHASE_ORDER
+    }
+    const invoice = props.contractsList.filter(
+      (contract) => contract.content_type === CONTRACT_TYPES.INVOICE
+    );
+    if (invoice.length > 0) {
+      options.push({
+        value: "separatorInvoice",
+        label: "Invoices",
+        isSeparator: true,
+      });
+      options.push(
+        ...sortByLabelOrFileName(invoice).map((item) => {
+          return {
+            value: item.id.toString(),
+            label: item.label ?? item.filename,
+          };
+        })
       );
-      if (po && po.length > 0) {
-        options.push({ value: "separatorPo", label: "PO", isSeparator: true });
-        options.push(
-          ...sortByLabelOrFileName(po).map((item) => {
-            return {
-              value: item.id.toString(),
-              label: item.label ?? item.filename,
-            };
-          })
-        );
-      }
-      const invoice = contracts.filter(
-        (contract) => contract.content_type === CONTRACT_TYPES.INVOICE
-      );
-      if (invoice && invoice.length > 0) {
-        options.push({
-          value: "separatorInvoice",
-          label: "Invoices",
-          isSeparator: true,
-        });
-        options.push(
-          ...sortByLabelOrFileName(invoice).map((item) => {
-            return {
-              value: item.id.toString(),
-              label: item.label ?? item.filename,
-            };
-          })
-        );
-      }
-    });
+    }
 
     setContractOptions(options);
 

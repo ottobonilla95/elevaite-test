@@ -16,6 +16,7 @@ import {
 
 interface ContractComparisonProps {
   selectedContract: ContractObject;
+  secondarySelectedContract: ContractObject;
   contractsList: ContractObject[];
   projectId: string;
   selectedProject: ContractProjectObject;
@@ -51,7 +52,7 @@ export function ContractComparison(
   }
 
   function handleMainView(): void {
-    router.push(`/${props.projectId}/${props.selectedContract.id}`);
+    router.push(`/${props.projectId}/${props.selectedContract.id}/MainView`);
   }
 
   function handleToggleOverview(): void {
@@ -129,7 +130,10 @@ export function ContractComparison(
 
       <ContractComparisonBlock
         secondary={false}
+        contractsList={props.contractsList}
         projectId={props.projectId}
+        selectedContractId={props.selectedContract.id.toString()}
+        secondarySelectedContractId={props.secondarySelectedContract.id.toString()}
         selectedProject={props.selectedProject}
         loading={props.loading}
         isOverviewMinimized={isOverviewMinimized}
@@ -137,12 +141,15 @@ export function ContractComparison(
         scrollRef={scrollableRefMain}
         onScroll={handleScrollMain}
         onFullScreenCompare={handleFullScreenCompare}
-        selectedContract={selectedContract}
+        comparisonContract={selectedContract}
       />
 
       <ContractComparisonBlock
         secondary
+        contractsList={props.contractsList}
         projectId={props.projectId}
+        selectedContractId={props.selectedContract.id.toString()}
+        secondarySelectedContractId={props.secondarySelectedContract.id.toString()}
         selectedProject={props.selectedProject}
         loading={props.loading}
         isOverviewMinimized={isOverviewMinimized}
@@ -150,7 +157,7 @@ export function ContractComparison(
         scrollRef={scrollableRefSecondary}
         onScroll={handleScrollSecondary}
         onFullScreenCompare={handleFullScreenCompare}
-        secondarySelectedContract={secondarySelectedContract}
+        comparisonContract={secondarySelectedContract}
       />
 
       {!isFullScreenCompare ? undefined : (
@@ -166,7 +173,10 @@ export function ContractComparison(
             </div>
             <ContractComparisonBlock
               secondary={false}
+              contractsList={props.contractsList}
               projectId={props.projectId}
+              selectedContractId={props.selectedContract.id.toString()}
+              secondarySelectedContractId={props.secondarySelectedContract.id.toString()}
               selectedProject={props.selectedProject}
               loading={props.loading}
               isOverviewMinimized={isOverviewMinimized}
@@ -177,7 +187,10 @@ export function ContractComparison(
             />
             <ContractComparisonBlock
               secondary
+              contractsList={props.contractsList}
               projectId={props.projectId}
+              selectedContractId={props.selectedContract.id.toString()}
+              secondarySelectedContractId={props.secondarySelectedContract.id.toString()}
               selectedProject={props.selectedProject}
               loading={props.loading}
               isOverviewMinimized={isOverviewMinimized}

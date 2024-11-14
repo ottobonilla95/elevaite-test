@@ -19,10 +19,12 @@ interface ContractComparisonBlockProps {
   onFullScreenCompare?: () => void;
   barebones?: boolean;
   selectedProject: ContractProjectObject;
-  selectedContract?: ContractObject;
-  secondarySelectedContract?: ContractObject;
+  comparisonContract?: ContractObject;
   loading: LoadingListObject;
   projectId: string;
+  selectedContractId: string;
+  secondarySelectedContractId: string;
+  contractsList: ContractObject[];
 }
 
 export function ContractComparisonBlock(
@@ -32,21 +34,8 @@ export function ContractComparisonBlock(
   const [isLineItemsFullScreen, setIsLineItemsFullScreen] = useState(false);
 
   useEffect(() => {
-    if (props.secondary) {
-      if (
-        props.secondarySelectedContract &&
-        typeof props.secondarySelectedContract === "object"
-      )
-        setCurrentContract(props.secondarySelectedContract);
-      else setCurrentContract(undefined);
-    } else {
-      setCurrentContract(props.selectedContract);
-    }
-  }, [
-    props.secondary,
-    props.selectedContract,
-    props.secondarySelectedContract,
-  ]);
+    setCurrentContract(props.comparisonContract);
+  }, [props.secondary, props.comparisonContract]);
 
   useEffect(() => {
     if (!props.scrollRef || !props.onScroll) return;
@@ -62,8 +51,7 @@ export function ContractComparisonBlock(
     props.scrollRef,
     props.onScroll,
     props.secondary,
-    props.selectedContract,
-    props.secondarySelectedContract,
+    props.comparisonContract,
   ]);
 
   return (
@@ -79,12 +67,16 @@ export function ContractComparisonBlock(
         <>
           <div className="contract-comparison-block-title">
             <ComparisonSelect
+              contractsList={props.contractsList}
+              comparisonContract={props.comparisonContract}
+              selectedContractId={props.selectedContractId}
+              secondarySelectedContractId={props.secondarySelectedContractId}
               projectId={props.projectId}
               secondary={props.secondary}
               listFor={
                 !props.secondary
                   ? undefined
-                  : props.selectedContract?.content_type
+                  : props.comparisonContract?.content_type
               }
             />
           </div>
@@ -127,7 +119,7 @@ export function ContractComparisonBlock(
             >
               <div className="comparison-overview-contents">
                 <PdfExtractionEmphasis
-                  selectedContract={props.selectedContract}
+                  selectedContract={props.comparisonContract}
                   loading={props.loading}
                 />
               </div>
@@ -169,7 +161,7 @@ export function ContractComparisonBlock(
         ) : (
           <VerificationLineItems
             selectedProject={props.selectedProject}
-            selectedContract={props.selectedContract}
+            selectedContract={props.comparisonContract}
             loading={props.loading}
             lineItems={currentContract.line_items}
             fullScreen={isLineItemsFullScreen}
