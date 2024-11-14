@@ -2,6 +2,7 @@ import {
   getContractObjectById,
   getContractObjectEmphasis,
   getContractObjectLineItems,
+  getContractObjectVerification,
   getContractProjectById,
   getContractProjectContracts,
 } from "@repo/contracts-ui/actions";
@@ -12,6 +13,7 @@ import {
   ContractObject,
   ContractObjectVerificationLineItem,
   ContractObjectEmphasis,
+  ContractObjectVerification,
 } from "@repo/contracts-ui/interfaces";
 import { redirect } from "next/navigation";
 
@@ -45,6 +47,7 @@ export default async function ContractPage({
         Promise<ContractObject>,
         Promise<ContractObjectVerificationLineItem[]>,
         Promise<ContractObjectEmphasis>,
+        Promise<ContractObjectVerification>,
       ]
     | [undefined, undefined, undefined, undefined] {
     if (id === mainViewString)
@@ -52,18 +55,30 @@ export default async function ContractPage({
     const contractPromise = getContractObjectById(projectId, id, false);
     const lineItemsPromise = getContractObjectLineItems(projectId, id, false);
     const emphasisPromise = getContractObjectEmphasis(projectId, id, false);
+    const verificationPromise = getContractObjectVerification(
+      projectId,
+      id,
+      false
+    );
 
-    return [contractPromise, lineItemsPromise, emphasisPromise];
+    return [
+      contractPromise,
+      lineItemsPromise,
+      emphasisPromise,
+      verificationPromise,
+    ];
   }
 
   function updateContract(
     contract: ContractObject | undefined,
     lineItems: ContractObjectVerificationLineItem[] | undefined,
-    emphasis: ContractObjectEmphasis | undefined
+    emphasis: ContractObjectEmphasis | undefined,
+    verification: ContractObjectVerification | undefined
   ) {
     if (contract) {
       contract.line_items = lineItems;
       contract.highlight = emphasis;
+      contract.verification = verification;
     }
   }
 
@@ -75,12 +90,17 @@ export default async function ContractPage({
     ? getContractProjectContracts(projectId, false)
     : Promise.resolve([]);
 
-  const [contractPromise, lineItemsPromise, emphasisPromise] =
-    getContractPromises(fileId);
+  const [
+    contractPromise,
+    lineItemsPromise,
+    emphasisPromise,
+    verificationPromise,
+  ] = getContractPromises(fileId);
   const [
     secondaryContractPromise,
     secondaryLineItemsPromise,
     secondaryEmphasisPromise,
+    secondaryVerificationPromise,
   ] = getContractPromises(secondaryFileId ? secondaryFileId : "0");
 
   // Get file
@@ -95,25 +115,39 @@ export default async function ContractPage({
     primaryContract,
     primaryLineItems,
     primaryEmphasis,
+    primaryVerification,
     fileRes,
     contractsList,
     secondaryContract,
     secondaryLineItems,
     secondaryEmphasis,
+    secondaryVerification,
   ] = await Promise.all([
     contractPromise,
     lineItemsPromise,
     emphasisPromise,
+    verificationPromise,
     filePromise,
     contractsListPromise,
     secondaryContractPromise,
     secondaryLineItemsPromise,
     secondaryEmphasisPromise,
+    secondaryVerificationPromise,
   ]);
 
-  updateContract(primaryContract, primaryLineItems, primaryEmphasis);
+  updateContract(
+    primaryContract,
+    primaryLineItems,
+    primaryEmphasis,
+    primaryVerification
+  );
 
-  updateContract(secondaryContract, secondaryLineItems, secondaryEmphasis);
+  updateContract(
+    secondaryContract,
+    secondaryLineItems,
+    secondaryEmphasis,
+    secondaryVerification
+  );
 
   const file = await fileRes!.blob();
 
