@@ -951,6 +951,11 @@ async def perform_inference(inference_payload: InferencePayload):
                         if additional_result.id not in currently_present_ids:
                             filtered_data.results.append(additional_result)
                             filtered_data.total += 1
+                # else:
+                    # yield {"response","Relevant additional data not found."}
+
+            #  logger.debug(f"Total results after additional search: {filtered_data.total}")
+            # print(f"Combined Data:{filtered_data}")
             output_parts = OrderedDict()
             ordered_keys = ["media_plan", "analysis_of_trends", "campaign_performance", "creative_insights", "performance_summary"]
 
