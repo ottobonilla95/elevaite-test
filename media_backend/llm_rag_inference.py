@@ -662,7 +662,7 @@ async def perform_inference(inference_payload: InferencePayload):
                 conversation_history = ""
 
             if not required_outcomes:
-                yield {"response": "I apologize, but I'm not able to help with that request. I specialize in media marketing campaigns plan generation and historical data insights. Is there anything related to media campaigns that I can assist you with?\n"}
+                yield {"response": "I specialize in media marketing campaigns plan generation and historical data insights. Is there anything related to media campaigns that I can assist you with?\n"}
                 return
             
             parameters = intent_data.get('parameters', {}) 
@@ -689,8 +689,8 @@ async def perform_inference(inference_payload: InferencePayload):
                         if additional_result.id not in currently_present_ids:
                             filtered_data.results.append(additional_result)
                             filtered_data.total += 1
-                else:
-                    yield {"response","Relevant additional data not found."}
+                # else:
+                    # yield {"response","Relevant additional data not found."}
 
             #  logger.debug(f"Total results after additional search: {filtered_data.total}")
             # print(f"Combined Data:{filtered_data}")
