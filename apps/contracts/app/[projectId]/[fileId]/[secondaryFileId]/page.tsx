@@ -1,5 +1,7 @@
 import {
   getContractObjectById,
+  getContractObjectEmphasis,
+  getContractObjectLineItems,
   getContractProjectById,
   getContractProjectContracts,
 } from "@repo/contracts-ui/actions";
@@ -8,6 +10,8 @@ import { PdfAndExtraction } from "@repo/contracts-ui/components";
 import {
   LoadingListObject,
   ContractObject,
+  ContractObjectVerificationLineItem,
+  ContractObjectEmphasis,
 } from "@repo/contracts-ui/interfaces";
 import { redirect } from "next/navigation";
 
@@ -34,17 +38,33 @@ export default async function ContractPage({
     deletingContract: false,
   };
 
-  function getFilePromise(
+  function getContractPromises(
     id: string
-  ): [Promise<Response>, Promise<ContractObject>] | [undefined, undefined] {
-    if (id === mainViewString) return [undefined, undefined];
-    const CONTRACTS_URL = process.env.NEXT_PUBLIC_CONTRACTS_API_URL;
-    const url = new URL(
-      `${CONTRACTS_URL}/projects/${projectId}/files/${id}/file`
-    );
+  ):
+    | [
+        Promise<ContractObject>,
+        Promise<ContractObjectVerificationLineItem[]>,
+        Promise<ContractObjectEmphasis>,
+      ]
+    | [undefined, undefined, undefined, undefined] {
+    if (id === mainViewString)
+      return [undefined, undefined, undefined, undefined];
     const contractPromise = getContractObjectById(projectId, id, false);
-    const filePromise = fetch(url, { method: "GET" });
-    return [filePromise, contractPromise];
+    const lineItemsPromise = getContractObjectLineItems(projectId, id, false);
+    const emphasisPromise = getContractObjectEmphasis(projectId, id, false);
+
+    return [contractPromise, lineItemsPromise, emphasisPromise];
+  }
+
+  function updateContract(
+    contract: ContractObject | undefined,
+    lineItems: ContractObjectVerificationLineItem[] | undefined,
+    emphasis: ContractObjectEmphasis | undefined
+  ) {
+    if (contract) {
+      contract.line_items = lineItems;
+      contract.highlight = emphasis;
+    }
   }
 
   const { projectId, fileId, secondaryFileId: secondaryFileId } = await params;
@@ -55,28 +75,47 @@ export default async function ContractPage({
     ? getContractProjectContracts(projectId, false)
     : Promise.resolve([]);
 
-  const [filePromise, contractPromise] = getFilePromise(fileId);
-  const [secondaryFilePromise, secondaryContractPromise] = getFilePromise(
-    secondaryFileId ? secondaryFileId : "0"
-  );
+  const [contractPromise, lineItemsPromise, emphasisPromise] =
+    getContractPromises(fileId);
+  const [
+    secondaryContractPromise,
+    secondaryLineItemsPromise,
+    secondaryEmphasisPromise,
+  ] = getContractPromises(secondaryFileId ? secondaryFileId : "0");
 
+  // Get file
+  const CONTRACTS_URL = process.env.NEXT_PUBLIC_CONTRACTS_API_URL;
+  const url = new URL(
+    `${CONTRACTS_URL}/projects/${projectId}/files/${fileId}/file`
+  );
+  const filePromise = fetch(url, { method: "GET" });
+
+  // Get contracts
   const [
     primaryContract,
-    secondaryContract,
+    primaryLineItems,
+    primaryEmphasis,
     fileRes,
-    secondaryFileRes,
     contractsList,
+    secondaryContract,
+    secondaryLineItems,
+    secondaryEmphasis,
   ] = await Promise.all([
     contractPromise,
-    secondaryContractPromise,
+    lineItemsPromise,
+    emphasisPromise,
     filePromise,
-    secondaryFilePromise,
     contractsListPromise,
+    secondaryContractPromise,
+    secondaryLineItemsPromise,
+    secondaryEmphasisPromise,
   ]);
 
+  updateContract(primaryContract, primaryLineItems, primaryEmphasis);
+
+  updateContract(secondaryContract, secondaryLineItems, secondaryEmphasis);
+
   const file = await fileRes!.blob();
-  // TODO remove secondary file completely in prod if not used
-  const secondaryFile = await secondaryFileRes?.blob();
 
   const selectedProject = await getContractProjectById(projectId, false);
 
