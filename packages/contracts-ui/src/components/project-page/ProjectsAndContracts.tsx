@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ContractsListV2 } from "./ContractsListV2";
 import { ProjectsList } from "./ProjectsList";
 import {
@@ -8,19 +8,21 @@ import {
   type LoadingListObject,
 } from "@/interfaces";
 import "./ProjectsAndContracts.scss";
-import { getContractProjectsList } from "@/actions/contractActions";
 
 interface ProjectsAndContractsProps {
   projectId?: string;
+  project?: ContractProjectObject;
+  projects: ContractProjectObject[];
 }
 
-export function ProjectsAndContracts(
-  props: ProjectsAndContractsProps
-): JSX.Element {
+export function ProjectsAndContracts({
+  projects,
+  project,
+  ...props
+}: ProjectsAndContractsProps): JSX.Element {
   const [selectedContract, setSelectedContract] = useState<
     ContractObject | undefined
   >();
-  const [projects, setProjects] = useState<ContractProjectObject[]>([]);
   const [loading, setLoading] = useState<LoadingListObject>({
     projects: undefined,
     contracts: undefined,
@@ -32,14 +34,6 @@ export function ProjectsAndContracts(
     contractVerification: {},
     deletingContract: false,
   });
-  useEffect(() => {
-    getContractProjectsList(false).then((projectList) => {
-      setProjects(projectList);
-      setLoading((current) => {
-        return { ...current, projects: false };
-      });
-    });
-  }, []);
 
   return (
     <div
@@ -55,6 +49,7 @@ export function ProjectsAndContracts(
         />
         <ContractsListV2
           projectId={props.projectId}
+          project={project}
           selectedContract={selectedContract}
           setSelectedContract={setSelectedContract}
           projects={projects}

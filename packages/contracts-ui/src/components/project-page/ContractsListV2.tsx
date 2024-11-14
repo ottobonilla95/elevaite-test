@@ -34,7 +34,6 @@ import {
 import { formatBytes } from "@/helpers";
 import {
   deleteContract,
-  getContractProjectById,
   getContractProjectContracts,
   getContractProjectsList,
 } from "@/actions/contractActions";
@@ -77,6 +76,7 @@ const cleanFilterNumbers: StatusFilterNumbers = {
 
 interface ContractsListV2Props {
   projectId?: string;
+  project?: ContractProjectObject;
   selectedContract: ContractObject | undefined;
   projects: ContractProjectObject[];
   setSelectedContract: Dispatch<SetStateAction<ContractObject | undefined>>;
@@ -96,7 +96,10 @@ function useHandleContractClick() {
   };
 }
 
-export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
+export function ContractsListV2({
+  project: selectedProject,
+  ...props
+}: ContractsListV2Props): JSX.Element {
   const router = useRouter();
 
   const handleContractClick = useHandleContractClick();
@@ -112,9 +115,6 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
     contractVerification: {},
     deletingContract: false,
   });
-  const [selectedProject, setSelectedProject] = useState<
-    ContractProjectObject | undefined
-  >();
   const [contracts, setContracts] = useState<ContractObject[]>([]);
   const [displayContracts, setDisplayContracts] = useState<ContractObject[]>(
     []
@@ -166,16 +166,16 @@ export function ContractsListV2(props: ContractsListV2Props): JSX.Element {
   //     console.log("Display Contracts:", displayContracts);
   // }, [displayContracts]);
 
-  useEffect(() => {
-    const fetchProject = async (): Promise<void> => {
-      const project = props.projectId
-        ? await getContractProjectById(props.projectId, false)
-        : undefined;
-      setSelectedProject(project);
-    };
+  // useEffect(() => {
+  //   const fetchProject = async (): Promise<void> => {
+  //     const project = props.projectId
+  //       ? await getContractProjectById(props.projectId, false)
+  //       : undefined;
+  //     setSelectedProject(project);
+  //   };
 
-    void fetchProject();
-  }, [props.projectId]);
+  //   void fetchProject();
+  // }, [props.projectId]);
 
   useEffect(() => {
     if (props.projectId)
