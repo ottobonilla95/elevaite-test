@@ -5,6 +5,7 @@ import {
   getContractObjectVerification,
   getContractProjectById,
   getContractProjectContracts,
+  getContractProjectSettings,
 } from "@repo/contracts-ui/actions";
 import "./page.scss";
 import { PdfAndExtraction } from "@repo/contracts-ui/components";
@@ -14,6 +15,8 @@ import {
   ContractObjectVerificationLineItem,
   ContractObjectEmphasis,
   ContractObjectVerification,
+  ContractSettings,
+  ContractProjectObject,
 } from "@repo/contracts-ui/interfaces";
 import { redirect } from "next/navigation";
 
@@ -48,6 +51,7 @@ export default async function ContractPage({
         Promise<ContractObjectVerificationLineItem[]>,
         Promise<ContractObjectEmphasis>,
         Promise<ContractObjectVerification>,
+        Promise<ContractSettings>,
       ]
     | [undefined, undefined, undefined, undefined] {
     if (id === mainViewString)
@@ -60,25 +64,58 @@ export default async function ContractPage({
       id,
       false
     );
+    const settingsPromise = getContractProjectSettings(projectId, false);
 
     return [
       contractPromise,
       lineItemsPromise,
       emphasisPromise,
       verificationPromise,
+      settingsPromise,
     ];
   }
 
-  function updateContract(
+  function updateContractAndProject(
+    project: ContractProjectObject,
     contract: ContractObject | undefined,
     lineItems: ContractObjectVerificationLineItem[] | undefined,
     emphasis: ContractObjectEmphasis | undefined,
-    verification: ContractObjectVerification | undefined
+    verification: ContractObjectVerification | undefined,
+    settings: ContractSettings | undefined
   ) {
+    project.settings = settings;
+
+    if (settings) {
+      loading.projectSettings = {
+        ...loading.projectSettings,
+        [project.id]: false,
+      };
+    }
+
     if (contract) {
       contract.line_items = lineItems;
       contract.highlight = emphasis;
       contract.verification = verification;
+      if (lineItems) {
+        loading.contractLineItems = {
+          ...loading.contractLineItems,
+          [contract.id]: false,
+        };
+      }
+
+      if (verification) {
+        loading.contractVerification = {
+          ...loading.contractVerification,
+          [contract.id]: false,
+        };
+      }
+
+      if (emphasis) {
+        loading.contractEmphasis = {
+          ...loading.contractEmphasis,
+          [contract.id]: false,
+        };
+      }
     }
   }
 
@@ -90,19 +127,6 @@ export default async function ContractPage({
     ? getContractProjectContracts(projectId, false)
     : Promise.resolve([]);
 
-  const [
-    contractPromise,
-    lineItemsPromise,
-    emphasisPromise,
-    verificationPromise,
-  ] = getContractPromises(fileId);
-  const [
-    secondaryContractPromise,
-    secondaryLineItemsPromise,
-    secondaryEmphasisPromise,
-    secondaryVerificationPromise,
-  ] = getContractPromises(secondaryFileId ? secondaryFileId : "0");
-
   // Get file
   const CONTRACTS_URL = process.env.NEXT_PUBLIC_CONTRACTS_API_URL;
   const url = new URL(
@@ -111,47 +135,71 @@ export default async function ContractPage({
   const filePromise = fetch(url, { method: "GET" });
 
   // Get contracts
+
+  const [
+    contractPromise,
+    lineItemsPromise,
+    emphasisPromise,
+    verificationPromise,
+    settingsPromise,
+  ] = getContractPromises(fileId);
+  const [
+    secondaryContractPromise,
+    secondaryLineItemsPromise,
+    secondaryEmphasisPromise,
+    secondaryVerificationPromise,
+    secondarySettingsPromise,
+  ] = getContractPromises(secondaryFileId ? secondaryFileId : "0");
+
   const [
     primaryContract,
     primaryLineItems,
     primaryEmphasis,
     primaryVerification,
+    primarySettings,
     fileRes,
     contractsList,
     secondaryContract,
     secondaryLineItems,
     secondaryEmphasis,
     secondaryVerification,
+    secondarySettings,
   ] = await Promise.all([
     contractPromise,
     lineItemsPromise,
     emphasisPromise,
     verificationPromise,
+    settingsPromise,
     filePromise,
     contractsListPromise,
     secondaryContractPromise,
     secondaryLineItemsPromise,
     secondaryEmphasisPromise,
     secondaryVerificationPromise,
+    secondarySettingsPromise,
   ]);
 
-  updateContract(
+  const selectedProject = await getContractProjectById(projectId, false);
+
+  updateContractAndProject(
+    selectedProject,
     primaryContract,
     primaryLineItems,
     primaryEmphasis,
-    primaryVerification
+    primaryVerification,
+    primarySettings
   );
 
-  updateContract(
+  updateContractAndProject(
+    selectedProject,
     secondaryContract,
     secondaryLineItems,
     secondaryEmphasis,
-    secondaryVerification
+    secondaryVerification,
+    primarySettings
   );
 
   const file = await fileRes!.blob();
-
-  const selectedProject = await getContractProjectById(projectId, false);
 
   return (
     <div className="contracts-main-container">
