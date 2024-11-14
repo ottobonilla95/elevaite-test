@@ -463,6 +463,7 @@ async def campaign_performance(filtered_data: SearchResult, query: str, conversa
         "tone_mood",
         "imagery",
         "file_name",
+        "budget",
     ]
     full_data_fields_to_extract = [
         "product/service",
@@ -608,7 +609,7 @@ def replace_hash_with_url(S):
     return S
 @timer_decorator 
 def get_url_for_hash(hash, extension):
-    base_url = "http://127.0.0.1:8000/static/images"
+    base_url = os.getenv("BASE_URL_FOR_CREATIVES")
     directory_structure = f"{hash[:2]}/{hash[2:4]}/{hash}"
     return f"{base_url}/{directory_structure}.{extension}"
 @timer_decorator 
@@ -669,7 +670,7 @@ async def perform_inference(inference_payload: InferencePayload):
             # print(f"Original data:{filtered_data}")
             
             if not filtered_data.results:
-                yield {"response":"I'm sorry, but I lack infromation on media campaigns directly related to your query. Searching for data most related with your query...\n"}
+                yield {"response":"Searching for data most related with your query...\n"}
                 filtered_data = search_qdrant(inference_payload.query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
                 if len(filtered_data.results)<1:
                     yield {"response":"Media Campaign Information related to your query were not found. Please try a different query.\n"}

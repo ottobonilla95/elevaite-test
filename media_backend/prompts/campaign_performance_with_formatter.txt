@@ -3,10 +3,10 @@ Include "Campaign Performance Report" as a level 2 header(##).
 For each of the campaigns use the following structure:
 **Brand and Product:** [Specify brand and product details] 
 **Campaign Objective:** [Outline primary objective]
-
-| Campaign Duration                 | Delivered Impressions | Delivered Impressions | Clicks/Actions  | Value to Money (Conversions) |
-|-----------------------------------|-----------------------|-----------------------|-----------------|------------------------------|
-| [Duration Category] ([Days] days) |      [Number]         |        [Number]       |    [Number]     |        [Percentage]%         |
+Explain your budget calculation.
+| Campaign Duration                 |       Budget         | Booked Impressions    | Delivered Impressions | Clicks/Actions  | Value to Money (Conversions) |                ECPM                  |
+|-----------------------------------|----------------------|-----------------------|-----------------------|-----------------|------------------------------|--------------------------------------| 
+| [Duration Category] ([Days] days) |      [Number]        |     [Number]          |        [Number]       |    [Number]     |        [Percentage]%         | [(Budget*1000)/Delivered Impressions]| 
 
 | Creative Snapshot                      | Creative Thumbnail                           |
 |----------------------------------------|----------------------------------------------|
