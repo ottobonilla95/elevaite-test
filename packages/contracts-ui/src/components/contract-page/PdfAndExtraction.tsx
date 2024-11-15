@@ -78,6 +78,7 @@ export function PdfAndExtraction(props: PdfAndExtractionProps): JSX.Element {
             projectId={props.projectId}
             handleExpansion={handleDataExpansion}
             isExpanded={expandedPage === ExpandedPages.DATA}
+            selectedContract={props.selectedContract}
           />
         </div>
       )}

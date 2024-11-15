@@ -34,7 +34,6 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
   const [selectedTab, setSelectedTab] = useState<ExtractionTabs>(
     ExtractionTabs.EXTRACTION
   );
-
   useEffect(() => {
     if (props.selectedContract?.response) {
       setExtractedBits(getExtractedBits(props.selectedContract.response));
@@ -261,7 +260,10 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
               )}
             </>
           ) : (
-            <PdfExtractionVerification loading={props.loading} />
+            <PdfExtractionVerification
+              loading={props.loading}
+              selectedContract={props.selectedContract}
+            />
           )}
         </div>
       </div>
