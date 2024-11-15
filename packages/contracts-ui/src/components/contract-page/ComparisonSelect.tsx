@@ -29,7 +29,7 @@ interface ComparisonSelectProps {
   listFor?: CONTRACT_TYPES;
   comparisonContract?: ContractObject;
   selectedContractId: string;
-  secondarySelectedContractId: string;
+  secondarySelectedContractId?: string;
   projectId: string;
   contractsList: ContractObject[];
 }

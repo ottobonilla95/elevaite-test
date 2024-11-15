@@ -16,7 +16,7 @@ import {
 
 interface ContractComparisonProps {
   selectedContract: ContractObject;
-  secondarySelectedContract: ContractObject;
+  secondarySelectedContract?: ContractObject;
   contractsList: ContractObject[];
   projectId: string;
   selectedProject: ContractProjectObject;
@@ -52,7 +52,7 @@ export function ContractComparison(
   }
 
   function handleMainView(): void {
-    router.push(`/${props.projectId}/${props.selectedContract.id}/MainView`);
+    router.push(`/${props.projectId}/${props.selectedContract.id}/`);
   }
 
   function handleToggleOverview(): void {
@@ -133,7 +133,7 @@ export function ContractComparison(
         contractsList={props.contractsList}
         projectId={props.projectId}
         selectedContractId={props.selectedContract.id.toString()}
-        secondarySelectedContractId={props.secondarySelectedContract.id.toString()}
+        secondarySelectedContractId={props.secondarySelectedContract?.id.toString()}
         selectedProject={props.selectedProject}
         loading={props.loading}
         isOverviewMinimized={isOverviewMinimized}
@@ -149,7 +149,7 @@ export function ContractComparison(
         contractsList={props.contractsList}
         projectId={props.projectId}
         selectedContractId={props.selectedContract.id.toString()}
-        secondarySelectedContractId={props.secondarySelectedContract.id.toString()}
+        secondarySelectedContractId={props.secondarySelectedContract?.id.toString()}
         selectedProject={props.selectedProject}
         loading={props.loading}
         isOverviewMinimized={isOverviewMinimized}
@@ -176,7 +176,7 @@ export function ContractComparison(
               contractsList={props.contractsList}
               projectId={props.projectId}
               selectedContractId={props.selectedContract.id.toString()}
-              secondarySelectedContractId={props.secondarySelectedContract.id.toString()}
+              secondarySelectedContractId={props.secondarySelectedContract?.id.toString()}
               selectedProject={props.selectedProject}
               loading={props.loading}
               isOverviewMinimized={isOverviewMinimized}
@@ -190,7 +190,7 @@ export function ContractComparison(
               contractsList={props.contractsList}
               projectId={props.projectId}
               selectedContractId={props.selectedContract.id.toString()}
-              secondarySelectedContractId={props.secondarySelectedContract.id.toString()}
+              secondarySelectedContractId={props.secondarySelectedContract?.id.toString()}
               selectedProject={props.selectedProject}
               loading={props.loading}
               isOverviewMinimized={isOverviewMinimized}

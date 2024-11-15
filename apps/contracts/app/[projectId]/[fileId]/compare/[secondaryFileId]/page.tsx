@@ -15,12 +15,8 @@ import {
   ContractObjectVerificationLineItem,
   ContractObjectEmphasis,
   ContractObjectVerification,
-  ContractSettings,
-  ContractProjectObject,
 } from "@repo/contracts-ui/interfaces";
 import { redirect } from "next/navigation";
-
-const mainViewString = encodeURIComponent("MainView");
 
 export default async function ContractPage({
   params,
@@ -51,11 +47,9 @@ export default async function ContractPage({
         Promise<ContractObjectVerificationLineItem[]>,
         Promise<ContractObjectEmphasis>,
         Promise<ContractObjectVerification>,
-        Promise<ContractSettings>,
       ]
     | [undefined, undefined, undefined, undefined] {
-    if (id === mainViewString)
-      return [undefined, undefined, undefined, undefined];
+    if (id === "0") return [undefined, undefined, undefined, undefined];
     const contractPromise = getContractObjectById(projectId, id, false);
     const lineItemsPromise = getContractObjectLineItems(projectId, id, false);
     const emphasisPromise = getContractObjectEmphasis(projectId, id, false);
@@ -64,34 +58,21 @@ export default async function ContractPage({
       id,
       false
     );
-    const settingsPromise = getContractProjectSettings(projectId, false);
 
     return [
       contractPromise,
       lineItemsPromise,
       emphasisPromise,
       verificationPromise,
-      settingsPromise,
     ];
   }
 
   function updateContractAndProject(
-    project: ContractProjectObject,
     contract: ContractObject | undefined,
     lineItems: ContractObjectVerificationLineItem[] | undefined,
     emphasis: ContractObjectEmphasis | undefined,
-    verification: ContractObjectVerification | undefined,
-    settings: ContractSettings | undefined
+    verification: ContractObjectVerification | undefined
   ) {
-    project.settings = settings;
-
-    if (settings) {
-      loading.projectSettings = {
-        ...loading.projectSettings,
-        [project.id]: false,
-      };
-    }
-
     if (contract) {
       contract.line_items = lineItems;
       contract.highlight = emphasis;
@@ -119,9 +100,9 @@ export default async function ContractPage({
     }
   }
 
-  const { projectId, fileId, secondaryFileId: secondaryFileId } = await params;
-  if (isNaN(Number(secondaryFileId)) && secondaryFileId !== mainViewString)
-    redirect(`/${projectId}/${fileId}/${mainViewString}`);
+  const { projectId, fileId, secondaryFileId } = await params;
+  if (isNaN(Number(secondaryFileId)) && secondaryFileId !== "0")
+    redirect(`/${projectId}/${fileId}/compare/0`);
 
   const contractsListPromise = projectId
     ? getContractProjectContracts(projectId, false)
@@ -135,69 +116,72 @@ export default async function ContractPage({
   const filePromise = fetch(url, { method: "GET" });
 
   // Get contracts
-
   const [
     contractPromise,
     lineItemsPromise,
     emphasisPromise,
     verificationPromise,
-    settingsPromise,
   ] = getContractPromises(fileId);
+
   const [
     secondaryContractPromise,
     secondaryLineItemsPromise,
     secondaryEmphasisPromise,
     secondaryVerificationPromise,
-    secondarySettingsPromise,
   ] = getContractPromises(secondaryFileId ? secondaryFileId : "0");
+
+  // Get project
+  const projectPromise = getContractProjectById(projectId, false);
+  const settingsPromise = getContractProjectSettings(projectId, false);
 
   const [
     primaryContract,
     primaryLineItems,
     primaryEmphasis,
     primaryVerification,
-    primarySettings,
     fileRes,
     contractsList,
     secondaryContract,
     secondaryLineItems,
     secondaryEmphasis,
     secondaryVerification,
-    secondarySettings,
+    project,
+    settings,
   ] = await Promise.all([
     contractPromise,
     lineItemsPromise,
     emphasisPromise,
     verificationPromise,
-    settingsPromise,
     filePromise,
     contractsListPromise,
     secondaryContractPromise,
     secondaryLineItemsPromise,
     secondaryEmphasisPromise,
     secondaryVerificationPromise,
-    secondarySettingsPromise,
+    projectPromise,
+    settingsPromise,
   ]);
 
-  const selectedProject = await getContractProjectById(projectId, false);
-
   updateContractAndProject(
-    selectedProject,
     primaryContract,
     primaryLineItems,
     primaryEmphasis,
-    primaryVerification,
-    primarySettings
+    primaryVerification
   );
 
   updateContractAndProject(
-    selectedProject,
     secondaryContract,
     secondaryLineItems,
     secondaryEmphasis,
-    secondaryVerification,
-    primarySettings
+    secondaryVerification
   );
+
+  if (settings) {
+    loading.projectSettings = {
+      ...loading.projectSettings,
+      [project.id]: false,
+    };
+  }
 
   const file = await fileRes!.blob();
 
@@ -207,10 +191,11 @@ export default async function ContractPage({
         file={file}
         loading={loading}
         projectId={projectId}
-        selectedProject={selectedProject}
+        selectedProject={project}
         selectedContract={primaryContract}
         secondarySelectedContract={secondaryContract}
         contractsList={contractsList}
+        comparisonScreen
       />
     </div>
   );

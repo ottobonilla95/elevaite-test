@@ -19,7 +19,6 @@ export function ProjectsList({
   projectId?: string;
   loading: LoadingListObject;
 }): JSX.Element {
-  //   const contractsContext = useContracts();
   const [isProjectCreationOpen, setIsProjectCreationOpen] = useState(false);
 
   function handleAddProject(): void {

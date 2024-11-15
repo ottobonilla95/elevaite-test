@@ -77,15 +77,19 @@ interface ContractsListV2Props {
 
 function useHandleContractClick() {
   const router = useRouter();
-  const currentPath = usePathname();
 
-  return (newContractId: string | number | undefined) => {
+  return (
+    currentProjectId: string | number | undefined,
+    newContractId: string | number | undefined,
+    compare?: boolean
+  ) => {
     if (!newContractId) return;
 
-    const pathParts = currentPath.split("/");
-    pathParts[3] = newContractId.toString();
-    const newPath = pathParts.join("/");
-    router.replace(newPath);
+    if (compare) {
+      router.replace(`/${currentProjectId}/${newContractId}/compare/0`);
+    } else {
+      router.replace(`/${currentProjectId}//${newContractId}`);
+    }
   };
 }
 
@@ -193,10 +197,10 @@ export function ContractsListV2({
   ): void {
     switch (action) {
       case MenuActions.View:
-        handleContractClick(contract.id);
+        handleContractClick(props.projectId, contract.id);
         break;
       case MenuActions.Compare:
-        handleContractClick(contract.id);
+        handleContractClick(props.projectId, contract.id, true);
         break;
       case MenuActions.Delete:
         handleContractDeleteClick(contract);
@@ -512,7 +516,7 @@ export function ContractsListV2({
         title={listItem.filename}
         noBackground
         onClick={() => {
-          handleContractClick(listItem.id);
+          handleContractClick(props.projectId, listItem.id);
         }}
       >
         <span>
