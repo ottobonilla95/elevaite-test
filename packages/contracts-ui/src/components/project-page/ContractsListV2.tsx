@@ -6,10 +6,7 @@ import {
   CommonModal,
   ElevaiteIcons,
 } from "@repo/ui/components";
-import React, {
-  useEffect,
-  useState,
-} from "react";
+import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { type AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { ListRow, type RowStructure } from "../ListRow";
@@ -167,7 +164,7 @@ export function ContractsListV2({
   }, [contracts, selectedContractTabs, selectedStatus, sorting]);
 
   function handleSelectedContract(id: string): void {
-    router.push(`${props.projectId}/${id}`)
+    router.push(`${props.projectId}/${id}`);
   }
 
   function handleUpload(): void {
@@ -1003,8 +1000,7 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
   if (props.items.length === 1)
     return (
       <CommonButton
-        // eslint-disable-next-line no-constant-binary-expression -- TODO: Take a look at this
-        title={`This cross-section has one issue, with file:\n${props.items[0].label ?? props.items[0].fileName ?? "Unknown File" ?? "Unknown"}`}
+        title={`This cross-section has one issue, with file:\n${props.items[0] ? (props.items[0].label ?? props.items[0].fileName ?? `Unknown File ${props.contract.id}`) : "Unknown"}`}
         onClick={() => {
           handleMismatchMenuClick(props.items[0]);
         }}
@@ -1034,9 +1030,9 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
       left
       top={Boolean(
         props.listLength &&
-        props.index &&
-        props.listLength > 4 &&
-        props.index > props.listLength - 4
+          props.index &&
+          props.listLength > 4 &&
+          props.index > props.listLength - 4
       )}
     />
   );
