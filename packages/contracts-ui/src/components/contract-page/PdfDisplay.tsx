@@ -1,6 +1,12 @@
 import { CommonButton, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
 import { type PDFDocumentProxy } from "pdfjs-dist";
-import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import {
+  type KeyboardEvent,
+  type MutableRefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -27,6 +33,27 @@ const pdfTabsArrayDefault: PdfTabs[] = [
   { value: CONTRACT_TYPES.PURCHASE_ORDER, label: "PO" },
   { value: CONTRACT_TYPES.INVOICE, label: "Invoice" },
 ];
+
+const useIntersectionObserver = (
+  callback: IntersectionObserverCallback,
+  options?: IntersectionObserverInit
+): MutableRefObject<IntersectionObserver | null> => {
+  const observer = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "IntersectionObserver" in window) {
+      observer.current = new IntersectionObserver(callback, options);
+    }
+    return () => {
+      if (observer.current) {
+        observer.current.disconnect();
+        observer.current = null;
+      }
+    };
+  }, [callback, options]);
+
+  return observer;
+};
 
 interface PdfDisplayProps {
   handleExpansion: () => void;
@@ -61,21 +88,20 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- .
   const [selectedTab, setSelectedTab] = useState<CONTRACT_TYPES | undefined>();
 
-  const observer = new IntersectionObserver(
-    (entries) => {
+  const observer = useIntersectionObserver(
+    (entries, obs) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           const child = entry.target.firstChild;
           if (child instanceof Element) {
             const elementNumber = child.getAttribute("data-page-number");
             if (elementNumber) {
-              // setDisplayPageNumber(elementNumber);
-              setPageNumber(parseInt(elementNumber));
+              setPageNumber(parseInt(elementNumber, 10));
             }
           }
+          obs.disconnect();
         }
       });
-      observer.disconnect();
     },
     { threshold: 0.5 }
   );
@@ -325,7 +351,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
   const onScroll = useDebouncedCallback(() => {
     for (const pageRef of Object.values(pageRefs.current)) {
       if (!pageRef) continue;
-      observer.observe(pageRef);
+      observer.current?.observe(pageRef);
     }
   }, 200);
 
