@@ -225,7 +225,7 @@ export async function reprocessContract(
   if (!response.ok) {
     // if (response.status === 422) {
     const errorData: unknown = await response.json();
-    // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+    // eslint-disable-next-line no-console -- We need this.
     console.dir(errorData, { depth: null });
     // }
     throw new Error("Failed to reprocess contract");
@@ -260,7 +260,7 @@ export async function CreateProject(
   if (!response.ok) {
     // if (response.status === 422) {
     const errorData: unknown = await response.json();
-    // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+    // eslint-disable-next-line no-console -- We need this.
     console.dir(errorData, { depth: null });
     // }
     throw new Error("Failed to create contract project");
@@ -296,7 +296,7 @@ export async function EditProject(
   if (!response.ok) {
     // if (response.status === 422) {
     const errorData: unknown = await response.json();
-    // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+    // eslint-disable-next-line no-console -- We need this.
     console.dir(errorData, { depth: null });
     // }
     throw new Error("Failed to edit contract project");
@@ -325,55 +325,13 @@ export async function DeleteProject(
   if (!response.ok) {
     // if (response.status === 422) {
     const errorData: unknown = await response.json();
-    // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+    // eslint-disable-next-line no-console -- We need this.
     console.dir(errorData, { depth: null });
     // }
     throw new Error("Failed to delete contract project");
   }
   const data: unknown = await response.json();
   if (isDeleteProjectResponse(data)) return data;
-  throw new Error("Invalid data type");
-}
-
-async function actionSubmitContract(
-  submittedPdf: File,
-  type: CONTRACT_TYPES,
-  projectId: string | number,
-  name?: string
-): Promise<void> {
-  const formData = new FormData();
-  formData.append("file", submittedPdf);
-  if (name) formData.append("label", name);
-  await submitContract(projectId.toString(), formData, type);
-}
-
-async function submitContract(
-  projectId: string,
-  formData: FormData,
-  type: CONTRACT_TYPES
-): Promise<ContractObject> {
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) throw new Error("Missing base url");
-
-  const url = new URL(`${baseUrl}/projects/${projectId}/files/`);
-  url.searchParams.set("content_type", type);
-
-  const response = await fetch(url, {
-    method: "POST",
-    body: formData,
-  });
-
-  revalidateTag(cacheTags.contractProjects);
-  if (!response.ok) {
-    if (response.status === 422) {
-      const errorData: unknown = await response.json();
-      // eslint-disable-next-line no-console -- Need this in case this breaks like that.
-      console.dir(errorData, { depth: null });
-    }
-    throw new Error("Failed to submit contract");
-  }
-  const data: unknown = await response.json();
-  if (isSubmitContractResponse(data)) return data;
   throw new Error("Invalid data type");
 }
 
@@ -384,7 +342,32 @@ export async function submitCurrentContractPdf(
   name?: string
 ): Promise<void> {
   if (pdf) {
-    await actionSubmitContract(pdf, type, projectId, name);
+    const formData = new FormData();
+    formData.append("file", pdf);
+    if (name) formData.append("label", name);
+    const baseUrl = getBaseUrl();
+    if (!baseUrl) throw new Error("Missing base url");
+
+    const url = new URL(`${baseUrl}/projects/${projectId}/files/`);
+    url.searchParams.set("content_type", type);
+
+    const response = await fetch(url, {
+      method: "POST",
+      body: formData,
+    });
+
+    revalidateTag(cacheTags.contractProjects);
+    if (!response.ok) {
+      if (response.status === 422) {
+        const errorData: unknown = await response.json();
+        // eslint-disable-next-line no-console -- Need this
+        console.dir(errorData, { depth: null });
+      }
+      throw new Error("Failed to submit contract");
+    }
+    const data: unknown = await response.json();
+    // if (isSubmitContractResponse(data)) return data;
+    if (!isSubmitContractResponse(data)) throw new Error("Invalid data type");
   }
 }
 
@@ -405,7 +388,7 @@ export async function deleteContract(
   if (!response.ok) {
     if (response.status === 422) {
       const errorData: unknown = await response.json();
-      // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+      // eslint-disable-next-line no-console -- We need this.
       console.dir(errorData, { depth: null });
     }
     throw new Error("Failed to delete contract");
