@@ -117,10 +117,12 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     setSelectedTab(props.selectedContract.content_type);
     // if (props.selectedContract.extractedData)
     //     formatSearchTerms(props.selectedContract.extractedData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- .
   }, [props.selectedContract]);
 
   useEffect(() => {
     void formatPdfData(pdfReference);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- .
   }, [pdfReference]);
 
   useEffect(() => {
@@ -196,6 +198,10 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
 
   function onClose(): void {
     router.push(`/${props.projectId}/`);
+  }
+
+  function onHover(): void {
+    router.prefetch(`/${props.projectId}/`);
   }
 
   function getPdfTabsArray(): PdfTabs[] {
@@ -392,7 +398,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     <div className="pdf-display-container">
       <div className="pdf-display-header">
         <div className="controls-box">
-          <CommonButton onClick={onClose}>
+          <CommonButton onClick={onClose} onMouseEnter={onHover}>
             <ElevaiteIcons.SVGArrowBack />
           </CommonButton>
           <span>Preview</span>
