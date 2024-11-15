@@ -29,7 +29,6 @@ export function ContractComparison(
   const router = useRouter();
 
   const [selectedContract, setSelectedContract] = useState<ContractObject>();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- .
   const [secondarySelectedContract, setSecondarySelectedContract] = useState<
     ContractObject | undefined
   >();
@@ -45,7 +44,8 @@ export function ContractComparison(
 
   useEffect(() => {
     setSelectedContract(props.selectedContract);
-  }, [props.selectedContract]);
+    setSecondarySelectedContract(props.secondarySelectedContract);
+  }, [props.secondarySelectedContract, props.selectedContract]);
 
   function handleHome(): void {
     router.push(`/${props.projectId}`);
