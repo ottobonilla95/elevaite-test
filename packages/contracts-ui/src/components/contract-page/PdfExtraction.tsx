@@ -261,7 +261,7 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
               )}
             </>
           ) : (
-            <PdfExtractionVerification />
+            <PdfExtractionVerification loading={props.loading} />
           )}
         </div>
       </div>
