@@ -72,11 +72,7 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
 
   function handleReprocess(): void {
     if (props.selectedContract)
-      reprocessContract(
-        props.projectId,
-        props.selectedContract.id.toString(),
-        false
-      );
+      reprocessContract(props.projectId, props.selectedContract.id.toString());
   }
 
   function confimedApproval(): void {

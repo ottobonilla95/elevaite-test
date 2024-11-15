@@ -219,8 +219,7 @@ export function ContractsListV2({
     if (!selectedProject || !contractForDeletion) return;
     void deleteContract(
       selectedProject.id.toString(),
-      contractForDeletion.id.toString(),
-      false
+      contractForDeletion.id.toString()
     );
     setContractForDeletion(undefined);
     setIsDeleteContractDialogOpen(false);
@@ -283,7 +282,7 @@ export function ContractsListV2({
             ?.filter((item) => !item.verification_status)
             .map((item) => {
               let relevantContract: ContractObject | undefined;
-              getContractProjectsList(false).then((projects) => {
+              getContractProjectsList().then((projects) => {
                 relevantContract = projects
                   .flatMap((project) => project.reports ?? [])
                   .find(() => contract.id === item.file_id);

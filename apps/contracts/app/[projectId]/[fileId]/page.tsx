@@ -34,7 +34,7 @@ export default async function ContractPage({
   const { projectId, fileId } = await params;
 
   const contractsListPromise = projectId
-    ? getContractProjectContracts(projectId, false)
+    ? getContractProjectContracts(projectId)
     : Promise.resolve([]);
 
   // Get file
@@ -45,18 +45,14 @@ export default async function ContractPage({
   const filePromise = fetch(url, { method: "GET" });
 
   // Get contracts
-  const contractPromise = getContractObjectById(projectId, fileId, false);
-  const lineItemsPromise = getContractObjectLineItems(projectId, fileId, false);
-  const emphasisPromise = getContractObjectEmphasis(projectId, fileId, false);
-  const verificationPromise = getContractObjectVerification(
-    projectId,
-    fileId,
-    false
-  );
+  const contractPromise = getContractObjectById(projectId, fileId);
+  const lineItemsPromise = getContractObjectLineItems(projectId, fileId);
+  const emphasisPromise = getContractObjectEmphasis(projectId, fileId);
+  const verificationPromise = getContractObjectVerification(projectId, fileId);
 
   // Get project
-  const projectPromise = getContractProjectById(projectId, false);
-  const settingsPromise = getContractProjectSettings(projectId, false);
+  const projectPromise = getContractProjectById(projectId);
+  const settingsPromise = getContractProjectSettings(projectId);
 
   const [
     contract,

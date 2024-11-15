@@ -50,14 +50,10 @@ export default async function ContractPage({
       ]
     | [undefined, undefined, undefined, undefined] {
     if (id === "0") return [undefined, undefined, undefined, undefined];
-    const contractPromise = getContractObjectById(projectId, id, false);
-    const lineItemsPromise = getContractObjectLineItems(projectId, id, false);
-    const emphasisPromise = getContractObjectEmphasis(projectId, id, false);
-    const verificationPromise = getContractObjectVerification(
-      projectId,
-      id,
-      false
-    );
+    const contractPromise = getContractObjectById(projectId, id);
+    const lineItemsPromise = getContractObjectLineItems(projectId, id);
+    const emphasisPromise = getContractObjectEmphasis(projectId, id);
+    const verificationPromise = getContractObjectVerification(projectId, id);
 
     return [
       contractPromise,
@@ -105,7 +101,7 @@ export default async function ContractPage({
     redirect(`/${projectId}/${fileId}/compare/0`);
 
   const contractsListPromise = projectId
-    ? getContractProjectContracts(projectId, false)
+    ? getContractProjectContracts(projectId)
     : Promise.resolve([]);
 
   // Get file
@@ -131,8 +127,8 @@ export default async function ContractPage({
   ] = getContractPromises(secondaryFileId ? secondaryFileId : "0");
 
   // Get project
-  const projectPromise = getContractProjectById(projectId, false);
-  const settingsPromise = getContractProjectSettings(projectId, false);
+  const projectPromise = getContractProjectById(projectId);
+  const settingsPromise = getContractProjectSettings(projectId);
 
   const [
     primaryContract,
