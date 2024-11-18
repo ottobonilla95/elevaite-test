@@ -111,7 +111,14 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
           //         disabled
           //     />);
         } else if (label.startsWith("Line Item")) {
-          lineItems.push(value as Record<string, string>);
+          if (!Array.isArray(value)) {
+            const res = Object.fromEntries(
+              Object.entries(value).filter(
+                ([_key, _value]) => typeof _value === "string"
+              )
+            ) as Record<string, string>;
+            lineItems.push(res);
+          }
           // } else if (typeof value === "string") { // Dictionary keys that don't start with "Line Item"
           //     bits.push(<ExtractedTableBit
           //                 key={pageKey + label}
