@@ -13,6 +13,9 @@ export function ChatbotInput(): JSX.Element {
     const [isUploading, setIsUploading] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+    const inputRef = useRef<HTMLInputElement | null>(null);
+    const isFirstMessage = chatContext.selectedSession?.messages.length === 0;
+
     function handleTextChange(value: string): void {
         if (chatContext.isChatLoading) return;
         setText(value);
@@ -38,6 +41,12 @@ export function ChatbotInput(): JSX.Element {
     }
     function handleFileSelect(file: File): void {
         setSelectedFile(file);
+    }
+    function handleButtonClick(buttonText: string): void{
+        setText(buttonText);
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
     }
     // function handleSummarize(): void {
     //     if (chatContext.isChatLoading) return;
@@ -80,62 +89,81 @@ export function ChatbotInput(): JSX.Element {
     }
     const isIdeatecreative = chatContext.selectedGenAIBot === "ideatecreative";
     return (
-        <div className={["chatbot-input-container", chatContext.isChatLoading ? "loading" : undefined].filter(Boolean).join(" ")}>
-            {/* File Preview Container (Above the Input) */}
-                {selectedFile && (
-                    <div className="uploaded-creative-container">
-                        <button
-                        className="close-icon"
-                        onClick={() => setSelectedFile(null)} // Clear the selected file
-                        >
-                        &times; {/* X symbol */}
-                        </button>
-                    {selectedFile.type.startsWith("image/") || selectedFile.type === "image/gif" ? (
-                        <img
-                            src={URL.createObjectURL(selectedFile)}
-                            alt="Uploaded Creative"
-                            className="uploaded-creative"
+                        
+        <div>
+                {isFirstMessage && (
+                    <div className="chatbot-welcome-message">
+                        <h1>How can I assist with your campaign performance or planning?</h1>
+                    </div>
+                )}
+        
+            <div className={["chatbot-input-container", chatContext.isChatLoading ? "loading" : undefined].filter(Boolean).join(" ")}>
+
+                        {/* File Preview Container (Above the Input) */}
+                            {selectedFile && (
+                                <div className="uploaded-creative-container">
+                                    <button
+                                    className="close-icon"
+                                    onClick={() => setSelectedFile(null)} // Clear the selected file
+                                    >
+                                    &times; {/* X symbol */}
+                                    </button>
+                                {selectedFile.type.startsWith("image/") || selectedFile.type === "image/gif" ? (
+                                    <img
+                                        src={URL.createObjectURL(selectedFile)}
+                                        alt="Uploaded Creative"
+                                        className="uploaded-creative"
+                                    />
+                                ) : selectedFile.type.startsWith("video/") ? (
+                                    <video
+                                        controls
+                                        className="uploaded-creative"
+                                        src={URL.createObjectURL(selectedFile)}
+                                    />
+                                ) : null}
+                            </div>
+                        )}
+                                
+                        {!selectedFile && (<FileUpload
+                            onFileSelect={handleFileSelect}
+                            onUpload={() => console.log("File uploaded!")}
+                            isUploading={isUploading}
+                        />)}
+
+                        <SimpleInput
+                            wrapperClassName="chatbot-input-field"
+                            value={text}
+                            onChange={handleTextChange}
+                            onKeyDown={handleKeyDown}
+                            placeholder={chatContext.isChatLoading ? "Please wait..." : "Ask ElevAIte"}
+                            disabled={chatContext.isChatLoading}
+                            rightIcon={
+                                <CommonButton
+                                    onClick={handleSend}
+                                    disabled={chatContext.isChatLoading}
+                                >
+                                    {chatContext.isChatLoading ? <ChatbotIcons.SVGSpinner /> : <ChatbotIcons.SVGSend />}
+                                </CommonButton>
+                            }
+                            passedRef={inputRef}
                         />
-                    ) : selectedFile.type.startsWith("video/") ? (
-                        <video
-                            controls
-                            className="uploaded-creative"
-                            src={URL.createObjectURL(selectedFile)}
-                        />
-                    ) : null}
-                </div>
+
+                    {!isFirstMessage && (
+                        <CommonButton
+                        className="export-button"
+                        onClick={handleExport}
+                        disabled={isUploading || chatContext.isChatLoading || isExporting}>
+                        {isExporting ? <ChatbotIcons.SVGSpinnerExport /> : <ChatbotIcons.SVGDownloadExport />}
+                    </CommonButton>)}
+            </div>
+            {isFirstMessage && (
+                                <div className="first-message-buttons">
+                                <CommonButton onClick={() => handleButtonClick("Generate a media plan")}>Generate a media plan</CommonButton>
+                                <CommonButton onClick={() => handleButtonClick("How did campaigns perform")}>How did campaigns perform</CommonButton>
+                                <CommonButton onClick={() => handleButtonClick("Provide Creative inspiration")}>Provide Creative inspiration</CommonButton>
+                                </div>
             )}
-                      
-            {!selectedFile && (<FileUpload
-                onFileSelect={handleFileSelect}
-                onUpload={() => console.log("File uploaded!")}
-                isUploading={isUploading}
-            />)}
-
-            <SimpleInput
-                wrapperClassName="chatbot-input-field"
-                value={text}
-                onChange={handleTextChange}
-                onKeyDown={handleKeyDown}
-                placeholder={chatContext.isChatLoading ? "Please wait..." : "Enter text and press ENTER"}
-                disabled={chatContext.isChatLoading}
-                rightIcon={
-                    <CommonButton
-                        onClick={handleSend}
-                        disabled={chatContext.isChatLoading}
-                    >
-                        {chatContext.isChatLoading ? <ChatbotIcons.SVGSpinner /> : <ChatbotIcons.SVGSend />}
-                    </CommonButton>
-                }
-            />
-
-    
-            <CommonButton
-            className="export-button"
-            onClick={handleExport}
-            disabled={isUploading || chatContext.isChatLoading || isExporting}>
-            {isExporting ? <ChatbotIcons.SVGSpinnerExport /> : <ChatbotIcons.SVGDownloadExport />}
-        </CommonButton>
         </div>
+        
     );
 }

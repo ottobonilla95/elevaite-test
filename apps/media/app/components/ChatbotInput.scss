@@ -1,4 +1,46 @@
-/* Container for uploaded creative */
+/* Container for the 2x2 grid of buttons */
+.first-message-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 15px; 
+    margin-top: 20px; 
+}
+
+/* Style for each individual button in the grid */
+.first-message-buttons .common-button {
+
+    border-color:var(--markdown-table-header-border);
+    border-width:1px ;
+    color:var(--ev-colors-text);
+    padding: 12px 20px;
+
+    border-radius: 8px; 
+    font-size: 14px; 
+    font-weight: 600; 
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    text-align: center; 
+}
+
+/* Hover effect for the buttons in the grid */
+.first-message-buttons .common-button:hover {
+    background-color: var(--ev-colors-secondary); 
+    transform: translateY(-2px);
+}
+
+/* Active effect for the buttons in the grid */
+.first-message-buttons .common-button:active {
+    transform: translateY(1px); 
+}
+
+.chatbot-welcome-message {
+    margin-bottom: 20px; 
+    font-size: 25px;
+    font-weight: bold;
+    text-align: center;
+    color: var(--ev-colors-text);
+}
+
 .uploaded-creative-container {
     width: 50px; /* Fixed width */
     height: 50px; /* Fixed height */
@@ -24,6 +66,7 @@
     position: absolute;
 }
 
+
 .chatbot-input-container {
     flex-shrink: 0;
     height: 100px;
@@ -33,9 +76,8 @@
     gap: 20px;
     padding: 20px;
 
-    background-color: var(--ev-colors-primary);
+    // background-color: var(--ev-colors-primary);
     border-radius: 8px;
-
 
     &.loading {
         & .chatbot-input-field svg {
@@ -67,7 +109,7 @@
 
     & .export-button {
         flex-shrink: 0;
-        background-color: var(--ev-colors-secondary);
+        // background-color: var(--ev-colors-secondary);
         color: var(--ev-colors-text);
         display: flex;
         align-items: center;
@@ -75,6 +117,14 @@
         padding: 12px 20px;
         border-radius: 8px;
         font-size: 14px;
-        font-weight: 600;
+        font-weight: 400;
     }
-}
+    
+    & .export-button:hover {
+        background-color: var(--ev-colors-secondary);
+    }
+}// .center-layout .chatbot-input-container {
+//     border-radius: 50px; 
+//     // height:60px;
+//     // align-items:normal;
+// }
