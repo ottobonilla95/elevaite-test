@@ -14,13 +14,14 @@ function useHandleSelection(
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Wrapper function
   return (value: string, label: string) => {
-    if (!primaryContractId || !secondaryContractId || isNaN(Number(value)))
+    if (isNaN(Number(value))) {
       return;
+    }
 
-    if (secondary && primaryContractId !== value) {
-      router.push(`/${projectId}/${primaryContractId}/${value}`);
+    if (secondary && primaryContractId && primaryContractId !== value) {
+      router.push(`/${projectId}/${primaryContractId}/compare/${value}`);
     } else if (secondaryContractId !== value)
-      router.push(`/${projectId}/${value}/${secondaryContractId}`);
+      router.push(`/${projectId}/${value}/compare/${secondaryContractId}`);
   };
 }
 
@@ -29,7 +30,7 @@ interface ComparisonSelectProps {
   listFor?: CONTRACT_TYPES;
   comparisonContract?: ContractObject;
   selectedContractId: string;
-  secondarySelectedContractId: string;
+  secondarySelectedContractId?: string;
   projectId: string;
   contractsList: ContractObject[];
 }

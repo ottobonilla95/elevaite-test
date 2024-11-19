@@ -23,6 +23,7 @@ interface PdfAndExtractionProps {
   contractsList: ContractObject[];
   loading: LoadingListObject;
   file: Blob;
+  comparisonScreen?: boolean;
 }
 
 export function PdfAndExtraction(props: PdfAndExtractionProps): JSX.Element {
@@ -48,7 +49,8 @@ export function PdfAndExtraction(props: PdfAndExtractionProps): JSX.Element {
         .filter(Boolean)
         .join(" ")}
     >
-      {props.selectedContract && props.secondarySelectedContract ? (
+      {props.selectedContract &&
+      (props.secondarySelectedContract || props.comparisonScreen) ? (
         <ContractComparison
           loading={props.loading}
           projectId={props.projectId}
@@ -78,6 +80,7 @@ export function PdfAndExtraction(props: PdfAndExtractionProps): JSX.Element {
             projectId={props.projectId}
             handleExpansion={handleDataExpansion}
             isExpanded={expandedPage === ExpandedPages.DATA}
+            selectedContract={props.selectedContract}
           />
         </div>
       )}

@@ -1,10 +1,10 @@
+import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import { useContracts } from "../../../lib/contexts/ContractsContext";
-import "./ContractComparisonBlock.scss";
-import { ContractObject } from "../../../lib/interfaces";
-import { PdfExtractionEmphasis } from "./extractionComponents/PdfExtractionEmphasis";
+import { type ContractObject } from "../../../lib/interfaces";
 import { ComparisonSelect } from "./ComparisonSelect";
-import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
+import "./ContractComparisonBlock.scss";
+import { PdfExtractionEmphasis } from "./extractionComponents/PdfExtractionEmphasis";
 import { VerificationLineItems } from "./extractionComponents/VerificationLineItems";
 
 

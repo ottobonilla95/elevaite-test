@@ -24,6 +24,7 @@ export const ApplicationIcons = {
     arloSupport: { src: (supportBot as SvgType).src, alt: "Arlo Support Bot" },
     logsSupport: { src: (supportBot as SvgType).src, alt: "Logs Support Bot" },
     complianceSupport: { src: (supportBot as SvgType).src, alt: "Compliance Support Bot" },
+    aleSupport: { src: (supportBot as SvgType).src, alt: "ALE Support Bot" },
     deckBuilder: { src: (deckBuilder as SvgType).src, alt: "Deck Builder" },
     contracts: { src: (contracts as SvgType).src, alt: "Contract Co-Pilot" },
     contractsIopex: { src: (contracts as SvgType).src, alt: "Contract Co-Pilot for Iopex" },

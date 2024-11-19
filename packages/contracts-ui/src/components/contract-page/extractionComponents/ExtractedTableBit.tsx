@@ -127,8 +127,8 @@ function TableStructure(props: TableStructureProps): JSX.Element {
   const [tableData, setTableData] = useState(props.data);
 
   useEffect(() => {
-    setTableData(filterTableData(props.headers));
-  }, [props.headers]);
+    setTableData(filterTableData(props.data, props.headers));
+  }, [props.data, props.headers]);
 
   function handleChange(
     rowIndex: number,
@@ -139,13 +139,13 @@ function TableStructure(props: TableStructureProps): JSX.Element {
   }
 
   // Removes rows with irrelevant data to our line items.
-  function filterTableData(headers: string[]): Record<string, string>[] {
-    return tableData.filter((row) =>
-      headers.some(
-        (header) =>
-          Object.prototype.hasOwnProperty.call(row, header) &&
-          row[header] !== ""
-      )
+  function filterTableData(
+    unfilteredtableData: Record<string, string>[],
+    headers: string[]
+  ): Record<string, string>[] {
+    return unfilteredtableData.filter((row) =>
+      // eslint-disable-next-line no-prototype-builtins -- Do not use Object
+      headers.some((header) => row.hasOwnProperty(header) && row[header] !== "")
     );
   }
 

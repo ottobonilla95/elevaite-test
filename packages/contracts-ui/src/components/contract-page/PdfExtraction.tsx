@@ -34,7 +34,6 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
   const [selectedTab, setSelectedTab] = useState<ExtractionTabs>(
     ExtractionTabs.EXTRACTION
   );
-
   useEffect(() => {
     if (props.selectedContract?.response) {
       setExtractedBits(getExtractedBits(props.selectedContract.response));
@@ -73,11 +72,7 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
 
   function handleReprocess(): void {
     if (props.selectedContract)
-      reprocessContract(
-        props.projectId,
-        props.selectedContract.id.toString(),
-        false
-      );
+      reprocessContract(props.projectId, props.selectedContract.id.toString());
   }
 
   function confimedApproval(): void {
@@ -116,7 +111,14 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
           //         disabled
           //     />);
         } else if (label.startsWith("Line Item")) {
-          lineItems.push(value as Record<string, string>);
+          if (!Array.isArray(value)) {
+            const res = Object.fromEntries(
+              Object.entries(value).filter(
+                ([_key, _value]) => typeof _value === "string"
+              )
+            ) as Record<string, string>;
+            lineItems.push(res);
+          }
           // } else if (typeof value === "string") { // Dictionary keys that don't start with "Line Item"
           //     bits.push(<ExtractedTableBit
           //                 key={pageKey + label}
@@ -261,7 +263,10 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
               )}
             </>
           ) : (
-            <PdfExtractionVerification />
+            <PdfExtractionVerification
+              loading={props.loading}
+              selectedContract={props.selectedContract}
+            />
           )}
         </div>
       </div>

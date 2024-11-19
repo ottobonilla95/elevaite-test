@@ -6,10 +6,7 @@ import {
   CommonModal,
   ElevaiteIcons,
 } from "@repo/ui/components";
-import React, {
-  useEffect,
-  useState,
-} from "react";
+import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { type AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { ListRow, type RowStructure } from "../ListRow";
@@ -80,15 +77,19 @@ interface ContractsListV2Props {
 
 function useHandleContractClick() {
   const router = useRouter();
-  const currentPath = usePathname();
 
-  return (newContractId: string | number | undefined) => {
+  return (
+    currentProjectId: string | number | undefined,
+    newContractId: string | number | undefined,
+    compare?: boolean
+  ) => {
     if (!newContractId) return;
 
-    const pathParts = currentPath.split("/");
-    pathParts[3] = newContractId.toString();
-    const newPath = pathParts.join("/");
-    router.replace(newPath);
+    if (compare) {
+      router.replace(`/${currentProjectId}/${newContractId}/compare/0`);
+    } else {
+      router.replace(`/${currentProjectId}//${newContractId}`);
+    }
   };
 }
 
@@ -167,7 +168,7 @@ export function ContractsListV2({
   }, [contracts, selectedContractTabs, selectedStatus, sorting]);
 
   function handleSelectedContract(id: string): void {
-    router.push(`${props.projectId}/${id}`)
+    router.push(`${props.projectId}/${id}`);
   }
 
   function handleUpload(): void {
@@ -196,10 +197,10 @@ export function ContractsListV2({
   ): void {
     switch (action) {
       case MenuActions.View:
-        handleContractClick(contract.id);
+        handleContractClick(props.projectId, contract.id);
         break;
       case MenuActions.Compare:
-        handleContractClick(contract.id);
+        handleContractClick(props.projectId, contract.id, true);
         break;
       case MenuActions.Delete:
         handleContractDeleteClick(contract);
@@ -218,8 +219,7 @@ export function ContractsListV2({
     if (!selectedProject || !contractForDeletion) return;
     void deleteContract(
       selectedProject.id.toString(),
-      contractForDeletion.id.toString(),
-      false
+      contractForDeletion.id.toString()
     );
     setContractForDeletion(undefined);
     setIsDeleteContractDialogOpen(false);
@@ -282,7 +282,7 @@ export function ContractsListV2({
             ?.filter((item) => !item.verification_status)
             .map((item) => {
               let relevantContract: ContractObject | undefined;
-              getContractProjectsList(false).then((projects) => {
+              getContractProjectsList().then((projects) => {
                 relevantContract = projects
                   .flatMap((project) => project.reports ?? [])
                   .find(() => contract.id === item.file_id);
@@ -515,7 +515,7 @@ export function ContractsListV2({
         title={listItem.filename}
         noBackground
         onClick={() => {
-          handleContractClick(listItem.id);
+          handleContractClick(props.projectId, listItem.id);
         }}
       >
         <span>
@@ -1003,8 +1003,7 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
   if (props.items.length === 1)
     return (
       <CommonButton
-        // eslint-disable-next-line no-constant-binary-expression -- TODO: Take a look at this
-        title={`This cross-section has one issue, with file:\n${props.items[0].label ?? props.items[0].fileName ?? "Unknown File" ?? "Unknown"}`}
+        title={`This cross-section has one issue, with file:\n${props.items[0] ? (props.items[0].label ?? props.items[0].fileName ?? `Unknown File ${props.contract.id}`) : "Unknown"}`}
         onClick={() => {
           handleMismatchMenuClick(props.items[0]);
         }}
@@ -1016,7 +1015,8 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
   const mismatchMenu: CommonMenuItem<UnverifiedItem[]>[] = props.items.map(
     (item) => {
       return {
-        label: item.label ?? item.fileName ?? "Unknown File",
+        label:
+          item.label ?? item.fileName ?? `Unknown File ${props.contract.id}`,
         onClick: () => {
           handleMismatchMenuClick(item);
         },
@@ -1034,9 +1034,9 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
       left
       top={Boolean(
         props.listLength &&
-        props.index &&
-        props.listLength > 4 &&
-        props.index > props.listLength - 4
+          props.index &&
+          props.listLength > 4 &&
+          props.index > props.listLength - 4
       )}
     />
   );

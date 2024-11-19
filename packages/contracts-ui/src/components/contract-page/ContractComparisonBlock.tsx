@@ -23,7 +23,7 @@ interface ContractComparisonBlockProps {
   loading: LoadingListObject;
   projectId: string;
   selectedContractId: string;
-  secondarySelectedContractId: string;
+  secondarySelectedContractId?: string;
   contractsList: ContractObject[];
 }
 

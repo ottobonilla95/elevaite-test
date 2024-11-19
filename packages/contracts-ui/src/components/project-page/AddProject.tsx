@@ -60,7 +60,7 @@ export function AddProject(props: AddProjectProps): JSX.Element {
     if (!editingProject?.id) return;
 
     setIsLoading(true);
-    await DeleteProject(editingProject.id.toString(), false);
+    await DeleteProject(editingProject.id.toString());
     setIsLoading(false);
     props.onClose();
   }
@@ -69,9 +69,9 @@ export function AddProject(props: AddProjectProps): JSX.Element {
     if (!name) return;
     setIsLoading(true);
     if (editingProject) {
-      await EditProject(editingProject.id.toString(), name, false, description);
+      await EditProject(editingProject.id.toString(), name, description);
     } else {
-      await CreateProject(name, false, description);
+      await CreateProject(name, description);
     }
     setIsLoading(false);
     props.onClose();

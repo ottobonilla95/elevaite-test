@@ -32,20 +32,16 @@ import {
 
 // Helpers
 
-function getBaseUrl(isAlt: boolean): string | undefined {
-  const CONTRACTS_URL = process.env.NEXT_PUBLIC_CONTRACTS_API_URL;
-  const CONTRACTS_IOPEX_URL = process.env.NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL;
-
-  return isAlt ? CONTRACTS_IOPEX_URL : CONTRACTS_URL;
-}
+const getBaseUrl = (): string | undefined =>
+  process.env.NEXT_PUBLIC_CONTRACTS_API_URL;
 
 // GETS
 //////////////////
 
-export async function getContractProjectsList(
-  isAlt: boolean
-): Promise<ContractProjectObject[]> {
-  const baseUrl = getBaseUrl(isAlt);
+export async function getContractProjectsList(): Promise<
+  ContractProjectObject[]
+> {
+  const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("Missing base url");
   const url = new URL(`${baseUrl}/projects/`);
   const response = await fetch(url, {
@@ -62,10 +58,9 @@ export async function getContractProjectsList(
 }
 
 export async function getContractProjectById(
-  projectId: string,
-  isAlt: boolean
+  projectId: string
 ): Promise<ContractProjectObject> {
-  const baseUrl = getBaseUrl(isAlt);
+  const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("Missing base url");
   const url = new URL(`${baseUrl}/projects/${projectId}`);
   const response = await fetch(url, {
@@ -82,10 +77,9 @@ export async function getContractProjectById(
 }
 
 export async function getContractProjectSettings(
-  projectId: string,
-  isAlt: boolean
+  projectId: string
 ): Promise<ContractSettings> {
-  const baseUrl = getBaseUrl(isAlt);
+  const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("Missing base url");
   const url = new URL(`${baseUrl}/projects/${projectId}/settings`);
   const response = await fetch(url, {
@@ -102,10 +96,9 @@ export async function getContractProjectSettings(
 }
 
 export async function getContractProjectContracts(
-  projectId: string,
-  isAlt: boolean
+  projectId: string
 ): Promise<ContractObject[]> {
-  const baseUrl = getBaseUrl(isAlt);
+  const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("Missing base url");
   const url = new URL(`${baseUrl}/projects/${projectId}/files`);
   const response = await fetch(url, {
@@ -123,10 +116,9 @@ export async function getContractProjectContracts(
 
 export async function getContractObjectById(
   projectId: string,
-  contractId: string,
-  isAlt: boolean
+  contractId: string
 ): Promise<ContractObject> {
-  const baseUrl = getBaseUrl(isAlt);
+  const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("Missing base url");
   const url = new URL(`${baseUrl}/projects/${projectId}/files/${contractId}`);
   const response = await fetch(url, {
@@ -144,10 +136,9 @@ export async function getContractObjectById(
 
 export async function getContractObjectEmphasis(
   projectId: string,
-  contractId: string,
-  isAlt: boolean
+  contractId: string
 ): Promise<ContractObjectEmphasis> {
-  const baseUrl = getBaseUrl(isAlt);
+  const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("Missing base url");
   const url = new URL(
     `${baseUrl}/projects/${projectId}/files/${contractId}/highlight`
@@ -167,10 +158,9 @@ export async function getContractObjectEmphasis(
 
 export async function getContractObjectVerification(
   projectId: string,
-  contractId: string,
-  isAlt: boolean
+  contractId: string
 ): Promise<ContractObjectVerification> {
-  const baseUrl = getBaseUrl(isAlt);
+  const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("Missing base url");
   const url = new URL(
     `${baseUrl}/projects/${projectId}/files/${contractId}/verification`
@@ -190,10 +180,9 @@ export async function getContractObjectVerification(
 
 export async function getContractObjectLineItems(
   projectId: string,
-  contractId: string,
-  isAlt: boolean
+  contractId: string
 ): Promise<ContractObjectVerificationLineItem[]> {
-  const baseUrl = getBaseUrl(isAlt);
+  const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("Missing base url");
   const url = new URL(
     `${baseUrl}/projects/${projectId}/files/${contractId}/line_items`
@@ -216,10 +205,9 @@ export async function getContractObjectLineItems(
 
 export async function reprocessContract(
   projectId: string,
-  contractId: string,
-  isAlt: boolean
+  contractId: string
 ): Promise<ContractObject> {
-  const baseUrl = getBaseUrl(isAlt);
+  const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("Missing base url");
 
   const url = new URL(
@@ -237,7 +225,7 @@ export async function reprocessContract(
   if (!response.ok) {
     // if (response.status === 422) {
     const errorData: unknown = await response.json();
-    // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+    // eslint-disable-next-line no-console -- We need this.
     console.dir(errorData, { depth: null });
     // }
     throw new Error("Failed to reprocess contract");
@@ -249,10 +237,9 @@ export async function reprocessContract(
 
 export async function CreateProject(
   name: string,
-  isAlt: boolean,
   description?: string
 ): Promise<ContractProjectObject> {
-  const baseUrl = getBaseUrl(isAlt);
+  const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("Missing base url");
   const dto = {
     name,
@@ -273,7 +260,7 @@ export async function CreateProject(
   if (!response.ok) {
     // if (response.status === 422) {
     const errorData: unknown = await response.json();
-    // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+    // eslint-disable-next-line no-console -- We need this.
     console.dir(errorData, { depth: null });
     // }
     throw new Error("Failed to create contract project");
@@ -286,10 +273,9 @@ export async function CreateProject(
 export async function EditProject(
   projectId: string,
   name: string,
-  isAlt: boolean,
   description?: string
 ): Promise<ContractProjectObject> {
-  const baseUrl = getBaseUrl(isAlt);
+  const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("Missing base url");
   const dto = {
     name,
@@ -310,7 +296,7 @@ export async function EditProject(
   if (!response.ok) {
     // if (response.status === 422) {
     const errorData: unknown = await response.json();
-    // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+    // eslint-disable-next-line no-console -- We need this.
     console.dir(errorData, { depth: null });
     // }
     throw new Error("Failed to edit contract project");
@@ -321,10 +307,9 @@ export async function EditProject(
 }
 
 export async function DeleteProject(
-  projectId: string,
-  isAlt: boolean
+  projectId: string
 ): Promise<ContractProjectObject> {
-  const baseUrl = getBaseUrl(isAlt);
+  const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("Missing base url");
 
   const url = new URL(`${baseUrl}/projects/${projectId}`);
@@ -340,56 +325,13 @@ export async function DeleteProject(
   if (!response.ok) {
     // if (response.status === 422) {
     const errorData: unknown = await response.json();
-    // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+    // eslint-disable-next-line no-console -- We need this.
     console.dir(errorData, { depth: null });
     // }
     throw new Error("Failed to delete contract project");
   }
   const data: unknown = await response.json();
   if (isDeleteProjectResponse(data)) return data;
-  throw new Error("Invalid data type");
-}
-
-async function actionSubmitContract(
-  submittedPdf: File,
-  type: CONTRACT_TYPES,
-  projectId: string | number,
-  name?: string
-): Promise<void> {
-  const formData = new FormData();
-  formData.append("file", submittedPdf);
-  if (name) formData.append("label", name);
-  await submitContract(projectId.toString(), formData, type, false);
-}
-
-async function submitContract(
-  projectId: string,
-  formData: FormData,
-  type: CONTRACT_TYPES,
-  isAlt: boolean
-): Promise<ContractObject> {
-  const baseUrl = getBaseUrl(isAlt);
-  if (!baseUrl) throw new Error("Missing base url");
-
-  const url = new URL(`${baseUrl}/projects/${projectId}/files/`);
-  url.searchParams.set("content_type", type);
-
-  const response = await fetch(url, {
-    method: "POST",
-    body: formData,
-  });
-
-  revalidateTag(cacheTags.contractProjects);
-  if (!response.ok) {
-    if (response.status === 422) {
-      const errorData: unknown = await response.json();
-      // eslint-disable-next-line no-console -- Need this in case this breaks like that.
-      console.dir(errorData, { depth: null });
-    }
-    throw new Error("Failed to submit contract");
-  }
-  const data: unknown = await response.json();
-  if (isSubmitContractResponse(data)) return data;
   throw new Error("Invalid data type");
 }
 
@@ -400,16 +342,40 @@ export async function submitCurrentContractPdf(
   name?: string
 ): Promise<void> {
   if (pdf) {
-    await actionSubmitContract(pdf, type, projectId, name);
+    const formData = new FormData();
+    formData.append("file", pdf);
+    if (name) formData.append("label", name);
+    const baseUrl = getBaseUrl();
+    if (!baseUrl) throw new Error("Missing base url");
+
+    const url = new URL(`${baseUrl}/projects/${projectId}/files/`);
+    url.searchParams.set("content_type", type);
+
+    const response = await fetch(url, {
+      method: "POST",
+      body: formData,
+    });
+
+    revalidateTag(cacheTags.contractProjects);
+    if (!response.ok) {
+      if (response.status === 422) {
+        const errorData: unknown = await response.json();
+        // eslint-disable-next-line no-console -- Need this
+        console.dir(errorData, { depth: null });
+      }
+      throw new Error("Failed to submit contract");
+    }
+    const data: unknown = await response.json();
+    // if (isSubmitContractResponse(data)) return data;
+    if (!isSubmitContractResponse(data)) throw new Error("Invalid data type");
   }
 }
 
 export async function deleteContract(
   projectId: string,
-  contractId: string,
-  isAlt: boolean
+  contractId: string
 ): Promise<ContractObject> {
-  const baseUrl = getBaseUrl(isAlt);
+  const baseUrl = getBaseUrl();
   if (!baseUrl) throw new Error("Missing base url");
 
   const url = new URL(`${baseUrl}/projects/${projectId}/files/${contractId}`);
@@ -422,7 +388,7 @@ export async function deleteContract(
   if (!response.ok) {
     if (response.status === 422) {
       const errorData: unknown = await response.json();
-      // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+      // eslint-disable-next-line no-console -- We need this.
       console.dir(errorData, { depth: null });
     }
     throw new Error("Failed to delete contract");

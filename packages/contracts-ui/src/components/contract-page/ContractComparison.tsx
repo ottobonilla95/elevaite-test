@@ -16,7 +16,7 @@ import {
 
 interface ContractComparisonProps {
   selectedContract: ContractObject;
-  secondarySelectedContract: ContractObject;
+  secondarySelectedContract?: ContractObject;
   contractsList: ContractObject[];
   projectId: string;
   selectedProject: ContractProjectObject;
@@ -29,7 +29,6 @@ export function ContractComparison(
   const router = useRouter();
 
   const [selectedContract, setSelectedContract] = useState<ContractObject>();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- .
   const [secondarySelectedContract, setSecondarySelectedContract] = useState<
     ContractObject | undefined
   >();
@@ -45,14 +44,15 @@ export function ContractComparison(
 
   useEffect(() => {
     setSelectedContract(props.selectedContract);
-  }, [props.selectedContract]);
+    setSecondarySelectedContract(props.secondarySelectedContract);
+  }, [props.secondarySelectedContract, props.selectedContract]);
 
   function handleHome(): void {
     router.push(`/${props.projectId}`);
   }
 
   function handleMainView(): void {
-    router.push(`/${props.projectId}/${props.selectedContract.id}/MainView`);
+    router.push(`/${props.projectId}/${props.selectedContract.id}/`);
   }
 
   function handleToggleOverview(): void {
@@ -133,7 +133,7 @@ export function ContractComparison(
         contractsList={props.contractsList}
         projectId={props.projectId}
         selectedContractId={props.selectedContract.id.toString()}
-        secondarySelectedContractId={props.secondarySelectedContract.id.toString()}
+        secondarySelectedContractId={props.secondarySelectedContract?.id.toString()}
         selectedProject={props.selectedProject}
         loading={props.loading}
         isOverviewMinimized={isOverviewMinimized}
@@ -149,7 +149,7 @@ export function ContractComparison(
         contractsList={props.contractsList}
         projectId={props.projectId}
         selectedContractId={props.selectedContract.id.toString()}
-        secondarySelectedContractId={props.secondarySelectedContract.id.toString()}
+        secondarySelectedContractId={props.secondarySelectedContract?.id.toString()}
         selectedProject={props.selectedProject}
         loading={props.loading}
         isOverviewMinimized={isOverviewMinimized}
@@ -176,7 +176,7 @@ export function ContractComparison(
               contractsList={props.contractsList}
               projectId={props.projectId}
               selectedContractId={props.selectedContract.id.toString()}
-              secondarySelectedContractId={props.secondarySelectedContract.id.toString()}
+              secondarySelectedContractId={props.secondarySelectedContract?.id.toString()}
               selectedProject={props.selectedProject}
               loading={props.loading}
               isOverviewMinimized={isOverviewMinimized}
@@ -190,7 +190,7 @@ export function ContractComparison(
               contractsList={props.contractsList}
               projectId={props.projectId}
               selectedContractId={props.selectedContract.id.toString()}
-              secondarySelectedContractId={props.secondarySelectedContract.id.toString()}
+              secondarySelectedContractId={props.secondarySelectedContract?.id.toString()}
               selectedProject={props.selectedProject}
               loading={props.loading}
               isOverviewMinimized={isOverviewMinimized}
