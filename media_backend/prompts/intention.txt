@@ -77,3 +77,21 @@ Response:
     "industry":"pet care"
   }
 }
+8.  Conversation_history: "User: What are some creative ideas for a spring campaign in the beauty industry..."
+  User: "Now generate a media plan"
+  Response:{
+  "required_outcomes": [1, 2, 3, 4, 5],
+  "unrelated_query": false
+  "parameters":{
+    "industry":"beauty"
+  }
+}
+8.  Conversation_history: "User: Generate a media plan for fashion brands..."
+  User: "Change the plan to accomadate new budget constraints($4000) and creative themes"
+  Response:{
+  "required_outcomes": [1, 2, 3, 4, 5],
+  "unrelated_query": false
+  "parameters":{
+    "industry":"fashion retail"
+  }
+}

@@ -653,7 +653,7 @@ async def perform_inference(inference_payload: InferencePayload):
         conversation_history = inference_payload.conversation_payload or []
 
         if not inference_payload.creative:
-            intent_data = determine_intent(inference_payload.query, conversation_history,"intent")
+            intent_data = determine_intent(inference_payload.query, conversation_history,"intention")
 
             required_outcomes = intent_data.get('required_outcomes', [])
             unrelated_query = intent_data.get('unrelated_query',False)
