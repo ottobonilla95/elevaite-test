@@ -151,7 +151,7 @@ export enum MatchingStatus {
 
 export interface FiltersStructure {
     label?: string;
-    filters: (FilterUnitStructure|FilterGroupStructure)[];
+    filters: (FilterUnitStructure | FilterGroupStructure)[];
 }
 
 export interface FilterUnitStructure {
@@ -250,7 +250,7 @@ export interface CollectionObject {
     distance: CollectionDistanceType;
 }
 
-export type CollectionChunkWrapper = [] | [CollectionChunkObject[], string|null];
+export type CollectionChunkWrapper = [] | [CollectionChunkObject[], string | null];
 
 export interface CollectionChunkObject {
     id: string;
@@ -269,7 +269,7 @@ export interface CollectionChunkObject {
 
 export interface PipelineObject {
     id: string;
-    entry: string; 
+    entry: string;
     label: string; // Documents, Threads, Forums, etc
     steps: PipelineStep[];
 }
@@ -284,7 +284,7 @@ export interface PipelineStep {
     sideDetails?: PipelineStepSideDetails;
 }
 
-export interface PipelineStepData {    
+export interface PipelineStepData {
     status?: PipelineStatus;
     startTime?: string;
     endTime?: string;
@@ -303,7 +303,7 @@ export interface PipelineStepSideDetails {
     configuration?: string;
     webhook?: string;
     chunks?: boolean;
-    datalake?: { totalFiles: number; doc?: number; zip?: number};
+    datalake?: { totalFiles: number; doc?: number; zip?: number };
 }
 
 export interface PipelineStatusItem {
@@ -332,10 +332,10 @@ export interface ModelObject {
     memory_requirements?: MemoryLayers & (ParametersCountObject | undefined);
     running_evaluations: number[];
 }
-interface MemoryLayers { 
+interface MemoryLayers {
     total_size: MemoryBit;
     training_using_adam: MemoryBit;
- }
+}
 interface MemoryBit { value_bytes: number; value_str: string; }
 interface ParametersCountObject {
     F64?: number;
@@ -419,37 +419,37 @@ export interface AvailableModelObject {
 export type ModelLogObject = ModelRegistrationLogObject | ModelEvaluationLogObject;
 
 export interface ModelRegistrationLogObject {
-    id: string|number;
-    model_id: string|number;
+    id: string | number;
+    model_id: string | number;
     message: string;
     stream: string;
     time: string;
 }
 
 export interface ModelEvaluationLogObject {
-    id: string|number;
-    evaluation_id: string|number;
+    id: string | number;
+    evaluation_id: string | number;
     message: string;
     stream: string;
     time: string;
 }
 
 export interface EvaluationObject {
-    id: string|number;
-    model_id: string|number;
-    dataset_id: string|number;
+    id: string | number;
+    model_id: string | number;
+    dataset_id: string | number;
     status: EvaluationStatus;
     results: unknown;
 }
 
 export interface ModelEndpointObject {
-    endpoint_id: string|number;
-    model_id: string|number;
+    endpoint_id: string | number;
+    model_id: string | number;
     url: string;
 }
 
 export interface ModelEndpointCreationObject {
-    endpoint_id: string|number;
+    endpoint_id: string | number;
 }
 
 export interface InferTextGenerationDto {
@@ -478,7 +478,7 @@ export interface InferQuestionAnsweringDto {
 }
 
 export interface ModelDatasetObject {
-    id: string|number;
+    id: string | number;
     name: string;
     status: string;
     huggingface_repo: string;
@@ -656,7 +656,7 @@ export interface VerificationQuickListItem {
 }
 
 export interface UnverifiedItem {
-    id?: string|number;
+    id?: string | number;
     ref?: string;
     label?: string;
     fileName?: string;
@@ -691,7 +691,7 @@ export interface UserObject {
     updated_at: string;
     is_account_admin?: boolean;
     roles?: UserRoleObject[];
-    account_memberships?: userAccountMembershipObject[];
+    account_memberships?: UserAccountMembershipObject[];
 }
 export interface ExtendedUserObject extends UserObject {
     displayRoles?: {
@@ -700,7 +700,7 @@ export interface ExtendedUserObject extends UserObject {
     }[];
 }
 
-export interface userAccountMembershipObject {
+export interface UserAccountMembershipObject {
     account_id: string;
     account_name: string;
     is_admin: boolean;
@@ -765,7 +765,7 @@ export interface RbacDatasetObject {
     versions: {
         id: string;
         commitId: string;
-        version: string|number;
+        version: string | number;
         createDate: string;
     }[];
     tags: {
@@ -782,8 +782,8 @@ export interface RbacDatasetObject {
 // APP INSTANCE INTERFACES
 ////////////////
 
-export type AppInstanceFieldStructure = 
-    ( { import?: boolean; export?: boolean; } & ({import: boolean; } | {export: boolean;}) ) |
+export type AppInstanceFieldStructure =
+    ({ import?: boolean; export?: boolean; } & ({ import: boolean; } | { export: boolean; })) |
     { testConnection: boolean; } |
     CommonInputProps & { type: AppInstanceFieldTypes.INPUT; } |
     CommonCheckboxProps & { type: AppInstanceFieldTypes.CHECKBOX; } |
@@ -811,10 +811,10 @@ export interface AppInstanceFormStructure<InitializerType> {
 
 
 
-export type Initializers = 
+export type Initializers =
     S3IngestFormDTO |
-    S3PreprocessFormDTO 
-;
+    S3PreprocessFormDTO
+    ;
 
 
 export interface ApplicationDto {
@@ -826,7 +826,7 @@ export interface ApplicationDto {
 }
 
 
-export interface ApplicationConfigurationDto {    
+export interface ApplicationConfigurationDto {
     applicationId: string;
     name: string;
     isTemplate: boolean;

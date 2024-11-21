@@ -10,11 +10,10 @@
     "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\chatbot\\Dockerfile\" -t chatbot:latest \".\""
   },
   "dependencies": {
-    "@auth/core": "^0.29.0",
     "@repo/lib": "*",
     "@repo/ui": "*",
     "next": "^14.2.10",
-    "next-auth": "5.0.0-beta.16",
+    "next-auth": "5.0.0-beta.25",
     "react": "^18",
     "react-dom": "^18",
     "dayjs": "^1.11.10"

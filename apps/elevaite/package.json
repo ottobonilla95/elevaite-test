@@ -11,14 +11,13 @@
     "docker": "cd ../.. && docker build --pull --rm -f \"apps/elevaite/Dockerfile\" -t elevaite:latest \".\""
   },
   "dependencies": {
-    "@auth/core": "^0.29.0",
     "@repo/lib": "*",
     "@repo/ui": "*",
     "@types/react-datepicker": "^6.2.0",
     "chart.js": "^4.4.3",
     "dayjs": "^1.11.10",
     "next": "^14.2.10",
-    "next-auth": "5.0.0-beta.16",
+    "next-auth": "5.0.0-beta.25",
     "pdfjs-dist": "4.4.168",
     "react": "^18",
     "react-chartjs-2": "^5.2.0",

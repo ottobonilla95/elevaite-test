@@ -1,8 +1,7 @@
-import { AuthFluff, LogInForm } from "@repo/ui/components";
+import { AuthFluff, LogInForm, ElevaiteIcons } from "@repo/ui/components";
 import type { JSX } from "react";
 import { authenticate, authenticateGoogle } from "../../lib/actions";
 import "./page.scss";
-import { ElevaiteIcons } from "@repo/ui/components";
 
 function Login(): JSX.Element {
     return (
