@@ -1,18 +1,18 @@
 import { CommonButton, CommonDialog, ElevaiteIcons } from "@repo/ui/components";
 import { useEffect, useState } from "react";
-import { ExtractedBit } from "./extractionComponents/ExtractedBit";
-import { ExtractedTableBit } from "./extractionComponents/ExtractedTableBit";
-import { PdfExtractionEmphasis } from "./extractionComponents/PdfExtractionEmphasis";
-import { PdfExtractionVerification } from "./extractionComponents/PdfExtractionVerification";
 import {
   CONTRACT_TYPES,
   type ContractObject,
   type LoadingListObject,
   type ContractExtractionDictionary,
   ContractStatus,
-} from "@/interfaces";
+} from "../../interfaces";
+import { ExtractedBit } from "./extractionComponents/ExtractedBit";
+import { ExtractedTableBit } from "./extractionComponents/ExtractedTableBit";
+import { PdfExtractionEmphasis } from "./extractionComponents/PdfExtractionEmphasis";
+import { PdfExtractionVerification } from "./extractionComponents/PdfExtractionVerification";
 import "./PdfExtraction.scss";
-import { reprocessContract } from "@/actions/contractActions";
+import { reprocessContract } from "../../actions/contractActions";
 
 enum ExtractionTabs {
   EXTRACTION = "Extraction",
@@ -222,7 +222,7 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
           </CommonButton>
         </div>
         {props.selectedContract?.content_type !==
-        CONTRACT_TYPES.INVOICE ? undefined : props.selectedContract.verification
+          CONTRACT_TYPES.INVOICE ? undefined : props.selectedContract.verification
             ?.verification_status === true ? (
           <div className="approved-label">
             <ElevaiteIcons.SVGCheckmark />
@@ -231,7 +231,7 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
         ) : (
           <CommonButton
             onClick={handleManualApproval}
-            // disabled
+          // disabled
           >
             Approve
           </CommonButton>
@@ -249,7 +249,7 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
               {extractedBits.length === 0 ? (
                 <div className="empty-bits">
                   {props.selectedContract?.status ===
-                  ContractStatus.Extracting ? (
+                    ContractStatus.Extracting ? (
                     <>
                       <ElevaiteIcons.SVGSpinner />
                       <span>Extraction in progress...</span>

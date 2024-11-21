@@ -11,10 +11,5 @@
   "compilerOptions": {
     "strict": false,
     "baseUrl": "./",
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    }
   }
 }

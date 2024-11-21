@@ -11,7 +11,7 @@ import {
   type ContractObjectVerificationLineItem,
   type ContractObjectVerificationLineItemVerification,
   type LoadingListObject,
-} from "@/interfaces";
+} from "../../../interfaces";
 import "./VerificationLineItems.scss";
 
 interface TableDataItem {
@@ -220,8 +220,8 @@ function VerificationTableStructure(
                     }
                     title={
                       cell !== null &&
-                      cell !== undefined &&
-                      cell.toString().length > 30
+                        cell !== undefined &&
+                        cell.toString().length > 30
                         ? cell.toString()
                         : ""
                     }

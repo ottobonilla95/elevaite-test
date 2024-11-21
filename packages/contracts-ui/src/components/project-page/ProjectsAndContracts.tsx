@@ -6,7 +6,7 @@ import {
   type ContractProjectObject,
   type ContractObject,
   type LoadingListObject,
-} from "@/interfaces";
+} from "../../interfaces";
 import "./ProjectsAndContracts.scss";
 
 interface ProjectsAndContractsProps {

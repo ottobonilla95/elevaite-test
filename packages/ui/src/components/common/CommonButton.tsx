@@ -1,13 +1,14 @@
-import { type MutableRefObject } from "react";
+import React, { type ButtonHTMLAttributes, type MutableRefObject } from "react";
 import "./CommonButton.scss";
 
 export interface CommonButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  extends ButtonHTMLAttributes<HTMLButtonElement> {
   theme?: "light" | "dark";
   noBackground?: boolean;
   overrideClass?: boolean;
   passedRef?: MutableRefObject<HTMLButtonElement | null>;
   onMiddleClick?: () => void;
+  children: React.ReactNode;
 }
 
 export function CommonButton({

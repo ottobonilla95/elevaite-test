@@ -1,4 +1,4 @@
-import { ContractObjectEmphasis, ContractObjectVerification, ContractObjectVerificationItem, ContractObjectVerificationLineItem, ContractObjectVerificationLineItemVerification, ContractSettings, ContractSettingsLabels, ContractSettingsStrings, type ContractExtractionDictionary, type ContractExtractionPage, type ContractExtractionPageItem, type ContractObject, type ContractProjectObject } from "../interfaces";
+import { type ContractObjectEmphasis, type ContractObjectVerification, type ContractObjectVerificationItem, type ContractObjectVerificationLineItem, type ContractObjectVerificationLineItemVerification, type ContractSettings, type ContractSettingsLabels, type ContractSettingsStrings, type ContractExtractionDictionary, type ContractExtractionPage, type ContractExtractionPageItem, type ContractObject, type ContractProjectObject } from "../interfaces";
 import { isObject } from "./generalDiscriminators";
 
 

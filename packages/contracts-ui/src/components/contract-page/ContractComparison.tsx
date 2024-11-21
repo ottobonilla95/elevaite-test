@@ -4,15 +4,15 @@ import {
   CommonModal,
   ElevaiteIcons,
 } from "@repo/ui/components";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import "./ContractComparison.scss";
 import { useRouter } from "next/navigation";
-import { ContractComparisonBlock } from "./ContractComparisonBlock";
 import {
   type LoadingListObject,
   type ContractObject,
   type ContractProjectObject,
-} from "@/interfaces";
+} from "../../interfaces";
+import { ContractComparisonBlock } from "./ContractComparisonBlock";
 
 interface ContractComparisonProps {
   selectedContract: ContractObject;

@@ -25,12 +25,12 @@ import {
   type UnverifiedItem,
   type VerificationQuickList,
   type VerificationQuickListItem,
-} from "@/interfaces";
-import { formatBytes } from "@/helpers";
+} from "../../interfaces";
+import { formatBytes } from "../../helpers";
 import {
   deleteContract,
   getContractProjectsList,
-} from "@/actions/contractActions";
+} from "../../actions/contractActions";
 
 enum ExtractionStatus {
   Uploading = "Upload In\xa0Progress",
@@ -1034,9 +1034,9 @@ function MismatchButton(props: MismatchButtonProps): JSX.Element {
       left
       top={Boolean(
         props.listLength &&
-          props.index &&
-          props.listLength > 4 &&
-          props.index > props.listLength - 4
+        props.index &&
+        props.listLength > 4 &&
+        props.index > props.listLength - 4
       )}
     />
   );

@@ -5,12 +5,12 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "eslint.config.js"
   ],
   "exclude": [
     "node_modules"
   ],
   "compilerOptions": {
+    "strict": false,
     "baseUrl": "./",
     "plugins": [
       {

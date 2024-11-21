@@ -7,9 +7,9 @@ import {
   ElevaiteIcons,
 } from "@repo/ui/components";
 import { useRef, useState } from "react";
-import { CONTRACT_TYPES, CONTRACTS_TABS } from "@/interfaces";
+import { CONTRACT_TYPES, CONTRACTS_TABS } from "../../interfaces";
 import "./ContractUpload.scss";
-import { submitCurrentContractPdf } from "@/actions/contractActions";
+import { submitCurrentContractPdf } from "../../actions/contractActions";
 
 const contractTypesOptions: CommonSelectOption[] = [
   { label: "VSOW", value: CONTRACT_TYPES.VSOW },

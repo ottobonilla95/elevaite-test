@@ -8,9 +8,9 @@ import {
   type ContractObjectVerification,
   type ContractObjectVerificationItem,
   ContractStatus,
-} from "@/interfaces";
+} from "../../../interfaces";
 import "./PdfExtractionVerification.scss";
-import { isObject } from "@/actions/generalDiscriminators";
+import { isObject } from "../../../actions/generalDiscriminators";
 
 interface PdfExtractionVerificationProps {
   loading: LoadingListObject;
@@ -68,7 +68,7 @@ export function PdfExtractionVerification(
       ) : (
         <>
           {props.selectedContract?.content_type ===
-          CONTRACT_TYPES.PURCHASE_ORDER ? undefined : (
+            CONTRACT_TYPES.PURCHASE_ORDER ? undefined : (
             <div className="pdf-verification-block">
               <div className="pdf-verification-label">
                 Purchase Order Information
@@ -106,7 +106,7 @@ export function PdfExtractionVerification(
             <div className="pdf-verification-label expanded">
               <span>Line Items</span>
               {!props.selectedContract?.line_items ||
-              props.selectedContract.line_items.length === 0 ? undefined : (
+                props.selectedContract.line_items.length === 0 ? undefined : (
                 <CommonButton
                   onClick={() => {
                     setIsLineItemsFullScreen(true);
@@ -118,7 +118,7 @@ export function PdfExtractionVerification(
               )}
             </div>
             {!props.selectedContract?.line_items ||
-            props.selectedContract.line_items.length === 0 ? (
+              props.selectedContract.line_items.length === 0 ? (
               <div className="no-info">No line items.</div>
             ) : (
               <VerificationLineItems
