@@ -3,6 +3,7 @@ import { ElevaiteIcons } from "@repo/ui/components";
 import type { Metadata } from "next";
 import AppLayout from "../ui/AppLayout";
 import "./layout.css";
+import { auth } from "../../auth";
 
 
 
@@ -29,8 +30,8 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
     link: "/workbench",
   },
   cost: {
-      label: "Billing and Costs",
-      link: "/cost",
+    label: "Billing and Costs",
+    link: "/cost",
   },
   application: {
     label: "Application",
@@ -59,11 +60,16 @@ const sidebarIcons: SidebarIconObject[] = [
   { icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" },
 ];
 
+const alcatelSidebarIcons: SidebarIconObject[] = [{ icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" }]
 
 
-export default function PageLayout({ children }: { children: React.ReactNode }): JSX.Element {
+export default async function PageLayout({ children }: { children: React.ReactNode }): Promise<JSX.Element> {
+  const session = await auth()
+
+  const isAlcatel = session?.user?.accountMemberships ? session.user.accountMemberships.filter((membership) => membership.account_id === "ab5eed01-46f1-423d-9da0-093814a898fc").length > 0 : false
+
   return (
-    <AppLayout breadcrumbLabels={breadcrumbLabels} layout="user" sidebarIcons={sidebarIcons}>
+    <AppLayout breadcrumbLabels={breadcrumbLabels} layout="user" sidebarIcons={isAlcatel ? alcatelSidebarIcons : sidebarIcons}>
       {children}
     </AppLayout>
   );

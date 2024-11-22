@@ -1,6 +1,6 @@
 import type { CardProps } from "@repo/ui/components";
 import { ApplicationIcons } from "./public/icons/appIcons";
-import { UserAccountMembershipObject } from "./app/lib/interfaces";
+import { type UserAccountMembershipObject } from "./app/lib/interfaces";
 
 const dummyDesc =
   "Mauris in quam ut neque scelerisque ultrices at eget nisl. Praesent a risus in orci porttitor commodo. Aenean condimentum luctus consequat. Sed volutpat metus quis libero molestie";
@@ -138,7 +138,6 @@ export function getApplications(
 ): { title: string; key: string; cards: CardProps[] }[] {
   if (accountMemberships) {
     let isAlcatel = false
-    console.log(accountMemberships)
     accountMemberships.forEach((membership) => {
       if (membership.account_id === "ab5eed01-46f1-423d-9da0-093814a898fc") {
         isAlcatel = true
@@ -162,16 +161,6 @@ export function getApplications(
             openInNewTab: true,
           },
         ],
-      },
-      {
-        title: "elevAIte for Finance",
-        key: "finance",
-        cards: [],
-      },
-      {
-        title: "elevAIte for Revenue",
-        key: "revenue",
-        cards: [],
       },
     ];
   }

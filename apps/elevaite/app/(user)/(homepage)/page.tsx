@@ -7,7 +7,6 @@ import { auth } from "../../../auth";
 
 export default async function Page(): Promise<JSX.Element> {
   const session = await auth();
-  console.log(session?.user)
   const applications = getApplications(process.env.NODE_ENV, session?.user?.accountMemberships);
 
 
