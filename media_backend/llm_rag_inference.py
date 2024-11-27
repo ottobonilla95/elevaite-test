@@ -19,7 +19,7 @@ from collections import OrderedDict
 
 import logging
 # Timer and logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def timer_decorator(func):
@@ -27,13 +27,13 @@ def timer_decorator(func):
         start = time.perf_counter()
         result = await func(*args, **kwargs)
         end = time.perf_counter()
-        logger.debug(f"{func.__name__} took {end - start:.6f} seconds")
+        logger.info(f"{func.__name__} took {end - start:.6f} seconds")
         return result
     def sync_wrapper(*args, **kwargs):
         start = time.perf_counter()
         result = func(*args, **kwargs)
         end = time.perf_counter()
-        logger.debug(f"{func.__name__} took {end - start:.6f} seconds")
+        logger.info(f"{func.__name__} took {end - start:.6f} seconds")
         return result
     if asyncio.iscoroutinefunction(func):
         return async_wrapper
@@ -65,7 +65,7 @@ try:
 except Exception as e:
     logger.error(f"Error initializing OpenAI client: {e}")
     client = None
-@timer_decorator 
+# @timer_decorator 
 def get_embedding(text):
     try:
         response = client.embeddings.create(
@@ -103,11 +103,11 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
             return SearchResult(results=[], total=0)
 
         # Process vector search results
-        print("SEARCH RESULTS:",search_result)
+        # print("SEARCH RESULTS:",search_result)
         for hit in search_result:
             if hit.score > 0.70: # Magic number
                 try:
-                    print("Vector search score:", hit.score)
+                    # print("Vector search score:", hit.score)
                     ad_creative = AdCreative.parse_obj(hit.payload)
                     brand_name = ad_creative.brand
                     if brand_name not in brand_count:
@@ -116,7 +116,7 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
                         ad_creatives.append(ad_creative)
                         brand_count[brand_name] += 1
                     else:
-                        logger.debug(f"Skipped AdCreative for brand: {brand_name}")
+                        logger.info(f"Skipped AdCreative for brand: {brand_name}")
                 except Exception as e:
                     logger.error(f"Error processing vector search result: {e}, Data: {hit}")
 
@@ -130,7 +130,7 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
             return value.lower()
 
         # Add filters for season and holiday
-        print("before the filters:")
+        # print("before the filters:")
         if parameters:
             season = parameters.get('season','')
             holiday = parameters.get('holiday','')
@@ -183,7 +183,7 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
                             ad_creatives.append(ad_creative)
                             brand_count[brand_name] += 1
                         else:
-                            logger.debug(f"Skipped AdCreative for brand: {brand_name}")
+                            logger.info(f"Skipped AdCreative for brand: {brand_name}")
                     except ValueError as e:
                         logger.error(f"Error processing media creative {index + 1}: {e}")
                         logger.error(f"Problematic payload: {payload}")
@@ -212,7 +212,7 @@ def determine_intent(user_query: str, conversation_history: List[ConversationPay
             response_format=IntentOutput,
             max_tokens=500
         )
-        print("output responsee",response)
+        # print("output responsee",response)
         response_content = response.choices[0].message.content
         try:
             parsed_response = json.loads(response_content)
@@ -266,14 +266,14 @@ async def generate_response_streaming(
         response_stream = client.chat.completions.create(**request_params)
         for chunk in response_stream:
             content = chunk.choices[0].delta.content
-            print("streamed content:",content)
+            # print("streamed content:",content)
             yield content
     except Exception as e:
         logger.error(f"Error in generating response: {e}")
         yield f"Error: {str(e)}"
 
 
-@timer_decorator
+# @timer_decorator
 async def generate_response(
     query: str,
     system_prompt: str,
@@ -322,7 +322,7 @@ async def generate_response(
         logger.error(f"Error in generating response: {e} at the response class: {system_prompt}")
         return "I apologize, but I couldn't generate a response at this time."
 
-@timer_decorator
+# @timer_decorator
 def generate_response_with_creatives(    
     creative :str, # Base 64 encoded image/video/gif
     query: str,
@@ -406,7 +406,7 @@ def creative_to_features(creative: str)-> str:
             logger.error(f"Error in generating response: {e} during the process with the prompt: {prompt}")
     return
 
-@timer_decorator
+# @timer_decorator
 def generate_image_from_getimgai(prompt: str, image_data: Optional[str] = None, api_call_type: str = "text-to-image", model: str = "flux-schnell"):
     
     # Determine if it's an image-to-image request
@@ -507,7 +507,7 @@ async def creative_inspiration_with_generation(
     search_results = ""
     if creative:
         extracted_features = creative_to_features(creative)
-        print("Extracted features:",extracted_features)
+        # print("Extracted features:",extracted_features)
     if creative and vector_search:
         search_results = search_qdrant(f"{enhanced_query} Creative: {extracted_features}", conversation_history, use_vector_search=True, number_of_results=3,parameters={})
     elif vector_search:
@@ -520,7 +520,7 @@ async def creative_inspiration_with_generation(
     else:
         generated_prompt = await generate_response(query=enhanced_query, system_prompt=system_prompt, search_result=search_results, conversation_history=conversation_history,max_tokens=1048)
     # print("Generated prompt:",generated_prompt)
-    logger.debug(f"Generated prompt:\n{generated_prompt}")
+    logger.info(f"Generated prompt:\n{generated_prompt}")
     if creative:
         image_data = generate_image_from_getimgai(prompt=generated_prompt, api_call_type="text-to-image",model="flux-schnell")
     else:
@@ -540,7 +540,7 @@ def ideate_to_create_without_rag(user_query:str,creative:str,conversation_histor
     prompt = load_prompt("creative_feedback")
     return generate_response_with_creatives(creative=creative,query=user_query,system_prompt=prompt,conversation_history=conversation_history) 
 
-@timer_decorator
+# @timer_decorator
 async def formatter_streaming(final_output: str = None, prompt_file_name: str = "formatter", query_content: str = None) -> AsyncGenerator[str, None]:
     system_prompt = load_prompt(prompt_file_name)
     query = f"Content to be formatted: {final_output}"
@@ -554,7 +554,7 @@ async def formatter_streaming(final_output: str = None, prompt_file_name: str = 
     ):
         yield chunk
 
-@timer_decorator   
+# @timer_decorator   
 async def formatter(final_output: str = None, prompt_file_name: str = "formatter",query_content:str=None) -> str:
     system_prompt = load_prompt(prompt_file_name)
     query = f"Content to be formatted: {final_output}"
@@ -567,7 +567,7 @@ async def formatter(final_output: str = None, prompt_file_name: str = "formatter
     )
     return "\n"+formatted_output+"\n"
 
-@timer_decorator 
+# @timer_decorator 
 def extract_specific_fields(search_result: SearchResult, fields: List[str], full_data_fields: List[str] = None) -> str:
     extracted_data = []
   ##  logger.debug(f"Search Results:\n\n{search_result}")
@@ -584,9 +584,9 @@ def extract_specific_fields(search_result: SearchResult, fields: List[str], full
                 normalized_field = field.replace(' ', '_')
                 if normalized_field in ad_creative.full_data:
                     item[f"full_data_{normalized_field}"] = ad_creative.full_data[normalized_field]
-                    print(f"Extracting: {field}")
-                else:
-                    print(f"Didn't find: {field}")
+                #     print(f"Extracting: {field}")
+                # else:
+                #     print(f"Didn't find: {field}")
         
         extracted_data.append(item)
     
@@ -661,7 +661,7 @@ async def campaign_performance(filtered_data: SearchResult, query: str, conversa
     system_prompt = load_prompt("campaign_performance_with_formatter")
 
     # logger.debug("Campaign performance inputs: ",str(query)+str(system_prompt)+str(essential_data))
-    print("Extracted data campaign performance:",essential_data)
+    # print("Extracted data campaign performance:",essential_data)
     raw_response = await generate_response(
         query=query,
         system_prompt=system_prompt,
@@ -703,7 +703,7 @@ async def analysis_of_trends(filtered_data: SearchResult, query: str, conversati
     # Assuming load_prompt is a quick operation, keep it synchronous
     system_prompt = load_prompt("analysis_of_trends")
     
-    print("analysis Input:", query, system_prompt,essential_data)
+    # print("analysis Input:", query, system_prompt,essential_data)
     
     raw_response = await generate_response(
         query=query,
@@ -801,7 +801,7 @@ def generic_with_creative(user_query:str,conversation_history:List[ConversationP
         result = generate_response_with_creatives(creative=creative,query=user_query,system_prompt=prompt,conversation_history=conversation_history) 
     return result
 
-@timer_decorator
+# @timer_decorator
 def replace_hash_with_url(S):
     md5_pattern_thumbnail = r'\b([a-fA-F0-9]{32})(?:\.thumbnail\.jpg)?\b'
     def replace_thumbnail(match):
@@ -811,12 +811,12 @@ def replace_hash_with_url(S):
     S = re.sub(md5_pattern_thumbnail, replace_thumbnail, S)
 
     return S
-@timer_decorator 
+# @timer_decorator 
 def get_url_for_hash(hash, extension):
     base_url = os.getenv("BASE_URL_FOR_CREATIVES")
     directory_structure = f"{hash[:2]}/{hash[2:4]}/{hash}"
     return f"{base_url}/{directory_structure}.{extension}"
-@timer_decorator 
+# @timer_decorator 
 def get_extension_for_hash(hash):
     # Use forward slashes for cross-platform compatibility
     base_path = "static/images"  # Change to your actual path
@@ -838,7 +838,7 @@ def remove_markdown_prefix(s):
     # s = re.sub(r'### (.*)\n', r'<h2><strong>\1</strong></h2><br>\n', s)
     # s = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', s)
     return s
-@timer_decorator 
+# @timer_decorator 
 def format_conversation_payload(conversation_payload: List[ConversationPayload]) -> str:
     # Format the conversation history into a single string
     formatted_history = ""
@@ -850,14 +850,14 @@ def format_conversation_payload(conversation_payload: List[ConversationPayload])
 
 
 
-@timer_decorator
+# @timer_decorator
 async def perform_inference(inference_payload: InferencePayload):
     try:
         threshold = 3
         conversation_history = inference_payload.conversation_payload or []
 
-        logger.debug(f"conversation_history:{conversation_history}")
-        print("Conversation_HIstory length",len(conversation_history))
+        logger.info(f"conversation_history:{conversation_history}")
+        # print("Conversation_HIstory length",len(conversation_history))
         if inference_payload.creative:
             intent_data = determine_intent(user_query=inference_payload.query, conversation_history=conversation_history, prompt_file="intention", creative_provided=True)
         else:
@@ -873,7 +873,7 @@ async def perform_inference(inference_payload: InferencePayload):
         # enhanced_query = await enhance_query(inference_payload.query,conversation_history)
 
         print("INTENT OUTPUT:",intent_data)
-        print("Intent Extracted:\n", "Query:",enhanced_query,"\nRequired Outcomes",required_outcomes,"\nvector_search:",vector_search)
+        # print("Intent Extracted:\n", "Query:",enhanced_query,"\nRequired Outcomes",required_outcomes,"\nvector_search:",vector_search)
         if unrelated_query:
             conversation_history = ""
 
@@ -917,7 +917,6 @@ async def perform_inference(inference_payload: InferencePayload):
             else:
                 if vector_search:
                     filtered_data  = search_qdrant(enhanced_query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
-                    print("FIltered RRResult:",filtered_data)
                     result = await generic_without_creative(inference_payload.query, conversation_history,filtered_data=filtered_data)
                     yield {"response": f"{result}\n\n"}
                 else:
@@ -926,12 +925,12 @@ async def perform_inference(inference_payload: InferencePayload):
 
         if any(num in required_outcomes for num in [1, 2, 3, 4, 5]):
             filtered_data = search_qdrant(enhanced_query, conversation_history, parameters, False, 10)          
-            print(f"Original data:{filtered_data}")
+            # print(f"Original data:{filtered_data}")
             
             if not filtered_data.results:
                 yield {"response":"Searching for data most related with your query...\n"}
                 filtered_data = search_qdrant(enhanced_query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
-                print("Additional_Data Data1:",filtered_data)
+                # print("Additional_Data Data1:",filtered_data)
                 if len(filtered_data.results)<1:
                     yield {"response":"Media Campaign Information related to your query were not found. Please try a different query.\n"}
                     return
@@ -941,7 +940,7 @@ async def perform_inference(inference_payload: InferencePayload):
 
                 currently_present_ids = [i.id for i in filtered_data.results]
                 additional_data = search_qdrant(enhanced_query, conversation_history, parameters, use_vector_search=True, number_of_results=(threshold - len(filtered_data.results)))
-                print("Additional_Data 2:",additional_data)
+                # print("Additional_Data 2:",additional_data)
                 if len(additional_data.results)>0:
                     # yield {"response":"Incorporating additional data to your response.\n"}
                     for additional_result in additional_data.results:
@@ -979,14 +978,14 @@ async def perform_inference(inference_payload: InferencePayload):
             else:
                 result = await creative_inspiration_with_generation(enhanced_query=enhanced_query,conversation_history= conversation_history, vector_search=vector_search)
             # result = replace_hash_with_url(remove_markdown_prefix(result))
-            print("returning image:",result)
+            # print("returning image:",result)
             yield {"response": result}
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
         yield {"response": f"An error occurred: {e}\n"}
 
-@timer_decorator 
+# @timer_decorator 
 async def get_insight_function(outcome):
     """ Maps required outcomes to their corresponding async functions. """
     mapping = {
