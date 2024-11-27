@@ -14,7 +14,7 @@ import { ChatMessageFeedback } from "./ChatMessageFeedback";
 import { ChatMessageFiles } from "./ChatMessageFiles";
 import { extractUniqueMediaData} from '../lib/testData';
 import MarkdownMessage from './MarkdownMessage'; 
-import Modal from "./Modal.tsx"; // Import the Modal component
+import Modal from "./Modal.tsx";
 
 export function ChatMessage(props: ChatMessageObject): JSX.Element {
   const chatContext = useContext(ChatContext);
@@ -38,10 +38,9 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
         type: ['mov', 'mp4'].some(ext => url.endsWith(ext)) ? 'video' : 'image',
       }));
   
-      // Set the media types with correct type assertions
       setMediaUrls(mediaItems.map(item => item.url));
       setMediaNames(mediaItems.map(item => item.name));
-      setMediaTypes(mediaItems.map(item => item.type as 'image' | 'video')); // Ensure types are correct
+      setMediaTypes(mediaItems.map(item => item.type as 'image' | 'video'));
       setIsModalOpen(true);
     }
   }
@@ -60,8 +59,8 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
   
     setMediaUrls(mediaItems.map(item => item.url));
     setMediaNames(mediaItems.map(item => item.name));
-    setMediaTypes(mediaItems.map(item => item.type as 'image' | 'video')); // Ensure types are correct
-  
+    setMediaTypes(mediaItems.map(item => item.type as 'image' | 'video')); 
+    
     const currentIndex = mediaItems.findIndex(item => item.url === fullUrl);
     setCurrentIndex(currentIndex !== -1 ? currentIndex : 0);
   

@@ -30,15 +30,25 @@ const MarkdownMessage: React.FC<{ text: string; onImageClick: (url: string, alt:
     tbody: createRenderer("markdown-table-body", 'tbody'),
     tr: createRenderer("markdown-table-row", 'tr'),
     th: createRenderer("markdown-table-header", 'th'),
-    td: createRenderer("markdown-table-cell", 'td'), 
-    img: ({ src, alt, title }) => (
-      <img 
-        src={src} 
-        alt={alt} 
-        onClick={() => onImageClick(src, alt || 'Image',title || 'No title provided')}
-        style={{ cursor: 'pointer' }} // Optional: Add pointer cursor for clarity
-      />
-    )
+    td: createRenderer("markdown-table-cell", 'td'),
+    img: ({ src, alt, title }: { src: string, alt: string, title: string }) => {
+      const isThumbnail = src.includes('.thumbnail.jpg');
+      return (
+        <img
+          src={src}
+          alt={alt}
+          title={title}
+          onClick={() => onImageClick(src, alt || 'Image', title || 'No title provided')}
+          style={{
+            cursor: 'pointer', 
+            borderRadius: '8px', 
+            width: isThumbnail ? 'auto' : '300px', // Fixed size for non-thumbnail images
+            height: isThumbnail ? 'auto' : '200px', // Resize non-thumbnail images
+            objectFit: 'cover', // To ensure image maintains aspect ratio
+          }}
+        />
+      );
+    },
   };
 
   return (

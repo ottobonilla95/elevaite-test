@@ -158,9 +158,10 @@ export function ChatbotInput(): JSX.Element {
             </div>
             {isFirstMessage && (
                                 <div className="first-message-buttons">
-                                <CommonButton onClick={() => handleButtonClick("Generate a media plan")}>Generate a media plan</CommonButton>
-                                <CommonButton onClick={() => handleButtonClick("How did campaigns perform")}>How did campaigns perform</CommonButton>
-                                <CommonButton onClick={() => handleButtonClick("Provide Creative inspiration")}>Provide Creative inspiration</CommonButton>
+                                <CommonButton onClick={() => handleButtonClick("Generate a media plan ")}>Generate a media plan</CommonButton>
+                                <CommonButton onClick={() => handleButtonClick("Generate an advertisement ")}>Generate an advertisement</CommonButton>
+                                <CommonButton onClick={() => handleButtonClick("Provide creative inspiration ")}>Provide creative inspiration</CommonButton>
+                                <CommonButton onClick={() => handleButtonClick("Provide campaign performance ")}>Provide campaign performance</CommonButton>
                                 </div>
             )}
         </div>

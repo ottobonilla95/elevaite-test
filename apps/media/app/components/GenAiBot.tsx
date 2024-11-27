@@ -10,11 +10,9 @@ const genAIBotOptions: CommonSelectOption[] = [
     // { value: ChatBotGenAI.Pan, label: "Hardware Firewall Provider", selectedLabel: "Firewall" },
     // { value: ChatBotGenAI.Cisco, label: "Collaboration Provider", selectedLabel: "Collab" },
     { value: ChatBotGenAI.MediaPerformance, label: "Media Performance" },
-    { value: ChatBotGenAI.IdeateCreative, label: "Ideate to Create" },
+    // { value: ChatBotGenAI.IdeateCreative, label: "Ideate to Create" },
     { value: ChatBotGenAI.ContractsBilling, label: "Contracts and Billing" }
 ];
-
-
 
 
 export function GenAiBot(): JSX.Element {

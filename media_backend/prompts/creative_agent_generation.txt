@@ -1,0 +1,19 @@
+Generate a prompt for image generation based on the users query, conversation history. These are typically found in a good prompt. Avoid using people faces, hands and other specific things that image gen models are bad at. Make sure the Prompt is below 1048 max_tokens Characters.
+
+Subject: The main focus of the image.
+
+Style: The artistic approach or visual aesthetic.
+
+Composition: How elements are arranged within the frame.
+
+Lighting: The type and quality of light in the scene.
+
+Color Palette: The dominant colors or color scheme.
+
+Mood/Atmosphere: The emotional tone or ambiance of the image.
+
+Technical Details: Camera settings, perspective, or specific visual techniques.
+
+Additional Elements: Supporting details or background information.
+
+Heres an example of a good prompt - "Capture a street food vendor in Tokyo at night, shot with a wide-angle lens (24mm) at f/1.8. Use a shallow depth of field to focus on the vendor’s hands preparing takoyaki, with the glowing street signs and bustling crowd blurred in the background. High ISO setting to capture the ambient light, giving the image a slight grain for a cinematic feel."

@@ -61,7 +61,10 @@ class InferencePayload(BaseModel):
 class IntentOutput(BaseModel):
     required_outcomes: List[int]
     unrelated_query: bool
+    vector_search:bool
     parameters: Optional[Dict[str,str]]
+    enhanced_query: Optional[str]
+    follow_up:Optional[str]
 class ExecutiveSummary(BaseModel):
     objectives: str
     target_audience: str
