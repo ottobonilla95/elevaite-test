@@ -12,12 +12,12 @@ import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { useResizeDetector } from "react-resize-detector";
 import { useRouter } from "next/navigation";
-import { useDebouncedCallback } from "@/helpers";
+import { useDebouncedCallback } from "../../helpers";
 import {
   CONTRACT_TYPES,
   type ContractProjectObject,
   type ContractObject,
-} from "@/interfaces";
+} from "../../interfaces";
 import "./PdfDisplay.scss";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -378,7 +378,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         regex = new RegExp(
           pattern.source,
           pattern.flags +
-            (ignoreCase && !pattern.flags.includes("i") ? "i" : "")
+          (ignoreCase && !pattern.flags.includes("i") ? "i" : "")
         );
       }
       processedText = processedText.replace(
@@ -493,25 +493,25 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
               {pagesAmount === undefined
                 ? undefined
                 : Array.from(new Array(pagesAmount), (entry, index) => (
-                    <div
-                      key={`page_${(index + 1).toString()}`}
-                      ref={(item) => {
-                        pageRefs.current[index + 1] = item;
-                      }}
-                    >
-                      <Page
-                        pageNumber={index + 1}
-                        width={pageContainerWidth ? pageContainerWidth : 1}
-                        scale={pdfZoom}
-                        // customTextRenderer={textRenderer}
-                        loading={
-                          <div className="loading large">
-                            <ElevaiteIcons.SVGSpinner />
-                          </div>
-                        }
-                      />
-                    </div>
-                  ))}
+                  <div
+                    key={`page_${(index + 1).toString()}`}
+                    ref={(item) => {
+                      pageRefs.current[index + 1] = item;
+                    }}
+                  >
+                    <Page
+                      pageNumber={index + 1}
+                      width={pageContainerWidth ? pageContainerWidth : 1}
+                      scale={pdfZoom}
+                      // customTextRenderer={textRenderer}
+                      loading={
+                        <div className="loading large">
+                          <ElevaiteIcons.SVGSpinner />
+                        </div>
+                      }
+                    />
+                  </div>
+                ))}
             </Document>
           )}
         </div>

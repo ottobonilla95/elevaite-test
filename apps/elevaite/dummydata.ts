@@ -1,5 +1,6 @@
 import type { CardProps } from "@repo/ui/components";
 import { ApplicationIcons } from "./public/icons/appIcons";
+import { type UserAccountMembershipObject } from "./app/lib/interfaces";
 
 const dummyDesc =
   "Mauris in quam ut neque scelerisque ultrices at eget nisl. Praesent a risus in orci porttitor commodo. Aenean condimentum luctus consequat. Sed volutpat metus quis libero molestie";
@@ -133,8 +134,36 @@ const appLinks: Record<string, { development: string; production: string; test: 
 };
 
 export function getApplications(
-  env: "development" | "production" | "test"
+  env: "development" | "production" | "test", accountMemberships?: UserAccountMembershipObject[]
 ): { title: string; key: string; cards: CardProps[] }[] {
+  if (accountMemberships) {
+    let isAlcatel = false
+    accountMemberships.forEach((membership) => {
+      if (membership.account_id === "ab5eed01-46f1-423d-9da0-093814a898fc") {
+        isAlcatel = true
+      }
+    })
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- No it's not
+    if (isAlcatel) return [
+      {
+        title: "elevAIte for Support",
+        key: "support",
+        cards: [
+          {
+            icon: ApplicationIcons.applications.aleSupport.src,
+            description: "Your guide for precise Networking and Communication Answers!",
+            iconAlt: ApplicationIcons.applications.aleSupport.alt,
+            title: "ALE - Tech Chat Support",
+            link: appLinks.complianceSupport[env],
+            id: "aleSupport",
+            miscLabel: "Version 1.0",
+            subtitle: "By Elevaite",
+            openInNewTab: true,
+          },
+        ],
+      },
+    ];
+  }
   return [
     {
       title: "elevAIte for Support",

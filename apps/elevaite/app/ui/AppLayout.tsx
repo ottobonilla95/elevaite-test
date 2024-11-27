@@ -16,7 +16,7 @@ interface AppLayoutProps {
   breadcrumbLabels: Record<string, { label: string; link: string }>;
 }
 
-function AppLayout({sidebarIcons, children, breadcrumbLabels, ...props }: AppLayoutProps): JSX.Element {
+function AppLayout({ sidebarIcons, children, breadcrumbLabels, ...props }: AppLayoutProps): JSX.Element {
   const { data: session } = useSession();
   const [results, setResults] = useState<{ key: string; link: string; label: string }[]>(getResults(""));
 
@@ -40,7 +40,7 @@ function AppLayout({sidebarIcons, children, breadcrumbLabels, ...props }: AppLay
   function handleSearchInput(term: string): void {
     setResults(getResults(term));
   }
-  
+
 
   return (
     <div className="elevaite-main-container" id="elevaite-main-container">

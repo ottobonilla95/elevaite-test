@@ -41,15 +41,13 @@ export default async function ContractPage({
 
   function getContractPromises(
     id: string
-  ):
-    | [
-        Promise<ContractObject>,
-        Promise<ContractObjectVerificationLineItem[]>,
-        Promise<ContractObjectEmphasis>,
-        Promise<ContractObjectVerification>,
-      ]
-    | [undefined, undefined, undefined, undefined] {
-    if (id === "0") return [undefined, undefined, undefined, undefined];
+  ): [
+      Promise<ContractObject>,
+      Promise<ContractObjectVerificationLineItem[]>,
+      Promise<ContractObjectEmphasis>,
+      Promise<ContractObjectVerification>,
+    ] {
+    // if (id === "0") return [undefined, undefined, undefined, undefined];
     const contractPromise = getContractObjectById(projectId, id);
     const lineItemsPromise = getContractObjectLineItems(projectId, id);
     const emphasisPromise = getContractObjectEmphasis(projectId, id);
@@ -179,7 +177,7 @@ export default async function ContractPage({
     };
   }
 
-  const file = await fileRes!.blob();
+  const file = await fileRes.blob();
 
   return (
     <div className="contracts-main-container">

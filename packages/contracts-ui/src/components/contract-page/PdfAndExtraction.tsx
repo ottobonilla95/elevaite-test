@@ -1,14 +1,14 @@
 "use client";
 import { useState } from "react";
 import "./PdfAndExtraction.scss";
-import { PdfDisplay } from "./PdfDisplay";
-import { PdfExtraction } from "./PdfExtraction";
-import { ContractComparison } from "./ContractComparison";
 import {
   type LoadingListObject,
   type ContractObject,
   type ContractProjectObject,
-} from "@/interfaces";
+} from "../../interfaces";
+import { PdfDisplay } from "./PdfDisplay";
+import { PdfExtraction } from "./PdfExtraction";
+import { ContractComparison } from "./ContractComparison";
 
 enum ExpandedPages {
   PDF = "pdf",
@@ -50,7 +50,7 @@ export function PdfAndExtraction(props: PdfAndExtractionProps): JSX.Element {
         .join(" ")}
     >
       {props.selectedContract &&
-      (props.secondarySelectedContract || props.comparisonScreen) ? (
+        (props.secondarySelectedContract || props.comparisonScreen) ? (
         <ContractComparison
           loading={props.loading}
           projectId={props.projectId}

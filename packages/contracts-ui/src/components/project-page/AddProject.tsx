@@ -5,13 +5,13 @@ import {
   ElevaiteIcons,
 } from "@repo/ui/components";
 import { useEffect, useState } from "react";
-import { type ContractProjectObject } from "@/interfaces";
+import { type ContractProjectObject } from "../../interfaces";
 import "./AddProject.scss";
 import {
   CreateProject,
   DeleteProject,
   EditProject,
-} from "@/actions/contractActions";
+} from "../../actions/contractActions";
 
 interface AddProjectProps {
   onClose: () => void;

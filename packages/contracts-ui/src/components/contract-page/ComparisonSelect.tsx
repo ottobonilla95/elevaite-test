@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CommonSelect, type CommonSelectOption } from "@repo/ui/components";
 import { useRouter } from "next/navigation";
-import { CONTRACT_TYPES, type ContractObject } from "@/interfaces";
+import { CONTRACT_TYPES, type ContractObject } from "../../interfaces";
 import "./ComparisonSelect.scss";
 
 function useHandleSelection(

@@ -7,7 +7,7 @@ import { AddProject } from "./AddProject";
 import {
   type LoadingListObject,
   type ContractProjectObject,
-} from "@/interfaces";
+} from "../../interfaces";
 import "./ProjectsList.scss";
 
 export function ProjectsList({

@@ -4,7 +4,7 @@ import {
   type LoadingListObject,
   type ContractObject,
   type ContractObjectEmphasis,
-} from "@/interfaces";
+} from "../../../interfaces";
 import "./PdfExtractionEmphasis.scss";
 
 interface PdfExtractionEmphasisProps {
@@ -60,9 +60,9 @@ export function PdfExtractionEmphasis(
       {(!emphasisData.po_number &&
         !emphasisData.invoice_number &&
         !emphasisData.supplier) ||
-      (!emphasisData.non_rec_charges &&
-        !emphasisData.rec_charges &&
-        !emphasisData.total_amount) ? undefined : (
+        (!emphasisData.non_rec_charges &&
+          !emphasisData.rec_charges &&
+          !emphasisData.total_amount) ? undefined : (
         <div className="separator" />
       )}
       <div className="pdf-emphasis-block">

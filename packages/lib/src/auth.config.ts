@@ -1,14 +1,8 @@
-import type { TokenSet } from "@auth/core/types";
-import type { AuthConfig } from "@auth/core";
-// import type { NextAuthConfig } from "next-auth";
+import type { DefaultSession, NextAuthConfig } from "next-auth";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Needed to augment
+import { JWT } from "next-auth/jwt"
 
-declare module "@auth/core/types" {
-  interface Session {
-    error?: "RefreshAccessTokenError";
-  }
-}
-
-declare module "@auth/core/jwt" {
+declare module "next-auth/jwt" {
   interface JWT {
     access_token: string;
     expires_at: number;
@@ -16,6 +10,13 @@ declare module "@auth/core/jwt" {
     error?: "RefreshAccessTokenError";
   }
 }
+declare module "next-auth" {
+  interface Session {
+    error?: "RefreshAccessTokenError";
+    user?: { accountMemberships?: UserAccountMembershipObject[], rbacId?: string } & DefaultSession["user"]
+  }
+}
+
 
 const _config = {
   callbacks: {
@@ -59,41 +60,145 @@ const _config = {
           method: "POST",
         });
 
-        const tokens: TokenSet = (await response.json()) as TokenSet;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Following docs! https://authjs.dev/guides/refresh-token-rotation#jwt-strategy
+        const tokensOrError = await response.json()
 
-        if (!response.ok)
-          throw new Error("Refresh response failed", { cause: tokens });
+        if (!response.ok) throw tokensOrError
 
-        if (!tokens.access_token)
-          throw new Error("Refresh response didn't contain access_token", {
-            cause: tokens,
-          });
-
-        return {
-          ...token, // Keep the previous token properties
-          access_token: tokens.access_token,
-          expires_at: Math.floor(Date.now() / 1000 + (tokens.expires_in ?? 0)),
-          // Fall back to old refresh token, but note that
-          // many providers may only allow using a refresh token once.
-          refresh_token: tokens.refresh_token ?? token.refresh_token,
-        };
+        const newTokens = tokensOrError as {
+          access_token: string
+          expires_in: number
+          refresh_token?: string
+        }
+        token.access_token = newTokens.access_token
+        token.expires_at = Math.floor(
+          Date.now() / 1000 + newTokens.expires_in
+        )
+        // Some providers only issue refresh tokens once, so preserve if we did not get a new one
+        if (newTokens.refresh_token)
+          token.refresh_token = newTokens.refresh_token
+        return token
       } catch (error) {
-        // eslint-disable-next-line no-console -- we want this one
-        console.error("Error refreshing access token", error);
-        // The error property will be used client-side to handle the refresh token error
-        return { ...token, error: "RefreshAccessTokenError" as const };
+        // eslint-disable-next-line no-console -- Need this in case it fails
+        console.error("Error refreshing access_token", error)
+        // If we fail to refresh the token, return an error so we can handle it on the page
+        token.error = "RefreshAccessTokenError"
+        return token
       }
     },
-    // eslint-disable-next-line @typescript-eslint/require-await -- has to be async according to documentation
     async session({ session, token, user }) {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- you never know
       session.user ? (session.user.id = token.sub ?? user.id) : null;
       Object.assign(session, { authToken: token.access_token });
       Object.assign(session, { error: token.error });
+      const authToken = token.access_token
+      const RBAC_URL = process.env.RBAC_BACKEND_URL;
+      if (!RBAC_URL)
+        throw new Error("RBAC_BACKEND_URL does not exist in the env");
+      const registerURL = new URL(`${RBAC_URL}/auth/register`);
+      const registerHeaders = new Headers();
+      registerHeaders.append("Content-Type", "application/json");
+      registerHeaders.append("Authorization", `Bearer ${authToken}`);
+      const body = JSON.stringify({
+        // org_id: ORG_ID,
+        firstname: "",
+        lastname: "",
+        // email,
+      });
+      const registerRes = await fetch(registerURL, {
+        body,
+        headers: registerHeaders,
+        method: "POST",
+      });
+      if (!registerRes.ok) {
+        // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+        console.error(registerRes.statusText);
+        throw new Error("Something went wrong.", { cause: registerRes });
+      }
+      const dbUser: unknown = await registerRes.json();
+      if (isDBUser(dbUser)) {
+        const url = new URL(`${RBAC_URL}/users/${dbUser.id}/profile`);
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+        headers.append("Authorization", `Bearer ${authToken}`);
+        const response = await fetch(url, {
+          method: "GET",
+          headers,
+          cache: "no-store"
+        });
+        if (!response.ok) {
+          if (response.status === 422) {
+            const errorData: unknown = await response.json();
+            // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+            console.dir(errorData, { depth: null });
+          }
+          throw new Error("Failed to fetch projects");
+        }
+        const fullUser: unknown = await response.json();
+        if (isUserObject(fullUser)) {
+          Object.assign(session.user, { accountMemberships: fullUser.account_memberships })
+          Object.assign(session.user, { roles: fullUser.roles })
+          Object.assign(session.user, { rbacId: fullUser.id })
+        }
+      }
       return session;
     },
   },
   providers: [],
-} satisfies AuthConfig;
+} satisfies NextAuthConfig;
 
-export const stockConfig: AuthConfig = _config;
+export const stockConfig: NextAuthConfig = _config;
+export interface DBUser {
+  id: string;
+  organization_id: string;
+  firstname: string;
+  lastname: string;
+  email: string;
+  is_superadmin: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+function isObject(item: unknown): item is object {
+  return Boolean(item) && item !== null && typeof item === "object";
+}
+
+function isDBUser(obj: unknown): obj is DBUser {
+  return isObject(obj) && "is_superadmin" in obj && "organization_id" in obj;
+}
+
+function isUserObject(item: unknown): item is UserObject {
+  return isObject(item) &&
+    "id" in item &&
+    "organization_id" in item &&
+    "firstname" in item &&
+    "lastname" in item &&
+    "email" in item &&
+    "is_superadmin" in item &&
+    "created_at" in item &&
+    "updated_at" in item;
+}
+
+interface UserObject {
+  id: string;
+  organization_id: string;
+  firstname?: string;
+  lastname?: string;
+  email?: string;
+  is_superadmin: boolean;
+  created_at: string;
+  updated_at: string;
+  is_account_admin?: boolean;
+  roles?: UserRoleObject[];
+  account_memberships?: UserAccountMembershipObject[];
+}
+interface UserRoleObject {
+  id: string;
+  name: string;
+}
+interface UserAccountMembershipObject {
+  account_id: string;
+  account_name: string;
+  is_admin: boolean;
+  roles: UserRoleObject[];
+}

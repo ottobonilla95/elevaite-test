@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import "./ContractComparisonBlock.scss";
 import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
-import { ComparisonSelect } from "./ComparisonSelect";
-import { PdfExtractionEmphasis } from "./extractionComponents/PdfExtractionEmphasis";
-import { VerificationLineItems } from "./extractionComponents/VerificationLineItems";
 import {
   type LoadingListObject,
   type ContractObject,
   type ContractProjectObject,
-} from "@/interfaces";
+} from "../../interfaces";
+import { ComparisonSelect } from "./ComparisonSelect";
+import { PdfExtractionEmphasis } from "./extractionComponents/PdfExtractionEmphasis";
+import { VerificationLineItems } from "./extractionComponents/VerificationLineItems";
 
 interface ContractComparisonBlockProps {
   secondary: boolean;
@@ -156,7 +156,7 @@ export function ContractComparisonBlock(
         )}
 
         {!currentContract?.line_items ||
-        currentContract.line_items.length === 0 ? (
+          currentContract.line_items.length === 0 ? (
           <div className="no-info">No line items.</div>
         ) : (
           <VerificationLineItems

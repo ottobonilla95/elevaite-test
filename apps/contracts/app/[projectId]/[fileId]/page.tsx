@@ -107,7 +107,7 @@ export default async function ContractPage({
     };
   }
 
-  const file = await fileRes!.blob();
+  const file = await fileRes.blob();
 
   return (
     <div className="contracts-main-container">

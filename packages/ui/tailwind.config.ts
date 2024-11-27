@@ -6,7 +6,7 @@ const config: Pick<Config, "prefix" | "presets" | "content"> = {
     // app content
     `src/**/*.{js,ts,jsx,tsx}`,
     // include packages if not transpiling
-    "../../packages/**/*.{js,ts,jsx,tsx}",
+    "../../packages/ui/**/*.{js,ts,jsx,tsx}",
   ],
   prefix: "ui-",
   presets: [sharedConfig],

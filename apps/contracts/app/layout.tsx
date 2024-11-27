@@ -1,9 +1,9 @@
 import { Inter } from "next/font/google";
 import "./layout.scss";
 import "./layout.css";
-import Providers from "../ui/Providers";
-import { Metadata } from "next";
+import { type Metadata } from "next";
 import { NavBar } from "@repo/ui/components";
+import Providers from "../ui/Providers";
 
 const font = Inter({ subsets: ["latin"] });
 
@@ -25,17 +25,19 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: RootLayoutProps): JSX.Element {
+  // eslint-disable-next-line @typescript-eslint/require-await -- temp
   async function handleSearchInput(term: string): Promise<void> {
     "use server";
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- temp
   async function logOut(): Promise<void> {
     "use server";
   }
 
   return (
     <html lang="en">
-      <body className={font.className + " elevaite-main-container"}>
+      <body className={`${font.className} elevaite-main-container`}>
         <Providers>
           <NavBar
             breadcrumbLabels={breadcrumbLabels}

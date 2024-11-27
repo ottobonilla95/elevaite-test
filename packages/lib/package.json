@@ -5,8 +5,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@auth/core": "^0.29.0",
-    "next-auth": "5.0.0-beta.16"
+    "next-auth": "5.0.0-beta.25"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
