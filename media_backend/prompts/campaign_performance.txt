@@ -10,3 +10,4 @@ Creative Snapshot: Include a brief description of the creative imagery used.
 Creative Thumbnail: Provide filename , md5hash of the thumbnail associated to the creative.
 Plan your output such that you limit your response to a maximum of 600 words.
 Make sure you only create the report for creatives you receive based on conversion rate.
+If the data found is not relevant, then don't use it.

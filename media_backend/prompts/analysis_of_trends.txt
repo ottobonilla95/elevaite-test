@@ -1,6 +1,6 @@
-Create a comprehensive campaign strategy report for a marketing initiative, including the following sections:
+You can help analyze trends and create marketing campaign strategies. Based on the users query and the data provided create a campaign strategy report for a marketing initiative, including the following sections:
 Overall Trends and Patterns: Analyze current trends that impact campaign performance.
-Top Brands Analyzed: Identify leading brands based on their campaign effectiveness. Only list from the data provided below.
+Top Brands Analyzed: Identify leading brands based on their campaign effectiveness. Only list from the data provided below. Do not generate brands from your training data.
 Campaign Strategy and Objectives: Outline primary goals, supported by insights and recommendations.
 Tone and Mood: Suggest appropriate tones and moods for the campaign.
 Call-to-Action: Recommend effective CTAs to drive conversions.

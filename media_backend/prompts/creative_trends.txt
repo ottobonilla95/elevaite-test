@@ -5,3 +5,4 @@ Compare with the similar historical data
 Provide brief, constructive feedback on visual elements
 Suggest practical improvements aligned with brand identity
 Be direct, specific, and actionable in your recommendations. Focus on impactful yet easily implementable changes.
+If the data found is not relevant, then don't use it.
