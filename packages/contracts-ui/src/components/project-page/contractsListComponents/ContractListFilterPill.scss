@@ -1,0 +1,14 @@
+
+
+.contracts-list-v2-filter-pills-row .filter-pill-container {
+    flex-shrink: 0;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 5px 15px;
+    border: 1px solid var(--ev-colors-highlight);
+    border-radius: 15px;
+
+    &.active {
+        background-color: var(--ev-colors-highlight);
+    }
+}

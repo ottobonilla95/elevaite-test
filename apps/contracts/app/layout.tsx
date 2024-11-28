@@ -20,8 +20,7 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
 
 export const metadata: Metadata = {
   title: "Contract Co-Pilot",
-  description:
-    "Quickly discover and evaluate important data in your contracts and invoices.",
+  description: "Quickly discover and evaluate important data in your contracts and invoices.",
 };
 
 export default function RootLayout({ children }: RootLayoutProps): JSX.Element {
@@ -41,6 +40,7 @@ export default function RootLayout({ children }: RootLayoutProps): JSX.Element {
         <Providers>
           <NavBar
             breadcrumbLabels={breadcrumbLabels}
+            hideBreadcrumbs
             handleSearchInput={handleSearchInput}
             logOut={logOut}
             searchResults={[]}

@@ -1,13 +1,8 @@
 "use client";
-import { useState } from "react";
+import { type ContractObject, type ContractProjectObject, } from "../../interfaces";
 import { ContractsListV2 } from "./ContractsListV2";
-import { ProjectsList } from "./ProjectsList";
-import {
-  type ContractProjectObject,
-  type ContractObject,
-  type LoadingListObject,
-} from "../../interfaces";
 import "./ProjectsAndContracts.scss";
+import { ProjectsList } from "./ProjectsList";
 
 interface ProjectsAndContractsProps {
   projectId?: string;
@@ -16,24 +11,7 @@ interface ProjectsAndContractsProps {
   contracts: ContractObject[];
 }
 
-export function ProjectsAndContracts({
-  projects,
-  project,
-  contracts,
-  ...props
-}: ProjectsAndContractsProps): JSX.Element {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- testing
-  const [loading, setLoading] = useState<LoadingListObject>({
-    projects: undefined,
-    contracts: undefined,
-    submittingContract: false,
-    projectReports: {},
-    projectSettings: {},
-    contractEmphasis: {},
-    contractLineItems: {},
-    contractVerification: {},
-    deletingContract: false,
-  });
+export function ProjectsAndContracts({ projects, project, contracts, ...props }: ProjectsAndContractsProps): JSX.Element {
 
   return (
     <div
@@ -43,7 +21,6 @@ export function ProjectsAndContracts({
     >
       <div className="projects-and-contracts-container">
         <ProjectsList
-          loading={loading}
           projectId={props.projectId}
           projects={projects}
         />

@@ -1,39 +1,24 @@
-import {
-  CommonButton,
-  CommonCheckbox,
-  CommonModal,
-  ElevaiteIcons,
-} from "@repo/ui/components";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import "./ContractComparison.scss";
+import { CommonButton, CommonCheckbox, CommonModal, ElevaiteIcons, } from "@repo/ui/components";
 import { useRouter } from "next/navigation";
-import {
-  type LoadingListObject,
-  type ContractObject,
-  type ContractProjectObject,
-} from "../../interfaces";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { type ContractObject, type ContractProjectObject, } from "../../interfaces";
+import "./ContractComparison.scss";
 import { ContractComparisonBlock } from "./ContractComparisonBlock";
 
+
+
 interface ContractComparisonProps {
-  selectedContract: ContractObject;
-  secondarySelectedContract?: ContractObject;
-  contractsList: ContractObject[];
+  contract: ContractObject;
+  comparedContract?: ContractObject;
   projectId: string;
-  selectedProject: ContractProjectObject;
-  loading: LoadingListObject;
+  project: ContractProjectObject;
 }
 
-export function ContractComparison(
-  props: ContractComparisonProps
-): JSX.Element {
+export function ContractComparison(props: ContractComparisonProps): JSX.Element {
   const router = useRouter();
-
+  const scrollingRef = useRef(false);
   const [selectedContract, setSelectedContract] = useState<ContractObject>();
-  const [secondarySelectedContract, setSecondarySelectedContract] = useState<
-    ContractObject | undefined
-  >();
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- .
+  const [secondarySelectedContract, setSecondarySelectedContract] = useState<ContractObject | undefined>();
   const [isShowingMatching, setIsShowingMatching] = useState(false);
   const [isOverviewMinimized, setIsOverviewMinimized] = useState(false);
   const scrollableRefMain = useRef<HTMLDivElement>(null);
@@ -43,16 +28,18 @@ export function ContractComparison(
   const [isFullScreenCompare, setIsFullScreenCompare] = useState(false);
 
   useEffect(() => {
-    setSelectedContract(props.selectedContract);
-    setSecondarySelectedContract(props.secondarySelectedContract);
-  }, [props.secondarySelectedContract, props.selectedContract]);
+    setSelectedContract(props.contract);
+    if (props.comparedContract && typeof props.comparedContract !== "boolean") {
+      setSecondarySelectedContract(props.comparedContract);
+    }
+  }, [props.comparedContract, props.contract]);
 
   function handleHome(): void {
     router.push(`/${props.projectId}`);
   }
 
   function handleMainView(): void {
-    router.push(`/${props.projectId}/${props.selectedContract.id}/`);
+    router.push(`/${props.projectId}/${props.contract.id}/`);
   }
 
   function handleToggleOverview(): void {
@@ -67,18 +54,14 @@ export function ContractComparison(
     setIsFullScreenCompare(false);
   }
 
-  const scrollingRef = useRef(false);
-  const syncScroll = useCallback(
-    (source: HTMLDivElement, target: HTMLDivElement) => {
-      if (!scrollingRef.current) {
-        scrollingRef.current = true;
-        target.scrollLeft = source.scrollLeft;
-        target.scrollTop = source.scrollTop;
-        scrollingRef.current = false;
-      }
-    },
-    []
-  );
+  const syncScroll = useCallback((source: HTMLDivElement, target: HTMLDivElement) => {
+    if (!scrollingRef.current) {
+      scrollingRef.current = true;
+      target.scrollLeft = source.scrollLeft;
+      target.scrollTop = source.scrollTop;
+      scrollingRef.current = false;
+    }
+  }, []);
 
   const handleScrollMain = useCallback(() => {
     if (scrollableRefMain.current && scrollableRefSecondary.current) {
@@ -92,21 +75,17 @@ export function ContractComparison(
   }, [syncScroll]);
   const handleScrollMainFull = useCallback(() => {
     if (scrollableRefMainFull.current && scrollableRefSecondaryFull.current) {
-      syncScroll(
-        scrollableRefMainFull.current,
-        scrollableRefSecondaryFull.current
-      );
+      syncScroll(scrollableRefMainFull.current, scrollableRefSecondaryFull.current);
     }
   }, [syncScroll]);
   const handleScrollSecondaryFull = useCallback(() => {
     if (scrollableRefMainFull.current && scrollableRefSecondaryFull.current) {
-      syncScroll(
-        scrollableRefSecondaryFull.current,
-        scrollableRefMainFull.current
-      );
+      syncScroll(scrollableRefSecondaryFull.current, scrollableRefMainFull.current);
     }
   }, [syncScroll]);
 
+
+  
   return (
     <div className="contract-comparison-container">
       <div className="contract-comparison-header">
@@ -129,35 +108,34 @@ export function ContractComparison(
       </div>
 
       <ContractComparisonBlock
-        secondary={false}
-        contractsList={props.contractsList}
+        contract={selectedContract}
+        showValidatedItems={isShowingMatching}
+        contractsList={props.project.reports ?? []}
         projectId={props.projectId}
-        selectedContractId={props.selectedContract.id.toString()}
-        secondarySelectedContractId={props.secondarySelectedContract?.id.toString()}
-        selectedProject={props.selectedProject}
-        loading={props.loading}
+        selectedContractId={props.contract.id.toString()}
+        secondarySelectedContractId={props.comparedContract?.id.toString()}
+        selectedProject={props.project}
         isOverviewMinimized={isOverviewMinimized}
         onToggleOverview={handleToggleOverview}
         scrollRef={scrollableRefMain}
         onScroll={handleScrollMain}
         onFullScreenCompare={handleFullScreenCompare}
-        comparisonContract={selectedContract}
       />
 
       <ContractComparisonBlock
         secondary
-        contractsList={props.contractsList}
+        contract={secondarySelectedContract}
+        showValidatedItems={isShowingMatching}
+        contractsList={props.project.reports ?? []}
         projectId={props.projectId}
-        selectedContractId={props.selectedContract.id.toString()}
-        secondarySelectedContractId={props.secondarySelectedContract?.id.toString()}
-        selectedProject={props.selectedProject}
-        loading={props.loading}
+        selectedContractId={props.contract.id.toString()}
+        secondarySelectedContractId={props.comparedContract?.id.toString()}
+        selectedProject={props.project}
         isOverviewMinimized={isOverviewMinimized}
         onToggleOverview={handleToggleOverview}
         scrollRef={scrollableRefSecondary}
         onScroll={handleScrollSecondary}
         onFullScreenCompare={handleFullScreenCompare}
-        comparisonContract={secondarySelectedContract}
       />
 
       {!isFullScreenCompare ? undefined : (
@@ -172,13 +150,12 @@ export function ContractComparison(
               </CommonButton>
             </div>
             <ContractComparisonBlock
-              secondary={false}
-              contractsList={props.contractsList}
+              contract={selectedContract}
+              contractsList={props.project.reports ?? []}
               projectId={props.projectId}
-              selectedContractId={props.selectedContract.id.toString()}
-              secondarySelectedContractId={props.secondarySelectedContract?.id.toString()}
-              selectedProject={props.selectedProject}
-              loading={props.loading}
+              selectedContractId={props.contract.id.toString()}
+              secondarySelectedContractId={props.comparedContract?.id.toString()}
+              selectedProject={props.project}
               isOverviewMinimized={isOverviewMinimized}
               onToggleOverview={handleToggleOverview}
               scrollRef={scrollableRefMainFull}
@@ -187,12 +164,12 @@ export function ContractComparison(
             />
             <ContractComparisonBlock
               secondary
-              contractsList={props.contractsList}
+              contract={secondarySelectedContract}
+              contractsList={props.project.reports ?? []}
               projectId={props.projectId}
-              selectedContractId={props.selectedContract.id.toString()}
-              secondarySelectedContractId={props.secondarySelectedContract?.id.toString()}
-              selectedProject={props.selectedProject}
-              loading={props.loading}
+              selectedContractId={props.contract.id.toString()}
+              secondarySelectedContractId={props.comparedContract?.id.toString()}
+              selectedProject={props.project}
               isOverviewMinimized={isOverviewMinimized}
               onToggleOverview={handleToggleOverview}
               scrollRef={scrollableRefSecondaryFull}

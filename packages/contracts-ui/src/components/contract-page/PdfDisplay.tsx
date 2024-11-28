@@ -1,38 +1,19 @@
 import { CommonButton, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
+import { useRouter } from "next/navigation";
 import { type PDFDocumentProxy } from "pdfjs-dist";
-import {
-  type KeyboardEvent,
-  type MutableRefObject,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type KeyboardEvent, type MutableRefObject, useEffect, useRef, useState, } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { useResizeDetector } from "react-resize-detector";
-import { useRouter } from "next/navigation";
 import { useDebouncedCallback } from "../../helpers";
-import {
-  CONTRACT_TYPES,
-  type ContractProjectObject,
-  type ContractObject,
-} from "../../interfaces";
+import { type ContractObject, type ContractProjectObject } from "../../interfaces";
 import "./PdfDisplay.scss";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-interface PdfTabs {
-  value: CONTRACT_TYPES;
-  label: string;
-  isDisabled?: boolean;
-}
 
-const pdfTabsArrayDefault: PdfTabs[] = [
-  { value: CONTRACT_TYPES.VSOW, label: "VSOW" },
-  { value: CONTRACT_TYPES.PURCHASE_ORDER, label: "PO" },
-  { value: CONTRACT_TYPES.INVOICE, label: "Invoice" },
-];
+
 
 const useIntersectionObserver = (
   callback: IntersectionObserverCallback,
@@ -59,21 +40,18 @@ interface PdfDisplayProps {
   handleExpansion: () => void;
   isExpanded: boolean;
   projectId: string;
-  selectedContract: ContractObject;
-  selectedProject: ContractProjectObject;
+  contract?: ContractObject;
+  project?: ContractProjectObject;
+  file?: Blob;
 }
 
 export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [pdfReference, setPdfReference] = useState<string | File | null>(null);
+  const [pdfReference, setPdfReference] = useState<string | File | Blob | null>(null);
   const [pdfData, setPdfData] = useState<string>();
   const pageContainerRef = useRef<HTMLDivElement | null>(null);
-  const { width: pageContainerWidth } = useResizeDetector<HTMLDivElement>({
-    targetRef: pageContainerRef,
-    refreshMode: "debounce",
-    refreshRate: 200,
-  });
+  const { width: pageContainerWidth } = useResizeDetector<HTMLDivElement>({ targetRef: pageContainerRef, refreshMode: "debounce", refreshRate: 200, });
   const [pdfZoom, setPdfZoom] = useState<number | undefined>();
   const pageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [pagesAmount, setPagesAmount] = useState<number>();
@@ -81,13 +59,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
   const [inputNumber, setInputNumber] = useState("");
   const movePage = useRef(false);
 
-  // const [highlightTerms, setHighlightTerms] = useState<string[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- .
-  const [pdfTabsArray, setPdfTabsArray] =
-    useState<PdfTabs[]>(pdfTabsArrayDefault);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- .
-  const [selectedTab, setSelectedTab] = useState<CONTRACT_TYPES | undefined>();
-
+  
   const observer = useIntersectionObserver(
     (entries, obs) => {
       entries.forEach((entry) => {
@@ -106,24 +78,22 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     { threshold: 0.5 }
   );
 
+
+
   useEffect(() => {
-    if (!props.selectedContract) {
+    if (!props.contract) {
       setPdfData(undefined);
       return;
     }
-    if (props.selectedContract.file_ref !== pdfReference)
-      setPdfReference(props.selectedContract.file_ref);
-    setPdfTabsArray(getPdfTabsArray());
-    setSelectedTab(props.selectedContract.content_type);
-    // if (props.selectedContract.extractedData)
-    //     formatSearchTerms(props.selectedContract.extractedData);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- .
-  }, [props.selectedContract]);
+    if (props.file) setPdfReference(props.file);
+    else if (props.contract.file_ref !== pdfReference) setPdfReference(props.contract.file_ref);
+  }, [props.contract]);
+
 
   useEffect(() => {
     void formatPdfData(pdfReference);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- .
   }, [pdfReference]);
+
 
   useEffect(() => {
     if (!movePage.current) return;
@@ -134,20 +104,22 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     movePage.current = false;
   }, [pageNumber]);
 
-  async function formatPdfData(
-    fileReference: string | File | null
-  ): Promise<void> {
+
+
+
+  async function formatPdfData(fileReference: string | File | Blob | null): Promise<void> {
     setPagesAmount(undefined);
-    // TODO: If checksum is the same, don't change pdfData.
+    if (!props.project) return;
+    
     setIsLoading(true);
-    if (fileReference && props.selectedProject && props.selectedContract) {
+    if (fileReference && props.contract) {
       let file: string | File | Blob = fileReference;
       if (typeof file === "string") {
         const url = new URL(`${window.location.origin}/api/contracts/`);
-        url.searchParams.set("projectId", props.selectedProject.id.toString());
+        url.searchParams.set("projectId", props.project.id.toString());
         url.searchParams.set(
           "contractId",
-          props.selectedContract.id.toString()
+          props.contract.id.toString()
         );
         const response = await fetch(url, { method: "GET" });
         const blob = await response.blob();
@@ -166,35 +138,6 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     setIsLoading(false);
   }
 
-  // function formatSearchTerms(data: ContractExtractionDictionary): void {
-  //     const searchTerms: string[] = [];
-  //     // Iterate over each page in the dictionary
-  //     Object.entries(data).forEach(([pageKey, page]: [string, ContractExtractionPage]) => {
-  //         // Add the page key to search terms
-  //         searchTerms.push(pageKey);
-
-  //         // Iterate over each item on the page
-  //         Object.entries(page).forEach(([itemKey, pageItem]: [string, ContractExtractionPageItem]) => {
-  //             // Add the item key to search terms
-  //             searchTerms.push(itemKey);
-
-  //             if (typeof pageItem === "string") {
-  //                 // If it's a string, add it directly as a search term
-  //                 searchTerms.push(pageItem);
-  //             } else if (Array.isArray(pageItem)) {
-  //                 // If it's an array of objects, collect all keys and values from the objects
-  //                 pageItem.forEach((obj: Record<string, string>) => {
-  //                     Object.entries(obj).forEach(([key, value]) => {
-  //                         searchTerms.push(key);
-  //                         searchTerms.push(value);
-  //                     });
-  //                 });
-  //             }
-  //         });
-  //     });
-  //     // console.log("Search Terms", searchTerms);
-  //     setHighlightTerms(searchTerms);
-  // }
 
   function onClose(): void {
     router.push(`/${props.projectId}/`);
@@ -203,94 +146,6 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
   function onHover(): void {
     router.prefetch(`/${props.projectId}/`);
   }
-
-  function getPdfTabsArray(): PdfTabs[] {
-    const tabs: PdfTabs[] = [];
-    const contract = props.selectedContract;
-
-    tabs.push({
-      value: CONTRACT_TYPES.VSOW,
-      label: "VSOW",
-      isDisabled: !(
-        contract?.content_type === CONTRACT_TYPES.VSOW ||
-        Boolean(contract?.verification?.vsow?.length)
-      ),
-    });
-    tabs.push({
-      value: CONTRACT_TYPES.CSOW,
-      label: "CSOW",
-      isDisabled: !(
-        contract?.content_type === CONTRACT_TYPES.CSOW ||
-        Boolean(contract?.verification?.csow?.length)
-      ),
-    });
-    tabs.push({
-      value: CONTRACT_TYPES.PURCHASE_ORDER,
-      label: "PO",
-      isDisabled: !(
-        contract?.content_type === CONTRACT_TYPES.PURCHASE_ORDER ||
-        Boolean(contract?.verification?.po?.length)
-      ),
-    });
-    tabs.push({
-      value: CONTRACT_TYPES.INVOICE,
-      label: "Invoice",
-      isDisabled: !(
-        contract?.content_type === CONTRACT_TYPES.INVOICE ||
-        Boolean(contract?.verification?.invoice?.length)
-      ),
-    });
-    return tabs;
-  }
-
-  // function _handleTabSelection(passedTab: CONTRACT_TYPES): void {
-  //   setSelectedTab(passedTab);
-  //   switch (passedTab) {
-  //     case CONTRACT_TYPES.INVOICE: {
-  //       if (
-  //         props.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE &&
-  //         props.selectedContract?.verification?.invoice?.[0]?.file_id
-  //       )
-  //         setSelectedContractById(
-  //           props.selectedContract.verification.invoice[0].file_id
-  //         );
-  //       break;
-  //     }
-  //     case CONTRACT_TYPES.PURCHASE_ORDER: {
-  //       if (
-  //         props.selectedContract?.content_type !==
-  //           CONTRACT_TYPES.PURCHASE_ORDER &&
-  //         props.selectedContract?.verification?.po?.[0]?.file_id
-  //       )
-  //         setSelectedContractById(
-  //           props.selectedContract.verification.po[0].file_id
-  //         );
-  //       break;
-  //     }
-  //     case CONTRACT_TYPES.VSOW: {
-  //       if (
-  //         props.selectedContract?.content_type !== CONTRACT_TYPES.VSOW &&
-  //         props.selectedContract?.verification?.vsow?.[0]?.file_id
-  //       )
-  //         setSelectedContractById(
-  //           props.selectedContract.verification.vsow[0].file_id
-  //         );
-  //       break;
-  //     }
-  //     case CONTRACT_TYPES.CSOW: {
-  //       if (
-  //         props.selectedContract?.content_type !== CONTRACT_TYPES.CSOW &&
-  //         props.selectedContract?.verification?.csow?.[0]?.file_id
-  //       )
-  //         setSelectedContractById(
-  //           props.selectedContract.verification.csow[0].file_id
-  //         );
-  //       break;
-  //     }
-  //     default:
-  //       break;
-  //   }
-  // }
 
   function handleExpansion(): void {
     props.handleExpansion();
@@ -451,22 +306,6 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
           </div>
         )}
       </div>
-
-      {/* <div className="tabs-container">
-                {pdfTabsArray.map((item: {label: string, value: CONTRACT_TYPES, isDisabled?: boolean}) => 
-                    <CommonButton
-                        key={item.value}
-                        className={[
-                            "tab-button",
-                            selectedTab === item.value ? "active" : undefined,
-                        ].filter(Boolean).join(" ")}
-                        onClick={() => { handleTabSelection(item.value) }}
-                        disabled={item.isDisabled}
-                    >
-                        {item.label}
-                    </CommonButton>
-                )}
-            </div> */}
 
       <div
         ref={pageContainerRef}

@@ -36,6 +36,13 @@
             & .tab-button {
                 padding: 5px 20px;
             }
+
+            & .comparison-button {
+                font-size: 14px;
+                font-weight: 400;
+                background-color: var(--ev-colors-highlight);
+                padding: 5px 10px;
+            }
         }
 
         & .expansion-arrow {

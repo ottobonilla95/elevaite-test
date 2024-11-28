@@ -4,133 +4,69 @@ import { useRouter } from "next/navigation";
 import { CONTRACT_TYPES, type ContractObject } from "../../interfaces";
 import "./ComparisonSelect.scss";
 
-function useHandleSelection(
-  secondary: boolean | undefined,
-  projectId: string,
-  primaryContractId: string | number | undefined,
-  secondaryContractId: string | number | undefined
-) {
-  const router = useRouter();
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Wrapper function
-  return (value: string, label: string) => {
-    if (isNaN(Number(value))) {
-      return;
-    }
 
-    if (secondary && primaryContractId && primaryContractId !== value) {
-      router.push(`/${projectId}/${primaryContractId}/compare/${value}`);
-    } else if (secondaryContractId !== value)
-      router.push(`/${projectId}/${value}/compare/${secondaryContractId}`);
-  };
-}
 
 interface ComparisonSelectProps {
   secondary?: boolean;
   listFor?: CONTRACT_TYPES;
-  comparisonContract?: ContractObject;
-  selectedContractId: string;
-  secondarySelectedContractId?: string;
+  contractId: string;
+  comparedContractId?: string;
   projectId: string;
   contractsList: ContractObject[];
 }
 
 export function ComparisonSelect(props: ComparisonSelectProps): JSX.Element {
-  const [selectedContract, setSelectedContract] = useState<
-    ContractObject | undefined
-  >();
-  const [contractOptions, setContractOptions] = useState<CommonSelectOption[]>(
-    []
-  );
+  const router = useRouter();
+  const [contractOptions, setContractOptions] = useState<CommonSelectOption[]>([]);
 
-  const handleSelection = useHandleSelection(
-    props.secondary,
-    props.projectId,
-    props.selectedContractId,
-    props.secondarySelectedContractId
-  );
 
   useEffect(() => {
-    setSelectedContract(props.comparisonContract);
     formatContractOptions(props.listFor);
   }, [props.listFor]);
 
+
+
+  function handleSelection(value: string): void {
+    if (value.toLowerCase().includes("separator")) return;
+    if (props.secondary) {
+      if (value === props.comparedContractId) return;
+      router.push(`/${props.projectId}/${props.contractId}/compare/${value}`);
+    } else {
+      if (value === props.contractId) return;
+      router.push(`/${[props.projectId, value, "compare", props.comparedContractId ?? undefined].filter(Boolean).join("/")}`)
+    }
+  }
+
+
+
+
   function formatContractOptions(type?: CONTRACT_TYPES): void {
     const options: CommonSelectOption[] = [];
-    props.contractsList.filter((report) =>
-      !type ? report : report.content_type !== type
-    );
-    if (props.contractsList.length === 0) {
+    const contracts = props.contractsList.filter((report) => !type ? report : report.content_type !== type);
+    if (contracts.length === 0) {
       setContractOptions(options);
       return;
     }
-    const vsow = props.contractsList.filter(
-      (contract) => contract.content_type === CONTRACT_TYPES.VSOW
-    );
+    const vsow = contracts.filter(contract => contract.content_type === CONTRACT_TYPES.VSOW);
     if (vsow.length > 0) {
-      options.push({
-        value: "separatorVsow",
-        label: "VSOW",
-        isSeparator: true,
-      });
-      options.push(
-        ...sortByLabelOrFileName(vsow).map((item) => {
-          return {
-            value: item.id.toString(),
-            label: item.label ?? item.filename,
-          };
-        })
-      );
+        options.push({value: "separatorVsow", label: "VSOW", isSeparator: true});
+        options.push(...sortByLabelOrFileName(vsow).map(item => { return { value: item.id.toString(), label: item.label ?? item.filename, }; } ));
     }
-    const csow = props.contractsList.filter(
-      (contract) => contract.content_type === CONTRACT_TYPES.CSOW
-    );
+    const csow = contracts.filter(contract => contract.content_type === CONTRACT_TYPES.CSOW);
     if (csow.length > 0) {
-      options.push({
-        value: "separatorCsow",
-        label: "CSOW",
-        isSeparator: true,
-      });
-      options.push(
-        ...sortByLabelOrFileName(csow).map((item) => {
-          return {
-            value: item.id.toString(),
-            label: item.label ?? item.filename,
-          };
-        })
-      );
+        options.push({value: "separatorCsow", label: "CSOW", isSeparator: true});
+        options.push(...sortByLabelOrFileName(csow).map(item => { return { value: item.id.toString(), label: item.label ?? item.filename, }; } ));
     }
-    const po = props.contractsList.filter(
-      (contract) => contract.content_type === CONTRACT_TYPES.PURCHASE_ORDER
-    );
+    const po = contracts.filter(contract => contract.content_type === CONTRACT_TYPES.PURCHASE_ORDER);
     if (po.length > 0) {
-      options.push({ value: "separatorPo", label: "PO", isSeparator: true });
-      options.push(
-        ...sortByLabelOrFileName(po).map((item) => {
-          return {
-            value: item.id.toString(),
-            label: item.label ?? item.filename,
-          };
-        })
-      );
+        options.push({value: "separatorPo", label: "PO", isSeparator: true});
+        options.push(...sortByLabelOrFileName(po).map(item => { return { value: item.id.toString(), label: item.label ?? item.filename, }; } ));
     }
-    const invoice = props.contractsList.filter(
-      (contract) => contract.content_type === CONTRACT_TYPES.INVOICE
-    );
+    const invoice = contracts.filter(contract => contract.content_type === CONTRACT_TYPES.INVOICE);
     if (invoice.length > 0) {
-      options.push({
-        value: "separatorInvoice",
-        label: "Invoices",
-        isSeparator: true,
-      });
-      options.push(
-        ...sortByLabelOrFileName(invoice).map((item) => {
-          return {
-            value: item.id.toString(),
-            label: item.label ?? item.filename,
-          };
-        })
-      );
+        options.push({value: "separatorInvoice", label: "Invoices", isSeparator: true});
+        options.push(...sortByLabelOrFileName(invoice).map(item => { return { value: item.id.toString(), label: item.label ?? item.filename, }; } ));
     }
 
     setContractOptions(options);
@@ -144,15 +80,17 @@ export function ComparisonSelect(props: ComparisonSelectProps): JSX.Element {
       return list;
     }
   }
+  
 
   return (
     <div className="comparison-select-container">
       <CommonSelect
         options={contractOptions}
         onSelectedValueChange={handleSelection}
-        controlledValue={selectedContract?.id.toString() ?? ""}
+        controlledValue={props.secondary ? (props.comparedContractId ?? undefined) : props.contractId}
         showTitles
         showSelected
+        noSelectionMessage="Select a file to compare with"
       />
     </div>
   );

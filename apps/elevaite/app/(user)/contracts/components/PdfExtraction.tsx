@@ -42,11 +42,11 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
         // contractsContext.changeSelectedContractBit(pageKey as `page_${number}`, itemKey, newValue);
     }
 
-    function handleTableBitChange(pageKey: string, tableKey: string, newTableData: Record<string, string>[]): void {
-        const pagePattern = /^page_\d+$/;
-        if (!pagePattern.test(pageKey)) return;
-        // contractsContext.changeSelectedContractTableBit(pageKey as `page_${number}`, tableKey, newTableData);
-    }
+    // function handleTableBitChange(pageKey: string, tableKey: string, newTableData: Record<string, string>[]): void {
+    //     const pagePattern = /^page_\d+$/;
+    //     if (!pagePattern.test(pageKey)) return;
+    //     // contractsContext.changeSelectedContractTableBit(pageKey as `page_${number}`, tableKey, newTableData);
+    // }
 
     function handleComparison(): void {
         if (!contractsContext.selectedContract) return;
@@ -194,7 +194,6 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
                         :
                         <CommonButton
                             onClick={handleManualApproval}
-                        // disabled
                         >
                             Approve
                         </CommonButton>
