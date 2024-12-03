@@ -1,0 +1,56 @@
+
+
+.chatbot-input-container {
+    flex-shrink: 0;
+    height: 100px;
+
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+
+    background-color: var(--ev-colors-primary);
+    border-radius: 8px;
+
+
+    &.loading {
+        & .chatbot-input-field svg {
+            color: var(--ev-colors-text);
+        }
+    }
+
+
+    & .chatbot-input-field {
+        flex-grow: 1;
+        padding: 10px 15px;
+        border-radius: 8px;
+        background-color: var(--ev-colors-background);
+
+        &:focus-within {
+            border-color: var(--ev-colors-highlight);
+        }
+
+        & button {            
+            height: 28px;
+            width: 28px;
+        }
+
+        & svg {
+            color: var(--ev-colors-highlight);
+        }
+    }
+
+
+    & .export-button {
+        flex-shrink: 0;
+        background-color: var(--ev-colors-secondary);
+        color: var(--ev-colors-text);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+}

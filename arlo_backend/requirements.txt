@@ -1,0 +1,9 @@
+dsrag==0.3.8
+langchain-openai
+langchain-community
+bs4
+nltk
+trafilatura
+lxml_html_clean
+psycopg2-binary==2.9.10
+sqlalchemy==2.0.36

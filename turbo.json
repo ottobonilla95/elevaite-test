@@ -28,7 +28,8 @@
     "ELEVAITE_HOMEPAGE",
     "ORG_ID",
     "RBAC_BACKEND_URL",
-    "NODE_TLS_REJECT_UNAUTHORIZED"
+    "NODE_TLS_REJECT_UNAUTHORIZED",
+    "ARLO_BACKEND_URL"
   ],
   "tasks": {
     "build": {
