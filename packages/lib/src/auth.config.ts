@@ -1,6 +1,6 @@
 import type { DefaultSession, NextAuthConfig } from "next-auth";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Needed to augment
-import { JWT } from "next-auth/jwt"
+import { JWT } from "next-auth/jwt";
 
 declare module "next-auth/jwt" {
   interface JWT {
@@ -13,17 +13,18 @@ declare module "next-auth/jwt" {
 declare module "next-auth" {
   interface Session {
     error?: "RefreshAccessTokenError";
-    user?: { accountMemberships?: UserAccountMembershipObject[], rbacId?: string } & DefaultSession["user"]
+    user?: {
+      accountMemberships?: UserAccountMembershipObject[];
+      rbacId?: string;
+    } & DefaultSession["user"];
   }
 
   interface User {
     accessToken?: string;
     givenName?: string;
     familyName?: string;
-
   }
 }
-
 
 const _config = {
   callbacks: {
@@ -68,29 +69,27 @@ const _config = {
         });
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Following docs! https://authjs.dev/guides/refresh-token-rotation#jwt-strategy
-        const tokensOrError = await response.json()
+        const tokensOrError = await response.json();
 
-        if (!response.ok) throw tokensOrError
+        if (!response.ok) throw tokensOrError;
 
         const newTokens = tokensOrError as {
-          access_token: string
-          expires_in: number
-          refresh_token?: string
-        }
-        token.access_token = newTokens.access_token
-        token.expires_at = Math.floor(
-          Date.now() / 1000 + newTokens.expires_in
-        )
+          access_token: string;
+          expires_in: number;
+          refresh_token?: string;
+        };
+        token.access_token = newTokens.access_token;
+        token.expires_at = Math.floor(Date.now() / 1000 + newTokens.expires_in);
         // Some providers only issue refresh tokens once, so preserve if we did not get a new one
         if (newTokens.refresh_token)
-          token.refresh_token = newTokens.refresh_token
-        return token
+          token.refresh_token = newTokens.refresh_token;
+        return token;
       } catch (error) {
         // eslint-disable-next-line no-console -- Need this in case it fails
-        console.error("Error refreshing access_token", error)
+        console.error("Error refreshing access_token", error);
         // If we fail to refresh the token, return an error so we can handle it on the page
-        token.error = "RefreshAccessTokenError"
-        return token
+        token.error = "RefreshAccessTokenError";
+        return token;
       }
     },
     async session({ session, token, user }) {
@@ -98,7 +97,7 @@ const _config = {
       session.user ? (session.user.id = token.sub ?? user.id) : null;
       Object.assign(session, { authToken: token.access_token });
       Object.assign(session, { error: token.error });
-      const authToken = token.access_token
+      const authToken = token.access_token;
       const RBAC_URL = process.env.RBAC_BACKEND_URL;
       if (!RBAC_URL)
         throw new Error("RBAC_BACKEND_URL does not exist in the env");
@@ -131,7 +130,7 @@ const _config = {
         const response = await fetch(url, {
           method: "GET",
           headers,
-          cache: "no-store"
+          cache: "no-store",
         });
         if (!response.ok) {
           if (response.status === 422) {
@@ -143,9 +142,11 @@ const _config = {
         }
         const fullUser: unknown = await response.json();
         if (isUserObject(fullUser)) {
-          Object.assign(session.user, { accountMemberships: fullUser.account_memberships })
-          Object.assign(session.user, { roles: fullUser.roles })
-          Object.assign(session.user, { rbacId: fullUser.id })
+          Object.assign(session.user, {
+            accountMemberships: fullUser.account_memberships,
+          });
+          Object.assign(session.user, { roles: fullUser.roles });
+          Object.assign(session.user, { rbacId: fullUser.id });
         }
       }
       return session;
@@ -175,7 +176,8 @@ function isDBUser(obj: unknown): obj is DBUser {
 }
 
 function isUserObject(item: unknown): item is UserObject {
-  return isObject(item) &&
+  return (
+    isObject(item) &&
     "id" in item &&
     "organization_id" in item &&
     "firstname" in item &&
@@ -183,7 +185,8 @@ function isUserObject(item: unknown): item is UserObject {
     "email" in item &&
     "is_superadmin" in item &&
     "created_at" in item &&
-    "updated_at" in item;
+    "updated_at" in item
+  );
 }
 
 interface UserObject {
