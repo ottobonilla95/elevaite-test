@@ -483,6 +483,7 @@ class PermissionsEvaluationResponse(BaseModel):
 
 class iDPType(str, Enum):
     GOOGLE = "google"
+    CREDENTIALS = "credentials"
 
 
 class AuthType(str, Enum):
