@@ -40,8 +40,8 @@ class GoogleIDP(IDPInterface):
 class FusionAuthIDP(IDPInterface):
     _config = {
         "ENDPOINTS": {
-            "GET_USER_INFO": f"{os.getenv('FUSIONAUTH_URL')}/oauth2/userinfo",
-            "OPENID_CONFIG": f"{os.getenv('FUSIONAUTH_URL')}/.well-known/openid-configuration",
+            "GET_USER_INFO": f"{os.getenv('FUSIONAUTH_URL', '').strip().rstrip('/')}/oauth2/userinfo",
+            "OPENID_CONFIG": f"{os.getenv('FUSIONAUTH_URL', '').strip().rstrip('/')}/.well-known/openid-configuration",
         },
     }
 
@@ -49,15 +49,39 @@ class FusionAuthIDP(IDPInterface):
         """
         Retrieves the user's email address using the provided access token.
         """
+        FUSIONAUTH_URL = os.getenv("FUSIONAUTH_URL", "").strip()
+        if not FUSIONAUTH_URL:
+            raise Exception("FUSIONAUTH_URL environment variable must be set.")
+
+        # Validate URL protocol
+        if not (
+            FUSIONAUTH_URL.startswith("http://")
+            or FUSIONAUTH_URL.startswith("https://")
+        ):
+            raise Exception("FUSIONAUTH_URL must start with 'http://' or 'https://'.")
+
         try:
             headers = {"Authorization": f"Bearer {access_token}"}
+            user_info_url = self._config["ENDPOINTS"]["GET_USER_INFO"]
+            print(f"Requesting user info from: {user_info_url}")
+
+            # We use verify=True for https and False for http to avoid SSL verification on http
+            verify_ssl = FUSIONAUTH_URL.startswith("https://")
             response = requests.get(
-                self._config["ENDPOINTS"]["GET_USER_INFO"] or "", headers=headers
+                user_info_url,
+                headers=headers,
+                timeout=10,
+                verify=verify_ssl,
             )
-            response.raise_for_status()  # We ensure any HTTP error codes are raised as exceptions
+
+            print(f"Response status: {response.status_code}")
+            if response.status_code != 200:
+                print(f"Error response: {response.text}")
+                raise ApiError.unauthorized("Failed to retrieve user info")
 
             response_data = response.json()
 
+            # We check for error fields explicitly in the response
             if "error" in response_data:
                 raise ApiError.unauthorized("Invalid or expired auth credentials")
 
@@ -66,8 +90,16 @@ class FusionAuthIDP(IDPInterface):
                 raise ApiError.notfound("Email not found in user information response")
 
             return email
-        except HTTPException as e:
-            raise e
+        except requests.Timeout:
+            print("FusionAuth API timeout error")
+            raise ApiError.serviceunavailable(
+                "The server is currently unavailable, please try again later."
+            )
+        except requests.exceptions.SSLError as ssl_error:
+            print(f"SSL error occurred: {ssl_error}")
+            raise ApiError.serviceunavailable(
+                "SSL connection failed. Please try again later."
+            )
         except requests.RequestException as e:
             print(f"FusionAuth API error: {e}")
             raise ApiError.serviceunavailable(
