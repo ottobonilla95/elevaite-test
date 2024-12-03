@@ -1,6 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import { stockConfig } from "@repo/lib";
-import { registerToBackend } from "./app/lib/rbacActions";
+import { IDP, registerToBackend } from "./app/lib/rbacActions";
 
 function getDomainWithoutSubdomain(url: string | URL): string {
   const urlParts = new URL(url).hostname.split(".");
@@ -53,9 +53,10 @@ export const authConfig = {
     },
     async signIn(params) {
       const email = params.profile?.email ?? params.user.email;
-      const firstName = params.profile?.given_name;
-      const lastName = params.profile?.family_name;
-      const authToken = params.account?.access_token;
+      const firstName = params.profile?.given_name ?? params.user.givenName;
+      const lastName = params.profile?.family_name ?? params.user.familyName;
+      const authToken = params.account?.access_token ?? params.user.accessToken;
+      console.dir(params);
       if (!email || !firstName || !lastName || !authToken)
         throw new Error("Missing identifier in provider response", {
           cause: { email, firstName, lastName, authToken },
@@ -67,6 +68,7 @@ export const authConfig = {
           firstName,
           lastName,
           authToken,
+          idp: params.profile ? IDP.GOOGLE : IDP.CREDENTIALS
         });
       } catch (error) {
         // eslint-disable-next-line no-console -- Temporary

@@ -59,13 +59,17 @@ export const authOptions: NextAuthConfig = {
 
           try {
             const res = await fusionClient.login(loginRequest);
+            console.dir(res.response)
             const _user = res.response.user;
             if (!_user?.id) return null;
             return {
               id: _user.id,
               email: _user.email,
               image: _user.imageUrl,
-              name: _user.fullName,
+              name: _user.fullName ?? `${_user.firstName} ${_user.lastName}`,
+              givenName: _user.firstName,
+              familyName: _user.lastName,
+              accessToken: res.response.token
             } satisfies User;
           } catch (error) {
             return null;

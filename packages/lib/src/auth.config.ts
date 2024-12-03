@@ -15,6 +15,13 @@ declare module "next-auth" {
     error?: "RefreshAccessTokenError";
     user?: { accountMemberships?: UserAccountMembershipObject[], rbacId?: string } & DefaultSession["user"]
   }
+
+  interface User {
+    accessToken?: string;
+    givenName?: string;
+    familyName?: string;
+
+  }
 }
 
 

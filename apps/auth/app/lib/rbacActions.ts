@@ -4,16 +4,23 @@ import { isDBUser } from "./interfaces";
 const RBAC_BACKEND_URL = process.env.RBAC_BACKEND_URL;
 // const ORG_ID = process.env.ORG_ID;
 
+export enum IDP {
+  GOOGLE = "google",
+  CREDENTIALS = "credentials"
+}
+
 export async function registerToBackend({
   firstName,
   lastName,
   // email,
   authToken,
+  idp,
 }: {
   firstName: string;
   lastName: string;
   // email: string;
   authToken: string;
+  idp: IDP;
 }): Promise<DBUser> {
   if (!RBAC_BACKEND_URL)
     throw new Error("RBAC_BACKEND_URL does not exist in the env");
@@ -21,6 +28,7 @@ export async function registerToBackend({
   const headers = new Headers();
   headers.append("Content-Type", "application/json");
   headers.append("Authorization", `Bearer ${authToken}`);
+  headers.append("idp", idp)
   const body = JSON.stringify({
     // org_id: ORG_ID,
     firstname: firstName,
