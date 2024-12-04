@@ -15,9 +15,9 @@ class TokenRefreshError extends Error {
 
 declare module "next-auth/jwt" {
   interface JWT {
-    access_token: string;
+    access_token: string | undefined;
     expires_at: number;
-    refresh_token: string;
+    refresh_token: string | undefined;
     provider: "google" | "credentials";
     error?: "RefreshAccessTokenError";
   }
@@ -55,7 +55,7 @@ async function refreshGoogleToken(token: JWT): Promise<JWT> {
       client_id: GOOGLE_CLIENT_ID,
       client_secret: GOOGLE_CLIENT_SECRET,
       grant_type: "refresh_token",
-      refresh_token: token.refresh_token,
+      refresh_token: token.refresh_token ?? token.access_token ?? "",
     }),
     method: "POST",
   });
@@ -110,7 +110,7 @@ async function refreshFusionAuthToken(token: JWT): Promise<JWT> {
       client_id: FUSIONAUTH_CLIENT_ID,
       client_secret: FUSIONAUTH_CLIENT_SECRET,
       grant_type: "refresh_token",
-      refresh_token: token.refresh_token,
+      refresh_token: token.refresh_token ?? token.access_token ?? "",
     }),
     method: "POST",
   });
@@ -152,15 +152,11 @@ const _config = {
         if (account.provider === "google") {
           return {
             ...token,
-            access_token: account.access_token
-              ? account.access_token
-              : "no_token",
+            access_token: account.access_token,
             expires_at: Math.floor(
               Date.now() / 1000 + (account.expires_in ?? 0)
             ),
-            refresh_token: account.refresh_token
-              ? account.refresh_token
-              : "no_token",
+            refresh_token: account.refresh_token,
             provider: "google",
           };
         }
@@ -168,15 +164,11 @@ const _config = {
         if (account.provider === "credentials") {
           return {
             ...token,
-            access_token: account.access_token
-              ? account.access_token
-              : "no_token",
+            access_token: account.access_token,
             expires_at: Math.floor(
               Date.now() / 1000 + (account.expires_in ?? 0)
             ),
-            refresh_token: account.refresh_token
-              ? account.refresh_token
-              : "no_token",
+            refresh_token: account.refresh_token,
             provider: "credentials",
           };
         }
@@ -215,7 +207,10 @@ const _config = {
       const registerURL = new URL(`${RBAC_URL}/auth/register`);
       const registerHeaders = new Headers();
       registerHeaders.append("Content-Type", "application/json");
-      registerHeaders.append("Authorization", `Bearer ${authToken}`);
+      registerHeaders.append(
+        "Authorization",
+        `Bearer ${authToken ? authToken : ""}`
+      );
       const body = JSON.stringify({
         // org_id: ORG_ID,
         firstname: "",
@@ -237,7 +232,7 @@ const _config = {
         const url = new URL(`${RBAC_URL}/users/${dbUser.id}/profile`);
         const headers = new Headers();
         headers.append("Content-Type", "application/json");
-        headers.append("Authorization", `Bearer ${authToken}`);
+        headers.append("Authorization", `Bearer ${authToken ? authToken : ""}`);
         const response = await fetch(url, {
           method: "GET",
           headers,
