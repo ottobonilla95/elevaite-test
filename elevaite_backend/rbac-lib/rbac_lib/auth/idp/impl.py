@@ -1,7 +1,11 @@
 import os
+from typing import Optional
 import requests
 from fastapi import HTTPException
+from fusionauth.fusionauth_client import FusionAuthClient
+
 from rbac_lib.utils.api_error import ApiError
+
 from .interface import IDPInterface
 
 
@@ -38,18 +42,15 @@ class GoogleIDP(IDPInterface):
 
 
 class FusionAuthIDP(IDPInterface):
-    _config = {
-        "ENDPOINTS": {
-            "GET_USER_INFO": f"{os.getenv('FUSIONAUTH_URL', '').strip().rstrip('/')}/oauth2/userinfo",
-            "OPENID_CONFIG": f"{os.getenv('FUSIONAUTH_URL', '').strip().rstrip('/')}/.well-known/openid-configuration",
-        },
-    }
-
-    def get_user_email(self, access_token: str):
+    def __init__(self):
         """
-        Retrieves the user's email address using the provided access token.
+        Initializes the FusionAuth client with the API key and checks for necessary configurations.
         """
+        FUSIONAUTH_API_KEY = os.getenv("FUSIONAUTH_API_KEY", "").strip()
         FUSIONAUTH_URL = os.getenv("FUSIONAUTH_URL", "").strip()
+
+        if not FUSIONAUTH_API_KEY:
+            raise Exception("FUSIONAUTH_API_KEY environment variable must be set.")
         if not FUSIONAUTH_URL:
             raise Exception("FUSIONAUTH_URL environment variable must be set.")
 
@@ -60,34 +61,30 @@ class FusionAuthIDP(IDPInterface):
         ):
             raise Exception("FUSIONAUTH_URL must start with 'http://' or 'https://'.")
 
+        self.client = FusionAuthClient(FUSIONAUTH_API_KEY, FUSIONAUTH_URL)
+
+    def get_user_email(self, access_token: str) -> Optional[str]:
+        """
+        Retrieves the user's email address using the provided access token.
+        """
         try:
-            headers = {"Authorization": f"Bearer {access_token}"}
-            user_info_url = self._config["ENDPOINTS"]["GET_USER_INFO"]
-            print(f"Requesting user info from: {user_info_url}")
+            # We use the FusionAuth SDK to interact with the /oauth2/userinfo endpoint
+            response = self.client.retrieve_user_using_jwt(access_token)
 
-            # We use verify=True for https and False for http to avoid SSL verification on http
-            verify_ssl = FUSIONAUTH_URL.startswith("https://")
-            response = requests.get(
-                user_info_url,
-                headers=headers,
-                timeout=10,
-                verify=verify_ssl,
-            )
+            if not response.was_successful():
+                print(f"FusionAuth error: {response.error_response}")
+                if response.status == 401:
+                    raise ApiError.unauthorized("Invalid or expired auth credentials.")
+                else:
+                    raise ApiError.serviceunavailable("Failed to retrieve user info.")
 
-            print(f"Response status: {response.status_code}")
-            if response.status_code != 200:
-                print(f"Error response: {response.text}")
-                raise ApiError.unauthorized("Failed to retrieve user info")
-
-            response_data = response.json()
-
-            # We check for error fields explicitly in the response
-            if "error" in response_data:
-                raise ApiError.unauthorized("Invalid or expired auth credentials")
-
-            email = response_data.get("email")
+            success_response = response.success_response
+            if not success_response:
+                raise ApiError.serviceunavailable("No success response received.")
+            user_info = success_response.get("user", {})
+            email = user_info.get("email")
             if not email:
-                raise ApiError.notfound("Email not found in user information response")
+                raise ApiError.notfound("Email not found in user information response.")
 
             return email
         except requests.Timeout:
