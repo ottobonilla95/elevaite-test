@@ -1,29 +1,24 @@
 "use client";
 import { useState } from "react";
+import { type ContractObject, type ContractProjectObject, } from "../../interfaces";
+import { ContractComparison } from "./ContractComparison";
 import "./PdfAndExtraction.scss";
-import {
-  type LoadingListObject,
-  type ContractObject,
-  type ContractProjectObject,
-} from "../../interfaces";
 import { PdfDisplay } from "./PdfDisplay";
 import { PdfExtraction } from "./PdfExtraction";
-import { ContractComparison } from "./ContractComparison";
+
 
 enum ExpandedPages {
   PDF = "pdf",
   DATA = "data",
 }
 
+
 interface PdfAndExtractionProps {
   projectId: string;
-  selectedProject: ContractProjectObject;
-  selectedContract: ContractObject;
-  secondarySelectedContract?: ContractObject;
-  contractsList: ContractObject[];
-  loading: LoadingListObject;
-  file: Blob;
-  comparisonScreen?: boolean;
+  project?: ContractProjectObject;
+  contract?: ContractObject;
+  comparedContract?: ContractObject | boolean;
+  file?: Blob;
 }
 
 export function PdfAndExtraction(props: PdfAndExtractionProps): JSX.Element {
@@ -42,45 +37,33 @@ export function PdfAndExtraction(props: PdfAndExtractionProps): JSX.Element {
 
   return (
     <div
-      className={[
-        "contracts-content",
-        props.selectedContract ? "active" : undefined,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className={["contracts-content", props.contract ? "active" : undefined].filter(Boolean).join(" ")}
     >
-      {props.selectedContract &&
-        (props.secondarySelectedContract || props.comparisonScreen) ? (
+      {props.contract &&
+        (props.comparedContract && props.project?.reports) ? (
         <ContractComparison
-          loading={props.loading}
           projectId={props.projectId}
-          selectedProject={props.selectedProject}
-          selectedContract={props.selectedContract}
-          secondarySelectedContract={props.secondarySelectedContract}
-          contractsList={props.contractsList}
+          project={props.project}
+          contract={props.contract}
+          comparedContract={typeof props.comparedContract === "boolean" ? undefined : props.comparedContract}
         />
       ) : (
         <div
-          className={[
-            "pdf-and-extraction-container",
-            expandedPage ? `expanded ${expandedPage}` : undefined,
-          ]
-            .filter(Boolean)
-            .join(" ")}
+          className={["pdf-and-extraction-container", expandedPage ? `expanded ${expandedPage}` : undefined].filter(Boolean).join(" ")}
         >
           <PdfDisplay
             projectId={props.projectId}
-            selectedContract={props.selectedContract}
-            selectedProject={props.selectedProject}
+            contract={props.contract}
+            project={props.project}
             handleExpansion={handlePdfExpansion}
             isExpanded={expandedPage === ExpandedPages.PDF}
+            file={props.file}
           />
           <PdfExtraction
-            loading={props.loading}
             projectId={props.projectId}
             handleExpansion={handleDataExpansion}
             isExpanded={expandedPage === ExpandedPages.DATA}
-            selectedContract={props.selectedContract}
+            contract={props.contract}
           />
         </div>
       )}

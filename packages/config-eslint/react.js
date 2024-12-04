@@ -37,7 +37,9 @@ module.exports = {
   // add rules configurations here
   rules: {
     "import/no-default-export": "off",
+    "react-hooks/exhaustive-deps": "off",
     "react/jsx-sort-props": [0, {}],
+    "@typescript-eslint/prefer-nullish-coalescing": "off",
     "unicorn/filename-case": [
       "error",
       {

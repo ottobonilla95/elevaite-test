@@ -1,0 +1,20 @@
+version: "3.8"
+services:
+  backend:
+    build: ./arlo_backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - searxng
+    environment:
+      - SEARXNG_URL=http://searxng:8080
+
+  searxng:
+    image: docker.io/searxng/searxng:latest
+    ports:
+      - 6000:8080
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:rw  
+
+
+

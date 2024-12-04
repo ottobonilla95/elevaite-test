@@ -1,65 +1,61 @@
 import { CommonButton, CommonDialog, ElevaiteIcons } from "@repo/ui/components";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  CONTRACT_TYPES,
-  type ContractObject,
-  type LoadingListObject,
-  type ContractExtractionDictionary,
-  ContractStatus,
-} from "../../interfaces";
+import { reprocessContract } from "../../actions/contractActions";
+import { CONTRACT_TYPES, type ContractExtractionDictionary, type ContractObject, ContractStatus, } from "../../interfaces";
 import { ExtractedBit } from "./extractionComponents/ExtractedBit";
 import { ExtractedTableBit } from "./extractionComponents/ExtractedTableBit";
 import { PdfExtractionEmphasis } from "./extractionComponents/PdfExtractionEmphasis";
 import { PdfExtractionVerification } from "./extractionComponents/PdfExtractionVerification";
 import "./PdfExtraction.scss";
-import { reprocessContract } from "../../actions/contractActions";
+
+
 
 enum ExtractionTabs {
   EXTRACTION = "Extraction",
   VERIFICATION = "Verification",
 }
 
+
 interface PdfExtractionProps {
   handleExpansion: () => void;
   isExpanded: boolean;
-  loading: LoadingListObject;
-  selectedContract?: ContractObject;
+  contract?: ContractObject;
   projectId: string;
 }
 
 export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
+  const router = useRouter();
   const [extractedBits, setExtractedBits] = useState<JSX.Element[]>([]);
-  const [isApprovalConfirmationOpen, setIsApprovalConfirmationOpen] =
-    useState(false);
-  const [selectedTab, setSelectedTab] = useState<ExtractionTabs>(
-    ExtractionTabs.EXTRACTION
-  );
-  useEffect(() => {
-    if (props.selectedContract?.response) {
-      setExtractedBits(getExtractedBits(props.selectedContract.response));
-    } else setExtractedBits([]);
-    if (!props.selectedContract?.verification)
-      setSelectedTab(ExtractionTabs.EXTRACTION);
-  }, [props.selectedContract, props.selectedContract?.response]);
+  const [isApprovalConfirmationOpen, setIsApprovalConfirmationOpen] = useState(false);
+  const [selectedTab, setSelectedTab] = useState<ExtractionTabs>(ExtractionTabs.EXTRACTION);
 
-  function handleBitChange(
-    _pageKey: string,
-    _itemKey: string,
-    _newValue: string
-  ): void {
+
+  useEffect(() => {
+    if (props.contract?.response) {
+      setExtractedBits(getExtractedBits(props.contract.response));
+    } else setExtractedBits([]);
+    if (!props.contract?.verification)
+      setSelectedTab(ExtractionTabs.EXTRACTION);
+  }, [props.contract, props.contract?.response]);
+
+
+
+  function handleBitChange(_pageKey: string, _itemKey: string, _newValue: string): void {
     // const pagePattern = /^page_\d+$/;
     // if (!pagePattern.test(pageKey)) return;
     // contractsContext.changeSelectedContractBit(pageKey as `page_${number}`, itemKey, newValue);
   }
 
-  function _handleTableBitChange(
-    _pageKey: string,
-    _tableKey: string,
-    _newTableData: Record<string, string>[]
-  ): void {
+  function _handleTableBitChange(_pageKey: string, _tableKey: string, _newTableData: Record<string, string>[]): void {
     // const pagePattern = /^page_\d+$/;
     // if (!pagePattern.test(pageKey)) return;
     // contractsContext.changeSelectedContractTableBit(pageKey as `page_${number}`, tableKey, newTableData);
+  }
+
+  function handleComparison(): void {
+    if (!props.contract) return;   
+    router.push(`/${props.projectId}/${props.contract.id}/compare`);
   }
 
   function handleManualApproval(): void {
@@ -71,15 +67,15 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
   }
 
   function handleReprocess(): void {
-    if (props.selectedContract)
-      reprocessContract(props.projectId, props.selectedContract.id.toString());
+    if (props.contract)
+      void reprocessContract(props.projectId, props.contract.id.toString());
   }
 
   function confimedApproval(): void {
     // eslint-disable-next-line no-console -- .
     console.log(
       "Handling manual approval of",
-      props.selectedContract?.label ?? props.selectedContract?.filename
+      props.contract?.label ?? props.contract?.filename
     );
     setIsApprovalConfirmationOpen(false);
   }
@@ -159,35 +155,23 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
 
   return (
     <div className="pdf-extraction-container">
+
       <div className="pdf-extraction-header">
         <div className="pdf-extraction-controls">
           <CommonButton
-            className={[
-              "expansion-arrow",
-              props.isExpanded ? "expanded" : undefined,
-            ]
-              .filter(Boolean)
-              .join(" ")}
+            className={["expansion-arrow", props.isExpanded ? "expanded" : undefined,].filter(Boolean).join(" ")}
             onClick={handleExpansion}
             noBackground
-            title={
-              props.isExpanded
-                ? "Restore views"
-                : "Maximize Extraction / Verification view"
-            }
+            title={props.isExpanded ? "Restore views" : "Maximize Extraction / Verification view"}
           >
             <ElevaiteIcons.SVGSideArrow />
           </CommonButton>
-          <div className="tabs-container">
+
+          <div className="extraction-label">{ExtractionTabs.EXTRACTION}</div>
+
+          {/* <div className="tabs-container">
             <CommonButton
-              className={[
-                "tab-button",
-                selectedTab === ExtractionTabs.EXTRACTION
-                  ? "active"
-                  : undefined,
-              ]
-                .filter(Boolean)
-                .join(" ")}
+              className={["tab-button", selectedTab === ExtractionTabs.EXTRACTION ? "active" : undefined,].filter(Boolean).join(" ")}
               onClick={() => {
                 setSelectedTab(ExtractionTabs.EXTRACTION);
               }}
@@ -196,14 +180,7 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
             </CommonButton>
             {!props.selectedContract?.verification ? undefined : (
               <CommonButton
-                className={[
-                  "tab-button",
-                  selectedTab === ExtractionTabs.VERIFICATION
-                    ? "active"
-                    : undefined,
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
+                className={["tab-button", selectedTab === ExtractionTabs.VERIFICATION ? "active" : undefined,].filter(Boolean).join(" ")}
                 onClick={() => {
                   setSelectedTab(ExtractionTabs.VERIFICATION);
                 }}
@@ -211,7 +188,14 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
                 {ExtractionTabs.VERIFICATION}
               </CommonButton>
             )}
-          </div>
+          </div> */}
+          <CommonButton
+              className="comparison-button"
+              onClick={handleComparison}
+              title="Compare this file with another"
+          >
+              Comparison
+          </CommonButton>
           <CommonButton
             className="reprocess-button"
             onClick={handleReprocess}
@@ -221,9 +205,9 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
             <ElevaiteIcons.SVGRefresh />
           </CommonButton>
         </div>
-        {props.selectedContract?.content_type !==
-          CONTRACT_TYPES.INVOICE ? undefined : props.selectedContract.verification
-            ?.verification_status === true ? (
+        {props.contract?.content_type !==
+          CONTRACT_TYPES.INVOICE ? undefined : 
+            props.contract.verification?.verification_status === true ? (
           <div className="approved-label">
             <ElevaiteIcons.SVGCheckmark />
             <span>Approved</span>
@@ -231,7 +215,6 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
         ) : (
           <CommonButton
             onClick={handleManualApproval}
-          // disabled
           >
             Approve
           </CommonButton>
@@ -243,12 +226,11 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
           {selectedTab === ExtractionTabs.EXTRACTION ? (
             <>
               <PdfExtractionEmphasis
-                loading={props.loading}
-                selectedContract={props.selectedContract}
+                selectedContract={props.contract}
               />
               {extractedBits.length === 0 ? (
                 <div className="empty-bits">
-                  {props.selectedContract?.status ===
+                  {props.contract?.status ===
                     ContractStatus.Extracting ? (
                     <>
                       <ElevaiteIcons.SVGSpinner />
@@ -264,16 +246,15 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
             </>
           ) : (
             <PdfExtractionVerification
-              loading={props.loading}
-              selectedContract={props.selectedContract}
+              selectedContract={props.contract}
             />
           )}
         </div>
       </div>
 
-      {!isApprovalConfirmationOpen || !props.selectedContract ? undefined : (
+      {!isApprovalConfirmationOpen || !props.contract ? undefined : (
         <CommonDialog
-          title={`Approve ${props.selectedContract.content_type}?`}
+          title={`Approve ${props.contract.content_type}?`}
           onConfirm={confimedApproval}
           disableConfirm
           onCancel={() => {
@@ -282,8 +263,8 @@ export function PdfExtraction(props: PdfExtractionProps): JSX.Element {
         >
           <div className="invoice-approval-dialog-contents">
             <div>
-              You will manually approve {props.selectedContract.content_type}{" "}
-              {props.selectedContract.label ?? props.selectedContract.filename}
+              You will manually approve {props.contract.content_type}{" "}
+              {props.contract.label ?? props.contract.filename}
             </div>
             <div className="warning">
               This functionality has not been implemented yet.

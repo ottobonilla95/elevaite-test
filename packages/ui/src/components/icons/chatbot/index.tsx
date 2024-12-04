@@ -16,6 +16,7 @@ import SVGDownloadExport from "./svgDownloadExport";
 import SVGThumbs from "./svgThumbs";
 import SVGUpload from "./svgUpload";
 import SVGPaperClip from "./svgPaperClip";
+import SVGRefresh from "./svgRefresh.tsx";
 
 
 
@@ -38,4 +39,5 @@ export const ChatbotIcons = {
     SVGSpinnerExport,
     SVGDownloadExport,
     SVGPaperClip,
+    SVGRefresh,
 };

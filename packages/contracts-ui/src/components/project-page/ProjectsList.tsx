@@ -1,24 +1,19 @@
 "use client";
 import { CommonButton, CommonModal, ElevaiteIcons } from "@repo/ui/components";
 import dayjs from "dayjs";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { type ContractProjectObject, } from "../../interfaces";
 import { AddProject } from "./AddProject";
-import {
-  type LoadingListObject,
-  type ContractProjectObject,
-} from "../../interfaces";
 import "./ProjectsList.scss";
 
-export function ProjectsList({
-  projects,
-  projectId,
-  loading,
-}: {
+
+interface ProjectsListProps {
   projects: ContractProjectObject[];
   projectId?: string;
-  loading: LoadingListObject;
-}): JSX.Element {
+}
+
+export function ProjectsList({ projects, projectId, }: ProjectsListProps ): JSX.Element {
   const [isProjectCreationOpen, setIsProjectCreationOpen] = useState(false);
 
   function handleAddProject(): void {
@@ -39,11 +34,7 @@ export function ProjectsList({
 
       <div className="projects-list-scroller">
         <div className="projects-list-contents">
-          {loading.projects ? (
-            <div className="loading-projects">
-              <ElevaiteIcons.SVGSpinner />
-            </div>
-          ) : projects.length === 0 ? (
+          {projects.length === 0 ? (
             <div className="no-projects">No Projects found</div>
           ) : (
             projects.map((project) => (

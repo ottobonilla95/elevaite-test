@@ -45,14 +45,12 @@ export function CommonSelect({
         else if (controlledValue !== undefined && controlledValue !== selectedOption?.value) {
             findAndSelectOption(controlledValue, true);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- We don't want this to trigger when selectedOption changes
     }, [controlledValue, options.length]);
 
     useEffect(() => {
         if (defaultValue) {
             findAndSelectOption(defaultValue);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Wtf? I don't want to run this based on the function...
     }, [isLoading, defaultValue, options.length]);
 
 

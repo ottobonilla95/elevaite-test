@@ -1,11 +1,11 @@
 "use client";
-import { User } from "next-auth";
+import { type User } from "next-auth";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useThemes } from "../../contexts/ColorContext";
-import { CommonButton, CommonDialog, CommonMenu, CommonMenuItem } from "../common";
+import { type CommonMenuItem, CommonButton, CommonDialog, CommonMenu } from "../common";
 import { ElevaiteIcons } from "../icons";
 import SVGHelp from "../icons/svgHelp";
 import { Searchbar } from "../search/Searchbar";
@@ -15,8 +15,14 @@ import "./Navbar.scss";
 
 
 
+interface NavbarMenuItem {
+  label: string;
+  onClick: () => void;
+}
+
 interface NavBarProps {
   breadcrumbLabels: Record<string, { label: string; link: string }>;
+  hideBreadcrumbs?: boolean;
   user?: User;
   handleSearchInput: (term: string) => void;
   searchResults: { key: string; link: string; label: string }[];
@@ -30,7 +36,7 @@ export function NavBar(props: NavBarProps): JSX.Element {
   const [breadcrumbItems, setBreadcrumbItems] = useState<BreadcrumbItem[]>([]);
   const [isHelpActive, setIsHelpActive] = useState(false);
   const [isLogoutRequestOpen, setIsLogoutRequestOpen] = useState(false);
-  const [userMenu, setUserMenu] = useState<CommonMenuItem<undefined>[]>([{ label: "Logout", onClick: () => { handleLogoutRequest(); } }]);
+  const [userMenu, setUserMenu] = useState<CommonMenuItem<NavbarMenuItem>[]>([{ label: "Logout", onClick: handleLogoutRequest }]);
 
 
 
@@ -40,7 +46,7 @@ export function NavBar(props: NavBarProps): JSX.Element {
 
   useEffect(() => {
     if (themesContext.themesList.length === 0) return;
-    const themesList: CommonMenuItem<undefined>[] = themesContext.themesList.map(item => { return {
+    const themesList: CommonMenuItem<NavbarMenuItem>[] = themesContext.themesList.map(item => { return {
       label: item.label,
       onClick: () => { handleThemeClick(item.id) }
     }});
@@ -88,7 +94,7 @@ export function NavBar(props: NavBarProps): JSX.Element {
         <CommonDialog
           title="Are you sure you want to log out?"
           onConfirm={handleLogout}
-          onCancel={() => setIsLogoutRequestOpen(false)}
+          onCancel={() => { setIsLogoutRequestOpen(false); }}
         />
       }
 
@@ -98,7 +104,7 @@ export function NavBar(props: NavBarProps): JSX.Element {
           <Link href="/">
             <ElevaiteIcons.SVGNavbarLogo />
           </Link>
-          <Breadcrumbs items={breadcrumbItems} />
+          {props.hideBreadcrumbs ? undefined : <Breadcrumbs items={breadcrumbItems} />}
         </div>
 
         <div className="navbar-right">
@@ -121,7 +127,7 @@ export function NavBar(props: NavBarProps): JSX.Element {
 
           {props.user?.name}
 
-          <CommonMenu
+          <CommonMenu<NavbarMenuItem>
             item={undefined}
             menu={userMenu}
             left

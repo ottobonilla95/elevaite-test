@@ -20,11 +20,11 @@ export function PdfExtractionEmphasis(props: PdfExtractionEmphasisProps): React.
     }, [contractsContext.selectedContract]);
     useEffect(() => {
         if (!props.secondary || typeof contractsContext.secondarySelectedContract !== "object") return;
-        setEmphasisData(contractsContext.secondarySelectedContract?.highlight);
+        setEmphasisData(contractsContext.secondarySelectedContract.highlight);
     }, [contractsContext.secondarySelectedContract]);
 
     return (
-        (props.secondary && contractsContext.loading.contractEmphasis[(typeof contractsContext.secondarySelectedContract === "object" && contractsContext.secondarySelectedContract?.id) ? contractsContext.secondarySelectedContract.id : ""]) ??
+        (props.secondary && contractsContext.loading.contractEmphasis[(typeof contractsContext.secondarySelectedContract === "object" && contractsContext.secondarySelectedContract.id) ? contractsContext.secondarySelectedContract.id : ""]) ??
             (!props.secondary && contractsContext.loading.contractEmphasis[contractsContext.selectedContract?.id ?? ""]) ?
             <div className={["pdf-extraction-emphasis-container", props.borderless ? "borderless" : undefined].filter(Boolean).join(" ")}>
                 <div className="loading"><ElevaiteIcons.SVGSpinner /></div>

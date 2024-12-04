@@ -7,7 +7,6 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { useResizeDetector } from "react-resize-detector";
 import { useContracts } from "../../../lib/contexts/ContractsContext";
 import { useDebouncedCallback } from "../../../lib/helpers";
-import { CONTRACT_TYPES, type ContractObject } from "../../../lib/interfaces";
 import "./PdfDisplay.scss";
 
 
@@ -15,17 +14,17 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 
 
 
-interface PdfTabs {
-    value: CONTRACT_TYPES,
-    label: string,
-    isDisabled?: boolean
-}
+// interface PdfTabs {
+//     value: CONTRACT_TYPES,
+//     label: string,
+//     isDisabled?: boolean
+// }
 
-const pdfTabsArrayDefault: PdfTabs[] = [
-    { value: CONTRACT_TYPES.VSOW, label: "VSOW" },
-    { value: CONTRACT_TYPES.PURCHASE_ORDER, label: "PO" },
-    { value: CONTRACT_TYPES.INVOICE, label: "Invoice" },
-];
+// const pdfTabsArrayDefault: PdfTabs[] = [
+//     { value: CONTRACT_TYPES.VSOW, label: "VSOW" },
+//     { value: CONTRACT_TYPES.PURCHASE_ORDER, label: "PO" },
+//     { value: CONTRACT_TYPES.INVOICE, label: "Invoice" },
+// ];
 
 
 interface PdfDisplayProps {
@@ -51,8 +50,8 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     const [inputNumber, setInputNumber] = useState("");
     const movePage = useRef(false);
     // const [highlightTerms, setHighlightTerms] = useState<string[]>([]);
-    const [pdfTabsArray, setPdfTabsArray] = useState<PdfTabs[]>(pdfTabsArrayDefault);
-    const [selectedTab, setSelectedTab] = useState<CONTRACT_TYPES | undefined>();
+    // const [pdfTabsArray, setPdfTabsArray] = useState<PdfTabs[]>(pdfTabsArrayDefault);
+    // const [selectedTab, setSelectedTab] = useState<CONTRACT_TYPES | undefined>();
 
 
     const observer = new IntersectionObserver(
@@ -81,8 +80,8 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
             return;
         }
         if (contractsContext.selectedContract.file_ref !== pdfReference) setPdfReference(contractsContext.selectedContract.file_ref);
-        setPdfTabsArray(getPdfTabsArray());
-        setSelectedTab(contractsContext.selectedContract.content_type);
+        // setPdfTabsArray(getPdfTabsArray());
+        // setSelectedTab(contractsContext.selectedContract.content_type);
         // if (contractsContext.selectedContract.extractedData)
         //     formatSearchTerms(contractsContext.selectedContract.extractedData);
     }, [contractsContext.selectedContract]);
@@ -163,63 +162,47 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
         contractsContext.setSelectedContract(undefined);
     }
 
-    function getPdfTabsArray(): PdfTabs[] {
-        const tabs: PdfTabs[] = [];
-        const contract = contractsContext.selectedContract;
+    // function getPdfTabsArray(): PdfTabs[] {
+    //     const tabs: PdfTabs[] = [];
+    //     const contract = contractsContext.selectedContract;
 
-        tabs.push({
-            value: CONTRACT_TYPES.VSOW,
-            label: "VSOW",
-            isDisabled: !(contract?.content_type === CONTRACT_TYPES.VSOW || Boolean(contract?.verification?.vsow?.length))
-        })
-        tabs.push({
-            value: CONTRACT_TYPES.CSOW,
-            label: "CSOW",
-            isDisabled: !(contract?.content_type === CONTRACT_TYPES.CSOW || Boolean(contract?.verification?.csow?.length))
-        })
-        tabs.push({
-            value: CONTRACT_TYPES.PURCHASE_ORDER,
-            label: "PO",
-            isDisabled: !(contract?.content_type === CONTRACT_TYPES.PURCHASE_ORDER || Boolean(contract?.verification?.po?.length))
-        })
-        tabs.push({
-            value: CONTRACT_TYPES.INVOICE,
-            label: "Invoice",
-            isDisabled: !(contract?.content_type === CONTRACT_TYPES.INVOICE || Boolean(contract?.verification?.invoice?.length))
-        })
-        return tabs;
-    }
+    //     tabs.push({value: CONTRACT_TYPES.VSOW, label: "VSOW", isDisabled: !(contract?.content_type === CONTRACT_TYPES.VSOW || Boolean(contract?.verification?.vsow?.length)) })
+    //     tabs.push({value: CONTRACT_TYPES.CSOW, label: "CSOW", isDisabled: !(contract?.content_type === CONTRACT_TYPES.CSOW || Boolean(contract?.verification?.csow?.length)) })
+    //     tabs.push({value: CONTRACT_TYPES.PURCHASE_ORDER, label: "PO", isDisabled: !(contract?.content_type === CONTRACT_TYPES.PURCHASE_ORDER || Boolean(contract?.verification?.po?.length)) })
+    //     tabs.push({value: CONTRACT_TYPES.INVOICE, label: "Invoice", isDisabled: !(contract?.content_type === CONTRACT_TYPES.INVOICE || Boolean(contract?.verification?.invoice?.length)) })
+    //     return tabs;
+    // }
 
-    function handleTabSelection(passedTab: CONTRACT_TYPES): void {
-        setSelectedTab(passedTab);
-        switch (passedTab) {
-            case CONTRACT_TYPES.INVOICE: {
-                if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE &&
-                    contractsContext.selectedContract?.verification?.invoice?.[0]?.file_id)
-                    contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.invoice[0].file_id);
-                break;
-            }
-            case CONTRACT_TYPES.PURCHASE_ORDER: {
-                if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.PURCHASE_ORDER &&
-                    contractsContext.selectedContract?.verification?.po?.[0]?.file_id)
-                    contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.po[0].file_id);
-                break;
-            }
-            case CONTRACT_TYPES.VSOW: {
-                if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.VSOW &&
-                    contractsContext.selectedContract?.verification?.vsow?.[0]?.file_id)
-                    contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.vsow[0].file_id);
-                break;
-            }
-            case CONTRACT_TYPES.CSOW: {
-                if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.CSOW &&
-                    contractsContext.selectedContract?.verification?.csow?.[0]?.file_id)
-                    contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.csow[0].file_id);
-                break;
-            }
-            default: break;
-        }
-    }
+    // function handleTabSelection(passedTab: CONTRACT_TYPES): void {
+    //     setSelectedTab(passedTab);
+    //     switch (passedTab) {
+    //         case CONTRACT_TYPES.INVOICE: {
+    //             if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.INVOICE &&
+    //                 contractsContext.selectedContract?.verification?.invoice?.[0]?.file_id)
+    //                 contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.invoice[0].file_id);
+    //             break;
+    //         }
+    //         case CONTRACT_TYPES.PURCHASE_ORDER: {
+    //             if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.PURCHASE_ORDER &&
+    //                 contractsContext.selectedContract?.verification?.po?.[0]?.file_id)
+    //                 contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.po[0].file_id);
+    //             break;
+    //         }
+    //         case CONTRACT_TYPES.VSOW: {
+    //             if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.VSOW &&
+    //                 contractsContext.selectedContract?.verification?.vsow?.[0]?.file_id)
+    //                 contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.vsow[0].file_id);
+    //             break;
+    //         }
+    //         case CONTRACT_TYPES.CSOW: {
+    //             if (contractsContext.selectedContract?.content_type !== CONTRACT_TYPES.CSOW &&
+    //                 contractsContext.selectedContract?.verification?.csow?.[0]?.file_id)
+    //                 contractsContext.setSelectedContractById(contractsContext.selectedContract.verification.csow[0].file_id);
+    //             break;
+    //         }
+    //         default: break;
+    //     }
+    // }
 
     function handleExpansion(): void {
         props.handleExpansion();
@@ -283,22 +266,22 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
 
 
 
-    function highlightPattern(text: string, patterns: (string | RegExp)[], ignoreCase = true): string {
-        let processedText = text;
-        patterns.forEach((pattern) => {
-            let regex: RegExp;
-            // If the pattern is a string, create a RegExp with optional case insensitivity
-            if (typeof pattern === "string") {
-                const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                regex = new RegExp(escapedPattern, ignoreCase ? 'gi' : 'g');
-            } else {
-                // If it's already a RegExp, respect its original flags
-                regex = new RegExp(pattern.source, pattern.flags + (ignoreCase && !pattern.flags.includes('i') ? 'i' : ''));
-            }
-            processedText = processedText.replace(regex, (value) => `<mark>${value}</mark>`);
-        });
-        return processedText;
-    }
+    // function highlightPattern(text: string, patterns: (string | RegExp)[], ignoreCase = true): string {
+    //     let processedText = text;
+    //     patterns.forEach((pattern) => {
+    //         let regex: RegExp;
+    //         // If the pattern is a string, create a RegExp with optional case insensitivity
+    //         if (typeof pattern === "string") {
+    //             const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    //             regex = new RegExp(escapedPattern, ignoreCase ? 'gi' : 'g');
+    //         } else {
+    //             // If it's already a RegExp, respect its original flags
+    //             regex = new RegExp(pattern.source, pattern.flags + (ignoreCase && !pattern.flags.includes('i') ? 'i' : ''));
+    //         }
+    //         processedText = processedText.replace(regex, (value) => `<mark>${value}</mark>`);
+    //     });
+    //     return processedText;
+    // }
 
     // const textRenderer = useCallback(
     //     (textItem: {str: string}) => highlightPattern(textItem.str, highlightTerms),

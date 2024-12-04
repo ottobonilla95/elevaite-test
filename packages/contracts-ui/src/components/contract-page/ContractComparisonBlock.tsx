@@ -1,17 +1,16 @@
-import { useEffect, useState } from "react";
-import "./ContractComparisonBlock.scss";
 import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
-import {
-  type LoadingListObject,
-  type ContractObject,
-  type ContractProjectObject,
-} from "../../interfaces";
+import { useEffect, useState } from "react";
+import { type ContractObject, type ContractProjectObject, } from "../../interfaces";
 import { ComparisonSelect } from "./ComparisonSelect";
+import "./ContractComparisonBlock.scss";
 import { PdfExtractionEmphasis } from "./extractionComponents/PdfExtractionEmphasis";
 import { VerificationLineItems } from "./extractionComponents/VerificationLineItems";
 
+
+
 interface ContractComparisonBlockProps {
-  secondary: boolean;
+  secondary?: boolean;
+  showValidatedItems?: boolean;
   isOverviewMinimized?: boolean;
   onToggleOverview?: () => void;
   onScroll?: () => void;
@@ -19,23 +18,22 @@ interface ContractComparisonBlockProps {
   onFullScreenCompare?: () => void;
   barebones?: boolean;
   selectedProject: ContractProjectObject;
-  comparisonContract?: ContractObject;
-  loading: LoadingListObject;
+  contract?: ContractObject;
   projectId: string;
   selectedContractId: string;
   secondarySelectedContractId?: string;
   contractsList: ContractObject[];
 }
 
-export function ContractComparisonBlock(
-  props: ContractComparisonBlockProps
-): JSX.Element {
+export function ContractComparisonBlock(props: ContractComparisonBlockProps): JSX.Element {
   const [currentContract, setCurrentContract] = useState<ContractObject>();
   const [isLineItemsFullScreen, setIsLineItemsFullScreen] = useState(false);
+  
 
   useEffect(() => {
-    setCurrentContract(props.comparisonContract);
-  }, [props.secondary, props.comparisonContract]);
+    setCurrentContract(props.contract);
+  }, [props.secondary, props.contract]);
+
 
   useEffect(() => {
     if (!props.scrollRef || !props.onScroll) return;
@@ -51,33 +49,28 @@ export function ContractComparisonBlock(
     props.scrollRef,
     props.onScroll,
     props.secondary,
-    props.comparisonContract,
+    props.contract,
   ]);
+
+
 
   return (
     <div
       className={[
         "contract-comparison-block-container",
         props.barebones ? "barebones" : undefined,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      ].filter(Boolean).join(" ")}
     >
       {props.barebones ? undefined : (
         <>
           <div className="contract-comparison-block-title">
             <ComparisonSelect
               contractsList={props.contractsList}
-              comparisonContract={props.comparisonContract}
-              selectedContractId={props.selectedContractId}
-              secondarySelectedContractId={props.secondarySelectedContractId}
+              contractId={props.selectedContractId}
+              comparedContractId={props.secondarySelectedContractId}
               projectId={props.projectId}
               secondary={props.secondary}
-              listFor={
-                !props.secondary
-                  ? undefined
-                  : props.comparisonContract?.content_type
-              }
+              listFor={!props.secondary ? undefined : props.contract?.content_type}
             />
           </div>
           <div className="separator long" />
@@ -94,9 +87,7 @@ export function ContractComparisonBlock(
                   className={[
                     "overview-toggle",
                     props.isOverviewMinimized ? "minimized" : undefined,
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
+                  ].filter(Boolean).join(" ")}
                   onClick={props.onToggleOverview}
                   noBackground
                   title={
@@ -113,14 +104,13 @@ export function ContractComparisonBlock(
               className={[
                 "comparison-overview-accordion",
                 !props.isOverviewMinimized ? "open" : undefined,
-              ]
-                .filter(Boolean)
-                .join(" ")}
+              ].filter(Boolean).join(" ")}
             >
               <div className="comparison-overview-contents">
                 <PdfExtractionEmphasis
-                  selectedContract={props.comparisonContract}
-                  loading={props.loading}
+                  secondary={props.secondary}
+                  selectedContract={props.contract}
+                  borderless
                 />
               </div>
             </div>
@@ -155,21 +145,18 @@ export function ContractComparisonBlock(
           </>
         )}
 
-        {!currentContract?.line_items ||
-          currentContract.line_items.length === 0 ? (
+        {!currentContract?.line_items || currentContract.line_items.length === 0 ? 
           <div className="no-info">No line items.</div>
-        ) : (
+         : 
           <VerificationLineItems
             selectedProject={props.selectedProject}
-            selectedContract={props.comparisonContract}
-            loading={props.loading}
+            selectedContract={props.contract}
             lineItems={currentContract.line_items}
             fullScreen={isLineItemsFullScreen}
-            onFullScreenClose={() => {
-              setIsLineItemsFullScreen(false);
-            }}
+            onFullScreenClose={() => { setIsLineItemsFullScreen(false); }}
+            hideValidatedItems={!props.showValidatedItems}
           />
-        )}
+        }
       </div>
     </div>
   );

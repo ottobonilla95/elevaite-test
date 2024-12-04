@@ -4,8 +4,8 @@
 export enum CONTRACTS_TABS {
     SUPPLIER_CONTRACTS = "VSOW",
     CUSTOMER_CONTRACTS = "CSOW",
-    SUPPLIER_POS = "Supplier POs",
-    SUPPLIER_INVOICES = "Supplier Invoices",
+    SUPPLIER_POS = "PO", // SUPPLIER_POS = "Supplier POs",
+    SUPPLIER_INVOICES = "Invoices", // SUPPLIER_INVOICES = "Supplier Invoices",
 }
 
 export enum CONTRACT_STATUS {
@@ -38,7 +38,17 @@ export enum ContractStatus {
     Uploading = "uploading", // Front-end status only
 }
 
-
+export enum ExtractionStatus {
+    Uploading = "Upload In\xa0Progress",
+    Extracting = "Extraction In\xa0Progress",
+    Failed = "Extraction Failed, Re-Upload",
+    Complete = "Extraction Complete",
+}
+  
+export enum MatchingStatus {
+    Found = "Match Found, Auto-Approved",
+    Failed = "Match Failed, Pending",
+}
 
 
 // SYSTEM INTERFACES
@@ -117,15 +127,15 @@ export interface ContractSettingsStrings {
 
 export interface ContractSettingsLabels {
     // [K in keyof Omit<ContractObjectVerificationLineItem, "id" | "verification">]: string;
-    description: string;
-    product_identifier: string;
-    quantity: string;
-    total_cost: string;
-    unit_cost: string;
-    need_by_date: string;
-    ibx: string;
-    site_name: string;
-    site_address: string;
+    description?: string;
+    product_identifier?: string;
+    quantity?: string;
+    total_cost?: string;
+    unit_cost?: string;
+    need_by_date?: string;
+    ibx?: string;
+    site_name?: string;
+    site_address?: string;
 }
 
 export interface LoadingListObject {

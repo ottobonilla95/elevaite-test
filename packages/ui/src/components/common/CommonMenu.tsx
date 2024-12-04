@@ -1,7 +1,8 @@
 "use client";
 import { useRef, useState } from "react";
-import { ClickOutsideDetector, CommonButton } from ".";
-import { ElevaiteIcons } from "..";
+import { ElevaiteIcons } from "../icons";
+import { ClickOutsideDetector } from "./ClickOutsideDetector";
+import { CommonButton } from "./CommonButton";
 import "./CommonMenu.scss";
 
 
@@ -16,9 +17,9 @@ export interface CommonMenuItem<T> {
 
 
 
-interface CommonMenuProps {
-    item?: any;
-    menu: CommonMenuItem<any>[];
+interface CommonMenuProps<Τ> {
+    item?: Τ;
+    menu: CommonMenuItem<Τ>[];
     top?: boolean;
     left?: boolean;
     sideCover?: boolean;
@@ -27,7 +28,7 @@ interface CommonMenuProps {
     labelWidth?: "short" | "medium" | "long";
 }
 
-export function CommonMenu(props: CommonMenuProps): JSX.Element {
+export function CommonMenu<T>(props: CommonMenuProps<T>): JSX.Element {
     const buttonRef = useRef<HTMLButtonElement|null>(null);
     const [isOpen, setIsOpen] = useState(false);
 
@@ -39,8 +40,8 @@ export function CommonMenu(props: CommonMenuProps): JSX.Element {
         setIsOpen(false);
     }
 
-    function handleClick(menuItem: CommonMenuItem<any>): void {
-        menuItem.onClick(props.item);
+    function handleClick(menuItem: CommonMenuItem<T>): void {
+        if (props.item) menuItem.onClick(props.item);
         closeMenu();
     }
 

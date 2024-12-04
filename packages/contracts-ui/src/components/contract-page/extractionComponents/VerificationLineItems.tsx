@@ -1,16 +1,8 @@
-import {
-  CommonButton,
-  CommonModal,
-  ElevaiteIcons,
-  SimpleInput,
-} from "@repo/ui/components";
+import { CommonButton, CommonModal, ElevaiteIcons, SimpleInput, } from "@repo/ui/components";
 import { useEffect, useState } from "react";
 import {
-  type ContractObject,
+  type ContractObject, type ContractObjectVerificationLineItem, type ContractObjectVerificationLineItemVerification,
   type ContractProjectObject,
-  type ContractObjectVerificationLineItem,
-  type ContractObjectVerificationLineItemVerification,
-  type LoadingListObject,
 } from "../../../interfaces";
 import "./VerificationLineItems.scss";
 
@@ -23,17 +15,15 @@ interface VerificationLineItemsProps {
   selectedProject?: ContractProjectObject;
   selectedContract?: ContractObject;
   lineItems?: ContractObjectVerificationLineItem[];
-  loading: LoadingListObject;
   fullScreen?: boolean;
   onFullScreenClose?: () => void;
+  hideValidatedItems?: boolean;
 }
 
-export function VerificationLineItems(
-  props: VerificationLineItemsProps
-): JSX.Element {
-  const [displayHeaders, setDisplayHeaders] =
-    useState<string[]>(getFullHeaderData());
+export function VerificationLineItems(props: VerificationLineItemsProps): JSX.Element {
+  const [displayHeaders, setDisplayHeaders] = useState<string[]>(getFullHeaderData());
   const [tableData, setTableData] = useState<TableDataItem[]>();
+
 
   useEffect(() => {
     if (props.lineItems) {
@@ -43,24 +33,18 @@ export function VerificationLineItems(
     }
   }, [props.lineItems]);
 
+
+
   function handleClose(): void {
     if (props.onFullScreenClose) props.onFullScreenClose();
   }
 
   function getFullHeaderData(): string[] {
-    const originalHeaders = [
-      "Ver.",
-      "Amount",
-      "Quantity",
-      "Unit Price",
-      "Product Code",
-      "Need by",
-      "Description",
-    ];
+    const originalHeaders = [ "Ver.", "Amount", "Quantity", "Unit Price", "Product Code", "Need by", "Description", ];
     if (!props.lineItems || !props.selectedProject?.settings?.labels)
       return originalHeaders;
     const formattedHeaders = ["Ver."];
-    const labels = props.selectedProject?.settings?.labels;
+    const labels = props.selectedProject.settings.labels;
 
     // Consider making this automated by iterating keys (ordering, though?)
     formattedHeaders.push(labels.total_cost ?? "Total Cost");
@@ -75,6 +59,7 @@ export function VerificationLineItems(
 
     return formattedHeaders;
   }
+
 
   function getTableData(
     lineItems: ContractObjectVerificationLineItem[],
@@ -131,16 +116,19 @@ export function VerificationLineItems(
   return (
     <div className="verification-line-items-container">
       <div className="table-scroller">
-        {props.loading.contractLineItems[props.selectedContract?.id ?? ""] ? (
-          <div className="loading">
-            <ElevaiteIcons.SVGSpinner />
-          </div>
-        ) : !tableData ? (
+        {
+        // props.loading.contractLineItems[props.selectedContract?.id ?? ""] ? (
+        //   <div className="loading">
+        //     <ElevaiteIcons.SVGSpinner />
+        //   </div>
+        // ) :
+         !tableData ? (
           <div>No tabular data available</div>
         ) : (
           <VerificationTableStructure
             headers={displayHeaders}
             data={tableData}
+            hideValidatedItems={props.hideValidatedItems}
           />
         )}
       </div>
@@ -159,6 +147,7 @@ export function VerificationLineItems(
             <VerificationTableStructure
               headers={displayHeaders}
               data={tableData}
+              hideValidatedItems={props.hideValidatedItems}
             />
           </div>
         </CommonModal>
@@ -170,6 +159,7 @@ export function VerificationLineItems(
 interface VerificationTableStructureProps {
   headers: string[];
   data: TableDataItem[];
+  hideValidatedItems?: boolean;
 }
 
 function VerificationTableStructure(
@@ -187,7 +177,13 @@ function VerificationTableStructure(
         </tr>
       </thead>
       <tbody>
-        {props.data.map((row, rowIndex) => (
+        {props.data.length === 0 ? <tr><td colSpan={props.headers.length} className="empty-table">There are no line items</td></tr> :
+          props.hideValidatedItems && props.data.every(item => item.verification.verification_status) ? 
+          <tr><td colSpan={props.headers.length} className="empty-table">There are no mismatched items</td></tr> :
+
+        props.data.map((row, rowIndex) => (
+          props.hideValidatedItems && row.verification.verification_status ? undefined
+          :
           <tr key={`line_${rowIndex.toString()}`}>
             {row.value.map((cell, cellIndex) => (
               <td

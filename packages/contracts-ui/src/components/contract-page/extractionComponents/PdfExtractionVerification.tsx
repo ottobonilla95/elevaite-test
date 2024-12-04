@@ -1,29 +1,24 @@
 import { CommonButton, CommonInput, ElevaiteIcons } from "@repo/ui/components";
 import React, { useEffect, useState } from "react";
-import { VerificationLineItems } from "./VerificationLineItems";
+import { isObject } from "../../../actions/generalDiscriminators";
 import {
-  CONTRACT_TYPES,
-  type LoadingListObject,
-  type ContractObject,
-  type ContractObjectVerification,
-  type ContractObjectVerificationItem,
-  ContractStatus,
+  CONTRACT_TYPES, type ContractObject, type ContractObjectVerification, type ContractObjectVerificationItem, ContractStatus,
 } from "../../../interfaces";
 import "./PdfExtractionVerification.scss";
-import { isObject } from "../../../actions/generalDiscriminators";
+import { VerificationLineItems } from "./VerificationLineItems";
+
+
 
 interface PdfExtractionVerificationProps {
-  loading: LoadingListObject;
   selectedContract?: ContractObject;
 }
 
-export function PdfExtractionVerification(
-  props: PdfExtractionVerificationProps
-): JSX.Element {
-  const [verificationData, setVerificationData] =
-    useState<ContractObjectVerification | null>();
+export function PdfExtractionVerification(props: PdfExtractionVerificationProps): JSX.Element {
+  const [verificationData, setVerificationData] = useState<ContractObjectVerification | null>();
   const [supplier, setSupplier] = useState<string | undefined>();
   const [isLineItemsFullScreen, setIsLineItemsFullScreen] = useState(false);
+
+
 
   useEffect(() => {
     setVerificationData(props.selectedContract?.verification);
@@ -34,13 +29,12 @@ export function PdfExtractionVerification(
     );
   }, [props.selectedContract]);
 
+
+
+
   function getFormattedComments(comments: string[]): React.ReactElement[] {
-    const commentCount = comments.reduce<Record<string, number>>(
-      (acc, comment) => {
-        acc[comment] = (acc[comment] || 0) + 1;
-        return acc;
-      },
-      {}
+    const commentCount = comments.reduce<Record<string, number>>((acc, comment) => {
+      acc[comment] = (acc[comment] || 0) + 1; return acc; }, {}
     );
 
     return Object.keys(commentCount).map((comment) => (
@@ -122,7 +116,6 @@ export function PdfExtractionVerification(
               <div className="no-info">No line items.</div>
             ) : (
               <VerificationLineItems
-                loading={props.loading}
                 lineItems={props.selectedContract.line_items}
                 fullScreen={isLineItemsFullScreen}
                 onFullScreenClose={() => {
@@ -167,22 +160,10 @@ export function PdfExtractionVerification(
                   className="fragment"
                   key={`${csow.file_id?.toString() ?? ""}_csow_${index.toString()}`}
                 >
-                  <VerificationBit
-                    data={csow}
-                    valueKey="po_number"
-                    label="PO Number"
-                  />
-                  <VerificationBit
-                    data={csow}
-                    valueKey="supplier"
-                    label="Supplier"
-                  />
+                  <VerificationBit data={csow} valueKey="po_number" label="PO Number" />
+                  <VerificationBit data={csow} valueKey="supplier" label="Supplier" />
                   {/* <VerificationBit data={csow} valueKey="supplier" label="Supplier" overrideValue={supplier} /> */}
-                  <VerificationBit
-                    data={csow}
-                    valueKey="total_amount"
-                    label="Total Amount"
-                  />
+                  <VerificationBit data={csow} valueKey="total_amount" label="Total Amount" />
                 </div>
               ))}
             </div>
@@ -195,22 +176,9 @@ export function PdfExtractionVerification(
                   className="fragment"
                   key={`${invoice.file_id?.toString() ?? ""}_invoice_${index.toString()}`}
                 >
-                  <VerificationBit
-                    data={invoice}
-                    valueKey="po_number"
-                    label="PO Number"
-                  />
-                  <VerificationBit
-                    data={invoice}
-                    valueKey="supplier"
-                    label="Supplier"
-                    overrideValue={supplier}
-                  />
-                  <VerificationBit
-                    data={invoice}
-                    valueKey="total_amount"
-                    label="Total Amount"
-                  />
+                  <VerificationBit data={invoice} valueKey="po_number" label="PO Number" />
+                  <VerificationBit data={invoice} valueKey="supplier" label="Supplier" overrideValue={supplier} />
+                  <VerificationBit data={invoice} valueKey="total_amount" label="Total Amount" />
                 </div>
               ))}
             </div>
