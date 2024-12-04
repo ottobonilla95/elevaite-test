@@ -991,12 +991,8 @@ async def perform_inference(inference_payload: InferencePayload):
             
             if not filtered_data.results:
                 yield {"response":"Searching for data most related with your query...\n"}
-<<<<<<< HEAD
                 filtered_data = search_qdrant(enhanced_query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
                 # print("Additional_Data Data1:",filtered_data)
-=======
-                filtered_data = search_qdrant(inference_payload.query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
->>>>>>> 690f1ed (Quick Changes - Negative messages removed, Budget Added)
                 if len(filtered_data.results)<1:
                     yield {"response":"Media Campaign Information related to your query were not found. Please try a different query.\n"}
                     return
@@ -1013,11 +1009,6 @@ async def perform_inference(inference_payload: InferencePayload):
                         if additional_result.id not in currently_present_ids:
                             filtered_data.results.append(additional_result)
                             filtered_data.total += 1
-                # else:
-                    # yield {"response","Relevant additional data not found."}
-
-            #  logger.debug(f"Total results after additional search: {filtered_data.total}")
-            # print(f"Combined Data:{filtered_data}")
             output_parts = OrderedDict()
             ordered_keys = ["media_plan", "analysis_of_trends", "campaign_performance", "creative_insights", "performance_summary"]
 
