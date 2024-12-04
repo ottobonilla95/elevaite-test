@@ -1,2 +1,0 @@
-Format the content provided Performance Summary data provided into Markdown.
-Format "Performance Summary" as a level 2 header(##) and the other subsections as level 3 headers(###).
