@@ -1,15 +1,28 @@
 import type { DefaultSession, NextAuthConfig } from "next-auth";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Needed to augment
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- Needed as variable
 import { JWT } from "next-auth/jwt";
+
+class TokenRefreshError extends Error {
+  constructor(
+    public statusCode: number,
+    public providerName: string,
+    message: string
+  ) {
+    super(message);
+    this.name = "TokenRefreshError";
+  }
+}
 
 declare module "next-auth/jwt" {
   interface JWT {
     access_token: string;
     expires_at: number;
     refresh_token: string;
+    provider: "google" | "credentials";
     error?: "RefreshAccessTokenError";
   }
 }
+
 declare module "next-auth" {
   interface Session {
     error?: "RefreshAccessTokenError";
@@ -26,64 +39,153 @@ declare module "next-auth" {
   }
 }
 
+async function refreshGoogleToken(token: JWT): Promise<JWT> {
+  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+  if (!GOOGLE_CLIENT_ID)
+    throw new Error("GOOGLE_CLIENT_ID does not exist in the env");
+
+  const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+  if (!GOOGLE_CLIENT_SECRET)
+    throw new Error("GOOGLE_CLIENT_SECRET does not exist in the env");
+
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      grant_type: "refresh_token",
+      refresh_token: token.refresh_token,
+    }),
+    method: "POST",
+  });
+
+  interface GoogleTokenResponse {
+    access_token: string;
+    expires_in: number;
+    refresh_token?: string;
+    error?: string;
+    error_description?: string;
+  }
+
+  const tokensOrError = (await response.json()) as GoogleTokenResponse;
+
+  if (!response.ok) {
+    throw new TokenRefreshError(
+      response.status,
+      "google",
+      `Google token refresh failed: ${tokensOrError.error_description ?? "Unknown error"}`
+    );
+  }
+
+  return {
+    ...token,
+    access_token: tokensOrError.access_token,
+    expires_at: Math.floor(Date.now() / 1000 + tokensOrError.expires_in),
+    refresh_token: tokensOrError.refresh_token ?? token.refresh_token,
+    provider: "google",
+  };
+}
+
+async function refreshFusionAuthToken(token: JWT): Promise<JWT> {
+  const FUSIONAUTH_ISSUER = process.env.FUSIONAUTH_ISSUER;
+  if (!FUSIONAUTH_ISSUER) {
+    throw new Error("FUSIONAUTH_ISSUER is not defined in environment");
+  }
+  const FUSIONAUTH_TOKEN_ENDPOINT = `${FUSIONAUTH_ISSUER}/auth/refresh`;
+
+  const FUSIONAUTH_CLIENT_ID = process.env.FUSIONAUTH_CLIENT_ID;
+  if (!FUSIONAUTH_CLIENT_ID) {
+    throw new Error("FUSIONAUTH_CLIENT_ID is not defined in environment");
+  }
+
+  const FUSIONAUTH_CLIENT_SECRET = process.env.FUSIONAUTH_CLIENT_SECRET;
+  if (!FUSIONAUTH_CLIENT_SECRET) {
+    throw new Error("FUSIONAUTH_CLIENT_SECRET is not defined in environment");
+  }
+
+  const response = await fetch(FUSIONAUTH_TOKEN_ENDPOINT, {
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: FUSIONAUTH_CLIENT_ID,
+      client_secret: FUSIONAUTH_CLIENT_SECRET,
+      grant_type: "refresh_token",
+      refresh_token: token.refresh_token,
+    }),
+    method: "POST",
+  });
+
+  interface FusionAuthTokenResponse {
+    access_token: string;
+    expires_in: number;
+    refresh_token?: string;
+    error?: string;
+    error_description?: string;
+  }
+
+  const tokensOrError = (await response.json()) as FusionAuthTokenResponse;
+
+  if (!response.ok) {
+    throw new TokenRefreshError(
+      response.status,
+      "fusionauth",
+      `FusionAuth token refresh failed: ${tokensOrError.error_description ?? "Unknown error"}`
+    );
+  }
+
+  return {
+    ...token,
+    access_token: tokensOrError.access_token,
+    expires_at: Math.floor(Date.now() / 1000 + tokensOrError.expires_in),
+    refresh_token: tokensOrError.refresh_token ?? token.refresh_token,
+    provider: "credentials",
+  };
+}
+
 const _config = {
   callbacks: {
     async jwt({ account, token }) {
       if (account) {
         if (!account.access_token || !account.refresh_token)
           throw new Error("Account doesn't contain tokens");
-        // Save the access token and refresh token in the JWT on the initial login
-        const _res = {
-          ...token,
-          access_token: account.access_token,
-          expires_at: Math.floor(Date.now() / 1000 + (account.expires_in ?? 0)),
-          refresh_token: account.refresh_token,
-        };
-        return _res;
-      } else if (Date.now() < token.expires_at * 1000) {
-        // If the access token has not expired yet, return it
+
+        if (account.provider === "google") {
+          return {
+            ...token,
+            access_token: account.access_token,
+            expires_at: Math.floor(
+              Date.now() / 1000 + (account.expires_in ?? 0)
+            ),
+            refresh_token: account.refresh_token,
+            provider: "google",
+          };
+        }
+
+        if (account.provider === "credentials") {
+          return {
+            ...token,
+            access_token: account.access_token,
+            expires_at: Math.floor(
+              Date.now() / 1000 + (account.expires_in ?? 0)
+            ),
+            refresh_token: account.refresh_token,
+            provider: "credentials",
+          };
+        }
+      }
+
+      if (Date.now() < token.expires_at * 1000) {
         return token;
       }
-      // If the access token has expired, try to refresh it
+
       try {
-        // https://accounts.google.com/.well-known/openid-configuration
-        // We need the `token_endpoint`.
-
-        const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-        if (!GOOGLE_CLIENT_ID)
-          throw new Error("GOOGLE_CLIENT_ID does not exist in the env");
-
-        const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-        if (!GOOGLE_CLIENT_SECRET)
-          throw new Error("GOOGLE_CLIENT_SECRET does not exist in the env");
-
-        const response = await fetch("https://oauth2.googleapis.com/token", {
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            client_id: GOOGLE_CLIENT_ID,
-            client_secret: GOOGLE_CLIENT_SECRET,
-            grant_type: "refresh_token",
-            refresh_token: token.refresh_token,
-          }),
-          method: "POST",
-        });
-
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Following docs! https://authjs.dev/guides/refresh-token-rotation#jwt-strategy
-        const tokensOrError = await response.json();
-
-        if (!response.ok) throw tokensOrError;
-
-        const newTokens = tokensOrError as {
-          access_token: string;
-          expires_in: number;
-          refresh_token?: string;
-        };
-        token.access_token = newTokens.access_token;
-        token.expires_at = Math.floor(Date.now() / 1000 + newTokens.expires_in);
-        // Some providers only issue refresh tokens once, so preserve if we did not get a new one
-        if (newTokens.refresh_token)
-          token.refresh_token = newTokens.refresh_token;
-        return token;
+        switch (token.provider) {
+          case "google":
+            return await refreshGoogleToken(token);
+          case "credentials":
+            return await refreshFusionAuthToken(token);
+          default:
+            throw new Error("Unknown provider");
+        }
       } catch (error) {
         // eslint-disable-next-line no-console -- Need this in case it fails
         console.error("Error refreshing access_token", error);
