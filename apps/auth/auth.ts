@@ -69,7 +69,8 @@ export const authOptions: NextAuthConfig = {
               name: _user.fullName ?? `${_user.firstName} ${_user.lastName}`,
               givenName: _user.firstName,
               familyName: _user.lastName,
-              accessToken: res.response.token
+              accessToken: res.response.token,
+              refreshToken: res.response.refreshToken
             } satisfies User;
           } catch (error) {
             return null;
