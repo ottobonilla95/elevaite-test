@@ -5,3 +5,4 @@ qdrant-client
 reportlab
 openai
 python-dotenv
+requests
