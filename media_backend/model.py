@@ -29,16 +29,24 @@ class AdCreative(BaseModel):
 
     @classmethod
     def parse_obj(cls, obj):
-        # Handle the 'full_data' field parsing
-        if 'full_data' in obj and isinstance(obj['full_data'], str):
-            try:
-                obj['full_data'] = json.loads(obj['full_data'])
-            except json.JSONDecodeError:
-                obj['full_data'] = {}
-        # Normalize field names in full_data
-        if isinstance(obj.get('full_data'), dict):
-            obj['full_data'] = {k.replace(' ', '_'): v for k, v in obj['full_data'].items()}
-        return super().parse_obj(obj)
+        try:
+            # Handle the 'full_data' field parsing
+            if 'full_data' in obj and isinstance(obj['full_data'], str):
+                try:
+                    obj['full_data'] = json.loads(obj['full_data'])
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Failed to decode 'full_data' as JSON: {e}. Input: {obj['full_data']}")
+
+            # Normalize field names in 'full_data'
+            if isinstance(obj.get('full_data'), dict):
+                obj['full_data'] = {k.replace(' ', '_'): v for k, v in obj['full_data'].items()}
+            
+            return super().parse_obj(obj)
+        
+        except Exception as e:
+            # Log or re-raise the error with context
+            print(f"Error while parsing object: {e}. Input data: {obj}")
+            # raise ValueError(f"Error while parsing object: {e}. Input data: {obj}")
 
     class Config:
         extra = "allow"
@@ -165,6 +173,24 @@ class AnalysisOfTrends(BaseModel):
     creative_strategy: CreativeStrategy
     creative_content_type: CreativeContentType
 
+class AnalysisOfTrendsOne(BaseModel):
+    overall_trends: OverallTrend
+    campaign_strategy: CampaignStrategy
+    tone_and_mood: ToneAndMood
+    call_to_action: CallToAction
+    season_holiday: SeasonHoliday
+    campaign_duration: CampaignDuration
+
+class AnalysisOfTrendsTwo(BaseModel):
+    booked_impressions: BookedImpressions
+    targeting_options: TargetingOptions
+    conversion: Optional[Conversion]
+
+class AnalysisOfTrendsThree(BaseModel):
+    creative_insights: CreativeInsights
+    creative_strategy: CreativeStrategy
+    creative_content_type: CreativeContentType
+    
 # Campaign Performance Currently not using class.
 class CampaignPerformance(BaseModel):
     brand: str

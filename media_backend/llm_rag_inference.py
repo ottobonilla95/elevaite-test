@@ -3,9 +3,10 @@ from qdrant_client.http.models import Filter, FieldCondition, Range, MatchValue,
 from fastapi import HTTPException
 from typing import Dict, Any, List
 from openai import OpenAI
-from model import AdCreative, SearchResult, InferencePayload, ConversationPayload, IntentOutput, MediaPlanOutput, AnalysisOfTrends,CreativeInsightsReport,PerformanceSummary # MediaPlanSearchResult, MediaPlanCreative, CampaignPerformanceReport
+from model import AdCreative, SearchResult, InferencePayload, ConversationPayload, IntentOutput, MediaPlanOutput, AnalysisOfTrends,CreativeInsightsReport,PerformanceSummary ,AnalysisOfTrendsTwo,AnalysisOfTrendsOne,AnalysisOfTrendsThree# MediaPlanSearchResult, MediaPlanCreative, CampaignPerformanceReport
 import os
 import re
+import ast
 from dotenv import load_dotenv
 from PIL import Image
 from io import BytesIO
@@ -15,6 +16,7 @@ from pydantic import BaseModel
 import time
 import requests
 import asyncio
+from prompts.prompts import SystemPrompts
 from collections import OrderedDict
 
 import logging
@@ -25,24 +27,35 @@ logger = logging.getLogger(__name__)
 def timer_decorator(func):
     async def async_wrapper(*args, **kwargs):
         start = time.perf_counter()
+        # logger.info(f"{func.__name__} started at {start:.6f} seconds")
         result = await func(*args, **kwargs)
         end = time.perf_counter()
+        # logger.info(f"{func.__name__} ended at {end:.6f} seconds")
         logger.info(f"{func.__name__} took {end - start:.6f} seconds")
         return result
+    
     def sync_wrapper(*args, **kwargs):
         start = time.perf_counter()
+        # logger.info(f"{func.__name__} started at {start:.6f} seconds")
         result = func(*args, **kwargs)
         end = time.perf_counter()
+        # logger.info(f"{func.__name__} ended at {end:.6f} seconds")
         logger.info(f"{func.__name__} took {end - start:.6f} seconds")
         return result
     if asyncio.iscoroutinefunction(func):
         return async_wrapper
     else:
         return sync_wrapper
-
+    
 def load_prompt(prompt_name):
-    with open(f'prompts/{prompt_name}.txt', 'r') as file:
-        return file.read().strip()
+    """
+    Fetches the prompt by name from the SystemPrompts class.
+    Args:
+        prompt_name (str): The name of the prompt to retrieve.
+    Returns:
+        str: The prompt text, or an error message if not found.
+    """
+    return SystemPrompts.get_prompt(prompt_name)
 
 # Load environment variables
 load_dotenv()
@@ -188,7 +201,7 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
                         logger.error(f"Error processing media creative {index + 1}: {e}")
                         logger.error(f"Problematic payload: {payload}")
 
-    logger.info(f"Total AdCreatives processed: {len(ad_creatives)}")
+    logger.info(f"Total AdCreatives processed: {len(ad_creatives)}, Content:{ad_creatives}")
     return SearchResult(results=ad_creatives, total=len(ad_creatives))
 
 # Identifies the intent and enhances the query
@@ -671,55 +684,53 @@ async def campaign_performance(filtered_data: SearchResult, query: str, conversa
         max_tokens=4000
     )
     return raw_response
+
 @timer_decorator
 async def analysis_of_trends(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload]) -> str:
+    tasks = [
+        perform_analysis(filtered_data, query, conversation_history, "analysis_of_trends_one", AnalysisOfTrendsOne, "formatter_analysis_of_trends_first"),
+        perform_analysis(filtered_data, query, conversation_history, "analysis_of_trends_two", AnalysisOfTrendsTwo, "formatter_analysis_of_trends_other"),
+        perform_analysis(filtered_data, query, conversation_history, "analysis_of_trends_three", AnalysisOfTrendsThree, "formatter_analysis_of_trends_other")
+    ]
+    raw_responses = await asyncio.gather(*tasks)
+    return "\n".join(raw_responses)
+
+@timer_decorator
+async def perform_analysis(
+    filtered_data: SearchResult,
+    query: str,
+    conversation_history: List[ConversationPayload],
+    prompt_name: str,
+    response_class: type,
+    formatter_name: str
+) -> str:
     fields_to_extract = [
-        "brand",
-        "industry",
-        "ad_objective",
-        "tone_mood",
-        "duration(days)",
-        "duration_category",
-        "targeting"
-        "booked_measure_impressions",
-        "conversion",
-        "file_type",
-        "type",
+        "brand", "industry", "ad_objective", "tone_mood", "duration(days)", "duration_category",
+        "targeting", "booked_measure_impressions", "conversion", "file_type", "type"
     ]
     full_data_fields_to_extract = [
-        "call-to-action",
-        "strategy",
-        "weekends",
-        "holidays",
-        "national events",
-        "sport events",
-        "visual elements",
-        "imagery",
+        "call-to-action", "strategy", "weekends", "holidays", "national events",
+        "sport events", "visual elements", "imagery"
     ]
-    
-    # Assuming extract_specific_fields is a quick operation, keep it synchronous
+    # Extract relevant data
     essential_data = extract_specific_fields(filtered_data, fields_to_extract, full_data_fields_to_extract)
-
-    # Assuming load_prompt is a quick operation, keep it synchronous
-    system_prompt = load_prompt("analysis_of_trends")
+    # Load prompt
+    system_prompt = load_prompt(prompt_name)
     
-    # print("analysis Input:", query, system_prompt,essential_data)
-    
+    # Generate response
     raw_response = await generate_response(
         query=query,
         system_prompt=system_prompt,
         search_result=essential_data,
         conversation_history=conversation_history,
-        response_class=AnalysisOfTrends
+        response_class=response_class
     )
-    # logger.debug("Analysis of trends raw text:", raw_response)
-
-    formatted_response = await formatter(raw_response, "formatter_analysis_of_trends")
-    
-    return formatted_response
+    # Format the response
+    return await formatter(raw_response, formatter_name)
 
 @timer_decorator
 async def creative_insights(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload]) -> str:
+    # Fields to extract for creatives
     fields_to_extract = [
         "brand",
         "ad_objective",
@@ -744,26 +755,77 @@ async def creative_insights(filtered_data: SearchResult, query: str, conversatio
         "national events",
         "sport events",
     ]
-    # Assuming extract_specific_fields is a quick operation, keep it synchronous
-    essential_data = extract_specific_fields(filtered_data, fields_to_extract, full_data_fields_to_extract)
 
-    # Assuming load_prompt is a quick operation, keep it synchronous
-    system_prompt = load_prompt("creative_insights")
-    
-    # print(f"creative insight Input:{essential_data}; prompt: {system_prompt};Conversation:{conversation_history},response_class:{CreativeInsightsReport},query:{query}")
-    
-    # Use the async version of generate_response
-    raw_response = await generate_response(
-        query=query,
-        system_prompt=system_prompt,
-        search_result=essential_data,
-        conversation_history=conversation_history,
-        response_class=CreativeInsightsReport
-    )
-  #  logger.debug(f"Creative Insights Raw: {raw_response}")
-    # print(f"raw_response: {raw_response}")
-    formatted_response = await formatter(raw_response, "formatter_creative_insights")
-    return formatted_response
+    def clean_json_like_data(raw_data: str) -> str:
+        """
+        Cleans and converts a JSON-like string (with single quotes, etc.)
+        into a valid JSON string using ast.literal_eval.
+        """
+        try:
+            # Convert the raw string to a Python object
+            python_data = ast.literal_eval(raw_data)
+            # Convert the Python object back to a valid JSON string
+            cleaned_json = json.dumps(python_data)
+            return cleaned_json
+        except Exception as e:
+            raise ValueError(f"Failed to clean JSON-like data: {e}")
+
+    # Extract specific fields for all creatives
+    raw_essential_data = extract_specific_fields(filtered_data, fields_to_extract, full_data_fields_to_extract)
+    # print("Raw:", raw_essential_data)
+
+    try:
+        # Clean and validate JSON data
+        cleaned_data = clean_json_like_data(raw_essential_data)
+        essential_data_list = json.loads(cleaned_data)
+        logger.info(f"Parsed {len(essential_data_list)} creatives for processing.")
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse extracted data: {e}")
+        logger.debug(f"Raw Data: {raw_essential_data}")  # Log raw data for debugging
+        return "Error parsing extracted data."
+    except Exception as e:
+        logger.error(f"Unexpected error during data parsing: {e}")
+        return "An unexpected error occurred during data parsing."
+
+    # Load the system prompt once
+    system_prompt = load_prompt("creative_insights_new")
+
+    async def process_creative(creative_data):
+        """Processes a single creative asynchronously."""
+        try:
+            # Generate response for a single creative
+            raw_response = await generate_response(
+                query=query,
+                system_prompt=system_prompt,
+                search_result=json.dumps(creative_data),  # Ensure data is serialized correctly
+                conversation_history=conversation_history,
+                response_class=CreativeInsightsReport,
+            )
+            # Format the raw response
+            return await formatter(raw_response, "formatter_creative_insights")
+        except Exception as e:
+            logger.error(f"Error processing creative {creative_data.get('file_name', 'unknown')}: {e}")
+            return f"Error processing creative {creative_data.get('file_name', 'unknown')}"
+
+    # Ensure the input is not empty to avoid unnecessary calls
+    if not essential_data_list:
+        return "No valid creatives found for processing."
+
+    # Process all creatives concurrently using asyncio.gather
+    tasks = [process_creative(creative) for creative in essential_data_list]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Combine formatted outputs into a unified Markdown response
+    markdown_output = "## Creative Insights\n\n"
+    for index, result in enumerate(results):
+        if isinstance(result, Exception):
+            logger.error(f"Task {index} failed with error: {result}")
+            markdown_output += f"### Creative {index + 1}: Error\n{result}\n\n"
+        else:
+            # Append formatted creative insights with a heading
+            markdown_output += f"### Creative {index + 1}\n{result.strip()}\n\n"
+
+    return markdown_output
 
 @timer_decorator
 async def performance_summary(query: str, output_parts: Dict[str, str]) -> str:
@@ -872,7 +934,7 @@ async def perform_inference(inference_payload: InferencePayload):
         #     print("generatin enhanced query")
         # enhanced_query = await enhance_query(inference_payload.query,conversation_history)
 
-        print("INTENT OUTPUT:",intent_data)
+        logger.info("Intent Agent Output:",intent_data)
         # print("Intent Extracted:\n", "Query:",enhanced_query,"\nRequired Outcomes",required_outcomes,"\nvector_search:",vector_search)
         if unrelated_query:
             conversation_history = ""
