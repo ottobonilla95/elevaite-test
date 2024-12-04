@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+from rbac_lib.utils.deps import get_db
 
 load_dotenv()
 
@@ -9,7 +10,7 @@ import uvicorn
 from elevaitelib.orm.db.database import engine
 from elevaitelib.orm.db import models
 
-# from rbac_lib.utils.seed_db import seed_db as seed
+from rbac_lib.utils.seed_db import seed_db as seed
 from rbac_lib.utils.check_env_vars import check_env_vars
 from sqlalchemy.orm import Session
 

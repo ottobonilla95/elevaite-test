@@ -63,7 +63,7 @@ class FusionAuthIDP(IDPInterface):
 
         self.client = FusionAuthClient(FUSIONAUTH_API_KEY, FUSIONAUTH_URL)
 
-    def get_user_email(self, access_token: str) -> Optional[str]:
+    def get_user_email(self, access_token: str) -> str:
         """
         Retrieves the user's email address using the provided access token.
         """

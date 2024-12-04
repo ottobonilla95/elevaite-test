@@ -56,7 +56,7 @@ export const authConfig = {
       const firstName = params.profile?.given_name ?? params.user.givenName;
       const lastName = params.profile?.family_name ?? params.user.familyName;
       const authToken = params.account?.access_token ?? params.user.accessToken;
-      console.dir(params);
+      // console.dir(params);
       if (!email || !firstName || !lastName || !authToken)
         throw new Error("Missing identifier in provider response", {
           cause: { email, firstName, lastName, authToken },

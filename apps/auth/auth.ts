@@ -59,13 +59,14 @@ export const authOptions: NextAuthConfig = {
 
           try {
             const res = await fusionClient.login(loginRequest);
-            console.dir(res.response)
+            console.dir({ res })
             const _user = res.response.user;
             if (!_user?.id) return null;
             return {
               id: _user.id,
               email: _user.email,
               image: _user.imageUrl,
+              // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- leave me be
               name: _user.fullName ?? `${_user.firstName} ${_user.lastName}`,
               givenName: _user.firstName,
               familyName: _user.lastName,

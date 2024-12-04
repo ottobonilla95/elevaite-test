@@ -92,7 +92,7 @@ async function refreshFusionAuthToken(token: JWT): Promise<JWT> {
   if (!FUSIONAUTH_ISSUER) {
     throw new Error("FUSIONAUTH_ISSUER is not defined in environment");
   }
-  const FUSIONAUTH_TOKEN_ENDPOINT = `${FUSIONAUTH_ISSUER}/auth/refresh`;
+  const FUSIONAUTH_TOKEN_ENDPOINT = `${FUSIONAUTH_ISSUER}/api/jwt/refresh`;
 
   const FUSIONAUTH_CLIENT_ID = process.env.FUSIONAUTH_CLIENT_ID;
   if (!FUSIONAUTH_CLIENT_ID) {
@@ -103,41 +103,41 @@ async function refreshFusionAuthToken(token: JWT): Promise<JWT> {
   if (!FUSIONAUTH_CLIENT_SECRET) {
     throw new Error("FUSIONAUTH_CLIENT_SECRET is not defined in environment");
   }
+  const headers = new Headers();
+  headers.append("Content-Type", "application/json");
 
   const response = await fetch(FUSIONAUTH_TOKEN_ENDPOINT, {
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: FUSIONAUTH_CLIENT_ID,
-      client_secret: FUSIONAUTH_CLIENT_SECRET,
-      grant_type: "refresh_token",
-      refresh_token: token.refresh_token ?? token.access_token ?? "",
+    headers,
+    body: JSON.stringify({
+      refreshToken: token.refresh_token ?? "",
+      token: token.access_token
     }),
     method: "POST",
   });
 
   interface FusionAuthTokenResponse {
-    access_token: string;
-    expires_in: number;
-    refresh_token?: string;
-    error?: string;
-    error_description?: string;
+    token: string;
+    refreshToken: string;
   }
 
   const tokensOrError = (await response.json()) as FusionAuthTokenResponse;
+
+  // eslint-disable-next-line no-console -- debugging
+  console.dir(tokensOrError, { depth: 100 })
 
   if (!response.ok) {
     throw new TokenRefreshError(
       response.status,
       "fusionauth",
-      `FusionAuth token refresh failed: ${tokensOrError.error_description ?? "Unknown error"}`
+      `FusionAuth token refresh failed: ${response.statusText}`
     );
   }
 
   return {
     ...token,
-    access_token: tokensOrError.access_token,
-    expires_at: Math.floor(Date.now() / 1000 + tokensOrError.expires_in),
-    refresh_token: tokensOrError.refresh_token ?? token.refresh_token,
+    access_token: tokensOrError.token,
+    expires_at: Math.floor(Date.now() / 1000 + 360000),
+    refresh_token: tokensOrError.refreshToken,
     provider: "credentials",
   };
 }
@@ -145,8 +145,9 @@ async function refreshFusionAuthToken(token: JWT): Promise<JWT> {
 const _config = {
   callbacks: {
     async jwt({ account, token, user }): Promise<JWT> {
+      console.log("called jwt")
       if (account) {
-        if (!user.accessToken && !user.refreshToken)
+        if (!(user.accessToken ?? user.refreshToken) && !(account.access_token ?? account.refresh_token))
           throw new Error("Account doesn't contain tokens");
 
         if (account.provider === "google") {
@@ -166,9 +167,9 @@ const _config = {
             ...token,
             access_token: account.access_token,
             expires_at: Math.floor(
-              Date.now() / 1000 + (account.expires_in ?? 0)
+              (Date.now() / 1000) + 3600
             ),
-            refresh_token: account.refresh_token,
+            refresh_token: user.refreshToken,
             provider: "credentials",
           };
         }
@@ -196,6 +197,7 @@ const _config = {
       }
     },
     async session({ session, token, user }) {
+      console.log("called session")
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- you never know
       session.user ? (session.user.id = token.sub ?? user.id) : null;
       Object.assign(session, { authToken: token.access_token });

@@ -4,7 +4,7 @@ from elevaitelib.orm.db.models import User
 
 class IDPInterface(ABC):
     @abstractmethod
-    def get_user_email(self, access_token: str) -> User:
+    def get_user_email(self, access_token: str) -> str:
         """
         Retrieve user email from decoded access token response.
 

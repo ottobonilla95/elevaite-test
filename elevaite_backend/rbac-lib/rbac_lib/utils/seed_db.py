@@ -454,7 +454,7 @@ def seed_db(db: Session):
     # )
     # ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_UPDATE = (
     #     "Allow"
-    )
+    # )
 
     # ML OPS account-scoped permissions:
     ml_ops_permissions = permission_schemas.AccountScopedRBACPermission.create("Deny")
