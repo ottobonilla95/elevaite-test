@@ -1,0 +1,20 @@
+
+
+
+.not-found-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+
+    & .page-code {
+        font-size: 120px;
+        font-weight: bold;
+        color: var(--ev-colors-highlight);
+        user-select: none;
+    }
+    & p {
+        color: var(--ev-colors-secondaryText);
+    }
+}

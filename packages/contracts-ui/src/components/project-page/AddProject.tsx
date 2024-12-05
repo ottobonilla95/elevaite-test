@@ -1,22 +1,15 @@
-import {
-  CommonButton,
-  CommonDialog,
-  CommonInput,
-  ElevaiteIcons,
-} from "@repo/ui/components";
+import { CommonButton, CommonDialog, CommonInput, ElevaiteIcons, } from "@repo/ui/components";
 import { useEffect, useState } from "react";
+import { CreateProject, DeleteProject, EditProject, } from "../../actions/contractActions";
 import { type ContractProjectObject } from "../../interfaces";
 import "./AddProject.scss";
-import {
-  CreateProject,
-  DeleteProject,
-  EditProject,
-} from "../../actions/contractActions";
+
+
 
 interface AddProjectProps {
   onClose: () => void;
   editingProjectId?: string;
-  projects: ContractProjectObject[];
+  projects?: ContractProjectObject[];
 }
 
 export function AddProject(props: AddProjectProps): JSX.Element {
@@ -35,11 +28,7 @@ export function AddProject(props: AddProjectProps): JSX.Element {
       setEditingProject(undefined);
       return;
     }
-    setEditingProject(
-      props.projects.find(
-        (project) => project.id.toString() === props.editingProjectId
-      )
-    );
+    setEditingProject(props.projects?.find(project => project.id.toString() === props.editingProjectId));
   }, [props.editingProjectId, props.projects]);
 
   useEffect(() => {

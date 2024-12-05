@@ -1,5 +1,7 @@
 import { getContractObjectById, getContractObjectVerification, getContractProjectById } from "@repo/contracts-ui/actions";
 import { PdfAndExtraction } from "@repo/contracts-ui/components";
+import { type ContractObject, type ContractObjectVerification, type ContractProjectObject } from "@repo/contracts-ui/interfaces";
+import { redirect } from "next/navigation";
 import "../page.scss";
 
 
@@ -12,7 +14,11 @@ interface ContractPageProps {
 
 export default async function ContractPage({params}: ContractPageProps): Promise<JSX.Element> {
   const { projectId, fileId } = await params;
-
+  let contract: ContractObject|undefined;
+  let verification: ContractObjectVerification|undefined;
+  let fileRes: Response|undefined;
+  let project: ContractProjectObject|undefined;
+  
 
   // Get file
   let filePromise: Promise<Response>|undefined;
@@ -28,8 +34,9 @@ export default async function ContractPage({params}: ContractPageProps): Promise
   const verificationPromise = getContractObjectVerification(projectId, fileId);
 
 
-  const [contract, verification, fileRes, project, ] = 
-    await Promise.all([ contractPromise, verificationPromise, filePromise, projectPromise, ]);
+  try {
+    [contract, verification, fileRes, project, ] = await Promise.all([ contractPromise, verificationPromise, filePromise, projectPromise, ]);
+  } catch (error) { redirect("/"); }
 
   const file = fileRes ? await fileRes.blob() : undefined;
 

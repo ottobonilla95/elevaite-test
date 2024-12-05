@@ -1,22 +1,18 @@
-import { Inter } from "next/font/google";
-import "./layout.scss";
-import "./layout.css";
-import { type Metadata } from "next";
+import { ContractsBreadcrumbs } from "@repo/contracts-ui/components";
 import { NavBar } from "@repo/ui/components";
+import { type Metadata } from "next";
+import { Inter } from "next/font/google";
 import Providers from "../ui/Providers";
+import "./layout.scss";
 
 const font = Inter({ subsets: ["latin"] });
+
+
 
 interface RootLayoutProps {
   children: React.ReactNode;
 }
 
-const breadcrumbLabels: Record<string, { label: string; link: string }> = {
-  home: {
-    label: "Applications",
-    link: "/",
-  },
-};
 
 export const metadata: Metadata = {
   title: "Contract Co-Pilot",
@@ -39,8 +35,7 @@ export default function RootLayout({ children }: RootLayoutProps): JSX.Element {
       <body className={`${font.className} elevaite-main-container`}>
         <Providers>
           <NavBar
-            breadcrumbLabels={breadcrumbLabels}
-            hideBreadcrumbs
+            customBreadcrumbs={<ContractsBreadcrumbs/>}
             handleSearchInput={handleSearchInput}
             logOut={logOut}
             searchResults={[]}

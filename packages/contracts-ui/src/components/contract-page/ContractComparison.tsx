@@ -34,9 +34,9 @@ export function ContractComparison(props: ContractComparisonProps): JSX.Element 
     }
   }, [props.comparedContract, props.contract]);
 
-  function handleHome(): void {
-    router.push(`/${props.projectId}`);
-  }
+  // function handleHome(): void {
+  //   router.push(`/${props.projectId}`);
+  // }
 
   function handleMainView(): void {
     router.push(`/${props.projectId}/${props.contract.id}/`);
@@ -90,15 +90,16 @@ export function ContractComparison(props: ContractComparisonProps): JSX.Element 
     <div className="contract-comparison-container">
       <div className="contract-comparison-header">
         <div className="comparison-breadcrumbs">
-          <CommonButton noBackground onClick={handleHome}>
+          {/* <CommonButton noBackground onClick={handleHome}>
             Home
+          </CommonButton> */}
+          {/* <span className="breadcrumb-separator">/</span> */}
+          <CommonButton noBackground onClick={handleMainView} title="Back to file view">
+            {/* Main View */}
+            <ElevaiteIcons.SVGArrowBack/>
           </CommonButton>
-          <span className="breadcrumb-separator">/</span>
-          <CommonButton noBackground onClick={handleMainView}>
-            Main View
-          </CommonButton>
-          <span className="breadcrumb-separator">/</span>
-          <span className="current-page">Comparison</span>
+          {/* <span className="breadcrumb-separator">/</span>
+          <span className="current-page">Comparison</span> */}
         </div>
 
         <div className="matching-controls">

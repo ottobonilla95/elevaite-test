@@ -8,6 +8,7 @@ import {
   type ContractObjectVerification, type ContractObjectVerificationLineItem,
   type ContractProjectObject, type ContractSettings,
 } from "@repo/contracts-ui/interfaces";
+import { redirect } from "next/navigation";
 import "../../../page.scss";
 
 
@@ -21,6 +22,17 @@ interface ComparePageProps {
 
 export default async function ComparePage({ params }: ComparePageProps): Promise<JSX.Element> {
   const { projectId, fileId, secondaryFileId } = await params;
+  let project: ContractProjectObject|undefined;
+  let settings: ContractSettings|undefined;
+  let contractsList: ContractObject[]|undefined;
+  let primaryContract: ContractObject|undefined;
+  let primaryLineItems: ContractObjectVerificationLineItem[]|undefined;
+  let primaryEmphasis: ContractObjectEmphasis|undefined;
+  let primaryVerification: ContractObjectVerification|undefined;
+  let secondaryContract: ContractObject|undefined;
+  let secondaryLineItems: ContractObjectVerificationLineItem[]|undefined;
+  let secondaryEmphasis: ContractObjectEmphasis|undefined;
+  let secondaryVerification: ContractObjectVerification|undefined;
 
   
 
@@ -34,15 +46,17 @@ export default async function ComparePage({ params }: ComparePageProps): Promise
   const [secondaryContractPromise, secondaryLineItemsPromise, secondaryEmphasisPromise, secondaryVerificationPromise] = getContractPromises(secondaryFileId);
 
   // Await all promises
-  const [
-    project, settings, contractsList,
-    primaryContract, primaryLineItems, primaryEmphasis, primaryVerification,
-    secondaryContract, secondaryLineItems, secondaryEmphasis, secondaryVerification,
-  ] = await Promise.all([
-    projectPromise, settingsPromise, contractsListPromise,
-    primaryContractPromise, primaryLineItemsPromise, primaryEmphasisPromise, primaryVerificationPromise,
-    secondaryContractPromise, secondaryLineItemsPromise, secondaryEmphasisPromise, secondaryVerificationPromise,
-  ]);
+  try {
+    [
+      project, settings, contractsList,
+      primaryContract, primaryLineItems, primaryEmphasis, primaryVerification,
+      secondaryContract, secondaryLineItems, secondaryEmphasis, secondaryVerification,
+    ] = await Promise.all([
+      projectPromise, settingsPromise, contractsListPromise,
+      primaryContractPromise, primaryLineItemsPromise, primaryEmphasisPromise, primaryVerificationPromise,
+      secondaryContractPromise, secondaryLineItemsPromise, secondaryEmphasisPromise, secondaryVerificationPromise,
+    ]);
+  } catch(error) { redirect("/"); }
 
 
 

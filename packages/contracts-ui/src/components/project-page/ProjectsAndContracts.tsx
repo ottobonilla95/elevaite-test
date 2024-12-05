@@ -7,8 +7,8 @@ import { ProjectsList } from "./ProjectsList";
 interface ProjectsAndContractsProps {
   projectId?: string;
   project?: ContractProjectObject;
-  projects: ContractProjectObject[];
-  contracts: ContractObject[];
+  projects?: ContractProjectObject[];
+  contracts?: ContractObject[];
 }
 
 export function ProjectsAndContracts({ projects, project, contracts, ...props }: ProjectsAndContractsProps): JSX.Element {

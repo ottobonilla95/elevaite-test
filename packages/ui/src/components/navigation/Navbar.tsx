@@ -21,8 +21,9 @@ interface NavbarMenuItem {
 }
 
 interface NavBarProps {
-  breadcrumbLabels: Record<string, { label: string; link: string }>;
+  breadcrumbLabels?: Record<string, { label: string; link: string }>;
   hideBreadcrumbs?: boolean;
+  customBreadcrumbs?: React.ReactNode;
   user?: User;
   handleSearchInput: (term: string) => void;
   searchResults: { key: string; link: string; label: string }[];
@@ -72,14 +73,13 @@ export function NavBar(props: NavBarProps): JSX.Element {
   }
   
   function pathToBreadcrumbs(path: string): BreadcrumbItem[] {
+    if (!props.breadcrumbLabels) return [];
     if (pathname === "/") return [props.breadcrumbLabels.home];
     const runningPath = path.split("/").filter((str) => str !== "");
     return runningPath.map((str, index) => {
-      const breadcrumb: { label: string; link: string } | undefined = props.breadcrumbLabels[str];
+      const breadcrumb: { label: string; link: string } | undefined = props.breadcrumbLabels?.[str];
       return {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Could be undefined
         label: breadcrumb ? breadcrumb.label : str,
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Could be undefined
         link: index < runningPath.length - 1 && breadcrumb ? breadcrumb.link : "",
       };
     });
@@ -104,7 +104,9 @@ export function NavBar(props: NavBarProps): JSX.Element {
           <Link href="/">
             <ElevaiteIcons.SVGNavbarLogo />
           </Link>
-          {props.hideBreadcrumbs ? undefined : <Breadcrumbs items={breadcrumbItems} />}
+          {props.hideBreadcrumbs ? undefined : 
+            props.customBreadcrumbs ? props.customBreadcrumbs : 
+            <Breadcrumbs items={breadcrumbItems} />}
         </div>
 
         <div className="navbar-right">

@@ -48,8 +48,8 @@ const cleanFilterNumbers: StatusFilterNumbers = {
 interface ContractsListV2Props {
   projectId?: string;
   project?: ContractProjectObject;
-  contracts: ContractObject[];
-  projects: ContractProjectObject[];
+  contracts?: ContractObject[];
+  projects?: ContractProjectObject[];
 }
 
 
@@ -78,12 +78,13 @@ export function ContractsListV2({project: selectedProject, contracts, ...props}:
 
 
   useEffect(() => {
+    if (!contracts) return;
     updateStatusFilterNumbers(contracts);
   }, [contracts]);
 
   useEffect(() => {
+    if (!contracts) return;
     formatDisplayContracts(contracts);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Don't add the rest
   }, [contracts, selectedContractTypes, selectedStatus, sorting]);
 
 	
@@ -188,7 +189,7 @@ export function ContractsListV2({project: selectedProject, contracts, ...props}:
         irrelevant: contract.content_type === type,
         verified: contract.verification?.[type] && contract.verification[type].length > 0 && contract.verification[type].every((item) => item.verification_status),
         unverifiedItems: contract.verification?.[type]?.filter((item) => !item.verification_status).map((item) => {          
-          const relevantContract = contracts.find(foundContract => foundContract.id === item.file_id);
+          const relevantContract = contracts?.find(foundContract => foundContract.id === item.file_id);
           return {
             id: item.file_id,
             ref: item.file_ref,

@@ -9,7 +9,7 @@ import "./ProjectsList.scss";
 
 
 interface ProjectsListProps {
-  projects: ContractProjectObject[];
+  projects?: ContractProjectObject[];
   projectId?: string;
 }
 
@@ -34,10 +34,10 @@ export function ProjectsList({ projects, projectId, }: ProjectsListProps ): JSX.
 
       <div className="projects-list-scroller">
         <div className="projects-list-contents">
-          {projects.length === 0 ? (
+          {projects?.length === 0 ? (
             <div className="no-projects">No Projects found</div>
           ) : (
-            projects.map((project) => (
+            projects?.map((project) => (
               <ProjectCard
                 key={project.id}
                 project={project}
