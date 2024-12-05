@@ -127,8 +127,8 @@ const appLinks: Record<string, { development: string; production: string; test: 
     test: "",
   },
   mediaplan: {
-    development: "http://localhost:3004/homepage",
-    production: "http://localhost:3004/homepage",
+    development: "https://elevaite-ads.iopex.ai/",
+    production: "https://elevaite-ads.iopex.ai/",
     test: "",
   }
 };
