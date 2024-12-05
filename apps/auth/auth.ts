@@ -59,7 +59,6 @@ export const authOptions: NextAuthConfig = {
 
           try {
             const res = await fusionClient.login(loginRequest);
-            console.dir({ res })
             const _user = res.response.user;
             if (!_user?.id) return null;
             return {

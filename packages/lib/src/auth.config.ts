@@ -145,7 +145,6 @@ async function refreshFusionAuthToken(token: JWT): Promise<JWT> {
 const _config = {
   callbacks: {
     async jwt({ account, token, user }): Promise<JWT> {
-      console.log("called jwt")
       if (account) {
         if (!(user.accessToken ?? user.refreshToken) && !(account.access_token ?? account.refresh_token))
           throw new Error("Account doesn't contain tokens");
@@ -165,7 +164,7 @@ const _config = {
         if (account.provider === "credentials") {
           return {
             ...token,
-            access_token: account.access_token,
+            access_token: user.accessToken,
             expires_at: Math.floor(
               (Date.now() / 1000) + 3600
             ),
@@ -197,7 +196,6 @@ const _config = {
       }
     },
     async session({ session, token, user }) {
-      console.log("called session")
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- you never know
       session.user ? (session.user.id = token.sub ?? user.id) : null;
       Object.assign(session, { authToken: token.access_token });
