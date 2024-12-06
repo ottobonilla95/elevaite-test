@@ -89,23 +89,21 @@ Plan your output such that you limit your response to a maximum of 800 words."""
 
 
 
-        "campaign_performance_with_formatter": """You are a campaign performance report agent, you only provide campaign performance reports. Base your output on the user query, the provided data and conversation history.
-Format the Campaign Performance Report data in Markdown using the following guidelines:
+        "campaign_performance_with_formatter": """Format the Campaign Performance Report data in Markdown using the following guidelines:
 Include "Campaign Performance Report" as a level 2 header(##).
 For each of the campaigns use the following structure:
 **Brand and Product:** [Specify brand and product details] 
 **Campaign Objective:** [Outline primary objective]
-Explain your budget calculation.
-| Campaign Duration                 |       Budget         | Booked Impressions    | Delivered Impressions | Clicks/Actions  | Value to Money (Conversions) |                ECPM                  |
-|-----------------------------------|----------------------|-----------------------|-----------------------|-----------------|------------------------------|--------------------------------------| 
-| [Duration Category] ([Days] days) |      [Number]        |     [Number]          |        [Number]       |    [Number]     |        [Percentage]%         | [(Budget*1000)/Delivered Impressions]| 
+
+| Campaign Duration                 | Delivered Impressions | Delivered Impressions | Clicks/Actions  | Value to Money (Conversions) |
+|-----------------------------------|-----------------------|-----------------------|-----------------|------------------------------|
+| [Duration Category] ([Days] days) |      [Number]         |        [Number]       |    [Number]     |        [Percentage]%         |
 
 | Creative Snapshot                      | Creative Thumbnail                           |
 |----------------------------------------|----------------------------------------------|
 | [Brief description of creative imagery]| ![creative filename with extension](md5_hash.thumbnail.jpg "Brand and Product") |
 
-Limit your response to a maximum of 600 tokens. Make sure the creative thumbnail is formatted  like ![creative filename with extension](md5_hash.thumbnail.jpg). Make sure that the url for the thumbnail is md5_hash.thumbnail.jpg!(NOT md5_hash.thumbnail.jpg.jpg or NOT md5_hash.thumbnail.jpg.png)
-If the data found is not relevant, then don't use it.""",
+Limit your response to a maximum of 800 tokens. Cover ONLY the performance report section. Make sure the creative thumbnail is formatted  like ![creative filename with extension](md5_hash.thumbnail.jpg). Make sure that the url for the thumbnail is md5_hash.thumbnail.jpg!(NOT md5_hash.thumbnail.jpg.jpg)""",
 
 
 
@@ -255,19 +253,9 @@ If the data found is not relevant, then don't use it.""",
 Each subheading should be formatted as a level 3 header with a paragraph and a table for recommendation and supporting insight. Ensure your output is an a correctly structured Markdown format.""",
 
 
-        "formatter_creative_insights":"""Format the creative insight data received into a structured Markdown format. This is part of another agents output so a heading is not required. Ensure your output follows the following format.| **Heading**                  | **Details**                         |
-|------------------------------|--------------------------------------|
-| **Brand**                    |                                      |
-| **Product**                  |                                      |
-| **Creative Snapshot**        |                                      |
-| **Thumbnail**                |                                      |
-| **Brand Elements**           |                                      |
-| **Seasonal Holiday Elements**|                                      |
-| **Visual Elements**          |                                      |
-| **Color Tone**               |                                      |
-| **Cinematography**           |                                      |
-| **Narrative Structure**      |                                      |
-Make sure the creative thumbnail looks like this: ![filename of creative](md5_hash.thumbnail.jpg "Brand and Product"). Example: 457a19d40e9f46bdb3745bcb6a4b922c.thumbnail.jpg (do not have an example url. You must substitute the creatives md5_hash in the UR)""",
+        "formatter_creative_insights":"""Format the creative insight data received into a structured Markdown format. Start it with a heading "Creative Insights" formatted as a level 2 header (##).
+For each creative, create a table and display its details. Ensure your output is structured in Markdown format.
+Make sure the creative thumbnail looks like this: ![filename of creative](md5_hash.thumbnail.jpg "Brand and Product"). Example: 457a19d40e9f46bdb3745bcb6a4b922c.thumbnail.jpg (do not have an example url.)""",
 
 
         "formatter_media_plan":"""Format the Media Plan content provided into a structured Markdown format.

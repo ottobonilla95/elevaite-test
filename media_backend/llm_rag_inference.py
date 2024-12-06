@@ -683,6 +683,7 @@ async def campaign_performance(filtered_data: SearchResult, query: str, conversa
         # response_class=CampaignPerformanceReport,
         max_tokens=4000
     )
+    print(f"Campaign Performance Raw text:{raw_response}")
     return raw_response
 
 @timer_decorator
@@ -726,11 +727,11 @@ async def perform_analysis(
         response_class=response_class
     )
     # Format the response
+    print(f"Analysis of Trends Raw text:{raw_response}")
     return await formatter(raw_response, formatter_name)
 
-@timer_decorator
+
 async def creative_insights(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload]) -> str:
-    # Fields to extract for creatives
     fields_to_extract = [
         "brand",
         "ad_objective",
@@ -755,77 +756,125 @@ async def creative_insights(filtered_data: SearchResult, query: str, conversatio
         "national events",
         "sport events",
     ]
+    # Assuming extract_specific_fields is a quick operation, keep it synchronous
+    essential_data = extract_specific_fields(filtered_data, fields_to_extract, full_data_fields_to_extract)
 
-    def clean_json_like_data(raw_data: str) -> str:
-        """
-        Cleans and converts a JSON-like string (with single quotes, etc.)
-        into a valid JSON string using ast.literal_eval.
-        """
-        try:
-            # Convert the raw string to a Python object
-            python_data = ast.literal_eval(raw_data)
-            # Convert the Python object back to a valid JSON string
-            cleaned_json = json.dumps(python_data)
-            return cleaned_json
-        except Exception as e:
-            raise ValueError(f"Failed to clean JSON-like data: {e}")
+    # Assuming load_prompt is a quick operation, keep it synchronous
+    system_prompt = load_prompt("creative_insights")
+    
+    # print(f"creative insight Input:{essential_data}; prompt: {system_prompt};Conversation:{conversation_history},response_class:{CreativeInsightsReport},query:{query}")
+    
+    # Use the async version of generate_response
+    raw_response = await generate_response(
+        query=query,
+        system_prompt=system_prompt,
+        search_result=essential_data,
+        conversation_history=conversation_history,
+        response_class=CreativeInsightsReport
+    )
+  #  logger.debug(f"Creative Insights Raw: {raw_response}")
+    # print(f"raw_response: {raw_response}")
+    formatted_response = await formatter(raw_response, "formatter_creative_insights")
+    return formatted_response
+    
+# @timer_decorator
+# async def creative_insights(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload]) -> str:
+#     # Fields to extract for creatives
+#     fields_to_extract = [
+#         "brand",
+#         "ad_objective",
+#         "tone_mood",
+#         "md5_hash",
+#         "colors",
+#         "duration(days)",
+#         "duration_category",
+#         "imagery",
+#         "file_name",
+#     ]
+#     full_data_fields_to_extract = [
+#         "product/service",
+#         "call-to-action",
+#         "strategy",
+#         "visual elements",
+#         "cinematography",
+#         "audio elements",
+#         "narrative structure",
+#         "weekends",
+#         "holidays",
+#         "national events",
+#         "sport events",
+#     ]
 
-    # Extract specific fields for all creatives
-    raw_essential_data = extract_specific_fields(filtered_data, fields_to_extract, full_data_fields_to_extract)
-    # print("Raw:", raw_essential_data)
+#     def clean_json_like_data(raw_data: str) -> str:
+#         """
+#         Cleans and converts a JSON-like string (with single quotes, etc.)
+#         into a valid JSON string using ast.literal_eval.
+#         """
+#         try:
+#             # Convert the raw string to a Python object
+#             python_data = ast.literal_eval(raw_data)
+#             # Convert the Python object back to a valid JSON string
+#             cleaned_json = json.dumps(python_data)
+#             return cleaned_json
+#         except Exception as e:
+#             raise ValueError(f"Failed to clean JSON-like data: {e}")
 
-    try:
-        # Clean and validate JSON data
-        cleaned_data = clean_json_like_data(raw_essential_data)
-        essential_data_list = json.loads(cleaned_data)
-        logger.info(f"Parsed {len(essential_data_list)} creatives for processing.")
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse extracted data: {e}")
-        logger.debug(f"Raw Data: {raw_essential_data}")  # Log raw data for debugging
-        return "Error parsing extracted data."
-    except Exception as e:
-        logger.error(f"Unexpected error during data parsing: {e}")
-        return "An unexpected error occurred during data parsing."
+#     # Extract specific fields for all creatives
+#     raw_essential_data = extract_specific_fields(filtered_data, fields_to_extract, full_data_fields_to_extract)
+#     # print("Raw:", raw_essential_data)
 
-    # Load the system prompt once
-    system_prompt = load_prompt("creative_insights_new")
+#     try:
+#         # Clean and validate JSON data
+#         cleaned_data = clean_json_like_data(raw_essential_data)
+#         essential_data_list = json.loads(cleaned_data)
+#         logger.info(f"Parsed {len(essential_data_list)} creatives for processing.")
+#     except json.JSONDecodeError as e:
+#         logger.error(f"Failed to parse extracted data: {e}")
+#         logger.debug(f"Raw Data: {raw_essential_data}")  # Log raw data for debugging
+#         return "Error parsing extracted data."
+#     except Exception as e:
+#         logger.error(f"Unexpected error during data parsing: {e}")
+#         return "An unexpected error occurred during data parsing."
 
-    async def process_creative(creative_data):
-        """Processes a single creative asynchronously."""
-        try:
-            # Generate response for a single creative
-            raw_response = await generate_response(
-                query=query,
-                system_prompt=system_prompt,
-                search_result=json.dumps(creative_data),  # Ensure data is serialized correctly
-                conversation_history=conversation_history,
-                response_class=CreativeInsightsReport,
-            )
-            # Format the raw response
-            return await formatter(raw_response, "formatter_creative_insights")
-        except Exception as e:
-            logger.error(f"Error processing creative {creative_data.get('file_name', 'unknown')}: {e}")
-            return f"Error processing creative {creative_data.get('file_name', 'unknown')}"
+#     # Load the system prompt once
+#     system_prompt = load_prompt("creative_insights_new")
 
-    # Ensure the input is not empty to avoid unnecessary calls
-    if not essential_data_list:
-        return "No valid creatives found for processing."
+#     async def process_creative(creative_data):
+#         """Processes a single creative asynchronously."""
+#         try:
+#             # Generate response for a single creative
+#             raw_response = await generate_response(
+#                 query=query,
+#                 system_prompt=system_prompt,
+#                 search_result=json.dumps(creative_data),  # Ensure data is serialized correctly
+#                 conversation_history=conversation_history,
+#                 response_class=CreativeInsightsReport,
+#             )
+#             # Format the raw response
+#             return await formatter(raw_response, "formatter_creative_insights")
+#         except Exception as e:
+#             logger.error(f"Error processing creative {creative_data.get('file_name', 'unknown')}: {e}")
+#             return f"Error processing creative {creative_data.get('file_name', 'unknown')}"
 
-    # Process all creatives concurrently using asyncio.gather
-    tasks = [process_creative(creative) for creative in essential_data_list]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+#     # Ensure the input is not empty to avoid unnecessary calls
+#     if not essential_data_list:
+#         return "No valid creatives found for processing."
 
-    # Combine formatted outputs into a unified Markdown response
-    markdown_output = "## Creative Insights\n\n"
-    for index, result in enumerate(results):
-        if isinstance(result, Exception):
-            logger.error(f"Task {index} failed with error: {result}")
-            markdown_output += f"### Creative {index + 1}: Error\n{result}\n\n"
-        else:
-            # Append formatted creative insights with a heading
-            markdown_output += f"### Creative {index + 1}\n{result.strip()}\n\n"
+#     # Process all creatives concurrently using asyncio.gather
+#     tasks = [process_creative(creative) for creative in essential_data_list]
+#     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    return markdown_output
+#     # Combine formatted outputs into a unified Markdown response
+#     markdown_output = "## Creative Insights\n\n"
+#     for index, result in enumerate(results):
+#         if isinstance(result, Exception):
+#             logger.error(f"Task {index} failed with error: {result}")
+#             markdown_output += f"### Creative {index + 1}: Error\n{result}\n\n"
+#         else:
+#             # Append formatted creative insights with a heading
+#             markdown_output += f"### Creative {index + 1}\n{result.strip()}\n\n"
+
+#     return markdown_output
 
 @timer_decorator
 async def performance_summary(query: str, output_parts: Dict[str, str]) -> str:
