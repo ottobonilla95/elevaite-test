@@ -3,8 +3,6 @@ services:
     build:
       context: .
       dockerfile: ./apps/arlo/Dockerfile
-    env_file: .env
-    command: ["npm", "start"]
     depends_on:
       - common
     environment:
@@ -14,8 +12,6 @@ services:
     build:
       context: .
       dockerfile: ./apps/auth/Dockerfile
-    env_file: .env
-    command: ["npm", "start"]
     depends_on:
       - common
     environment:
@@ -25,8 +21,6 @@ services:
     build:
       context: .
       dockerfile: ./apps/chatbot/Dockerfile
-    env_file: .env
-    command: ["npm", "start"]
     depends_on:
       - common
     environment:
@@ -36,8 +30,6 @@ services:
     build:
       context: .
       dockerfile: ./apps/contracts/Dockerfile
-    env_file: .env
-    command: ["npm", "start"]
     depends_on:
       - common
     environment:
@@ -47,8 +39,6 @@ services:
     build:
       context: .
       dockerfile: ./apps/elevaite/Dockerfile
-    env_file: .env
-    command: ["npm", "start"]
     depends_on:
       - common
     environment:
@@ -58,8 +48,6 @@ services:
     build:
       context: .
       dockerfile: ./apps/exceltoppt/Dockerfile
-    env_file: .env
-    command: ["npm", "start"]
     depends_on:
       - common
     environment:
@@ -69,8 +57,6 @@ services:
     build:
       context: .
       dockerfile: ./apps/media/Dockerfile
-    env_file: .env
-    command: ["npm", "start"]
     depends_on:
       - common
     environment:
@@ -79,3 +65,4 @@ services:
   common:
     image: alpine:latest
     command: ["echo", "Shared shell service"]
+    env_file: .env
