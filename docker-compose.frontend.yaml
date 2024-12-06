@@ -1,0 +1,81 @@
+services:
+  arlo:
+    build:
+      context: .
+      dockerfile: ./apps/arlo/Dockerfile
+    env_file: .env
+    command: ["npm", "start"]
+    depends_on:
+      - common
+    environment:
+      - APP_NAME=arlo
+
+  auth:
+    build:
+      context: .
+      dockerfile: ./apps/auth/Dockerfile
+    env_file: .env
+    command: ["npm", "start"]
+    depends_on:
+      - common
+    environment:
+      - APP_NAME=auth
+
+  chatbot:
+    build:
+      context: .
+      dockerfile: ./apps/chatbot/Dockerfile
+    env_file: .env
+    command: ["npm", "start"]
+    depends_on:
+      - common
+    environment:
+      - APP_NAME=chatbot
+
+  contracts:
+    build:
+      context: .
+      dockerfile: ./apps/contracts/Dockerfile
+    env_file: .env
+    command: ["npm", "start"]
+    depends_on:
+      - common
+    environment:
+      - APP_NAME=contracts
+
+  elevaite:
+    build:
+      context: .
+      dockerfile: ./apps/elevaite/Dockerfile
+    env_file: .env
+    command: ["npm", "start"]
+    depends_on:
+      - common
+    environment:
+      - APP_NAME=elevaite
+
+  exceltoppt:
+    build:
+      context: .
+      dockerfile: ./apps/exceltoppt/Dockerfile
+    env_file: .env
+    command: ["npm", "start"]
+    depends_on:
+      - common
+    environment:
+      - APP_NAME=exceltoppt
+
+  media:
+    build:
+      context: .
+      dockerfile: ./apps/media/Dockerfile
+    env_file: .env
+    command: ["npm", "start"]
+    depends_on:
+      - common
+    environment:
+      - APP_NAME=media
+
+  common:
+    image: alpine:latest
+    command: ["echo", "Shared shell service"]

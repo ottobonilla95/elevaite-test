@@ -1,4 +1,3 @@
-version: "3.8"
 services:
   backend:
     build: ./arlo_backend
@@ -14,7 +13,4 @@ services:
     ports:
       - 6000:8080
     volumes:
-      - ./searxng/settings.yml:/etc/searxng/settings.yml:rw  
-
-
-
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:rw
