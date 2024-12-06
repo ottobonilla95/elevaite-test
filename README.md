@@ -1,10 +1,12 @@
 # iOPEX elevAIte Suite Monorepo
+
 ## Structure
- This repository utilizes [Turborepo](https://turbo.build/repo/docs)  on NodeJS for JavaScript/TypeScript applications and packages and [Poetry](https://python-poetry.org/) for Python APIs and middleware programs. 
- 
+
+This repository utilizes [Turborepo](https://turbo.build/repo/docs) on NodeJS for JavaScript/TypeScript applications and packages and [Poetry](https://python-poetry.org/) for Python APIs and middleware programs.
+
 ### Turborepo Setup
- 
- The JavaScript/TypeScript portion of the repository is structured in an [npm workspace](https://docs.npmjs.com/cli/v7/using-npm/workspaces) like this:
+
+The JavaScript/TypeScript portion of the repository is structured in an [npm workspace](https://docs.npmjs.com/cli/v7/using-npm/workspaces) like this:
 
     |> package.json
     |> turbo.json
@@ -20,18 +22,23 @@ The `apps` directory contains all (at the moment [Next.JS](https://nextjs.org/))
 The `packages` directory contains the internal packages to be used in the applications, like configurations and common ui components.
 
 ### Python Setup
+
 Python programs and packages are (mostly) co-located in the `elevaite_backend` directory
 
 ## Branch Strategy
+
 **This repository follows a modified Git Flow branch strategy.**
+
 ### What is Git Flow
+
 Git Flow was [introduced in 2010 by Vincent Driessen in their blog](https://nvie.com/posts/a-successful-git-branching-model/). Please read the blogpost for further clarification.
 ![Git Flow Diagram](https://nvie.com/img/git-model@2x.png)
+
 ### Modifications
 
- - `master` branch renamed to `main`, to match Github's rules
- - Prefer linear history as it has a more manageable tree
- - For the time being we are not tagging releases
- - [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) preferred
+- `master` branch renamed to `main`, to match Github's rules
+- Prefer linear history as it has a more manageable tree
+- For the time being we are not tagging releases
+- [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) preferred
 
 > Written with [StackEdit](https://stackedit.io/).
