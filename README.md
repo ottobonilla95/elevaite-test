@@ -20,6 +20,7 @@ The `package.json` file defines the workspace as well as dependencies required f
 The `turbo.json` file defines the turborepo setup, some common tasks and their dependencies, as well as environmental variables to be use in the applications.
 The `apps` directory contains all (at the moment [Next.JS](https://nextjs.org/)) applications.
 The `packages` directory contains the internal packages to be used in the applications, like configurations and common ui components.
+**The `.env` file contains enviromental variables for all the apps, please don't forget to add placeholders here when creating new variables for the frontend.**
 
 ### Python Setup
 
