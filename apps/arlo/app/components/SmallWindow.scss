@@ -119,26 +119,53 @@
             }
 
              .button-container {
-                display: flex;
-                justify-content: space-evenly; /* Space buttons evenly */
-                margin: 10%;
-                 position: sticky;
+               display: flex;
+            align-items: center;
+            gap: 20px;
 
+            & button {
+                height: 40px;
+                min-width: 60px;
+                justify-content: center;
+                gap: 15px;
+                padding: 0 20px;
+                font-weight: 600;
+                background-color: var(--ev-colors-primary);
+                border: 1px solid var(--ev-colors-borderColor);
+                color: var(--ev-colors-secondaryText);
 
-                & .voting-buttons {
+                &.active {
+                    background-color: var(--ev-colors-secondary);
+                    color: var(--ev-colors-text);
+                    & > svg { color: var(--ev-colors-highlight); }
+                }
+            }
+
+                 .voting-buttons {
                 display: flex;
                 align-items: center;
-                    border-radius: 8px;
 
-                background-color: var(--ev-colors-highlight);
-                        border: 1px solid var(--ev-colors-borderColor);
-                        color: var(--ev-colors-primary);
-                        &.active {
-                            background-color: var(--ev-colors-secondary);
-                            color: var(--ev-colors-text);
-                            & > svg { color: var(--ev-colors-tertiary); }
-                        }
+                & > button {
+                    &:first-child { border-radius: 8px 0 0 8px; }
+                    &:last-child { border-radius: 0 8px 8px 0; }
+                }
             }
+
+
+            //    & .voting-buttons {
+            //    display: flex;
+            //    align-items: center;
+            //        border-radius: 8px;
+            //
+            //    background-color: var(--ev-colors-highlight);
+            //            border: 1px solid var(--ev-colors-borderColor);
+            //            color: var(--ev-colors-primary);
+            //            &.active {
+            //                background-color: var(--ev-colors-secondary);
+            //                color: var(--ev-colors-text);
+            //                & > svg { color: var(--ev-colors-tertiary); }
+            //            }
+            //}
         }
     }
 

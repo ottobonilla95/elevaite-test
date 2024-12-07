@@ -30,6 +30,23 @@
 
         font-size: 15px;
         font-weight: 600;
+
+        .case-id-input
+        {
+            display: flex;
+            align-items: center;
+            margin-left: auto;
+            padding-right: 30px;
+            padding-left: 30px;
+            height: auto;
+            border-radius: 8px;
+            background: var(--ev-colors-borderColor);
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #98a5b3;
+            & .highlight { color: var(--ev-colors-highlight); }
+        }
         .copy-button {
             background: none;
             border: none;

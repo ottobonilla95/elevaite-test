@@ -29,7 +29,7 @@
     "ORG_ID",
     "RBAC_BACKEND_URL",
     "NODE_TLS_REJECT_UNAUTHORIZED",
-    "ARLO_BACKEND_URL"
+    "NEXT_PUBLIC_ARLO_BACKEND_URL"
   ],
   "tasks": {
     "build": {

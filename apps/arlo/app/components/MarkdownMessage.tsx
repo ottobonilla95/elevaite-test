@@ -30,11 +30,11 @@ const MarkdownMessage: React.FC<{ text: string; onImageClick: (url: string, alt:
     tbody: createRenderer("markdown-table-body", 'tbody'),
     tr: createRenderer("markdown-table-row", 'tr'),
     th: createRenderer("markdown-table-header", 'th'),
-    td: createRenderer("markdown-table-cell", 'td'), 
+    td: createRenderer("markdown-table-cell", 'td'),
     img: ({ src, alt, title }) => (
-      <img 
-        src={src} 
-        alt={alt} 
+      <img
+        src={src}
+        alt={alt}
         onClick={() => onImageClick(src, alt || 'Image',title || 'No title provided')}
         style={{ cursor: 'pointer' }} // Optional: Add pointer cursor for clarity
       />

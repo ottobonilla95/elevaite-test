@@ -7,7 +7,7 @@ import os
 import datetime
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import ResourceClosedError
-from data_models import ChatHistoryModel, ChatSessionDataModel, ChatFeedback, ChatVoting, SummaryDataModel, SummaryVoting
+from data_models import ChatHistoryModel, ChatSessionDataModel, ChatFeedback, ChatVoting, SummaryDataModel, SummaryVoting, CaseID
 
 Base = declarative_base()
 
@@ -60,6 +60,12 @@ class ChatHistoryDataModelSQL(Base):
     user_id = Column(String)
     chat_timestamp = Column(DateTime)
     chat_json = Column(JSON)
+
+class CaseIDDatModelSQL(Base):
+    __tablename__ = 'transcript_id_data'
+    session_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    case_id = Column(String)
+    case_timestamp = Column(DateTime)
 
 # Replace with your actual database URL
 # DATABASE_URL = "postgresql://somansh@localhost/postgres"
@@ -211,3 +217,28 @@ class ChatDBMethods:
         finally:
             session.close()
         return "Vote Recorded"
+
+    def save_transcript_id(case_id: CaseID):
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        try:
+            case_id_data = CaseIDDatModelSQL(
+                session_id=case_id.session_id,
+                case_id=case_id.case_id,
+                case_timestamp=datetime.datetime.now()
+            )
+            existing_case_id = session.query(CaseIDDatModelSQL).filter(
+                CaseIDDatModelSQL.session_id == case_id.session_id).first()
+            if existing_case_id:
+                existing_case_id.case_id = case_id.case_id
+            else:
+                session.add(case_id_data)
+            session.flush()
+            if session.is_active:
+                session.commit()
+        except ResourceClosedError:
+            session.rollback()
+            print("Transaction is closed. Rolling back.")
+        finally:
+            session.close()
+        return "Case ID Recorded"

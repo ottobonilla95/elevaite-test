@@ -114,16 +114,16 @@ export function ChatbotInput(): JSX.Element {
                 }
             />
 
-            <CommonButton
-                className=".export-button"
-                overrideClass
-                onClick={async () => {
-                    // await handleExport();
-                }}
-            >
-                <ChatbotIcons.SVGDocument/>
-                {/* <span>Export</span> */}
-            </CommonButton>
+            {/*<CommonButton*/}
+            {/*    className=".export-button"*/}
+            {/*    overrideClass*/}
+            {/*    onClick={async () => {*/}
+            {/*        // await handleExport();*/}
+            {/*    }}*/}
+            {/*>*/}
+            {/*    <ChatbotIcons.SVGDocument/>*/}
+            {/*    /!* <span>Export</span> *!/*/}
+            {/*</CommonButton>*/}
         </div>
     );
 }

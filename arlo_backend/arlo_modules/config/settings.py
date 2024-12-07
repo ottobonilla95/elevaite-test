@@ -454,111 +454,228 @@ END OF DEVICES LIST
     #
     # """
 
-    SUMMARY_SYSTEM_PROMPT = """
-    Act as an expert Chat Analyst.
-    Read the following text and extract the relevant information as per given entities.
-    For instance, if the user says "Hi, I'm John and I have an iPhone 16", and the entities listed are name and product,
-    you should extract the name "John" and the product "iPhone 16".
-    
+    SUMMARY_SYSTEM_PROMPT_OLD = """
+    You’re a quality assurance and subject matter expert for Arlo Cameras who reads the chat transcript and generates a summary.
+    The essence of the summary is to provide a clear and concise summary of the chat transcript such that when someone reads the summary, they can understand the entire context of the chat.
+
+    Your job is to read chat transcripts between the customer support and the users; extract the relevant information and summarize it in points in the following categories: ISSUES, POSSIBLE_CAUSES, RESOLUTION_PROVIDED.
+
+
+    ISSUES: The problems the user faced. Include the necessary information about the problem like the product, circumstances, etc. Remove all noise and user personal details like name, email address, phone number, etc
+
+    POSSIBLE_CAUSES: List the causes that possibly led the issues the user faced
+
+    RESOLUTION_PROVIDED: The resolution provided by the customer support agent to solve the issues. Including all the troubleshooting steps the user did.
+
+    Your summarization should be sufficiently detailed to understand customer chats without reading it. However, it should be very precise, concise, clear and simple to understand and shouldn’t include any noise. An agent should understand the entire context and the issues, possible causes, and resolution provided in a minute.
+
+    By reading the summary 
     ------------------------------------------------------------
-    
-    Here is an example chat and the ideal chat summary
-    
+
+    Here is an example chat and its summary
+
     CHAT:
-    
-        ( 5s ) Arlo Support: Dear John Lewis, Welcome!
-        ( 20s ) John Lewis: Hello
-        ( 21s ) Arlo Support: Hi! Thank you for choosing Arlo, John! My name is Shalini. How are you doing today? I hope you don’t mind giving me 2 minutes to review your account and your conversation with our chat bot.
-        
-        refid:5744z000000kAR9AAM
-        ( 36s ) John Lewis: Sure
-        ( 1m 57s ) Arlo Support: Thank you for your patience.
-        ( 2m 24s ) Arlo Support: Just to verify, based on the chatbot, you’re contacting us today because you need help with camera re-add issue. Is that correct?
-        ( 3m 46s ) John Lewis: Yes, I removed Arlo Pro NE 52M1857DB2D37 and now tried to put it back in with no success
-        ( 4m 7s ) Arlo Support: Thank you for the confirmation.
-        
-        I’m so sorry to hear about your experience. No worries, let us work together to fix this issue for you.
-        ( 4m 12s ) Arlo Support: Could you please confirm how long you have been facing this issue?
-        ( 4m 54s ) John Lewis: Just in the last 30 minutes or so.
-        ( 5m 6s ) Arlo Support: Thank you for confirming.
-        
-        No worries, we will try to fix this issue for you.
-        ( 5m 18s ) Arlo Support: Have you tried any troubleshooting steps before?
-        ( 6m 42s ) John Lewis: No, that camera was not activating when i walked in front of it. I tried resincing it and then thought i would remove it and reinstall it.
-        ( 7m 11s ) Arlo Support: Thank you for the confirmation, John.
-        ( 7m 23s ) Arlo Support: Are you next to the camera right now?
-        ( 7m 30s ) John Lewis: Yes
-        ( 7m 58s ) Arlo Support: That's really great.
-        ( 8m 46s ) Arlo Support: Please remove and re-insert the battery after 3-5 seconds and let me know the LED on the camera.
-        ( 10m 1s ) John Lewis: It's blinking fast blue
-        ( 12m 24s ) Arlo Support: Please follow the below steps to add the camera to your account:
-        
-        Launch the Arlo Secure App.
-        Tap Devices.
-        Note: Make sure the correct Location where you want to add the device is selected.
-        Tap Add Icon.
-        Tap Cameras.
-        Tap Pro.
-        Tap Pro 2
-        Then follow the in-app instructions
-        ( 14m 14s ) Arlo Support: You can get back to this chat by selecting Profile > support center > tap the right top corner to get back to this chat
-        ( 14m 40s ) John Lewis: I don't see whre to select location
-        ( 17m 5s ) Arlo Support: That's fine. Please ignore that step, John
-        
-        You can follow the below steps:
-        
-        Open the Arlo app>> Devices> Add new device>> Cameras>> Pro>> Pro 2>> Follow the in-app instructions to add the camera to your account.
-        ( 17m 58s ) John Lewis: Is the app different than my.arlo?
-        ( 19m 47s ) Arlo Support: Yes, both interfaces will be different but the process will be the same.
-        ( 21m 8s ) John Lewis: ok, I'm trying it
-        ( 21m 24s ) Arlo Support: Sure, please take your time.
-        ( 21m 30s ) Arlo Support: You can get back to this chat by selecting Profile > support center > tap the right top corner to get back to this chat
-        ( 21m 41s ) Arlo Support: Let me know once done, John.
-        ( 24m 11s ) John Lewis: That did it, Thanks. Now I'll put it back up and see if it works.
-        ( 24m 16s ) Arlo Support: I could see that you have successfully added the camera to your account.
-        ( 25m 19s ) Arlo Support: Please try and let me know.
-        ( 27m 26s ) John Lewis: It is recording me now but still not showing up in devices on my computer. Maybe i need to log out first.
-        ( 28m 45s ) Arlo Support: Please confirm whether the camera is reflecting in your mobile app?
-        ( 30m 2s ) John Lewis: yes it is
-        ( 30m 14s ) Arlo Support: Thank you for your kind confirmation.
-        ( 31m 2s ) Arlo Support: Please try to log out and re-login in your PC once and try again.
-        ( 31m 28s ) John Lewis: Ok, I re-logged and it is now there. Thank you very much!
-        ( 31m 45s ) Arlo Support: Sounds good! I appreciate the opportunity in helping you today!
-        ( 32m 11s ) Arlo Support: Just a quick recap, you contacted us because you needed help with a camera setup issue and we addressed your concern by adding camera your account. Is there anything else I can help you with today?
-        ( 32m 40s ) John Lewis: That's it for now. Thanks again.
-        ( 32m 44s ) Arlo Support: I appreciate the opportunity in helping you today! I will now close this case and a survey will be emailed to you shortly to rate the support conversation I had with you today. I will greatly appreciate it if you can take the time to provide your feedback by answering the survey. You can reach us again through the Support Center in your Arlo Secure App. Once again, thank you for choosing Arlo. I wish you have a great day!
-        Support site: https://support.arlo.com
-        Community site: https://community.arlo.com
-    
-    SUMMARY:
-    
-        ISSUE:
-        - Camera not recording, customer removed and unable to redd the camera
-        - Camera not recording when motion detected
-        - Camera not showing up on computer after readding the device.
-        
-        POSSIBLE_CAUSES:
-        - Camera was removed and not able to re add to the account
-        - Camera might not be properly synced
-        
-        RESOLUTION_PROVIDED:
-        - Remove and re-insert the battery
-        - Follow steps to add the camera to the account via the Arlo app
-        -  Customer confirmed the cameras are all recording.
-        - Log out and re-login on the computer done and the devices were listed.
-    
+
+    Product Name: Arlo Essential 2 Outdoor FHD (VMC2050)
+    Question: the camera isn't saving video recordings or detections of people it's just notifying me not saving to the feed
+
+    Assistant: Please wait while as I check on a few things
+
+
+    Chat Started: Sunday, December 01, 2024, 07:09:55 (-0800)
+    Chat Origin: 02 NPI - HelpCenter Chat Queue
+    Agent Subashree S
+    ( 53s ) Arlo Support: Dear Marcus Thomas, Welcome!
+    ( 1m 19s ) Arlo Support: Hi! Thank you for choosing Arlo, Marcus! My name is Subashree. How are you doing today? I hope you don’t mind giving me 2 minutes to review your account and your conversation with our chat bot.
+    refid:5744z000000kAR9AAM
+    ( 5m 22s ) Arlo Support: Thank you for staying connected
+    ( 5m 50s ) Arlo Support: I am sorry to hear that camera is not detecting and recording the motion. Sure,I will help you with this
+    ( 6m 13s ) Arlo Support: Before proceeding could you please help me with the Phone number?
+    ( 8m 23s ) Arlo Support: Hi Marcus, are we still connected? I am still here to give you assistance regarding your concern. Hopefully, you can still respond to this conversation.
+    refid:5744z000000kAQLAA2
+    ( 8m 43s ) Marcus Thomas: Ok
+    ( 9m 3s ) Arlo Support: Thank you for the response
+    ( 9m 8s ) Arlo Support: Before proceeding could you please help me with the Phone number?
+    ( 9m 22s ) Marcus Thomas: 3194280185
+    ( 9m 33s ) Marcus Thomas: My new number
+    ( 10m 19s ) Marcus Thomas: I have a premium subscription and the camera isn’t saving the video captures
+    ( 10m 40s ) Marcus Thomas: For some odd reason
+    ( 11m 40s ) Arlo Support: Thank you for the confirmation
+    ( 11m 50s ) Marcus Thomas: Np
+    ( 11m 59s ) Arlo Support: Are you referring to "Essential Outdoor " camera in your account?
+    ( 12m 6s ) Marcus Thomas: Yes
+    ( 12m 8s ) Arlo Support: Thank you for the confirmation.
+    ( 12m 13s ) Arlo Support: May I know If you are available with the device to perform troubleshooting?
+    ( 12m 51s ) Marcus Thomas: It’s came with a trial but It was pointless and yes I am I can go and grab it from downstairs
+    ( 14m 10s ) Arlo Support: To help you shall I reboot the device from my end. so that the camera will go offline for one or two second
+    ( 14m 50s ) Marcus Thomas: Ok
+    ( 15m 16s ) Arlo Support: Thank you for the confirmation
+    ( 15m 35s ) Marcus Thomas: Np
+    ( 16m 42s ) Arlo Support: To help you I have sucessfully rebooted the device from my end.
+    ( 17m 1s ) Arlo Support: Now try to wave your hand or walk infront of the camera and check whether the camera is recording the motion now
+    ( 19m 6s ) Marcus Thomas: It detected it
+    ( 19m 24s ) Arlo Support: Thank you for the confirmation
+    ( 19m 37s ) Marcus Thomas: Np
+    ( 19m 39s ) Arlo Support: Just to confirm whether you are able to see the recordings in the Arlo app?
+    ( 19m 52s ) Marcus Thomas: One second
+    ( 20m 2s ) Arlo Support: Sure, Marcus
+    ( 20m 45s ) Marcus Thomas: It saved it to the feed
+    ( 20m 55s ) Marcus Thomas: So it appears to be working
+    ( 20m 55s ) Arlo Support: I am glad to hear that!
+    ( 21m 5s ) Marcus Thomas: So am i
+    ( 21m 12s ) Arlo Support: I am over the cloud nine to resolve your concern in the first chat instance and in an effortless way.
+    ( 21m 28s ) Marcus Thomas: Thank you
+    ( 21m 39s ) Arlo Support: If you don't mind, shall I send you the survey right now to your email to rate the conversation you had with me?
+    ( 21m 53s ) Marcus Thomas: Yes you can
+    ( 22m 36s ) Arlo Support: I am glad that your concern is resolved on our 1st chat instance. You will receive a survey email to your email address: joannacorrodo22@gmail.com to rate my service.
+    ( 23m 7s ) Arlo Support: I also send you an email regarding the related KB articles for your future reference.
+    ( 23m 27s ) Arlo Support: Just a quick recap, you contacted us because you need help with viewing the recordings and we addressed the issue by rebooting the camera Please let me know If you need any futher help we will be more than happy to assist you.
+    ( 23m 55s ) Marcus Thomas: Yes that’s the reason and I’ll get the survey taken care of now thank you
+    ( 24m 42s ) Arlo Support: 1 is the lowest and 5 is the highest
+    ( 24m 58s ) Arlo Support: I appreciate the opportunity to help you with your concern. Thank you for your patience and cooperation. We will keep our interaction documented on our end and I will tag this case “Resolved”.
+
+    Once I close this case, a survey link will be emailed to you shortly to rate the support you have received today. I hope I was able to provide you an unforgettable Arlo customer experience. We would greatly appreciate it if you can spend a few minutes to share your feedback by answering the survey.
+
+    Once again, my name is Subashree. Thank you for trusting Arlo. I wish you have a great day! 😊
+    refid:5744z000000kAQuAAM
+    ( 25m 21s ) Marcus Thomas: Thank you
+
+
+    Summarization:
+
+    ISSUE:
+    * No recordings for the camera but notifies when motion detected
+    * Account has an active premium subscription
+    * Issue spotted after the trial plan ended
+
+    POSSIBLE_CAUSES:
+    * The camera was out of sync despite the camera being added to the plan
+
+    RESOLUTION_PROVIDED:
+    * Rebooted camera from expert end via Diag tool.
+    * Confirmed with the customer on the availability of the device to troubleshoot.
+    * Explained to the customer on purpose of rebooting the camera.
+    * Informed customer once the camera is rebooted it will go offline and for a second and will resume back.
+    * Guided the customer to perform motion detection test manually by waving customer hand in front of camera
+    * Customer confirmed camera detected and recordings available.
+
     ------------------------------------------------------------
-    Here are the entities and their description to be extracted from the text:
-    {entities}
-    
+
     Here is the chat:
     {text}
     ------------------------------------------------------------
-    Remember to return the answer is a json format, with entity names as the keys.
-    {more_context}
- 
     Do not wrap the json codes in JSON markers
+
     """
+
+    SUMMARY_SYSTEM_PROMPT = """
+    You are a quality assurance and subject matter expert for Arlo Cameras. Your task is to read chat transcripts between customer support agents and users and generate a concise and structured summary of the interactions.  
+
+The summary should provide enough detail to fully understand the context of the chat without needing to read the transcript. The information must be categorized under the following headers:  
+
+1. **ISSUES**: Clearly outline the user’s problems, including relevant details about the product and circumstances. Exclude any personal user details like names, email addresses, or phone numbers.  
+2. **POSSIBLE_CAUSES**: List the potential reasons for the reported issues based on the chat context.  
+3. **RESOLUTION_PROVIDED**: Summarize all steps and actions taken by the customer support agent to resolve the issues, including any troubleshooting performed by the user.  
+
+**Requirements:**  
+- The summary must be precise, clear, and simple.  
+- Avoid unnecessary information or "noise."  
+- The output should enable an agent to fully grasp the conversation’s context within a minute.  
+
+**Example:**  
+
+**CHAT:**  
+
+ Product Name: Arlo Essential 2 Outdoor FHD (VMC2050)
+Question: the camera isn't saving video recordings or detections of people it's just notifying me not saving to the feed
+
+Assistant: Please wait while as I check on a few things
+
+
+Chat Started: Sunday, December 01, 2024, 07:09:55 (-0800)
+Chat Origin: 02 NPI - HelpCenter Chat Queue
+Agent Subashree S
+( 53s ) Arlo Support: Dear Marcus Thomas, Welcome!
+( 1m 19s ) Arlo Support: Hi! Thank you for choosing Arlo, Marcus! My name is Subashree. How are you doing today? I hope you don’t mind giving me 2 minutes to review your account and your conversation with our chat bot.
+refid:5744z000000kAR9AAM
+( 5m 22s ) Arlo Support: Thank you for staying connected
+( 5m 50s ) Arlo Support: I am sorry to hear that camera is not detecting and recording the motion. Sure,I will help you with this
+( 6m 13s ) Arlo Support: Before proceeding could you please help me with the Phone number?
+( 8m 23s ) Arlo Support: Hi Marcus, are we still connected? I am still here to give you assistance regarding your concern. Hopefully, you can still respond to this conversation.
+refid:5744z000000kAQLAA2
+( 8m 43s ) Marcus Thomas: Ok
+( 9m 3s ) Arlo Support: Thank you for the response
+( 9m 8s ) Arlo Support: Before proceeding could you please help me with the Phone number?
+( 9m 22s ) Marcus Thomas: 3194280185
+( 9m 33s ) Marcus Thomas: My new number
+( 10m 19s ) Marcus Thomas: I have a premium subscription and the camera isn’t saving the video captures
+( 10m 40s ) Marcus Thomas: For some odd reason
+( 11m 40s ) Arlo Support: Thank you for the confirmation
+( 11m 50s ) Marcus Thomas: Np
+( 11m 59s ) Arlo Support: Are you referring to "Essential Outdoor " camera in your account?
+( 12m 6s ) Marcus Thomas: Yes
+( 12m 8s ) Arlo Support: Thank you for the confirmation.
+( 12m 13s ) Arlo Support: May I know If you are available with the device to perform troubleshooting?
+( 12m 51s ) Marcus Thomas: It’s came with a trial but It was pointless and yes I am I can go and grab it from downstairs
+( 14m 10s ) Arlo Support: To help you shall I reboot the device from my end. so that the camera will go offline for one or two second
+( 14m 50s ) Marcus Thomas: Ok
+( 15m 16s ) Arlo Support: Thank you for the confirmation
+( 15m 35s ) Marcus Thomas: Np
+( 16m 42s ) Arlo Support: To help you I have sucessfully rebooted the device from my end.
+( 17m 1s ) Arlo Support: Now try to wave your hand or walk infront of the camera and check whether the camera is recording the motion now
+( 19m 6s ) Marcus Thomas: It detected it
+( 19m 24s ) Arlo Support: Thank you for the confirmation
+( 19m 37s ) Marcus Thomas: Np
+( 19m 39s ) Arlo Support: Just to confirm whether you are able to see the recordings in the Arlo app?
+( 19m 52s ) Marcus Thomas: One second
+( 20m 2s ) Arlo Support: Sure, Marcus
+( 20m 45s ) Marcus Thomas: It saved it to the feed
+( 20m 55s ) Marcus Thomas: So it appears to be working
+( 20m 55s ) Arlo Support: I am glad to hear that!
+( 21m 5s ) Marcus Thomas: So am i
+( 21m 12s ) Arlo Support: I am over the cloud nine to resolve your concern in the first chat instance and in an effortless way.
+( 21m 28s ) Marcus Thomas: Thank you
+( 21m 39s ) Arlo Support: If you don't mind, shall I send you the survey right now to your email to rate the conversation you had with me?
+( 21m 53s ) Marcus Thomas: Yes you can
+( 22m 36s ) Arlo Support: I am glad that your concern is resolved on our 1st chat instance. You will receive a survey email to your email address: joannacorrodo22@gmail.com to rate my service.
+( 23m 7s ) Arlo Support: I also send you an email regarding the related KB articles for your future reference.
+( 23m 27s ) Arlo Support: Just a quick recap, you contacted us because you need help with viewing the recordings and we addressed the issue by rebooting the camera Please let me know If you need any futher help we will be more than happy to assist you.
+( 23m 55s ) Marcus Thomas: Yes that’s the reason and I’ll get the survey taken care of now thank you
+( 24m 42s ) Arlo Support: 1 is the lowest and 5 is the highest
+( 24m 58s ) Arlo Support: I appreciate the opportunity to help you with your concern. Thank you for your patience and cooperation. We will keep our interaction documented on our end and I will tag this case “Resolved”.
+
+Once I close this case, a survey link will be emailed to you shortly to rate the support you have received today. I hope I was able to provide you an unforgettable Arlo customer experience. We would greatly appreciate it if you can spend a few minutes to share your feedback by answering the survey.
+
+Once again, my name is Subashree. Thank you for trusting Arlo. I wish you have a great day! 😊
+refid:5744z000000kAQuAAM
+( 25m 21s ) Marcus Thomas: Thank you
+
+**SUMMARY:**  
+{{
+    "ISSUES": [
+        "The camera is not saving recordings despite motion detection notifications.",
+        "User has an active premium subscription.",
+        "Problem arose after the trial plan ended."
+    ],
+    "POSSIBLE_CAUSES": [
+        "The camera may have been out of sync despite being added to the subscription plan."
+    ],
+    "RESOLUTION_PROVIDED": [
+        "Rebooted the camera remotely using diagnostic tools.",
+        "Confirmed with the user about device availability for troubleshooting.",
+        "Explained the purpose of the reboot and its brief offline status.",
+        "Guided the user to perform a motion detection test.",
+        "User confirmed the camera now detects motion and saves recordings."
+    ]
+}}
+**Example End** 
+
+Here is the chat you need to summarize:
+{text}
+
+Remember to return the answer is a json format, with entity names as the keys.
+Do not wrap the json codes in JSON markers
+"""
 
     CUSTOMER_SYSTEM_PROMPT = """
     Based on the chat history and the user query, answer the user's question.
@@ -566,9 +683,7 @@ END OF DEVICES LIST
     You can use the following articles to augment your response:
     """
 
-    CRAFT_QUERY_PROMPT = """Using the user chat history, craft a new query with important keywords
-         that can be used to search the user's problem on the internet and the knowledge base. 
-         
+    CRAFT_QUERY_PROMPT = """         
     Here is the list of devices and accessories that Arlo sells. We don't support any other cameras or accessories that are not listed here:
     Devices
         Arlo Home Security System (SH1001)
@@ -645,42 +760,53 @@ END OF DEVICES LIST
         Arlo Security Sign (AYS1000)
     END OF DEVICES LIST
     
-        If the user is asking about a product not supported by Arlo, just output "greeting".
+    -------------------
+    
+    You have two tasks at hand:
+    
+    1. Using the user chat history, craft a new query with important keywords that can be used to search the user's problem on the internet and the knowledge base. 
+        Be sure to add Arlo and the product name in the query if the user has mentioned it. Pay more attention to
+        the user's recent messages and issues to craft the query. 
          
-         Be sure to add Arlo and the product name in the query if the user has mentioned it. Pay more attention to
-         the user's recent messages and issues to craft the query. 
-         
-         Don't query the older issues in the chat that are already resolved or irrelevant. If a customer is facing multiple issues,
-            focus on the most recent issue. If they mention a different product name, use that in the query.
+        Don't query the older issues in the chat that are already resolved or irrelevant. If a customer is facing multiple issues,
+        focus on the most recent issue. If they mention a different product name, use that in the query.
 
-         For example if the customer had wifi issues earlier in the chat, and now they want to focus on factory reset issue, 
-         then the query should be focused on factory reset issue only.
+        For example if the customer had wifi issues earlier in the chat, and now they want to focus on factory reset issue, 
+        then the query should be focused on factory reset issue only.
         
-         You should read the chat history to understand the context of the conversation, or to get other relevant information for
-         the query such as getting the product name or the issue faced.
-         
+        You should read the chat history to understand the context of the conversation, or to get other relevant information for
+        the query such as getting the product name or the issue faced.
         
-        Just output the crafted query, and don't write the word query in your response.
-        Don't put any commas or apostrophes in the query.
+    2. Classify the query into one of the following categories:
+        - Probing
+            - If Arlo product name is not in user query or chat history, just output the intent "Probing".
+            - If the issue or question related to their arlo product or service is not in the chat history or query, just output the intent "Probing".
+        - Troubleshooting
+            - if the specific product name is already mentioned (from Devices or Accessories list ), and if the user is facing an issue with the product, and  just output the intent "Troubleshooting". 
+            - Make sure they mention the product name. If its not mentioned, just output the intent "Probing".
+        - Installation
+            - If the user is asking about the installation of the product just the intent "Installation".
+        - Product Information
+            - If the user is asking about the product information just the intent "Product Information".
+        - Warranty
+            - If the user is asking about the warranty of the product just the intent "Warranty".
+        - Follow-up
+            - If the user is following up on the issue or following the solution steps or agent instructions just the intent "Follow-up".
+        - Closing sale
+            - If the user is satisfied, promote the discounted cameras. Just the intent "Closing sale".
+        - Greeting
+            - If the user is saying Hi, Hello, bye, or any other greeting just the intent "Greeting".
+            - If the user is asking about a product not supported by Arlo, just the intent "Greeting".
+            - If the user goes off conversation not relevant to the issue, don't craft a query, just the intent: "Greeting".
+            - If the user mentions something not related to an issue or arlo products, or just gibberish, don't craft a query, just the intent: "Greeting".
+    -------------------
+        Just output the crafted query, and the intent in the following format:
         
-        Note: If the user is just saying Hi, Hello, or any other greeting, don't craft a query, just output: "greeting".
-        If the user is saying Bye, Goodbye, or any other farewell, don't craft a query, just output: "greeting".
-        If the user is saying Thank you, don't craft a query, just output: "greeting".
-        If the user is saying Sorry, Please, other pleasantries, don't craft a query, just output: "greeting".
-        If the user goes off conversation not relevant to the issue, don't craft a query, just output: "greeting".
-        If the user mentions something not related to an issue or arlo products, or just gibberish, don't craft a query, just output: "greeting".
-        If the user is just following up on the issue or following the solution steps or agent instructions, don't craft a query, just output: "continue".
+        <DESIRED OUTPUT FORMAT>
+        {"crafted_query": "Crafted query here", "intent": "Intent here"}
+        </DESIRED OUTPUT FORMAT>
+        
         """
-
-    # CRAFT_QUERY_PROMPT = """Using the user query, and the chat history craft a new query with important keywords
-    #  that can be used to search the user's problem on the internet. Be sure to add Arlo and the product name in the query. Pay more attention to
-    #  the user's recent messages and issues to craft the query. Don't query the older issues in the chat that are already resolved or irrelevant.
-    #
-    #  For example if the customer had wifi issues earlier in the chat, and now they want to focus on factory reset issue,
-    #  then the query should be focused on factory reset issue only.
-    #
-    #  Although you should retrieve the chat history to understand the context of the conversation, or to get other relevant information for
-    #  the query such as getting the product name."""
 
     DEFAULT_SYSTEM_PROMPT_OLD = """You are a senior expert Arlo customer support agent. Follow these instructions:
 
@@ -819,8 +945,6 @@ Use techniques like chain of thought to analyze the problem systematically.
 If applicable, provide alternative solutions.
 If escalation is required, state it clearly and explain why.
 
-{fetched_knowledge}
-
 REMEMBER: Give solutions one at a time and ask the user to try them. Don't overwhelm the user with multiple solutions.
 Most important instruction: Give solutions one at a time and ask the user to try them. But explain the given step in detail.
 For example, if you are suggesting a factory reset, explain how to do step 1 of the factory reset in detail. Then ask the user to try it.
@@ -951,9 +1075,27 @@ Craft your response only based on the information below, don't hallucinate or ad
 
 {fetched_knowledge}
 
-Most important instruction: Give solutions one at a time and ask the user to try them. But explain the given step in detail.
 For example, if you are suggesting a factory reset, explain how to do step 1 of the factory reset in detail. Then ask the user to try it.
-Shortest possible friendly response. Summarise extremely. Very terse.
 """
+
+    DEFAULT_SYSTEM_PROMPT_SHORT = """You are ArloAssist, a dedicated customer support AI for Arlo security cameras and systems. Your core mission is to provide efficient technical support while being highly attuned to customer emotions and frustrations.
+    
+    Here's the knowledge base information to help you respond to the user's query
+    ------- KNOWLEDGE BASE INFORMATION -------
+    {fetched_knowledge}
+    ------- END OF KNOWLEDGE BASE INFORMATION -------
+    Answer the user's query only based on the knowledge base information provided below. Don't hallucinate and don't add any additional information from your own knowledge.
+    
+    When solving an issue, provide the user with one step at a time. Wait for the user to confirm that they have completed the step before moving to the next one. Start each interaction with a polite greeting and clear instructions for the first step.
+
+    If the user needs clarification or has issues with the current step, address their concerns before proceeding. Only continue to the next step once the user confirms readiness.
+    
+    Never refer the user to Arlo customer support or any external sources, unless the user specifically requests it.
+    Example:
+    User: My Wi-Fi isn't working.
+    Bot: I'm here to help! Let's start by checking if your Wi-Fi router is turned on. Could you confirm if it's powered on?
+    
+    """
+
 # Give the customer only the first step, and ask them if they want all the steps at once or one-by-one.
 # Shortest possible neutral response to carve into stone tablet. Summarise extremely. Very terse.

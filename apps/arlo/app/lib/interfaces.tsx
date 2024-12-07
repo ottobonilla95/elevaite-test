@@ -37,6 +37,7 @@ export interface SessionObject {
     messages: ChatMessageObject[];
     creationDate: string;
     summary?: SessionSummaryObject;
+    caseID?: string;
     prevFetchedKnowledge?: string;
 }
 
@@ -54,6 +55,7 @@ export const defaultSession: SessionObject = {
     label: "Session 1",
     messages: [],
     creationDate: new Date().toISOString(),
+    caseID: "",
 }
 
 export interface ChatMessageResponse {

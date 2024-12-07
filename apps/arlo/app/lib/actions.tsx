@@ -6,7 +6,7 @@ import type { ChatBotGenAI, ChatMessageResponse, ChatbotV, SessionSummaryObject 
 
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
-
+const ARLO_BACKEND_URL = process.env.NEXT_PUBLIC_ARLO_BACKEND_URL;
 
 
 // eslint-disable-next-line @typescript-eslint/require-await -- Server actions must be async functions
@@ -59,3 +59,16 @@ export async function fetchSessionSummary(userId: string, sessionId: string): Pr
   throw new Error("Invalid data type");
 }
 
+export async function changeCaseID(sessionId: string, caseID: string): Promise<void> {
+  const url = new URL(`${ARLO_BACKEND_URL ?? ""}changeCaseID?session_id=${sessionId}&case_id=${caseID}`);
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json"
+    }
+  });
+  if (!response.ok) throw new Error("Failed to fetch");
+  const data: unknown = await response.json();
+  console.log(data);
+}

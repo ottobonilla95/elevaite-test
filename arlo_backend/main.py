@@ -7,7 +7,7 @@ from fastapi import FastAPI, Body
 from summarize_agent import extract_summary
 import datetime
 import uuid
-from data_models import ChatRequest, ChatResponse, ChatVoting, ChatFeedback, ChatInferenceStepInfo, ChatSessionDataResponse,SummaryDataModel, ChatSessionDataModel, SummaryVoting, ChatHistoryModel, ChatHistory
+from data_models import ChatRequest, ChatResponse, ChatVoting, ChatFeedback, ChatInferenceStepInfo, ChatSessionDataResponse,SummaryDataModel, ChatSessionDataModel, SummaryVoting, ChatHistoryModel, ChatHistory, CaseID
 from models import ChatDBMethods
 import concurrent.futures
 import dotenv
@@ -110,16 +110,29 @@ class GradioInterface:
         )
 
         inference_steps.append(crafted_query_step)
-        crafted_query = crafted_query_step.step_output
+        try:
+            crafted_query_and_intent = eval(crafted_query_step.step_output.strip("`").replace("json",""))
+        except:
+            crafted_query_and_intent = {"intent": "troubleshooting", "crafted_query": message}
         print("Original Query: ", message)
+        print("Crafted Query: ", crafted_query_and_intent)
+
+        intent = crafted_query_and_intent["intent"].strip().lower()
+        print("Intent: ", intent)
+        crafted_query = crafted_query_and_intent["crafted_query"].strip().lower()
         print("Crafted Query: ", crafted_query)
 
-        if "greeting" in crafted_query.lower():
+        if intent in ["troubleshooting", "installation", "probing", "follow-up"]:
+            self.prompt_box = Prompts.DEFAULT_SYSTEM_PROMPT_SHORT
+        else:
+            self.prompt_box = Prompts.DEFAULT_SYSTEM_PROMPT
+
+        if intent in ["greeting","probing"]  or crafted_query=="":
             fetched_knowledge = ""
             response_start_time = datetime.datetime.now()
             solution = "".join(response for response in self.chat_service(
                 message, fetched_knowledge, chat_history, streaming=self.streaming,
-                system_prompt=Prompts.GREETING_SYSTEM_PROMPT,
+                system_prompt=Prompts.GREETING_SYSTEM_PROMPT if intent=="greeting" else "Ask the user about their product name or issue they are facing, whichever is relevant to the conversation.",
                 qa=False, qa_system_prompt=self.qa_prompt_box
             ))
             chat_display.append({"role": "assistant", "content": solution})
@@ -141,12 +154,12 @@ class GradioInterface:
                                             query_timestamp=query_timestamp,
                                             inference_steps=inference_steps,
                                             response=solution), [], ""
-        elif "continue" in crafted_query.lower():
+        elif "follow-up" in intent.lower():
             kb_refs = []
             url_refs = []
-            print("+-"*50)
-            print("Fetching Knowledge\n",fetched_knowledge,"\n"+"-"*50)
-            print("Chat History\n",chat_history,"\n"+"-"*50)
+            # self.prompt_box = Prompts.DEFAULT_SYSTEM_PROMPT_SHORT
+            # print("Fetching Knowledge\n",fetched_knowledge,"\n"+"-"*50)
+            # print("Chat History\n",chat_history,"\n"+"-"*50)
 
 
         else:
@@ -220,7 +233,7 @@ class GradioInterface:
 
             fetched_knowledge = (
                 "Here is the only information you can use to solve the issue: \n\n"
-                f"Knowledge Base Articles\n\n{kb_text[:20000]}\n\nKnowledge Base Search results\n\n{web_text[:20000]}\n\n"
+                f"Knowledge Base Articles\n\n{kb_text}\n\nKnowledge Base Search results\n\n{web_text}\n\n"
                 "End of relevant information from the knowledge base."
             )
         # print("Fetched Knowledge: ", fetched_knowledge)
@@ -356,22 +369,9 @@ def summarize(request: SummaryRequest=Body(...)):
     session_id = request.session_id
     user_id = request.user_id
     text = request.text
-    entities = {
-                   "ISSUE": "The issues the customer is facing.",
-                   "POSSIBLE_CAUSES": "The possible causes of the issues in the chat.",
-                   "RESOLUTION_PROVIDED": "The solutions or guidance provided by the agent, including the ones that did not work.",
-    }
+    entities = {}
 
-    more_context = """   
-        Try to list each issue, cause and solution as a separate element in the list of issues, causes and solutions.
-        Avoid repeating the issues, causes and solutions.
-        Write from the perspective of customer support agent, as if they are writing the summary.
-        Avoid including the customer's personal history and personal relations in the summary.
-        
-        If the issue is camera offline, don't write "Customer camera is offline", just write "Camera offline".
-        Similarly, if the agent suggested to "factory reset the camera", don't write
-        "Agent suggested to factory reset the camera". Just write "Recommended Factory reset"
-        """
+    more_context = """ """
     start_time = datetime.datetime.now()
     summary_input = SummaryInputModel(system_prompt=Prompts.SUMMARY_SYSTEM_PROMPT,
                                       text=text,
@@ -379,7 +379,10 @@ def summarize(request: SummaryRequest=Body(...)):
                                       more_context=more_context,
                                       )
 
-    summary = extract_summary(summary_input)
+    try:
+        summary = extract_summary(summary_input)
+    except:
+        summary = "I am sorry, I could not generate a summary for the text provided."
     end_time = datetime.datetime.now()
     summary_id = uuid.uuid4()
 
@@ -421,6 +424,17 @@ def vote_summary(request: SummaryVoting=Body(...)):
     res = ChatDBMethods.save_vote_summary(vote_summary_)
 
     return {"message": f"{res}"}
+
+@app.get("/changeCaseID")
+def change_case_id(session_id: str, case_id: str):
+    try:
+        print("Received request to change case ID: ", {"session_id": session_id, "case_id": case_id})
+        res = ChatDBMethods.save_transcript_id(CaseID(session_id=uuid.UUID(session_id), case_id=str(case_id)))
+        print("SUCCESS: ", res)
+        return {"message": "Case ID updated"}
+    except Exception as e:
+        print("ERROR: ", e)
+        return {"message": f"Error: {e}"}
 
 
 @app.get("/")

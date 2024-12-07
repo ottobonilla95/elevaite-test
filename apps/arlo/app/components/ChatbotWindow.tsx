@@ -50,6 +50,18 @@ export function ChatbotWindow(): JSX.Element {
         setIsSmallWindowOpen(false);
     }
 
+    function handleCaseIdChange(value: string): void {
+        console.log(value);
+        if (chatContext.isChatLoading) return;
+        chatContext.setCaseID(value);
+        // setText(value);
+
+    }
+
+    function getCaseID(): string {
+        return chatContext.selectedSession?.caseID ?? "";
+    }
+
 
     return (
         <div className="chatbot-window-container">
@@ -70,17 +82,26 @@ export function ChatbotWindow(): JSX.Element {
             {/*}*/}
 
             <div className="chatbot-window-header">
-                <span>{chatContext.selectedSession?.label}</span>
-                <div className="copy-button">
-                    <CommonButton
-                        onClick={() => {
-                            navigator.clipboard.writeText(chatContext.selectedSession?.id ?? "");
-                        }}
-                    >
-                        <ChatbotIcons.SVGDocument/>
-                        Copy Session ID
-                    </CommonButton>
-                </div>
+                {!chatContext.selectedSession?.caseID && <span>{chatContext.selectedSession?.label}</span>}
+                {chatContext.selectedSession?.caseID && <span>Transcript ID: {chatContext.selectedSession?.caseID}</span>}
+                <div className="spacer"/>
+                <input
+                    className={"case-id-input"}
+                    type="text"
+                    placeholder="Enter Transcript ID"
+                    onKeyDown={(e) => { if (e.key === "Enter") { handleCaseIdChange((e.target as HTMLInputElement).value); e.currentTarget.value = ""; }}}
+                    defaultValue={""}
+                />
+                {/*<div className="copy-button">*/}
+                {/*    <CommonButton*/}
+                {/*        onClick={() => {*/}
+                {/*            void navigator.clipboard.writeText(chatContext.selectedSession?.id ?? "");*/}
+                {/*        }}*/}
+                {/*    >*/}
+                {/*        <ChatbotIcons.SVGDocument/>*/}
+                {/*        Copy Session ID*/}
+                {/*    </CommonButton>*/}
+                {/*</div>*/}
                 {/*<span style={{color: "gray"}}>{chatContext.selectedSession?.id}</span>*/}
 
                 <div className="spacer"/>

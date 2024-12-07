@@ -10,8 +10,8 @@ import { ChatContextProvider } from "./ui/contexts/ChatContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ElevAIte Media and Marketting Chat",
-  description: "ElevAIte's Media and Marketing Chatbot, ready to answer your questions!",
+  title: "ElevAIte Arlo Chat",
+  description: "ElevAIte's Arlo Chatbot, ready to answer your questions!",
 };
 
 export default async function RootLayout({children,}: Readonly<{children: React.ReactNode;}>): Promise<JSX.Element> {

@@ -1,7 +1,7 @@
 "use client";
 import { useSession } from "next-auth/react";
 import { createContext, useContext, useEffect, useState, } from "react";
-import { fetchChatbotResponse, fetchSessionSummary } from "../../lib/actions";
+import {changeCaseID, fetchChatbotResponse, fetchSessionSummary} from "../../lib/actions";
 import type {
   ChatBotGenAI,
   ChatBotPayload,
@@ -29,7 +29,7 @@ import {name} from "next/dist/telemetry/ci-info";
 import { v4 as uuid } from 'uuid'
 
 // STRUCTURE
-const BACKEND_URL = process.env.ARLO_BACKEND_URL ?? "http://localhost:8000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_ARLO_BACKEND_URL ?? "http://localhost:8000/";
 // const BACKEND_URL = "http://localhost:8000";
 
 export interface ChatContextStructure {
@@ -57,8 +57,11 @@ export interface ChatContextStructure {
   // enableWebSearch: boolean;
   // toggleWebSearch: () => void;
   regenerateMessage: (queryId: string) => void;
-
+  recentSummaryVote: number | undefined;
+  setRecentSummaryVote: (vote: number) => void;
   voteOnSummary(number: number): void;
+  setCaseID: (caseID: string) => void;
+
 }
 
 
@@ -85,15 +88,23 @@ export const ChatContext = createContext<ChatContextStructure>({
   isChatLoading: false,
   isFeedbackBoxOpen: false,
   recentSummary: undefined,
+
   regenerateMessage: (queryId: string) => {
     /**/
   },
   removeExpectedDisplayFromSelectedSessionSummary: () => {
     /**/
   },
+  recentSummaryVote: 0,
+  setRecentSummaryVote: () => {
+    /**/
+  },
   // selectedSession: undefined,
     selectedSession: defaultSession,
   sessions: [],
+  setCaseID: () => {
+    /**/
+  },
   setRecentSummary: () => {
     /**/
   },
@@ -147,6 +158,8 @@ export function ChatContextProvider(
     useState<ChatbotV>(defaultChatbotV);
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
   const [chatLoadingMessage, setChatLoadingMessage] = useState<string>("");
+  const [recentSummaryVote, setRecentSummaryVote] = useState<number>(0);
+
   // Initializations
   // useEffect(() => {
   //     console.log("Sessions changed", sessions);
@@ -159,7 +172,6 @@ export function ChatContextProvider(
   //     chatContainerRef.current.scrollTop = scrollPosition;
   //   }
   // }, [selectedSession?.messages]);
-  
 
   useEffect(() => {
     if (!selectedSession) return;
@@ -214,6 +226,13 @@ export function ChatContextProvider(
 
   function clearAllSessions(): void {
     setSessions([]);
+  }
+
+  function setCaseID(caseID: string): void {
+    if (!selectedSession) return;
+    const newSelectedSession = { ...selectedSession, caseID };
+    void changeCaseID(selectedSession.id, caseID);
+    setSelectedSession(newSelectedSession);
   }
 
   // function toggleWebSearch(): void {
@@ -284,7 +303,7 @@ export function ChatContextProvider(
     if (!currentMessage) return;
 
   if (passedVote === 1) {
-    fetch(BACKEND_URL + '/voting', {
+    fetch(BACKEND_URL + 'voting', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -338,7 +357,7 @@ export function ChatContextProvider(
     if (passedFeedback !== "") {
       const firstMessage = selectedSession.messages[0];
 
-    fetch(BACKEND_URL + '/feedback', {
+    fetch(BACKEND_URL + 'feedback', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -551,7 +570,7 @@ const wrappedAddNewUserMessageWithLastMessages = (message: string): void => {
     }
     const fetchedKnowledge = selectedSession.prevFetchedKnowledge ?? "";
     console.log("Fetch Knowledge:",fetchedKnowledge);
-    const response = await fetch(BACKEND_URL + '/regenerate', {
+    const response = await fetch(BACKEND_URL + 'regenerate', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -610,7 +629,7 @@ const wrappedAddNewUserMessageWithLastMessages = (message: string): void => {
     const userId = session.data?.user?.name ?? "Unknown User";
     // console.log("User ID:",userId);
     setRecentSummary("Loading summary...");
-    const response = await fetch(BACKEND_URL + '/summary', {
+    const response = await fetch(BACKEND_URL + 'summary', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -630,9 +649,10 @@ const wrappedAddNewUserMessageWithLastMessages = (message: string): void => {
     if (!selectedSession.summary) return;
     if (number !== 1 && number !== -1) return;
     const userId = session.data?.user?.name ?? "Unknown User";
+    setRecentSummaryVote(number);
     // console.log("User ID:",userId);
     // console.log("Selected session:",selectedSession);
-    const response = await fetch(BACKEND_URL + '/vote-summary', {
+    const response = await fetch(BACKEND_URL + 'vote-summary', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -689,7 +709,7 @@ const wrappedAddNewUserMessageWithLastMessages = (message: string): void => {
 
     const currSessionID = selectedSession.id;
     const prevFetchedKnowledge = selectedSession.prevFetchedKnowledge ?? "";
-    const response = await fetch(BACKEND_URL+'/chat', {
+    const response = await fetch(BACKEND_URL+'chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -794,9 +814,12 @@ setIsChatLoading(false);
         updateMessageFeedback,
         getSessionSummary,
         removeExpectedDisplayFromSelectedSessionSummary,
+        recentSummaryVote,
+        setRecentSummaryVote,
         regenerateMessage: wrappedRegenerateMessage,
         summarizeSession: wrappedSummarizeSession,
         recentSummary,
+        setCaseID,
         setFetchKnowledge,
         setRecentSummary,
         voteOnSummary: wrappedVoteOnSummary,

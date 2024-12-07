@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import "./SmallWindow.scss";
-import { ChatbotIcons, CommonButton } from "@repo/ui/components";
+import { ChatbotIcons, CommonButton} from "@repo/ui/components";
 import { ChatContext } from "../ui/contexts/ChatContext.tsx";
 
 interface SmallWindowProps {
@@ -52,7 +52,7 @@ export function SmallWindow({ onClose }: SmallWindowProps): JSX.Element {
         };
     }, [inputValue]);
 
-    async function handleSend(): Promise<void> {
+    function handleSend(): void{
         if (inputValue.trim()) {
             setShowCopyButton(false);
             chatContext.summarizeSession(inputValue);
@@ -61,18 +61,20 @@ export function SmallWindow({ onClose }: SmallWindowProps): JSX.Element {
         }
     }
 
-    async function handleSummaryVote(number: number) {
-        chatContext.voteOnSummary(number);
+    function handleSummaryVote(number: number): void {
+        if (chatContext.recentSummary)
+        {chatContext.voteOnSummary(number);}
+
 }
 
 
     function handleSummarizeSession(): void {
         if (chatContext.selectedSession?.messages.length === 0) return;
         const fullChat = chatContext.selectedSession?.messages.map((message) => message.text).join("\n\n");
-        console.log(fullChat);
         if (!fullChat) return;
         setShowCopyButton(false);
         setInputValue("");
+        chatContext.setRecentSummaryVote(0);
         chatContext.summarizeSession(fullChat);
     }
 
@@ -91,14 +93,14 @@ export function SmallWindow({ onClose }: SmallWindowProps): JSX.Element {
 
     const handleCopy = () => {
         const summary = editableSummary ? editableSummary.replace(/<br\s*\/?>/gi, '\n') : "";
-        navigator.clipboard.writeText(summary);
+        void navigator.clipboard.writeText(summary);
     };
 
     const handleClose = () => {
         setInputValue("");
         setMessages([]);
         setShowCopyButton(false);
-        // chatContext.recentSummary = undefined;
+        chatContext.setRecentSummaryVote(0);
         chatContext.setRecentSummary(undefined)
         onClose();
     };
@@ -126,7 +128,7 @@ export function SmallWindow({ onClose }: SmallWindowProps): JSX.Element {
                     <div className="input-container">
                         <textarea
                             value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
+                            onChange={(e) => { setInputValue(e.target.value); }}
                             onKeyDown={(e) => {
                                 if (e.key === "Enter" && !e.shiftKey) {
                                     e.preventDefault();
@@ -174,24 +176,30 @@ export function SmallWindow({ onClose }: SmallWindowProps): JSX.Element {
 
                         </div>
                         <div className="button-container">
-                            <CommonButton
-                                className="voting-buttons"
-                                onClick={()=>handleSummaryVote(1)}>
-                                <ChatbotIcons.SVGThumbs type={"up"}/>
-                                Upvote
-                            </CommonButton>
-                            <CommonButton
-                                className="voting-buttons"
-                                onClick={()=>handleSummaryVote(-1)}>
-                                <ChatbotIcons.SVGThumbs type={"down"}/>
-                                Downvote
-                            </CommonButton>
+                            <div className="voting-buttons">
+                                <CommonButton
+                                    className={chatContext.recentSummaryVote === 1 ? "active" : ""}
+                                    onClick={() => {
+                                        handleSummaryVote(1);
+                                    }}>
+                                    <ChatbotIcons.SVGThumbs type={"up"}/>
+                                    {chatContext.recentSummaryVote === 1 ? "Upvoted" : "Upvote"}
+                                </CommonButton>
+                                <CommonButton
+                                    className={chatContext.recentSummaryVote === -1 ? "active" : ""}
+                                    onClick={() => {
+                                        handleSummaryVote(-1);
+                                    }}>
+                                    <ChatbotIcons.SVGThumbs type={"down"}/>
+                                    {chatContext.recentSummaryVote === -1 ? "Downvoted" : "Downvote"}
+                                </CommonButton>
+                            </div>
+                            </div>
+
                         </div>
 
                     </div>
-
                 </div>
-            </div>
         </div>
     );
 }

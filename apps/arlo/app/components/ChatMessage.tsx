@@ -13,7 +13,7 @@ import "./ChatMessage.scss";
 import { ChatMessageFeedback } from "./ChatMessageFeedback";
 import { ChatMessageFiles } from "./ChatMessageFiles";
 import { extractUniqueMediaData} from '../lib/testData';
-import MarkdownMessage from './MarkdownMessage'; 
+import MarkdownMessage from './MarkdownMessage';
 import Modal from "./Modal.tsx"; // Import the Modal component
 
 export function ChatMessage(props: ChatMessageObject): JSX.Element {
@@ -135,10 +135,8 @@ function goToPrevious(): void {
         </div>
 
         <div className="message">
-          <MarkdownMessage text={props.text} onImageClick={openImageModal} />
+          <MarkdownMessage text={props.text} onImageClick={openImageModal}/>
         </div>
-        {/* <div className="message"  dangerouslySetInnerHTML={{ __html: props.text }}>
-        </div> */}
 
         {!props.isBot ? null : (
             <div className="controls-container">
@@ -205,19 +203,19 @@ function goToPrevious(): void {
                   </div>
                 </ClickOutsideDetector>
               </div>
-              <div className="copy-button">
-                <CommonButton
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(props.queryID);
-                    }}
-                    // onClick={() => {
-                    //   navigator.clipboard.writeText(props.queryID);
-                    // }}
-                >
-                  <ChatbotIcons.SVGDocument/>
-                  Copy QID
-                </CommonButton>
-              </div>
+              {/*<div className="copy-button">*/}
+              {/*  <CommonButton*/}
+              {/*      onClick={async () => {*/}
+              {/*        await navigator.clipboard.writeText(props.queryID);*/}
+              {/*      }}*/}
+              {/*      // onClick={() => {*/}
+              {/*      //   navigator.clipboard.writeText(props.queryID);*/}
+              {/*      // }}*/}
+              {/*  >*/}
+              {/*    <ChatbotIcons.SVGDocument/>*/}
+              {/*    Copy QID*/}
+              {/*  </CommonButton>*/}
+              {/*</div>*/}
               <div className="copy-button">
                 <CommonButton
                     onClick={async () => {
@@ -229,16 +227,16 @@ function goToPrevious(): void {
                 </CommonButton>
               </div>
 
-              <div className="regenerate-button">
-                <CommonButton
-                    onClick={() => {
-                      chatContext.regenerateMessage(props.queryID);
-                    }}
-                >
-                  <ChatbotIcons.SVGRefresh/>
-                  Regenerate
-                </CommonButton>
-              </div>
+              {/*<div className="regenerate-button">*/}
+              {/*  <CommonButton*/}
+              {/*      onClick={() => {*/}
+              {/*        chatContext.regenerateMessage(props.queryID);*/}
+              {/*      }}*/}
+              {/*  >*/}
+              {/*    <ChatbotIcons.SVGRefresh/>*/}
+              {/*    Regenerate*/}
+              {/*  </CommonButton>*/}
+              {/*</div>*/}
 
             </div>
         )}
@@ -264,18 +262,18 @@ function goToPrevious(): void {
       </div>
 
       {/* Modal to show media */}
-      {isModalOpen && (
-          <Modal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          mediaUrls={mediaUrls}
-          mediaTypes={mediaTypes}
-          mediaNames={mediaNames}
-          currentIndex={currentIndex}
-          onNext={goToNext}
-          onPrevious={goToPrevious}
-        />
-      )}
+      {/*{isModalOpen && (*/}
+      {/*    <Modal*/}
+      {/*    isOpen={isModalOpen}*/}
+      {/*    onClose={() => { setIsModalOpen(false); }}*/}
+      {/*    mediaUrls={mediaUrls}*/}
+      {/*    mediaTypes={mediaTypes}*/}
+      {/*    mediaNames={mediaNames}*/}
+      {/*    currentIndex={currentIndex}*/}
+      {/*    onNext={goToNext}*/}
+      {/*    onPrevious={goToPrevious}*/}
+      {/*  />*/}
+      {/*)}*/}
     </div>
   );
 }

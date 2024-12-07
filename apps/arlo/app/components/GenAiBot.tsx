@@ -26,15 +26,7 @@ export function GenAiBot(): JSX.Element {
     }
 
 
-    return (
-        <div className="gen-ai-bot-container">
-            {/* <div className="gen-ai-label">Gen AI Bot:</div> */}
-            <CommonSelect
-                options={genAIBotOptions}
-                onSelectedValueChange={handleBotChange}
-                anchor="right"
-                defaultValue={defaultGenAIBotOption}
-            />
-        </div>
+    return ( void 0
+
     );
 }

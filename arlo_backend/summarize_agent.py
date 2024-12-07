@@ -29,10 +29,10 @@ def extract_summary(summary_input: SummaryInputModel):
 
     prompt = PromptTemplate(
         template=system_prompt,
-        input_variables=["text", "entities", "more_context"],
+        input_variables=["text"],
     )
     system_prompt = "You're a helpful assistant\n"
-    user_prompt = prompt.partial(text=text, entities=entities, more_context=more_context).format()
+    user_prompt = prompt.partial(text=text).format()
 
 
     response = llm.generate_response(system_prompt=system_prompt,

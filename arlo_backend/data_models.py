@@ -107,3 +107,7 @@ class ChatHistoryModel(BaseModel):
     user_id: str
     chat_timestamp: datetime.datetime
     chat_json: ChatHistory
+
+class CaseID(BaseModel):
+    session_id: uuid.UUID
+    case_id: str
