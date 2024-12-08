@@ -14,9 +14,6 @@ const genAIBotOptions: CommonSelectOption[] = [
     { value: ChatBotGenAI.BGPInsights, label: "Contracts and Billing" }
 ];
 
-
-
-
 export function GenAiBot(): JSX.Element {
     const chatContext = useContext(ChatContext);
 
@@ -26,7 +23,17 @@ export function GenAiBot(): JSX.Element {
     }
 
 
-    return ( void 0
-
+    return (
+        <div className="gen-ai-bot-container">
+            {/* <div className="gen-ai-label">Gen AI Bot:</div> */}
+            <CommonSelect
+                options={genAIBotOptions}
+                onSelectedValueChange={handleBotChange}
+                anchor="right"
+                defaultValue={defaultGenAIBotOption}
+            />
+        </div>
     );
 }
+
+
