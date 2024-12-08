@@ -7,11 +7,12 @@ import "./GenAiBot.scss";
 
 
 const genAIBotOptions: CommonSelectOption[] = [
-    // { value: ChatBotGenAI.Pan, label: "Hardware Firewall Provider", selectedLabel: "Firewall" },
-    // { value: ChatBotGenAI.Cisco, label: "Collaboration Provider", selectedLabel: "Collab" },
-    { value: ChatBotGenAI.CiscoClo, label: "Product Support" },
-    // { value: ChatBotGenAI.Creative, label: "Ideate to Create" },
-    // { value: ChatBotGenAI.BGPInsights, label: "Contracts and Billing" }
+    { value: ChatBotGenAI.Pan, label: "Hardware Firewall Provider", selectedLabel: "Firewall" },
+    { value: ChatBotGenAI.Cisco, label: "Collaboration Provider", selectedLabel: "Collab" },
+    { value: ChatBotGenAI.CiscoClo, label: "CLO" },
+    { value: ChatBotGenAI.ServiceNow, label: "Service Now" },
+    { value: ChatBotGenAI.BGPInsights, label: "BGP Insights" },
+    {value: ChatBotGenAI.ALSwitchLogs, label: "AL Switch Logs"}
 ];
 
 
@@ -28,7 +29,7 @@ export function GenAiBot(): JSX.Element {
 
     return (
         <div className="gen-ai-bot-container">
-            {/* <div className="gen-ai-label">Gen AI Bot:</div> */}
+            <div className="gen-ai-label">Gen AI BOT:</div>
             <CommonSelect
                 options={genAIBotOptions}
                 onSelectedValueChange={handleBotChange}
