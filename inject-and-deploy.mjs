@@ -8,6 +8,8 @@ const execAsync = promisify(exec);
 const appsDir = path.resolve("./apps");
 const storageFilePath = path.resolve("./exampleFolder/variables.json");
 
+const targetAppName = process.argv[2];
+
 let storageData;
 try {
   const storageFile = fs.readFileSync(storageFilePath, "utf-8");
@@ -17,10 +19,22 @@ try {
   process.exit(1);
 }
 
-const apps = fs.readdirSync(appsDir).filter((entry) => {
+const allApps = fs.readdirSync(appsDir).filter((entry) => {
   const appPath = path.join(appsDir, entry);
   return fs.statSync(appPath).isDirectory(); // Ensure to only process directories
 });
+
+// Filter apps based on the input argument
+const apps = targetAppName
+  ? allApps.includes(targetAppName)
+    ? [targetAppName] // If a valid app name is provided, we deploy only that app
+    : (() => {
+        console.error(
+          `App "${targetAppName}" does not exist in the "apps" directory.`
+        );
+        process.exit(1);
+      })()
+  : allApps; // Deploy all apps if no argument is provided
 
 async function setupAndStartApp(appName) {
   const appData = storageData[appName];
@@ -93,4 +107,6 @@ async function setupAndStartApp(appName) {
       continue;
     }
   }
+  console.log("App(s) have been processed. Exiting..");
+  process.exit(0);
 })();
