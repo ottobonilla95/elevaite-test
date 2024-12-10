@@ -1,6 +1,6 @@
 import { CommonButton } from "@repo/ui/components";
 import { useEffect, useState } from "react";
-import { CONTRACT_TYPES, CONTRACTS_TABS } from "src/interfaces";
+import { CONTRACT_TYPES, CONTRACTS_TABS } from "../../../interfaces";
 import "./ContractListFilterPill.scss";
 
 

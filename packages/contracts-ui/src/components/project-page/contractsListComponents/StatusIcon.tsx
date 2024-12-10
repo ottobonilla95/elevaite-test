@@ -1,5 +1,5 @@
 import { ElevaiteIcons } from "@repo/ui/components";
-import { ExtractionStatus, MatchingStatus } from "src/interfaces";
+import { ExtractionStatus, MatchingStatus } from "../../../interfaces";
 
 
 

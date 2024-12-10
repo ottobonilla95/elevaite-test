@@ -1,5 +1,5 @@
 import { CommonButton, CommonMenu, ElevaiteIcons, type CommonMenuItem } from "@repo/ui/components";
-import { type ContractObject, type UnverifiedItem } from "src/interfaces";
+import { type ContractObject, type UnverifiedItem } from "../../../../src/interfaces";
 
 
 

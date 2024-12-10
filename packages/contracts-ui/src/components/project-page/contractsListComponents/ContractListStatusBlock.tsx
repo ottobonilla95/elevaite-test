@@ -1,5 +1,5 @@
 import { CommonButton } from "@repo/ui/components";
-import { type ExtractionStatus, type MatchingStatus } from "src/interfaces";
+import { type ExtractionStatus, type MatchingStatus } from "../../../interfaces";
 import "./ContractListStatusBlock.scss";
 import { StatusIcon } from "./StatusIcon";
 
