@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { exec, spawn } from "child_process";
+import { exec } from "child_process";
 import { promisify } from "util";
 
 const execAsync = promisify(exec);
@@ -19,7 +19,7 @@ try {
 
 const apps = fs.readdirSync(appsDir).filter((entry) => {
   const appPath = path.join(appsDir, entry);
-  return fs.statSync(appPath).isDirectory(); // We ensure to only process directories
+  return fs.statSync(appPath).isDirectory(); // Ensure to only process directories
 });
 
 async function setupAndStartApp(appName) {
@@ -31,38 +31,41 @@ async function setupAndStartApp(appName) {
 
   const { common, ...appSpecificData } = appData;
 
-  // We inject common and app-specific environment variables
+  // Prepare the environment variables
+  const secrets = [];
+
+  // Inject common environment variables for all apps
   if (common) {
     for (const [key, value] of Object.entries(common)) {
-      process.env[key] = value;
+      secrets.push(`${key}=${value}`);
     }
   }
+
+  // Inject app-specific environment variables for this app
   for (const [key, value] of Object.entries(appSpecificData)) {
-    process.env[key] = value;
+    secrets.push(`${key}=${value}`);
   }
 
-  console.log(`Environment variables injected for app: ${appName}`);
-
-  // We deploy the app
+  // Docker build and run commands
   const appPath = path.join(appsDir, appName);
+  const dockerBuildCommand = `docker build -t ${appName} -f ${path.resolve(appPath, "Dockerfile")} .`;
 
-  console.log(`Building app: ${appName}...`);
+  // Create the env flag with secrets for the docker run command
+  const envFlag = secrets.map((secret) => `--env ${secret}`).join(" ");
+
+  console.log(`Building app: ${appName} using Docker...`);
   try {
-    await execAsync("npm run build", { cwd: appPath, env: process.env });
+    await execAsync(dockerBuildCommand);
     console.log(`App ${appName} built successfully.`);
   } catch (err) {
     console.error(`Failed to build app ${appName}:\n${err.message}`);
     return; // Skip starting the app if build fails
   }
 
-  console.log(`Starting app: ${appName}...`);
+  console.log(`Starting app: ${appName} using Docker...`);
   try {
-    const child = spawn("npm", ["start"], {
-      cwd: appPath,
-      env: process.env,
-      stdio: "inherit", // Forward output to the parent process
-      shell: true, // Allow commands to run in the shell
-    });
+    const dockerRunCommand = `docker run ${envFlag} ${appName}`;
+    const child = exec(dockerRunCommand, { stdio: "inherit" });
 
     child.on("error", (err) => {
       console.error(`Failed to start app ${appName}:\n${err.message}`);

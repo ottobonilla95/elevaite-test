@@ -45,7 +45,7 @@ COPY --from=installer /app/apps/chatbot/package.json .
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=installer --chown=nextjs:nodejs /app/apps/chatbot/.next/standalone ./
 COPY --from=installer --chown=nextjs:nodejs /app/apps/chatbot/.next/static ./apps/chatbot/.next/static
-COPY --from=installer --chown=nextjs:nodejs /app/apps/chatbot/public ./apps/chatbot/public
+# COPY --from=installer --chown=nextjs:nodejs /app/apps/chatbot/public ./apps/chatbot/public
 
 USER nextjs
 
