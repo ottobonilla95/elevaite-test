@@ -61,15 +61,26 @@ async function setupAndStartApp(appName) {
     secrets.push(`${key}=${value}`);
   }
 
-  // Docker build and run commands
+  // Docker commands
   const appPath = path.join(appsDir, appName);
   const dockerBuildCommand = `docker build -t ${appName} -f ${path.resolve(appPath, "Dockerfile")} .`;
 
   // Create the env flag with secrets for the docker run command
   const envFlag = secrets.map((secret) => `--env ${secret}`).join(" ");
+  const dockerStopRemoveCommand = `
+    if docker ps -a --format '{{.Names}}' | grep -wq ${appName}; then
+      docker stop ${appName} && docker rm ${appName};
+    fi
+  `;
 
-  console.log(`Building app: ${appName} using Docker...`);
+  console.log(`Preparing to build and start app: ${appName} using Docker...`);
+
   try {
+    // Dispose of any existing container with the same name
+    await execAsync(dockerStopRemoveCommand);
+
+    // Build the Docker image
+    console.log(`Building app: ${appName} using Docker...`);
     await execAsync(dockerBuildCommand);
     console.log(`App ${appName} built successfully.`);
   } catch (err) {
@@ -79,7 +90,7 @@ async function setupAndStartApp(appName) {
 
   console.log(`Starting app: ${appName} using Docker...`);
   try {
-    const dockerRunCommand = `docker run ${envFlag} ${appName}`;
+    const dockerRunCommand = `docker run --name ${appName} ${envFlag} ${appName}`;
     const child = exec(dockerRunCommand, { stdio: "inherit" });
 
     child.on("error", (err) => {
@@ -94,7 +105,7 @@ async function setupAndStartApp(appName) {
       }
     });
   } catch (err) {
-    console.error(`Failed to start app ${appName}:\n${err.message}`);
+    console.error(`Failed to deploy app ${appName}:\n${err.message}`);
   }
 }
 
