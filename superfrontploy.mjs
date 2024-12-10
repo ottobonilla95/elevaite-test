@@ -1,3 +1,4 @@
+// USAGE: npm run superfrontploy [-- APPNAME]
 import fs from "fs";
 import path from "path";
 import { exec } from "child_process";

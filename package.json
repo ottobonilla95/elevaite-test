@@ -2,7 +2,7 @@
   "name": "elevaite-repo",
   "private": true,
   "scripts": {
-    "inject-and-deploy": "node inject-and-deploy.mjs",
+    "superfrontploy": "node superfrontploy.mjs",
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
