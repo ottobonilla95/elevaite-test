@@ -2,6 +2,7 @@
   "name": "elevaite-repo",
   "private": true,
   "scripts": {
+    "inject-and-deploy": "node inject-and-deploy.mjs",
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
