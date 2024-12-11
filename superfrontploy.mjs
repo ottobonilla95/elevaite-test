@@ -7,7 +7,7 @@ import { promisify } from "util";
 const execAsync = promisify(exec);
 
 const appsDir = path.resolve("./apps");
-const storageFilePath = path.resolve("./../variables.json");
+const storageFilePath = path.resolve("./variables.json");
 
 const targetAppName = process.argv[2];
 
