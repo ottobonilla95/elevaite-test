@@ -7,7 +7,7 @@ import { promisify } from "util";
 const execAsync = promisify(exec);
 
 const appsDir = path.resolve("./apps");
-const storageFilePath = path.resolve("./exampleFolder/variables.json");
+const storageFilePath = path.resolve("./variables.json");
 
 const targetAppName = process.argv[2];
 
@@ -44,7 +44,7 @@ async function setupAndStartApp(appName) {
     return;
   }
 
-  const { common, ...appSpecificData } = appData;
+  const { __common, ...appSpecificData } = appData;
 
   // Prepare the environment variables
   const secrets = [];
