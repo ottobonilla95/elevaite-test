@@ -7,7 +7,7 @@ import { promisify } from "util";
 const execAsync = promisify(exec);
 
 const appsDir = path.resolve("./apps");
-const storageFilePath = path.resolve("./variables.json");
+const storageFilePath = path.resolve("./../variables.json");
 
 const targetAppName = process.argv[2];
 
@@ -49,9 +49,9 @@ async function setupAndStartApp(appName) {
   // Prepare the environment variables
   const secrets = [];
 
-  // Inject common environment variables for all apps
-  if (common) {
-    for (const [key, value] of Object.entries(common)) {
+  // Inject __common environment variables for all apps
+  if (__common) {
+    for (const [key, value] of Object.entries(__common)) {
       secrets.push(`${key}=${value}`);
     }
   }
