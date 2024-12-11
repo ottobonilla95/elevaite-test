@@ -1,0 +1,49 @@
+{
+  "pipeline": {
+    "name": "DemoPipeline",
+    "description": "A sample data pipeline with dependencies.",
+    "variables": [
+      {
+        "name": "extracted_data_uri",
+        "type": "string"
+      },
+      {
+        "name": "transformed_data_uri",
+        "type": "string"
+      }
+    ],
+    "tasks": [
+      {
+        "id": "task1",
+        "name": "ExtractData",
+        "type": "pyscript",
+        "src": "scripts/extract.py",
+        "dependencies": [],
+        "input": [],
+        "output": ["extracted_data_uri"]
+      },
+      {
+        "id": "task2",
+        "name": "TransformData",
+        "type": "jupyternotebook",
+        "src": "notebooks/transform.py",
+        "dependencies": ["task1"],
+        "input": ["extracted_data_uri"],
+        "output": ["transformed_data_uri"]
+      },
+      {
+        "id": "task3",
+        "name": "LoadData",
+        "type": "pyscript",
+        "src": "scripts/load.py",
+        "dependencies": ["task2"],
+        "input": ["transformed_data_uri"],
+        "output": []
+      }
+    ],
+    "schedule": {
+      "frequency": "daily",
+      "time": "02:00"
+    }
+  }
+}
