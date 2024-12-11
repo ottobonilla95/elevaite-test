@@ -211,7 +211,9 @@ def determine_intent(user_query: str, conversation_history: List[ConversationPay
 
         system_prompt = load_prompt(prompt_file)
         if creative_provided:
-            system_prompt += "A creative was provided for this query.\n"
+            system_prompt += "creative provided: true\n"
+        else:
+            system_prompt += "creative provided: false\n"
 
         messages = [{"role": "system", "content": system_prompt}]
         for message in conversation_history:
@@ -984,7 +986,8 @@ async def perform_inference(inference_payload: InferencePayload):
         # enhanced_query = await enhance_query(inference_payload.query,conversation_history)
 
         logger.info("Intent Agent Output:",intent_data)
-        # print("Intent Extracted:\n", "Query:",enhanced_query,"\nRequired Outcomes",required_outcomes,"\nvector_search:",vector_search)
+        print("Intent Extracted:\n", "Query:",enhanced_query,"\nRequired Outcomes",required_outcomes,"\nvector_search:",vector_search)
+        print(intent_data)
         if unrelated_query:
             conversation_history = ""
 

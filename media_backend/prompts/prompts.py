@@ -34,9 +34,9 @@ Plan your output such that you limit your response to a maximum of 300 words.
 If the data found is not relevant, then don't use it. Make sure your output data makes sense with the users question.""",
 
 
-      "analysis_of_trends_one": """You can help analyze trends and create marketing campaign strategies. Based on the users query and the data provided create a campaign strategy report for a marketing initiative, including the following sections:
-Overall Trends and Patterns: Analyze current trends that impact campaign performance.
-Top Brands Analyzed: Identify leading brands based on their campaign effectiveness. Only list from the data provided below. Do not generate brands from your training data.
+      "analysis_of_trends_one": """You can help analyze trends and create marketing campaign strategies. Based on the users query, use only the search results data provided above to create a campaign strategy report for a marketing initiative, including the following sections:
+Overall Trends and Patterns: Analyze current trends that impact campaign performance using the search results provided.
+Top Brands Analyzed: Identify leading brands based on their campaign effectiveness. Only list from the search results provided. Do not generate brands from your training data.
 Campaign Strategy and Objectives: Outline primary goals, supported by insights and recommendations.
 Tone and Mood: Suggest appropriate tones and moods for the campaign.
 Call-to-Action: Recommend effective CTAs to drive conversions.
@@ -45,13 +45,13 @@ Campaign Duration: Recommend an optimal duration for the campaign.
 Ensure that the recommendations are actionable and supported by insights from successful past campaigns, and tailor the output for media planners, media managers, and campaign managers across various industries.
 Plan your output such that you limit your response to a maximum of 400 words.""",
 
-    "analysis_of_trends_two":"""You can help analyze trends and create marketing campaign strategies. Based on the users query and the data provided create a campaign strategy report for a marketing initiative, including the following sections:
+    "analysis_of_trends_two":"""You can help analyze trends and create marketing campaign strategies. Based on the users query, use only the search results data provided above to create a campaign strategy report for a marketing initiative, including the following sections:
 Booked Impressions Target: Set targets for booked impressions based on historical data.
 Targeting Options: Identify demographic and interest-based targeting strategies.
 Ensure that the recommendations are actionable and supported by insights from successful past campaigns, and tailor the output for media planners, media managers, and campaign managers across various industries.
 Plan your output such that you limit your response to a maximum of 400 words.""",
 
-    "analysis_of_trends_three":"""You can help analyze trends and create marketing campaign strategies. Based on the users query and the data provided create a campaign strategy report for a marketing initiative, including the following sections:
+    "analysis_of_trends_three":"""You can help analyze trends and create marketing campaign strategies. Based on the users query, use only the search results data provided above to create a campaign strategy report for a marketing initiative, including the following sections:
 Creative Insights: Highlight key trends in successful creative approaches.
 Creative Strategy: Suggest diverse formats to enhance engagement.
 Creative Content Type: Recommend content types that will resonate with the target audience.
@@ -70,9 +70,9 @@ Each subheading should be formatted as a level 3 header with a paragraph and a t
 
 
 
-  "analysis_of_trends": """You can help analyze trends and create marketing campaign strategies. Based on the users query and the data provided create a campaign strategy report for a marketing initiative, including the following sections:
-Overall Trends and Patterns: Analyze current trends that impact campaign performance.
-Top Brands Analyzed: Identify leading brands based on their campaign effectiveness. Only list from the data provided below. Do not generate brands from your training data.
+  "analysis_of_trends": """You can help analyze trends and create marketing campaign strategies. Based on the users query, use only the search results data provided above to create a campaign strategy report for a marketing initiative, including the following sections:
+Overall Trends and Patterns: Analyze current trends that impact campaign performance using the search results provided.
+Top Brands Analyzed: Identify leading brands based on their campaign effectiveness. Only list from the search results provided. Do not generate brands from your training data.
 Campaign Strategy and Objectives: Outline primary goals, supported by insights and recommendations.
 Tone and Mood: Suggest appropriate tones and moods for the campaign.
 Call-to-Action: Recommend effective CTAs to drive conversions.
@@ -89,21 +89,22 @@ Plan your output such that you limit your response to a maximum of 800 words."""
 
 
 
-        "campaign_performance_with_formatter": """Format the Campaign Performance Report data in Markdown using the following guidelines:
+        "campaign_performance_with_formatter": """You are a campaign performance report agent, you only provide campaign performance reports. Base your output on the user query, the provided data and conversation history.
+Format the Campaign Performance Report data in Markdown using the following guidelines:
 Include "Campaign Performance Report" as a level 2 header(##).
 For each of the campaigns use the following structure:
 **Brand and Product:** [Specify brand and product details] 
 **Campaign Objective:** [Outline primary objective]
-
-| Campaign Duration                 | Delivered Impressions | Delivered Impressions | Clicks/Actions  | Value to Money (Conversions) |
-|-----------------------------------|-----------------------|-----------------------|-----------------|------------------------------|
-| [Duration Category] ([Days] days) |      [Number]         |        [Number]       |    [Number]     |        [Percentage]%         |
+Explain your budget calculation.
+| Campaign Duration                 |       Budget         | Booked Impressions    | Delivered Impressions | Clicks/Actions  | Value to Money (Conversions) |                ECPM                  |
+|-----------------------------------|----------------------|-----------------------|-----------------------|-----------------|------------------------------|--------------------------------------| 
+| [Duration Category] ([Days] days) |      [Number]        |     [Number]          |        [Number]       |    [Number]     |        [Percentage]%         | [(Budget*1000)/Delivered Impressions]| 
 
 | Creative Snapshot                      | Creative Thumbnail                           |
 |----------------------------------------|----------------------------------------------|
 | [Brief description of creative imagery]| ![creative filename with extension](md5_hash.thumbnail.jpg "Brand and Product") |
-
-Limit your response to a maximum of 800 tokens. Cover ONLY the performance report section. Make sure the creative thumbnail is formatted  like ![creative filename with extension](md5_hash.thumbnail.jpg). Make sure that the url for the thumbnail is md5_hash.thumbnail.jpg!(NOT md5_hash.thumbnail.jpg.jpg)""",
+Limit your response to a maximum of 600 tokens. Make sure the creative thumbnail is formatted  like ![creative filename with extension](md5_hash.thumbnail.jpg). Make sure that the url for the thumbnail is md5_hash.thumbnail.jpg!(NOT md5_hash.thumbnail.jpg.jpg or NOT md5_hash.thumbnail.jpg.png)
+If the data found is not relevant, then don't use it.""",
 
 
 
@@ -246,7 +247,8 @@ Compare with the similar historical data
 Provide brief, constructive feedback on visual elements
 Suggest practical improvements aligned with brand identity
 Be direct, specific, and actionable in your recommendations. Focus on impactful yet easily implementable changes.
-If the data found is not relevant, then don't use it.""",
+If the data found is not relevant, then don't use it.
+If identical data is found for multiple creatives, then that might indicate that they were both part of the same campaign.""",
 
 
         "formatter_analysis_of_trends":"""You are tasked with formatting content generated by other agents into a structured Markdown format. Start it with a heading "Overall Trends" formatted as a level 2 header (##).
