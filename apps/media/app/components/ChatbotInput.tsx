@@ -3,12 +3,12 @@ import { ChatbotIcons, CommonButton, SimpleInput } from "@repo/ui/components";
 import { useContext, useState, useRef } from "react";
 import { ChatContext } from "../ui/contexts/ChatContext";
 import FileUpload from "./FileUpload";
+import { ChatbotInputProps } from "../lib/interfaces";
 import "./ChatbotInput.scss";
 import "./MarkdownMessage.scss";
 
-export function ChatbotInput(): JSX.Element {
+export function ChatbotInput({ text, setText }: ChatbotInputProps):  JSX.Element {
     const chatContext = useContext(ChatContext);
-    const [text, setText] = useState("");
     const [isExporting, setIsExporting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);

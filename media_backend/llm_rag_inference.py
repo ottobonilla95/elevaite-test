@@ -425,6 +425,10 @@ def creative_to_features(creative: str)-> str:
 def generate_image_from_getimgai(prompt: str, image_data: Optional[str] = None, api_call_type: str = "text-to-image", model: str = "flux-schnell"):
     
     # Determine if it's an image-to-image request
+    max_prompt_length = 2048  # Set to 2048 as per the API documentation
+    if len(prompt) > max_prompt_length:
+        prompt = prompt[:max_prompt_length] 
+        
     if api_call_type == "image-to-image":
         is_image_to_image = True
     else:
@@ -961,6 +965,55 @@ def format_conversation_payload(conversation_payload: List[ConversationPayload])
         formatted_history += f"{actor}: {content}\n"
     return formatted_history.strip()
 
+async def generate_related_queries(intent_data: dict, conversation_history: List[ConversationPayload],user_query:str) -> List[str]:
+    """
+    Generates related queries based on the intent data and previous user queries.
+    
+    Args:
+        intent_data (dict): The intent data containing user query information.
+        conversation_history (List[ConversationPayload]): The conversation history to extract previous queries.
+    
+    Returns:
+        List[str]: A list of related queries.
+    """
+    # Load the prompt for generating related queries
+    prompt = load_prompt("related_queries_v2")
+    
+    OUTCOME_MAPPING = {
+    1: "Media Plan - Can create/generate a media plan for a product",
+    2: "Analysis of Trends",
+    3: "Campaign Performance",
+    4: "Existing Creative Insights",
+    5: "Performance Summary - Summary of other outputs",
+    6: "Creative Trends - if creative uploaded is true, then provide creative trends",
+    7: "Creative Inspiration - generate creatives using an API.",
+    8: "Creative Feedback - Constructive Feedback based on provided Creative",
+    9: "Follow Up Question - Ask a follow up question. If it is for creatives, ask them if they want to generate a fresh creative or base their creative off another that performed well.",
+    10: "Generic Media Chatbot Questions",
+    11: "Irrelevant Questions"
+}
+    # Extract previous user queries from the conversation history
+    previous_queries = [entry.content for entry in conversation_history if entry.actor == "user"]
+    required_outcomes = intent_data.get('required_outcomes', [11])
+    outcome_descriptions = [OUTCOME_MAPPING.get(outcome, "Unknown Outcome") for outcome in required_outcomes]
+    # Prepare the input for the LLM call
+    input_data = {
+        "base_query": user_query,
+        "previous_queries": str(previous_queries),
+        "current_intents_chosen":str(outcome_descriptions)
+    }
+    # Call the LLM with the prompt and input data
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "system", "content": prompt}, {"role": "user", "content": str(input_data)}],
+            max_tokens=200  # Adjust max tokens as needed
+        )
+        related_queries = response.choices[0].message.content.strip().split('\n')
+        return related_queries
+    except Exception as e:
+        logger.error(f"Error generating related queries: {e}")
+        return []
 
 
 # @timer_decorator
@@ -970,15 +1023,16 @@ async def perform_inference(inference_payload: InferencePayload):
         conversation_history = inference_payload.conversation_payload or []
 
         logger.info(f"conversation_history:{conversation_history}")
+        user_query=inference_payload.query
         # print("Conversation_HIstory length",len(conversation_history))
         if inference_payload.creative:
-            intent_data = determine_intent(user_query=inference_payload.query, conversation_history=conversation_history, prompt_file="intention", creative_provided=True)
+            intent_data = determine_intent(user_query=user_query, conversation_history=conversation_history, prompt_file="intention", creative_provided=True)
         else:
-            intent_data = determine_intent(user_query=inference_payload.query, conversation_history=conversation_history, prompt_file="intention", creative_provided=False)
+            intent_data = determine_intent(user_query=user_query, conversation_history=conversation_history, prompt_file="intention", creative_provided=False)
         required_outcomes = intent_data.get('required_outcomes', [11])
         unrelated_query = intent_data.get('unrelated_query', False)  
         parameters = intent_data.get('parameters', {}) 
-        enhanced_query = intent_data.get('enhanced_query', inference_payload.query) 
+        enhanced_query = intent_data.get('enhanced_query', user_query) 
         vector_search = intent_data.get('vector_search', False) 
         # enhanced_query = inference_payload.query
         # if vector_search:
@@ -1001,40 +1055,39 @@ async def perform_inference(inference_payload: InferencePayload):
             yield {"response":follow_up_message}
         # Creative Feedback - Constructive Feedback based on provided Creative
         if 8 in required_outcomes:
-            result = ideate_to_create_without_rag(inference_payload.query, inference_payload.creative, conversation_history)
+            result = ideate_to_create_without_rag(user_query, inference_payload.creative, conversation_history)
             result = replace_hash_with_url(remove_markdown_prefix(result))
             yield {"response": result}        
-        # Creative Trends analysis 
+        # Uploaded Creative Trends analysis 
         if 6 in required_outcomes:
             result = ideate_to_create_with_rag(
-                user_query=inference_payload.query,
+                user_query=user_query,
                 creative=inference_payload.creative,
                 conversation_history=conversation_history,
                 parameters=parameters
             )
             result = replace_hash_with_url(remove_markdown_prefix(result))
             yield {"response": result}
-            return 
         # Generic queries 
 
         if 10 in required_outcomes:
             if inference_payload.creative:
                 if vector_search:
                     filtered_data  = search_qdrant(enhanced_query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
-                    result = generic_with_creative(user_query=inference_payload.query, creative=inference_payload.creative,conversation_history= conversation_history,filtered_data=filtered_data)
+                    result = generic_with_creative(user_query=user_query, creative=inference_payload.creative,conversation_history= conversation_history,filtered_data=filtered_data)
                     result = replace_hash_with_url(remove_markdown_prefix(result))
                     yield {"response": result}
                 else:
-                    result = generic_with_creative(user_query=inference_payload.query, creative=inference_payload.creative, conversation_history=conversation_history)
+                    result = generic_with_creative(user_query=user_query, creative=inference_payload.creative, conversation_history=conversation_history)
                     result = replace_hash_with_url(remove_markdown_prefix(result))
                     yield {"response": result}
             else:
                 if vector_search:
                     filtered_data  = search_qdrant(enhanced_query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
-                    result = await generic_without_creative(inference_payload.query, conversation_history,filtered_data=filtered_data)
+                    result = await generic_without_creative(user_query, conversation_history,filtered_data=filtered_data)
                     yield {"response": f"{result}\n\n"}
                 else:
-                    result = await generic_without_creative(inference_payload.query, conversation_history)
+                    result = await generic_without_creative(user_query, conversation_history)
                     yield {"response": f"{result}\n\n"}
 
         if any(num in required_outcomes for num in [1, 2, 3, 4, 5]):
@@ -1074,7 +1127,7 @@ async def perform_inference(inference_payload: InferencePayload):
                     result = await insight_function(filtered_data, enhanced_query, conversation_history)
                 #  logger.debug(f"Before:{result}")
                     result = replace_hash_with_url(remove_markdown_prefix(result))
-                    # print("After",result)
+                    print("After",result)
                     output_parts[ordered_keys[outcome - 1]] = result
                 #  logger.debug(f"Completed outcome {outcome}: {result}")
                     yield {"response": result}  # Stream response
@@ -1094,6 +1147,10 @@ async def perform_inference(inference_payload: InferencePayload):
             # result = replace_hash_with_url(remove_markdown_prefix(result))
             # print("returning image:",result)
             yield {"response": result}
+
+        related_queries = await generate_related_queries(intent_data,conversation_history,user_query)
+        print("Related Queries:",related_queries)
+        yield {"related_queries": related_queries}  
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")

@@ -56,6 +56,7 @@ export const defaultSession: SessionObject = {
 export interface ChatMessageResponse {
     text: string;
     refs: string[];
+    relatedQueries?: string[];
 }
 
 export interface ChatMessageObject {
@@ -69,6 +70,8 @@ export interface ChatMessageObject {
     feedback?: string;
     feedbackfiles?: ChatMessageFileObject[];
     files?: ChatMessageFileObject[];
+    relatedQueries?: string[]; 
+    onQueryClick?: (query: string) => void;
 }
 
 export interface ChatMessageFileObject {
@@ -79,10 +82,20 @@ export interface ChatMessageFileObject {
     isViewable?: boolean;
 }
 
+
+export interface RelatedQueriesDisplayProps {
+    queries: string[];
+    onQueryClick: (query: string) => void;
+}
+
 export enum ChatMessageFileTypes {
     DOC = "document",
 }
 
+export interface ChatbotInputProps {
+    text: string; // Add this line
+    setText: (text: string) => void; // Add this line
+}
 
 
 

@@ -366,6 +366,7 @@ export function ChatContextProvider(
       date: new Date().toISOString(),
       isBot: true,
       text: data.text,
+      relatedQueries: data.relatedQueries,
       userName: "elevaite",
       files: data.refs.map((item) => {
         return {
@@ -447,7 +448,6 @@ export function ChatContextProvider(
           "creative": imageBase64 
       })
   });
-
   if (!response.body) {
     console.error("Response body is null.");
     setIsChatLoading(false);
@@ -524,16 +524,23 @@ export function ChatContextProvider(
     for (const line of lines) {
         if (line.startsWith('data: ')) {
             try {
+                console.log("LINE:",line);
                 const jsonStr = line.slice(6); // Remove 'data: ' prefix
                 const json = JSON.parse(jsonStr);
+                let relatedQueries: string[] = [];
                 console.log("Parsed JSON:", json.response);
-                const responseText = json.response; 
-                fullResponse += responseText; // Append to fullResponse
+                if(json.response){
+                    const responseText = json.response; 
+                    fullResponse += responseText; // Append to fullResponse
+                }
+                if(json.related_queries){
+                    relatedQueries = json.related_queries;
+                }
                 // Update state with the new combined response
                 // setLatestResponse(fullResponse);
                 // Update session with new message
                 updateSessionListWithNewMessage(
-                    formatMessageFromServerResponse({ text: fullResponse, refs: [] }),
+                    formatMessageFromServerResponse({ text: fullResponse, refs: [] ,relatedQueries: relatedQueries}),
                     newSession
                 );
             } catch (e) {

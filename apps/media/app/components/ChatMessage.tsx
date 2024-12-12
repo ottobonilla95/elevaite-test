@@ -15,6 +15,7 @@ import { ChatMessageFiles } from "./ChatMessageFiles";
 import { extractUniqueMediaData} from '../lib/testData';
 import MarkdownMessage from './MarkdownMessage'; 
 import Modal from "./Modal.tsx";
+import RelatedQueriesDisplay from './RelatedQueriesDisplay';
 
 export function ChatMessage(props: ChatMessageObject): JSX.Element {
   const chatContext = useContext(ChatContext);
@@ -27,7 +28,15 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
   const [mediaNames, setMediaNames] = useState<string[]>([]);
   const [mediaTypes, setMediaTypes] = useState<('image' | 'video')[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { onQueryClick } = props; 
 
+  function handleRelatedQueryClick(query: string): void {
+        if (onQueryClick) {
+            onQueryClick(query); // Call the passed function with the query
+        }
+    }
+  
+  
   function openMediaModal(): void {
     const { urls, names } = extractUniqueMediaData(props.text);
   
@@ -166,6 +175,9 @@ function goToPrevious(): void {
         </div>
         {/* <div className="message"  dangerouslySetInnerHTML={{ __html: props.text }}>
         </div> */}
+        {props.isBot && props.relatedQueries && props.relatedQueries.length > 0 && (
+            <RelatedQueriesDisplay queries={props.relatedQueries} onQueryClick={handleRelatedQueryClick} />
+        )}
 
         {!props.isBot ? null : (
           <div className="controls-container">

@@ -1,0 +1,39 @@
+.related-queries-container {
+    padding: 1rem;
+    h4 {
+        color: var(--markdown-heading-color);
+        font-size: 1.5em;
+        margin: 1.5em 0 0.25em;
+        letter-spacing: -1px;
+        font-weight: 500;
+    }
+    ul {
+        color: var(--markdown-paragraph-color);
+        list-style-type: none; 
+
+        .query-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            cursor: pointer;
+
+            &:hover {
+                background-color: var(--markdown-table-header-bg);
+                color: #000000;
+            }
+
+            .query-text {
+                flex-grow: 1;
+            }
+
+            .query-icon {
+                flex-shrink: 0;
+                margin-left: 0.5rem; 
+                width: 24px;
+                height: 24px;
+            }
+        }
+    }
+
+}
