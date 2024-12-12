@@ -2,7 +2,6 @@
   "__common": {
     "AUTH_SECRET": "gLAAVQQZN3BcwEXnpIVVH+/3d5bYbDCtY0AwXmmAMfU=",
     "NEXTAUTH_URL_INTERNAL": "http://localhost:3005/",
-    "NEXT_PUBLIC_LOGIN_API": "https://login.iopex.ai/login/google",
     "AUTH_URL": "http://localhost:3005/",
     "MEDIA_BACKEND_URL": "http://127.0.0.1:8000/"
   },
