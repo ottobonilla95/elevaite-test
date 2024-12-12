@@ -46,8 +46,7 @@ By default if the user has not specified any industries, campaigns or products, 
 Based on the previous user queries provided, suggest four possible related queries. Ensure that you do not repeat the last query made by the user. If the last query was about campaign performance or creative insights, include the other options that the user might find relevant.
 
 For example, if the user asked to generate a media plan, do not suggest that again, but provide suggestions for the other types of queries. 
-
-Format your output as a list of four distinct queries, ensuring they are relevant to the user's interests and previous questions.By default if the user has not specified any industries, campaigns or products, then suggest 1,2,3,5 for the fashion industry.""",
+Format your output as a list of four distinct queries, ensuring they are relevant to the user's interests and previous questions.By default if the user has not specified any industries, campaigns or products, and if previous_queries don't have context for industries then suggest 1,2,3,5 for the fashion industry.""",
 
 
       "creative_insights_new":"""You are an agent that can generates creative insights on the existing data provided from multiple campaigns. You must not generate insights for data not provided.
@@ -330,6 +329,7 @@ unrelated_query: Check if the current Query is related to the conversation histo
 parameters: Extract season, holiday, industry, duration_category and brand if present in query. 
 enhanced_query: Generates an enhanced user query that can provide better vector search results through the use of keywords related to the query.
 6 and 8 require a creative to be provided
+If there is context provided, then generate a creative for the industry and product provided.
 Examples -
 1. Conversation_history: "" 
   User: "Generate a media plan for a fashion brand"

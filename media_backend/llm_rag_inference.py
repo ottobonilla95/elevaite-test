@@ -1121,6 +1121,9 @@ async def perform_inference(inference_payload: InferencePayload):
                 if outcome == 1:  # Specifically call media_plan
                     async for chunk in media_plan(filtered_data, enhanced_query, conversation_history):
                         yield {"response": chunk}
+                    related_queries = await generate_related_queries(intent_data,conversation_history,user_query)
+                    # print("Related Queries:",related_queries)
+                    yield {"related_queries": related_queries}  
                 elif outcome in [2,3,4]:
                     insight_function = await get_insight_function(outcome)
                 #  logger.debug(f"Insight function:{insight_function}  Filtred data:{filtered_data}")
@@ -1147,10 +1150,6 @@ async def perform_inference(inference_payload: InferencePayload):
             # result = replace_hash_with_url(remove_markdown_prefix(result))
             # print("returning image:",result)
             yield {"response": result}
-
-        related_queries = await generate_related_queries(intent_data,conversation_history,user_query)
-        print("Related Queries:",related_queries)
-        yield {"related_queries": related_queries}  
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
