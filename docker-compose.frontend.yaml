@@ -2,7 +2,6 @@ x-common-env-variables: &common-env-variables
   AUTH_SECRET: ${AUTH_SECRET}
   NEXTAUTH_URL_INTERNAL: ${NEXTAUTH_URL_INTERNAL}
   AUTH_URL: ${AUTH_URL}
-  MEDIA_BACKEND_URL: ${MEDIA_BACKEND_URL}
 
 services:
   arlo:
@@ -14,6 +13,7 @@ services:
       APP_NAME: arlo
       NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
       ARLO_BACKEND_URL: ${ARLO_BACKEND_URL}
+      MEDIA_BACKEND_URL: ${MEDIA_BACKEND_URL}
 
   auth:
     build:
@@ -80,3 +80,4 @@ services:
       <<: *common-env-variables
       APP_NAME: media
       NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
+      MEDIA_BACKEND_URL: ${MEDIA_BACKEND_URL}
