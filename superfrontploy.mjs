@@ -22,20 +22,19 @@ try {
 
 const allApps = fs.readdirSync(appsDir).filter((entry) => {
   const appPath = path.join(appsDir, entry);
-  return fs.statSync(appPath).isDirectory(); // Ensure to only process directories
+  return fs.statSync(appPath).isDirectory();
 });
 
-// Filter apps based on the input argument
 const apps = targetAppName
   ? allApps.includes(targetAppName)
-    ? [targetAppName] // If a valid app name is provided, we deploy only that app
+    ? [targetAppName]
     : (() => {
         console.error(
           `App "${targetAppName}" does not exist in the "apps" directory.`
         );
         process.exit(1);
       })()
-  : allApps; // Deploy all apps if no argument is provided
+  : allApps;
 
 async function setupAndStartApp(appName) {
   const appData = storageData[appName];
@@ -44,72 +43,36 @@ async function setupAndStartApp(appName) {
     return;
   }
 
+  // We merge common and app-specific variables
   const { __common, ...appSpecificData } = appData;
+  const envObject = { ...(__common || {}), ...appSpecificData };
 
-  // Prepare the environment variables
-  const secrets = [];
+  // We create a temporary .env file for Docker Compose
+  const envContent = Object.entries({ ...storageData.__common, ...envObject })
+    .map(([key, value]) => `${key}=${value}`)
+    .join("\n");
 
-  // Inject __common environment variables for all apps
-  if (__common) {
-    for (const [key, value] of Object.entries(__common)) {
-      secrets.push(`${key}=${value}`);
-    }
-  }
+  const tempEnvPath = path.resolve(`./.env.${appName}`);
+  fs.writeFileSync(tempEnvPath, envContent);
 
-  // Inject app-specific environment variables for this app
-  for (const [key, value] of Object.entries(appSpecificData)) {
-    secrets.push(`${key}=${value}`);
-  }
+  console.log(`Starting docker-compose for app: ${appName}...`);
 
-  // Docker commands
-  const appPath = path.join(appsDir, appName);
-  const dockerBuildCommand = `docker build -t ${appName} -f ${path.resolve(appPath, "Dockerfile")} .`;
-
-  // Create the env flag with secrets for the docker run command
-  const envFlag = secrets.map((secret) => `--env ${secret}`).join(" ");
-  const dockerStopRemoveCommand = `
-    if docker ps -a --format '{{.Names}}' | grep -wq ${appName}; then
-      docker stop ${appName} && docker rm ${appName};
-    fi
-  `;
-
-  console.log(`Preparing to build and start app: ${appName} using Docker...`);
+  const composeFilePath = path.resolve("./docker-compose.frontend.yaml");
+  const composeCommand = `docker-compose --env-file ${tempEnvPath} -f ${composeFilePath} up -d ${appName}`;
 
   try {
-    // Dispose of any existing container with the same name
-    await execAsync(dockerStopRemoveCommand);
-
-    // Build the Docker image
-    console.log(`Building app: ${appName} using Docker...`);
-    await execAsync(dockerBuildCommand);
-    console.log(`App ${appName} built successfully.`);
+    await execAsync(composeCommand);
+    console.log(`App ${appName} started successfully using docker-compose.`);
   } catch (err) {
-    console.error(`Failed to build app ${appName}:\n${err.message}`);
-    return; // Skip starting the app if build fails
-  }
-
-  console.log(`Starting app: ${appName} using Docker...`);
-  try {
-    const dockerRunCommand = `docker run --name ${appName} ${envFlag} ${appName}`;
-    const child = exec(dockerRunCommand, { stdio: "inherit" });
-
-    child.on("error", (err) => {
-      console.error(`Failed to start app ${appName}:\n${err.message}`);
-    });
-
-    child.on("exit", (code) => {
-      if (code !== 0) {
-        console.error(`App ${appName} exited with code ${code}.`);
-      } else {
-        console.log(`App ${appName} started successfully.`);
-      }
-    });
-  } catch (err) {
-    console.error(`Failed to deploy app ${appName}:\n${err.message}`);
+    console.error(
+      `Failed to start app ${appName} with docker-compose:\n${err.message}`
+    );
+  } finally {
+    // We clean up the temporary env file
+    fs.unlinkSync(tempEnvPath);
   }
 }
 
-// Process each app
 (async () => {
   for (const appName of apps) {
     try {
