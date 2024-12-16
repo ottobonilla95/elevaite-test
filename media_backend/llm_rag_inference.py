@@ -8,7 +8,6 @@ import os
 import re
 import ast
 from dotenv import load_dotenv
-from PIL import Image
 from io import BytesIO
 import json
 from typing import List, Type, Dict, Any, Optional, AsyncGenerator
@@ -17,12 +16,15 @@ import time
 import requests
 import asyncio
 from prompts.prompts import SystemPrompts
+from sentence_transformers import CrossEncoder
 from collections import OrderedDict
 
 import logging
 # Timer and logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2",tokenizer_args={'clean_up_tokenization_spaces': True})
 
 def timer_decorator(func):
     async def async_wrapper(*args, **kwargs):
@@ -89,11 +91,42 @@ def get_embedding(text):
     except Exception as e:
         logger.error(f"Error getting embedding: {e}")
         return None
+    
+def rerank_results(query_text: str, results: List[AdCreative], enriched_query_text: str) -> List[AdCreative]:
+    """Rerank results based on query relevance, considering dynamic contextual terms from the enriched query."""    
+    # Process the enriched query to detect key contextual terms (e.g., industries, product categories, etc.)
+    # This should capture the terms from the enriched query dynamically without hardcoding
+    enriched_query_terms = set(enriched_query_text.lower().split())
+    reranker_input = []
+    for ad_creative in results:
+        brand = ad_creative.brand or ""
+        business_category = ad_creative.industry or ""  # Assuming business_category is stored in 'industry'
+        # Concatenate the enriched query with brand and business_category for better contextual matching
+        reranker_input.append((enriched_query_text, f"{brand} {business_category}"))
+    
+    scores = reranker.predict(reranker_input)    
+    reranked_results = []
+
+    for ad_creative, score in zip(results, scores):
+        # Check if any of the enriched query terms match the brand or business category
+        industry_terms = set(ad_creative.industry.lower().split()) if ad_creative.industry else set()
+        brand_terms = set(ad_creative.brand.lower().split()) if ad_creative.brand else set()
+        # Check for overlap between the enriched query terms and the ad's brand/industry terms
+        relevance_bonus = len(enriched_query_terms.intersection(industry_terms.union(brand_terms)))
+        # Combine the Cross-Encoder score with the relevance bonus
+        final_score = score + relevance_bonus
+        reranked_results.append((ad_creative, final_score))
+    # Sort by final score (higher is better)
+    reranked_results = sorted(reranked_results, key=lambda x: x[1], reverse=True)
+    print("Re-ranked Scores:", [score for _, score in reranked_results])
+    return [result[0] for result in reranked_results]
+
 
 # Searches Qdrant and returns search result object
 def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[str, Any], use_vector_search: bool = False, number_of_results: int = 4) -> SearchResult:
     formatted_history = format_conversation_payload(conversation_payload)
     enriched_query_text = f"{formatted_history}\nUser Query: {query_text}"
+    print("Query Used for Vector Search:",enriched_query_text)
     query_vector = get_embedding(enriched_query_text)
 
     if not query_vector or len(query_vector) == 0:
@@ -109,7 +142,7 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
             search_result = Qclient.search(
                 collection_name=os.getenv("COLLECTION_NAME", "Media_Performance"),
                 query_vector=query_vector,
-                limit=number_of_results,
+                limit=number_of_results*10,
             )
         except Exception as e:
             logger.error(f"Error in vector search: {e}")
@@ -118,20 +151,20 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
         # Process vector search results
         # print("SEARCH RESULTS:",search_result)
         for hit in search_result:
-            if hit.score > 0.70: # Magic number
-                try:
+            # if hit.score > 0.70: # Magic number
+            try:
                     # print("Vector search score:", hit.score)
-                    ad_creative = AdCreative.parse_obj(hit.payload)
-                    brand_name = ad_creative.brand
-                    if brand_name not in brand_count:
-                        brand_count[brand_name] = 0
-                    if brand_count[brand_name] < 2:  # Limit to 2 per brand
-                        ad_creatives.append(ad_creative)
-                        brand_count[brand_name] += 1
-                    else:
-                        logger.info(f"Skipped AdCreative for brand: {brand_name}")
-                except Exception as e:
-                    logger.error(f"Error processing vector search result: {e}, Data: {hit}")
+                ad_creative = AdCreative.parse_obj(hit.payload)
+                brand_name = ad_creative.brand
+                if brand_name not in brand_count:
+                    brand_count[brand_name] = 0
+                if brand_count[brand_name] < 1:  # Limit to 2 per brand
+                    ad_creatives.append(ad_creative)
+                    brand_count[brand_name] += 1
+                else:
+                    logger.info(f"Skipped AdCreative for brand: {brand_name}")
+            except Exception as e:
+                logger.error(f"Error processing vector search result: {e}, Data: {hit}")
 
     # Build filters for the search if not using vector search
     if not use_vector_search:
@@ -175,7 +208,7 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
                     collection_name=os.getenv("COLLECTION_NAME", "Media_Performance"),
                     query_vector = query_vector,
                     query_filter=search_filter,
-                    limit=number_of_results,
+                    limit=number_of_results*10,
                 )
             except Exception as e:
                 logger.error(f"Error searching Qdrant: {e}")
@@ -184,25 +217,31 @@ def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[
             # Process filtered search results with brand limit
             brand_count = {}
             for index, hit in enumerate(search_result):
-                if hit.score>0.78: # Magic Number
-                    try:
-                        # print("Filtered score:",hit.score)
-                        payload = hit.payload
-                        ad_creative = AdCreative.parse_obj(payload)
-                        brand_name = ad_creative.brand
-                        if brand_name not in brand_count:
-                            brand_count[brand_name] = 0
-                        if brand_count[brand_name] < 2:  # Limit to 2 per brand
-                            ad_creatives.append(ad_creative)
-                            brand_count[brand_name] += 1
-                        else:
-                            logger.info(f"Skipped AdCreative for brand: {brand_name}")
-                    except ValueError as e:
-                        logger.error(f"Error processing media creative {index + 1}: {e}")
-                        logger.error(f"Problematic payload: {payload}")
+                # if hit.score>0.70: # Magic Number
+                try:
+                    # print("Filtered score:",hit.score)
+                    payload = hit.payload
+                    ad_creative = AdCreative.parse_obj(payload)
+                    brand_name = ad_creative.brand
+                    if brand_name not in brand_count:
+                        brand_count[brand_name] = 0
+                    if brand_count[brand_name] < 1:  # Limit to 2 per brand
+                        ad_creatives.append(ad_creative)
+                        brand_count[brand_name] += 1
+                    else:
+                        logger.info(f"Skipped AdCreative for brand: {brand_name}")
+                except ValueError as e:
+                    logger.error(f"Error processing media creative {index + 1}: {e}")
+                    logger.error(f"Problematic payload: {payload}")
+    if ad_creatives:
+        ad_creatives = rerank_results(query_text, ad_creatives,enriched_query_text)
+    else:
+        logger.warning("No valid results found after filtering and validation.")
+        return SearchResult(results=[], total=0)
 
-    logger.info(f"Total AdCreatives processed: {len(ad_creatives)}, Content:{ad_creatives}")
-    return SearchResult(results=ad_creatives, total=len(ad_creatives))
+    final_results = ad_creatives[:number_of_results]
+    logger.info(f"Final Results: {len(final_results)}")
+    return SearchResult(results=final_results, total=len(final_results))
 
 # Identifies the intent and enhances the query
 @timer_decorator   
@@ -288,7 +327,7 @@ async def generate_response_streaming(
         yield f"Error: {str(e)}"
 
 
-# @timer_decorator
+@timer_decorator
 async def generate_response(
     query: str,
     system_prompt: str,
@@ -615,6 +654,8 @@ async def media_plan(filtered_data: SearchResult, query: str, conversation_histo
     # Media_plan Data filtered out
     fields_to_extract = [
     "ad_objective",
+    "brand",
+    "industry",
     "duration(days)",
     "duration_category",
     "tone_mood",
@@ -637,8 +678,9 @@ async def media_plan(filtered_data: SearchResult, query: str, conversation_histo
     "industry",
     ]
     essential_data = extract_specific_fields(filtered_data,fields_to_extract,full_data_fields_to_extract)
-
+    print(f"Essential data:{essential_data}")
     system_prompt = load_prompt("media_plan")
+
     # logger.debug("media plan Input len:",len(query)+len(system_prompt)+len(essential_data)+len(conversation_history))
     # logger.debug("Query, system, filtered, convo history:",len(query),len(system_prompt),len(essential_data),len(conversation_history))
     raw_response = await generate_response(
@@ -649,7 +691,7 @@ async def media_plan(filtered_data: SearchResult, query: str, conversation_histo
         response_class=MediaPlanOutput,
         max_tokens=2500,
     )
-  ##  logger.debug(f"Media_plan Raw text:{raw_response}")
+    print(f"Media_plan Raw text:{raw_response}")
     async for chunk in formatter_streaming(raw_response, "formatter_media_plan", query):
             yield chunk
     # return await formatter(raw_response,"formatter_media_plan",query)
@@ -736,7 +778,7 @@ async def perform_analysis(
     print(f"Analysis of Trends Raw text:{raw_response}")
     return await formatter(raw_response, formatter_name)
 
-
+@timer_decorator
 async def creative_insights(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload]) -> str:
     fields_to_extract = [
         "brand",
@@ -779,8 +821,8 @@ async def creative_insights(filtered_data: SearchResult, query: str, conversatio
         response_class=CreativeInsightsReport
     )
   #  logger.debug(f"Creative Insights Raw: {raw_response}")
-    # print(f"raw_response: {raw_response}")
-    formatted_response = await formatter(raw_response, "formatter_creative_insights")
+    print(f"Creative insights raw_response: {raw_response}")
+    formatted_response = await formatter(raw_response, "formatter_creative_insights_v1")
     return formatted_response
     
 # @timer_decorator
@@ -1076,7 +1118,7 @@ async def perform_inference(inference_payload: InferencePayload):
                     filtered_data  = search_qdrant(enhanced_query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
                     result = generic_with_creative(user_query=user_query, creative=inference_payload.creative,conversation_history= conversation_history,filtered_data=filtered_data)
                     result = replace_hash_with_url(remove_markdown_prefix(result))
-                    yield {"response": result}
+                    yield {"response": result, "vector_search": str(filtered_data.results)} 
                 else:
                     result = generic_with_creative(user_query=user_query, creative=inference_payload.creative, conversation_history=conversation_history)
                     result = replace_hash_with_url(remove_markdown_prefix(result))
@@ -1085,7 +1127,7 @@ async def perform_inference(inference_payload: InferencePayload):
                 if vector_search:
                     filtered_data  = search_qdrant(enhanced_query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
                     result = await generic_without_creative(user_query, conversation_history,filtered_data=filtered_data)
-                    yield {"response": f"{result}\n\n"}
+                    yield {"response": f"{result}\n\n", "vector_search": str(filtered_data.results)}
                 else:
                     result = await generic_without_creative(user_query, conversation_history)
                     yield {"response": f"{result}\n\n"}
@@ -1095,7 +1137,7 @@ async def perform_inference(inference_payload: InferencePayload):
             # print(f"Original data:{filtered_data}")
             
             if not filtered_data.results:
-                yield {"response":"Searching for data most related with your query...\n"}
+                # yield {"response":"Searching for data most related with your query...\n"}
                 filtered_data = search_qdrant(enhanced_query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
                 # print("Additional_Data Data1:",filtered_data)
                 if len(filtered_data.results)<1:
@@ -1116,6 +1158,10 @@ async def perform_inference(inference_payload: InferencePayload):
                             filtered_data.total += 1
             output_parts = OrderedDict()
             ordered_keys = ["media_plan", "analysis_of_trends", "campaign_performance", "creative_insights", "performance_summary"]
+
+            if filtered_data.results:
+                print("Returning vector search: ",filtered_data)
+                yield {"vector_search": str(filtered_data.results)   }
 
             for outcome in required_outcomes:
                 if outcome == 1:  # Specifically call media_plan

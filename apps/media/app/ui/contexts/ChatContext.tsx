@@ -463,56 +463,7 @@ export function ChatContextProvider(
   const decoder = new TextDecoder("utf-8");
   let buffer = '';
   let fullResponse = '';
-
-// Uncomment for Streaming
-//   const TYPING_SPEED = 0.5; 
-//   function simulateTyping(text) {
-//     return new Promise<void>((resolve) => {
-//         let index = 0;
-//         let currentResponse = '';  
-//         const typingInterval = setInterval(() => {
-//             if (index < text.length) {
-//                 currentResponse = text[index];
-//                 fullResponse += currentResponse
-//                 updateSessionListWithNewMessage(
-//                     formatMessageFromServerResponse({ text: fullResponse, refs: [] }),
-//                     newSession
-//                 );
-//                 index++;
-//             } else {
-//                 clearInterval(typingInterval);
-//                 resolve(); // Resolve without arguments once typing is complete
-//             }
-//         }, TYPING_SPEED); // Adjust typing speed here
-//     });
-// }
-
-//   while (true) {
-//     const { done, value } = await reader.read();
-//     if (done) break;
-
-//     buffer += decoder.decode(value, { stream: true });
-//     const lines = buffer.split('\n\n');
-//     buffer = lines.pop() || '';
-
-//     for (const line of lines) {
-//         if (line.startsWith('data: ')) {
-//             try {
-//                 const jsonStr = line.slice(6); // Remove 'data: ' prefix
-//                 const json = JSON.parse(jsonStr);
-//                 console.log("Parsed JSON:", json.response);
-//                 const responseText = json.response; 
-//                 // Simulate typing for each new chunk of response
-//                 await simulateTyping(responseText);
-
-//             } catch (e) {
-//                 console.error("Error parsing JSON:", e);
-//             }
-//         }
-//     }
-// }
-// setIsChatLoading(false);
-// }
+  
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;

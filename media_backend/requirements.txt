@@ -6,3 +6,5 @@ reportlab
 openai
 python-dotenv
 requests
+redis
+sentence_transformers

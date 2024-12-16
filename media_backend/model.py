@@ -107,6 +107,7 @@ class MediaPlanOutput(BaseModel):
     media_mix_strategy: List[MediaMixStrategy]
     creative_strategy: List[CreativeStrategy]
     measurement_and_evaluation: List[MeasurementMetric]
+    message: str
 
 # Analysis Prompt
 class OverallTrend(BaseModel):
@@ -222,7 +223,8 @@ class CreativeInsight(BaseModel):
     creative_elements: CreativeElements
 
 class CreativeInsightsReport(BaseModel):
-    creatives: List[CreativeInsight]
+    creatives: Optional[List[CreativeInsight]]
+    general_insights: Optional[str]
 
 
 # Performance Summary
