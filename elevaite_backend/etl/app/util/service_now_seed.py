@@ -16,9 +16,7 @@ def service_now_seed(db: Session):
         _dependsOn=[],
         id="82d68b0d-f602-4643-ba38-fccb1b7410eb",
     )
-    servicenow_preprocess_pipeline_step_2._dependsOn.append(
-        servicenow_preprocess_pipeline_step_1
-    )
+    servicenow_preprocess_pipeline_step_2._dependsOn.append(servicenow_preprocess_pipeline_step_1)
 
     servicenow_preprocess_pipeline_step_3 = models.PipelineStep(
         title="Segment Vectorization",
@@ -26,9 +24,7 @@ def service_now_seed(db: Session):
         _dependsOn=[],
         id="b3b65582-c792-438a-b0bf-f034f6585a8c",
     )
-    servicenow_preprocess_pipeline_step_3._dependsOn.append(
-        servicenow_preprocess_pipeline_step_2
-    )
+    servicenow_preprocess_pipeline_step_3._dependsOn.append(servicenow_preprocess_pipeline_step_2)
 
     servicenow_preprocess_pipeline_step_4 = models.PipelineStep(
         title="Vector DB",
@@ -36,9 +32,7 @@ def service_now_seed(db: Session):
         _dependsOn=[],
         id="e13f3c40-183a-4fa8-ab36-a7aa30732f4b",
     )
-    servicenow_preprocess_pipeline_step_4._dependsOn.append(
-        servicenow_preprocess_pipeline_step_3
-    )
+    servicenow_preprocess_pipeline_step_4._dependsOn.append(servicenow_preprocess_pipeline_step_3)
 
     servicenow_ingest_pipeline_step_1 = models.PipelineStep(
         title="Data Source Configuration",
@@ -53,9 +47,7 @@ def service_now_seed(db: Session):
         _dependsOn=[],
         id="0daffa6c-653c-46c5-b511-eac4f6d91333",
     )
-    servicenow_ingest_pipeline_step_2._dependsOn.append(
-        servicenow_ingest_pipeline_step_1
-    )
+    servicenow_ingest_pipeline_step_2._dependsOn.append(servicenow_ingest_pipeline_step_1)
 
     servicenow_ingest_pipeline_step_3 = models.PipelineStep(
         title="Data Lake Storage",
@@ -63,9 +55,7 @@ def service_now_seed(db: Session):
         _dependsOn=[],
         id="dcc7f381-fa5a-4106-968f-2e7d6b2658b9",
     )
-    servicenow_ingest_pipeline_step_3._dependsOn.append(
-        servicenow_ingest_pipeline_step_2
-    )
+    servicenow_ingest_pipeline_step_3._dependsOn.append(servicenow_ingest_pipeline_step_2)
     db.add_all(
         [
             servicenow_ingest_pipeline_step_1,

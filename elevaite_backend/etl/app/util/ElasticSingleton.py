@@ -1,18 +1,23 @@
 import os
-from pprint import pprint
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 from .SingletonMeta import SingletonMeta
 
 
 class ElasticSingleton(metaclass=SingletonMeta):
-    client: Elasticsearch = None
+    client: Elasticsearch = None  # type: ignore
 
     def __init__(self) -> None:
         load_dotenv()
         ELASTIC_PASSWORD = os.getenv("ELASTIC_PASSWORD")
+        if ELASTIC_PASSWORD is None:
+            raise Exception("Missing ELASTIC_PASSWORD from the environment")
         ELASTIC_SSL_FINGERPRINT = os.getenv("ELASTIC_SSL_FINGERPRINT")
+        if ELASTIC_SSL_FINGERPRINT is None:
+            raise Exception("Missing ELASTIC_SSL_FINGERPRINT from the environment")
         ELASTIC_HOST = os.getenv("ELASTIC_HOST")
+        if ELASTIC_HOST is None:
+            raise Exception("Missing ELASTIC_HOST from the environment")
 
         # Create the client instance
         self.client = Elasticsearch(
@@ -28,9 +33,7 @@ class ElasticSingleton(metaclass=SingletonMeta):
         """
         offset = 0
         while True:
-            result = self.client.search(
-                index=index, **kwargs, body={"size": pagesize, "from": offset}
-            )
+            result = self.client.search(index=index, **kwargs, body={"size": pagesize, "from": offset})
             hits = result["hits"]["hits"]
             # Stop after no more docs
             if not hits:
@@ -40,12 +43,8 @@ class ElasticSingleton(metaclass=SingletonMeta):
             # Continue from there
             offset += pagesize
 
-    def getAllInIndexPaginated(
-        self, index: str, pagesize: int = 250, offset: int = 0, **kwargs
-    ):
-        result = self.client.search(
-            index=index, **kwargs, body={"size": pagesize, "from": offset}
-        )
+    def getAllInIndexPaginated(self, index: str, pagesize: int = 250, offset: int = 0, **kwargs):
+        result = self.client.search(index=index, **kwargs, body={"size": pagesize, "from": offset})
         return result["hits"]["hits"]
 
     def getById(self, index: str, id: str):

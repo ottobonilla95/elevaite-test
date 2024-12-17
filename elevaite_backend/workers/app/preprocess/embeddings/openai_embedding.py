@@ -22,7 +22,7 @@ class OpenAIEmbedding(BaseEmbedding):
             raise Exception("Too many retries")
         try:
             time.sleep((5 * depth) + (6 / 1000))
-            response = openai.Embedding.create(input=input, engine=embedding_model)
+            response = openai.embeddings.create(input=input, model=embedding_model)
             return response["data"][0]["embedding"]  # type: ignore | It works
         except Exception as e:
             print(e)

@@ -18,8 +18,6 @@ from elevaitelib.schemas.instance import (
 from elevaitelib.util.logger import ESLogger
 
 from .steps.base_step import (
-    STEP_REGISTRY,
-    RESOURCE_REGISTRY,
     get_initialized_step,
     register_resource_registry,
 )
@@ -56,13 +54,13 @@ async def preprocess(data: PreProcessForm) -> None:
     REDIS_HOST = os.getenv("REDIS_HOST")
     if REDIS_HOST is None:
         raise Exception("REDIS_HOST is null")
-    _REDIS_PORT = os.getenv("REDIS_PORT")
-    if _REDIS_PORT is None:
+    REDIS_PORT = os.getenv("REDIS_PORT")
+    if REDIS_PORT is None:
         raise Exception("REDIS_PORT is null")
     try:
-        REDIS_PORT = int(_REDIS_PORT)
+        REDIS_PORT = int(REDIS_PORT)
     except ValueError:
-        print("REDIS_PORT must be an integer")
+        raise Exception("REDIS_PORT must be an integer")
     REDIS_USERNAME = os.getenv("REDIS_USERNAME")
     if REDIS_USERNAME is None:
         raise Exception("REDIS_USERNAME is null")
@@ -80,14 +78,14 @@ async def preprocess(data: PreProcessForm) -> None:
         raise Exception("ELASTIC_HOST is null")
     global STEP_REGISTRY
     global RESOURCE_REGISTRY
+
+    logger = ESLogger(key=data.instanceId)
+
+    db = SessionLocal()
     try:
         _instance_registry = register_resource_registry(instance_id=data.instanceId)
 
-        db = SessionLocal()
-
-        set_instance_running(
-            db=db, application_id=data.applicationId, instance_id=data.instanceId
-        )
+        set_instance_running(db=db, application_id=data.applicationId, instance_id=data.instanceId)
 
         r = redis.Redis(
             host=REDIS_HOST,
@@ -108,16 +106,12 @@ async def preprocess(data: PreProcessForm) -> None:
 
         if not es.ping():
             raise Exception("Could not connect to ElasticSearch")
-
-        logger = ESLogger(key=data.instanceId)
         logger.info(message="Initialized worker")
 
         if data.datasetId is None:
             raise Exception("No datasetId recieved")
 
-        _pipeline = pipeline_crud.get_pipeline_by_id(
-            db, data.selectedPipelineId, data.projectId, None
-        )
+        _pipeline = pipeline_crud.get_pipeline_by_id(db, data.selectedPipelineId)
         _entry_step = None
         _first_step = None
         _second_step = None
@@ -155,33 +149,21 @@ async def preprocess(data: PreProcessForm) -> None:
         if _final_step is None:
             raise Exception("Pipeline Exit step not found in steps")
 
-        entry_step_runner = get_initialized_step(
-            data=data, db=db, logger=logger, r=r, step_id=_entry_step.id
-        )
+        entry_step_runner = get_initialized_step(data=data, db=db, logger=logger, r=r, step_id=_entry_step.id)
         await entry_step_runner.run()
 
-        _step_runner_1 = get_initialized_step(
-            data=data, db=db, logger=logger, r=r, step_id=_first_step.id
-        )
+        _step_runner_1 = get_initialized_step(data=data, db=db, logger=logger, r=r, step_id=_first_step.id)
         await _step_runner_1.run()
 
-        _step_runner_2 = get_initialized_step(
-            data=data, db=db, logger=logger, r=r, step_id=_second_step.id
-        )
+        _step_runner_2 = get_initialized_step(data=data, db=db, logger=logger, r=r, step_id=_second_step.id)
 
         await _step_runner_2.run()
 
-        set_pipeline_step_running(
-            db=db, instance_id=data.instanceId, step_id=str(_final_step.id)
-        )
+        set_pipeline_step_running(db=db, instance_id=data.instanceId, step_id=str(_final_step.id))
 
-        set_pipeline_step_completed(
-            db=db, instance_id=data.instanceId, step_id=str(_final_step.id)
-        )
+        set_pipeline_step_completed(db=db, instance_id=data.instanceId, step_id=str(_final_step.id))
 
-        set_instance_completed(
-            db=db, application_id=data.applicationId, instance_id=data.instanceId
-        )
+        set_instance_completed(db=db, application_id=data.applicationId, instance_id=data.instanceId)
         logger.info(message="Worker completed pre-process pipeline")
         db.close()
     except Exception as e:
@@ -190,12 +172,12 @@ async def preprocess(data: PreProcessForm) -> None:
         logger.error(message="Error encountered, aborting pipeline")
         logger.error(message=str(e))
         instance_crud.update_instance(
-            db=db,
-            instance_id=data.instanceId,
-            updateInstanceDTO=InstanceUpdate(
+            db,
+            data.applicationId,
+            data.instanceId,
+            InstanceUpdate(
                 status=InstanceStatus.FAILED,
                 endTime=util_func.get_iso_datetime(),
                 comment=str(e),
-                executionId=None,
             ),
         )

@@ -15,15 +15,14 @@ from elevaitelib.util import func as util_func
 def getCollectionsOfProject(
     db: Session,
     projectId: str,
-    filter_function: Callable[[Query], Query],  # uncomment this when using validator
+    # filter_function: Callable[[Query], Query], # uncomment this when using validator
     skip: int = 0,
     limit: int = 100,
 ) -> List[models.Collection]:
-
     return collection_crud.get_collections(
         db=db,
         projectId=projectId,
-        filter_function=filter_function,  # uncomment this when using validator
+        # filter_function=filter_function, # uncomment this when using validator
         skip=skip,
         limit=limit,
     )
@@ -41,9 +40,7 @@ async def createCollection(
 ) -> models.Collection:
     collection_name = util_func.to_kebab_case(dto.name)
     vector_params = VectorParams(size=dto.size, distance=dto.distance)
-    await qdrant_client.create_collection(
-        collection_name=collection_name, vectors_config=vector_params
-    )
+    await qdrant_client.create_collection(collection_name=collection_name, vectors_config=vector_params)
     return collection_crud.create_collection(db=db, projectId=projectId, cc=dto)
 
 
@@ -76,4 +73,4 @@ def getCollectionChunks(
         return res
     except Exception as e:
         print(f"{type(e)} occured: {e}")
-        return tuple()  # type: ignore
+        return tuple()

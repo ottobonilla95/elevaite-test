@@ -1,13 +1,13 @@
 from typing import Any, Dict, List
-import docx
 from pydantic import BaseModel
 from unstructured.partition.html import partition_html
 from unstructured.partition.docx import partition_docx
 from unstructured.partition.auto import partition
 from unstructured.chunking.title import chunk_by_title
 from unstructured.documents.elements import Element
-from pprint import pprint
-import sys, glob, os
+import sys
+import glob
+import os
 import json
 
 
@@ -40,9 +40,7 @@ def get_file_elements(filepath=None, filedir=None):
     # print(k, v)
 
 
-def get_file_elements_internal(
-    file, filepath, content_type: str | None = None
-) -> List[ChunkAsJson]:
+def get_file_elements_internal(file, filepath, content_type: str | None = None) -> List[ChunkAsJson]:
     elements = partition_html(file=file, content_type=content_type)
     # elements = partition(file=file, content_type=content_type)
     source = get_filename(filepath)
@@ -54,9 +52,7 @@ def get_file_elements_internal(
     return chunks_as_json
 
 
-def get_file_elements_from_url(
-    filepath, content_type: str | None = None, physical_address: str | None = None
-):
+def get_file_elements_from_url(filepath, content_type: str | None = None, physical_address: str | None = None):
     elements = partition(url=physical_address, content_type=content_type)
     source = get_filename(filepath)
     chunks = chunk_by_title(elements=elements, max_characters=2000)
@@ -94,9 +90,7 @@ def get_docx_elements(filepath=None, filedir=None):
         chunks_as_json.append(chunk_as_json)
     print("Total Chunks: ", len(documnet_chunks))
     output_directory = "/home/binu/elevaite/ingest/data/msa/output"
-    write_page_chunks_to_file(
-        chunks_as_json, chunk_dir_full_path=output_directory, findex=1
-    )
+    write_page_chunks_to_file(chunks_as_json, chunk_dir_full_path=output_directory, findex=1)
 
 
 def write_chunks_to_file(chunks_as_json, chunk_dir_full_path: str, findex: int):
@@ -105,17 +99,7 @@ def write_chunks_to_file(chunks_as_json, chunk_dir_full_path: str, findex: int):
         for pidx, page_chunks in enumerate(chunks_as_json):
             for sidx, page_chunk in enumerate(page_chunks):
                 chunk_index = chunk_index + 1
-                filepath = (
-                    chunk_dir_full_path
-                    + "/"
-                    + "chunk_"
-                    + str(findex)
-                    + "_"
-                    + str(pidx)
-                    + "_"
-                    + str(sidx)
-                    + ".json"
-                )
+                filepath = chunk_dir_full_path + "/" + "chunk_" + str(findex) + "_" + str(pidx) + "_" + str(sidx) + ".json"
                 print("Writing File" + filepath)
                 with open(filepath, "w") as f:
                     f.write(json.dumps(page_chunk))
@@ -126,15 +110,7 @@ def write_page_chunks_to_file(chunks_as_json, chunk_dir_full_path: str, findex: 
     if chunk_dir_full_path:
         for pidx, page_chunk in enumerate(chunks_as_json):
             chunk_index = chunk_index + 1
-            filepath = (
-                chunk_dir_full_path
-                + "/"
-                + "chunk_"
-                + str(findex)
-                + "_"
-                + str(pidx)
-                + ".json"
-            )
+            filepath = chunk_dir_full_path + "/" + "chunk_" + str(findex) + "_" + str(pidx) + ".json"
             print("Writing File" + filepath)
             print(page_chunk)
             with open(filepath, "w") as f:
@@ -160,9 +136,7 @@ def process_file_dir(directory=None, output_directory=None):
         print("Number of chunks " + str(len(chunks_as_json)))
         if output_directory:
             findex = findex + 1
-            write_chunks_to_file(
-                chunks_as_json, chunk_dir_full_path=output_directory, findex=findex
-            )
+            write_chunks_to_file(chunks_as_json, chunk_dir_full_path=output_directory, findex=findex)
             chunks_as_json.clear()
 
 

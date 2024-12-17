@@ -1,4 +1,4 @@
-from typing import List, NamedTuple, Tuple, Union
+from typing import List, Union
 from pydantic import BaseModel, UUID4
 from qdrant_client.http.models import Distance
 

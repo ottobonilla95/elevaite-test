@@ -23,7 +23,6 @@ from ...interfaces import PreProcessForm
 
 
 class DocumentSegmentation(BasePreprocessStep):
-
     def __init__(
         self,
         data: PreProcessForm,
@@ -35,26 +34,18 @@ class DocumentSegmentation(BasePreprocessStep):
         super().__init__(data=data, db=db, logger=logger, r=r, step_id=step_id)
 
     async def run(self):
-        set_pipeline_step_running(
-            db=self.db, instance_id=self.data.instanceId, step_id=self.step_id
-        )
+        set_pipeline_step_running(db=self.db, instance_id=self.data.instanceId, step_id=self.step_id)
         global RESOURCE_REGISTRY
         _instance_registry = RESOURCE_REGISTRY[self.data.instanceId]
         ref = _instance_registry.lakefs_ref
         if ref is None:
-            raise Exception(
-                f"LakeFS Reference has not been set. Make sure the Initialization step has run."
-            )
+            raise Exception("LakeFS Reference has not been set. Make sure the Initialization step has run.")
         repo_name = _instance_registry.lakefs_repo_name
         if repo_name is None:
-            raise Exception(
-                f"LakeFS Repository Name has not been set. Make sure the Initialization step has run."
-            )
+            raise Exception("LakeFS Repository Name has not been set. Make sure the Initialization step has run.")
         dataset_version = _instance_registry.dataset_version
         if dataset_version is None:
-            raise Exception(
-                f"Dataset Version has not been set. Make sure the Initialization step has run."
-            )
+            raise Exception("Dataset Version has not been set. Make sure the Initialization step has run.")
         chunks_as_json: List[ChunkAsJson] = []
         findex = 0
         self.logger.info(message="Starting file segmentation")
@@ -66,9 +57,7 @@ class DocumentSegmentation(BasePreprocessStep):
             # print(object)
             object.physical_address  # type: ignore | Typing seems to be wrong
             with ref.object(object.path).reader(pre_sign=False, mode="rb") as fd:
-                self.r.json().set(
-                    self.data.instanceId, ".current_doc", path_leaf(object.path)
-                )
+                self.r.json().set(self.data.instanceId, ".current_doc", path_leaf(object.path))
                 input = fd.read()
                 file_chunks = get_file_elements_internal(
                     file=input,
@@ -85,9 +74,7 @@ class DocumentSegmentation(BasePreprocessStep):
                         max_chunk_size = _chunk_size
                 self.r.json().numincrby(self.data.instanceId, ".ingested_size", object.size_bytes)  # type: ignore | Typing seems to be wrong
                 self.r.json().numincrby(self.data.instanceId, ".ingested_items", 1)
-                self.r.json().numincrby(
-                    self.data.instanceId, ".ingested_chunks", len(file_chunks)
-                )
+                self.r.json().numincrby(self.data.instanceId, ".ingested_chunks", len(file_chunks))
             findex += 1
             if findex % 10 == 0:
                 # print(findex)
@@ -97,9 +84,7 @@ class DocumentSegmentation(BasePreprocessStep):
                     instance_id=self.data.instanceId,
                     step_id=self.step_id,
                     meta=[
-                        InstancePipelineStepData(
-                            label=InstanceStepDataLabel.REPO_NAME, value=repo_name
-                        ),
+                        InstancePipelineStepData(label=InstanceStepDataLabel.REPO_NAME, value=repo_name),
                         InstancePipelineStepData(
                             label=InstanceStepDataLabel.DATASET_VERSION,
                             value=dataset_version.version,
@@ -126,18 +111,14 @@ class DocumentSegmentation(BasePreprocessStep):
 
         set_instance_chart_data(r=self.r, db=self.db, instance_id=self.data.instanceId)
 
-        set_pipeline_step_completed(
-            db=self.db, instance_id=self.data.instanceId, step_id=self.step_id
-        )
+        set_pipeline_step_completed(db=self.db, instance_id=self.data.instanceId, step_id=self.step_id)
 
         set_pipeline_step_meta(
             db=self.db,
             instance_id=self.data.instanceId,
             step_id=self.step_id,
             meta=[
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.REPO_NAME, value=repo_name
-                ),
+                InstancePipelineStepData(label=InstanceStepDataLabel.REPO_NAME, value=repo_name),
                 InstancePipelineStepData(
                     label=InstanceStepDataLabel.DATASET_VERSION,
                     value=dataset_version.version,

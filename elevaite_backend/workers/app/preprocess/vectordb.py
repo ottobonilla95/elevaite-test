@@ -64,9 +64,7 @@ def get_token_size(content) -> int | None:
         return None
 
 
-async def recreate_collection(
-    collection_name: str, size=1536, distance=Distance.COSINE
-):
+async def recreate_collection(collection_name: str, size=1536, distance=Distance.COSINE):
     qdrant_conn = get_qdrant_connection(get_qdrant_url(), None)
     await qdrant_conn.recreate_collection(
         collection_name=collection_name,
@@ -75,9 +73,9 @@ async def recreate_collection(
 
 
 async def insert_records(
-    db: Session,
-    instance_id: str,
-    step_id: str,
+    # db: Session,
+    # instance_id: str,
+    # step_id: str,
     collection=None,
     payload_with_contents: List[ChunkAsJson] | None = None,
     emb_info: Optional[PreprocessEmbeddingInfo] = None,

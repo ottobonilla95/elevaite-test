@@ -2,9 +2,7 @@ import json
 import os
 import threading
 from dotenv import load_dotenv
-from elasticsearch import Elasticsearch
 import boto3
-import lakefs
 from lakefs_sdk.exceptions import BadRequestException
 
 from botocore.client import BaseClient
@@ -20,7 +18,6 @@ from elevaitelib.orm.crud import (
     dataset as dataset_crud,
 )
 from elevaitelib.util import func as util_func
-from elevaitelib.util.s3url import S3Url
 from elevaitelib.util.logger import ESLogger
 from elevaitelib.schemas.instance import (
     InstancePipelineStepData,
@@ -34,15 +31,11 @@ from .steps.base_step import get_initialized_step, register_resource_registry
 
 from ..interfaces import S3IngestData, ServiceNowIngestData
 from ..util.func import (
-    path_leaf,
-    set_instance_chart_data,
     set_instance_running,
     set_pipeline_step_completed,
     set_pipeline_step_meta,
-    set_redis_stats,
     set_pipeline_step_running,
     set_instance_completed,
-    get_repo_name,
 )
 
 
@@ -63,6 +56,8 @@ def s3_ingest_callback(ch, method, properties, body):
             instanceId=_data["id"],
             applicationId=_data["application_id"],
         )
+    else:
+        raise Exception("Incompatible data type")
     t = threading.Thread(target=s3_lakefs_cp_stream, args=(_formData,))
     t.start()
 
@@ -141,13 +136,13 @@ def s3_lakefs_cp_stream(data: S3IngestData | ServiceNowIngestData) -> None:
     REDIS_HOST = os.getenv("REDIS_HOST")
     if REDIS_HOST is None:
         raise Exception("REDIS_HOST is null")
-    _REDIS_PORT = os.getenv("REDIS_PORT")
-    if _REDIS_PORT is None:
+    REDIS_PORT = os.getenv("REDIS_PORT")
+    if REDIS_PORT is None:
         raise Exception("REDIS_PORT is null")
     try:
-        REDIS_PORT = int(_REDIS_PORT)
+        REDIS_PORT = int(REDIS_PORT)
     except ValueError:
-        print("REDIS_PORT must be an integer")
+        raise Exception("REDIS_PORT must be an integer")
     REDIS_USERNAME = os.getenv("REDIS_USERNAME")
     if REDIS_USERNAME is None:
         raise Exception("REDIS_USERNAME is null")
@@ -169,9 +164,7 @@ def s3_lakefs_cp_stream(data: S3IngestData | ServiceNowIngestData) -> None:
 
     try:
         _intance_registry = register_resource_registry(data.instanceId)
-        set_instance_running(
-            db=db, application_id=data.applicationId, instance_id=data.instanceId
-        )
+        set_instance_running(db=db, application_id=data.applicationId, instance_id=data.instanceId)
 
         r = redis.Redis(
             host=REDIS_HOST,
@@ -230,9 +223,7 @@ def s3_lakefs_cp_stream(data: S3IngestData | ServiceNowIngestData) -> None:
         )
         _first_step_runner.run()
 
-        set_pipeline_step_running(
-            db=db, instance_id=data.instanceId, step_id=str(_final_step.id)
-        )
+        set_pipeline_step_running(db=db, instance_id=data.instanceId, step_id=str(_final_step.id))
 
         __commit_flag__ = False
         lakefs_branch = _intance_registry.lakefs_branch
@@ -249,14 +240,10 @@ def s3_lakefs_cp_stream(data: S3IngestData | ServiceNowIngestData) -> None:
                 break
             else:
                 break
-        curr_version = dataset_crud.get_max_version_of_dataset(
-            db=db, datasetId=data.datasetId
-        )
+        curr_version = dataset_crud.get_max_version_of_dataset(db=db, datasetId=data.datasetId)
 
         if __commit_flag__:
-            logger.info(
-                message="Changes found, commiting to repository and creating new version"
-            )
+            logger.info(message="Changes found, commiting to repository and creating new version")
             ref = lakefs_branch.commit(
                 data.instanceId,
                 {
@@ -274,31 +261,23 @@ def s3_lakefs_cp_stream(data: S3IngestData | ServiceNowIngestData) -> None:
             logger.info(message="Dataset is identical, will not commit")
             print("Dataset is identical")
 
-        set_instance_completed(
-            db=db, application_id=data.applicationId, instance_id=data.instanceId
-        )
+        set_instance_completed(db=db, application_id=data.applicationId, instance_id=data.instanceId)
 
         set_pipeline_step_meta(
             db=db,
             instance_id=data.instanceId,
             step_id=str(_final_step.id),
             meta=[
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.REPO_NAME, value=repo_name
-                ),
-                InstancePipelineStepData(
-                    label=InstanceStepDataLabel.DATASET_VERSION, value=curr_version
-                ),
+                InstancePipelineStepData(label=InstanceStepDataLabel.REPO_NAME, value=repo_name),
+                InstancePipelineStepData(label=InstanceStepDataLabel.DATASET_VERSION, value=curr_version),
             ],
         )
 
-        set_pipeline_step_completed(
-            db=db, instance_id=data.instanceId, step_id=str(_final_step.id)
-        )
+        set_pipeline_step_completed(db=db, instance_id=data.instanceId, step_id=str(_final_step.id))
         logger.info(message="Worker completed ingest pipeline")
         db.close()
 
-    except BadRequestException as e:
+    except BadRequestException:
         print("Dataset is identical")
     except Exception as e:
         print("Error")

@@ -1,8 +1,7 @@
 from enum import Enum
-from typing import Any, Dict, List, TypeGuard, Union
+from typing import Any, List, TypeGuard, Union
 
-from elevaite_client.rpc.interfaces import InstanceTaskDataLabel
-from pydantic import UUID4, BaseModel, Json
+from pydantic import UUID4, BaseModel
 
 from .pipeline import PipelineStepStatus
 from .configuration import Configuration
@@ -22,7 +21,6 @@ class InstanceStepDataLabel(str, Enum):
     TOTAL_CHUNK_SIZE = "TOTAL_CHUNK_SIZE"
     AVG_TOKEN_SIZE = "AVG_TOKEN_SIZE"
     LRGST_TOKEN_SIZE = "LRGST_TOKEN_SIZE"
-    MIN_TOKEN_SIZE = "MIN_TOKEN_SIZE"
     REPO_NAME = "REPO_NAME"
     DATASET_VERSION = "DATASET_VERSION"
     INGEST_DATE = "INGEST_DATE"
@@ -40,22 +38,23 @@ class InstanceBase(BaseModel):
     startTime: Union[str, None]
     endTime: Union[str, None]
     status: InstanceStatus
-    executionId: Union[str, None]
+    datasetId: UUID4
     projectId: UUID4
-    pipelineId: UUID4
+    selectedPipelineId: UUID4
     configurationId: UUID4
-    configurationRaw: Json
+    applicationId: int
+    configurationRaw: str
 
 
 class InstanceChartData(BaseModel):
-    totalItems: Union[int, None] = None
-    ingestedItems: Union[int, None] = None
-    avgSize: Union[int, None] = None
-    totalSize: Union[int, None] = None
-    ingestedSize: Union[int, None] = None
-    ingestedChunks: Union[int, None] = None
-    avgChunk: Union[float, None] = None
-    largestChunk: Union[int, None] = None
+    totalItems: int
+    ingestedItems: int
+    avgSize: int
+    totalSize: int
+    ingestedSize: int
+    ingestedChunks: int
+    avgChunk: Union[str, None] = None
+    largestChunk: Union[str, None] = None
     currentDoc: Union[str, None] = None
 
     class Config:
@@ -63,7 +62,6 @@ class InstanceChartData(BaseModel):
 
 
 def chart_data_from_redis(input: Any) -> InstanceChartData:
-
     _avgSize = None
     _ingestedItems = None
     _totalItems = None
@@ -76,48 +74,48 @@ def chart_data_from_redis(input: Any) -> InstanceChartData:
 
     try:
         _avgSize = input["avg_size"]
-    except KeyError as e:
+    except KeyError:
         pass
     try:
         _ingestedItems = input["ingested_items"]
-    except KeyError as e:
+    except KeyError:
         pass
     try:
         _totalItems = input["total_items"]
-    except KeyError as e:
+    except KeyError:
         pass
     try:
         _totalSize = input["total_size"]
-    except KeyError as e:
+    except KeyError:
         pass
     try:
         _ingestedSize = input["ingested_size"]
-    except KeyError as e:
+    except KeyError:
         pass
     try:
         _ingestedChunks = input["ingested_chunks"]
-    except KeyError as e:
+    except KeyError:
         pass
     try:
         _currentDoc = input["current_doc"]
-    except KeyError as e:
+    except KeyError:
         pass
     try:
         _largestChunk = input["largest_chunk"]
-    except KeyError as e:
+    except KeyError:
         pass
     try:
         _avgChunk = input["avg_chunk"]
-    except KeyError as e:
+    except KeyError:
         pass
 
     return InstanceChartData(
-        avgSize=_avgSize,
-        ingestedItems=_ingestedItems,
-        totalItems=_totalItems,
-        totalSize=_totalSize,
-        ingestedSize=_ingestedSize,
-        ingestedChunks=_ingestedChunks,
+        avgSize=int(_avgSize) if _avgSize is not None else 0,
+        ingestedItems=int(_ingestedItems) if _ingestedItems is not None else 0,
+        totalItems=int(_totalItems) if _totalItems is not None else 0,
+        totalSize=int(_totalSize) if _totalSize is not None else 0,
+        ingestedSize=int(_ingestedSize) if _ingestedSize is not None else 0,
+        ingestedChunks=int(_ingestedChunks) if _ingestedChunks is not None else 0,
         currentDoc=_currentDoc,
         largestChunk=_largestChunk,
         avgChunk=_avgChunk,
@@ -125,7 +123,7 @@ def chart_data_from_redis(input: Any) -> InstanceChartData:
 
 
 class InstancePipelineStepData(BaseModel):
-    label: InstanceTaskDataLabel
+    label: InstanceStepDataLabel
     value: str | int
 
 
@@ -135,7 +133,7 @@ class InstancePipelineStepStatus(BaseModel):
     status: PipelineStepStatus
     startTime: Union[str, None]
     endTime: Union[str, None]
-    meta: list[InstancePipelineStepData] = []
+    meta: List[InstancePipelineStepData] = []
 
     class Config:
         orm_mode = True
@@ -145,7 +143,7 @@ class InstancePipelineStepStatusUpdate(BaseModel):
     status: PipelineStepStatus | None = None
     startTime: str | None = None
     endTime: str | None = None
-    meta: list[InstancePipelineStepData] = []
+    meta: List[InstancePipelineStepData] = []
 
 
 class InstanceCreate(InstanceBase):
@@ -156,7 +154,7 @@ class InstanceCreateDTO(BaseModel):
     creator: str
     configurationId: UUID4
     projectId: UUID4
-    pipelineId: UUID4
+    selectedPipelineId: UUID4
     instanceName: str
 
 
@@ -164,7 +162,6 @@ class InstanceUpdate(BaseModel):
     comment: Union[str, None] = None
     endTime: Union[str, None] = None
     status: Union[InstanceStatus, None] = None
-    executionId: Union[str, None] = None
 
 
 class Instance(InstanceBase):

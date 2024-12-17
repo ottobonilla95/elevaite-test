@@ -8,7 +8,6 @@ from ...interfaces import S3IngestData, ServiceNowIngestData
 from ...util.func import (
     path_leaf,
     set_instance_chart_data,
-    set_instance_completed,
     set_pipeline_step_completed,
     set_pipeline_step_running,
 )
@@ -26,9 +25,7 @@ class S3WorkerStep(BaseIngestStep):
         super().__init__(data, db, r, logger, step_id)
 
     def run(self):
-        set_pipeline_step_running(
-            db=self.db, instance_id=self.data.instanceId, step_id=self.step_id
-        )
+        set_pipeline_step_running(db=self.db, instance_id=self.data.instanceId, step_id=self.step_id)
 
         _instance_resources = RESOURCE_REGISTRY[self.data.instanceId]
 
@@ -56,23 +53,15 @@ class S3WorkerStep(BaseIngestStep):
             # print(f"Copying {summary.key} with size {summary.size}...")
             # pprint(summary)
             if not summary.key.endswith("/"):
-                self.r.json().set(
-                    self.data.instanceId, ".current_file", path_leaf(summary.key)
-                )
+                self.r.json().set(self.data.instanceId, ".current_file", path_leaf(summary.key))
                 s3_object = src_bucket.Object(summary.key).get()
                 stream = s3_object["Body"]
-                lakefs_s3.upload_fileobj(
-                    Fileobj=stream, Bucket=repo_name, Key=f"main/{summary.key}"
-                )
-            self.r.json().numincrby(
-                self.data.instanceId, ".ingested_size", summary.size
-            )
+                lakefs_s3.upload_fileobj(Fileobj=stream, Bucket=repo_name, Key=f"main/{summary.key}")
+            self.r.json().numincrby(self.data.instanceId, ".ingested_size", summary.size)
             self.r.json().numincrby(self.data.instanceId, ".ingested_items", 1)
 
         set_instance_chart_data(r=self.r, db=self.db, instance_id=self.data.instanceId)
 
         self.logger.info(message="Completed file ingestion")
 
-        set_pipeline_step_completed(
-            db=self.db, instance_id=self.data.instanceId, step_id=self.step_id
-        )
+        set_pipeline_step_completed(db=self.db, instance_id=self.data.instanceId, step_id=self.step_id)

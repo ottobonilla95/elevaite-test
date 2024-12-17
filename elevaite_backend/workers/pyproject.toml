@@ -20,6 +20,7 @@ tiktoken = "^0.6.0"
 boto3 = "^1.34.100"
 botocore = "^1.34.100"
 elevaitelib = { path = "../elevaitedblib", develop = true }
+elevaite_client = { path = "../elevaite_client", develop = true }
 packaging = "23.2"
 langchain = "^0.1.16"
 

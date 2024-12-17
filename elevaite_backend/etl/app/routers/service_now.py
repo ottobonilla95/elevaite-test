@@ -70,12 +70,10 @@ def ingestServiceNowTickets(
 
     _dataset = dataset_crud.create_dataset(
         db=db,
-        dataset_create=DatasetCreate(
-            name=dto.dataset_name, projectId=uuid.UUID(projectId), description=""
-        ),
+        dataset_create=DatasetCreate(name=dto.dataset_name, projectId=uuid.UUID(projectId), description=""),
     )
 
-    _pipeline = pipeline_crud.get_pipeline_by_id(db=db, pipeline_id=pipelineId)
+    _pipeline = pipeline_crud.get_pipeline_by_id(db=db, pipeline_id=pipelineId, project_id=projectId, filter_function=None)
     if _pipeline is None:
         raise Exception("Pipeline not found")
 
@@ -92,13 +90,11 @@ def ingestServiceNowTickets(
     _conf_create = ConfigurationCreate(
         isTemplate=False,
         name=f"{dto.dataset_name}-conf",
-        raw=_conf_raw,
-        pipelineId=str(_pipeline.id),
-        datasetId=str(_dataset.id),
+        raw=_conf_raw.dict(),
+        pipelineId=_pipeline.id,
+        datasetId=_dataset.id,
     )
-    _conf = configuration_crud.create_configuration(
-        db=db, configurationCreate=_conf_create
-    )
+    _conf = configuration_crud.create_configuration(db=db, configurationCreate=_conf_create)
 
     _instance = instance_crud.create_instance(
         db=db,
@@ -113,6 +109,7 @@ def ingestServiceNowTickets(
             startTime=util_func.get_iso_datetime(),
             status=InstanceStatus.STARTING,
             endTime=None,
+            executionId=None,
         ),
     )
 
@@ -130,9 +127,7 @@ def ingestServiceNowTickets(
             endTime=None,
             meta=[],
         )
-        _instance_pipeline_step = instance_crud.add_pipeline_step(
-            db, str(_instance.id), _ipss
-        )
+        _instance_pipeline_step = instance_crud.add_pipeline_step(db, str(_instance.id), _ipss)
 
     _data = {
         "id": str(_instance.id),

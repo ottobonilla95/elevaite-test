@@ -1,8 +1,6 @@
 import sys
-from elevaitelib.schemas.instance import InstancePipelineStepData, InstanceStepDataLabel
 import os
 from elevaitelib.util.logger import ESLogger
-from elevaitelib.util.s3url import S3Url
 from pydantic import UUID4
 from redis import Redis
 import lakefs
@@ -11,7 +9,6 @@ from sqlalchemy.orm import Session
 from ...interfaces import (
     S3IngestData,
     ServiceNowIngestData,
-    isS3IngestData,
     isServiceNowIngestData,
 )
 from .base_step import (
@@ -26,7 +23,6 @@ from ...util.func import (
 
 
 class ServiceNowInitialization(BaseIngestStep):
-
     def __init__(
         self,
         data: S3IngestData | ServiceNowIngestData,
@@ -65,9 +61,7 @@ class ServiceNowInitialization(BaseIngestStep):
             raise Exception("No datasetId recieved")
         repo = None
 
-        repo_name = get_repo_name(
-            db=self.db, dataset_id=self.data.datasetId, project_id=self.data.projectId
-        )
+        repo_name = get_repo_name(db=self.db, dataset_id=self.data.datasetId, project_id=self.data.projectId)
 
         _instance_registry.lakefs_repo_name = repo_name
 
@@ -102,7 +96,7 @@ class ServiceNowInitialization(BaseIngestStep):
 
         try:
             avg_size = size / count
-        except:
+        except:  # noqa: E722
             avg_size = 0
 
         set_redis_stats(
@@ -113,8 +107,6 @@ class ServiceNowInitialization(BaseIngestStep):
             size=size,
         )
 
-        set_pipeline_step_completed(
-            db=self.db, instance_id=self.data.instanceId, step_id=self.step_id
-        )
+        set_pipeline_step_completed(db=self.db, instance_id=self.data.instanceId, step_id=self.step_id)
 
         self.logger.info(message="Completed Initialization")

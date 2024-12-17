@@ -1,4 +1,3 @@
-from typing import List
 from elevaitelib.util.logger import ESLogger
 from pydantic import UUID4
 from redis import Redis
@@ -27,27 +26,21 @@ class SegmentVectorization(BasePreprocessStep):
         super().__init__(data, db, r, logger, step_id)
 
     async def run(self):
-        set_pipeline_step_running(
-            db=self.db, instance_id=self.data.instanceId, step_id=self.step_id
-        )
+        set_pipeline_step_running(db=self.db, instance_id=self.data.instanceId, step_id=self.step_id)
         global RESOURCE_REGISTRY
         _instance_registry = RESOURCE_REGISTRY[self.data.instanceId]
         collection_name = _instance_registry.collection_name
         if collection_name is None:
-            raise Exception(
-                f"Vector DB Collection Name has not been set. Make sure the Initialization step has run."
-            )
+            raise Exception("Vector DB Collection Name has not been set. Make sure the Initialization step has run.")
         chunks_as_json = _instance_registry.chunks_as_json
         if chunks_as_json is None:
-            raise Exception(
-                f"Chunks as JSON has not been set. Make sure the Segmentation step has run."
-            )
+            raise Exception("Chunks as JSON has not been set. Make sure the Segmentation step has run.")
 
         self.logger.info(message="Starting segment vectorization")
         await vectordb.insert_records(
-            db=self.db,
-            instance_id=self.data.instanceId,
-            step_id=self.step_id,
+            # db=self.db,
+            # instance_id=self.data.instanceId,
+            # step_id=self.step_id,
             collection=collection_name,
             payload_with_contents=chunks_as_json,
             emb_info=self.data.embedding_info,
@@ -56,6 +49,4 @@ class SegmentVectorization(BasePreprocessStep):
 
         set_instance_chart_data(r=self.r, db=self.db, instance_id=self.data.instanceId)
 
-        set_pipeline_step_completed(
-            db=self.db, instance_id=self.data.instanceId, step_id=self.step_id
-        )
+        set_pipeline_step_completed(db=self.db, instance_id=self.data.instanceId, step_id=self.step_id)

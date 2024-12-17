@@ -19,7 +19,6 @@ from ...util.func import (
 
 
 class S3Initialization(BaseIngestStep):
-
     def __init__(
         self,
         data: S3IngestData | ServiceNowIngestData,
@@ -64,9 +63,7 @@ class S3Initialization(BaseIngestStep):
             raise Exception("No datasetId recieved")
         repo = None
 
-        repo_name = get_repo_name(
-            db=self.db, dataset_id=self.data.datasetId, project_id=self.data.projectId
-        )
+        repo_name = get_repo_name(db=self.db, dataset_id=self.data.datasetId, project_id=self.data.projectId)
 
         _instance_registry.lakefs_repo_name = repo_name
 
@@ -104,7 +101,7 @@ class S3Initialization(BaseIngestStep):
                 aws_secret_access_key=S3_SECRET_ACCESS_KEY,
             )
             .resource("s3")
-            .Bucket(s3url.bucket)
+            .Bucket(s3url.bucket)  # type: ignore
         )
         _instance_registry.source_bucket = src_bucket
 
@@ -118,7 +115,7 @@ class S3Initialization(BaseIngestStep):
 
         try:
             avg_size = size / count
-        except:
+        except:  # noqa: E722
             avg_size = 0
 
         set_redis_stats(
@@ -129,8 +126,6 @@ class S3Initialization(BaseIngestStep):
             size=size,
         )
 
-        set_pipeline_step_completed(
-            db=self.db, instance_id=self.data.instanceId, step_id=self.step_id
-        )
+        set_pipeline_step_completed(db=self.db, instance_id=self.data.instanceId, step_id=self.step_id)
 
         self.logger.info(message="Completed Initialization")

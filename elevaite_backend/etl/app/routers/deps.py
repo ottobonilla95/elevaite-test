@@ -9,7 +9,7 @@ from elevaitelib.schemas import (
     api as api_schemas,
 )
 
-from rbac_lib import route_validator_map, RBACValidatorProvider
+from rbac_lib import route_validator_map
 
 
 def get_db():
@@ -23,26 +23,26 @@ def get_db():
 def get_rabbitmq_connection():
     load_dotenv()
     RABBITMQ_USER = os.getenv("RABBITMQ_USER")
-    # if RABBITMQ_USER is None:
-    #     raise Exception("RABBITMQ_USER is null")
+    if RABBITMQ_USER is None:
+        raise Exception("RABBITMQ_USER is null")
     RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
-    # if RABBITMQ_PASSWORD is None:
-    #     raise Exception("RABBITMQ_PASSWORD is null")
+    if RABBITMQ_PASSWORD is None:
+        raise Exception("RABBITMQ_PASSWORD is null")
     RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
     if RABBITMQ_HOST is None:
         raise Exception("RABBITMQ_HOST is null")
     RABBITMQ_VHOST = os.getenv("RABBITMQ_VHOST")
-    # if RABBITMQ_VHOST is None:
-    #     raise Exception("RABBITMQ_VHOST is null")
-    # credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
+    if RABBITMQ_VHOST is None:
+        raise Exception("RABBITMQ_VHOST is null")
+    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(
             host=RABBITMQ_HOST,
             port=5672,
             heartbeat=600,
             blocked_connection_timeout=300,
-            # credentials=credentials,
-            # virtual_host=RABBITMQ_VHOST,
+            credentials=credentials,
+            virtual_host=RABBITMQ_VHOST,
         )
     )
     channel = connection.channel()
