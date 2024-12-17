@@ -10,6 +10,7 @@ from app.ingest.s3_ingest_worker import s3_ingest_callback
 
 
 def main():
+    load_dotenv()
     connection = get_rmq_connection()
     channel = connection.channel()
     channel.queue_declare(queue="s3_ingest")
