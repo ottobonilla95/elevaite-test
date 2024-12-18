@@ -23,6 +23,9 @@
   "chatbot": {
     "NEXT_PUBLIC_BACKEND_URL": "http://localhost:9005/"
   },
+  "sla_chatbot": {
+    "NEXT_PUBLIC_BACKEND_URL": "http://127.0.0.1:8000/"
+  },
   "contracts": {
     "NEXT_PUBLIC_CONTRACTS_API_URL": "http://18.217.72.232:8001"
   },

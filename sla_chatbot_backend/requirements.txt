@@ -1,0 +1,11 @@
+watchdog
+pypdf
+fastapi[standard]
+openai
+python-dateutil
+openpyxl
+pandas
+sympy
+requests
+fuzzywuzzy 
+python-Levenshtein

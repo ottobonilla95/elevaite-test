@@ -43,6 +43,15 @@ services:
       APP_NAME: chatbot
       NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
 
+  sla_chatbot:
+    build:
+      context: .
+      dockerfile: ./apps/sla_chatbot/Dockerfile
+    environment:
+      <<: *common-env-variables
+      APP_NAME: sla_chatbot
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
+
   contracts:
     build:
       context: .
