@@ -1,0 +1,34 @@
+
+$mainGap: 20px;
+
+
+.chatbot-layout-container {
+    height: 100vh;
+    width: 100vw;
+    background-color: var(--ev-colors-background);
+
+    display: grid;
+    grid-template-areas:    
+        "nav nav"
+        "side chat";
+    grid-template-rows: 55px 1fr;
+    grid-template-columns: 280px 1fr;
+    gap: $mainGap;
+    padding: 0 $mainGap $mainGap;
+    
+    & > .navbar-container {
+        grid-area: nav;
+        margin-left: -$mainGap;
+    }
+
+    & > .session-bar-container {
+        grid-area: side;
+    }
+
+    & > .chatbot-main-container {
+        grid-area: chat;
+    }
+    
+
+
+}

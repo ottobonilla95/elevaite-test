@@ -1,0 +1,35 @@
+
+
+.chat-message-files-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+
+    background-color: var(--ev-colors-primary);
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+
+
+.chat-message-file-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    & > span {
+        width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.chat-message-container .main-message-container .controls-container .chat-message-file-container button {
+    border: none;
+    padding: 5px;
+    height: 25px;
+    width: 25px;
+    min-width: auto;
+}
