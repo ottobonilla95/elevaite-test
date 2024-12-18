@@ -1,4 +1,3 @@
-import json
 import sys
 from elevaitelib.util.logger import ESLogger
 from pydantic import UUID4
@@ -29,9 +28,7 @@ class ServiceNowWorker(BaseIngestStep):
     def run(self):
         if not isServiceNowIngestData(self.data):
             raise Exception("Data malformed")
-        set_pipeline_step_running(
-            db=self.db, instance_id=self.data.instanceId, step_id=self.step_id
-        )
+        set_pipeline_step_running(db=self.db, instance_id=self.data.instanceId, step_id=self.step_id)
 
         _instance_resources = RESOURCE_REGISTRY[self.data.instanceId]
 
@@ -48,23 +45,17 @@ class ServiceNowWorker(BaseIngestStep):
         for ticket in self.data.tickets:
             # print(f"Copying {summary.key} with size {summary.size}...")
             # pprint(summary)
-            self.r.json().set(
-                self.data.instanceId, ".current_file", path_leaf(ticket.source_ref_id)
-            )
-            obj = lakefs_branch.object(f"{ticket.source_ref_id}.json")
-            with obj.writer(
-                mode="w", pre_sign=True, content_type="application/json"
-            ) as fd:
-                json.dump(ticket.dict(), fd, ensure_ascii=False, indent=4)
-            self.r.json().numincrby(
-                self.data.instanceId, ".ingested_size", sys.getsizeof(ticket.json())
-            )
+            self.r.json().set(self.data.instanceId, ".current_file", path_leaf(ticket.source_ref_id))
+            lakefs_branch.object(f"{ticket.source_ref_id}.json").upload(content_type="application/json", data=ticket.json())
+            # with obj.writer(
+            #     mode="w", pre_sign=True, content_type="application/json"
+            # ) as fd:
+            #     json.dump(ticket.dict(), fd, ensure_ascii=False, indent=4)
+            self.r.json().numincrby(self.data.instanceId, ".ingested_size", sys.getsizeof(ticket.json()))
             self.r.json().numincrby(self.data.instanceId, ".ingested_items", 1)
 
         set_instance_chart_data(r=self.r, db=self.db, instance_id=self.data.instanceId)
 
         self.logger.info(message="Completed file ingestion")
 
-        set_pipeline_step_completed(
-            db=self.db, instance_id=self.data.instanceId, step_id=self.step_id
-        )
+        set_pipeline_step_completed(db=self.db, instance_id=self.data.instanceId, step_id=self.step_id)
