@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from typing import Annotated, Any
+from typing import Annotated
 import uuid
 from dotenv import load_dotenv
 from elevaitelib.schemas.configuration import (
@@ -15,14 +15,11 @@ from elevaitelib.schemas.instance import (
     InstanceStatus,
 )
 from elevaitelib.schemas.pipeline import PipelineStepStatus
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException
 import pika
 from sqlalchemy.orm import Session
 
-from elevaitelib.schemas import (
-    service_now as schemas,
-    #    api as api_schemas,
-)
+from elevaitelib.schemas import service_now as schemas
 
 from app.util.service_now_seed import service_now_seed
 from app.util.func import get_routing_key
@@ -73,7 +70,7 @@ def ingestServiceNowTickets(
         dataset_create=DatasetCreate(name=dto.dataset_name, projectId=uuid.UUID(projectId), description=""),
     )
 
-    _pipeline = pipeline_crud.get_pipeline_by_id(db=db, pipeline_id=pipelineId, project_id=projectId, filter_function=None)
+    _pipeline = pipeline_crud.get_pipeline_by_id(db=db, pipeline_id=pipelineId)
     if _pipeline is None:
         raise Exception("Pipeline not found")
 
@@ -88,28 +85,28 @@ def ingestServiceNowTickets(
         version=None,
     )
     _conf_create = ConfigurationCreate(
+        applicationId=1,
         isTemplate=False,
         name=f"{dto.dataset_name}-conf",
-        raw=_conf_raw.dict(),
-        pipelineId=_pipeline.id,
-        datasetId=_dataset.id,
+        raw=_conf_raw,
     )
     _conf = configuration_crud.create_configuration(db=db, configurationCreate=_conf_create)
 
     _instance = instance_crud.create_instance(
         db=db,
         createInstanceDTO=InstanceCreate(
+            applicationId=1,
             comment=None,
             configurationId=_conf.id,
             configurationRaw=json.dumps(_conf_raw.json()),
             creator="ServiceNow",
+            datasetId=_dataset.id,
             name=f"{dto.dataset_name}-instance",
             projectId=uuid.UUID(projectId),
-            pipelineId=uuid.UUID(pipelineId),
+            selectedPipelineId=uuid.UUID(pipelineId),
             startTime=util_func.get_iso_datetime(),
             status=InstanceStatus.STARTING,
             endTime=None,
-            executionId=None,
         ),
     )
 
