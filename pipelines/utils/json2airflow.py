@@ -13,8 +13,8 @@ def load_json_from_path(file_path):
         return data
 
 # Function to execute Python scripts
-def run_python_script(script_path):
-    exec(open(script_path).read())
+def run_python_script(script_path, ti):  # ti: task instance
+    exec(open(script_path).read(), {'ti': ti})
 
 json_file_path = '/home/k/airflow/dags/dags/DEMO/pipeline.json'
 pipeline = load_json_from_path(json_file_path)['pipeline']
@@ -55,7 +55,8 @@ for task in pipeline['tasks']:
         op = PapermillOperator(
             task_id=task_id,
             input_nb=task['src'],
-            output_nb='/tmp/out.ipynb',
+            output_nb='/tmp/out_notebook_{{ execution_date }}.ipynb',
+            parameters={x: f'{{{{ task_instance.xcom_pull(key="{x}")}}}}' for x in task['input']},
             dag=dag,
         )
     
@@ -65,14 +66,3 @@ for task in pipeline['tasks']:
 for task in pipeline['tasks']:
     for dep in task['dependencies']:
         tasks[task['id']].set_upstream(tasks[dep])
-
-#     # Handle input and output variables for each task
-#     if 'input' in task:
-#         for input_var in task['input']:
-#             # Use Airflow Variables to get input values
-#             input_value = Variable.get(input_var)
-#             tasks[task['id']].op_kwargs[input_var] = input_value
-    
-#     if 'output' in task:
-#         for output_var in task['output']:
-#             tasks[task['id']].op_kwargs[output_var] = f"{{{{ ti.xcom_pull(task_ids='{task_id}', key='{output_var}') }}}}"

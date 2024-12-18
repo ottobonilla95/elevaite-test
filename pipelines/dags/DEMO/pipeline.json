@@ -17,7 +17,7 @@
         "id": "task1",
         "name": "ExtractData",
         "type": "pyscript",
-        "src": "scripts/extract.py",
+        "src": "/home/k/airflow/dags/dags/DEMO/scripts/extract.py",
         "dependencies": [],
         "input": [],
         "output": ["extracted_data_uri"]
@@ -26,7 +26,7 @@
         "id": "task2",
         "name": "TransformData",
         "type": "jupyternotebook",
-        "src": "notebooks/transform.ipynb",
+        "src": "/home/k/airflow/dags/dags/DEMO/notebooks/transform.ipynb",
         "dependencies": ["task1"],
         "input": ["extracted_data_uri"],
         "output": ["transformed_data_uri"]
@@ -35,7 +35,7 @@
         "id": "task3",
         "name": "LoadData",
         "type": "pyscript",
-        "src": "scripts/load.py",
+        "src": "/home/k/airflow/dags/dags/DEMO/scripts/load.py",
         "dependencies": ["task2"],
         "input": ["transformed_data_uri"],
         "output": []
