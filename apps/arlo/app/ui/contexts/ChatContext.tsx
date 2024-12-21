@@ -11,8 +11,9 @@ import type {
   SessionObject,
   SessionSummaryObject,
   RegeneratedResponse,
-    ChatResponseMessage,
-    SummaryResponse,
+  ChatResponseMessage,
+  SummaryResponse,
+  ContactDetailsStr, OpexData, defaultOpexData, SFResponseMessage, SFData,
 } from "../../lib/interfaces";
 import {
   CHATBOT_MESSAGE_ID_PREFIX,
@@ -22,11 +23,11 @@ import {
   defaultChatbotV,
   defaultGenAIBotOption,
   defaultSession,
+    defaultContact,
 } from "../../lib/interfaces";
 import { getLoadingMessageFromAgentStatus , tableToCsv, downloadCsv } from "./ChatContextHelpers";
-import {list} from "postcss";
-import {name} from "next/dist/telemetry/ci-info";
 import { v4 as uuid } from 'uuid'
+
 
 // STRUCTURE
 const BACKEND_URL = process.env.NEXT_PUBLIC_ARLO_BACKEND_URL ?? "http://localhost:8000/";
@@ -50,6 +51,7 @@ export interface ChatContextStructure {
   getSessionSummary: () => void;
   setRecentSummary: (summary: string | undefined) => void;
   removeExpectedDisplayFromSelectedSessionSummary: () => void;
+  processSFChat: (message: string) => void;
   addNewUserMessageWithLastMessages: (message: string) => void;
   setIsFeedbackBoxOpen: (isOpen: boolean) => void;
   summarizeSession: (inputValue: string) => void;
@@ -61,7 +63,8 @@ export interface ChatContextStructure {
   setRecentSummaryVote: (vote: number) => void;
   voteOnSummary(number: number): void;
   setCaseID: (caseID: string) => void;
-
+  setChatFlow: (chatFlow: string) => void;
+  setWelcomeFlow: (welcomeFlow: string) => void;
 }
 
 
@@ -70,6 +73,9 @@ export const ChatContext = createContext<ChatContextStructure>({
     /**/
   },
   addNewUserMessageToCurrentSession: () => {
+    /**/
+  },
+  processSFChat: () => {
     /**/
   },
   addNewUserMessageWithLastMessages: () => {
@@ -100,9 +106,15 @@ export const ChatContext = createContext<ChatContextStructure>({
     /**/
   },
   // selectedSession: undefined,
-    selectedSession: defaultSession,
+  selectedSession: defaultSession,
   sessions: [],
   setCaseID: () => {
+    /**/
+  },
+  setChatFlow: () => {
+    /**/
+  },
+  setWelcomeFlow: () => {
     /**/
   },
   setRecentSummary: () => {
@@ -173,6 +185,8 @@ export function ChatContextProvider(
   //   }
   // }, [selectedSession?.messages]);
 
+
+
   useEffect(() => {
     if (!selectedSession) return;
     const newSessions = sessions.map((item) =>
@@ -209,6 +223,9 @@ export function ChatContextProvider(
       label: `Session ${(newIdNumber).toString()}`,
       messages: [],
       creationDate: new Date().toISOString(),
+        chatFlow: "welcome",
+        welcomeFlow: "chat",
+        opexData: [],
     };
     // Add it to the list
     setSessions((currentSessions) => [...currentSessions, newSession]);
@@ -235,9 +252,21 @@ export function ChatContextProvider(
     setSelectedSession(newSelectedSession);
   }
 
-  // function toggleWebSearch(): void {
-  //   setEnableWebSearch(prevState => !prevState);
-  // }
+  function setChatFlow(chatFlow: string): void {
+    if (!selectedSession) return;
+    console.log("Setting Flow");
+    const newSelectedSession = { ...selectedSession, chatFlow };
+    setSelectedSession(newSelectedSession);
+  }
+
+
+
+  function setWelcomeFlow(welcomeFlow: string): void {
+    if (!selectedSession) return;
+    const newSelectedSession = { ...selectedSession, welcomeFlow };
+    setSelectedSession(newSelectedSession);
+  }
+
 
   function setInternallySelectedSession(sessionId: string): void {
     if (!sessionId || sessionId === selectedSession?.id) return;
@@ -280,6 +309,42 @@ export function ChatContextProvider(
     passedSession: SessionObject
   ): SessionObject {
     const newMessageList = [...passedSession.messages, message];
+    const newSelectedSession = { ...passedSession, messages: newMessageList };
+    setSelectedSession(newSelectedSession);
+    return newSelectedSession;
+  }
+
+  function updateSessionFlow(flow: string, passedSession: SessionObject): SessionObject {
+    const newSelectedSession = { ...passedSession, chatFlow: flow };
+    setSelectedSession(newSelectedSession);
+    return newSelectedSession;
+  }
+
+  function updateSessionWithNewContactDetails(
+    contactDetails: ContactDetailsStr,
+    passedSession: SessionObject
+  ): SessionObject {
+    const newSelectedSession = { ...passedSession, contactDetails: contactDetails };
+    // console.log("New Selected Session after Contact:",newSelectedSession);
+    setSelectedSession(newSelectedSession);
+    return newSelectedSession;
+  }
+
+  function updateSessionListWithNewOpexData(
+    opexData: OpexData[],
+    passedSession: SessionObject
+  ): SessionObject {
+    const newOpexData = [...(passedSession.opexData ?? []), ...opexData];
+    const newSelectedSession = { ...passedSession, opexData: newOpexData };
+    setSelectedSession(newSelectedSession);
+    return newSelectedSession;
+  }
+
+  function updateSessionListWithNewMessages(
+    messages: ChatMessageObject[],
+    passedSession: SessionObject
+  ): SessionObject {
+    const newMessageList = [...passedSession.messages, ...messages];
     const newSelectedSession = { ...passedSession, messages: newMessageList };
     setSelectedSession(newSelectedSession);
     return newSelectedSession;
@@ -499,7 +564,7 @@ export function ChatContextProvider(
         Number(botItem.id.slice(CHATBOT_MESSAGE_ID_PREFIX.length))
       );
     const newId =
-      CHATBOT_MESSAGE_ID_PREFIX +
+      CHATBOT_MESSAGE_ID_PREFIX + data.queryID.slice(0, 3) +
       (botIdNumbersList.length > 0
         ? Math.max(...botIdNumbersList) + 1
         : 0
@@ -519,7 +584,7 @@ export function ChatContextProvider(
         };
       }),
     };
-    console.log("Newmessage:",newMessage);
+    // console.log("Newmessage:",newMessage);
     return newMessage;
   }
 
@@ -539,6 +604,10 @@ const wrappedAddNewUserMessageWithLastMessages = (message: string): void => {
   void addNewUserMessageWithLastMessages(message);
 };
 
+const wrappedProcessSFChat = (message: string): void => {
+  void processSFChat(message);
+}
+
   async function regenerateMessage(queryId: string): Promise<void> {
     if (!selectedSession) return;
 
@@ -547,7 +616,7 @@ const wrappedAddNewUserMessageWithLastMessages = (message: string): void => {
       (item) => item.queryID === queryId
     );
     if (!currentMessage) return;
-    console.log("Current message:",currentMessage);
+    // console.log("Current message:",currentMessage);
 
     // Get the index of the current message
     const currentMessageIndex = selectedSession.messages.findIndex(
@@ -556,20 +625,20 @@ const wrappedAddNewUserMessageWithLastMessages = (message: string): void => {
     if(currentMessageIndex === -1) return;
 
     setIsChatLoading(true);
-    console.log("Current message index:",currentMessageIndex);
+    // console.log("Current message index:",currentMessageIndex);
 
     const MAX_PAYLOAD_HISTORY = 20;
     let conversationPayload: ChatBotPayload[] = [];
     for (let i = 0; i < currentMessageIndex+1; i++) {
         if (i > MAX_PAYLOAD_HISTORY) break;
         const message = selectedSession.messages[i];
-        console.log("Message:",message);
+        // console.log("Message:",message);
         conversationPayload.push(
             { "actor": message.isBot ? "assistant" : "user", "content": message.text }
         );
     }
     const fetchedKnowledge = selectedSession.prevFetchedKnowledge ?? "";
-    console.log("Fetch Knowledge:",fetchedKnowledge);
+    // console.log("Fetch Knowledge:",fetchedKnowledge);
     const response = await fetch(BACKEND_URL + 'regenerate', {
         method: 'POST',
         headers: {
@@ -634,7 +703,10 @@ const wrappedAddNewUserMessageWithLastMessages = (message: string): void => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({session_id: selectedSession.id, user_id: userId ,text: textToSummarize}),
+      body: JSON.stringify({session_id: selectedSession.id,
+        user_id: userId,
+        text: textToSummarize,
+        case_id: selectedSession.caseIdSF ?? ""}),
     });
 
     const jsonResponse = await response.json() as SummaryResponse;
@@ -670,9 +742,139 @@ const wrappedAddNewUserMessageWithLastMessages = (message: string): void => {
     // setRecentSummary(summary);
   }
 
+  function messageToContact(message: string):ContactDetailsStr {
+    const contact: ContactDetailsStr ={
+        customerName: "",
+        productName: "",
+        issue: "",
+        uxVersion: "",
+    };
+    const lines = message.split("\n").map(line => line.trim());
+    // console.log("Lines:",lines);
+    for (const line of lines) {
+      const [key, value] = line.split(":");
+      if (key === "Customer Name") {
+        contact.customerName = value;
+      } else if (key === "Product Name") {
+        contact.productName = value;
+      } else if (key === "Issue") {
+        contact.issue = value;
+      } else if (key === "UX Version") {
+        contact.uxVersion = value;
+      } else if (key === "Email") {
+        contact.email = value;
+      } else if (key === "Phone Number") {
+        contact.phoneNumber = value;
+      }
+    }
+    // console.log("Contact:");
+    // console.log(JSON.parse(JSON.stringify(contact)));
+    return contact;
+
+  }
+
+
+  async function processSFChat(caseID: string): Promise<void> {
+    if (!selectedSession) return;
+    if (!caseID || !selectedSession) return;
+    setIsChatLoading(true);
+    selectedSession.caseIdSF = caseID;
+
+    const userIdNumbersList = selectedSession.messages
+        .filter((item) => !item.isBot)
+        .map((userItem) =>
+            Number(userItem.id.slice(USER_MESSAGE_ID_PREFIX.length))
+        );
+
+    const newId = USER_MESSAGE_ID_PREFIX + (userIdNumbersList.length > 0
+        ? Math.max(...userIdNumbersList) + 1
+        : 0).toString();
+
+    const newMessage: ChatMessageObject = {
+        id: newId,
+        date: new Date().toISOString(),
+        isBot: false,
+        queryID: "",
+        userName: session.data?.user?.name ?? "You",
+        text: "Processing Salesforce Case",
+    };
+
+    selectedSession.chatFlow = "pasteChat";
+
+    const newSession = updateSessionListWithNewMessage(newMessage, selectedSession);
+
+    const currSessionID = selectedSession.id;
+    const response = await fetch(BACKEND_URL+"processSFChat", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ session_id: currSessionID,
+      user_id: newMessage.userName, case_id: caseID }),
+  });
+
+
+  const jsonResponse = await response.json() as SFResponseMessage;
+  console.log("JSON Response:",jsonResponse);
+  const botResponse = jsonResponse.response;
+  const urlRefs = jsonResponse.urls_fetched;
+
+  // Get the last message
+  const lastMessage = newSession.messages[newSession.messages.length - 1];
+  const queryID = jsonResponse.query_id;
+
+  if (!response.body) {
+    console.error("Response body is null.");
+    setIsChatLoading(false);
+    return;
+  }
+  if (!response.ok) {
+    console.error(`HTTP error! status: ${response.status}`);
+    setIsChatLoading(false);
+    return;
+  }
+
+
+    const newContactDetails = messageToContact(jsonResponse.extracted_information ?? "");
+    const newSessionWithContact = updateSessionWithNewContactDetails(newContactDetails, newSession)
+
+    const opexDataList: OpexData[] = jsonResponse.sf_data.map( (data:SFData):OpexData => ({
+        caseId: caseID,
+        product: data.Subject ?? "Not Available",
+        subject: data.Symptoms__c ?? "Not Available",
+        issue: data.Problem__c ?? "Not Available",
+        symptom: data.Symptoms__c ?? "Not Available",
+        root_cause: data.Root_Cause__c ?? "Not Available",
+
+        }));
+
+    const newSessionWithOpex = updateSessionListWithNewOpexData(opexDataList, newSessionWithContact);
+    newSessionWithOpex.caseID = caseID;
+
+    lastMessage.text = jsonResponse.extracted_information ?? "";
+    const userName = lastMessage.userName;
+    const welcomeMessage = botResponse.replace("Hubble", userName ?? "_____");
+    updateSessionListWithNewMessages(
+                    [formatMessageFromServerResponse({queryID: queryID, text: welcomeMessage, refs: urlRefs}),
+                    formatMessageFromServerResponse({queryID: "101", text: jsonResponse.verification_message ?? "", refs: urlRefs}),
+                        formatMessageFromServerResponse({queryID: "102", text: jsonResponse.issue_acknowledgement ?? "", refs: urlRefs}),
+                    ],
+                    newSessionWithOpex
+                );
+
+setIsChatLoading(false);
+
+  }
+
   async function addNewUserMessageWithLastMessages(messageText: string): Promise<void> {
     const MAX_PAYLOAD_HISTORY = 20;
     if (!messageText || !selectedSession) return;
+    // console.log("Selected Session after pasted chat:");
+    // console.log(JSON.parse(JSON.stringify(selectedSession)));
+    // console.log("Selected Session end pasted chat:");
+    const originalFlow = selectedSession.chatFlow;
+    const originalWelcomeFlow = selectedSession.welcomeFlow;
+
     const userIdNumbersList = selectedSession.messages
         .filter((item) => !item.isBot)
         .map((userItem) =>
@@ -689,7 +891,7 @@ const wrappedAddNewUserMessageWithLastMessages = (message: string): void => {
         isBot: false,
         queryID: "",
         userName: session.data?.user?.name ?? "You",
-        text: messageText,
+        text: selectedSession.welcomeFlow ==="pasteChat" ? "Processing Pasted Chat": messageText
     };
 
     // Update session with new user message
@@ -709,7 +911,8 @@ const wrappedAddNewUserMessageWithLastMessages = (message: string): void => {
 
     const currSessionID = selectedSession.id;
     const prevFetchedKnowledge = selectedSession.prevFetchedKnowledge ?? "";
-    const response = await fetch(BACKEND_URL+'chat', {
+    const flowURL = selectedSession.welcomeFlow==="welcome" ? "chat" : selectedSession.welcomeFlow;
+    const response = await fetch(BACKEND_URL+( flowURL ?? "chat"), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -719,22 +922,25 @@ const wrappedAddNewUserMessageWithLastMessages = (message: string): void => {
       enable_web_search: false, fetched_knowledge: prevFetchedKnowledge }),
   });
 
-  // console.log("RESPONSE:",response);
-    // Readable stream from response body
+    // console.log("New Session before change of flow:");
+    // console.log(JSON.parse(JSON.stringify(newSession)));
+
+    if (originalFlow === "welcome") {
+      newSession.welcomeFlow = "chat";
+      newSession.chatFlow = originalWelcomeFlow;
+
+    }
+
+  // console.log("New Session after change of flow:");
+  // console.log(JSON.parse(JSON.stringify(newSessionAfterFlow)));
+
   const jsonResponse = await response.json() as ChatResponseMessage;
-  // console.log("JSON RESPONSE:",jsonResponse);
-  // console.log("Chat history:",jsonResponse.chat_history);
   const botResponse = jsonResponse.response;
   const urlRefs = jsonResponse.urls_fetched;
-  const fetchedKnowledge = jsonResponse.fetched_knowledge;
-  // console.log("Fetched Knowledge:",fetchedKnowledge);
-  // if (fetchedKnowledge!== "") setFetchKnowledge(fetchedKnowledge);
-  if (fetchedKnowledge !== "") {newSession.prevFetchedKnowledge = fetchedKnowledge;}
 
-  // console.log("URL REFS:",url_refs);
+  // Get the last message
+  const lastMessage = newSession.messages[newSession.messages.length - 1];
   const queryID = jsonResponse.query_id;
-
-  // console.log("Session Fetched Knowledge:",selectedSession.prevFetchedKnowledge);
 
   if (!response.body) {
     console.error("Response body is null.");
@@ -747,51 +953,59 @@ const wrappedAddNewUserMessageWithLastMessages = (message: string): void => {
     return;
   }
 
-  updateSessionListWithNewMessage(
+
+  if (originalFlow === "welcome" && originalWelcomeFlow==="chat" ) {
+     updateSessionListWithNewMessage(
                     formatMessageFromServerResponse({queryID: queryID, text: botResponse, refs: urlRefs}),
                     newSession
                 );
-  // const reader = response.body.getReader();
-  // const decoder = new TextDecoder("utf-8");
-  // let buffer = '';
-  // let fullResponse = '';
-  // let mediaPlanContent = '';
 
-//   while (true) {
-//     var { done, value} = await reader.read();
-//
-//
-//     buffer += decoder.decode(value, { stream: true });
-//     console.log(buffer)
-//     const lines = buffer.split('\n\n');
-//     buffer = lines.pop() || '';
-//     console.log("LINES:",lines);
-//
-//     for (const line of lines) {
-//         if (line.startsWith('data: ')) {
-//             try {
-//                 const jsonStr = line.slice(6); // Remove 'data: ' prefix
-//                 const json = JSON.parse(jsonStr);
-//                 console.log("JSON:", json);
-//                 console.log("Parsed JSON:", json.response);
-//                 const responseText = json.response;
-//                 fullResponse += responseText; // Append to fullResponse
-//                 // Update state with the new combined response
-//                 // setLatestResponse(fullResponse);
-//                 // Update session with new message
-//                 const markdownContent = `<div className="message"><MarkdownMessage text="${responseText}" /></div>`;
-//                 updateSessionListWithNewMessage(
-//                     formatMessageFromServerResponse({ text: fullResponse, refs: [] }),
-//                     newSession
-//                 );
-//             } catch (e) {
-//                 console.error("Error parsing JSON:", e);
-//             }
-//         }
-//     }
-//     if (done) break;
-//
-// }
+  }
+  else if (originalFlow === "welcome") {
+    const newContactDetails = messageToContact(jsonResponse.extracted_information ?? "");
+
+    const newSessionWithContact = updateSessionWithNewContactDetails(newContactDetails, newSession)
+
+    const opexDataList: OpexData[] = jsonResponse.opex_data.map((data: string[]) => ({
+      caseId: data[0] ?? "Not Available",
+      subject: data[1] ?? "Not Available",
+      issue: data[2] ?? "Not Available",
+      symptom: data[3] ?? "Not Available",
+      problem: data[4] ?? "Not Available",
+      root_cause: data[5] ?? "Not Available",
+      product: data[6]?? "Not Available",
+    }));
+    // newSession.opexData = opexDataList;
+
+    const newSessionWithOpex = updateSessionListWithNewOpexData(opexDataList, newSessionWithContact);
+    // console.log("newSessionWithOpex Opex Data:");
+    // console.log(JSON.parse(JSON.stringify(newSessionWithOpex)));
+
+    // setSelectedSession(newSession);
+
+    lastMessage.text = jsonResponse.extracted_information ?? "";
+    const userName = lastMessage.userName;
+    const welcomeMessage = botResponse.replace("Hubble", userName ?? "_____");
+    updateSessionListWithNewMessages(
+                    [formatMessageFromServerResponse({queryID: queryID, text: welcomeMessage, refs: urlRefs}),
+                    formatMessageFromServerResponse({queryID: "101", text: jsonResponse.verification_message ?? "", refs: urlRefs}),
+                        formatMessageFromServerResponse({queryID: "102", text: jsonResponse.issue_acknowledgement ?? "", refs: urlRefs}),
+                    ],
+                    newSessionWithOpex
+                );
+
+
+  }
+
+   else{
+    // console.log("In chat");
+     const fetchedKnowledge = jsonResponse.fetched_knowledge;
+    if (fetchedKnowledge !== "") {newSession.prevFetchedKnowledge = fetchedKnowledge;}
+    updateSessionListWithNewMessage(
+                    formatMessageFromServerResponse({queryID: queryID, text: botResponse, refs: urlRefs}),
+                    newSession
+                );
+   }
 setIsChatLoading(false);
 }
 
@@ -825,6 +1039,9 @@ setIsChatLoading(false);
         voteOnSummary: wrappedVoteOnSummary,
         // TODO: Move functions to actions.tsx
         addNewUserMessageWithLastMessages: wrappedAddNewUserMessageWithLastMessages,
+        processSFChat: wrappedProcessSFChat,
+        setChatFlow,
+        setWelcomeFlow,
       }}
     >
       {props.children}

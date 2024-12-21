@@ -1,0 +1,63 @@
+
+
+.main-area-switcher-container {
+    padding: 20px;
+    display: grid;
+    gap: 20px;
+    overflow: auto;
+
+
+    &.active-case {
+        grid-template-columns: 1fr 3fr;
+        grid-template-rows: 2fr 3fr 1fr;
+        //grid-template-columns: 1fr;
+        //grid-template-rows: 1fr;
+        grid-template-areas: 
+            "contact chat"
+            "recents chat"
+            "recents input";
+            //"chat"
+            //"input";
+
+        & .contact-details { grid-area: contact; }
+        & .chat { grid-area: chat; overflow: auto; }
+        & .recents { grid-area: recents; }
+        & .chat-input { grid-area: input; }
+
+        & > div {
+            //border: 1px solid cyan;
+        }
+    }
+
+
+    &.closed-case {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr;
+        grid-template-areas:
+            //"case chat"
+            //"summary chat"
+            //"summary input";
+            "chat"
+            "input";
+
+
+        & .case-details { grid-area: case; }
+        & .chat { grid-area: chat; overflow: auto; }
+        & .summary { grid-area: summary; }
+        & .chat-input { grid-area: input; }
+        
+        & > div {
+            //border: 1px solid cyan;
+        }
+    }
+
+
+}
+
+.welcome-screen {
+    display: flex;
+    width: 80%;
+    height: 100%;
+
+
+}

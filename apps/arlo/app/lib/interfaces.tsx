@@ -31,6 +31,61 @@ export interface ChatBotPayload {
     content: string;
 }
 
+export interface ContactDetailsStr {
+    customerName: string;
+    productName?: string;
+    issue?: string;
+    uxVersion?: string;
+    email?: string;
+    phoneNumber?: string;
+}
+
+
+export const defaultContact: ContactDetailsStr = {
+    customerName: "Unknown",
+    productName: "Unknown",
+    issue: "Unknown",
+    uxVersion: "Unknown",
+    email: "Unknown",
+    phoneNumber: "Unknown",
+}
+
+export interface OpexData {
+    caseId: string;
+    subject?: string;
+    issue?: string;
+    symptom?: string;
+    problem?: string;
+    root_cause?: string;
+    product?: string;
+}
+
+export interface SFData {
+    AccountId: string;
+    CaseNumber?: string;
+    Description?: string;
+    Id?: string;
+    Status?: string;
+    Subject?: string;
+    UX_Version__c?: string;
+    ContactPhone?: string;
+    ContactEmail?: string;
+    Problem__c?: string;
+    Root_Cause__c?: string;
+    Symptoms__c?: string;
+}
+
+export const defaultOpexData: OpexData = {
+    caseId: "Unknown",
+    subject: "Unknown",
+    issue: "Unknown",
+    symptom: "Unknown",
+    problem: "Unknown",
+    root_cause: "Unknown",
+    product: "Unknown",
+}
+
+
 export interface SessionObject {
     id: string;
     label: string;
@@ -39,6 +94,12 @@ export interface SessionObject {
     summary?: SessionSummaryObject;
     caseID?: string;
     prevFetchedKnowledge?: string;
+    chatFlow: string;
+    welcomeFlow: string;
+    contactDetails?: ContactDetailsStr;
+    opexData?: OpexData[];
+    sfData?: SFData[];
+    caseIdSF?: string;
 }
 
 export interface SessionSummaryObject {
@@ -56,6 +117,10 @@ export const defaultSession: SessionObject = {
     messages: [],
     creationDate: new Date().toISOString(),
     caseID: "",
+    welcomeFlow: "chat",
+    chatFlow: "welcome",
+    contactDetails: defaultContact,
+    opexData: [],
 }
 
 export interface ChatMessageResponse {
@@ -106,6 +171,21 @@ export interface ChatResponseMessage {
     response: string;
     query_id: string;
     urls_fetched: string[];
-    fetched_knowledge: string;
+    fetched_knowledge?: string;
+    extracted_information?: string;
+    verification_message?: string;
+    issue_acknowledgement?: string;
+    opex_data: string[][];
+}
+
+export interface SFResponseMessage {
+    response: string;
+    query_id: string;
+    urls_fetched: string[];
+    fetched_knowledge?: string;
+    extracted_information?: string;
+    verification_message?: string;
+    issue_acknowledgement?: string;
+    sf_data: SFData[];
 }
 

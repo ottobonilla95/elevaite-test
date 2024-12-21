@@ -8,11 +8,14 @@ $mainGap: 20px;
     background-color: var(--ev-colors-background);
 
     display: grid;
-    grid-template-areas:    
-        "nav nav"
-        "side chat";
-    grid-template-rows: 55px 1fr;
-    grid-template-columns: 280px 1fr;
+    grid-template-areas:
+        "nav"
+        "main";
+        //"nav nav"
+        //"side chat";
+    //grid-template-rows: 55px 1fr;
+    //grid-template-columns: 280px 1fr;
+    grid-template-rows: 52px 1fr;
     gap: $mainGap;
     padding: 0 $mainGap $mainGap;
     
@@ -21,14 +24,28 @@ $mainGap: 20px;
         margin-left: -$mainGap;
     }
 
-    & > .session-bar-container {
-        grid-area: side;
+     & > main {
+        grid-area: main;
     }
 
-    & > .chatbot-main-container {
-        grid-area: chat;
-    }
-    
+    //& > .session-bar-container {
+    //    grid-area: side;
+    //}
+    //
+    //& > .chatbot-main-container {
+    //    grid-area: chat;
+    //}
+
+
+
+    //& > .session-bar-container {
+    //    grid-area: side;
+    //}
+    //
+    //& > .chatbot-main-container {
+    //    grid-area: chat;
+    //}
+    //
 
 
 }

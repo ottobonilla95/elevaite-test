@@ -7,3 +7,6 @@ trafilatura
 lxml_html_clean
 psycopg2-binary==2.9.10
 sqlalchemy==2.0.36
+simple-salesforce==1.12.6
+python-dotenv
+fastapi

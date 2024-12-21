@@ -9,6 +9,8 @@ export function getTestSessionsList(amount: number): SessionObject[] {
             label: `Session ${(i+1).toString()}`,
             messages: [],
             creationDate: new Date().toISOString(),
+            chatFlow: '',
+            welcomeFlow: ''
         })
     }
     return list;

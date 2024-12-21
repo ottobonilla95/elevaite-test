@@ -4,7 +4,6 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { ChatContext } from "../ui/contexts/ChatContext";
 import { ChatMessage } from "./ChatMessage";
 import "./ChatbotWindow.scss";
-import { SessionSummary } from "./SessionSummary";
 import { ChatbotIcons } from "@repo/ui/components";
 import { SmallWindow } from "./SmallWindow";
 
@@ -65,24 +64,12 @@ export function ChatbotWindow(): JSX.Element {
 
     return (
         <div className="chatbot-window-container">
+
             {isSmallWindowOpen ? <SmallWindow onClose={handleSmallWindowClose} /> : null}
 
-            {/*{!chatContext.selectedSession?.summary ? null :*/}
-            {/*    <div className={[*/}
-            {/*        "session-summary-wrapper",*/}
-            {/*        isSummaryOpen ? "open" : undefined,*/}
-            {/*    ].filter(Boolean).join(" ")}>*/}
-            {/*        <SessionSummary*/}
-            {/*            sessionId={chatContext.selectedSession.id}*/}
-            {/*            summary={chatContext.selectedSession.summary}*/}
-            {/*            onClose={handleClose}*/}
-            {/*            onDeleteSession={handleDeleteSession}*/}
-            {/*        />*/}
-            {/*    </div>*/}
-            {/*}*/}
 
             <div className="chatbot-window-header">
-                {!chatContext.selectedSession?.caseID && <span>{chatContext.selectedSession?.label}</span>}
+                 {!chatContext.selectedSession?.caseID && <span>{chatContext.selectedSession?.label}</span>}
                 {chatContext.selectedSession?.caseID && <span>Transcript ID: {chatContext.selectedSession?.caseID}</span>}
                 <div className="spacer"/>
                 <input
@@ -92,18 +79,6 @@ export function ChatbotWindow(): JSX.Element {
                     onKeyDown={(e) => { if (e.key === "Enter") { handleCaseIdChange((e.target as HTMLInputElement).value); e.currentTarget.value = ""; }}}
                     defaultValue={""}
                 />
-                {/*<div className="copy-button">*/}
-                {/*    <CommonButton*/}
-                {/*        onClick={() => {*/}
-                {/*            void navigator.clipboard.writeText(chatContext.selectedSession?.id ?? "");*/}
-                {/*        }}*/}
-                {/*    >*/}
-                {/*        <ChatbotIcons.SVGDocument/>*/}
-                {/*        Copy Session ID*/}
-                {/*    </CommonButton>*/}
-                {/*</div>*/}
-                {/*<span style={{color: "gray"}}>{chatContext.selectedSession?.id}</span>*/}
-
                 <div className="spacer"/>
                 <div className="summarize-button">
                     <CommonButton
@@ -115,6 +90,7 @@ export function ChatbotWindow(): JSX.Element {
                     </CommonButton>
 
                 </div>
+
             </div>
 
 
@@ -135,6 +111,6 @@ export function ChatbotWindow(): JSX.Element {
                     <span>{chatContext.chatLoadingMessage ? chatContext.chatLoadingMessage : "\u200B"}</span>
                 </div>
             }
-        </div>
-    );
+            </div>);
+
 }

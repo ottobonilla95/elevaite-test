@@ -25,9 +25,14 @@ class ChatResponse(BaseModel):
     # chat_history: List[Dict[str, str]]
     # web_text: str
     # kb_text: str
-    fetched_knowledge: str
+    fetched_knowledge: Optional[str] = None
     urls_fetched: List[str]
     query_id: str
+    extracted_information: Optional[str] = None
+    verification_message: Optional[str] = None
+    issue_acknowledgement: Optional[str] = None
+    opex_data: Optional[List[List[str]]] = None
+
 
 class ChatInferenceStepInfo(BaseModel):
     step_name: str
@@ -90,6 +95,7 @@ class SummaryRequest(BaseModel):
     text: str
     session_id: str
     user_id: str
+    case_id: Optional[str] = None
 
 
 class SummaryVoting(BaseModel):
@@ -111,3 +117,18 @@ class ChatHistoryModel(BaseModel):
 class CaseID(BaseModel):
     session_id: uuid.UUID
     case_id: str
+
+class SFChatRequest(BaseModel):
+    session_id: str
+    user_id: str
+    case_id: str
+
+class SFResponse(BaseModel):
+    response: str
+    fetched_knowledge: Optional[str] = None
+    urls_fetched: List[str]
+    query_id: str
+    extracted_information: Optional[str] = None
+    verification_message: Optional[str] = None
+    issue_acknowledgement: Optional[str] = None
+    sf_data: Optional[List[Dict[str,str]]] = None

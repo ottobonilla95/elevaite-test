@@ -4,12 +4,6 @@ import {useContext, useState} from "react";
 import type { SessionObject } from "../lib/interfaces";
 import { ChatContext } from "../ui/contexts/ChatContext";
 import "./SessionBar.scss";
-import { GenAiBot } from "./GenAiBot";
-
-
-
-
-
 
 
 export function SessionBar(): JSX.Element {
@@ -27,16 +21,20 @@ export function SessionBar(): JSX.Element {
         chatContext.setSelectedSession(sessionId);
     }
 
-    //  function handleToggleChange(): void {
-    //     setEnableWebSearch(!enableWebSearch);
-    // }
+
 
 
 
     return (
         <div className="session-bar-container">
-            <GenAiBot/>
-
+            {/*<GenAiBot/>*/}
+            <CommonButton
+            className="toggle-button"
+            onClick={() => {chatContext.setChatFlow(chatContext.selectedSession?.chatFlow === "chat" ? "pasteChat" : "chat");
+            console.log(chatContext.selectedSession?.chatFlow);}}
+        >
+            Toggle Chat Flow
+</CommonButton>
 
             <div className="session-bar-main">
 

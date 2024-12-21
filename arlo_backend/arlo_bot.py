@@ -130,6 +130,8 @@ def chat_service(query, fetched_articles, chat_history=[], system_prompt="",
 
 
 def ds_rag_service(query):
+    # Remove after testing
+    # return "No relevant results found", []
     if ARLO_KB is None:
         return "No relevant results found",[]
 

@@ -7,10 +7,14 @@ from fastapi import FastAPI, Body
 from summarize_agent import extract_summary
 import datetime
 import uuid
-from data_models import ChatRequest, ChatResponse, ChatVoting, ChatFeedback, ChatInferenceStepInfo, ChatSessionDataResponse,SummaryDataModel, ChatSessionDataModel, SummaryVoting, ChatHistoryModel, ChatHistory, CaseID
+from data_models import *
 from models import ChatDBMethods
 import concurrent.futures
 import dotenv
+import json
+from main_psql import get_opexwise_data
+from Salesforce_PythonModule.src.salesforce_service import get_sf_case, save_summary_to_salesforce
+# from cache_control import CacheControl
 
 dotenv.load_dotenv()
 knowledge_service = None
@@ -82,12 +86,132 @@ class GradioInterface:
 
         return chat_session_data
 
-    def respond(self, message, chat_history, session_id=None, user_id=None, fetched_knowledge=""):
+    def process_chat(self, message, chat_history, session_id=None, user_id=None, fetched_knowledge=""):
         query_id = uuid.uuid4()
+        # r = CacheControl()
         query = message
         query_timestamp = datetime.datetime.now()
         inference_steps = []
         chat_display = []
+        chat_history = []
+        url_refs = []
+        self.prompt_box = Prompts.VERIFICATION_SYSTEM_PROMPT
+
+        solution_start_time = datetime.datetime.now()
+        solution = "".join(response for response in self.chat_service(
+            message, fetched_knowledge, chat_history, streaming=self.streaming,
+            system_prompt=self.prompt_box, qa=self.qa, qa_system_prompt=self.qa_prompt_box
+        ))
+        print("Solution: ", solution)
+
+        try:
+            solution = json.loads(solution)
+            extracted_information = "\n\n".join([str(i)+": "+solution["extracted_information"][i] for i in solution["extracted_information"]])
+            welcome_message = solution["welcome_message"]
+            verification_message = solution["verification_message"]
+            issue_acknowledgement = solution["issue_acknowledgement"]
+            try:
+                opex_data = get_opexwise_data(contact_email=solution["extracted_information"]["Email"].lower())
+            except:
+                opex_data = []
+        except:
+            welcome_message = "Welcome to Arlo's chat service. Please give me 2 minutes to go over the issue?"
+            extracted_information = "Could not extract any information from the chat."
+            verification_message = "Could not verify the details."
+            issue_acknowledgement = "Could not acknowledge the issue."
+            opex_data = []
+
+        # r.hset(session_id, "chat_context",fetched_knowledge)
+        # r.expire(session_id, 3600)
+
+        inference_steps.append(self.create_inference_step(
+            step_name="Response Generation",
+            step_start_time=solution_start_time,
+            step_input_label="Fetched Knowledge",
+            step_output_label="Response",
+            step_input="\n".join([extracted_information, verification_message, issue_acknowledgement]),
+            step_output=welcome_message
+        ))
+        chat_display.append({"role": "assistant", "content": welcome_message})
+        if not self.streaming:
+            chat_history.append(("assistant", welcome_message))
+
+
+        return (self.create_session_data(user_id=user_id,
+                                         session_id=session_id,
+                                         query_id=query_id,
+                                         query=query,
+                                         query_timestamp=query_timestamp,
+                                         inference_steps=inference_steps,
+                                         response=welcome_message), url_refs[:3],
+                                        extracted_information, verification_message, issue_acknowledgement,
+                                        opex_data)
+
+    def process_sf_chat(self, message, session_id=None, user_id=None):
+        query_id = uuid.uuid4()
+        # r = CacheControl()
+        query = message
+        query_timestamp = datetime.datetime.now()
+        inference_steps = []
+        chat_display = []
+        chat_history = []
+        url_refs = []
+        self.prompt_box = Prompts.VERIFICATION_SYSTEM_PROMPT_SF
+
+        solution_start_time = datetime.datetime.now()
+        solution = "".join(response for response in self.chat_service(
+            message, "", chat_history, streaming=self.streaming,
+            system_prompt=self.prompt_box, qa=self.qa, qa_system_prompt=self.qa_prompt_box
+        ))
+        print("Solution: ", solution)
+
+        try:
+            solution = json.loads(solution)
+            extracted_information = "\n\n".join([str(i)+": "+solution["extracted_information"][i] for i in solution["extracted_information"]])
+            welcome_message = solution["welcome_message"]
+            verification_message = solution["verification_message"]
+            issue_acknowledgement = solution["issue_acknowledgement"]
+
+        except:
+            welcome_message = "Welcome to Arlo's chat service. Please give me 2 minutes to go over the issue?"
+            extracted_information = "Could not extract any information from the chat."
+            verification_message = "Could not verify the details."
+            issue_acknowledgement = "Could not acknowledge the issue."
+
+        # r.hset(session_id, "chat_context",fetched_knowledge)
+        # r.expire(session_id, 3600)
+
+        inference_steps.append(self.create_inference_step(
+            step_name="Response Generation",
+            step_start_time=solution_start_time,
+            step_input_label="Fetched Knowledge",
+            step_output_label="Response",
+            step_input="\n".join([extracted_information, verification_message, issue_acknowledgement]),
+            step_output=welcome_message
+        ))
+        chat_display.append({"role": "assistant", "content": welcome_message})
+        if not self.streaming:
+            chat_history.append(("assistant", welcome_message))
+
+
+        return (self.create_session_data(user_id=user_id,
+                                         session_id=session_id,
+                                         query_id=query_id,
+                                         query=query,
+                                         query_timestamp=query_timestamp,
+                                         inference_steps=inference_steps,
+                                         response=welcome_message), url_refs[:3],
+                                        extracted_information, verification_message, issue_acknowledgement)
+
+    def respond(self, message, chat_history, session_id=None, user_id=None, fetched_knowledge=""):
+        query_id = uuid.uuid4()
+        # r = CacheControl()
+        in_cache=False
+        query = message
+        query_timestamp = datetime.datetime.now()
+        inference_steps = []
+        chat_display = []
+        begin_time = datetime.datetime.now()
         for c in chat_history:
             chat_display.append({"role": c[0], "content": c[1]})
         if chat_history:
@@ -109,6 +233,9 @@ class GradioInterface:
             step_output=next(craft_query(message, chat_display))
         )
 
+        print("Crafted Query Step time: ",  datetime.datetime.now() - begin_time)
+        begin_time = datetime.datetime.now()
+
         inference_steps.append(crafted_query_step)
         try:
             crafted_query_and_intent = eval(crafted_query_step.step_output.strip("`").replace("json",""))
@@ -119,7 +246,12 @@ class GradioInterface:
 
         intent = crafted_query_and_intent["intent"].strip().lower()
         print("Intent: ", intent)
+        if intent in ["pasted chat"]:
+            print("Thanks for pasting the chat")
         crafted_query = crafted_query_and_intent["crafted_query"].strip().lower()
+        # if r.get(crafted_query):
+        #     in_cache = True
+
         print("Crafted Query: ", crafted_query)
 
         if intent in ["troubleshooting", "installation", "probing", "follow-up"]:
@@ -157,10 +289,17 @@ class GradioInterface:
         elif "follow-up" in intent.lower():
             kb_refs = []
             url_refs = []
+            # fetched_knowledge = r.hget(session_id, "fetched_knowledge")
+            print("Fetched Knowledge from cache follow-up: ", fetched_knowledge[:100])
             # self.prompt_box = Prompts.DEFAULT_SYSTEM_PROMPT_SHORT
             # print("Fetching Knowledge\n",fetched_knowledge,"\n"+"-"*50)
             # print("Chat History\n",chat_history,"\n"+"-"*50)
 
+        # elif in_cache:
+        #     kb_refs = []
+        #     url_refs = []
+        #     fetched_knowledge = r.get(crafted_query.lower())
+        #     print("Fetched Knowledge from cache: ", fetched_knowledge[:100])
 
         else:
             def get_kb_text():
@@ -236,10 +375,20 @@ class GradioInterface:
                 f"Knowledge Base Articles\n\n{kb_text}\n\nKnowledge Base Search results\n\n{web_text}\n\n"
                 "End of relevant information from the knowledge base."
             )
+
+            # r.set(crafted_query.lower(), fetched_knowledge)
+            # r.expire(crafted_query, 3600)
+
+
+        # r.hset(session_id, "fetched_knowledge",fetched_knowledge)
+        # r.expire(session_id, 3600)
         # print("Fetched Knowledge: ", fetched_knowledge)
         # print("Chat history: ", chat_history)
         # print("Message :", message)
         # print("Chat history: ", chat_history)
+
+        print("Fetching Knowledge Step time: ", datetime.datetime.now() - begin_time)
+        begin_time = datetime.datetime.now()
 
         solution_start_time = datetime.datetime.now()
         solution = "".join(response for response in self.chat_service(
@@ -262,6 +411,8 @@ class GradioInterface:
         if kb_refs:
             url_refs += kb_refs
 
+        print("Solution Step time: ", datetime.datetime.now() - begin_time)
+
         return (self.create_session_data(user_id=user_id,
                                         session_id=session_id,
                                         query_id=query_id,
@@ -280,7 +431,75 @@ gi = GradioInterface(
     ds_rag_service=ds_rag_service,
 )
 
+
+@app.post("/processSFChat", response_model=SFResponse)
+def processSFChat(request: SFChatRequest=Body(...)):
+    session_id = request.session_id
+    user_id = request.user_id
+    case_id = request.case_id
+
+    try:
+        case_information = dict(get_sf_case(case_id))
+        del case_information["attributes"]
+        case_information = {str(key): str(case_information[key]) for key in case_information}
+    except:
+        case_information = {
+            "CaseNumber": case_id,
+            "Subject": "Case not found",
+            "Status": "Case not found",
+            "AccountId": "Case not found"
+        }
+
+    message = "\n".join([f"{key}: {case_information[key]}" for key in case_information])
+    print(message)
+
+    response_chat, urls_fetched, extracted_information, verification_message, issue_acknowledgement = gi.process_sf_chat(message, session_id, user_id)
+
+    response = SFResponse(
+        response=response_chat.chat_json.response,
+        fetched_knowledge="",
+        urls_fetched=urls_fetched,
+        query_id=str(response_chat.query_id),
+        extracted_information=extracted_information,
+        verification_message=verification_message,
+        issue_acknowledgement=issue_acknowledgement,
+        sf_data=[case_information]
+    )
+
+
+    return response
+
+@app.post("/pasteChat", response_model=ChatResponse)
+def pastechat(request: ChatRequest=Body(...)):
+    # TODO - fix chat history order
+    message = request.message
+    previous_chats = request.chat_history
+    fetched_knowledge = request.fetched_knowledge
+    session_id = request.session_id
+    user_id = request.user_id
+
+    chat_history = []
+    for i in range(len(previous_chats)):
+        chat_history.append((previous_chats[i]['actor'], previous_chats[i]['content']))
+
+    response_chat, urls_fetched, extracted_information, verification_message, issue_acknowledgement, \
+        opex_data = gi.process_chat(message,chat_history, session_id, user_id, fetched_knowledge)
+
+    for inference_step in response_chat.chat_json.inference_steps:
+        print("\nInference Step: ", inference_step.step_name)
+    ChatDBMethods.save_response_chat(response_chat)
+    return {
+        "response": response_chat.chat_json.response,
+        "query_id": str(response_chat.query_id),
+        "urls_fetched": [],
+        "extracted_information": extracted_information,
+        "verification_message": verification_message,
+        "issue_acknowledgement": issue_acknowledgement,
+        "opex_data": opex_data,
+    }
+
 @app.post("/chat", response_model=ChatResponse)
+@app.post("/welcome", response_model=ChatResponse)
 def chat(request: ChatRequest=Body(...)):
     # TODO - fix chat history order
     # print("Request: ", request)
@@ -371,6 +590,8 @@ def summarize(request: SummaryRequest=Body(...)):
     text = request.text
     entities = {}
 
+    print(request)
+
     more_context = """ """
     start_time = datetime.datetime.now()
     summary_input = SummaryInputModel(system_prompt=Prompts.SUMMARY_SYSTEM_PROMPT,
@@ -381,6 +602,15 @@ def summarize(request: SummaryRequest=Body(...)):
 
     try:
         summary = extract_summary(summary_input)
+        print("Summary done")
+        if request.case_id:
+            try:
+                status = save_summary_to_salesforce(request.case_id, summary[:200])
+                print("Summary saved to Salesforce")
+            except Exception as e:
+                status = f"Error: {e}"
+            print(status)
+
     except:
         summary = "I am sorry, I could not generate a summary for the text provided."
     end_time = datetime.datetime.now()
@@ -436,6 +666,10 @@ def change_case_id(session_id: str, case_id: str):
         print("ERROR: ", e)
         return {"message": f"Error: {e}"}
 
+
+@app.get("/hc")
+async def root():
+    return {"message": "Hello World"}
 
 @app.get("/")
 async def root():

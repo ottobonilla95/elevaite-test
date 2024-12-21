@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { logOut } from "../lib/actions";
 import "./AppLayout.scss";
-import { SessionBar } from "./SessionBar";
 
 
 
@@ -40,7 +39,7 @@ export function AppLayout({children, breadcrumbs}: AppLayoutProps): JSX.Element 
                 searchResults={results}
                 user={{ image: session?.user?.image ?? "" }}
             />
-            <SessionBar/>
+            {/*<SessionBar/>*/}
             {children}
         </div>
     );

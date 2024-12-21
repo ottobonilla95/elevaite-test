@@ -1,15 +1,15 @@
 "use client";
-import { ChatbotIcons, CommonButton, SimpleInput } from "@repo/ui/components";
-import {useContext, useState} from "react";
+import {ChatbotIcons, CommonButton, SimpleTextarea} from "@repo/ui/components";
+import {useContext, useEffect, useState} from "react";
 import { ChatContext } from "../ui/contexts/ChatContext";
-import "./ChatbotInput.scss";
+import "./WelcomeChatbotInput.scss";
 import "./MarkdownMessage.scss";
 // import { jsPDF } from "jspdf";
 // import { marked } from "marked";
 // import html2canvas from "html2canvas";
 
 
-export function ChatbotInput(): JSX.Element {
+export function WelcomeChatbotInput(): JSX.Element {
     const chatContext = useContext(ChatContext);
     const [text, setText] = useState("");
 
@@ -18,31 +18,31 @@ export function ChatbotInput(): JSX.Element {
         setText(value);
     }
 
+
     function handleSend(): void {
         if (chatContext.isChatLoading) return;
+        if (!chatContext.selectedSession) return;
         const workingText = text;
-        setText("");
         if (!workingText.trim()) return;
-        chatContext.addNewUserMessageWithLastMessages(workingText)
+        chatContext.addNewUserMessageWithLastMessages(text);
+        setText("");
     }
 
     function handleKeyDown(key: string): void {
         if (key === "Enter") handleSend();
     }
 
-    function handleSummarize(): void {
-        if (chatContext.isChatLoading) return;
-        chatContext.getSessionSummary();
-    }
 
     return (
-        <div className={["chatbot-input-container", chatContext.isChatLoading ? "loading" : undefined].filter(Boolean).join(" ")}>
-            <SimpleInput
-                wrapperClassName="chatbot-input-field"
+        <div className={["chatbot-welcome-input-container", chatContext.isChatLoading ? "loading" : undefined].filter(Boolean).join(" ")}>
+            <SimpleTextarea
+                wrapperClassName="chatbot-welcome-input-container chatbot-welcome-input-field"
                 value={text}
+                inputMode={"text"}
                 onChange={handleTextChange}
                 onKeyDown={handleKeyDown}
-                placeholder={chatContext.isChatLoading ? "Please wait..." : "Enter text and press ENTER"}
+                style={{ height: "100%" }}
+                placeholder={chatContext.isChatLoading ? "Please wait..." : "Paste chat and press ENTER"}
                 disabled={chatContext.isChatLoading || chatContext.isFeedbackBoxOpen}
                 rightIcon={
                     <CommonButton

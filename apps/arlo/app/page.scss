@@ -1,8 +1,46 @@
+//
+//
+//.chatbot-main-container {
+//    display: flex;
+//    flex-direction: column;
+//    gap: 20px;
+//    overflow: hidden;
+//}
 
 
-.chatbot-main-container {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+
+.chatbot-advanced-container {
+    margin: -20px;
     overflow: hidden;
+
+    background-color: var(--ev-colors-backgroundHighContrast);
+    color: var(--ev-colors-text);
+
+    display: grid;
+    grid-template-areas:
+        //"sidebar tabs"
+        "sidebar main";
+    grid-template-columns: auto 1fr;
+    //grid-template-rows: auto 1fr;
+
+     & > main {
+        grid-area: main;
+    }
+
+    & > .session-bar-container {
+        grid-area: side;
+    }
+
+    & > .chatbot-main-container {
+        grid-area: chat;
+    }
+
+
+    & .sidebar-area {
+        grid-area: sidebar;
+    }
+
+    & .tabs-area {
+        grid-area: tabs;
+    }
 }
