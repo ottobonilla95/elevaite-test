@@ -130,7 +130,12 @@ const appLinks: Record<string, { development: string; production: string; test: 
     development: "https://elevaite-ads.iopex.ai/",
     production: "https://elevaite-ads.iopex.ai/",
     test: "",
-  }
+  },
+  urlassit: {
+    development: "https://elevaite-webassist.iopex.ai",
+    production: "https://elevaite-webassist-api.iopex.ai",
+    test: "",
+  },
 };
 
 export function getApplications(
@@ -220,6 +225,17 @@ export function getApplications(
           title: "ALE - Tech Chat Support",
           link: appLinks.complianceSupport[env],
           id: "aleSupport",
+          miscLabel: "Version 1.0",
+          subtitle: "By Elevaite",
+          openInNewTab: true,
+        },
+        {
+          icon: ApplicationIcons.applications.urlAssist.src,
+          description: "Find what you need instantly with our intelligent Search and Assistant, provides quick, accurate answers and seamless navigation.",
+          iconAlt: ApplicationIcons.applications.urlAssist.alt,
+          title: "Your website assistant",
+          link: appLinks.urlAssist[env],
+          id: "urlAssist",
           miscLabel: "Version 1.0",
           subtitle: "By Elevaite",
           openInNewTab: true,
