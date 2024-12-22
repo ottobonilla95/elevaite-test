@@ -131,9 +131,9 @@ const appLinks: Record<string, { development: string; production: string; test: 
     production: "https://elevaite-ads.iopex.ai/",
     test: "",
   },
-  urlassit: {
+  urlAssist: {
     development: "https://elevaite-webassist.iopex.ai",
-    production: "https://elevaite-webassist-api.iopex.ai",
+    production: "https://elevaite-webassist.iopex.ai",
     test: "",
   },
 };
@@ -231,9 +231,9 @@ export function getApplications(
         },
         {
           icon: ApplicationIcons.applications.urlAssist.src,
-          description: "Find what you need instantly with our intelligent Search and Assistant, provides quick, accurate answers and seamless navigation.",
+          description: "Find what you need instantly with our AI Search Assistant. Enables seamless navigation with accurate answers.",
           iconAlt: ApplicationIcons.applications.urlAssist.alt,
-          title: "Your website assistant",
+          title: "Your Website Assistant",
           link: appLinks.urlAssist[env],
           id: "urlAssist",
           miscLabel: "Version 1.0",
