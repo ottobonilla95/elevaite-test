@@ -65,6 +65,8 @@ class InferencePayload(BaseModel):
     query: str
     skip_llm_call: bool
     creative: Optional[str] = None 
+    session_id: str
+    user_id: str
 
 class IntentOutput(BaseModel):
     required_outcomes: List[int]
@@ -209,12 +211,12 @@ class CampaignPerformanceReport(BaseModel):
 class CreativeElements(BaseModel):
     creative_thumbnail: str
     brand_elements: str
-    seasonal_holiday_elements: str
+    seasonal_holiday_elements: Optional[str]
     visual_elements: str
     color_tone: str
-    cinematography: str
-    audio_elements: str
-    narrative_structure: str
+    cinematography: Optional[str]
+    # audio_elements: str
+    narrative_structure: Optional[str]
 
 class CreativeInsight(BaseModel):
     brand: str
@@ -224,7 +226,7 @@ class CreativeInsight(BaseModel):
 
 class CreativeInsightsReport(BaseModel):
     creatives: Optional[List[CreativeInsight]]
-    general_insights: Optional[str]
+    # general_insights: Optional[str]
 
 
 # Performance Summary
@@ -267,3 +269,15 @@ class MediaPlanSearchResult(BaseModel):
 
 class MarkdownRequest(BaseModel):
     markdown: str
+
+
+class MessageData(BaseModel):
+    topic: Optional[str] = None
+    message_query: str
+    enhanced_query: str
+    vector_data: List[dict] 
+    creative_data: List[str] = []
+    media_plan_output: str = ""
+    creative_insights_output: str = ""
+    campaign_performance_output: str = ""
+    general_response_string: str = ""

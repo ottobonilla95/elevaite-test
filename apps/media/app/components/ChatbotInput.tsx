@@ -59,7 +59,7 @@ export function ChatbotInput({ text, setText }: ChatbotInputProps):  JSX.Element
         const markdownMessages = selectedSession.messages.map(message => message.text).join("\n\n");
         setIsExporting(true);
         try {
-            const response = await fetch('http://localhost:8000/generate-pdf', {
+            const response = await fetch('http://127.0.0.1:8000/generate-pdf', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

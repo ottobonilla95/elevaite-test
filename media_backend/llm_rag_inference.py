@@ -3,7 +3,7 @@ from qdrant_client.http.models import Filter, FieldCondition, Range, MatchValue,
 from fastapi import HTTPException
 from typing import Dict, Any, List
 from openai import OpenAI
-from model import AdCreative, SearchResult, InferencePayload, ConversationPayload, IntentOutput, MediaPlanOutput, AnalysisOfTrends,CreativeInsightsReport,PerformanceSummary ,AnalysisOfTrendsTwo,AnalysisOfTrendsOne,AnalysisOfTrendsThree# MediaPlanSearchResult, MediaPlanCreative, CampaignPerformanceReport
+from model import MessageData, AdCreative, SearchResult, InferencePayload, ConversationPayload, IntentOutput, MediaPlanOutput, AnalysisOfTrends,CreativeInsightsReport,PerformanceSummary ,AnalysisOfTrendsTwo,AnalysisOfTrendsOne,AnalysisOfTrendsThree# MediaPlanSearchResult, MediaPlanCreative, CampaignPerformanceReport
 import os
 import re
 import ast
@@ -18,11 +18,13 @@ import asyncio
 from prompts.prompts import SystemPrompts
 from sentence_transformers import CrossEncoder
 from collections import OrderedDict
+from cache_control import CacheControl
 
 import logging
 # Timer and logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+# cache_control = CacheControl()
 
 reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2",tokenizer_args={'clean_up_tokenization_spaces': True})
 
@@ -121,12 +123,77 @@ def rerank_results(query_text: str, results: List[AdCreative], enriched_query_te
     print("Re-ranked Scores:", [score for _, score in reranked_results])
     return [result[0] for result in reranked_results]
 
+def get_past_vectors_for_topic(existing_data: List[dict], current_topic: str) -> List[dict]:
+    """
+    Retrieves vector data from past sessions that match the current topic.
+    Args:
+        existing_data (List[dict]): The past session data containing topics and vector data.
+        current_topic (str): The current topic to match against past session topics.
+
+    Returns:
+        List[dict]: A list of vector data associated with similar campaigns in the past.
+    """
+    past_vectors = []
+    for session in existing_data:
+        if 'topic' in session and session['topic'] == current_topic:
+            if 'vector_data' in session:
+                past_vectors.extend(session['vector_data'])
+    return past_vectors
+
+def check_non_empty_fields_for_topic(existing_data: List[dict], current_topic: str) -> List[str]:
+    """
+    Checks which fields have non-empty strings for the given topic in past session data.
+    
+    Args:
+        existing_data (List[dict]): The past session data containing topics and fields to check.
+        current_topic (str): The current topic to match against past session topics.
+        
+    Returns:
+        List[str]: A list of field names that have non-empty strings for the given topic.
+    """
+    fields_to_check = ['media_plan_output', 'campaign_performance_output', 'creative_insights_output']
+    non_empty_fields = []
+
+    for session in existing_data:
+        if session.get('topic') == current_topic:
+            for field in fields_to_check:
+                if field in session and isinstance(session[field], str) and session[field].strip():
+                    non_empty_fields.append(field)
+
+    return list(set(non_empty_fields))
+
+@timer_decorator
+async def topic_extractor(past_topics: List[str], enhanced_query: str) -> str:
+    """
+    Extracts the topic from the user's session history and compares it with the current enhanced query using an LLM.
+
+    Args:
+        past_topics (List[str]): A list of topics from the user's previous session history.
+        enhanced_query (str): The current enhanced query from the user.
+
+    Returns:
+        str: The current topic determined by the LLM.
+    """
+    # Prepare the prompt for the LLM
+    prompt = load_prompt("topic_extractor").format(", ".join(past_topics), enhanced_query)
+    try:
+        # Use the existing generate_response function to get the topic
+        response_content = await generate_response(
+            query=prompt,
+            system_prompt="You are an AI that determines topics based on user queries.",
+            max_tokens=150,
+        )
+        # Return the response content as the current topic
+        return response_content
+    except Exception as e:
+        logger.error(f"Error in topic extraction: {e}")
+        return ""
 
 # Searches Qdrant and returns search result object
 def search_qdrant(query_text: str, conversation_payload: list, parameters: Dict[str, Any], use_vector_search: bool = False, number_of_results: int = 4) -> SearchResult:
     formatted_history = format_conversation_payload(conversation_payload)
     enriched_query_text = f"{formatted_history}\nUser Query: {query_text}"
-    print("Query Used for Vector Search:",enriched_query_text)
+    # print("Query Used for Vector Search:",enriched_query_text)
     query_vector = get_embedding(enriched_query_text)
 
     if not query_vector or len(query_vector) == 0:
@@ -260,13 +327,13 @@ def determine_intent(user_query: str, conversation_history: List[ConversationPay
         
         messages.append({"role": "user", "content": user_query})
         
+        print("Input to the intent:",messages)
         response = client.beta.chat.completions.parse(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=messages,
             response_format=IntentOutput,
             max_tokens=500
         )
-        # print("output responsee",response)
         response_content = response.choices[0].message.content
         try:
             parsed_response = json.loads(response_content)
@@ -310,7 +377,7 @@ async def generate_response_streaming(
 
     try:
         request_params = {
-            "model": "gpt-4o-mini",
+            "model": "gpt-4o",
             "messages": messages,
             "max_tokens": max_tokens,
             "n": 1,
@@ -321,7 +388,8 @@ async def generate_response_streaming(
         for chunk in response_stream:
             content = chunk.choices[0].delta.content
             # print("streamed content:",content)
-            yield content
+            if content:
+                yield content
     except Exception as e:
         logger.error(f"Error in generating response: {e}")
         yield f"Error: {str(e)}"
@@ -355,7 +423,7 @@ async def generate_response(
 
     try:
         request_params = {
-            "model": "gpt-4o-mini",
+            "model": "gpt-4o",
             "messages": messages,
             "max_tokens": max_tokens,
             "n": 1,
@@ -416,7 +484,7 @@ def generate_response_with_creatives(
         })
     try:
         request_params = {
-            "model": "gpt-4o-mini",
+            "model": "gpt-4o",
             "messages": messages,
             "max_tokens": max_tokens,
             "n": 1,
@@ -447,7 +515,7 @@ def creative_to_features(creative: str)-> str:
                         "image_url": {"url": creative}}]})
     try:
         request_params = {
-            "model": "gpt-4o-mini",
+            "model": "gpt-4o",
             "messages": messages,
             "max_tokens": 300,
             "n": 1,
@@ -612,7 +680,7 @@ async def formatter_streaming(final_output: str = None, prompt_file_name: str = 
     ):
         yield chunk
 
-# @timer_decorator   
+@timer_decorator   
 async def formatter(final_output: str = None, prompt_file_name: str = "formatter",query_content:str=None) -> str:
     system_prompt = load_prompt(prompt_file_name)
     query = f"Content to be formatted: {final_output}"
@@ -624,6 +692,43 @@ async def formatter(final_output: str = None, prompt_file_name: str = "formatter
         max_tokens=4000
     )
     return "\n"+formatted_output+"\n"
+
+def generate_image_url(md5_hash):
+    """Generate the image URL from the given MD5 hash."""
+    base_url = os.getenv("BASE_URL_FOR_CREATIVES")
+    return f"{base_url}{md5_hash[:2]}/{md5_hash[2:4]}/{md5_hash}.thumbnail.jpg"
+
+def formatter_for_creative_insight(data):
+    """Convert JSON input to a Markdown formatted string."""
+    markdown_output = "## Creative Insights\n\n"
+    for creative in data["creatives"]:
+        brand = creative["brand"]
+        product = creative["product"]
+        snapshot = creative["creative_snapshot"]
+        elements = creative["creative_elements"]
+
+        # Extract and parse the MD5 hash for the image URL
+        thumbnail, md5_hash = map(str.strip, elements["creative_thumbnail"].split(","))
+        # image_url = generate_image_url(md5_hash)
+
+        markdown_output += f"\n### Brand: {brand}, Product: {product}\n\n"
+        markdown_output += f"![{thumbnail}]({md5_hash} \"{product}\")\n\n"
+        markdown_output += f"| **Creative Snapshot** | {snapshot} |\n"
+        markdown_output += f"|-----------------------|-----------------------------------------------------------------------------------------------------|\n"
+        markdown_output += f"| **Brand Elements**    | {elements['brand_elements']} |\n"
+        markdown_output += f"| **Visual Elements**   | {elements['visual_elements']} |\n"
+        markdown_output += f"| **Color Tone**        | {elements['color_tone']} |\n"
+
+        optional_elements = ["cinematography", "audio_elements", "narrative_structure", "seasonal_holiday_elements"]
+        for opt_elem in optional_elements:
+            if elements.get(opt_elem):  # Check if the key exists and is not empty
+                formatted_key = opt_elem.replace("_", " ").capitalize()
+                markdown_output += f"| **{formatted_key}**    | {elements[opt_elem]} |\n"
+
+        markdown_output += "\n"
+
+    return markdown_output
+
 
 # @timer_decorator 
 def extract_specific_fields(search_result: SearchResult, fields: List[str], full_data_fields: List[str] = None) -> str:
@@ -650,7 +755,7 @@ def extract_specific_fields(search_result: SearchResult, fields: List[str], full
     
     return str(extracted_data)
 @timer_decorator    
-async def media_plan(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload]) ->  AsyncGenerator[str, None]:
+async def media_plan(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload], past_vector_names: Optional[List[str]] = None) ->  AsyncGenerator[str, None]:
     # Media_plan Data filtered out
     fields_to_extract = [
     "ad_objective",
@@ -681,6 +786,9 @@ async def media_plan(filtered_data: SearchResult, query: str, conversation_histo
     print(f"Essential data:{essential_data}")
     system_prompt = load_prompt("media_plan")
 
+    if past_vector_names:
+        system_prompt += f"\nPrioritize past vectors that were used for the previous queries which are listed as follows:{', '.join(past_vector_names)}"
+    # print("Prompt used for media plan:",system_prompt)
     # logger.debug("media plan Input len:",len(query)+len(system_prompt)+len(essential_data)+len(conversation_history))
     # logger.debug("Query, system, filtered, convo history:",len(query),len(system_prompt),len(essential_data),len(conversation_history))
     raw_response = await generate_response(
@@ -691,13 +799,14 @@ async def media_plan(filtered_data: SearchResult, query: str, conversation_histo
         response_class=MediaPlanOutput,
         max_tokens=2500,
     )
-    print(f"Media_plan Raw text:{raw_response}")
+    # print(f"Media_plan Raw text:{raw_response}")
     async for chunk in formatter_streaming(raw_response, "formatter_media_plan", query):
             yield chunk
     # return await formatter(raw_response,"formatter_media_plan",query)
 
 @timer_decorator
-async def campaign_performance(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload]) -> str:
+async def campaign_performance(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload], past_vector_names: Optional[List[str]] = None
+) -> str:
     fields_to_extract = [
         "brand",
         "ad_objective",
@@ -720,7 +829,8 @@ async def campaign_performance(filtered_data: SearchResult, query: str, conversa
     essential_data = extract_specific_fields(filtered_data, fields_to_extract, full_data_fields_to_extract)
 
     system_prompt = load_prompt("campaign_performance_with_formatter")
-
+    if past_vector_names:
+        system_prompt += f"\nPrioritize past vectors that were used for the previous queries which are listed as follows:{', '.join(past_vector_names)}"
     # logger.debug("Campaign performance inputs: ",str(query)+str(system_prompt)+str(essential_data))
     # print("Extracted data campaign performance:",essential_data)
     raw_response = await generate_response(
@@ -731,15 +841,15 @@ async def campaign_performance(filtered_data: SearchResult, query: str, conversa
         # response_class=CampaignPerformanceReport,
         max_tokens=4000
     )
-    print(f"Campaign Performance Raw text:{raw_response}")
+    # print(f"Campaign Performance Raw text:{raw_response}")
     return raw_response
 
 @timer_decorator
-async def analysis_of_trends(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload]) -> str:
+async def analysis_of_trends(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload], past_vector_names: Optional[List[str]] = None) -> str:
     tasks = [
-        perform_analysis(filtered_data, query, conversation_history, "analysis_of_trends_one", AnalysisOfTrendsOne, "formatter_analysis_of_trends_first"),
-        perform_analysis(filtered_data, query, conversation_history, "analysis_of_trends_two", AnalysisOfTrendsTwo, "formatter_analysis_of_trends_other"),
-        perform_analysis(filtered_data, query, conversation_history, "analysis_of_trends_three", AnalysisOfTrendsThree, "formatter_analysis_of_trends_other")
+        perform_analysis(filtered_data, query, conversation_history, "analysis_of_trends_one", AnalysisOfTrendsOne, "formatter_analysis_of_trends_first",past_vector_names),
+        perform_analysis(filtered_data, query, conversation_history, "analysis_of_trends_two", AnalysisOfTrendsTwo, "formatter_analysis_of_trends_other",past_vector_names),
+        perform_analysis(filtered_data, query, conversation_history, "analysis_of_trends_three", AnalysisOfTrendsThree, "formatter_analysis_of_trends_other",past_vector_names)
     ]
     raw_responses = await asyncio.gather(*tasks)
     return "\n".join(raw_responses)
@@ -751,7 +861,8 @@ async def perform_analysis(
     conversation_history: List[ConversationPayload],
     prompt_name: str,
     response_class: type,
-    formatter_name: str
+    formatter_name: str,
+    past_vector_names: Optional[List[str]] = None
 ) -> str:
     fields_to_extract = [
         "brand", "industry", "ad_objective", "tone_mood", "duration(days)", "duration_category",
@@ -765,7 +876,9 @@ async def perform_analysis(
     essential_data = extract_specific_fields(filtered_data, fields_to_extract, full_data_fields_to_extract)
     # Load prompt
     system_prompt = load_prompt(prompt_name)
-    
+    if past_vector_names:
+        system_prompt += f"\nPrioritize past vectors that were used for the previous queries which are listed as follows:{', '.join(past_vector_names)}"
+
     # Generate response
     raw_response = await generate_response(
         query=query,
@@ -775,11 +888,11 @@ async def perform_analysis(
         response_class=response_class
     )
     # Format the response
-    print(f"Analysis of Trends Raw text:{raw_response}")
+    # print(f"Analysis of Trends Raw text:{raw_response}")
     return await formatter(raw_response, formatter_name)
 
 @timer_decorator
-async def creative_insights(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload]) -> str:
+async def creative_insights(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload], past_vector_names: Optional[List[str]] = None) -> str:
     fields_to_extract = [
         "brand",
         "ad_objective",
@@ -806,12 +919,13 @@ async def creative_insights(filtered_data: SearchResult, query: str, conversatio
     ]
     # Assuming extract_specific_fields is a quick operation, keep it synchronous
     essential_data = extract_specific_fields(filtered_data, fields_to_extract, full_data_fields_to_extract)
-
     # Assuming load_prompt is a quick operation, keep it synchronous
     system_prompt = load_prompt("creative_insights")
     
     # print(f"creative insight Input:{essential_data}; prompt: {system_prompt};Conversation:{conversation_history},response_class:{CreativeInsightsReport},query:{query}")
-    
+    if past_vector_names:
+        system_prompt += f"\nPrioritize past vectors that were used for the previous queries which are listed as follows:{', '.join(past_vector_names)}"
+    # print("Essential data:",essential_data)
     # Use the async version of generate_response
     raw_response = await generate_response(
         query=query,
@@ -821,8 +935,10 @@ async def creative_insights(filtered_data: SearchResult, query: str, conversatio
         response_class=CreativeInsightsReport
     )
   #  logger.debug(f"Creative Insights Raw: {raw_response}")
-    print(f"Creative insights raw_response: {raw_response}")
-    formatted_response = await formatter(raw_response, "formatter_creative_insights_v1")
+    # print(f"Creative insights raw_response: {raw_response}")
+    formatted_response = formatter_for_creative_insight(json.loads(raw_response))
+    # formatted_response = await formatter(raw_response, "formatter_creative_insights_v2")
+    # print("Formatted response:",formatted_response)
     return formatted_response
     
 # @timer_decorator
@@ -976,20 +1092,20 @@ def get_url_for_hash(hash, extension):
     directory_structure = f"{hash[:2]}/{hash[2:4]}/{hash}"
     return f"{base_url}/{directory_structure}.{extension}"
 # @timer_decorator 
-def get_extension_for_hash(hash):
-    # Use forward slashes for cross-platform compatibility
-    base_path = "static/images"  # Change to your actual path
-    extensions = ['jpg', 'mov', 'png', 'gif', 'mp4']
-    # Construct the directory structure using os.path.join
-    directory_structure = os.path.join(base_path, hash[:2], hash[2:4])
-    for ext in extensions:
-        file_path = os.path.join(directory_structure, f"{hash}.{ext}")
-        file_path = os.path.normpath(file_path)  # Normalize the path
-        # print(f"Checking: {file_path}")  # Debug line
-        if os.path.isfile(file_path):
-            return ext
+# def get_extension_for_hash(hash):
+#     # Use forward slashes for cross-platform compatibility
+#     base_path = "static/images"  # Change to your actual path
+#     extensions = ['jpg', 'mov', 'png', 'gif', 'mp4']
+#     # Construct the directory structure using os.path.join
+#     directory_structure = os.path.join(base_path, hash[:2], hash[2:4])
+#     for ext in extensions:
+#         file_path = os.path.join(directory_structure, f"{hash}.{ext}")
+#         file_path = os.path.normpath(file_path)  # Normalize the path
+#         # print(f"Checking: {file_path}")  # Debug line
+#         if os.path.isfile(file_path):
+#             return ext
 
-    return "unknown"  # or raise an exception if preferred
+#     return "unknown"  # or raise an exception if preferred
 
 def remove_markdown_prefix(s):
     s = re.sub(r'```markdown', '', s)
@@ -1007,7 +1123,7 @@ def format_conversation_payload(conversation_payload: List[ConversationPayload])
         formatted_history += f"{actor}: {content}\n"
     return formatted_history.strip()
 
-async def generate_related_queries(intent_data: dict, conversation_history: List[ConversationPayload],user_query:str) -> List[str]:
+async def generate_related_queries(intent_data: dict, conversation_history: List[ConversationPayload],user_query:str,prompt_file:str,non_empty_fields:List[str]=None,past_vector_names:List[str]=None) -> List[str]:
     """
     Generates related queries based on the intent data and previous user queries.
     
@@ -1019,8 +1135,16 @@ async def generate_related_queries(intent_data: dict, conversation_history: List
         List[str]: A list of related queries.
     """
     # Load the prompt for generating related queries
-    prompt = load_prompt("related_queries_v2")
+    if non_empty_fields and past_vector_names:
+        prompt = load_prompt(prompt_file).format(str(non_empty_fields),str(past_vector_names))
+    elif non_empty_fields:
+        prompt = load_prompt(prompt_file).format(str(non_empty_fields),"")
+    elif past_vector_names:
+        prompt = load_prompt(prompt_file).format("",str(past_vector_names))
+    else:
+        prompt = load_prompt(prompt_file)
     
+    # print("Related Queries Prompt:",prompt)
     OUTCOME_MAPPING = {
     1: "Media Plan - Can create/generate a media plan for a product",
     2: "Analysis of Trends",
@@ -1047,11 +1171,12 @@ async def generate_related_queries(intent_data: dict, conversation_history: List
     # Call the LLM with the prompt and input data
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[{"role": "system", "content": prompt}, {"role": "user", "content": str(input_data)}],
             max_tokens=200  # Adjust max tokens as needed
         )
         related_queries = response.choices[0].message.content.strip().split('\n')
+        # print("Related Queries Output:",related_queries)
         return related_queries
     except Exception as e:
         logger.error(f"Error generating related queries: {e}")
@@ -1061,6 +1186,37 @@ async def generate_related_queries(intent_data: dict, conversation_history: List
 # @timer_decorator
 async def perform_inference(inference_payload: InferencePayload):
     try:
+        user_id = inference_payload.user_id  # Assuming user_id is part of the payload
+        session_id = inference_payload.session_id  # Assuming session_id is part of the payload
+        cache_key = f"{user_id}:{session_id}"
+        try:
+            cache_control = CacheControl()
+        except Exception as e:
+            yield{"response":"Error initializing cache control. Please try again later."}
+            return
+        media_plan_output = ""
+        creative_insights_output = ""
+        campaign_performance_output = ""
+        general_response_string = ""
+        creative_data = []
+        vector_data = []
+        past_topics = []
+        filtered_data = None
+        related_prompt_file = "related_queries_general" # Default prompt file for related queries
+        existing_data_json = cache_control.get(cache_key)
+        existing_data = json.loads(existing_data_json) if existing_data_json else []
+
+        # cached_message_data = cache_control.get(cache_key)
+        # if cached_message_data:
+        #     message_data = MessageData.parse_obj(cached_message_data)
+
+        # if  cached_contexts:
+        #     contexts = json.loads(cached_contexts)
+        #     for context in contexts:
+        #         # Need a function here to check if the context is still valid
+        #         # Then based on the context, either return the cached context or search for new data.
+        #         print("Hi")
+        # else:
         threshold = 3
         conversation_history = inference_payload.conversation_payload or []
 
@@ -1071,22 +1227,36 @@ async def perform_inference(inference_payload: InferencePayload):
             intent_data = determine_intent(user_query=user_query, conversation_history=conversation_history, prompt_file="intention", creative_provided=True)
         else:
             intent_data = determine_intent(user_query=user_query, conversation_history=conversation_history, prompt_file="intention", creative_provided=False)
+        
         required_outcomes = intent_data.get('required_outcomes', [11])
         unrelated_query = intent_data.get('unrelated_query', False)  
         parameters = intent_data.get('parameters', {}) 
         enhanced_query = intent_data.get('enhanced_query', user_query) 
         vector_search = intent_data.get('vector_search', False) 
-        # enhanced_query = inference_payload.query
-        # if vector_search:
-        #     print("generatin enhanced query")
-        # enhanced_query = await enhance_query(inference_payload.query,conversation_history)
+        
+        # Extract all of the previous the topics from the redis session data.
+        if 11 not in required_outcomes:
+            past_topics = [session['topic'] for session in existing_data if 'topic' in session]
+            # print("Existing Data:",existing_data)
+            # print("Past Topics:",past_topics)
 
+        current_topic = await topic_extractor(past_topics,enhanced_query)
+        # print("Current Topic:",current_topic)  
+        non_empty_fields = check_non_empty_fields_for_topic(existing_data, current_topic)
+        # print(f"Non-empty fields for topic '{current_topic}': {non_empty_fields}")
+        # Edit the past_vector_names so that it doesn't get duplicated in the output.
+        past_vectors = get_past_vectors_for_topic(existing_data,current_topic)
+        past_vector_names = ["brand: "+vector['brand']+" industry: "+vector['industry'] for vector in past_vectors]
+        past_vector_names = list(set(past_vector_names))
+        # logger.info("Current Topic:",current_topic)   
+        
+        # if past_vector_names:
+            # print("Past Vectors used:",past_vector_names)
         logger.info("Intent Agent Output:",intent_data)
         print("Intent Extracted:\n", "Query:",enhanced_query,"\nRequired Outcomes",required_outcomes,"\nvector_search:",vector_search)
         print(intent_data)
         if unrelated_query:
             conversation_history = ""
-
         # Irrelevant Questions
         if 11 in required_outcomes:
             yield {"response": "I specialize in media marketing campaigns plan generation and historical data insights. Is there anything related to media campaigns that I can assist you with?\n"}
@@ -1095,11 +1265,15 @@ async def perform_inference(inference_payload: InferencePayload):
         if 9 in required_outcomes:
             follow_up_message = intent_data.get('follow_up', 'Could you explain your query further') 
             yield {"response":follow_up_message}
+            general_response_string += follow_up_message
         # Creative Feedback - Constructive Feedback based on provided Creative
         if 8 in required_outcomes:
             result = ideate_to_create_without_rag(user_query, inference_payload.creative, conversation_history)
             result = replace_hash_with_url(remove_markdown_prefix(result))
-            yield {"response": result}        
+            yield {"response": result}      
+            general_response_string += result
+            related_prompt_fle = "related_queries_general"
+                                
         # Uploaded Creative Trends analysis 
         if 6 in required_outcomes:
             result = ideate_to_create_with_rag(
@@ -1110,6 +1284,8 @@ async def perform_inference(inference_payload: InferencePayload):
             )
             result = replace_hash_with_url(remove_markdown_prefix(result))
             yield {"response": result}
+            general_response_string += result
+            related_prompt_fle = "related_queries_ideate_to_create_with_rag"
         # Generic queries 
 
         if 10 in required_outcomes:
@@ -1118,7 +1294,8 @@ async def perform_inference(inference_payload: InferencePayload):
                     filtered_data  = search_qdrant(enhanced_query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
                     result = generic_with_creative(user_query=user_query, creative=inference_payload.creative,conversation_history= conversation_history,filtered_data=filtered_data)
                     result = replace_hash_with_url(remove_markdown_prefix(result))
-                    yield {"response": result, "vector_search": str(filtered_data.results)} 
+                    yield {"response": result} 
+                    
                 else:
                     result = generic_with_creative(user_query=user_query, creative=inference_payload.creative, conversation_history=conversation_history)
                     result = replace_hash_with_url(remove_markdown_prefix(result))
@@ -1127,10 +1304,16 @@ async def perform_inference(inference_payload: InferencePayload):
                 if vector_search:
                     filtered_data  = search_qdrant(enhanced_query, conversation_history, parameters, use_vector_search=True, number_of_results= threshold)
                     result = await generic_without_creative(user_query, conversation_history,filtered_data=filtered_data)
-                    yield {"response": f"{result}\n\n", "vector_search": str(filtered_data.results)}
+                    yield {"response": f"{result}\n\n"}
                 else:
                     result = await generic_without_creative(user_query, conversation_history)
                     yield {"response": f"{result}\n\n"}
+            general_response_string += result
+                    
+            related_prompt_fle = "related_queries_general"
+            related_queries = await generate_related_queries(intent_data,conversation_history,user_query,prompt_file=related_prompt_fle)
+            yield {"related_queries": related_queries}
+
 
         if any(num in required_outcomes for num in [1, 2, 3, 4, 5]):
             filtered_data = search_qdrant(enhanced_query, conversation_history, parameters, False, 10)          
@@ -1156,30 +1339,48 @@ async def perform_inference(inference_payload: InferencePayload):
                         if additional_result.id not in currently_present_ids:
                             filtered_data.results.append(additional_result)
                             filtered_data.total += 1
+
+
+            
+            vector_data = {ad_creative.id: ad_creative.dict() for ad_creative in filtered_data.results}  # Use a dictionary to avoid duplicates
+
+            for past_vector in past_vectors:
+                vector_data[past_vector['id']] = past_vector  # Assuming past_vector has an 'id' field
+            # Convert back to a list
+            vector_data = list(vector_data.values())
+            filtered_data_with_past_vectors = SearchResult(results=[AdCreative(**data) for data in vector_data], total=len(vector_data))
             output_parts = OrderedDict()
             ordered_keys = ["media_plan", "analysis_of_trends", "campaign_performance", "creative_insights", "performance_summary"]
 
-            if filtered_data.results:
-                print("Returning vector search: ",filtered_data)
-                yield {"vector_search": str(filtered_data.results)   }
-
             for outcome in required_outcomes:
                 if outcome == 1:  # Specifically call media_plan
-                    async for chunk in media_plan(filtered_data, enhanced_query, conversation_history):
-                        yield {"response": chunk}
-                    related_queries = await generate_related_queries(intent_data,conversation_history,user_query)
-                    # print("Related Queries:",related_queries)
-                    yield {"related_queries": related_queries}  
+                    async for chunk in media_plan(filtered_data_with_past_vectors, enhanced_query, conversation_history,past_vector_names):
+                        if chunk:
+                            yield {"response": chunk}
+                            media_plan_output += chunk
+                    # related_queries = await generate_related_queries(intent_data,conversation_history,user_query)
+                    # # print("Related Queries:",related_queries)
+                    # yield {"related_queries": related_queries}
+
                 elif outcome in [2,3,4]:
                     insight_function = await get_insight_function(outcome)
                 #  logger.debug(f"Insight function:{insight_function}  Filtred data:{filtered_data}")
-                    result = await insight_function(filtered_data, enhanced_query, conversation_history)
+                    result = await insight_function(filtered_data_with_past_vectors, enhanced_query, conversation_history)
                 #  logger.debug(f"Before:{result}")
                     result = replace_hash_with_url(remove_markdown_prefix(result))
-                    print("After",result)
+                    if outcome == 2:
+                        general_response_string += result
+                    elif outcome == 3:
+                        campaign_performance_output += result
+                    elif outcome == 4:
+                        creative_insights_output += result
+                    # print("After",result)
                     output_parts[ordered_keys[outcome - 1]] = result
                 #  logger.debug(f"Completed outcome {outcome}: {result}")
                     yield {"response": result}  # Stream response
+                    # related_queries = await generate_related_queries(intent_data,conversation_history,user_query)
+                    # yield {"related_queries": related_queries}
+
             # Process performance_summary if needed
             if 5 in required_outcomes:
                 performance_summary_result = await performance_summary(enhanced_query, output_parts)
@@ -1187,6 +1388,8 @@ async def perform_inference(inference_payload: InferencePayload):
                 output_parts["performance_summary"] = performance_summary_result
                 yield {"response": f"{performance_summary_result}\n\n"}
                 # Creative Inspiration - generate images or creatives 
+            
+            
 
         if 7 in required_outcomes:
             if inference_payload.creative:
@@ -1195,7 +1398,47 @@ async def perform_inference(inference_payload: InferencePayload):
                 result = await creative_inspiration_with_generation(enhanced_query=enhanced_query,conversation_history= conversation_history, vector_search=vector_search)
             # result = replace_hash_with_url(remove_markdown_prefix(result))
             # print("returning image:",result)
-            yield {"response": result}
+            if result:
+                yield {"response": result}
+                creative_data.append(result)
+                related_prompt_file = "related_queries_generate_advertisement"
+
+
+        if 1 in required_outcomes:
+            related_prompt_file = "related_queries_media_plan_v2"
+        elif 2 in required_outcomes:
+            related_prompt_file = "related_queries_overall_trends"
+        elif 3 in required_outcomes and 4 in required_outcomes:
+            related_prompt_file = "related_queries_general"
+        elif 3 in required_outcomes:
+            related_prompt_file = "related_queries_campaign_performance"
+        elif 4 in required_outcomes:
+            related_prompt_file = "related_queries_creative_insights"
+        # Generate related queries only if the outcome is not 9 or 11.
+        if 9 not in required_outcomes and 11 not in required_outcomes:
+            if past_vector_names and non_empty_fields:
+                related_queries = await generate_related_queries(intent_data,conversation_history,user_query,prompt_file=related_prompt_file, non_empty_fields=non_empty_fields, past_vector_names=past_vector_names)
+            elif past_vector_names:
+                related_queries = await generate_related_queries(intent_data,conversation_history,user_query,prompt_file=related_prompt_file, past_vector_names=past_vector_names)
+            elif non_empty_fields:
+                related_queries = await generate_related_queries(intent_data,conversation_history,user_query,prompt_file=related_prompt_file, non_empty_fields=non_empty_fields)
+            else:
+                related_queries = await generate_related_queries(intent_data,conversation_history,user_query,prompt_file=related_prompt_file)
+            yield {"related_queries": related_queries}
+        session_data = {
+            "topic": current_topic,  # Extract the topic
+            "message_query": user_query,
+            "enhanced_query": enhanced_query,
+            "vector_data": vector_data,  # Handle potential absence
+            "creative_data": [],  # Placeholder for future use
+            "media_plan_output": media_plan_output,
+            "creative_insights_output": creative_insights_output,
+            "campaign_performance_output": campaign_performance_output,
+            "general_response_string": general_response_string,
+        }
+
+        existing_data.append(session_data)
+        cache_control.setex(cache_key, 500, json.dumps(existing_data))  # 
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
