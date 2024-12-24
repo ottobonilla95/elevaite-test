@@ -223,7 +223,7 @@ export function getApplications(
           description: "Your guide for precise Networking and Communication Answers!",
           iconAlt: ApplicationIcons.applications.aleSupport.alt,
           title: "ALE - Tech Chat Support",
-          link: appLinks.complianceSupport[env],
+          link: appLinks.aleSupport[env],
           id: "aleSupport",
           miscLabel: "Version 1.0",
           subtitle: "By Elevaite",
