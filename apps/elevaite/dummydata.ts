@@ -97,8 +97,8 @@ const appLinks: Record<string, { development: string; production: string; test: 
     test: "",
   },
   aleSupport: {
-    development: "https://elevaite-alcb-api.iopex.ai",
-    production: "https://elevaite-alcb-api.iopex.ai",
+    development: "https://elevaite-alcb.iopex.ai",
+    production: "https://elevaite-alcb.iopex.ai",
     test: "",
   },
   supportBot: {
