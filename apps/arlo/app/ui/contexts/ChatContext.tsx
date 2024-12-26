@@ -1,7 +1,7 @@
 "use client";
 import { useSession } from "next-auth/react";
 import { createContext, useContext, useEffect, useState, } from "react";
-import {changeCaseID, fetchChatbotResponse, fetchSessionSummary} from "../../lib/actions";
+import {changeCaseID, fetchChatbotResponse, fetchSessionSummary, logOut} from "../../lib/actions";
 import type {
   ChatBotGenAI,
   ChatBotPayload,
@@ -206,7 +206,10 @@ export function ChatContextProvider(
   }, [sessions.length]);
 
   function addNewSession(): void {
-    // Find highest id
+
+    const username = session.data?.user?.name ?? "Unknown"
+    if (username==="Unknown")
+    {logOut();}
       const sessionIdNumbersList = sessions.map((item) =>
       Number(item.label.slice(SESSION_LABEL_PREFIX.length))
     );
@@ -226,6 +229,7 @@ export function ChatContextProvider(
         chatFlow: "welcome",
         welcomeFlow: "chat",
         opexData: [],
+        userName: session.data?.user?.name ?? "Unknown",
     };
     // Add it to the list
     setSessions((currentSessions) => [...currentSessions, newSession]);
@@ -293,7 +297,7 @@ export function ChatContextProvider(
       id: newId,
       date: new Date().toISOString(),
       isBot: false,
-      userName: session.data?.user?.name ?? "You",
+      userName: selectedSession.userName ?? "Unknown",
       text: messageText,
       queryID: "",
     };
@@ -695,7 +699,7 @@ const wrappedProcessSFChat = (message: string): void => {
     if (!selectedSession) return;
     const textToSummarize = inputValue?.trim();
     if (!textToSummarize) return;
-    const userId = session.data?.user?.name ?? "Unknown User";
+    const userId = selectedSession.userName ?? "Unknown User";
     // console.log("User ID:",userId);
     setRecentSummary("Loading summary...");
     const response = await fetch(BACKEND_URL + 'summary', {
@@ -720,7 +724,7 @@ const wrappedProcessSFChat = (message: string): void => {
     if (!selectedSession) return;
     if (!selectedSession.summary) return;
     if (number !== 1 && number !== -1) return;
-    const userId = session.data?.user?.name ?? "Unknown User";
+    const userId = selectedSession.userName ?? "Unknown User";
     setRecentSummaryVote(number);
     // console.log("User ID:",userId);
     // console.log("Selected session:",selectedSession);
@@ -795,7 +799,7 @@ const wrappedProcessSFChat = (message: string): void => {
         date: new Date().toISOString(),
         isBot: false,
         queryID: "",
-        userName: session.data?.user?.name ?? "You",
+        userName: selectedSession.userName ?? "Unknown",
         text: "Processing Salesforce Case",
     };
 
@@ -869,6 +873,11 @@ setIsChatLoading(false);
   async function addNewUserMessageWithLastMessages(messageText: string): Promise<void> {
     const MAX_PAYLOAD_HISTORY = 20;
     if (!messageText || !selectedSession) return;
+
+    if (selectedSession.messages.length<=1) {
+      selectedSession.userName = session.data?.user?.name ?? "Unknown";
+    }
+
     // console.log("Selected Session after pasted chat:");
     // console.log(JSON.parse(JSON.stringify(selectedSession)));
     // console.log("Selected Session end pasted chat:");
@@ -890,7 +899,7 @@ setIsChatLoading(false);
         date: new Date().toISOString(),
         isBot: false,
         queryID: "",
-        userName: session.data?.user?.name ?? "You",
+        userName: selectedSession.userName ?? "Unknown",
         text: selectedSession.welcomeFlow ==="pasteChat" ? "Processing Pasted Chat": messageText
     };
 

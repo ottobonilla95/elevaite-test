@@ -100,6 +100,7 @@ export interface SessionObject {
     opexData?: OpexData[];
     sfData?: SFData[];
     caseIdSF?: string;
+    userName?: string;
 }
 
 export interface SessionSummaryObject {
