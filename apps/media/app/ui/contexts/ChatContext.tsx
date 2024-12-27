@@ -434,7 +434,7 @@ export function ChatContextProvider(
     const userId = session.data?.user?.name ?? "Unknown User";
     // console.log("USER_ID:",userId,"Session_ID:",selectedSession.id);
     // Fetching with streaming
-    const response = await fetch("http://127.0.0.1:8000/", {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_MEDIA_BACKEND_URL}`, {
       method: 'POST',
       headers: {
           'Accept': 'text/event-stream',

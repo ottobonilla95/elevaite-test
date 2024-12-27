@@ -7,7 +7,7 @@
   "arlo": {
     "NEXT_PUBLIC_BACKEND_URL": "http://localhost:9005/",
     "ARLO_BACKEND_URL": "http://127.0.0.1:8000/",
-    "MEDIA_BACKEND_URL": "http://127.0.0.1:8000/"
+    "NEXT_PUBLIC_MEDIA_BACKEND_URL": "http://127.0.0.1:8000/"
   },
   "auth": {
     "NEXT_PUBLIC_BACKEND_URL": "http://localhost:8000/",
@@ -38,6 +38,6 @@
   },
   "media": {
     "NEXT_PUBLIC_BACKEND_URL": "http://localhost:9005/",
-    "MEDIA_BACKEND_URL": "http://127.0.0.1:8000/"
+    "NEXT_PUBLIC_MEDIA_BACKEND_URL": "http://127.0.0.1:8000/"
   }
 }

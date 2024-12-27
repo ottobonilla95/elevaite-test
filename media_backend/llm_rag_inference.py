@@ -934,12 +934,17 @@ async def creative_insights(filtered_data: SearchResult, query: str, conversatio
         conversation_history=conversation_history,
         response_class=CreativeInsightsReport
     )
+
   #  logger.debug(f"Creative Insights Raw: {raw_response}")
-    # print(f"Creative insights raw_response: {raw_response}")
-    formatted_response = formatter_for_creative_insight(json.loads(raw_response))
+    print(f"Creative insights raw_response: {raw_response}")
+
+    if json.loads(raw_response).get("creatives") is None:
+        response = await generate_response(query=query,system_prompt=load_prompt("no_creative_insight_data"),conversation_history=conversation_history)
+    else:
+        response = formatter_for_creative_insight(json.loads(raw_response))
     # formatted_response = await formatter(raw_response, "formatter_creative_insights_v2")
     # print("Formatted response:",formatted_response)
-    return formatted_response
+    return response
     
 # @timer_decorator
 # async def creative_insights(filtered_data: SearchResult, query: str, conversation_history: List[ConversationPayload]) -> str:

@@ -11,12 +11,13 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 import httpx
+import os
 import base64
 
 app = FastAPI()
 
 origins = [
-    "http://localhost:3004",  # Your frontend URL
+    origin.strip() for origin in os.getenv("ORIGINS_FRONT_END_URLS", "").split(",") if origin.strip()
 ]
 
 app.add_middleware(
