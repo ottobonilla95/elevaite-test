@@ -1,13 +1,40 @@
-FROM python:3.11-alpine
-RUN mkdir elevaite
+FROM python:3.11-buster as builder
+
+RUN pip install poetry
+
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
+
 WORKDIR /elevaite
-RUN pip3 install poetry
-RUN poetry config virtualenvs.create false
-RUN pip install --no-cache-dir --upgrade uvicorn==0.23.2
-# Install dependencies
-COPY . .
-WORKDIR /elevaite/etl
-RUN poetry install
+COPY elevaitedblib ./elevaitedblib
+COPY elevaite_client  ./elevaite_client
+COPY rbac-lib ./rbac-lib
+
+WORKDIR /elevaite/app
+COPY ./etl/pyproject.toml ./etl/poetry.lock ./
+RUN touch README.md
+
+RUN ls -la
+
+RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --no-root
+
+FROM python:3.11-slim-buster as runtime
+
+ENV VIRTUAL_ENV=/elevaite/app/.venv \
+    PATH="/elevaite/app/.venv/bin:$PATH"
+
+COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+
+WORKDIR /elevaite
+COPY elevaitedblib ./elevaitedblib
+COPY elevaite_client  ./elevaite_client
+COPY rbac-lib ./rbac-lib
+
+COPY ./etl/app ./app
+COPY ./etl/pyproject.toml ./etl/poetry.lock ./elevaitedblib ./elevaite_client ./rbac-lib ./
+
 
 
 EXPOSE 9004
