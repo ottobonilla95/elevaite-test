@@ -68,7 +68,15 @@ export function ChatbotWindow(): JSX.Element {
             {isSmallWindowOpen ? <SmallWindow onClose={handleSmallWindowClose} /> : null}
 
 
-            <div className="chatbot-window-header">
+                        <div className="chatbot-window-header">
+                {!chatContext.selectedSession?.caseID && <span>{chatContext.selectedSession?.label}</span>}
+                {chatContext.selectedSession?.caseID && <span>Transcript ID: {chatContext.selectedSession?.caseID}</span>}
+                <div className="spacer"/>
+                <input className={"case-id-input"}
+                    onKeyDown={(e) => { if (e.key === "Enter") { handleCaseIdChange((e.target as HTMLInputElement).value); e.currentTarget.value = ""; }}}
+                    defaultValue={""}
+                       placeholder={"Enter Transcript ID"}
+                />
 
                 <div className="spacer"/>
                 <div className="summarize-button">

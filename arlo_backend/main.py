@@ -1,5 +1,7 @@
 import os
 from starlette.middleware.cors import CORSMiddleware
+import redis
+from arlo_modules.config.settings import PromptsDict
 from data_models import ChatRequestWithQueryId, SummaryInputModel, SummaryRequest
 from arlo_modules.config.settings import Prompts
 from arlo_bot import chat_service, web_search_service, ds_rag_service, craft_query, web_summarize_service, kb_summarize_service
@@ -34,6 +36,32 @@ origins = [
 
 
 app = FastAPI(title="Arlo AI Chatbot API")
+
+
+def get_prompt(prompt_id, user_id=""):
+    prompt = ""
+    # Todo: add playground mode that injects a prompt but production always gets the published prompt.
+    # Todo: auto run evaluation tests in playground mode.
+    if user_id.lower() == "kartikey jajoo" or user_id.lower() == "somansh budhwar":
+        try:
+            prompt = get_latest_prompt_from_redis(prompt_id)
+            print("Prompt from redis KKJ: ", prompt)
+            prompt = prompt if prompt else PromptsDict.prompts[prompt_id]
+            print("In KKJ mode")
+        except:
+            prompt =  PromptsDict.prompts[prompt_id]
+            print("In Default mode")
+    else:
+        try:
+            prompt =  get_published_prompt_from_redis(prompt_id)
+            print("Prompt from redis: ", prompt)
+            prompt = prompt if prompt else PromptsDict.prompts[prompt_id]
+            print("In PUB mode")
+        except:
+            prompt =  PromptsDict.prompts[prompt_id]
+            print("In DefPUB mode")
+    print("Prompt: ", prompt[:50])
+    return prompt
 
 class GradioInterface:
     def __init__(self, app, chat_service, knowledge_service, web_search_service, ds_rag_service, streaming=True):
@@ -95,7 +123,7 @@ class GradioInterface:
         chat_display = []
         chat_history = []
         url_refs = []
-        self.prompt_box = Prompts.VERIFICATION_SYSTEM_PROMPT
+        self.prompt_box = get_prompt("VERIFICATION_PROMPT", user_id)
 
         solution_start_time = datetime.datetime.now()
         solution = "".join(response for response in self.chat_service(
@@ -156,7 +184,7 @@ class GradioInterface:
         chat_display = []
         chat_history = []
         url_refs = []
-        self.prompt_box = Prompts.VERIFICATION_SYSTEM_PROMPT_SF
+        self.prompt_box = get_prompt("VERIFICATION_SYSTEM_PROMPT_SF", user_id)
 
         solution_start_time = datetime.datetime.now()
         solution = "".join(response for response in self.chat_service(
@@ -230,7 +258,7 @@ class GradioInterface:
             step_input_label="User Query",
             step_output_label="Crafted Query",
             step_input=message,
-            step_output=next(craft_query(message, chat_display))
+            step_output=next(craft_query(query=message, chats=chat_display, prompt=get_prompt("CRAFT_QUERY_PROMPT", user_id)))
         )
 
         print("Crafted Query Step time: ",  datetime.datetime.now() - begin_time)
@@ -254,17 +282,19 @@ class GradioInterface:
 
         print("Crafted Query: ", crafted_query)
 
-        if intent in ["troubleshooting", "installation", "probing", "follow-up"]:
-            self.prompt_box = Prompts.DEFAULT_SYSTEM_PROMPT_SHORT
+        if intent in ["follow-up"]:
+            self.prompt_box = get_prompt("DEFAULT_SYSTEM_PROMPT_SHORT", user_id)
+        elif intent == ["troubleshooting","probing","installation"]:
+            self.prompt_box = get_prompt("PROBING_PROMPT", user_id)
         else:
-            self.prompt_box = Prompts.DEFAULT_SYSTEM_PROMPT
+            self.prompt_box = get_prompt("DEFAULT_SYSTEM_PROMPT",user_id)
 
-        if intent in ["greeting","probing"]  or crafted_query=="":
+        if intent in ["greeting"]  or crafted_query=="":
             fetched_knowledge = ""
             response_start_time = datetime.datetime.now()
             solution = "".join(response for response in self.chat_service(
                 message, fetched_knowledge, chat_history, streaming=self.streaming,
-                system_prompt=Prompts.GREETING_SYSTEM_PROMPT if intent=="greeting" else "Ask the user about their product name or issue they are facing, whichever is relevant to the conversation.",
+                system_prompt= get_prompt("GREETING_SYSTEM_PROMPT", user_id) if intent=="greeting" else "Ask the user about their product name or issue they are facing, whichever is relevant to the conversation.",
                 qa=False, qa_system_prompt=self.qa_prompt_box
             ))
             chat_display.append({"role": "assistant", "content": solution})
@@ -290,16 +320,7 @@ class GradioInterface:
             kb_refs = []
             url_refs = []
             # fetched_knowledge = r.hget(session_id, "fetched_knowledge")
-            print("Fetched Knowledge from cache follow-up: ", fetched_knowledge[:100])
-            # self.prompt_box = Prompts.DEFAULT_SYSTEM_PROMPT_SHORT
-            # print("Fetching Knowledge\n",fetched_knowledge,"\n"+"-"*50)
-            # print("Chat History\n",chat_history,"\n"+"-"*50)
-
-        # elif in_cache:
-        #     kb_refs = []
-        #     url_refs = []
-        #     fetched_knowledge = r.get(crafted_query.lower())
-        #     print("Fetched Knowledge from cache: ", fetched_knowledge[:100])
+            # print("Fetched Knowledge from cache follow-up: ", fetched_knowledge[:100])
 
         else:
             def get_kb_text():
@@ -431,6 +452,31 @@ gi = GradioInterface(
     ds_rag_service=ds_rag_service,
 )
 
+def get_latest_prompt_from_redis(prompt_id):
+    try:
+        cached_prompt = redis_client.get(prompt_id)
+    except:
+        cached_prompt = None
+
+    if cached_prompt:
+        return cached_prompt
+    elif type(cached_prompt) == bytes:
+        return cached_prompt.decode("utf-8")
+    return None
+
+def get_published_prompt_from_redis(prompt_id):
+    try:
+        cached_prompt = redis_client.get("publish_"+prompt_id)
+    except:
+        cached_prompt = None
+
+    if cached_prompt:
+        return cached_prompt
+    return None
+
+redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"),
+                           db=os.getenv("REDIS_DB"), password=os.getenv("REDIS_PASSWORD"), socket_timeout=3, decode_responses=True)
+
 
 @app.post("/processSFChat", response_model=SFResponse)
 def processSFChat(request: SFChatRequest=Body(...)):
@@ -451,7 +497,7 @@ def processSFChat(request: SFChatRequest=Body(...)):
         }
 
     message = "\n".join([f"{key}: {case_information[key]}" for key in case_information])
-    print(message)
+    # print(message)
 
     response_chat, urls_fetched, extracted_information, verification_message, issue_acknowledgement = gi.process_sf_chat(message, session_id, user_id)
 
@@ -590,11 +636,11 @@ def summarize(request: SummaryRequest=Body(...)):
     text = request.text
     entities = {}
 
-    print(request)
+    # print(request)
 
     more_context = """ """
     start_time = datetime.datetime.now()
-    summary_input = SummaryInputModel(system_prompt=Prompts.SUMMARY_SYSTEM_PROMPT,
+    summary_input = SummaryInputModel(system_prompt=get_prompt("SUMMARY_SYSTEM_PROMPT", user_id),
                                       text=text,
                                       entities=entities,
                                       more_context=more_context,

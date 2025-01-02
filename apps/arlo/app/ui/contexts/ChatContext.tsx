@@ -207,7 +207,7 @@ export function ChatContextProvider(
 
   function addNewSession(): void {
 
-    const username = session.data?.user?.name ?? "Unknown"
+    const username = session.data?.user?.name ?? "Unknown";
     if (username==="Unknown")
     {logOut();}
       const sessionIdNumbersList = sessions.map((item) =>
@@ -229,7 +229,7 @@ export function ChatContextProvider(
         chatFlow: "welcome",
         welcomeFlow: "chat",
         opexData: [],
-        userName: session.data?.user?.name ?? "Unknown",
+        userName: sessions[0].userName ?? "Unknown",
     };
     // Add it to the list
     setSessions((currentSessions) => [...currentSessions, newSession]);

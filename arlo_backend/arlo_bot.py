@@ -48,7 +48,7 @@ def arlo_web_search_processing(urls_fetched):
         fetched_articles += f"Web Result {idx} " + article + '\n\n'
     return fetched_articles
 
-def craft_query(query, chats, llm = LLMService("openai",api_key=Config.OPENAI_API_KEY)):
+def craft_query(query, chats, llm = LLMService("openai",api_key=Config.OPENAI_API_KEY), prompt=Prompts.CRAFT_QUERY_PROMPT):
     chat_history = []
 
     for i in range(len(chats)):
@@ -56,10 +56,9 @@ def craft_query(query, chats, llm = LLMService("openai",api_key=Config.OPENAI_AP
 
     chat_history.append(("User", query))
 
-    query_prompt = (Prompts.CRAFT_QUERY_PROMPT
+    query_prompt = (prompt
                    + "\n\nHere is the chat history: \n" + "\n".join([i[0]+": "+i[1] for i in chat_history])
                     )
-    # print("Query Prompt: ", query_prompt)
 
     for response in llm.generate_query(query_prompt,[]):
         yield response
@@ -98,7 +97,12 @@ def chat_service(query, fetched_articles, chat_history=[], system_prompt="",
         template=system_prompt,
         input_variables=["fetched_knowledge", "history"],
     )
-    system_prompt = prompt.partial(fetched_knowledge=fetched_articles).format()
+
+    try:
+        system_prompt = prompt.partial(fetched_knowledge=fetched_articles).format()
+    except KeyError:
+        system_prompt = prompt.partial().format()
+
 
     if qa==True:
         first_response = ''
