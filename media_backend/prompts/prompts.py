@@ -70,6 +70,7 @@ Show creative insights for related products or industries
 Analyze trends for related products or industries
 Generate a fresh/new advertisement for related products or industries
 Generate an advertisement for related products or industries based on the previous campaigns that performed well
+Compare the current iteration of media plan with a previous one.
 Guidelines:
 
 Exclude categories that have already been addressed in previous queries {}.
@@ -755,7 +756,14 @@ Response:
   "vector_search": False,
   "unrelated_query": False,
   "follow up":"To offer meaningful and relevant insights, I would need more information about:The nature of the plan you're referring to,The context in which this plan was presented ,The goals or objectives of the plan, Any specific areas where you're seeking creative input "
-}""",
+}
+21. Conversation_history: ""
+  User": "Compare the current media plan and the previous plan."
+  Response:{
+  "required_outcomes":[10],
+  "vector_search":False,
+}
+""",
 
        "intention_v2": """You are an AI agent that
  - generates a enhanced query

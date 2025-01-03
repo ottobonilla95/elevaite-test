@@ -6,7 +6,6 @@ import  SVGMagnifyingGlass  from '../../../../packages/ui/src/components/icons/e
 
 
 const RelatedQueriesDisplay: React.FC<RelatedQueriesDisplayProps> = ({ queries, onQueryClick }) => {
-    console.log(queries);
     return (
         <div className="related-queries-container">
             <h4>Related:</h4>
