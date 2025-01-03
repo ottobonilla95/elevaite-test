@@ -76,6 +76,7 @@ Guidelines:
 Exclude categories that have already been addressed in previous queries {}.
 Keep in mind that the previous queries used the following data: {}.
 Tailor the suggestions to the user's specific interests, products, industry, or campaigns mentioned in their previous queries.
+If the user had just made modification to their previous media plan, then suggest a comparison.
 Default Behavior:
 By default, if the user has not specified any industries, campaigns, or products, suggest queries related to the fashion industry.
 Output Format:
@@ -522,7 +523,7 @@ Format "Performance Summary" as a level 2 header(##) and the other subsections a
 
         "generic":"""You are an agent thats in charge of answering miscellaneous questions as part of a media and marketing chatbot. 
 Make use of the previous conversation history and data(if provided) try to answer the users query as best as you can. 
-Format your output in markdown.
+Format your output in markdown. Use tables for clarity when needed - like to compare media plans.
 Feel free to ask follow up questions to the user regarding their query and the conversation history.
 If the data found is not relevant don't use it.""",
 
