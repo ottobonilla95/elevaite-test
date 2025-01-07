@@ -2,7 +2,7 @@ from typing import List
 import uuid
 import tiktoken
 
-from ...connectors.embeddings import bedrock, onprem
+from ...connectors.embeddings import bedrock, onprem, gemini
 from .core.interfaces import EmbeddingType, EmbeddingInfo, EmbeddingResult, ChunkAsJson
 from . import openai, elevaite
 
