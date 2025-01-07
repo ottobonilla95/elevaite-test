@@ -5,6 +5,8 @@ from pydantic import BaseModel
 
 class EmbeddingType(str, Enum):
     OPENAI = "openai"
+    ON_PREM = "on-prem"
+    BEDROCK = "bedrock"
     LOCAL = "local"
     EXTERNAL = "external"
 
@@ -13,7 +15,7 @@ class EmbeddingInfo(BaseModel):
     type: EmbeddingType
     inference_url: Optional[str]
     name: str
-    dimensions: int
+    dimensions: int = 1536  # Default OpenAI dimension
 
 
 class EmbeddingResult(BaseModel):
@@ -21,6 +23,17 @@ class EmbeddingResult(BaseModel):
     vectors: List[List[float]]
     id: str
     token_size: int
+
+
+class EmbeddingRequest(BaseModel):
+    texts: List[str]
+    info: EmbeddingInfo
+    metadata: Dict[str, Any] = {}
+
+
+class EmbeddingResponse(BaseModel):
+    vectors: List[List[float]]
+    metadata: Dict[str, Any] = {}
 
 
 class ChunkAsJson(BaseModel):

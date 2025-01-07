@@ -1,10 +1,10 @@
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import List
 import uuid
-from pydantic import BaseModel
 import tiktoken
+
+from ...connectors.embeddings import bedrock, onprem
+from .core.interfaces import EmbeddingType, EmbeddingInfo, EmbeddingResult, ChunkAsJson
 from . import openai, elevaite
-from .interfaces import EmbeddingType, EmbeddingInfo, EmbeddingResult, ChunkAsJson
 
 
 def get_token_size(content: str) -> int:
@@ -16,9 +16,13 @@ def get_token_size(content: str) -> int:
 def __get_embedder(type: EmbeddingType):
     match type:
         case EmbeddingType.OPENAI:
-            return openai.embed_documents
+            return openai.BaseEmbeddingProvider.embed_documents
+        case EmbeddingType.BEDROCK:
+            return bedrock.BaseEmbeddingProvider.embed_documents
+        case EmbeddingType.ON_PREM:
+            return onprem.BaseEmbeddingProvider.embed_documents
         case EmbeddingType.LOCAL:
-            return elevaite.embed_documents
+            return elevaite.BaseEmbeddingProvider.embed_documents
         case EmbeddingType.EXTERNAL:
             raise NotImplementedError("External embeddings not implemented yet")
         case _:

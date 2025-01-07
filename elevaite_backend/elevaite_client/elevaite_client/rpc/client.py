@@ -1,9 +1,22 @@
 #!/usr/bin/env python
 import json
+import logging
+import os
 from typing import Any, Dict, List, Union
 import pika
 import uuid
+
+from ..connectors.embeddings.core.interfaces import (
+    EmbeddingRequest,
+    EmbeddingResponse,
+    EmbeddingType,
+)
+from ..connectors.embeddings.bedrock import BedrockEmbeddingProvider
+from ..connectors.embeddings.core.class import BaseEmbeddingProvider
+from ..connectors.embeddings.onprem import OnPremLLMEmbeddingProvider
+from ..connectors.embeddings.openai import OpenAIEmbeddingProvider
 from .constants import EXCHANGE_NAME, RPCRoutingKeys
+from .connection import get_rmq_connection
 from .interfaces import (
     CreateDatasetVersionInput,
     GetCollectionNameInput,
@@ -11,14 +24,66 @@ from .interfaces import (
     LogInfo,
     MaxDatasetVersionInput,
     PipelineStepStatusInput,
-    RPCResponse,
     RegisterPipelineInput,
     RepoNameInput,
     SetInstanceChartDataInput,
     SetRedisStatsInput,
     SetRedisValueInput,
 )
-from .connection import get_rmq_connection
+
+
+class EmbeddingRPCService:
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+        # Dynamically initialize providers based on available configurations
+        self.providers: Dict[EmbeddingType, BaseEmbeddingProvider] = (
+            self._initialize_providers()
+        )
+
+    def _initialize_providers(self) -> Dict[EmbeddingType, BaseEmbeddingProvider]:
+        providers = {}
+
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if openai_api_key:
+            providers[EmbeddingType.OPENAI] = OpenAIEmbeddingProvider(
+                api_key=openai_api_key
+            )
+
+        bedrock_region = os.getenv("BEDROCK_REGION")
+        if bedrock_region:
+            providers[EmbeddingType.BEDROCK] = BedrockEmbeddingProvider(
+                aws_region=bedrock_region
+            )
+
+        onprem_model_path = os.getenv("ONPREM_MODEL_PATH")
+        if onprem_model_path:
+            providers[EmbeddingType.ON_PREM] = OnPremLLMEmbeddingProvider(
+                model_path=onprem_model_path
+            )
+
+        if not providers:
+            raise EnvironmentError("No valid embedding providers configured")
+
+        return providers
+
+    def embed(self, request: EmbeddingRequest) -> EmbeddingResponse:
+        try:
+            # Select the provider based on the request type
+            provider = self.providers.get(request.info.type)
+            if not provider:
+                raise ValueError(f"No provider available for type {request.info.type}")
+
+            vectors = provider.embed_documents(request.texts, request.info)
+
+            return EmbeddingResponse(vectors=vectors, metadata=request.metadata)
+
+        except ValueError as ve:
+            self.logger.error(f"Validation error: {ve}")
+            raise ve
+        except Exception as e:
+            self.logger.error(f"Embedding failed: {e}")
+            raise RuntimeError(f"Embedding service encountered an error: {e}")
 
 
 class RPCClient(object):
