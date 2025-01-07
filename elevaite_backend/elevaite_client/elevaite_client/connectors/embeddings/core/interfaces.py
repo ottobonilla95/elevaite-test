@@ -7,6 +7,7 @@ class EmbeddingType(str, Enum):
     OPENAI = "openai"
     ON_PREM = "on-prem"
     BEDROCK = "bedrock"
+    GEMINI = "gemini"
     LOCAL = "local"
     EXTERNAL = "external"
 

@@ -14,6 +14,7 @@ lakefs = "^0.6.2"
 qdrant-client = "^1.9.1"
 tiktoken = "^0.8.0"
 boto3 = "^1.35.91"
+google-generativeai = "^0.8.3"
 
 
 [build-system]
