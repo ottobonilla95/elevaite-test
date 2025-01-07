@@ -2,19 +2,18 @@
 import json
 import logging
 import os
-from typing import Any, Dict, List, Union
 import pika
 import uuid
+from typing import Any, Dict, List, Union
 
+
+from ..connectors import embeddings
+from ..connectors.embeddings.core.abstract import BaseEmbeddingProvider
 from ..connectors.embeddings.core.interfaces import (
+    EmbeddingType,
     EmbeddingRequest,
     EmbeddingResponse,
-    EmbeddingType,
 )
-from ..connectors.embeddings.bedrock import BedrockEmbeddingProvider
-from ..connectors.embeddings.core.class import BaseEmbeddingProvider
-from ..connectors.embeddings.onprem import OnPremLLMEmbeddingProvider
-from ..connectors.embeddings.openai import OpenAIEmbeddingProvider
 from .constants import EXCHANGE_NAME, RPCRoutingKeys
 from .connection import get_rmq_connection
 from .interfaces import (
@@ -32,34 +31,31 @@ from .interfaces import (
 )
 
 
-class EmbeddingRPCService:
-    def __init__(self):
-        self.logger = logging.getLogger(self.__class__.__name__)
+class EmbeddingProviderFactory:
+    """Factory class to initialize embedding providers."""
 
-        # Dynamically initialize providers based on available configurations
-        self.providers: Dict[EmbeddingType, BaseEmbeddingProvider] = (
-            self._initialize_providers()
-        )
-
-    def _initialize_providers(self) -> Dict[EmbeddingType, BaseEmbeddingProvider]:
+    @staticmethod
+    def initialize_providers() -> Dict[EmbeddingType, BaseEmbeddingProvider]:
         providers = {}
 
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if openai_api_key:
-            providers[EmbeddingType.OPENAI] = OpenAIEmbeddingProvider(
+        if openai_api_key := os.getenv("OPENAI_API_KEY"):
+            providers[EmbeddingType.OPENAI] = embeddings.openai.OpenAIEmbeddingProvider(
                 api_key=openai_api_key
             )
 
-        bedrock_region = os.getenv("BEDROCK_REGION")
-        if bedrock_region:
-            providers[EmbeddingType.BEDROCK] = BedrockEmbeddingProvider(
-                aws_region=bedrock_region
+        if bedrock_region := os.getenv("BEDROCK_REGION"):
+            providers[EmbeddingType.BEDROCK] = (
+                embeddings.bedrock.BedrockEmbeddingProvider(aws_region=bedrock_region)
             )
 
-        onprem_model_path = os.getenv("ONPREM_MODEL_PATH")
-        if onprem_model_path:
-            providers[EmbeddingType.ON_PREM] = OnPremLLMEmbeddingProvider(
-                model_path=onprem_model_path
+        if onprem_model_path := os.getenv("ONPREM_MODEL_PATH"):
+            providers[EmbeddingType.ON_PREM] = (
+                embeddings.onprem.OnPremEmbeddingProvider(model_path=onprem_model_path)
+            )
+
+        if gemini_api_key := os.getenv("GEMINI_API_KEY"):
+            providers[EmbeddingType.GEMINI] = embeddings.gemini.GeminiEmbeddingProvider(
+                api_key=gemini_api_key
             )
 
         if not providers:
@@ -67,23 +63,28 @@ class EmbeddingRPCService:
 
         return providers
 
+
+class EmbeddingRPCService:
+    """Service class to handle embedding requests via available providers."""
+
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.providers = EmbeddingProviderFactory.initialize_providers()
+
     def embed(self, request: EmbeddingRequest) -> EmbeddingResponse:
+        provider = self.providers.get(request.info.type)
+        if not provider:
+            error_msg = f"No provider available for type {request.info.type}"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
+
         try:
-            # Select the provider based on the request type
-            provider = self.providers.get(request.info.type)
-            if not provider:
-                raise ValueError(f"No provider available for type {request.info.type}")
-
             vectors = provider.embed_documents(request.texts, request.info)
-
             return EmbeddingResponse(vectors=vectors, metadata=request.metadata)
-
-        except ValueError as ve:
-            self.logger.error(f"Validation error: {ve}")
-            raise ve
         except Exception as e:
-            self.logger.error(f"Embedding failed: {e}")
-            raise RuntimeError(f"Embedding service encountered an error: {e}")
+            error_msg = f"Error in embedding for provider {request.info.type}: {str(e)}"
+            self.logger.error(error_msg)
+            raise RuntimeError(error_msg)
 
 
 class RPCClient(object):

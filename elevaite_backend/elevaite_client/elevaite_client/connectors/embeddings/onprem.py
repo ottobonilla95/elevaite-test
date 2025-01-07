@@ -5,7 +5,7 @@ from .core.abstract import BaseEmbeddingProvider
 from .core.interfaces import EmbeddingInfo, EmbeddingType
 
 
-class OnPremLLMEmbeddingProvider(BaseEmbeddingProvider):
+class OnPremEmbeddingProvider(BaseEmbeddingProvider):
     def __init__(self, model_path: str):
         self.model_path = model_path
 
