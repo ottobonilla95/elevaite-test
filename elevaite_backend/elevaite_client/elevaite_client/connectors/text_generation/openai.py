@@ -22,30 +22,34 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         :param config: Configuration options (e.g., model, temperature, max_tokens).
         :return: Generated text as a string.
         """
-        model = config.get("model", "text-davinci-003")
+        model = config.get("model", "gpt-4o")
         temperature = config.get("temperature", 0.7)
         max_tokens = config.get("max_tokens", 256)
         retries = config.get("retries", 5)
 
         for attempt in range(retries):
             try:
-                response = self.client.completions.create(
-                    model=model,
-                    prompt=prompt,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                )
+                if model.startswith("gpt-"):
+                    response = self.client.chat.completions.create(
+                        model=model,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
+                    return (
+                        response.choices[0].message.content.strip()
+                        if response.choices[0].message.content
+                        else ""
+                    )
 
-                response_dict = dict(
-                    response
-                )  # Safeguard against unexpected structures
-
-                if "choices" in response_dict and len(response_dict["choices"]) > 0:
-                    return response_dict["choices"][0]["text"].strip()
-
-                raise ValueError(
-                    "Invalid response structure: 'choices' key missing or empty"
-                )
+                else:
+                    response = self.client.completions.create(
+                        model=model,
+                        prompt=prompt,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
+                    return response.choices[0].text.strip()
 
             except Exception as e:
                 logging.warning(
@@ -56,6 +60,7 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                         f"Text generation failed after {retries} attempts: {e}"
                     )
                 time.sleep((2**attempt) * 0.5)
+
         return ""
 
     def validate_config(self, config: Dict[str, Any]) -> bool:

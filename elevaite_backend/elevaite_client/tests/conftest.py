@@ -1,7 +1,6 @@
 import os
-
-from dotenv import load_dotenv
 import pytest
+from dotenv import load_dotenv
 
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
