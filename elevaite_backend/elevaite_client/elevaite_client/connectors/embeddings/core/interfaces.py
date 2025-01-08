@@ -4,12 +4,12 @@ from pydantic import BaseModel
 
 
 class EmbeddingType(str, Enum):
-    OPENAI = "openai"
-    ON_PREM = "on-prem"
-    BEDROCK = "bedrock"
-    GEMINI = "gemini"
-    LOCAL = "local"
-    EXTERNAL = "external"
+    OPENAI = "openai_embedding"
+    ON_PREM = "on-prem_embedding"
+    BEDROCK = "bedrock_embedding"
+    GEMINI = "gemini_embedding"
+    LOCAL = "local_embedding"
+    EXTERNAL = "external_embedding"
 
 
 class EmbeddingInfo(BaseModel):
