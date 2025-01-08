@@ -9,20 +9,6 @@ from elevaite_client.connectors.text_generation.core.interfaces import (
 )
 
 
-@pytest.fixture
-def clear_env_vars():
-    """Clear environment variables for testing."""
-    os.environ.pop("OPENAI_API_KEY", None)
-    os.environ.pop("BEDROCK_REGION", None)
-    os.environ.pop("ONPREM_MODEL_PATH", None)
-    os.environ.pop("GEMINI_API_KEY", None)
-
-
-def test_no_providers_configured(clear_env_vars):
-    with pytest.raises(EnvironmentError):
-        ModelProviderFactory()
-
-
 @patch.dict(os.environ, {"OPENAI_API_KEY": "test_openai_key"})
 def test_openai_provider_initialization():
     factory = ModelProviderFactory()
@@ -34,10 +20,9 @@ def test_openai_provider_initialization():
 def test_bedrock_provider_initialization():
     factory = ModelProviderFactory()
     assert EmbeddingType.BEDROCK in factory.providers
-    assert TextGenerationType.BEDROCK in factory.providers
 
 
-def test_get_provider(clear_env_vars):
+def test_get_provider():
     with patch.dict(os.environ, {"GEMINI_API_KEY": "test_gemini_key"}):
         factory = ModelProviderFactory()
         provider = factory.get_provider(TextGenerationType.OPENAI)

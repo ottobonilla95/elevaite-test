@@ -8,20 +8,10 @@ from .core.abstract import BaseTextGenerationProvider
 
 class OpenAITextGenerationProvider(BaseTextGenerationProvider):
     def __init__(self, api_key: str):
-        """
-        Initializes the OpenAI text generation provider.
-        :param api_key: OpenAI API key.
-        """
         openai.api_key = api_key
         self.client = openai
 
     def generate_text(self, prompt: str, config: Dict[str, Any]) -> str:
-        """
-        Generates text using the OpenAI API.
-        :param prompt: The input text prompt.
-        :param config: Configuration options (e.g., model, temperature, max_tokens).
-        :return: Generated text as a string.
-        """
         model = config.get("model", "gpt-4o")
         temperature = config.get("temperature", 0.7)
         max_tokens = config.get("max_tokens", 256)
@@ -64,11 +54,6 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         return ""
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
-        """
-        Validates the configuration for OpenAI text generation.
-        :param config: Configuration options (e.g., model, temperature, max_tokens).
-        :return: True if configuration is valid, False otherwise.
-        """
         try:
             assert isinstance(config, dict), "Config must be a dictionary"
             assert "model" in config, "Model name is required in config"
