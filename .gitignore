@@ -55,3 +55,4 @@ logfile
 .coverage 
 htmlcov
 /media_backend/static/images
+elevaite_backend/elevaite_client/.env.test

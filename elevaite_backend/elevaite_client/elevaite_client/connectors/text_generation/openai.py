@@ -67,6 +67,7 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         try:
             assert isinstance(config, dict), "Config must be a dictionary"
             assert "model" in config, "Model name is required in config"
+            assert isinstance(config.get("model"), str), "Model name must be a string"
             assert isinstance(
                 config.get("temperature", 0.7), (float, int)
             ), "Temperature must be a number"
