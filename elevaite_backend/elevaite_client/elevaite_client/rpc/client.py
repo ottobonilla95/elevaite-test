@@ -65,20 +65,21 @@ class ModelProviderFactory:
             #     text_generation.bedrock.BedrockTextGenerationProvider(aws_region=bedrock_region)
             # )
 
-        if (
-            (onprem_endpoint := os.getenv("ONPREM_ENDPOINT"))
-            and (onprem_user := os.getenv("ONPREM_USER"))
-            and (onprem_secret := os.getenv("ONPREM_SECRET"))
+        if (onprem_user := os.getenv("ONPREM_USER")) and (
+            onprem_secret := os.getenv("ONPREM_SECRET")
         ):
-            self.providers[EmbeddingType.ON_PREM] = (
-                embeddings.onprem.OnPremEmbeddingProvider(model_path=onprem_endpoint)
-            )
-
-            self.providers[TextGenerationType.ON_PREM] = (
-                text_generation.onprem.OnPremTextGenerationProvider(
-                    api_url=onprem_endpoint, secret=onprem_secret, user=onprem_user
+            if onprem_endpoint := os.getenv("ONPREM_EMBED_ENDPOINT"):
+                self.providers[EmbeddingType.ON_PREM] = (
+                    embeddings.onprem.OnPremEmbeddingProvider(
+                        api_url=onprem_endpoint, secret=onprem_secret, user=onprem_user
+                    )
                 )
-            )
+            if onprem_endpoint := os.getenv("ONPREM_TEXTGEN_ENDPOINT"):
+                self.providers[TextGenerationType.ON_PREM] = (
+                    text_generation.onprem.OnPremTextGenerationProvider(
+                        api_url=onprem_endpoint, secret=onprem_secret, user=onprem_user
+                    )
+                )
 
         if gemini_api_key := os.getenv("GEMINI_API_KEY"):
             self.providers[EmbeddingType.GEMINI] = (

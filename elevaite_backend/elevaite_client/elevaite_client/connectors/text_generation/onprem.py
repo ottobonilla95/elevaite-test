@@ -13,7 +13,7 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
     def __init__(self, api_url: str, user: str, secret: str):
         if not all([api_url, user, secret]):
             raise EnvironmentError(
-                "ONPREM_ENDPOINT, ONPREM_USER, and ONPREM_SECRET must be set"
+                "ONPREM_TEXTGEN_ENDPOINT, ONPREM_USER, and ONPREM_SECRET must be set"
             )
 
         self.api_url = api_url
