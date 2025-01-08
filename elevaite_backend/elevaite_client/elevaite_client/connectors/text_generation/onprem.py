@@ -1,9 +1,9 @@
+import base64
 import time
 import logging
 import requests
 import textwrap
 from typing import Dict, Any
-from requests.auth import HTTPBasicAuth
 
 
 from .core.abstract import BaseTextGenerationProvider
@@ -70,6 +70,7 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
         )
 
         custom_generation_args = {
+            "text_inputs": onprem_prompt,
             "max_new_tokens": config.get("max_tokens", 8000),
             "return_full_text": False,
             "temperature": config.get("temperature", 0.01),
@@ -78,12 +79,12 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
 
         headers = {"Content-Type": "application/json"}
 
-        payload = {
-            "inputs": onprem_prompt,
-            "parameters": custom_generation_args,
-        }
+        auth_value = base64.b64encode(f"{self.user}:{self.secret}".encode()).decode(
+            "utf-8"
+        )
+        headers["Authorization"] = f"Basic {auth_value}"
 
-        auth = HTTPBasicAuth(self.user, self.secret)
+        payload = {"kwargs": custom_generation_args}
 
         for attempt in range(retries):
             try:
@@ -94,14 +95,19 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
                     self.api_url,
                     json=payload,
                     headers=headers,
-                    auth=auth,
-                    verify=False,
+                    verify=False,  # FIXME: Disabling SSL verification, for now
                 )
 
                 if response.status_code == 200:
                     data = response.json()
-                    processed_output = data["result"][0]["generated_text"]
-                    return processed_output.strip()
+                    if "result" in data and len(data["result"]) > 0:
+                        processed_output = data["result"][0]["generated_text"]
+                        return processed_output.strip()
+                    else:
+                        logging.error(
+                            "Failed to find the expected 'result' in the response."
+                        )
+                        return ""
                 else:
                     logging.warning(
                         f"Attempt {attempt + 1}/{retries} failed: {response.text}. Retrying..."
