@@ -13,3 +13,8 @@ from elevaite_client.rpc.client import ModelProviderFactory
 @pytest.fixture
 def model_provider_factory():
     return ModelProviderFactory()
+
+
+@pytest.fixture
+def fake_prompt():
+    return "Tell me a joke."

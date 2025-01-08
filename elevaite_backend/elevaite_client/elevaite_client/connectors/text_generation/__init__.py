@@ -1,1 +1,1 @@
-from . import bedrock, gemini, openai
+from . import bedrock, gemini, openai, onprem

@@ -49,6 +49,7 @@ class ModelProviderFactory:
             self.providers[EmbeddingType.OPENAI] = (
                 embeddings.openai.OpenAIEmbeddingProvider(api_key=openai_api_key)
             )
+
             self.providers[TextGenerationType.OPENAI] = (
                 text_generation.openai.OpenAITextGenerationProvider(
                     api_key=openai_api_key
@@ -59,22 +60,31 @@ class ModelProviderFactory:
             self.providers[EmbeddingType.BEDROCK] = (
                 embeddings.bedrock.BedrockEmbeddingProvider(aws_region=bedrock_region)
             )
-            self.providers[TextGenerationType.BEDROCK] = (
-                embeddings.bedrock.BedrockEmbeddingProvider(aws_region=bedrock_region)
+
+            # self.providers[TextGenerationType.BEDROCK] = (
+            #     text_generation.bedrock.BedrockTextGenerationProvider(aws_region=bedrock_region)
+            # )
+
+        if (
+            (onprem_endpoint := os.getenv("ONPREM_ENDPOINT"))
+            and (onprem_user := os.getenv("ONPREM_USER"))
+            and (onprem_secret := os.getenv("ONPREM_SECRET"))
+        ):
+            self.providers[EmbeddingType.ON_PREM] = (
+                embeddings.onprem.OnPremEmbeddingProvider(model_path=onprem_endpoint)
             )
 
-        if onprem_model_path := os.getenv("ONPREM_MODEL_PATH"):
-            self.providers[EmbeddingType.ON_PREM] = (
-                embeddings.onprem.OnPremEmbeddingProvider(model_path=onprem_model_path)
-            )
             self.providers[TextGenerationType.ON_PREM] = (
-                embeddings.onprem.OnPremEmbeddingProvider(model_path=onprem_model_path)
+                text_generation.onprem.OnPremTextGenerationProvider(
+                    api_url=onprem_endpoint, secret=onprem_secret, user=onprem_user
+                )
             )
 
         if gemini_api_key := os.getenv("GEMINI_API_KEY"):
             self.providers[EmbeddingType.GEMINI] = (
                 embeddings.gemini.GeminiEmbeddingProvider(api_key=gemini_api_key)
             )
+
             self.providers[TextGenerationType.GEMINI] = (
                 text_generation.gemini.GoogleGeminiTextGenerationProvider(
                     api_key=gemini_api_key

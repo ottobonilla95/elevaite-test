@@ -7,11 +7,6 @@ from elevaite_client.connectors.text_generation.openai import (
 
 
 @pytest.fixture
-def fake_prompt():
-    return "Tell me a joke."
-
-
-@pytest.fixture
 def valid_config():
     return {
         "model": "text-davinci-003",
