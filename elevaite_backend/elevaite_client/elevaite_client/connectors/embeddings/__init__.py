@@ -2,9 +2,8 @@ from typing import List
 import uuid
 import tiktoken
 
-from ...connectors.embeddings import bedrock, onprem, gemini
 from .core.interfaces import EmbeddingType, EmbeddingInfo, EmbeddingResult, ChunkAsJson
-from . import openai, elevaite
+from . import openai, elevaite, bedrock, onprem, gemini
 
 
 def get_token_size(content: str) -> int:
@@ -21,6 +20,8 @@ def __get_embedder(type: EmbeddingType):
             return bedrock.BaseEmbeddingProvider.embed_documents
         case EmbeddingType.ON_PREM:
             return onprem.BaseEmbeddingProvider.embed_documents
+        case EmbeddingType.GEMINI:
+            return gemini.BaseEmbeddingProvider.embed_documents
         case EmbeddingType.LOCAL:
             return elevaite.BaseEmbeddingProvider.embed_documents
         case EmbeddingType.EXTERNAL:

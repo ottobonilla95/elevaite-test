@@ -8,7 +8,10 @@ from typing import Any, Dict, List, Union
 
 
 from ..connectors import embeddings
+from ..connectors import text_generation
 from ..connectors.embeddings.core.abstract import BaseEmbeddingProvider
+from ..connectors.text_generation.core.abstract import BaseTextGenerationProvider
+from ..connectors.text_generation.core.interfaces import TextGenerationType
 from ..connectors.embeddings.core.interfaces import (
     EmbeddingType,
     EmbeddingRequest,
@@ -31,58 +34,102 @@ from .interfaces import (
 )
 
 
-class EmbeddingProviderFactory:
-    """Factory class to initialize embedding providers."""
+class ModelProviderFactory:
+    """Factory to initialize and manage providers for various tasks."""
 
-    @staticmethod
-    def initialize_providers() -> Dict[EmbeddingType, BaseEmbeddingProvider]:
-        providers = {}
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.providers: Dict[
+            str, Union[BaseEmbeddingProvider, BaseTextGenerationProvider]
+        ] = {}
+        self._initialize_providers()
 
+    def _initialize_providers(self):
         if openai_api_key := os.getenv("OPENAI_API_KEY"):
-            providers[EmbeddingType.OPENAI] = embeddings.openai.OpenAIEmbeddingProvider(
-                api_key=openai_api_key
+            self.providers[EmbeddingType.OPENAI] = (
+                embeddings.openai.OpenAIEmbeddingProvider(api_key=openai_api_key)
+            )
+            self.providers[TextGenerationType.OPENAI] = (
+                text_generation.openai.OpenAITextGenerationProvider(
+                    api_key=openai_api_key
+                )
             )
 
         if bedrock_region := os.getenv("BEDROCK_REGION"):
-            providers[EmbeddingType.BEDROCK] = (
+            self.providers[EmbeddingType.BEDROCK] = (
+                embeddings.bedrock.BedrockEmbeddingProvider(aws_region=bedrock_region)
+            )
+            self.providers[TextGenerationType.BEDROCK] = (
                 embeddings.bedrock.BedrockEmbeddingProvider(aws_region=bedrock_region)
             )
 
         if onprem_model_path := os.getenv("ONPREM_MODEL_PATH"):
-            providers[EmbeddingType.ON_PREM] = (
+            self.providers[EmbeddingType.ON_PREM] = (
+                embeddings.onprem.OnPremEmbeddingProvider(model_path=onprem_model_path)
+            )
+            self.providers[TextGenerationType.ON_PREM] = (
                 embeddings.onprem.OnPremEmbeddingProvider(model_path=onprem_model_path)
             )
 
         if gemini_api_key := os.getenv("GEMINI_API_KEY"):
-            providers[EmbeddingType.GEMINI] = embeddings.gemini.GeminiEmbeddingProvider(
-                api_key=gemini_api_key
+            self.providers[EmbeddingType.GEMINI] = (
+                embeddings.gemini.GeminiEmbeddingProvider(api_key=gemini_api_key)
+            )
+            self.providers[TextGenerationType.GEMINI] = (
+                text_generation.gemini.GoogleGeminiTextGenerationProvider(
+                    api_key=gemini_api_key
+                )
             )
 
-        if not providers:
-            raise EnvironmentError("No valid embedding providers configured")
+        if not self.providers:
+            raise EnvironmentError("No valid providers configured")
 
-        return providers
+    def get_provider(self, task_type: str):
+        provider = self.providers.get(task_type)
+        if not provider:
+            raise ValueError(f"No provider available for type {task_type}")
+        return provider
 
 
-class EmbeddingRPCService:
-    """Service class to handle embedding requests via available providers."""
+class EmbeddingService:
+    """Service class to handle embedding requests."""
 
-    def __init__(self):
+    def __init__(self, factory: ModelProviderFactory):
+        self.factory = factory
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.providers = EmbeddingProviderFactory.initialize_providers()
 
     def embed(self, request: EmbeddingRequest) -> EmbeddingResponse:
-        provider = self.providers.get(request.info.type)
-        if not provider:
-            error_msg = f"No provider available for type {request.info.type}"
-            self.logger.error(error_msg)
-            raise ValueError(error_msg)
+        provider = self.factory.get_provider(request.info.type)
 
         try:
+            if isinstance(provider, BaseTextGenerationProvider):
+                raise TypeError
             vectors = provider.embed_documents(request.texts, request.info)
             return EmbeddingResponse(vectors=vectors, metadata=request.metadata)
         except Exception as e:
             error_msg = f"Error in embedding for provider {request.info.type}: {str(e)}"
+            self.logger.error(error_msg)
+            raise RuntimeError(error_msg)
+
+
+class TextGenerationService:
+    """Service class to handle text generation requests."""
+
+    def __init__(self, factory: ModelProviderFactory):
+        self.factory = factory
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    def generate_text(self, prompt: str, config: Dict[str, Any]) -> str:
+        provider = self.factory.get_provider(config.get("type") or "")
+
+        try:
+            if isinstance(provider, BaseEmbeddingProvider):
+                raise TypeError
+            return provider.generate_text(prompt, config)
+        except Exception as e:
+            error_msg = (
+                f"Error in text generation for provider {config.get('type')}: {str(e)}"
+            )
             self.logger.error(error_msg)
             raise RuntimeError(error_msg)
 
