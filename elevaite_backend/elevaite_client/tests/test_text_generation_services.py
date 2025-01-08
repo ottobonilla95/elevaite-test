@@ -36,3 +36,30 @@ def test_generate_text_with_onprem(model_provider_factory, fake_prompt):
 
     except Exception as e:
         pytest.fail(f"On-Prem text generation test failed: {str(e)}")
+
+
+def test_generate_text_with_openai(model_provider_factory):
+    """
+    Test the text generation service using OpenAI API.
+    Logs the response after the test.
+    """
+    service = TextGenerationService(model_provider_factory)
+
+    prompt = "Write a short story about a space adventure."
+    config = {
+        "type": TextGenerationType.OPENAI,
+        "model": "gpt-4o",
+        "temperature": 0.7,
+        "max_tokens": 50,
+    }
+
+    try:
+        response = service.generate_text(prompt, config)
+
+        logger.info(f"OpenAI Response: {response}")
+
+        assert isinstance(response, str)
+        assert len(response) > 0
+
+    except Exception as e:
+        pytest.fail(f"OpenAI text generation test failed: {str(e)}")
