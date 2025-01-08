@@ -17,33 +17,31 @@ class OpenAIEmbeddingProvider(BaseEmbeddingProvider):
         return [self._embed_document(text, info.name) for text in texts]
 
     def _embed_document(
-        self, text: str, embedding_model: str, max_retries: int = 10
+        self, text: str, embedding_model: str, max_retries: int = 3
     ) -> List[float]:
-        document = []
         for attempt in range(max_retries):
             try:
-                time.sleep((5 * attempt) + (6 / 1000))
-                response = self.client.embeddings.create(
-                    input=text, model=embedding_model
+                logging.info(
+                    f"Embedding text: {text[:30]}... using model: {embedding_model}"
                 )
-                document = response.data[0].embedding
+                response = self.client.embeddings.create(
+                    model=embedding_model, input=text, encoding_format="float"
+                )
+                logging.info(f"Embedding response: {response}")
+                return response.data[0].embedding
             except Exception as e:
                 if attempt == max_retries - 1:
+                    logging.error(f"Attempt {attempt + 1}/{max_retries} failed: {e}")
                     raise RuntimeError(
                         f"Embedding failed after {max_retries} attempts: {e}"
                     )
-        return document
+                time.sleep(2**attempt)
+        raise Exception("Embedding failed..")
 
     def validate_config(self, info: EmbeddingInfo) -> bool:
         try:
             assert info.type == EmbeddingType.OPENAI, "Invalid provider type"
-            assert info.name is not None, "Model name required"
-
-            # FIXME: Comment out on prod?
-            # Test embedding to confirm connectivity
-            test_embedding = self._embed_document("Test connectivity", info.name)
-            assert len(test_embedding) > 0, "Embedding generation failed"
-
+            assert info.name, "Model name required"
             return True
         except AssertionError as e:
             logging.error(f"OpenAI Provider Validation Failed: {e}")
