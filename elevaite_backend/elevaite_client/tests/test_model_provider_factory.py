@@ -1,0 +1,47 @@
+import pytest
+import os
+from unittest.mock import patch
+
+from elevaite_client.connectors.embeddings.core.interfaces import EmbeddingType
+from elevaite_client.rpc.client import ModelProviderFactory
+from elevaite_client.connectors.text_generation.core.interfaces import (
+    TextGenerationType,
+)
+
+
+@pytest.fixture
+def clear_env_vars():
+    """Clear environment variables for testing."""
+    os.environ.pop("OPENAI_API_KEY", None)
+    os.environ.pop("BEDROCK_REGION", None)
+    os.environ.pop("ONPREM_MODEL_PATH", None)
+    os.environ.pop("GEMINI_API_KEY", None)
+
+
+def test_no_providers_configured(clear_env_vars):
+    with pytest.raises(EnvironmentError):
+        ModelProviderFactory()
+
+
+@patch.dict(os.environ, {"OPENAI_API_KEY": "test_openai_key"})
+def test_openai_provider_initialization():
+    factory = ModelProviderFactory()
+    assert EmbeddingType.OPENAI in factory.providers
+    assert TextGenerationType.OPENAI in factory.providers
+
+
+@patch.dict(os.environ, {"BEDROCK_REGION": "us-west-2"})
+def test_bedrock_provider_initialization():
+    factory = ModelProviderFactory()
+    assert EmbeddingType.BEDROCK in factory.providers
+    assert TextGenerationType.BEDROCK in factory.providers
+
+
+def test_get_provider(clear_env_vars):
+    with patch.dict(os.environ, {"GEMINI_API_KEY": "test_gemini_key"}):
+        factory = ModelProviderFactory()
+        provider = factory.get_provider(TextGenerationType.OPENAI)
+        assert provider is not None
+
+    with pytest.raises(ValueError):
+        factory.get_provider("INVALID_TYPE")
