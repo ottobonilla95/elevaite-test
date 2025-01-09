@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "a"
+version = "0.1.0"
+description = ""
+authors = ["vuxxs <57200277+vuxxs@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+tiktoken = "^0.8.0"
+boto3 = "^1.35.91"
+openai = "^1.33.0"
+google-generativeai = "^0.8.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
