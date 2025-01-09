@@ -2,12 +2,17 @@ import logging
 import os
 from typing import Dict, Union
 
+from openai import api_key
+
 from . import embeddings
 from . import text_generation
+from . import vision
 from .embeddings.core.base import BaseEmbeddingProvider
 from .text_generation.core.base import BaseTextGenerationProvider
+from .vision.core.base import BaseVisionProvider
 from .text_generation.core.interfaces import TextGenerationType
 from .embeddings.core.interfaces import EmbeddingType
+from .vision.core.interfaces import VisionType
 
 
 class ModelProviderFactory:
@@ -16,7 +21,10 @@ class ModelProviderFactory:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.providers: Dict[
-            str, Union[BaseEmbeddingProvider, BaseTextGenerationProvider]
+            str,
+            Union[
+                BaseEmbeddingProvider, BaseTextGenerationProvider, BaseVisionProvider
+            ],
         ] = {}
         self._initialize_providers()
 
@@ -30,6 +38,10 @@ class ModelProviderFactory:
                 text_generation.openai.OpenAITextGenerationProvider(
                     api_key=openai_api_key
                 )
+            )
+
+            self.providers[VisionType.OPENAI] = vision.openai.OpenAIVisionProvider(
+                api_key=openai_api_key
             )
 
         if bedrock_region := os.getenv("BEDROCK_REGION"):
@@ -84,6 +96,11 @@ class ModelProviderFactory:
             if not isinstance(provider, BaseTextGenerationProvider):
                 raise TypeError(
                     f"Expected a TextGenerationProvider for {task_type}, got {type(provider)}"
+                )
+        elif task_type in VisionType.__members__.values():
+            if not isinstance(provider, BaseVisionProvider):
+                raise TypeError(
+                    f"Expected a VisionProvider for {task_type}, got {type(provider)}"
                 )
         else:
             raise ValueError(f"Unknown task type: {task_type}")
