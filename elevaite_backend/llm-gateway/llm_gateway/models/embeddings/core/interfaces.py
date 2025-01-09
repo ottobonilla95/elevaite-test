@@ -8,13 +8,10 @@ class EmbeddingType(str, Enum):
     ON_PREM = "on-prem_embedding"
     BEDROCK = "bedrock_embedding"
     GEMINI = "gemini_embedding"
-    LOCAL = "local_embedding"
-    EXTERNAL = "external_embedding"
 
 
 class EmbeddingInfo(BaseModel):
     type: EmbeddingType
-    inference_url: Optional[str]
     name: str
     dimensions: int = 1536  # Default OpenAI dimension
 

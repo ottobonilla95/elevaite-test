@@ -3,7 +3,7 @@ import os
 from unittest.mock import patch
 
 from llm_gateway.models.embeddings.core.interfaces import EmbeddingType
-from llm_gateway.services import ModelProviderFactory
+from llm_gateway.models.provider import ModelProviderFactory
 from llm_gateway.models.text_generation.core.interfaces import (
     TextGenerationType,
 )

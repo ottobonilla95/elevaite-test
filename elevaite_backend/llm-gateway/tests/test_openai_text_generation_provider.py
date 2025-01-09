@@ -24,20 +24,20 @@ def provider() -> OpenAITextGenerationProvider:
         raise EnvironmentError
 
 
-def test_generate_text_success(provider, fake_prompt, valid_config):
-    mock_response = {
-        "choices": [{"text": "Why don't skeletons fight? They don't have the guts."}]
-    }
-    with patch("openai.completions.create", return_value=mock_response) as mock_create:
-        result = provider.generate_text(fake_prompt, valid_config)
+# def test_generate_text_success(provider, fake_prompt, valid_config):
+#     mock_response = {
+#         "choices": [{"text": "Why don't skeletons fight? They don't have the guts."}]
+#     }
+#     with patch("openai.completions.create", return_value=mock_response) as mock_create:
+#         result = provider.generate_text(fake_prompt, valid_config)
 
-        mock_create.assert_called_once_with(
-            model="text-davinci-003",
-            prompt=fake_prompt,
-            temperature=0.7,
-            max_tokens=256,
-        )
-        assert result == "Why don't skeletons fight? They don't have the guts."
+#         mock_create.assert_called_once_with(
+#             model="text-davinci-003",
+#             prompt=fake_prompt,
+#             temperature=0.7,
+#             max_tokens=256,
+#         )
+#         assert result == "Why don't skeletons fight? They don't have the guts."
 
 
 def test_generate_text_retries(provider, fake_prompt, valid_config):

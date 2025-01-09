@@ -24,7 +24,6 @@ def test_embed_documents_with_onprem(model_provider_factory):
         info=EmbeddingInfo(
             type=EmbeddingType.ON_PREM,
             name="custom-embedding-model",
-            inference_url=None,
         ),
         metadata={"source": "unit_test"},
     )
@@ -63,7 +62,6 @@ def test_embed_documents_with_openai(model_provider_factory):
         info=EmbeddingInfo(
             type=EmbeddingType.OPENAI,
             name="text-embedding-ada-002",
-            inference_url=None,  # OpenAI doesn't use inference_url
         ),
         metadata={"source": "unit_test"},
     )
@@ -98,7 +96,6 @@ def test_embed_documents_with_gemini(model_provider_factory):
         info=EmbeddingInfo(
             type=EmbeddingType.GEMINI,
             name="models/text-embedding-004",
-            inference_url=None,  # Gemini doesn't use inference_url
         ),
         metadata={"source": "unit_test"},
     )
