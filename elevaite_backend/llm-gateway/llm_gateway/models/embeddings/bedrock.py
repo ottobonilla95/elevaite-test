@@ -2,7 +2,7 @@ import logging
 import boto3
 import json
 from typing import List
-from .core.abstract import BaseEmbeddingProvider
+from .core.base import BaseEmbeddingProvider
 from .core.interfaces import EmbeddingInfo, EmbeddingType
 
 

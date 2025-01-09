@@ -4,8 +4,8 @@ from typing import Dict, Union
 
 from . import embeddings
 from . import text_generation
-from .embeddings.core.abstract import BaseEmbeddingProvider
-from .text_generation.core.abstract import BaseTextGenerationProvider
+from .embeddings.core.base import BaseEmbeddingProvider
+from .text_generation.core.base import BaseTextGenerationProvider
 from .text_generation.core.interfaces import TextGenerationType
 from .embeddings.core.interfaces import EmbeddingType
 

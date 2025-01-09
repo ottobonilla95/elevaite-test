@@ -5,7 +5,7 @@ from typing import Dict, Any
 import boto3
 from botocore.exceptions import ClientError
 
-from .core.abstract import BaseTextGenerationProvider
+from .core.base import BaseTextGenerationProvider
 
 
 class BedrockTextGenerationProvider(BaseTextGenerationProvider):

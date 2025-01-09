@@ -6,7 +6,7 @@ import textwrap
 from typing import Dict, Any
 
 
-from .core.abstract import BaseTextGenerationProvider
+from .core.base import BaseTextGenerationProvider
 
 
 class OnPremTextGenerationProvider(BaseTextGenerationProvider):

@@ -3,7 +3,7 @@ import time
 from typing import Dict, Any
 import openai
 
-from .core.abstract import BaseTextGenerationProvider
+from .core.base import BaseTextGenerationProvider
 
 
 class OpenAITextGenerationProvider(BaseTextGenerationProvider):

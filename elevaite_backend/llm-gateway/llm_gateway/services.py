@@ -2,8 +2,8 @@ import logging
 from typing import Any, Dict
 
 from .models.provider import ModelProviderFactory
-from .models.embeddings.core.abstract import BaseEmbeddingProvider
-from .models.text_generation.core.abstract import BaseTextGenerationProvider
+from .models.embeddings.core.base import BaseEmbeddingProvider
+from .models.text_generation.core.base import BaseTextGenerationProvider
 from .models.embeddings.core.interfaces import (
     EmbeddingRequest,
     EmbeddingResponse,

@@ -4,7 +4,7 @@ import time
 from typing import List
 
 import requests
-from .core.abstract import BaseEmbeddingProvider
+from .core.base import BaseEmbeddingProvider
 from .core.interfaces import EmbeddingInfo, EmbeddingType
 
 

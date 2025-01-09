@@ -3,7 +3,7 @@ import time
 from typing import List
 from openai import OpenAI
 
-from .core.abstract import BaseEmbeddingProvider
+from .core.base import BaseEmbeddingProvider
 from .core.interfaces import EmbeddingInfo, EmbeddingType
 
 
