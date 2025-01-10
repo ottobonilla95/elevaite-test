@@ -99,21 +99,19 @@ class ModelProviderFactory:
         provider = self.providers.get(task_type)
         if not provider:
             raise ValueError(f"No provider available for type {task_type}")
-        if task_type in EmbeddingType.__members__.values():
-            if not isinstance(provider, BaseEmbeddingProvider):
-                raise TypeError(
-                    f"Expected an EmbeddingProvider for {task_type}, got {type(provider)}"
-                )
-        elif task_type in TextGenerationType.__members__.values():
-            if not isinstance(provider, BaseTextGenerationProvider):
-                raise TypeError(
-                    f"Expected a TextGenerationProvider for {task_type}, got {type(provider)}"
-                )
-        elif task_type in VisionType.__members__.values():
-            if not isinstance(provider, BaseVisionProvider):
-                raise TypeError(
-                    f"Expected a VisionProvider for {task_type}, got {type(provider)}"
-                )
-        else:
-            raise ValueError(f"Unknown task type: {task_type}")
-        return provider
+
+        task_type_mapping = {
+            EmbeddingType: BaseEmbeddingProvider,
+            TextGenerationType: BaseTextGenerationProvider,
+            VisionType: BaseVisionProvider,
+        }
+
+        for task_class, expected_provider_class in task_type_mapping.items():
+            if task_type in task_class.__members__.values():
+                if not isinstance(provider, expected_provider_class):
+                    raise TypeError(
+                        f"Expected a {expected_provider_class.__name__} for {task_type}, got {type(provider)}"
+                    )
+                return provider
+
+        raise ValueError(f"Unknown task type: {task_type}")
