@@ -1,9 +1,9 @@
-import base64
 import time
+import base64
 import logging
 import requests
 import textwrap
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 from .core.base import BaseTextGenerationProvider
@@ -21,41 +21,28 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
         self.secret = secret
 
     def generate_text(self, prompt: str, config: Dict[str, Any]) -> str:
-        """
-        Generates text using the on-prem LLM API.
-        :param prompt: The input text prompt.
-        :param config: Configuration options (e.g., model, temperature, max_tokens).
-        :return: Generated text as a string.
-        """
         retries = config.get("retries", 5)
-        model = config.get("model", "Llama-3.1-8B-Instruct")
-
-        # TODO: Adjust this
+        sys_msg = config.get("sys_msg", "")
+        role = config.get("role", "assistant")
+        task_prop = config.get("task", "")
+        output_prop = config.get("output", "")
+        example_in_prop = config.get("example_input", "")
+        example_out_prop = config.get("example_output", "")
         onprem_prompt = textwrap.dedent(
             f"""
         <|begin_of_text|><|start_header_id|>system<|end_header_id|>
         
-        You are an AI that does this and that
+        {sys_msg}
         
-        **Input:** The prompt will be within the <|context|> tags<|context|>
+        **Input:** {input}
         
-        **Task:** Extract all entities from the input text and convert them into a dictionary, following these rules:
+        **Task:** {task_prop}
         
-        1. Follow this.
-        2. Follow this too.
-        3. Follow that.
+        **Output:** {output_prop}
         
-        **Output:** <|dict|>short instruction for the llm<|end_dict|>
-        
-        **Example Input 1:**
-        <|context|>   
-        Address 1234
-        Date : 01/08/2025
-        <|context|>
-        Expected Output 1:** 
-        <|dict|>{{ 
-                'DictKey': 'DictValue',
-        }}
+        **Example Input 1:** {example_in_prop}
+
+        Expected Output 1:** {example_out_prop}
         
         <|eot_id|><|start_header_id|>user<|end_header_id|>
         
@@ -65,7 +52,7 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
         
         <|context|>
         
-        <|start_header_id|>assistant<|end_header_id|>
+        <|start_header_id|>{role}<|end_header_id|>
         """
         )
 
