@@ -44,14 +44,22 @@ class ModelProviderFactory:
                 api_key=openai_api_key
             )
 
-        if bedrock_region := os.getenv("BEDROCK_REGION"):
+        if (
+            (aws_access_key_id := os.getenv("AWS_ACCESS_KEY_ID"))
+            and (aws_secret_access_key := os.getenv("AWS_SECRET_ACCESS_KEY"))
+            and (bedrock_region := os.getenv("BEDROCK_REGION"))
+        ):
             self.providers[EmbeddingType.BEDROCK] = (
                 embeddings.bedrock.BedrockEmbeddingProvider(aws_region=bedrock_region)
             )
 
-            # self.providers[TextGenerationType.BEDROCK] = (
-            #     text_generation.bedrock.BedrockTextGenerationProvider(aws_region=bedrock_region)
-            # )
+            self.providers[TextGenerationType.BEDROCK] = (
+                text_generation.bedrock.BedrockTextGenerationProvider(
+                    aws_access_key_id=aws_access_key_id,
+                    aws_secret_access_key=aws_secret_access_key,
+                    region_name=bedrock_region,
+                )
+            )
 
         if (onprem_user := os.getenv("ONPREM_USER")) and (
             onprem_secret := os.getenv("ONPREM_SECRET")
