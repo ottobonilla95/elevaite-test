@@ -50,7 +50,11 @@ class ModelProviderFactory:
             and (bedrock_region := os.getenv("BEDROCK_REGION"))
         ):
             self.providers[EmbeddingType.BEDROCK] = (
-                embeddings.bedrock.BedrockEmbeddingProvider(aws_region=bedrock_region)
+                embeddings.bedrock.BedrockEmbeddingProvider(
+                    aws_access_key_id=aws_access_key_id,
+                    aws_secret_access_key=aws_secret_access_key,
+                    region_name=bedrock_region,
+                )
             )
 
             self.providers[TextGenerationType.BEDROCK] = (
