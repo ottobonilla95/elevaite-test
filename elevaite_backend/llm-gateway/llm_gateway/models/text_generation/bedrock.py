@@ -34,6 +34,11 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
             "max_tokens_to_sample": max_tokens,
         }
 
+        # Check if the model name contains 'meta' or 'llama', and adjust model invocation accordingly
+        if any(keyword in model_name for keyword in ["meta", "llama"]):
+            model_name = self.get_inference_profile_for_model(model_name)
+            logging.info(f"Special handling for model: {model_name}")
+
         for attempt in range(retries):
             try:
                 response = self.client.invoke_model(
@@ -67,6 +72,21 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
                 raise ve
 
         return ""
+
+    def get_inference_profile_for_model(self, model_name: str) -> str:
+        """
+        Retrieves the appropriate inference profile for a model containing 'meta' or 'llama'.
+        """
+        # We map the model names to their supported inferences profile.
+        inference_profiles = {  # FIXME add the correct inference id
+            "meta.llama3-3-70b-instruct-v1:0": "arn:aws:bedrock:region:account-id:inference-profile/inference-profile-id",
+        }
+
+        if model_name in inference_profiles:
+            return inference_profiles[model_name]
+
+        # Default behavior if no special case is found
+        return model_name
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
         try:
