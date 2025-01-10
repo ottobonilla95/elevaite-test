@@ -11,136 +11,91 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def test_generate_text_with_onprem(model_provider_factory, fake_prompt):
-    """
-    Test the text generation service using the On-Prem API.
-    Logs the response after the test.
-    """
+def execute_textgen_test(
+    prompt: str, model: str, provider_type: TextGenerationType, model_provider_factory
+):
     service = TextGenerationService(model_provider_factory)
 
     config = {
-        "type": TextGenerationType.ON_PREM,
-        "model": "Llama-3.1-8B-Instruct",
+        "type": provider_type,
+        "model": model,
         "temperature": 0.7,
         "max_tokens": 50,
         "retries": 3,
     }
 
     try:
-        response = service.generate_text(fake_prompt, config)
+        response = service.generate_text(prompt, config)
 
-        logger.info(f"On-Prem Response: {response}")
+        logger.info(f"{provider_type} Response: {response}")
 
         assert isinstance(response, str)
         assert len(response) > 0
 
     except Exception as e:
-        pytest.fail(f"On-Prem text generation test failed: {str(e)}")
+        pytest.fail(f"{provider_type} text generation test failed: {str(e)}")
 
 
-def test_generate_text_with_openai(model_provider_factory):
+def test_generate_text_with_onprem(model_provider_factory, fake_prompt):
+    """
+    Test the text generation service using the On-Prem API.
+    Logs the response after the test.
+    """
+    execute_textgen_test(
+        model="Llama-3.1-8B-Instruct",
+        provider_type=TextGenerationType.ON_PREM,
+        prompt=fake_prompt,
+        model_provider_factory=model_provider_factory,
+    )
+
+
+def test_generate_text_with_openai(model_provider_factory, fake_prompt):
     """
     Test the text generation service using OpenAI API.
     Logs the response after the test.
     """
-    service = TextGenerationService(model_provider_factory)
-
-    prompt = "Write a short story about a space adventure."
-    config = {
-        "type": TextGenerationType.OPENAI,
-        "model": "gpt-4o",
-        "temperature": 0.7,
-        "max_tokens": 50,
-    }
-
-    try:
-        response = service.generate_text(prompt, config)
-
-        logger.info(f"OpenAI Response: {response}")
-
-        assert isinstance(response, str)
-        assert len(response) > 0
-
-    except Exception as e:
-        pytest.fail(f"OpenAI text generation test failed: {str(e)}")
+    execute_textgen_test(
+        model="gpt-4o",
+        provider_type=TextGenerationType.OPENAI,
+        prompt=fake_prompt,
+        model_provider_factory=model_provider_factory,
+    )
 
 
-def test_generate_text_with_gemini(model_provider_factory):
+def test_generate_text_with_gemini(model_provider_factory, fake_prompt):
     """
     Test the text generation service using Gemini API.
     Logs the response after the test.
     """
-    service = TextGenerationService(model_provider_factory)
-
-    prompt = "Write a short story about a space adventure."
-    config = {
-        "type": TextGenerationType.GEMINI,
-        "model": "gemini-1.5-flash",
-        "temperature": 0.7,
-        "max_tokens": 50,
-    }
-
-    try:
-        response = service.generate_text(prompt, config)
-
-        logger.info(f"Gemini Response: {response}")
-
-        assert isinstance(response, str)
-        assert len(response) > 0
-
-    except Exception as e:
-        pytest.fail(f"Gemini text generation test failed: {str(e)}")
+    execute_textgen_test(
+        model="gemini-1.5-flash",
+        provider_type=TextGenerationType.GEMINI,
+        prompt=fake_prompt,
+        model_provider_factory=model_provider_factory,
+    )
 
 
-def test_generate_text_with_bedrock_for_anthropic(model_provider_factory):
+def test_generate_text_with_bedrock_for_anthropic(model_provider_factory, fake_prompt):
     """
     Test the text generation service using an Anthropic API.
     Logs the response after the test.
     """
-    service = TextGenerationService(model_provider_factory)
-
-    prompt = "Write a short story about a space adventure."
-    config = {
-        "type": TextGenerationType.BEDROCK,
-        "model": "anthropic.claude-instant-v1",
-        "temperature": 0.7,
-        "max_tokens": 50,
-    }
-
-    try:
-        response = service.generate_text(prompt, config)
-
-        logger.info(f"Bedrock Response: {response}")
-
-        assert isinstance(response, str)
-        assert len(response) > 0
-
-    except Exception as e:
-        pytest.fail(f"Bedrock text generation test failed: {str(e)}")
+    execute_textgen_test(
+        model="anthropic.claude-instant-v1",
+        provider_type=TextGenerationType.BEDROCK,
+        prompt=fake_prompt,
+        model_provider_factory=model_provider_factory,
+    )
 
 
-def test_generate_text_with_bedrock_for_llama(model_provider_factory):
+def test_generate_text_with_bedrock_for_llama(model_provider_factory, fake_prompt):
     """
     Test the text generation service using a Llama API.
     Logs the response after the test.
     """
-    service = TextGenerationService(model_provider_factory)
-
-    prompt = "Write a short story about a space adventure."
-    config = {
-        "type": TextGenerationType.BEDROCK,
-        "model": "meta.llama3-3-70b-instruct-v1:0",
-        "temperature": 0.7,
-        "max_tokens": 50,
-    }
-
-    try:
-        response = service.generate_text(prompt, config)
-
-        logger.info(f"Bedrock Response: {response}")
-
-        assert isinstance(response, str)
-        assert len(response) > 0
-
-    except Exception as e:
-        pytest.fail(f"Bedrock text generation test failed: {str(e)}")
+    execute_textgen_test(
+        model="meta.llama3-3-70b-instruct-v1:0",
+        provider_type=TextGenerationType.BEDROCK,
+        prompt=fake_prompt,
+        model_provider_factory=model_provider_factory,
+    )
