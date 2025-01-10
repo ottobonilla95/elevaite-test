@@ -87,7 +87,7 @@ class ModelProviderFactory:
             )
 
             self.providers[TextGenerationType.GEMINI] = (
-                text_generation.gemini.GoogleGeminiTextGenerationProvider(
+                text_generation.gemini.GeminiTextGenerationProvider(
                     api_key=gemini_api_key
                 )
             )

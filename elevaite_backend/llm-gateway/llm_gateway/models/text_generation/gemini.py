@@ -6,7 +6,7 @@ import google.generativeai as genai
 from .core.base import BaseTextGenerationProvider
 
 
-class GoogleGeminiTextGenerationProvider(BaseTextGenerationProvider):
+class GeminiTextGenerationProvider(BaseTextGenerationProvider):
     def __init__(self, api_key: str):
         """
         Initializes the Google Gemini text generation provider.
