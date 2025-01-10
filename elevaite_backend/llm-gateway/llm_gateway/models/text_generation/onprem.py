@@ -79,10 +79,7 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
                     raise EnvironmentError("Missing required authentication details.")
 
                 response = requests.post(
-                    self.api_url,
-                    json=payload,
-                    headers=headers,
-                    verify=False,  # FIXME: Disabling SSL verification, for now
+                    self.api_url, json=payload, headers=headers, verify=True
                 )
 
                 if response.status_code == 200:
