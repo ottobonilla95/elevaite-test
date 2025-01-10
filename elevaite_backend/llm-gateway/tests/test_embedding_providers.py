@@ -12,27 +12,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def test_embed_documents_with_onprem(model_provider_factory):
+def validate_embedding_response(response, request, api_name):
     """
-    Test the embedding service using OnPrem API.
-    Logs the embeddings and the full response after the test.
+    Common validation logic for embedding responses.
+    Logs embeddings and performs assertions.
     """
-    service = EmbeddingService(model_provider_factory)
-
-    request = EmbeddingRequest(
-        texts=["This is a test document.", "Another test input."],
-        info=EmbeddingInfo(
-            type=EmbeddingType.ON_PREM,
-            name="custom-embedding-model",
-        ),
-        metadata={"source": "unit_test"},
-    )
-
     try:
-        response = service.embed(request)
-
-        logger.info(f"Full Response: {response}")
-        logger.info(f"OnPrem Embeddings: {response.vectors}")
+        logger.info(f"{api_name} Embeddings: {response.vectors}")
 
         assert isinstance(response.vectors, list), "Response vectors should be a list"
         assert len(response.vectors) == len(
@@ -46,107 +32,71 @@ def test_embed_documents_with_onprem(model_provider_factory):
         ), "Each vector should have dimensions"
 
     except Exception as e:
-        logger.error(f"OnPrem embedding test failed: {str(e)}")
-        pytest.fail(f"OnPrem embedding test failed: {str(e)}")
+        logger.error(f"{api_name} embedding test failed: {str(e)}")
+        pytest.fail(f"{api_name} embedding test failed: {str(e)}")
+
+
+def create_embedding_request(provider_type, model_name):
+    """
+    Helper function to create an embedding request.
+    """
+    return EmbeddingRequest(
+        texts=["This is a test document.", "Another test input."],
+        info=EmbeddingInfo(
+            type=provider_type,
+            name=model_name,
+        ),
+        metadata={"source": "unit_test"},
+    )
+
+
+def test_embed_documents_with_onprem(model_provider_factory):
+    """
+    Test the embedding service using OnPrem API.
+    """
+    service = EmbeddingService(model_provider_factory)
+
+    request = create_embedding_request(EmbeddingType.ON_PREM, "custom-embedding-model")
+
+    response = service.embed(request)
+    validate_embedding_response(response, request, "OnPrem")
 
 
 def test_embed_documents_with_openai(model_provider_factory):
     """
     Test the embedding service using OpenAI API.
-    Logs the embeddings after the test.
     """
     service = EmbeddingService(model_provider_factory)
 
-    request = EmbeddingRequest(
-        texts=["This is a test document.", "Another test input."],
-        info=EmbeddingInfo(
-            type=EmbeddingType.OPENAI,
-            name="text-embedding-ada-002",
-        ),
-        metadata={"source": "unit_test"},
-    )
+    request = create_embedding_request(EmbeddingType.OPENAI, "text-embedding-ada-002")
 
-    try:
-        response = service.embed(request)
-
-        logger.info(f"OpenAI Embeddings: {response.vectors}")
-
-        assert isinstance(response.vectors, list), "Response vectors should be a list"
-        assert len(response.vectors) == len(request.texts), "One vector per input text"
-        assert all(
-            isinstance(vector, list) for vector in response.vectors
-        ), "Each vector should be a list"
-        assert all(
-            len(vector) > 0 for vector in response.vectors
-        ), "Each vector should have dimensions"
-
-    except Exception as e:
-        pytest.fail(f"OpenAI embedding test failed: {str(e)}")
+    response = service.embed(request)
+    validate_embedding_response(response, request, "OpenAI")
 
 
 def test_embed_documents_with_gemini(model_provider_factory):
     """
     Test the embedding service using Gemini API.
-    Logs the embeddings after the test.
     """
     service = EmbeddingService(model_provider_factory)
 
-    request = EmbeddingRequest(
-        texts=["This is a test document.", "Another test input."],
-        info=EmbeddingInfo(
-            type=EmbeddingType.GEMINI,
-            name="models/text-embedding-004",
-        ),
-        metadata={"source": "unit_test"},
+    request = create_embedding_request(
+        EmbeddingType.GEMINI, "models/text-embedding-004"
     )
 
-    try:
-        response = service.embed(request)
-
-        logger.info(f"Gemini Embeddings: {response.vectors}")
-
-        assert isinstance(response.vectors, list), "Response vectors should be a list"
-        assert len(response.vectors) == len(request.texts), "One vector per input text"
-        assert all(
-            isinstance(vector, list) for vector in response.vectors
-        ), "Each vector should be a list"
-        assert all(
-            len(vector) > 0 for vector in response.vectors
-        ), "Each vector should have dimensions"
-
-    except Exception as e:
-        pytest.fail(f"Gemini embedding test failed: {str(e)}")
+    response = service.embed(request)
+    validate_embedding_response(response, request, "Gemini")
 
 
 def test_embed_documents_with_bedrock_with_anthropic(model_provider_factory):
     """
     Test the embedding service using AWS Bedrock.
-    Logs the embeddings after the test.
     """
     service = EmbeddingService(model_provider_factory)
 
-    request = EmbeddingRequest(
-        texts=["This is a test document.", "Another test input."],
-        info=EmbeddingInfo(
-            type=EmbeddingType.BEDROCK,
-            name="anthropic.claude-instant-v1",
-        ),
-        metadata={"source": "unit_test"},
+    request = create_embedding_request(
+        EmbeddingType.BEDROCK, "anthropic.claude-instant-v1"
     )
 
-    try:
-        response = service.embed(request)
-
-        logger.info(f"Bedrock Embeddings: {response.vectors}")
-
-        assert isinstance(response.vectors, list), "Response vectors should be a list"
-        assert len(response.vectors) == len(request.texts), "One vector per input text"
-        assert all(
-            isinstance(vector, list) for vector in response.vectors
-        ), "Each vector should be a list"
-        assert all(
-            len(vector) > 0 for vector in response.vectors
-        ), "Each vector should have dimensions"
-
-    except Exception as e:
-        pytest.fail(f"Bedrock embedding test failed: {str(e)}")
+    response = service.embed(request)
+    validate_embedding_response(response, request, "Bedrock")
