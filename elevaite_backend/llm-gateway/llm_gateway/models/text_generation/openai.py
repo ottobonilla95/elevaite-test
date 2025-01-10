@@ -13,6 +13,8 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
 
     def generate_text(self, prompt: str, config: Dict[str, Any]) -> str:
         model = config.get("model", "gpt-4o")
+        role = config.get("role", "system")
+        sys_msg = config.get("sys_msg", "")
         temperature = config.get("temperature", 0.7)
         max_tokens = config.get("max_tokens", 256)
         retries = config.get("retries", 5)
@@ -22,7 +24,10 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                 if model.startswith("gpt-"):
                     response = self.client.chat.completions.create(
                         model=model,
-                        messages=[{"role": "user", "content": prompt}],
+                        messages=[
+                            {"role": role, "content": sys_msg},
+                            {"role": "user", "content": prompt},
+                        ],
                         temperature=temperature,
                         max_tokens=max_tokens,
                     )

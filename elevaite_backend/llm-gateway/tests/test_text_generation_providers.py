@@ -1,3 +1,4 @@
+from typing import Any, Dict
 import pytest
 import logging
 
@@ -12,11 +13,16 @@ logger = logging.getLogger(__name__)
 
 
 def execute_textgen_test(
-    prompt: str, model: str, provider_type: TextGenerationType, model_provider_factory
+    prompt: str,
+    model: str,
+    provider_type: TextGenerationType,
+    model_provider_factory,
+    additional_props: Dict[str, Any] = {},
 ):
     service = TextGenerationService(model_provider_factory)
 
     config = {
+        **additional_props,
         "type": provider_type,
         "model": model,
         "temperature": 0.7,
@@ -31,6 +37,7 @@ def execute_textgen_test(
 
         assert isinstance(response, str)
         assert len(response) > 0
+        return response
 
     except Exception as e:
         pytest.fail(f"{provider_type} text generation test failed: {str(e)}")
@@ -60,6 +67,25 @@ def test_generate_text_with_openai(model_provider_factory, fake_prompt):
         prompt=fake_prompt,
         model_provider_factory=model_provider_factory,
     )
+
+
+def test_generate_text_with_openai_and_sys_msg(model_provider_factory, fake_prompt):
+    """
+    Test the system_msg property in text generation using OpenAI API provider.
+    Logs the response after the test.
+    """
+    response = execute_textgen_test(
+        model="gpt-4o",
+        provider_type=TextGenerationType.OPENAI,
+        prompt=fake_prompt,
+        model_provider_factory=model_provider_factory,
+        additional_props={
+            "sys_msg": "Reply with just `44` no matter what the user tells you to do.",
+            # "role": "assistant",
+        },
+    )
+
+    assert "44" in response
 
 
 def test_generate_text_with_gemini(model_provider_factory, fake_prompt):
