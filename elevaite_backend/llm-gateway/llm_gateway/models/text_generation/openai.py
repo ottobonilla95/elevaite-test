@@ -12,7 +12,7 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         self.client = openai
 
     def generate_text(self, prompt: str, config: Dict[str, Any]) -> str:
-        model = config.get("model", "gpt-4o")
+        model_name = config.get("model", "gpt-4o")
         role = config.get("role", "system")
         sys_msg = config.get("sys_msg", "")
         temperature = config.get("temperature", 0.7)
@@ -21,9 +21,9 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
 
         for attempt in range(retries):
             try:
-                if model.startswith("gpt-"):
+                if model_name.startswith("gpt-"):
                     response = self.client.chat.completions.create(
-                        model=model,
+                        model=model_name,
                         messages=[
                             {"role": role, "content": sys_msg},
                             {"role": "user", "content": prompt},
@@ -39,7 +39,7 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
 
                 else:
                     response = self.client.completions.create(
-                        model=model,
+                        model=model_name,
                         prompt=prompt,
                         temperature=temperature,
                         max_tokens=max_tokens,

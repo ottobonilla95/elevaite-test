@@ -20,12 +20,13 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
         )
 
     def generate_text(self, prompt: str, config: Dict[str, Any]) -> str:
-        model_id = config.get("model_id", "anthropic.claude-instant-v1")
+        model_name = config.get("model", "anthropic.claude-instant-v1")
         temperature = config.get("temperature", 0.7)
         max_tokens = config.get("max_tokens", 256)
+        sys_msg = config.get("sys_msg", "")
         retries = config.get("retries", 5)
 
-        formatted_prompt = f"Human: {prompt}\n\nAssistant:"
+        formatted_prompt = f"Human: {prompt}\n\nAssistant:{sys_msg}"
 
         payload = {
             "prompt": formatted_prompt,
@@ -36,7 +37,7 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
         for attempt in range(retries):
             try:
                 response = self.client.invoke_model(
-                    modelId=model_id,
+                    modelId=model_name,
                     body=json.dumps(payload),
                 )
 
@@ -70,8 +71,8 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
     def validate_config(self, config: Dict[str, Any]) -> bool:
         try:
             assert isinstance(config, dict), "Config must be a dictionary."
-            assert "model_id" in config, "Model ID is required in the config."
-            assert isinstance(config.get("model_id"), str), "Model ID must be a string."
+            assert "model" in config, "Model ID is required in the config."
+            assert isinstance(config.get("model"), str), "Model ID must be a string."
             assert isinstance(
                 config.get("temperature", 0.7), (float, int)
             ), "Temperature must be a number."
