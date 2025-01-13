@@ -8,20 +8,10 @@ from .core.base import BaseTextGenerationProvider
 
 class GeminiTextGenerationProvider(BaseTextGenerationProvider):
     def __init__(self, api_key: str):
-        """
-        Initializes the Google Gemini text generation provider.
-        :param api_key: Google Gemini API key.
-        """
         genai.configure(api_key=api_key)
         self.client = genai
 
     def generate_text(self, prompt: str, config: Dict[str, Any]) -> str:
-        """
-        Generates text using the Google Gemini API.
-        :param prompt: The input text prompt.
-        :param config: Configuration options (e.g., model, temperature, max_output_tokens).
-        :return: Generated text as a string.
-        """
         model_name = config.get("model", "gemini-1.5-flash")
         temperature = config.get("temperature", 0.7)
         max_output_tokens = config.get("max_output_tokens", 256)
@@ -59,11 +49,6 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         return ""
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
-        """
-        Validates the configuration for Google Gemini text generation.
-        :param config: Configuration options (e.g., model, temperature, max_output_tokens).
-        :return: True if configuration is valid, False otherwise.
-        """
         try:
             assert isinstance(config, dict), "Config must be a dictionary"
             assert "model" in config, "Model name is required in config"
