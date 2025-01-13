@@ -153,3 +153,72 @@ def test_gemini_process_multiple_images(model_provider_factory, fake_prompt):
     assert isinstance(response, str)
     assert len(response) > 0
     logger.info(f"Gemini Response for Multiple Images: {response}")
+
+
+def test_bedrock_process_base64_image(model_provider_factory, fake_prompt):
+    """
+    Test Bedrock image-to-text service with a Base64 image.
+    """
+    service = VisionService(model_provider_factory)
+
+    config = {
+        "type": VisionType.BEDROCK,
+        "model": "anthropic.claude-3-opus-20240229-v1:0",
+        "max_tokens": 300,
+        "prompt": fake_prompt,
+    }
+
+    response = service.process_images(
+        "Describe what this image shows.", [MOCK_IMAGE_BYTES], config
+    )
+
+    assert isinstance(response, str)
+    assert len(response) > 0
+    logger.info(f"Bedrock Response for Base64 Image: {response}")
+
+
+def test_bedrock_process_image_url(model_provider_factory, fake_prompt):
+    """
+    Test Bedrock image-to-text service with an image URL.
+    """
+    service = VisionService(model_provider_factory)
+
+    config = {
+        "type": VisionType.BEDROCK,
+        "model": "anthropic.claude-3-opus-20240229-v1:0",
+        "max_tokens": 300,
+        "prompt": fake_prompt,
+    }
+
+    response = service.process_images(
+        "Describe what this image shows.", [PUBLIC_IMAGE_URL], config
+    )
+
+    assert isinstance(response, str)
+    assert len(response) > 0
+    logger.info(f"Bedrock Response for Image URL: {response}")
+
+
+def test_bedrock_process_multiple_images(model_provider_factory, fake_prompt):
+    """
+    Test Bedrock image-to-text service with multiple images (Base64 and URLs).
+    """
+    service = VisionService(model_provider_factory)
+
+    config = {
+        "type": VisionType.BEDROCK,
+        "model": "anthropic.claude-3-opus-20240229-v1:0",
+        "max_tokens": 300,
+        "prompt": fake_prompt,
+    }
+
+    images = [
+        MOCK_IMAGE_BYTES,
+        PUBLIC_IMAGE_URL,
+        PUBLIC_IMAGE_URL_2,
+    ]
+    response = service.process_images("Describe what these images show", images, config)
+
+    assert isinstance(response, str)
+    assert len(response) > 0
+    logger.info(f"Bedrock Response for Multiple Images: {response}")

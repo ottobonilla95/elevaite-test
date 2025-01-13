@@ -65,6 +65,12 @@ class ModelProviderFactory:
                 )
             )
 
+            self.providers[VisionType.BEDROCK] = vision.bedrock.BedrockVisionProvider(
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key,
+                region_name=bedrock_region,
+            )
+
         if (onprem_user := os.getenv("ONPREM_USER")) and (
             onprem_secret := os.getenv("ONPREM_SECRET")
         ):
