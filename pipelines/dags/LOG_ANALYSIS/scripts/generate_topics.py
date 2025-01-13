@@ -290,5 +290,6 @@ def generate_topics(input_path: str, output_path: str):
     
     return output_path
 
-generated_topics = generate_topics(load_group_logs_file, "topics.json")
-Variable.set('generated_topics', generated_topics)
+def main(ti):
+    generated_topics = generate_topics(load_group_logs_file, "topics.json")
+    Variable.set('generated_topics', generated_topics)

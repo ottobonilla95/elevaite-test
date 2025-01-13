@@ -293,6 +293,8 @@ def extract_variables(input_path, output_path: str):
     
     return output_path
 
-extracted_file = extract_variables(parsed_file, 'extracted.json')
 
-Variable.set('extracted_file', extracted_file)
+def main(ti):
+    extracted_file = extract_variables(parsed_file, 'extracted.json')
+
+    Variable.set('extracted_file', extracted_file)

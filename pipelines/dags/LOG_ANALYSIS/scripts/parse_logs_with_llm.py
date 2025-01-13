@@ -292,5 +292,7 @@ def parse_logs_with_llm(input_path, output_path: str):
     
     return output_path
 
-parsed_file = parse_logs_with_llm(generated_topics, 'parsed.json')
-Variable.set('parsed_file', parsed_file)
+
+def main(ti):
+    parsed_file = parse_logs_with_llm(generated_topics, 'parsed.json')
+    Variable.set('parsed_file', parsed_file)
