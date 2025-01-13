@@ -92,6 +92,10 @@ class ModelProviderFactory:
                 )
             )
 
+            self.providers[VisionType.GEMINI] = vision.gemini.GeminiVisionProvider(
+                api_key=gemini_api_key
+            )
+
         if not self.providers:
             raise EnvironmentError("No valid providers configured")
 

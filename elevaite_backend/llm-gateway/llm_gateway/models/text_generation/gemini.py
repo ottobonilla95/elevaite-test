@@ -14,10 +14,9 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
     def generate_text(self, prompt: str, config: Dict[str, Any]) -> str:
         model_name = config.get("model", "gemini-1.5-flash")
         temperature = config.get("temperature", 0.7)
-        max_output_tokens = config.get("max_output_tokens", 256)
+        max_output_tokens = config.get("max_tokens", 256)
         retries = config.get("retries", 5)
 
-        # Initialize the model
         model = self.client.GenerativeModel(model_name)
 
         for attempt in range(retries):
@@ -56,7 +55,7 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                 config.get("temperature", 0.7), (float, int)
             ), "Temperature must be a number"
             assert isinstance(
-                config.get("max_output_tokens", 256), int
+                config.get("max_tokens", 256), int
             ), "Max output tokens must be an integer"
             return True
         except AssertionError as e:
