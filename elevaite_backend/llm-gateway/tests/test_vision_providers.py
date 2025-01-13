@@ -19,7 +19,7 @@ MOCK_IMAGE_BYTES = base64.b64decode(
 )
 
 
-def test_openai_process_base64_image(model_provider_factory):
+def test_openai_process_base64_image(model_provider_factory, fake_prompt):
     """
     Test OpenAI image-to-text service with a Base64 image.
     """
@@ -29,7 +29,7 @@ def test_openai_process_base64_image(model_provider_factory):
         "type": VisionType.OPENAI,
         "model": "gpt-4o-mini",
         "max_tokens": 300,
-        "prompt": "What is in this image?",
+        "prompt": fake_prompt,
     }
 
     response = service.process_images(
@@ -41,7 +41,7 @@ def test_openai_process_base64_image(model_provider_factory):
     logger.info(f"OpenAI Response for Base64 Image: {response}")
 
 
-def test_openai_process_image_url(model_provider_factory):
+def test_openai_process_image_url(model_provider_factory, fake_prompt):
     """
     Test OpenAI image-to-text service with an image URL.
     """
@@ -50,7 +50,7 @@ def test_openai_process_image_url(model_provider_factory):
         "type": VisionType.OPENAI,
         "model": "gpt-4o-mini",
         "max_tokens": 300,
-        "prompt": "What is in this image?",
+        "prompt": fake_prompt,
     }
 
     response = service.process_images(
@@ -62,7 +62,7 @@ def test_openai_process_image_url(model_provider_factory):
     logger.info(f"OpenAI Response for Image URL: {response}")
 
 
-def test_openai_process_multiple_images(model_provider_factory):
+def test_openai_process_multiple_images(model_provider_factory, fake_prompt):
     """
     Test OpenAI image-to-text service with multiple images (Base64 and URLs).
     """
@@ -72,7 +72,7 @@ def test_openai_process_multiple_images(model_provider_factory):
         "type": VisionType.OPENAI,
         "model": "gpt-4o-mini",
         "max_tokens": 300,
-        "prompt": "What is in these images?",
+        "prompt": fake_prompt,
     }
 
     images = [
@@ -87,7 +87,7 @@ def test_openai_process_multiple_images(model_provider_factory):
     logger.info(f"OpenAI Response for Multiple Images: {response}")
 
 
-def test_gemini_process_base64_image(model_provider_factory):
+def test_gemini_process_base64_image(model_provider_factory, fake_prompt):
     """
     Test Gemini image-to-text service with a Base64 image.
     """
@@ -97,7 +97,7 @@ def test_gemini_process_base64_image(model_provider_factory):
         "type": VisionType.GEMINI,
         "model": "gemini-1.5-pro",
         "max_tokens": 300,
-        "prompt": "What is in this image?",
+        "prompt": fake_prompt,
     }
 
     response = service.process_images(
@@ -109,7 +109,7 @@ def test_gemini_process_base64_image(model_provider_factory):
     logger.info(f"Gemini Response for Base64 Image: {response}")
 
 
-def test_gemini_process_image_url(model_provider_factory):
+def test_gemini_process_image_url(model_provider_factory, fake_prompt):
     """
     Test Gemini image-to-text service with an image URL.
     """
@@ -118,7 +118,7 @@ def test_gemini_process_image_url(model_provider_factory):
         "type": VisionType.GEMINI,
         "model": "gemini-1.5-pro",
         "max_tokens": 300,
-        "prompt": "What is in this image?",
+        "prompt": fake_prompt,
     }
 
     response = service.process_images(
@@ -130,7 +130,7 @@ def test_gemini_process_image_url(model_provider_factory):
     logger.info(f"Gemini Response for Image URL: {response}")
 
 
-def test_gemini_process_multiple_images(model_provider_factory):
+def test_gemini_process_multiple_images(model_provider_factory, fake_prompt):
     """
     Test Gemini image-to-text service with multiple images (Base64 and URLs).
     """
@@ -140,7 +140,7 @@ def test_gemini_process_multiple_images(model_provider_factory):
         "type": VisionType.GEMINI,
         "model": "gemini-1.5-pro",
         "max_tokens": 300,
-        "prompt": "What is in these images?",
+        "prompt": fake_prompt,
     }
 
     images = [
