@@ -6,7 +6,9 @@ import textwrap
 from typing import Any, Dict
 
 
+from ...utilities.tokens import count_tokens
 from .core.base import BaseTextGenerationProvider
+from .core.interfaces import TextGenerationResponse
 
 
 class OnPremTextGenerationProvider(BaseTextGenerationProvider):
@@ -20,7 +22,9 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
         self.user = user
         self.secret = secret
 
-    def generate_text(self, prompt: str, config: Dict[str, Any]) -> str:
+    def generate_text(
+        self, prompt: str, config: Dict[str, Any]
+    ) -> TextGenerationResponse:
         retries = config.get("retries", 5)
         sys_msg = config.get("sys_msg", "")
         role = config.get("role", "assistant")
@@ -78,20 +82,36 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
                 if self.api_url is None or self.user is None or self.secret is None:
                     raise EnvironmentError("Missing required authentication details.")
 
+                tokens_in = count_tokens([onprem_prompt])
+                start_time = time.time()
                 response = requests.post(
                     self.api_url, json=payload, headers=headers, verify=True
                 )
+                latency = time.time() - start_time
 
                 if response.status_code == 200:
                     data = response.json()
                     if "result" in data and len(data["result"]) > 0:
                         processed_output = data["result"][0]["generated_text"]
-                        return processed_output.strip()
+                        if processed_output is not None:
+                            processed_output = processed_output.strip()
+                        tokens_out = count_tokens([processed_output])
+                        return TextGenerationResponse(
+                            text=processed_output,
+                            tokens_in=tokens_in,
+                            tokens_out=tokens_out,
+                            latency=latency,
+                        )
                     else:
                         logging.error(
                             "Failed to find the expected 'result' in the response."
                         )
-                        return ""
+                        return TextGenerationResponse(
+                            text="",
+                            tokens_in=tokens_in,
+                            tokens_out=-1,
+                            latency=latency,
+                        )
                 else:
                     logging.warning(
                         f"Attempt {attempt + 1}/{retries} failed: {response.text}. Retrying..."
@@ -111,7 +131,7 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
                     )
                 time.sleep((2**attempt) * 0.5)
 
-        return ""
+        raise Exception
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
         """
