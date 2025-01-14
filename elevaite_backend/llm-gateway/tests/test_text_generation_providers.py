@@ -3,6 +3,7 @@ import pytest
 import logging
 
 from llm_gateway.models.text_generation.core.interfaces import (
+    TextGenerationResponse,
     TextGenerationType,
 )
 from llm_gateway.services import TextGenerationService
@@ -35,8 +36,11 @@ def execute_textgen_test(
 
         logger.info(f"{provider_type} Response: {response}")
 
-        assert isinstance(response, str)
-        assert len(response) > 0
+        assert isinstance(response.get("latency"), float)
+        assert (response_text := response.get("text")) and response_text != ""
+        assert response.get("tokens_in") >= 0
+        assert response.get("tokens_out") >= 0
+
         return response
 
     except Exception as e:
@@ -85,7 +89,7 @@ def test_generate_text_with_openai_and_sys_msg(model_provider_factory, fake_prom
         },
     )
 
-    assert "44" in response
+    assert "44" in response.get("text")
 
 
 def test_generate_text_with_gemini(model_provider_factory, fake_prompt):

@@ -5,7 +5,9 @@ from typing import Dict, Any
 import boto3
 from botocore.exceptions import ClientError
 
+
 from .core.base import BaseTextGenerationProvider
+from .core.interfaces import TextGenerationResponse
 
 
 class BedrockTextGenerationProvider(BaseTextGenerationProvider):
@@ -19,7 +21,9 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
             region_name=region_name,
         )
 
-    def generate_text(self, prompt: str, config: Dict[str, Any]) -> str:
+    def generate_text(
+        self, prompt: str, config: Dict[str, Any]
+    ) -> TextGenerationResponse:
         model_name = config.get("model", "anthropic.claude-instant-v1")
         temperature = config.get("temperature", 0.7)
         max_tokens = config.get("max_tokens", 256)
@@ -34,24 +38,38 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
             "max_tokens_to_sample": max_tokens,
         }
 
-        # Check if the model name contains 'meta' or 'llama', and adjust model invocation accordingly
         if any(keyword in model_name for keyword in ["meta", "llama"]):
             model_name = self.get_inference_profile_for_model(model_name)
             logging.info(f"Special handling for model: {model_name}")
 
         for attempt in range(retries):
             try:
+                start_time = time.time()
                 response = self.client.invoke_model(
                     modelId=model_name,
                     body=json.dumps(payload),
                 )
+                latency = time.time() - start_time
 
                 response_body_raw = response["body"].read().decode("utf-8")
                 logging.debug(f"Full response body: {response_body_raw}")
                 response_body = json.loads(response_body_raw)
 
                 if "completion" in response_body:
-                    return response_body["completion"].strip()
+                    completion_text = response_body["completion"].strip()
+
+                    # Attempt to retrieve token counts if available
+                    tokens_in = response_body.get("input_tokens", len(prompt.split()))
+                    tokens_out = response_body.get(
+                        "output_tokens", len(completion_text.split())
+                    )
+
+                    return {
+                        "text": completion_text,
+                        "tokens_in": tokens_in,
+                        "tokens_out": tokens_out,
+                        "latency": latency,
+                    }
 
                 raise ValueError(
                     "Invalid response structure: Missing 'completion' key."
@@ -70,8 +88,7 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
             except ValueError as ve:
                 logging.error(f"ValueError encountered: {ve}")
                 raise ve
-
-        return ""
+        raise Exception
 
     def get_inference_profile_for_model(self, model_name: str) -> str:
         """

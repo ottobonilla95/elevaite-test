@@ -1,10 +1,12 @@
 import logging
 from typing import Any, Dict, List, Union
 
+
 from .models.provider import ModelProviderFactory
 from .models.embeddings.core.base import BaseEmbeddingProvider
 from .models.vision.core.base import BaseVisionProvider
 from .models.text_generation.core.base import BaseTextGenerationProvider
+from .models.text_generation.core.interfaces import TextGenerationResponse
 from .models.embeddings.core.interfaces import (
     EmbeddingRequest,
     EmbeddingResponse,
@@ -39,7 +41,9 @@ class TextGenerationService:
         self.factory = factory
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def generate_text(self, prompt: str, config: Dict[str, Any]) -> str:
+    def generate_text(
+        self, prompt: str, config: Dict[str, Any]
+    ) -> TextGenerationResponse:
         provider = self.factory.get_provider(config.get("type") or "")
 
         try:
