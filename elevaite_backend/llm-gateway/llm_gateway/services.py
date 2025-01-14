@@ -26,8 +26,7 @@ class EmbeddingService:
         try:
             if not isinstance(provider, BaseEmbeddingProvider):
                 raise TypeError
-            vectors = provider.embed_documents(request.texts, request.info)
-            return EmbeddingResponse(vectors=vectors, metadata=request.metadata)
+            return provider.embed_documents(request.texts, request.info)
         except Exception as e:
             error_msg = f"Error in embedding for provider {request.info.type}: {str(e)}"
             self.logger.error(error_msg)

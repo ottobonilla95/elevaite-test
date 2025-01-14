@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import List
-from .interfaces import EmbeddingInfo
+from .interfaces import EmbeddingInfo, EmbeddingResponse
 
 
 class BaseEmbeddingProvider(ABC):
     @abstractmethod
     def embed_documents(
         self, texts: List[str], info: EmbeddingInfo
-    ) -> List[List[float]]:
+    ) -> EmbeddingResponse:
         """Abstract method for embedding documents"""
         pass
 

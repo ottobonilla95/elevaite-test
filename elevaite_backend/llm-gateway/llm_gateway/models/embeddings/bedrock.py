@@ -1,10 +1,13 @@
 import logging
+import time
 from aiohttp import ClientError
 import boto3
 import json
 from typing import List
+
+from ...utilities.tokens import count_tokens
 from .core.base import BaseEmbeddingProvider
-from .core.interfaces import EmbeddingInfo, EmbeddingType
+from .core.interfaces import EmbeddingInfo, EmbeddingResponse, EmbeddingType
 
 
 class BedrockEmbeddingProvider(BaseEmbeddingProvider):
@@ -20,8 +23,22 @@ class BedrockEmbeddingProvider(BaseEmbeddingProvider):
 
     def embed_documents(
         self, texts: List[str], info: EmbeddingInfo
-    ) -> List[List[float]]:
-        return [self._embed_document(text, info.name) for text in texts]
+    ) -> EmbeddingResponse:
+        total_tokens = 0
+        embeddings = []
+        start_time = time.time()
+
+        for text in texts:
+            embedding = self._embed_document(text, info.name)
+            embeddings.append(embedding)
+            total_tokens += count_tokens([text])
+
+        latency = time.time() - start_time
+        return EmbeddingResponse(
+            latency=latency,
+            embeddings=embeddings,
+            tokens_in=total_tokens,
+        )
 
     def _embed_document(self, text: str, embedding_model: str) -> List[float]:
         formatted_prompt = f"Human: {text}\n\nAssistant:"

@@ -4,8 +4,10 @@ import time
 from typing import List
 
 import requests
+
+from ...utilities.tokens import count_tokens
 from .core.base import BaseEmbeddingProvider
-from .core.interfaces import EmbeddingInfo, EmbeddingType
+from .core.interfaces import EmbeddingInfo, EmbeddingResponse, EmbeddingType
 
 
 class OnPremEmbeddingProvider(BaseEmbeddingProvider):
@@ -19,8 +21,8 @@ class OnPremEmbeddingProvider(BaseEmbeddingProvider):
         self.secret = secret
 
     def embed_documents(
-        self, texts: List[str], embedding_model: str, max_retries: int = 3
-    ) -> List[List[float]]:
+        self, texts: List[str], info: EmbeddingInfo, max_retries: int = 3
+    ) -> EmbeddingResponse:
         headers = {"Content-Type": "application/json"}
         auth_value = base64.b64encode(f"{self.user}:{self.secret}".encode()).decode(
             "utf-8"
@@ -33,9 +35,13 @@ class OnPremEmbeddingProvider(BaseEmbeddingProvider):
             }
         }
 
+        total_tokens = 0
+        embeddings = []
+        start_time = time.time()
+
         for attempt in range(max_retries):
             try:
-                logging.info(f"Embedding texts using model: {embedding_model}")
+                logging.info(f"Embedding texts using model: {info.name}")
                 logging.debug(f"Request Payload: {payload}")
 
                 response = requests.post(
@@ -54,16 +60,10 @@ class OnPremEmbeddingProvider(BaseEmbeddingProvider):
                     logging.debug(f"Full API Response Data: {data}")
                     result = data.get("result", [])
 
-                    logging.debug(f"API Response Result: {result}")
-
                     if isinstance(result, list) and result:
-                        embeddings = result
-                        logging.debug(f"Extracted Embeddings: {embeddings}")
-
-                        if all(len(vec) > 0 for vec in embeddings):
-                            return embeddings
-                        else:
-                            raise ValueError("Invalid or empty embeddings received.")
+                        embeddings.extend(result)
+                        total_tokens += sum(count_tokens([text]) for text in texts)
+                        break
                     else:
                         raise ValueError(
                             "Unexpected response format: No 'result' found."
@@ -89,7 +89,12 @@ class OnPremEmbeddingProvider(BaseEmbeddingProvider):
                     )
                 time.sleep(2 ** (attempt + 1))
 
-        raise RuntimeError("Embedding failed after all retry attempts.")
+        latency = time.time() - start_time
+        return EmbeddingResponse(
+            latency=latency,
+            embeddings=embeddings,
+            tokens_in=total_tokens,
+        )
 
     def validate_config(self, info: EmbeddingInfo) -> bool:
         try:

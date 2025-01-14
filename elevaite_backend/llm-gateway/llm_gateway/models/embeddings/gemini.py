@@ -3,31 +3,33 @@ import time
 from typing import List
 import google.generativeai as genai
 
+from ...utilities.tokens import count_tokens
 from .core.base import BaseEmbeddingProvider
-from .core.interfaces import EmbeddingInfo, EmbeddingType
+from .core.interfaces import EmbeddingInfo, EmbeddingResponse, EmbeddingType
 
 
 class GeminiEmbeddingProvider(BaseEmbeddingProvider):
     def __init__(self, api_key: str):
-        """
-        Initialize the GeminiEmbeddingProvider with the API key.
-        Args:
-            api_key (str): API key for Gemini embedding service.
-        """
         genai.configure(api_key=api_key)
 
     def embed_documents(
         self, texts: List[str], info: EmbeddingInfo
-    ) -> List[List[float]]:
-        """
-        Embed multiple documents using the Gemini embedding service.
-        Args:
-            texts (List[str]): Text documents to be embedded.
-            info (EmbeddingInfo): Embedding metadata including model information.
-        Returns:
-            List[List[float]]: A list of embedding vectors for the texts.
-        """
-        return [self._embed_document(text, info.name) for text in texts]
+    ) -> EmbeddingResponse:
+        total_tokens = 0
+        embeddings = []
+        start_time = time.time()
+
+        for text in texts:
+            embedding = self._embed_document(text, info.name)
+            embeddings.append(embedding)
+            total_tokens += count_tokens([text])
+
+        latency = time.time() - start_time
+        return EmbeddingResponse(
+            latency=latency,
+            embeddings=embeddings,
+            tokens_in=total_tokens,
+        )
 
     def _embed_document(
         self, text: str, embedding_model: str, max_retries: int = 5
@@ -50,13 +52,6 @@ class GeminiEmbeddingProvider(BaseEmbeddingProvider):
         )
 
     def validate_config(self, info: EmbeddingInfo) -> bool:
-        """
-        Validate the embedding configuration for Gemini.
-        Args:
-            info (EmbeddingInfo): Information about the embedding (type, model).
-        Returns:
-            bool: Whether the configuration is valid.
-        """
         try:
             assert info.type == EmbeddingType.GEMINI, "Invalid provider type for Gemini"
             assert info.name is not None, "Model name required for Gemini embeddings"

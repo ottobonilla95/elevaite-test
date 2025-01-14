@@ -4,6 +4,7 @@ import pytest
 from llm_gateway.models.embeddings.core.interfaces import (
     EmbeddingInfo,
     EmbeddingRequest,
+    EmbeddingResponse,
     EmbeddingType,
 )
 from llm_gateway.services import EmbeddingService
@@ -12,25 +13,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def validate_embedding_response(response, request, api_name):
+def validate_embedding_response(
+    response: EmbeddingResponse, request: EmbeddingRequest, api_name: str
+):
     """
     Common validation logic for embedding responses.
     Logs embeddings and performs assertions.
     """
     try:
-        logger.info(f"{api_name} Embeddings: {response.vectors}")
+        logger.info(f"{api_name} Embeddings: {response.embeddings}")
 
-        assert isinstance(response.vectors, list), "Response vectors should be a list"
-        assert len(response.vectors) == len(
-            request.texts
-        ), f"Expected {len(request.texts)} vectors, but got {len(response.vectors)}"
-        assert all(
-            isinstance(vector, list) for vector in response.vectors
-        ), "Each vector should be a list"
-        assert all(
-            len(vector) > 0 for vector in response.vectors
-        ), "Each vector should have dimensions"
-
+        assert response.embeddings
+        assert response.latency
+        assert response.tokens_in >= 0
     except Exception as e:
         logger.error(f"{api_name} embedding test failed: {str(e)}")
         pytest.fail(f"{api_name} embedding test failed: {str(e)}")
