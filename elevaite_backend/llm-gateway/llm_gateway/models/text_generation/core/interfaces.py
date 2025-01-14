@@ -1,5 +1,6 @@
 from enum import Enum
-from typing import TypedDict
+
+from openai import BaseModel
 
 
 class TextGenerationType(str, Enum):
@@ -9,7 +10,7 @@ class TextGenerationType(str, Enum):
     GEMINI = "gemini_textgen"
 
 
-class TextGenerationResponse(TypedDict):
+class TextGenerationResponse(BaseModel):
     latency: float
     text: str
     tokens_in: int

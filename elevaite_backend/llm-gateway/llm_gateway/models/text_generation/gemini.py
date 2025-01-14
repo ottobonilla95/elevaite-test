@@ -41,12 +41,12 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                         response, "output_tokens", len(response.text.split())
                     )
 
-                    return {
-                        "text": response.text.strip(),
-                        "tokens_in": tokens_in,
-                        "tokens_out": tokens_out,
-                        "latency": latency,
-                    }
+                    return TextGenerationResponse(
+                        text=response.text.strip(),
+                        tokens_in=tokens_in,
+                        tokens_out=tokens_out,
+                        latency=latency,
+                    )
 
                 raise ValueError(
                     "Invalid response structure: 'text' attribute missing or empty"

@@ -43,12 +43,12 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                         tokens_out = response.usage.completion_tokens
 
                     message_content = response.choices[0].message.content or ""
-                    return {
-                        "text": message_content.strip(),
-                        "tokens_in": tokens_in,
-                        "tokens_out": tokens_out,
-                        "latency": latency,
-                    }
+                    return TextGenerationResponse(
+                        text=message_content.strip(),
+                        tokens_in=tokens_in,
+                        tokens_out=tokens_out,
+                        latency=latency,
+                    )
 
                 else:
                     response = self.client.completions.create(
@@ -63,12 +63,12 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                         tokens_in = response.usage.prompt_tokens
                         tokens_out = response.usage.completion_tokens
 
-                    return {
-                        "text": response.choices[0].text.strip(),
-                        "tokens_in": tokens_in,
-                        "tokens_out": tokens_out,
-                        "latency": latency,
-                    }
+                    return TextGenerationResponse(
+                        text=response.choices[0].text.strip(),
+                        tokens_in=tokens_in,
+                        tokens_out=tokens_out,
+                        latency=latency,
+                    )
 
             except Exception as e:
                 logging.warning(

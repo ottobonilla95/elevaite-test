@@ -64,12 +64,12 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
                         "output_tokens", len(completion_text.split())
                     )
 
-                    return {
-                        "text": completion_text,
-                        "tokens_in": tokens_in,
-                        "tokens_out": tokens_out,
-                        "latency": latency,
-                    }
+                    return TextGenerationResponse(
+                        text=completion_text,
+                        tokens_in=tokens_in,
+                        tokens_out=tokens_out,
+                        latency=latency,
+                    )
 
                 raise ValueError(
                     "Invalid response structure: Missing 'completion' key."

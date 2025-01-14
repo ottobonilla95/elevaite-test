@@ -2,11 +2,10 @@ from typing import Any, Dict
 import pytest
 import logging
 
+from llm_gateway.services import TextGenerationService
 from llm_gateway.models.text_generation.core.interfaces import (
-    TextGenerationResponse,
     TextGenerationType,
 )
-from llm_gateway.services import TextGenerationService
 
 
 logging.basicConfig(level=logging.INFO)
@@ -36,10 +35,10 @@ def execute_textgen_test(
 
         logger.info(f"{provider_type} Response: {response}")
 
-        assert isinstance(response.get("latency"), float)
-        assert (response_text := response.get("text")) and response_text != ""
-        assert response.get("tokens_in") >= 0
-        assert response.get("tokens_out") >= 0
+        assert isinstance(response.latency, float)
+        assert response.text != ""
+        assert response.tokens_in >= 0
+        assert response.tokens_out >= 0
 
         return response
 
@@ -89,7 +88,7 @@ def test_generate_text_with_openai_and_sys_msg(model_provider_factory, fake_prom
         },
     )
 
-    assert "44" in response.get("text")
+    assert "44" in response.text
 
 
 def test_generate_text_with_gemini(model_provider_factory, fake_prompt):
