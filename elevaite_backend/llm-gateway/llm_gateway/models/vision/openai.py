@@ -3,6 +3,8 @@ import logging
 import time
 from typing import Any, Dict, List, Union
 import openai
+
+from ..text_generation.core.interfaces import TextGenerationResponse
 from .core.base import BaseVisionProvider
 
 
@@ -13,8 +15,7 @@ class OpenAIVisionProvider(BaseVisionProvider):
 
     def generate_text(
         self, prompt: str, images: List[Union[bytes, str]], config: Dict[str, Any]
-    ) -> str:
-
+    ) -> TextGenerationResponse:
         model = config.get("model", "gpt-4o-mini")
         retries = config.get("retries", 5)
         max_tokens = config.get("max_tokens", 300)
@@ -32,7 +33,10 @@ class OpenAIVisionProvider(BaseVisionProvider):
                 raise ValueError("Images must be Base64 bytes or valid URLs.")
 
         for attempt in range(retries):
+            tokens_in = -1
+            tokens_out = -1
             try:
+                start_time = time.time()
                 response = self.client.chat.completions.create(
                     model=model,
                     messages=[
@@ -43,10 +47,21 @@ class OpenAIVisionProvider(BaseVisionProvider):
                     ],
                     max_tokens=max_tokens,
                 )
-                return (
-                    response.choices[0].message.content.strip()
-                    if response.choices and response.choices[0].message.content
-                    else ""
+                latency = time.time() - start_time
+
+                if response.usage:
+                    tokens_in = response.usage.prompt_tokens
+                    tokens_out = response.usage.completion_tokens
+
+                return TextGenerationResponse(
+                    text=(
+                        response.choices[0].message.content.strip()
+                        if response.choices and response.choices[0].message.content
+                        else ""
+                    ),
+                    tokens_in=tokens_in,
+                    tokens_out=tokens_out,
+                    latency=latency,
                 )
 
             except Exception as e:
@@ -59,7 +74,7 @@ class OpenAIVisionProvider(BaseVisionProvider):
                     )
                 time.sleep((2**attempt) * 0.5)
 
-        return ""
+        raise RuntimeError("All retries failed for image processing.")
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
         try:

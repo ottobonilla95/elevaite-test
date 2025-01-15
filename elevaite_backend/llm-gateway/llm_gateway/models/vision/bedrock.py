@@ -7,6 +7,7 @@ import time
 from botocore.exceptions import ClientError
 from typing import Any, Dict, List, Union
 
+from ..text_generation.core.interfaces import TextGenerationResponse
 from .core.base import BaseVisionProvider
 
 
@@ -23,12 +24,11 @@ class BedrockVisionProvider(BaseVisionProvider):
 
     def generate_text(
         self, prompt: str, images: List[Union[bytes, str]], config: Dict[str, Any]
-    ) -> str:
+    ) -> TextGenerationResponse:
         model_name = config.get("model", "anthropic.claude-3-5-sonnet-20240620-v1:0")
         retries = config.get("retries", 5)
         max_tokens = config.get("max_tokens", 300)
 
-        # Prepare Base64-encoded image data
         prepared_image_data = []
         for image in images:
             if isinstance(image, bytes):
@@ -45,7 +45,6 @@ class BedrockVisionProvider(BaseVisionProvider):
             else:
                 raise ValueError("Images must be Base64 bytes or valid URLs.")
 
-        # Format the prompt with Bedrock structure
         formatted_prompt = "Human: " + prompt + "\n"
         for i, image_data in enumerate(prepared_image_data):
             formatted_prompt += f"Image {i + 1} (Base64): {image_data}\n"
@@ -57,18 +56,34 @@ class BedrockVisionProvider(BaseVisionProvider):
         }
 
         for attempt in range(retries):
+            tokens_in = -1
+            tokens_out = -1
             try:
+                start_time = time.time()
                 response = self.client.invoke_model(
                     modelId=model_name,
                     body=json.dumps(payload),
                 )
+                latency = time.time() - start_time
 
                 response_body_raw = response["body"].read().decode("utf-8")
                 logging.debug(f"Full response body: {response_body_raw}")
                 response_body = json.loads(response_body_raw)
 
                 if "completion" in response_body:
-                    return response_body["completion"].strip()
+                    completion_text = response_body["completion"].strip()
+
+                    tokens_in = response_body.get("input_tokens", len(prompt.split()))
+                    tokens_out = response_body.get(
+                        "output_tokens", len(completion_text.split())
+                    )
+
+                    return TextGenerationResponse(
+                        text=completion_text,
+                        tokens_in=tokens_in,
+                        tokens_out=tokens_out,
+                        latency=latency,
+                    )
 
                 raise ValueError(
                     "Invalid response structure: Missing 'completion' key."
@@ -88,7 +103,7 @@ class BedrockVisionProvider(BaseVisionProvider):
                 logging.error(f"ValueError encountered: {ve}")
                 raise ve
 
-        return ""
+        raise RuntimeError("All retries failed for vision processing.")
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
         try:

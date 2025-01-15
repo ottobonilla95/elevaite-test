@@ -66,7 +66,7 @@ class VisionService:
 
     def process_images(
         self, prompt: str, images: List[Union[bytes, str]], config: Dict[str, Any]
-    ) -> str:
+    ) -> TextGenerationResponse:
         provider = self.factory.get_provider(config.get("type") or "")
 
         try:

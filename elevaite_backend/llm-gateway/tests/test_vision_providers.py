@@ -1,6 +1,7 @@
 import logging
 import base64
 
+from llm_gateway.models.text_generation.core.interfaces import TextGenerationResponse
 from llm_gateway.models.vision.core.interfaces import VisionType
 from llm_gateway.services import VisionService
 
@@ -17,6 +18,25 @@ MOCK_IMAGE_BYTES = base64.b64decode(
     "AAAFCAYAAACNbyblAAAAHElEQVQI12P4"
     "//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
 )
+
+
+def validate_and_log_response(
+    response: TextGenerationResponse, vision_type: VisionType, test_case: str
+):
+    """
+    Validate the response from the current Vision service and log relevant details.
+    """
+    assert isinstance(
+        response, TextGenerationResponse
+    ), "Response must be a TextGenerationResponse instance."
+    assert len(response.text) > 0, "Generated text must not be empty."
+    assert response.tokens_in > 0, "Input token count must be greater than 0."
+    assert response.tokens_out > 0, "Output token count must be greater than 0."
+
+    logger.info(
+        f"{vision_type.name} Response for {test_case}: {response.text}\n"
+        f"Tokens In: {response.tokens_in}, Tokens Out: {response.tokens_out}, Latency: {response.latency:.2f}s"
+    )
 
 
 def test_openai_process_base64_image(model_provider_factory, fake_prompt):
@@ -36,9 +56,7 @@ def test_openai_process_base64_image(model_provider_factory, fake_prompt):
         "Describe what this image shows.", [MOCK_IMAGE_BYTES], config
     )
 
-    assert isinstance(response, str)
-    assert len(response) > 0
-    logger.info(f"OpenAI Response for Base64 Image: {response}")
+    validate_and_log_response(response, VisionType.OPENAI, "Image URL")
 
 
 def test_openai_process_image_url(model_provider_factory, fake_prompt):
@@ -56,10 +74,7 @@ def test_openai_process_image_url(model_provider_factory, fake_prompt):
     response = service.process_images(
         "Describe what this image shows.", [PUBLIC_IMAGE_URL], config
     )
-
-    assert isinstance(response, str)
-    assert len(response) > 0
-    logger.info(f"OpenAI Response for Image URL: {response}")
+    validate_and_log_response(response, VisionType.OPENAI, "Image URL")
 
 
 def test_openai_process_multiple_images(model_provider_factory, fake_prompt):
@@ -82,9 +97,7 @@ def test_openai_process_multiple_images(model_provider_factory, fake_prompt):
     ]
     response = service.process_images("Describe what this image shows", images, config)
 
-    assert isinstance(response, str)
-    assert len(response) > 0
-    logger.info(f"OpenAI Response for Multiple Images: {response}")
+    validate_and_log_response(response, VisionType.OPENAI, "Image URL")
 
 
 def test_gemini_process_base64_image(model_provider_factory, fake_prompt):
@@ -104,9 +117,7 @@ def test_gemini_process_base64_image(model_provider_factory, fake_prompt):
         "Describe what this image shows.", [MOCK_IMAGE_BYTES], config
     )
 
-    assert isinstance(response, str)
-    assert len(response) > 0
-    logger.info(f"Gemini Response for Base64 Image: {response}")
+    validate_and_log_response(response, VisionType.OPENAI, "Image URL")
 
 
 def test_gemini_process_image_url(model_provider_factory, fake_prompt):
@@ -125,9 +136,7 @@ def test_gemini_process_image_url(model_provider_factory, fake_prompt):
         "Describe what this image shows.", [PUBLIC_IMAGE_URL], config
     )
 
-    assert isinstance(response, str)
-    assert len(response) > 0
-    logger.info(f"Gemini Response for Image URL: {response}")
+    validate_and_log_response(response, VisionType.OPENAI, "Image URL")
 
 
 def test_gemini_process_multiple_images(model_provider_factory, fake_prompt):
@@ -150,9 +159,7 @@ def test_gemini_process_multiple_images(model_provider_factory, fake_prompt):
     ]
     response = service.process_images("Describe what these images show", images, config)
 
-    assert isinstance(response, str)
-    assert len(response) > 0
-    logger.info(f"Gemini Response for Multiple Images: {response}")
+    validate_and_log_response(response, VisionType.OPENAI, "Image URL")
 
 
 def test_bedrock_process_base64_image(model_provider_factory, fake_prompt):
@@ -172,9 +179,7 @@ def test_bedrock_process_base64_image(model_provider_factory, fake_prompt):
         "Describe what this image shows.", [MOCK_IMAGE_BYTES], config
     )
 
-    assert isinstance(response, str)
-    assert len(response) > 0
-    logger.info(f"Bedrock Response for Base64 Image: {response}")
+    validate_and_log_response(response, VisionType.OPENAI, "Image URL")
 
 
 def test_bedrock_process_image_url(model_provider_factory, fake_prompt):
@@ -194,9 +199,7 @@ def test_bedrock_process_image_url(model_provider_factory, fake_prompt):
         "Describe what this image shows.", [PUBLIC_IMAGE_URL], config
     )
 
-    assert isinstance(response, str)
-    assert len(response) > 0
-    logger.info(f"Bedrock Response for Image URL: {response}")
+    validate_and_log_response(response, VisionType.OPENAI, "Image URL")
 
 
 def test_bedrock_process_multiple_images(model_provider_factory, fake_prompt):
@@ -219,6 +222,4 @@ def test_bedrock_process_multiple_images(model_provider_factory, fake_prompt):
     ]
     response = service.process_images("Describe what these images show", images, config)
 
-    assert isinstance(response, str)
-    assert len(response) > 0
-    logger.info(f"Bedrock Response for Multiple Images: {response}")
+    validate_and_log_response(response, VisionType.OPENAI, "Image URL")

@@ -6,6 +6,7 @@ import google.generativeai as genai
 
 from typing import Any, Dict, List, Union
 
+from ..text_generation.core.interfaces import TextGenerationResponse
 from .core.base import BaseVisionProvider
 
 
@@ -16,8 +17,9 @@ class GeminiVisionProvider(BaseVisionProvider):
 
     def generate_text(
         self, prompt: str, images: List[Union[bytes, str]], config: Dict[str, Any]
-    ) -> str:
+    ) -> TextGenerationResponse:
         retries = config.get("retries", 5)
+        model_name = config.get("model", "gemini-1.5-pro")
 
         prepared_images = []
         for image in images:
@@ -46,12 +48,26 @@ class GeminiVisionProvider(BaseVisionProvider):
         input_data = prepared_images + [prompt]
 
         for attempt in range(retries):
+            tokens_in = -1
+            tokens_out = -1
             try:
-                response = genai.GenerativeModel(
-                    model_name=config.get("model", "gemini-1.5-pro")
-                ).generate_content(input_data)
+                start_time = time.time()
+                response = self.client.GenerativeModel(model_name).generate_content(
+                    input_data
+                )
+                latency = time.time() - start_time
 
-                return response.text.strip()
+                tokens_in = getattr(response, "input_tokens", len(prompt.split()))
+                tokens_out = getattr(
+                    response, "output_tokens", len(response.text.split())
+                )
+
+                return TextGenerationResponse(
+                    text=response.text.strip(),
+                    tokens_in=tokens_in,
+                    tokens_out=tokens_out,
+                    latency=latency,
+                )
 
             except Exception as e:
                 logging.warning(
@@ -63,7 +79,7 @@ class GeminiVisionProvider(BaseVisionProvider):
                     )
                 time.sleep((2**attempt) * 0.5)
 
-        return ""
+        raise RuntimeError("All retries failed for image processing.")
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
         try:
