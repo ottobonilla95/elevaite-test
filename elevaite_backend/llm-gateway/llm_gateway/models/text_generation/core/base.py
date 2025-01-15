@@ -13,7 +13,7 @@ class BaseTextGenerationProvider(ABC):
         Abstract method to generate text from a given prompt.
         :param prompt: The input text prompt.
         :param config: Configuration options like model name, temperature, etc.
-        :return: A dictionary containing:
+        :return: A `TextGenerationResponse` containing:
                  - 'text': The generated text as a string.
                  - 'tokens_in': Number of input tokens.
                  - 'tokens_out': Number of output tokens.
