@@ -30,8 +30,22 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
         role = config.get("role", "assistant")
         task_prop = config.get("task", "")
         output_prop = config.get("output", "")
-        example_in_prop = config.get("example_input", "")
-        example_out_prop = config.get("example_output", "")
+        examples_string = ""
+        examples_counter = 1
+        while True:
+            example_in_prop = config.get(f"example_input {examples_counter}", None)
+            expected_out_prop = config.get(f"expected_output {examples_counter}", None)
+
+            if example_in_prop is None or expected_out_prop is None:
+                break
+
+            examples_string += f"""
+        **Example Input {examples_counter}:** {example_in_prop}
+
+        **Expected Output {examples_counter}:** {expected_out_prop}
+
+        """
+            examples_counter += 1
         onprem_prompt = textwrap.dedent(
             f"""
         <|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -44,9 +58,7 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
         
         **Output:** {output_prop}
         
-        **Example Input 1:** {example_in_prop}
-
-        Expected Output 1:** {example_out_prop}
+        {examples_string}
         
         <|eot_id|><|start_header_id|>user<|end_header_id|>
         
