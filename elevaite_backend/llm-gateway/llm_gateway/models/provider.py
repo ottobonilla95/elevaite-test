@@ -87,6 +87,11 @@ class ModelProviderFactory:
                     )
                 )
 
+            if onprem_endpoint := os.getenv("ONPREM_VISION_ENDPOINT"):
+                self.providers[VisionType.ON_PREM] = vision.onprem.OnPremVisionProvider(
+                    api_url=onprem_endpoint, secret=onprem_secret, user=onprem_user
+                )
+
         if gemini_api_key := os.getenv("GEMINI_API_KEY"):
             self.providers[EmbeddingType.GEMINI] = (
                 embeddings.gemini.GeminiEmbeddingProvider(api_key=gemini_api_key)

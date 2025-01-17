@@ -64,7 +64,7 @@ class VisionService:
         self.factory = factory
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def process_images(
+    def generate_text(
         self, prompt: str, images: List[Union[bytes, str]], config: Dict[str, Any]
     ) -> TextGenerationResponse:
         provider = self.factory.get_provider(config.get("type") or "")

@@ -52,7 +52,7 @@ def test_openai_process_base64_image(model_provider_factory, fake_prompt):
         "prompt": fake_prompt,
     }
 
-    response = service.process_images(
+    response = service.generate_text(
         "Describe what this image shows.", [MOCK_IMAGE_BYTES], config
     )
 
@@ -71,7 +71,7 @@ def test_openai_process_image_url(model_provider_factory, fake_prompt):
         "prompt": fake_prompt,
     }
 
-    response = service.process_images(
+    response = service.generate_text(
         "Describe what this image shows.", [PUBLIC_IMAGE_URL], config
     )
     validate_and_log_response(response, VisionType.OPENAI, "Image URL")
@@ -95,7 +95,7 @@ def test_openai_process_multiple_images(model_provider_factory, fake_prompt):
         PUBLIC_IMAGE_URL,
         PUBLIC_IMAGE_URL_2,
     ]
-    response = service.process_images("Describe what this image shows", images, config)
+    response = service.generate_text("Describe what this image shows", images, config)
 
     validate_and_log_response(response, VisionType.OPENAI, "Image URL")
 
@@ -113,7 +113,7 @@ def test_gemini_process_base64_image(model_provider_factory, fake_prompt):
         "prompt": fake_prompt,
     }
 
-    response = service.process_images(
+    response = service.generate_text(
         "Describe what this image shows.", [MOCK_IMAGE_BYTES], config
     )
 
@@ -132,7 +132,7 @@ def test_gemini_process_image_url(model_provider_factory, fake_prompt):
         "prompt": fake_prompt,
     }
 
-    response = service.process_images(
+    response = service.generate_text(
         "Describe what this image shows.", [PUBLIC_IMAGE_URL], config
     )
 
@@ -157,7 +157,7 @@ def test_gemini_process_multiple_images(model_provider_factory, fake_prompt):
         PUBLIC_IMAGE_URL,
         PUBLIC_IMAGE_URL_2,
     ]
-    response = service.process_images("Describe what these images show", images, config)
+    response = service.generate_text("Describe what these images show", images, config)
 
     validate_and_log_response(response, VisionType.OPENAI, "Image URL")
 
@@ -175,7 +175,7 @@ def test_bedrock_process_base64_image(model_provider_factory, fake_prompt):
         "prompt": fake_prompt,
     }
 
-    response = service.process_images(
+    response = service.generate_text(
         "Describe what this image shows.", [MOCK_IMAGE_BYTES], config
     )
 
@@ -195,7 +195,7 @@ def test_bedrock_process_image_url(model_provider_factory, fake_prompt):
         "prompt": fake_prompt,
     }
 
-    response = service.process_images(
+    response = service.generate_text(
         "Describe what this image shows.", [PUBLIC_IMAGE_URL], config
     )
 
@@ -220,6 +220,67 @@ def test_bedrock_process_multiple_images(model_provider_factory, fake_prompt):
         PUBLIC_IMAGE_URL,
         PUBLIC_IMAGE_URL_2,
     ]
-    response = service.process_images("Describe what these images show", images, config)
+    response = service.generate_text("Describe what these images show", images, config)
 
     validate_and_log_response(response, VisionType.OPENAI, "Image URL")
+
+
+def test_onprem_process_base64_image(model_provider_factory, fake_prompt):
+    """
+    Test On-Prem image-to-text service with a Base64 image.
+    """
+    service = VisionService(model_provider_factory)
+
+    config = {
+        "type": VisionType.ON_PREM,
+        "model": "openbmb--MiniCPM-V-2_6",
+        "max_tokens": 300,
+        "prompt": fake_prompt,
+    }
+
+    response = service.generate_text(
+        "Describe what this image shows.", [MOCK_IMAGE_BYTES], config
+    )
+
+    validate_and_log_response(response, VisionType.ON_PREM, "Base64 Image")
+
+
+def test_onprem_process_image_url(model_provider_factory, fake_prompt):
+    """
+    Test On-Prem image-to-text service with an image URL.
+    """
+    service = VisionService(model_provider_factory)
+    config = {
+        "type": VisionType.ON_PREM,
+        "model": "openbmb--MiniCPM-V-2_6",
+        "max_tokens": 300,
+        "prompt": fake_prompt,
+    }
+
+    response = service.generate_text(
+        "Describe what this image shows.", [PUBLIC_IMAGE_URL], config
+    )
+    validate_and_log_response(response, VisionType.ON_PREM, "Image URL")
+
+
+def test_onprem_process_multiple_images(model_provider_factory, fake_prompt):
+    """
+    Test On-Prem image-to-text service with multiple images (Base64 and URLs).
+    """
+    service = VisionService(model_provider_factory)
+
+    config = {
+        "type": VisionType.ON_PREM,
+        "model": "openbmb--MiniCPM-V-2_6",
+        "max_tokens": 300,
+        "prompt": fake_prompt,
+    }
+
+    images = [
+        MOCK_IMAGE_BYTES,
+        PUBLIC_IMAGE_URL,
+        PUBLIC_IMAGE_URL_2,
+    ]
+    response = service.generate_text("Describe what this image shows.", images, config)
+
+    validate_and_log_response(response, VisionType.ON_PREM, "Multiple Images")

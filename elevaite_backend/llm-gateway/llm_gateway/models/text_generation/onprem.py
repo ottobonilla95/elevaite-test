@@ -146,11 +146,6 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
         raise Exception
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
-        """
-        Validates the configuration for On-Prem text generation.
-        :param config: Configuration options (e.g., model, temperature, max_tokens).
-        :return: True if configuration is valid, False otherwise.
-        """
         try:
             assert isinstance(config, dict), "Config must be a dictionary"
             assert "model" in config, "Model name is required in config"
