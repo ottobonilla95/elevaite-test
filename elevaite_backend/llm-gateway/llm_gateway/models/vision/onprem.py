@@ -27,10 +27,14 @@ class OnPremVisionProvider(BaseVisionProvider):
         files = []
         for idx, img in enumerate(images):
             if isinstance(img, str):
-                with open(img, "rb") as f:
+                response = requests.get(img)
+                if response.status_code == 200:
+                    img_data = response.content
                     files.append(
-                        ("image_files", (f"{idx}.jpg", f.read(), "image/jpeg"))
+                        ("image_files", (f"{idx}.jpg", img_data, "image/jpeg"))
                     )
+                else:
+                    raise ValueError(f"Failed to retrieve image from URL: {img}")
             elif isinstance(img, bytes):
                 files.append(("image_files", (f"{idx}.jpg", img, "image/jpeg")))
             else:
