@@ -24,126 +24,58 @@ class OnPremVisionProvider(BaseVisionProvider):
     def generate_text(
         self, prompt: str, images: List[Union[bytes, str]], config: Dict[str, Any]
     ) -> TextGenerationResponse:
-        retries = config.get("retries", 5)
-        max_tokens = config.get("max_tokens", 50)
-
         files = []
-        for i, image in enumerate(images):
-            if isinstance(image, bytes):
-                files.append(
-                    ("image_files", (f"image_{i + 1}.jpg", image, "image/jpeg"))
-                )
-            elif isinstance(image, str) and image.startswith("http"):
-                files.append(
-                    (
-                        "image_files",
-                        (
-                            f"image_{i + 1}.jpg",
-                            requests.get(image).content,
-                            "image/jpeg",
-                        ),
+        for idx, img in enumerate(images):
+            if isinstance(img, str):
+                with open(img, "rb") as f:
+                    files.append(
+                        ("image_files", (f"{idx}.jpg", f.read(), "image/jpeg"))
                     )
-                )
+            elif isinstance(img, bytes):
+                files.append(("image_files", (f"{idx}.jpg", img, "image/jpeg")))
             else:
-                raise ValueError("Images must be Base64 bytes or valid URLs.")
-
-        message_content = prompt + "\n"
-        message_content += "Look at these images: " + ", ".join(
-            str(i) for i in range(len(images))
-        )
-        message_content += "\nWhat is the difference between them?"
+                raise ValueError(
+                    "Images must be either file paths (str) or image bytes (bytes)."
+                )
 
         messages = [
-            {
-                "type": "text",
-                "role": "user",
-                "content": [message_content, *range(len(images))],
-            }
+            {"role": "user", "content": [prompt] + [idx for idx in range(len(images))]}
         ]
 
-        kwargs = {"max_new_tokens": max_tokens}
+        kwargs = config
 
         data = {
             "json_messages": json.dumps(messages),
             "json_kwargs": json.dumps(kwargs),
         }
 
-        headers = {"Content-Type": "application/json"}
-        auth_value = base64.b64encode(f"{self.user}:{self.secret}".encode()).decode(
-            "utf-8"
-        )
-        headers["Authorization"] = f"Basic {auth_value}"
+        try:
+            start_time = time.time()
+            response = requests.post(
+                self.api_url,
+                files=files,
+                data=data,
+                auth=(self.user, self.secret),
+                verify=False,
+            )
+            latency = time.time() - start_time
 
-        for attempt in range(retries):
-            try:
-                start_time = time.time()
-                response = requests.post(
-                    self.api_url,
-                    files=files,
-                    data=data,
-                    headers=headers,
-                    auth=(self.user, self.secret),
-                    verify=False,
+            if response.status_code == 200:
+                response_text = response.text
+                return TextGenerationResponse(
+                    text=response_text,
+                    tokens_in=count_tokens([prompt]),
+                    tokens_out=count_tokens([response_text]),
+                    latency=latency,
                 )
-                latency = time.time() - start_time
+        except requests.exceptions.RequestException as e:
+            raise ValueError(f"Request failed: {e}")
 
-                if response.status_code == 200:
-                    data = response.json()
-                    if "result" in data and len(data["result"]) > 0:
-                        processed_output = (
-                            data["result"][0].get("generated_text", "").strip()
-                        )
-                        tokens_in = count_tokens([response.text])
-                        tokens_out = count_tokens([processed_output])
-
-                        return TextGenerationResponse(
-                            text=processed_output,
-                            tokens_in=tokens_in,
-                            tokens_out=tokens_out,
-                            latency=latency,
-                        )
-                    else:
-                        logging.error(
-                            "Failed to find the expected 'result' in the response."
-                        )
-                        return TextGenerationResponse(
-                            text="",
-                            tokens_in=-1,
-                            tokens_out=-1,
-                            latency=latency,
-                        )
-                else:
-                    logging.warning(
-                        f"Attempt {attempt + 1}/{retries} failed: {response.text}. Retrying..."
-                    )
-                    if attempt == retries - 1:
-                        raise RuntimeError(
-                            f"Vision generation failed after {retries} attempts: {response.text}"
-                        )
-                time.sleep((2**attempt) * 0.5)
-
-            except requests.exceptions.RequestException as e:
-                logging.warning(
-                    f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying..."
-                )
-                if attempt == retries - 1:
-                    raise RuntimeError(
-                        f"Vision generation failed after {retries} attempts: {e}"
-                    )
-                time.sleep((2**attempt) * 0.5)
-
-        raise RuntimeError("All retries failed for vision processing.")
+        raise RuntimeError("All retries failed for image processing.")
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
-        """
-        Validates the configuration for On-Prem vision generation.
-        :param config: Configuration options (e.g., model, max_tokens, retries).
-        :return: True if configuration is valid, False otherwise.
-        """
         try:
             assert isinstance(config, dict), "Config must be a dictionary"
-            assert "model" in config, "Model name is required in config"
-            assert isinstance(config.get("model"), str), "Model name must be a string"
             assert isinstance(
                 config.get("max_tokens", 50), int
             ), "Max tokens must be an integer"
