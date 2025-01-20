@@ -55,14 +55,14 @@ async function refreshGoogleToken(token: JWT): Promise<JWT> {
   }
 
   const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: GOOGLE_CLIENT_ID,
       client_secret: GOOGLE_CLIENT_SECRET,
       grant_type: "refresh_token",
-      refresh_token: token.refresh_token ?? token.access_token ?? "",
-    }),
-    method: "POST",
+      refresh_token: token.refresh_token,
+    }).toString(),
   });
 
   interface GoogleTokenResponse {
@@ -81,6 +81,10 @@ async function refreshGoogleToken(token: JWT): Promise<JWT> {
       "google",
       `Google token refresh failed: ${tokensOrError.error_description ?? "Unknown error"}`
     );
+  }
+
+  if (!tokensOrError.access_token) {
+    throw new Error("Google response is missing an access token.");
   }
 
   return {
@@ -114,7 +118,7 @@ async function refreshFusionAuthToken(token: JWT): Promise<JWT> {
   const response = await fetch(FUSIONAUTH_TOKEN_ENDPOINT, {
     headers,
     body: JSON.stringify({
-      refreshToken: token.refresh_token ?? "",
+      refreshToken: token.refresh_token,
       token: token.access_token,
     }),
     method: "POST",
@@ -141,7 +145,7 @@ async function refreshFusionAuthToken(token: JWT): Promise<JWT> {
   return {
     ...token,
     access_token: tokensOrError.token,
-    expires_at: Math.floor(Date.now() / 1000 + 360000),
+    expires_at: Math.floor(Date.now() / 1000 + 3600),
     refresh_token: tokensOrError.refreshToken,
     provider: "credentials",
   };
@@ -151,11 +155,9 @@ const _config = {
   callbacks: {
     async jwt({ account, token, user }): Promise<JWT> {
       if (account) {
-        if (
-          !(user.accessToken ?? user.refreshToken) &&
-          !(account.access_token ?? account.refresh_token)
-        )
+        if (!account.access_token && !account.refresh_token) {
           throw new Error("Account doesn't contain tokens");
+        }
 
         if (account.provider === "google") {
           return {
@@ -213,10 +215,8 @@ const _config = {
       const registerURL = new URL(`${RBAC_URL}/auth/register`);
       const registerHeaders = new Headers();
       registerHeaders.append("Content-Type", "application/json");
-      registerHeaders.append(
-        "Authorization",
-        `Bearer ${authToken ? authToken : ""}`
-      );
+      if (!authToken) throw Error("authToken doesn't exist");
+      registerHeaders.append("Authorization", `Bearer ${authToken}`);
       const body = JSON.stringify({
         // org_id: ORG_ID,
         firstname: "",
