@@ -1,8 +1,7 @@
 from airflow.models import Variable
+import re
 import json
 from typing import List, Dict, Tuple
-generated_topics = Variable.get('generated_topics', 'default_generated_topics')
-
 
 class LogParser:
     def __init__(self, k_prefix=3, similarity_threshold=0.5, client=None, max_words=70):
@@ -279,6 +278,25 @@ class LogParser:
         return extracted_data
 
 
+def generate_topics(input_path: str, output_path: str):
+    with open(input_path, 'r') as f:
+        groups = json.load(f)
+    
+    parser = LogParser()
+    parser.groups = groups    
+    parser.generate_topics()
+    
+    with open(output_path, 'w') as f:
+        json.dump(parser.groups, f)
+    
+    return output_path
+
+def run_generate_topics(ti):
+    load_group_logs_file = Variable.get('load_group_logs_file', 'default_load_group_logs_file')
+    generated_topics = generate_topics(load_group_logs_file, "topics.json")
+    Variable.set('generated_topics', generated_topics)
+
+
 def parse_logs_with_llm(input_path, output_path: str):
     with open(input_path, 'r') as f:
         groups = json.load(f)
@@ -293,6 +311,27 @@ def parse_logs_with_llm(input_path, output_path: str):
     return output_path
 
 
-def main(ti):
+def run_parse_logs_with_llm(ti):
+    generated_topics = Variable.get('generated_topics', 'default_generated_topics')
     parsed_file = parse_logs_with_llm(generated_topics, 'parsed.json')
     Variable.set('parsed_file', parsed_file)
+
+
+def extract_variables(input_path, output_path: str):
+    with open(input_path, 'r') as f:
+        groups = json.load(f)
+    
+    parser = LogParser()
+    parser.groups = groups
+    extracted_data = parser.extract_variables()
+    
+    with open(output_path, 'w') as f:
+        json.dump(extracted_data, f)
+    
+    return output_path
+
+
+def run_extract_variables(ti):
+    parsed_file = Variable.get('parsed_file', 'default_parsed_file')
+    extracted_file = extract_variables(parsed_file, 'extracted.json')
+    Variable.set('extracted_file', extracted_file)

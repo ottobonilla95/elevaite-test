@@ -20,8 +20,8 @@
           "id": "task2",
           "name": "Generate Topic",
           "type": "pyscript",
-          "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/generate_topics.py",
-          "entrypoint": "main",
+          "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
+          "entrypoint": "run_generate_topics",
           "dependencies": ["task1"],
           "input": [],
           "output": []
@@ -30,8 +30,8 @@
           "id": "task3",
           "name": "Parse Logs with LLM",
           "type": "pyscript",
-          "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/parse_logs_with_llm.py",
-          "entrypoint": "main",
+          "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
+          "entrypoint": "parse_logs_with_llm",
           "dependencies": ["task2"],
           "input": [],
           "output": []
@@ -40,8 +40,8 @@
           "id": "task4",
           "name": "Extract Variables",
           "type": "pyscript",
-          "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/extract_variables.py",
-          "entrypoint": "main",
+          "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
+          "entrypoint": "run_extract_variables",
           "dependencies": ["task3"],
           "input": [],
           "output": []
