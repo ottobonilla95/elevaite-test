@@ -4,11 +4,11 @@
   "variables": [
     {
       "name": "extracted_data_uri",
-      "type": "string"
+      "var_type": "string"
     },
     {
       "name": "transformed_data_uri",
-      "type": "string"
+      "var_type": "string"
     }
   ],
   "tasks": [

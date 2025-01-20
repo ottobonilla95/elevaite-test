@@ -2,7 +2,22 @@
   "name": "Log_Analysis",
   "description": "Log analysis sample pipeline",
   "variables": [
-    
+    {
+      "name": "load_group_logs_file",
+      "var_type": "string"
+    },
+    {
+      "name": "generated_topics",
+      "var_type": "string"
+    },
+    {
+      "name": "parsed_file",
+      "var_type": "string"
+    },
+    {
+      "name": "extracted_file",
+      "var_type": "string"
+    }
   ],
   "tasks": [
     {
@@ -13,7 +28,7 @@
       "entrypoint": "main",
       "dependencies": [],
       "input": [],
-      "output": []
+      "output": ["load_group_logs_file"]
     },
     {
       "id": "task2",
@@ -22,8 +37,8 @@
       "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
       "entrypoint": "run_generate_topics",
       "dependencies": ["task1"],
-      "input": [],
-      "output": []
+      "input": ["load_group_logs_file"],
+      "output": ["generated_topics"]
     },
     {
       "id": "task3",
@@ -32,8 +47,8 @@
       "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
       "entrypoint": "run_parse_logs_with_llm",
       "dependencies": ["task2"],
-      "input": [],
-      "output": []
+      "input": ["generated_topics"],
+      "output": ["parsed_file"]
     },
     {
       "id": "task4",
@@ -42,8 +57,8 @@
       "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
       "entrypoint": "run_extract_variables",
       "dependencies": ["task3"],
-      "input": [],
-      "output": []
+      "input": ["parsed_file"],
+      "output": ["extracted_file"]
     }
   ],
   "schedule": {
