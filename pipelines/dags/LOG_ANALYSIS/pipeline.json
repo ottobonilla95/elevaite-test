@@ -1,56 +1,53 @@
 {
-    "pipeline": {
-      "name": "Log_Analysis",
-      "description": "Log analysis sample pipeline",
-      "variables": [
-        
-      ],
-      "tasks": [
-        {
-          "id": "task1",
-          "name": "Load File and Group",
-          "type": "jupyternotebook",
-          "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/notebooks/load_group_logs.ipynb",
-          "entrypoint": "main",
-          "dependencies": [],
-          "input": [],
-          "output": []
-        },
-        {
-          "id": "task2",
-          "name": "Generate Topic",
-          "type": "pyscript",
-          "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
-          "entrypoint": "run_generate_topics",
-          "dependencies": ["task1"],
-          "input": [],
-          "output": []
-        },
-        {
-          "id": "task3",
-          "name": "Parse Logs with LLM",
-          "type": "pyscript",
-          "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
-          "entrypoint": "parse_logs_with_llm",
-          "dependencies": ["task2"],
-          "input": [],
-          "output": []
-        },
-        {
-          "id": "task4",
-          "name": "Extract Variables",
-          "type": "pyscript",
-          "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
-          "entrypoint": "run_extract_variables",
-          "dependencies": ["task3"],
-          "input": [],
-          "output": []
-        }
-      ],
-      "schedule": {
-        "frequency": "daily",
-        "time": "02:00"
-      }
+  "name": "Log_Analysis",
+  "description": "Log analysis sample pipeline",
+  "variables": [
+    
+  ],
+  "tasks": [
+    {
+      "id": "task1",
+      "name": "Load File and Group",
+      "type": "jupyternotebook",
+      "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/notebooks/load_group_logs.ipynb",
+      "entrypoint": "main",
+      "dependencies": [],
+      "input": [],
+      "output": []
+    },
+    {
+      "id": "task2",
+      "name": "Generate Topic",
+      "type": "pyscript",
+      "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
+      "entrypoint": "run_generate_topics",
+      "dependencies": ["task1"],
+      "input": [],
+      "output": []
+    },
+    {
+      "id": "task3",
+      "name": "Parse Logs with LLM",
+      "type": "pyscript",
+      "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
+      "entrypoint": "run_parse_logs_with_llm",
+      "dependencies": ["task2"],
+      "input": [],
+      "output": []
+    },
+    {
+      "id": "task4",
+      "name": "Extract Variables",
+      "type": "pyscript",
+      "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
+      "entrypoint": "run_extract_variables",
+      "dependencies": ["task3"],
+      "input": [],
+      "output": []
     }
+  ],
+  "schedule": {
+    "frequency": "daily",
+    "time": "02:00"
   }
-  
+}

@@ -42,7 +42,7 @@ json_file_paths = [
 ]
 
 for json_file_path in json_file_paths:
-    pipeline = load_json_from_path(json_file_path)['pipeline']
+    pipeline = load_json_from_path(json_file_path)
 
     default_args = {
         'owner': 'airflow',
