@@ -42,12 +42,17 @@ declare module "next-auth" {
 
 async function refreshGoogleToken(token: JWT): Promise<JWT> {
   const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-  if (!GOOGLE_CLIENT_ID)
-    throw new Error("GOOGLE_CLIENT_ID does not exist in the env");
-
   const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-  if (!GOOGLE_CLIENT_SECRET)
-    throw new Error("GOOGLE_CLIENT_SECRET does not exist in the env");
+
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    throw new Error("Google client credentials are not configured properly.");
+  }
+
+  if (!token.refresh_token) {
+    throw new Error(
+      "Missing refresh token. Cannot refresh Google access token."
+    );
+  }
 
   const response = await fetch("https://oauth2.googleapis.com/token", {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -110,7 +115,7 @@ async function refreshFusionAuthToken(token: JWT): Promise<JWT> {
     headers,
     body: JSON.stringify({
       refreshToken: token.refresh_token ?? "",
-      token: token.access_token
+      token: token.access_token,
     }),
     method: "POST",
   });
@@ -123,7 +128,7 @@ async function refreshFusionAuthToken(token: JWT): Promise<JWT> {
   const tokensOrError = (await response.json()) as FusionAuthTokenResponse;
 
   // eslint-disable-next-line no-console -- debugging
-  console.dir(tokensOrError, { depth: 100 })
+  console.dir(tokensOrError, { depth: 100 });
 
   if (!response.ok) {
     throw new TokenRefreshError(
@@ -146,7 +151,10 @@ const _config = {
   callbacks: {
     async jwt({ account, token, user }): Promise<JWT> {
       if (account) {
-        if (!(user.accessToken ?? user.refreshToken) && !(account.access_token ?? account.refresh_token))
+        if (
+          !(user.accessToken ?? user.refreshToken) &&
+          !(account.access_token ?? account.refresh_token)
+        )
           throw new Error("Account doesn't contain tokens");
 
         if (account.provider === "google") {
@@ -165,9 +173,7 @@ const _config = {
           return {
             ...token,
             access_token: user.accessToken,
-            expires_at: Math.floor(
-              (Date.now() / 1000) + 3600
-            ),
+            expires_at: Math.floor(Date.now() / 1000 + 3600),
             refresh_token: user.refreshToken,
             provider: "credentials",
           };
