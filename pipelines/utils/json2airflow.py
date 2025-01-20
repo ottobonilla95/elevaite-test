@@ -67,7 +67,7 @@ for json_file_path in json_file_paths:
         task_id = task['id']
         
         # Define a callable for Python scripts
-        if task['type'] == 'pyscript':
+        if task['task_type'] == 'pyscript':
             op = PythonOperator(
                 task_id=task_id,
                 python_callable=run_python_script,
@@ -76,7 +76,7 @@ for json_file_path in json_file_paths:
             )
         
         # Define a callable for Jupyter notebooks
-        elif task['type'] == 'jupyternotebook':
+        elif task['task_type'] == 'jupyternotebook':
             op = PapermillOperator(
                 task_id=task_id,
                 input_nb=task['src'],

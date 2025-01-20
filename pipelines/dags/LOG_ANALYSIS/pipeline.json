@@ -23,7 +23,7 @@
     {
       "id": "task1",
       "name": "Load File and Group",
-      "type": "jupyternotebook",
+      "task_type": "jupyternotebook",
       "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/notebooks/load_group_logs.ipynb",
       "entrypoint": "main",
       "dependencies": [],
@@ -33,7 +33,7 @@
     {
       "id": "task2",
       "name": "Generate Topic",
-      "type": "pyscript",
+      "task_type": "pyscript",
       "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
       "entrypoint": "run_generate_topics",
       "dependencies": ["task1"],
@@ -43,7 +43,7 @@
     {
       "id": "task3",
       "name": "Parse Logs with LLM",
-      "type": "pyscript",
+      "task_type": "pyscript",
       "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
       "entrypoint": "run_parse_logs_with_llm",
       "dependencies": ["task2"],
@@ -53,7 +53,7 @@
     {
       "id": "task4",
       "name": "Extract Variables",
-      "type": "pyscript",
+      "task_type": "pyscript",
       "src": "/home/k/airflow/dags/dags/LOG_ANALYSIS/scripts/llmparser.py",
       "entrypoint": "run_extract_variables",
       "dependencies": ["task3"],
