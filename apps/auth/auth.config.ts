@@ -36,6 +36,16 @@ const cookies = {
       domain: hostName === "localhost" ? hostName : `.${hostName}`, // add a . in front so that subdomains are included
     },
   },
+  pkceCodeVerifier: {
+    name: `${cookiePrefix}authjs.pkce-code-verifier`,
+    options: {
+      httpOnly: false,
+      sameSite: LAX,
+      path: "/",
+      secure: useSecureCookies,
+      domain: hostName === "localhost" ? hostName : `.${hostName}`,
+    },
+  },
 };
 
 export const authConfig = {
@@ -68,7 +78,7 @@ export const authConfig = {
           firstName,
           lastName,
           authToken,
-          idp: params.profile ? IDP.GOOGLE : IDP.CREDENTIALS
+          idp: params.profile ? IDP.GOOGLE : IDP.CREDENTIALS,
         });
       } catch (error) {
         // eslint-disable-next-line no-console -- Temporary
