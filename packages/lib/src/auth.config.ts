@@ -158,6 +158,11 @@ const _config = {
         if (!account.access_token && !account.refresh_token) {
           throw new Error("Account doesn't contain tokens");
         }
+        if (Boolean(account.access_token) && account.access_token === token.access_token
+          && Boolean(account.refresh_token) && account.refresh_token === token.refresh_token
+          && Boolean(account.provider) && account.provider === token.provider) {
+          return token
+        }
 
         if (account.provider === "google") {
           return {
