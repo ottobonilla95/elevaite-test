@@ -27,6 +27,7 @@
     "react-pdf-highlighter-extended": "^8.1.0",
     "react-resize-detector": "^11.0.1",
     "react-tabs": "^6.0.2",
+    "sharp": "^0.33.5",
     "zod": "^3.22.4"
   },
   "devDependencies": {

@@ -56,14 +56,16 @@ async function refreshGoogleToken(token: JWT): Promise<JWT> {
 
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
-      client_secret: GOOGLE_CLIENT_SECRET,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion -- Straight from the docs https://authjs.dev/guides/refresh-token-rotation?framework=next-js
+      client_id: GOOGLE_CLIENT_ID!,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion -- Straight from the docs https://authjs.dev/guides/refresh-token-rotation?framework=next-js
+      client_secret: GOOGLE_CLIENT_SECRET!,
       grant_type: "refresh_token",
-      refresh_token: token.refresh_token,
-    }).toString(),
-  });
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion -- Straight from the docs https://authjs.dev/guides/refresh-token-rotation?framework=next-js
+      refresh_token: token.refresh_token!,
+    }),
+  })
 
   interface GoogleTokenResponse {
     access_token: string;
