@@ -10,6 +10,13 @@ class EmbeddingType(str, Enum):
     GEMINI = "gemini_embedding"
 
 
+class EmbeddingModelName(str, Enum):  # TODO add other models
+    OPENAI_text_embedding_3_small = "text-embedding-3-small"
+    OPENAI_text_embedding_3_large = "text-embedding-3-large"
+    OPENAI_text_embedding_ada_002 = "text-embedding-ada-002"
+    BEDROCK_claude_instant_v1 = "anthropic.claude-instant-v1"
+
+
 class EmbeddingResponse(BaseModel):
     latency: float
     embeddings: List[List[float]]
