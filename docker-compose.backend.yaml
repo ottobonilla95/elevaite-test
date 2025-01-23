@@ -4,7 +4,7 @@ services:
       context: ./elevaite_backend
       dockerfile: ./Dockerfile.etl
     environment:
-      SQLALCHEMY_DATABASE_UR: ${ETL_DATABASE_URL}
+      SQLALCHEMY_DATABASE_URl: ${ETL_DATABASE_URL}
       QDRANT_URL: ${QDRANT_URL}
       QDRANT_API_KEY: ${QDRANT_API_KEY}
       QDRANT_COLLECTION: ${QDRANT_COLLECTION}
