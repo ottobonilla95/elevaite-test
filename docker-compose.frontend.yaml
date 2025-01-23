@@ -31,6 +31,8 @@ services:
       APP_NAME: auth
       ELEVAITE_HOMEPAGE: ${https://elevaite-apps.iopex.ai/}
       RBAC_BACKEND_URL: ${RBAC_BACKEND_URL}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      ORG_ID: ${ORG_ID}
 
   chatbot:
     build:
