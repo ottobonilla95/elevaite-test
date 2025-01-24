@@ -5,24 +5,24 @@ from typing import List
 
 import requests
 
+
+from ...utilities.onprem import get_model_endpoint
 from ...utilities.tokens import count_tokens
 from .core.base import BaseEmbeddingProvider
 from .core.interfaces import EmbeddingInfo, EmbeddingResponse, EmbeddingType
 
 
 class OnPremEmbeddingProvider(BaseEmbeddingProvider):
-    def __init__(self, api_url: str, user: str, secret: str):
-        if not all([api_url, user, secret]):
-            raise EnvironmentError(
-                "ONPREM_EMBED_ENDPOINT, ONPREM_USER, and ONPREM_SECRET must be set"
-            )
-        self.api_url = api_url
+    def __init__(self, user: str, secret: str):
+        if not all([user, secret]):
+            raise EnvironmentError("ONPREM_USER, and ONPREM_SECRET must be set")
         self.user = user
         self.secret = secret
 
     def embed_documents(
         self, texts: List[str], info: EmbeddingInfo, max_retries: int = 3
     ) -> EmbeddingResponse:
+        model_name: str = info.name or "snowflake-arctic-embed-m"
         headers = {"Content-Type": "application/json"}
         auth_value = base64.b64encode(f"{self.user}:{self.secret}".encode()).decode(
             "utf-8"
@@ -45,7 +45,7 @@ class OnPremEmbeddingProvider(BaseEmbeddingProvider):
                 logging.debug(f"Request Payload: {payload}")
 
                 response = requests.post(
-                    self.api_url,
+                    get_model_endpoint(model_name),
                     json=payload,
                     headers=headers,
                     verify=True,
@@ -99,7 +99,6 @@ class OnPremEmbeddingProvider(BaseEmbeddingProvider):
     def validate_config(self, info: EmbeddingInfo) -> bool:
         try:
             assert info.type == EmbeddingType.ON_PREM, "Invalid provider type"
-            assert self.api_url is not None, "API URL required"
             return True
         except AssertionError as e:
             logging.error(f"On-Prem LLM Provider Validation Failed: {e}")

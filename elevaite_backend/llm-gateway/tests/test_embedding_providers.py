@@ -7,7 +7,7 @@ from llm_gateway.models.embeddings.core.interfaces import (
     EmbeddingResponse,
     EmbeddingType,
 )
-from llm_gateway.services import EmbeddingService
+from llm_gateway.services import UniversalService, RequestType
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -49,23 +49,37 @@ def test_embed_documents_with_onprem(model_provider_factory):
     """
     Test the embedding service using OnPrem API.
     """
-    service = EmbeddingService(model_provider_factory)
+    service = UniversalService(model_provider_factory)
 
-    request = create_embedding_request(EmbeddingType.ON_PREM, "custom-embedding-model")
+    request = create_embedding_request(
+        EmbeddingType.ON_PREM, "Snowflake--snowflake-arctic-embed-m"
+    )
 
-    response = service.embed(request)
-    validate_embedding_response(response, request, "OnPrem")
+    response = service.handle_request(
+        request_type=RequestType.EMBEDDING,
+        provider_type=EmbeddingType.ON_PREM,
+        texts=request.texts,
+        info=request.info,
+    )
+    validate_embedding_response(
+        response, request, "Snowflake--snowflake-arctic-embed-m"
+    )
 
 
 def test_embed_documents_with_openai(model_provider_factory):
     """
     Test the embedding service using OpenAI API.
     """
-    service = EmbeddingService(model_provider_factory)
+    service = UniversalService(model_provider_factory)
 
     request = create_embedding_request(EmbeddingType.OPENAI, "text-embedding-ada-002")
 
-    response = service.embed(request)
+    response = service.handle_request(
+        request_type=RequestType.EMBEDDING,
+        provider_type=EmbeddingType.OPENAI,
+        texts=request.texts,
+        info=request.info,
+    )
     validate_embedding_response(response, request, "OpenAI")
 
 
@@ -73,13 +87,18 @@ def test_embed_documents_with_gemini(model_provider_factory):
     """
     Test the embedding service using Gemini API.
     """
-    service = EmbeddingService(model_provider_factory)
+    service = UniversalService(model_provider_factory)
 
     request = create_embedding_request(
         EmbeddingType.GEMINI, "models/text-embedding-004"
     )
 
-    response = service.embed(request)
+    response = service.handle_request(
+        request_type=RequestType.EMBEDDING,
+        provider_type=EmbeddingType.GEMINI,
+        texts=request.texts,
+        info=request.info,
+    )
     validate_embedding_response(response, request, "Gemini")
 
 
@@ -87,11 +106,16 @@ def test_embed_documents_with_bedrock_with_anthropic(model_provider_factory):
     """
     Test the embedding service using AWS Bedrock.
     """
-    service = EmbeddingService(model_provider_factory)
+    service = UniversalService(model_provider_factory)
 
     request = create_embedding_request(
         EmbeddingType.BEDROCK, "anthropic.claude-instant-v1"
     )
 
-    response = service.embed(request)
+    response = service.handle_request(
+        request_type=RequestType.EMBEDDING,
+        provider_type=EmbeddingType.BEDROCK,
+        texts=request.texts,
+        info=request.info,
+    )
     validate_embedding_response(response, request, "Bedrock")

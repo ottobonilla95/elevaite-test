@@ -3,7 +3,7 @@ import base64
 
 from llm_gateway.models.text_generation.core.interfaces import TextGenerationResponse
 from llm_gateway.models.vision.core.interfaces import VisionType
-from llm_gateway.services import VisionService
+from llm_gateway.services import RequestType, UniversalService
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -41,19 +41,15 @@ def validate_and_log_response(
 
 def test_openai_process_base64_image(model_provider_factory, fake_prompt):
     """
-    Test OpenAI image-to-text service with a Base64 image.
+    Test OpenAI image-to-text service with a Base64 image using UniversalService.
     """
-    service = VisionService(model_provider_factory)
+    service = UniversalService(model_provider_factory)
 
-    config = {
-        "type": VisionType.OPENAI,
-        "model": "gpt-4o-mini",
-        "max_tokens": 300,
-        "prompt": fake_prompt,
-    }
-
-    response = service.generate_text(
-        "Describe what this image shows.", [MOCK_IMAGE_BYTES], config
+    response = service.handle_request(
+        request_type=RequestType.VISION,
+        prompt=fake_prompt,
+        provider_type=VisionType.OPENAI,
+        images=[MOCK_IMAGE_BYTES],
     )
 
     validate_and_log_response(response, VisionType.OPENAI, "Image URL")
@@ -61,185 +57,157 @@ def test_openai_process_base64_image(model_provider_factory, fake_prompt):
 
 def test_openai_process_image_url(model_provider_factory, fake_prompt):
     """
-    Test OpenAI image-to-text service with an image URL.
+    Test OpenAI image-to-text service with an image URL using UniversalService.
     """
-    service = VisionService(model_provider_factory)
-    config = {
-        "type": VisionType.OPENAI,
-        "model": "gpt-4o-mini",
-        "max_tokens": 300,
-        "prompt": fake_prompt,
-    }
+    service = UniversalService(model_provider_factory)
 
-    response = service.generate_text(
-        "Describe what this image shows.", [PUBLIC_IMAGE_URL], config
+    response = service.handle_request(
+        request_type=RequestType.VISION,
+        provider_type=VisionType.OPENAI,
+        prompt=fake_prompt,
+        images=[PUBLIC_IMAGE_URL],
     )
     validate_and_log_response(response, VisionType.OPENAI, "Image URL")
 
 
 def test_openai_process_multiple_images(model_provider_factory, fake_prompt):
     """
-    Test OpenAI image-to-text service with multiple images (Base64 and URLs).
+    Test OpenAI image-to-text service with multiple images (Base64 and URLs) using UniversalService.
     """
-    service = VisionService(model_provider_factory)
-
-    config = {
-        "type": VisionType.OPENAI,
-        "model": "gpt-4o-mini",
-        "max_tokens": 300,
-        "prompt": fake_prompt,
-    }
+    service = UniversalService(model_provider_factory)
 
     images = [
         MOCK_IMAGE_BYTES,
         PUBLIC_IMAGE_URL,
         PUBLIC_IMAGE_URL_2,
     ]
-    response = service.generate_text("Describe what this image shows", images, config)
+    response = service.handle_request(
+        request_type=RequestType.VISION,
+        provider_type=VisionType.OPENAI,
+        prompt=fake_prompt,
+        images=images,
+    )
 
     validate_and_log_response(response, VisionType.OPENAI, "Image URL")
 
 
 def test_gemini_process_base64_image(model_provider_factory, fake_prompt):
     """
-    Test Gemini image-to-text service with a Base64 image.
+    Test Gemini image-to-text service with a Base64 image using UniversalService.
     """
-    service = VisionService(model_provider_factory)
+    service = UniversalService(model_provider_factory)
 
-    config = {
-        "type": VisionType.GEMINI,
-        "model": "gemini-1.5-pro",
-        "max_tokens": 300,
-        "prompt": fake_prompt,
-    }
-
-    response = service.generate_text(
-        "Describe what this image shows.", [MOCK_IMAGE_BYTES], config
+    response = service.handle_request(
+        request_type=RequestType.VISION,
+        provider_type=VisionType.GEMINI,
+        prompt=fake_prompt,
+        images=[MOCK_IMAGE_BYTES],
     )
 
-    validate_and_log_response(response, VisionType.OPENAI, "Image URL")
+    validate_and_log_response(response, VisionType.GEMINI, "Image URL")
 
 
 def test_gemini_process_image_url(model_provider_factory, fake_prompt):
     """
-    Test Gemini image-to-text service with an image URL.
+    Test Gemini image-to-text service with an image URL using UniversalService.
     """
-    service = VisionService(model_provider_factory)
-    config = {
-        "type": VisionType.GEMINI,
-        "model": "gemini-1.5-pro",
-        "max_tokens": 300,
-        "prompt": fake_prompt,
-    }
+    service = UniversalService(model_provider_factory)
 
-    response = service.generate_text(
-        "Describe what this image shows.", [PUBLIC_IMAGE_URL], config
+    response = service.handle_request(
+        request_type=RequestType.VISION,
+        provider_type=VisionType.GEMINI,
+        prompt=fake_prompt,
+        images=[PUBLIC_IMAGE_URL],
     )
 
-    validate_and_log_response(response, VisionType.OPENAI, "Image URL")
+    validate_and_log_response(response, VisionType.GEMINI, "Image URL")
 
 
 def test_gemini_process_multiple_images(model_provider_factory, fake_prompt):
     """
-    Test Gemini image-to-text service with multiple images (Base64 and URLs).
+    Test Gemini image-to-text service with multiple images (Base64 and URLs) using UniversalService.
     """
-    service = VisionService(model_provider_factory)
-
-    config = {
-        "type": VisionType.GEMINI,
-        "model": "gemini-1.5-pro",
-        "max_tokens": 300,
-        "prompt": fake_prompt,
-    }
+    service = UniversalService(model_provider_factory)
 
     images = [
         MOCK_IMAGE_BYTES,
         PUBLIC_IMAGE_URL,
         PUBLIC_IMAGE_URL_2,
     ]
-    response = service.generate_text("Describe what these images show", images, config)
+    response = service.handle_request(
+        request_type=RequestType.VISION,
+        provider_type=VisionType.GEMINI,
+        prompt=fake_prompt,
+        images=images,
+    )
 
-    validate_and_log_response(response, VisionType.OPENAI, "Image URL")
+    validate_and_log_response(response, VisionType.GEMINI, "Image URL")
 
 
 def test_bedrock_process_base64_image(model_provider_factory, fake_prompt):
     """
-    Test Bedrock image-to-text service with a Base64 image.
+    Test Bedrock image-to-text service with a Base64 image using UniversalService.
     """
-    service = VisionService(model_provider_factory)
+    service = UniversalService(model_provider_factory)
 
-    config = {
-        "type": VisionType.BEDROCK,
-        "model": "anthropic.claude-3-opus-20240229-v1:0",
-        "max_tokens": 300,
-        "prompt": fake_prompt,
-    }
-
-    response = service.generate_text(
-        "Describe what this image shows.", [MOCK_IMAGE_BYTES], config
+    response = service.handle_request(
+        request_type=RequestType.VISION,
+        provider_type=VisionType.BEDROCK,
+        prompt=fake_prompt,
+        images=[MOCK_IMAGE_BYTES],
     )
 
-    validate_and_log_response(response, VisionType.OPENAI, "Image URL")
+    validate_and_log_response(response, VisionType.BEDROCK, "Image URL")
 
 
 def test_bedrock_process_image_url(model_provider_factory, fake_prompt):
     """
-    Test Bedrock image-to-text service with an image URL.
+    Test Bedrock image-to-text service with an image URL using UniversalService.
     """
-    service = VisionService(model_provider_factory)
+    service = UniversalService(model_provider_factory)
 
-    config = {
-        "type": VisionType.BEDROCK,
-        "model": "anthropic.claude-3-opus-20240229-v1:0",
-        "max_tokens": 300,
-        "prompt": fake_prompt,
-    }
-
-    response = service.generate_text(
-        "Describe what this image shows.", [PUBLIC_IMAGE_URL], config
+    response = service.handle_request(
+        request_type=RequestType.VISION,
+        provider_type=VisionType.BEDROCK,
+        prompt=fake_prompt,
+        images=[PUBLIC_IMAGE_URL],
     )
 
-    validate_and_log_response(response, VisionType.OPENAI, "Image URL")
+    validate_and_log_response(response, VisionType.BEDROCK, "Image URL")
 
 
 def test_bedrock_process_multiple_images(model_provider_factory, fake_prompt):
     """
-    Test Bedrock image-to-text service with multiple images (Base64 and URLs).
+    Test Bedrock image-to-text service with multiple images (Base64 and URLs) using UniversalService.
     """
-    service = VisionService(model_provider_factory)
-
-    config = {
-        "type": VisionType.BEDROCK,
-        "model": "anthropic.claude-3-opus-20240229-v1:0",
-        "max_tokens": 300,
-        "prompt": fake_prompt,
-    }
+    service = UniversalService(model_provider_factory)
 
     images = [
         MOCK_IMAGE_BYTES,
         PUBLIC_IMAGE_URL,
         PUBLIC_IMAGE_URL_2,
     ]
-    response = service.generate_text("Describe what these images show", images, config)
+    response = service.handle_request(
+        request_type=RequestType.VISION,
+        provider_type=VisionType.BEDROCK,
+        prompt=fake_prompt,
+        images=images,
+    )
 
-    validate_and_log_response(response, VisionType.OPENAI, "Image URL")
+    validate_and_log_response(response, VisionType.BEDROCK, "Image URL")
 
 
 def test_onprem_process_base64_image(model_provider_factory, fake_prompt):
     """
-    Test On-Prem image-to-text service with a Base64 image.
+    Test On-Prem image-to-text service with a Base64 image using UniversalService.
     """
-    service = VisionService(model_provider_factory)
+    service = UniversalService(model_provider_factory)
 
-    config = {
-        "type": VisionType.ON_PREM,
-        "model": "openbmb--MiniCPM-V-2_6",
-        "max_tokens": 300,
-        "prompt": fake_prompt,
-    }
-
-    response = service.generate_text(
-        "Describe what this image shows.", [MOCK_IMAGE_BYTES], config
+    response = service.handle_request(
+        request_type=RequestType.VISION,
+        provider_type=VisionType.ON_PREM,
+        prompt=fake_prompt,
+        images=[MOCK_IMAGE_BYTES],
     )
 
     validate_and_log_response(response, VisionType.ON_PREM, "Base64 Image")
@@ -247,40 +215,35 @@ def test_onprem_process_base64_image(model_provider_factory, fake_prompt):
 
 def test_onprem_process_image_url(model_provider_factory, fake_prompt):
     """
-    Test On-Prem image-to-text service with an image URL.
+    Test On-Prem image-to-text service with an image URL using UniversalService.
     """
-    service = VisionService(model_provider_factory)
-    config = {
-        "type": VisionType.ON_PREM,
-        "model": "openbmb--MiniCPM-V-2_6",
-        "max_tokens": 300,
-        "prompt": fake_prompt,
-    }
+    service = UniversalService(model_provider_factory)
 
-    response = service.generate_text(
-        "Describe what this image shows.", [PUBLIC_IMAGE_URL], config
+    response = service.handle_request(
+        request_type=RequestType.VISION,
+        provider_type=VisionType.ON_PREM,
+        prompt=fake_prompt,
+        images=[PUBLIC_IMAGE_URL],
     )
     validate_and_log_response(response, VisionType.ON_PREM, "Image URL")
 
 
 def test_onprem_process_multiple_images(model_provider_factory, fake_prompt):
     """
-    Test On-Prem image-to-text service with multiple images (Base64 and URLs).
+    Test On-Prem image-to-text service with multiple images (Base64 and URLs) using UniversalService.
     """
-    service = VisionService(model_provider_factory)
-
-    config = {
-        "type": VisionType.ON_PREM,
-        "model": "openbmb--MiniCPM-V-2_6",
-        "max_tokens": 300,
-        "prompt": fake_prompt,
-    }
+    service = UniversalService(model_provider_factory)
 
     images = [
         MOCK_IMAGE_BYTES,
         PUBLIC_IMAGE_URL,
         PUBLIC_IMAGE_URL_2,
     ]
-    response = service.generate_text("Describe what this image shows.", images, config)
+    response = service.handle_request(
+        request_type=RequestType.VISION,
+        provider_type=VisionType.ON_PREM,
+        prompt=fake_prompt,
+        images=images,
+    )
 
     validate_and_log_response(response, VisionType.ON_PREM, "Multiple Images")
