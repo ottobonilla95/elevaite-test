@@ -25,7 +25,6 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         model_name = model_name or "gemini-1.5-flash"
         temperature = temperature or 0.5
         max_tokens = max_tokens or 100
-        sys_msg = sys_msg or ""
         prompt = prompt or ""
         retries = retries or 5
         config = config or {}
