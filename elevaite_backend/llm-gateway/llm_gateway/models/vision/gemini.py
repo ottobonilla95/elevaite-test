@@ -4,7 +4,7 @@ import logging
 import time
 import google.generativeai as genai
 
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from ..text_generation.core.interfaces import TextGenerationResponse
 from .core.base import BaseVisionProvider
@@ -16,10 +16,19 @@ class GeminiVisionProvider(BaseVisionProvider):
         self.client = genai
 
     def generate_text(
-        self, prompt: str, images: List[Union[bytes, str]], config: Dict[str, Any]
+        self,
+        images: List[Union[bytes, str]],
+        model_name: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        sys_msg: Optional[str],
+        prompt: Optional[str],
+        retries: Optional[int],
+        config: Optional[Dict[str, Any]],
     ) -> TextGenerationResponse:
-        retries = config.get("retries", 5)
-        model_name = config.get("model", "gemini-1.5-pro")
+        model_name = model_name or "gemini-1.5-pro"
+        prompt = prompt or ""
+        retries = retries or 5
 
         prepared_images = []
         for image in images:

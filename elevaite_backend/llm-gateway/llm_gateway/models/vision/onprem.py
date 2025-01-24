@@ -3,27 +3,40 @@ import json
 import logging
 import time
 import requests
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
+
+from ...utilities.onprem import get_model_endpoint
 from ...utilities.tokens import count_tokens
 from ..text_generation.core.interfaces import TextGenerationResponse
 from .core.base import BaseVisionProvider
 
 
 class OnPremVisionProvider(BaseVisionProvider):
-    def __init__(self, api_url: str, user: str, secret: str):
-        if not all([api_url, user, secret]):
+    def __init__(self, user: str, secret: str):
+        if not all([user, secret]):
             raise EnvironmentError(
                 "ONPREM_VISION_ENDPOINT, ONPREM_USER, and ONPREM_SECRET must be set"
             )
 
-        self.api_url = api_url
         self.user = user
         self.secret = secret
 
     def generate_text(
-        self, prompt: str, images: List[Union[bytes, str]], config: Dict[str, Any]
+        self,
+        images: List[Union[bytes, str]],
+        model_name: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        sys_msg: Optional[str],
+        prompt: Optional[str],
+        retries: Optional[int],
+        config: Optional[Dict[str, Any]],
     ) -> TextGenerationResponse:
+        model_name = model_name or "MiniCPM-V-2_6"
+        prompt = prompt or ""
+        config = config or {}
+
         files = []
         for idx, img in enumerate(images):
             if isinstance(img, str):
@@ -46,17 +59,15 @@ class OnPremVisionProvider(BaseVisionProvider):
             {"role": "user", "content": [prompt] + [idx for idx in range(len(images))]}
         ]
 
-        kwargs = config
-
         data = {
             "json_messages": json.dumps(messages),
-            "json_kwargs": json.dumps(kwargs),
+            "json_kwargs": json.dumps(config),
         }
 
         try:
             start_time = time.time()
             response = requests.post(
-                self.api_url,
+                get_model_endpoint(model_name),
                 files=files,
                 data=data,
                 auth=(self.user, self.secret),

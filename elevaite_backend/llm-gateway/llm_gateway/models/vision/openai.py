@@ -1,7 +1,7 @@
 import base64
 import logging
 import time
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 import openai
 
 from ..text_generation.core.interfaces import TextGenerationResponse
@@ -14,11 +14,21 @@ class OpenAIVisionProvider(BaseVisionProvider):
         self.client = openai
 
     def generate_text(
-        self, prompt: str, images: List[Union[bytes, str]], config: Dict[str, Any]
+        self,
+        images: List[Union[bytes, str]],
+        model_name: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        sys_msg: Optional[str],
+        prompt: Optional[str],
+        retries: Optional[int],
+        config: Optional[Dict[str, Any]],
     ) -> TextGenerationResponse:
-        model = config.get("model", "gpt-4o-mini")
-        retries = config.get("retries", 5)
-        max_tokens = config.get("max_tokens", 300)
+        model_name = model_name or "gpt-4o-mini"
+        prompt = prompt or ""
+        config = config or {}
+        retries = retries or 5
+        max_tokens = max_tokens or 100
 
         message_content = prompt + "\n"
         for i, image in enumerate(images):
@@ -38,7 +48,7 @@ class OpenAIVisionProvider(BaseVisionProvider):
             try:
                 start_time = time.time()
                 response = self.client.chat.completions.create(
-                    model=model,
+                    model=model_name,
                     messages=[
                         {
                             "role": "user",

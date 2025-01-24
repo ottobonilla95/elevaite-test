@@ -5,7 +5,7 @@ import base64
 import logging
 import time
 from botocore.exceptions import ClientError
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from ..text_generation.core.interfaces import TextGenerationResponse
 from .core.base import BaseVisionProvider
@@ -23,11 +23,21 @@ class BedrockVisionProvider(BaseVisionProvider):
         )
 
     def generate_text(
-        self, prompt: str, images: List[Union[bytes, str]], config: Dict[str, Any]
+        self,
+        images: List[Union[bytes, str]],
+        model_name: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        sys_msg: Optional[str],
+        prompt: Optional[str],
+        retries: Optional[int],
+        config: Optional[Dict[str, Any]],
     ) -> TextGenerationResponse:
-        model_name = config.get("model", "anthropic.claude-3-5-sonnet-20240620-v1:0")
-        retries = config.get("retries", 5)
-        max_tokens = config.get("max_tokens", 300)
+        model_name = model_name or "anthropic.claude-3-5-sonnet-20240620-v1:0"
+        prompt = prompt or ""
+        config = config or {}
+        retries = retries or 5
+        max_tokens = max_tokens or 100
 
         prepared_image_data = []
         for image in images:
