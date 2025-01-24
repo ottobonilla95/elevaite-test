@@ -2,7 +2,8 @@ from typing import Any, Dict
 import pytest
 import logging
 
-from llm_gateway.services import TextGenerationService
+from llm_gateway.models.provider import ModelProviderFactory
+from llm_gateway.services import RequestType, UniversalService
 from llm_gateway.models.text_generation.core.interfaces import (
     TextGenerationType,
 )
@@ -16,22 +17,33 @@ def execute_textgen_test(
     prompt: str,
     model: str,
     provider_type: TextGenerationType,
-    model_provider_factory,
+    model_provider_factory: ModelProviderFactory,
     additional_props: Dict[str, Any] = {},
 ):
-    service = TextGenerationService(model_provider_factory)
+    service = UniversalService(model_provider_factory)
 
-    config = {
-        **additional_props,
-        "type": provider_type,
-        "model": model,
-        "temperature": 0.7,
-        "max_tokens": 50,
-        "retries": 3,
-    }
+    # Extract known variables from additional_props
+    model_name = additional_props.pop("model_name", model)
+    retries = additional_props.pop("retries", None)
+    max_tokens = additional_props.pop("max_tokens", None)
+    temperature = additional_props.pop("temperature", None)
+    sys_msg = additional_props.pop("sys_msg", None)
+
+    # Prepare config dictionary with remaining properties
+    config = {"type": provider_type.value, **additional_props}
 
     try:
-        response = service.generate_text(prompt, config)
+        response = service.handle_request(
+            request_type=RequestType.TEXT_GENERATION,
+            provider_type=provider_type,
+            prompt=prompt,
+            config=config,
+            model_name=model_name,
+            retries=retries,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            sys_msg=sys_msg,
+        )
 
         logger.info(f"{provider_type} Response: {response}")
 

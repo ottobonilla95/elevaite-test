@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import openai
 
 from .core.base import BaseTextGenerationProvider
@@ -13,14 +13,23 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         self.client = openai
 
     def generate_text(
-        self, prompt: str, config: Dict[str, Any]
+        self,
+        model_name: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        sys_msg: Optional[str],
+        prompt: Optional[str],
+        retries: Optional[int],
+        config: Optional[Dict[str, Any]],
     ) -> TextGenerationResponse:
-        model_name = config.get("model", "gpt-4o")
+        model_name = model_name or "gpt-4o"
+        temperature = temperature if temperature is not None else 0.5
+        max_tokens = max_tokens if max_tokens is not None else 100
+        sys_msg = sys_msg or ""
+        prompt = prompt or ""
+        retries = retries if retries is not None else 5
+        config = config or {}
         role = config.get("role", "system")
-        sys_msg = config.get("sys_msg", "")
-        temperature = config.get("temperature", 0.7)
-        max_tokens = config.get("max_tokens", 256)
-        retries = config.get("retries", 5)
 
         for attempt in range(retries):
             tokens_in = -1

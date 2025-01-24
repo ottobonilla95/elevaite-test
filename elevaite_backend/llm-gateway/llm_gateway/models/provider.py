@@ -2,7 +2,6 @@ import logging
 import os
 from typing import Dict, Union
 
-from openai import api_key
 
 from . import embeddings
 from . import text_generation
@@ -74,23 +73,21 @@ class ModelProviderFactory:
         if (onprem_user := os.getenv("ONPREM_USER")) and (
             onprem_secret := os.getenv("ONPREM_SECRET")
         ):
-            if onprem_endpoint := os.getenv("ONPREM_EMBED_ENDPOINT"):
-                self.providers[EmbeddingType.ON_PREM] = (
-                    embeddings.onprem.OnPremEmbeddingProvider(
-                        api_url=onprem_endpoint, secret=onprem_secret, user=onprem_user
-                    )
+            self.providers[EmbeddingType.ON_PREM] = (
+                embeddings.onprem.OnPremEmbeddingProvider(
+                    secret=onprem_secret, user=onprem_user
                 )
-            if onprem_endpoint := os.getenv("ONPREM_TEXTGEN_ENDPOINT"):
-                self.providers[TextGenerationType.ON_PREM] = (
-                    text_generation.onprem.OnPremTextGenerationProvider(
-                        api_url=onprem_endpoint, secret=onprem_secret, user=onprem_user
-                    )
-                )
+            )
 
-            if onprem_endpoint := os.getenv("ONPREM_VISION_ENDPOINT"):
-                self.providers[VisionType.ON_PREM] = vision.onprem.OnPremVisionProvider(
-                    api_url=onprem_endpoint, secret=onprem_secret, user=onprem_user
+            self.providers[TextGenerationType.ON_PREM] = (
+                text_generation.onprem.OnPremTextGenerationProvider(
+                    secret=onprem_secret, user=onprem_user
                 )
+            )
+
+            self.providers[VisionType.ON_PREM] = vision.onprem.OnPremVisionProvider(
+                secret=onprem_secret, user=onprem_user
+            )
 
         if gemini_api_key := os.getenv("GEMINI_API_KEY"):
             self.providers[EmbeddingType.GEMINI] = (

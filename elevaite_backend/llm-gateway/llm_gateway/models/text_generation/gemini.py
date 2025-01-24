@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import google.generativeai as genai
 
 from .core.base import BaseTextGenerationProvider
@@ -13,12 +13,22 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         self.client = genai
 
     def generate_text(
-        self, prompt: str, config: Dict[str, Any]
+        self,
+        model_name: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        sys_msg: Optional[str],
+        prompt: Optional[str],
+        retries: Optional[int],
+        config: Optional[Dict[str, Any]],
     ) -> TextGenerationResponse:
-        model_name = config.get("model", "gemini-1.5-flash")
-        temperature = config.get("temperature", 0.7)
-        max_output_tokens = config.get("max_tokens", 256)
-        retries = config.get("retries", 5)
+        model_name = model_name or "gemini-1.5-flash"
+        temperature = temperature if temperature is not None else 0.5
+        max_tokens = max_tokens if max_tokens is not None else 100
+        sys_msg = sys_msg or ""
+        prompt = prompt or ""
+        retries = retries if retries is not None else 5
+        config = config or {}
 
         model = self.client.GenerativeModel(model_name)
 
@@ -29,7 +39,7 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                     prompt,
                     generation_config=self.client.GenerationConfig(
                         temperature=temperature,
-                        max_output_tokens=max_output_tokens,
+                        max_output_tokens=max_tokens,
                     ),
                 )
                 latency = time.time() - start_time

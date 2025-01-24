@@ -3,76 +3,95 @@ import base64
 import logging
 import requests
 import textwrap
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 
+from ...utilities.onprem import get_model_endpoint
 from ...utilities.tokens import count_tokens
 from .core.base import BaseTextGenerationProvider
 from .core.interfaces import TextGenerationResponse
 
 
 class OnPremTextGenerationProvider(BaseTextGenerationProvider):
-    def __init__(self, api_url: str, user: str, secret: str):
-        if not all([api_url, user, secret]):
+    def __init__(self, user: str, secret: str):
+        if not all([user, secret]):
             raise EnvironmentError(
                 "ONPREM_TEXTGEN_ENDPOINT, ONPREM_USER, and ONPREM_SECRET must be set"
             )
 
-        self.api_url = api_url
         self.user = user
         self.secret = secret
 
     def generate_text(
-        self, prompt: str, config: Dict[str, Any]
+        self,
+        model_name: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        sys_msg: Optional[str],
+        prompt: Optional[str],
+        retries: Optional[int],
+        config: Optional[Dict[str, Any]],
     ) -> TextGenerationResponse:
-        retries = config.get("retries", 5)
-        sys_msg = config.get("sys_msg", "")
-        role = config.get("role", "assistant")
-        task_prop = config.get("task", "")
-        output_prop = config.get("output", "")
-        examples_string = ""
-        examples_counter = 1
-        while True:
-            example_in_prop = config.get(f"example_input {examples_counter}", None)
-            expected_out_prop = config.get(f"expected_output {examples_counter}", None)
+        model_name = model_name or "Llama-3.1-8B-Instruct"
+        temperature = temperature if temperature is not None else 0.5
+        max_tokens = max_tokens if max_tokens is not None else 100
+        sys_msg = sys_msg or ""
+        prompt = prompt or ""
+        retries = retries if retries is not None else 5
+        config = config or {}
 
-            if example_in_prop is None or expected_out_prop is None:
-                break
+        role: str = config.get("role", "assistant")
+        task_prop: str = config.get("task", "")
+        output_prop: str = config.get("output", "")
 
-            examples_string += f"""
-        **Example Input {examples_counter}:** {example_in_prop}
+        onprem_prompt = ""
 
-        **Expected Output {examples_counter}:** {expected_out_prop}
+        if "llama" in model_name.lower():
+            examples_string = ""
+            examples_counter = 1
+            while True:
+                example_in_prop = config.get(f"example_input {examples_counter}", None)
+                expected_out_prop = config.get(
+                    f"expected_output {examples_counter}", None
+                )
 
-        """
-            examples_counter += 1
-        onprem_prompt = textwrap.dedent(
-            f"""
-        <|begin_of_text|><|start_header_id|>system<|end_header_id|>
-        
-        {sys_msg}
-        
-        **Input:** {input}
-        
-        **Task:** {task_prop}
-        
-        **Output:** {output_prop}
-        
-        {examples_string}
-        
-        <|eot_id|><|start_header_id|>user<|end_header_id|>
-        
-        <|context|>
-        
-        {prompt}
-        
-        <|context|>
-        
-        <|start_header_id|>{role}<|end_header_id|>
-        """
-        )
+                if example_in_prop is None or expected_out_prop is None:
+                    break
 
-        custom_generation_args = {
+                examples_string += f"""
+            **Example Input {examples_counter}:** {example_in_prop}
+
+            **Expected Output {examples_counter}:** {expected_out_prop}
+
+            """
+                examples_counter += 1
+            onprem_prompt = textwrap.dedent(
+                f"""
+            <|begin_of_text|><|start_header_id|>system<|end_header_id|>
+            
+            {sys_msg}
+            
+            **Input:** {input}
+            
+            **Task:** {task_prop}
+            
+            **Output:** {output_prop}
+            
+            {examples_string}
+            
+            <|eot_id|><|start_header_id|>user<|end_header_id|>
+            
+            <|context|>
+            
+            {prompt}
+            
+            <|context|>
+            
+            <|start_header_id|>{role}<|end_header_id|>
+            """
+            )
+
+        onprem_generation_args = {
             "text_inputs": onprem_prompt,
             "max_new_tokens": config.get("max_tokens", 8000),
             "return_full_text": False,
@@ -87,17 +106,20 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
         )
         headers["Authorization"] = f"Basic {auth_value}"
 
-        payload = {"kwargs": custom_generation_args}
+        payload = {"kwargs": onprem_generation_args}
 
         for attempt in range(retries):
             try:
-                if self.api_url is None or self.user is None or self.secret is None:
+                if self.user is None or self.secret is None:
                     raise EnvironmentError("Missing required authentication details.")
 
                 tokens_in = count_tokens([onprem_prompt])
                 start_time = time.time()
                 response = requests.post(
-                    self.api_url, json=payload, headers=headers, verify=True
+                    get_model_endpoint(model_name),
+                    json=payload,
+                    headers=headers,
+                    verify=True,
                 )
                 latency = time.time() - start_time
 
