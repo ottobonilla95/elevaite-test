@@ -4,6 +4,7 @@ import re
 import string
 import pytest
 
+from llm_gateway.utilities.onprem import get_model_endpoint
 from llm_gateway.utilities.tokens import count_tokens
 
 
@@ -29,3 +30,8 @@ def test_calculate_tokens(num_strings):
         f"Failed for prompts: {prompts}. "
         f"Expected {expected_tokens} tokens, but got {count_tokens(prompts)}."
     )
+
+
+def test_check_endpoint_success_real_call():
+    model = "Llama-3.1-8B-Instruct"
+    assert get_model_endpoint(model)
