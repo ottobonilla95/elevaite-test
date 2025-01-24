@@ -58,7 +58,7 @@ class BedrockVisionProvider(BaseVisionProvider):
         formatted_prompt = "Human: " + prompt + "\n"
         for i, image_data in enumerate(prepared_image_data):
             formatted_prompt += f"Image {i + 1} (Base64): {image_data}\n"
-        formatted_prompt += "Assistant:"
+        formatted_prompt += f"Assistant:{sys_msg}"
 
         payload = {
             "prompt": formatted_prompt,

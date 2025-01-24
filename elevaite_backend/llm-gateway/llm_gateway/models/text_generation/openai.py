@@ -23,11 +23,10 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         config: Optional[Dict[str, Any]],
     ) -> TextGenerationResponse:
         model_name = model_name or "gpt-4o"
-        temperature = temperature if temperature is not None else 0.5
-        max_tokens = max_tokens if max_tokens is not None else 100
-        sys_msg = sys_msg or ""
+        temperature = temperature or 0.5
+        max_tokens = max_tokens or 100
         prompt = prompt or ""
-        retries = retries if retries is not None else 5
+        retries = retries or 5
         config = config or {}
         role = config.get("role", "system")
 

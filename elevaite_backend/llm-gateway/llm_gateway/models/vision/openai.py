@@ -26,9 +26,11 @@ class OpenAIVisionProvider(BaseVisionProvider):
     ) -> TextGenerationResponse:
         model_name = model_name or "gpt-4o-mini"
         prompt = prompt or ""
-        config = config or {}
         retries = retries or 5
         max_tokens = max_tokens or 100
+        temperature = temperature or 0.5
+        config = config or {}
+        role = config.get("role", "system")
 
         message_content = prompt + "\n"
         for i, image in enumerate(images):
@@ -50,11 +52,13 @@ class OpenAIVisionProvider(BaseVisionProvider):
                 response = self.client.chat.completions.create(
                     model=model_name,
                     messages=[
+                        {"role": role, "content": sys_msg},
                         {
                             "role": "user",
                             "content": message_content.strip(),
-                        }
+                        },
                     ],
+                    temperature=temperature,
                     max_tokens=max_tokens,
                 )
                 latency = time.time() - start_time

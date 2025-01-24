@@ -61,9 +61,9 @@ class GeminiVisionProvider(BaseVisionProvider):
             tokens_out = -1
             try:
                 start_time = time.time()
-                response = self.client.GenerativeModel(model_name).generate_content(
-                    input_data
-                )
+                response = self.client.GenerativeModel(
+                    model_name=model_name, system_instruction=sys_msg
+                ).generate_content(input_data)
                 latency = time.time() - start_time
 
                 tokens_in = getattr(response, "input_tokens", len(prompt.split()))
