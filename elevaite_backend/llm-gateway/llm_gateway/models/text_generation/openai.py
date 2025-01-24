@@ -26,6 +26,7 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         temperature = temperature or 0.5
         max_tokens = max_tokens or 100
         prompt = prompt or ""
+        sys_msg = sys_msg or ""
         retries = retries or 5
         config = config or {}
         role = config.get("role", "system")

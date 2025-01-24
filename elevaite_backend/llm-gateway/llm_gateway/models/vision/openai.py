@@ -26,6 +26,7 @@ class OpenAIVisionProvider(BaseVisionProvider):
     ) -> TextGenerationResponse:
         model_name = model_name or "gpt-4o-mini"
         prompt = prompt or ""
+        sys_msg = sys_msg or ""
         retries = retries or 5
         max_tokens = max_tokens or 100
         temperature = temperature or 0.5

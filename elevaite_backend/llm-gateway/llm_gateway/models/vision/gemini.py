@@ -28,6 +28,8 @@ class GeminiVisionProvider(BaseVisionProvider):
     ) -> TextGenerationResponse:
         model_name = model_name or "gemini-1.5-pro"
         prompt = prompt or ""
+        max_tokens = max_tokens or 100
+        temperature = temperature or 0.5
         retries = retries or 5
 
         prepared_images = []
@@ -62,8 +64,14 @@ class GeminiVisionProvider(BaseVisionProvider):
             try:
                 start_time = time.time()
                 response = self.client.GenerativeModel(
-                    model_name=model_name, system_instruction=sys_msg
-                ).generate_content(input_data)
+                    model_name=model_name,
+                    system_instruction=sys_msg,
+                ).generate_content(
+                    input_data,
+                    generation_config=self.client.GenerationConfig(
+                        max_output_tokens=max_tokens, temperature=temperature
+                    ),
+                )
                 latency = time.time() - start_time
 
                 tokens_in = getattr(response, "input_tokens", len(prompt.split()))
