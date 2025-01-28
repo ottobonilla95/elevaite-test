@@ -57,6 +57,8 @@ const sidebarIcons: SidebarIconObject[] = [
     { icon: <ElevaiteIcons.Workbench />, link: "/workbench", description: "Workbench" },
     { icon: <ElevaiteIcons.SVGCost />, link: "/cost", description: "Billing & Costs" },
     { icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" },
+    { icon: <ElevaiteIcons.SVGSettings />, link: "https://playground-dev.iopex.ai", description: "Config"},
+    { icon: <ElevaiteIcons.SVGProjects className="rotate-180"  />, link: "/dashboard", description: "Dashboard" },
 ];
 
 

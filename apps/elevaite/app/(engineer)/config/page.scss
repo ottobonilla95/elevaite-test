@@ -1,0 +1,19 @@
+
+
+.card-holders-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  padding: 32px;
+  overflow: auto;
+
+  @include scrollbar();
+
+  background: url("/images/background-application-light.png"), linear-gradient(to right,  var(--ev-colors-background),  var(--ev-colors-background));
+  background-position: right -50px bottom -200px, top;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: 700px auto, cover;
+}

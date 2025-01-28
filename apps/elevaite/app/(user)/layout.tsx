@@ -48,7 +48,15 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
   contracts: {
     label: "Contracts",
     link: "/contracts"
-  }
+  },
+  config: {
+    label: "Config",
+    link: "/config"
+  },
+    dashboard: {
+      label: "Dashboard",
+      link: "/dashboard"
+    },
 };
 
 const sidebarIcons: SidebarIconObject[] = [
@@ -58,6 +66,8 @@ const sidebarIcons: SidebarIconObject[] = [
   { icon: <ElevaiteIcons.Workbench />, link: "/workbench", description: "Workbench" },
   { icon: <ElevaiteIcons.SVGCost />, link: "/cost", description: "Billing & Costs" },
   { icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" },
+  { icon: <ElevaiteIcons.SVGSettings />, link: "https://playground-dev.iopex.ai", description: "Config" },
+  { icon: <ElevaiteIcons.SVGProjects className="rotate-180"  />, link: "/dashboard", description: "Dashboard" },
 ];
 
 const alcatelSidebarIcons: SidebarIconObject[] = [{ icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" }]

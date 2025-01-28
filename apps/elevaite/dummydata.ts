@@ -136,6 +136,23 @@ const appLinks: Record<string, { development: string; production: string; test: 
     production: "https://elevaite-webassist.iopex.ai",
     test: "",
   },
+  insightsURL: {
+    development: "https://elevaite-xp.iopex.ai",
+    production: "https://elevaite-xp.iopex.ai",
+    test: "",
+  },
+  sentimentAnalysisURL: {
+    development: "https://elevaite-xp.iopex.ai",
+    production: "https://elevaite-xp.iopex.ai",
+    test: "",
+  },
+  qaViewURL: {
+    development: "https://elevaite-dev.iopex.ai",
+    production: "https://elevaite-dev.iopex.ai",
+    test: "",
+  }
+
+
 };
 
 export function getApplications(
@@ -303,6 +320,80 @@ export function getApplications(
           title: "Media and Marketing",
           link: appLinks.mediaplan[env],
           id: "mediaplan",
+          miscLabel: "Version 1.0",
+          subtitle: "By Elevaite",
+          openInNewTab: true,
+        },
+      ],
+    },
+  ];
+}
+
+export function getApplicationsDashboard(
+  env: "development" | "production" | "test", accountMemberships?: UserAccountMembershipObject[]
+): { title: string; key: string; cards: CardProps[] }[] {
+  if (accountMemberships) {
+    let isAlcatel = false
+    accountMemberships.forEach((membership) => {
+      if (membership.account_id === "ab5eed01-46f1-423d-9da0-093814a898fc") {
+        isAlcatel = true
+      }
+    })
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- No it's not
+    if (isAlcatel) return [
+      {
+        title: "elevAIte for Support",
+        key: "support",
+        cards: [
+          {
+            icon: ApplicationIcons.applications.aleSupport.src,
+            description: "Your guide for precise Networking and Communication Answers!",
+            iconAlt: ApplicationIcons.applications.aleSupport.alt,
+            title: "ALE - Tech Chat Support",
+            link: appLinks.aleSupport[env],
+            id: "aleSupport",
+            miscLabel: "Version 1.0",
+            subtitle: "By Elevaite",
+            openInNewTab: true,
+          },
+        ],
+      },
+    ];
+  }
+  return [
+    {
+      title: "Dashboards",
+      key: "support",
+      cards: [
+          {
+          icon: ApplicationIcons.applications.logsSupport.src,
+          description: "View key insights for your app.",
+          iconAlt: ApplicationIcons.applications.logsSupport.alt,
+          title: "Insights",
+          link: appLinks.insightsURL[env],
+          id: "Insights",
+          miscLabel: "Version 1.0",
+          subtitle: "By Elevaite",
+          openInNewTab: true,
+        },
+          {
+          icon: ApplicationIcons.applications.complianceSupport.src,
+          description: "View key sentiment analysis for your app.",
+          iconAlt: ApplicationIcons.applications.logsSupport.alt,
+          title: "Sentiment Analysis",
+          link: appLinks.sentimentAnalysisURL[env],
+          id: "Sentiment Analysis",
+          miscLabel: "Version 1.0",
+          subtitle: "By Elevaite",
+          openInNewTab: true,
+        },
+          {
+          icon: ApplicationIcons.applications.logsSupport.src,
+          description: "View and analyse chats for your app.",
+          iconAlt: ApplicationIcons.applications.logsSupport.alt,
+          title: "QA View",
+          link: appLinks.qaViewURL[env],
+          id: "QA View",
           miscLabel: "Version 1.0",
           subtitle: "By Elevaite",
           openInNewTab: true,
