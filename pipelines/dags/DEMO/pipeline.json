@@ -16,7 +16,7 @@
       "id": "task1",
       "name": "ExtractData",
       "task_type": "pyscript",
-      "src": "/home/k/airflow/dags/dags/DEMO/scripts/extract.py",
+      "src": "~/GitHub/iopexses/elevaite/pipelines/airflow/dags/dags/DEMO/scripts/extract.py",
       "dependencies": [],
       "input": [],
       "output": ["extracted_data_uri"]
@@ -25,7 +25,7 @@
       "id": "task2",
       "name": "TransformData",
       "task_type": "jupyternotebook",
-      "src": "/home/k/airflow/dags/dags/DEMO/notebooks/transform.ipynb",
+      "src": "~/GitHub/iopexses/elevaite/pipelines/airflow/dags/dags/DEMO/notebooks/transform.ipynb",
       "dependencies": ["task1"],
       "input": ["extracted_data_uri"],
       "output": ["transformed_data_uri"]
@@ -34,7 +34,7 @@
       "id": "task3",
       "name": "LoadData",
       "task_type": "pyscript",
-      "src": "/home/k/airflow/dags/dags/DEMO/scripts/load.py",
+      "src": "~/GitHub/iopexses/elevaite/pipelines/airflow/dags/dags/DEMO/scripts/load.py",
       "dependencies": ["task2"],
       "input": ["transformed_data_uri"],
       "output": []
