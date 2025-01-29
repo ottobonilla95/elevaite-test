@@ -55,10 +55,15 @@ class BedrockVisionProvider(BaseVisionProvider):
             else:
                 raise ValueError("Images must be Base64 bytes or valid URLs.")
 
-        formatted_prompt = "Human: " + prompt + "\n"
+        formatted_prompt = "Human: " + prompt + "\n\n"
+
         for i, image_data in enumerate(prepared_image_data):
-            formatted_prompt += f"Image {i + 1} (Base64): {image_data}\n"
-        formatted_prompt += f"Assistant:{sys_msg}"
+            formatted_prompt += f"Image {i + 1} (Base64): {image_data}\n\n"
+
+        if sys_msg:
+            formatted_prompt = f"{sys_msg}\n\n{formatted_prompt}"
+
+        formatted_prompt += "Assistant:"
 
         payload = {
             "prompt": formatted_prompt,
@@ -70,10 +75,11 @@ class BedrockVisionProvider(BaseVisionProvider):
             tokens_out = -1
             try:
                 start_time = time.time()
-                response = self.client.invoke_model(
+                response = self.client.invoke_model_with_response_stream(
                     modelId=model_name,
                     body=json.dumps(payload),
                 )
+
                 latency = time.time() - start_time
 
                 response_body_raw = response["body"].read().decode("utf-8")

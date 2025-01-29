@@ -155,6 +155,7 @@ def test_bedrock_process_base64_image(model_provider_factory, fake_prompt):
         provider_type=VisionType.BEDROCK,
         prompt=fake_prompt,
         images=[MOCK_IMAGE_BYTES],
+        model_name="anthropic.claude-3-5-sonnet-20240620-v1:0",
     )
 
     validate_and_log_response(response, VisionType.BEDROCK, "Image URL")
@@ -171,6 +172,7 @@ def test_bedrock_process_image_url(model_provider_factory, fake_prompt):
         provider_type=VisionType.BEDROCK,
         prompt=fake_prompt,
         images=[PUBLIC_IMAGE_URL],
+        model_name="anthropic.claude-3-5-sonnet-20240620-v1:0",
     )
 
     validate_and_log_response(response, VisionType.BEDROCK, "Image URL")
@@ -192,6 +194,7 @@ def test_bedrock_process_multiple_images(model_provider_factory, fake_prompt):
         provider_type=VisionType.BEDROCK,
         prompt=fake_prompt,
         images=images,
+        model_name="anthropic.claude-3-5-sonnet-20240620-v1:0",
     )
 
     validate_and_log_response(response, VisionType.BEDROCK, "Image URL")
