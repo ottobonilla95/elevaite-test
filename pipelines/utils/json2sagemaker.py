@@ -7,7 +7,6 @@ from typing import Dict, Any
 from dotenv import load_dotenv
 from sagemaker.processing import ScriptProcessor, ProcessingInput, ProcessingOutput
 from sagemaker.workflow.pipeline import Pipeline
-from sagemaker import get_execution_role
 from sagemaker.workflow.parameters import ParameterString
 from sagemaker.workflow.steps import ProcessingStep
 
@@ -48,17 +47,12 @@ def create_sagemaker_pipeline(pipeline_config: Dict[str, Any]) -> Pipeline:
     sagemaker_session = sagemaker.Session(
         boto_session=boto_session, default_bucket=pipeline_config.get("s3_bucket")
     )
+    role = pipeline_config.get("role_arn")
 
-    try:
-        role = get_execution_role(sagemaker_session)
-    except ValueError:
-        role = pipeline_config.get("role_arn")
-        if not role:
-            raise ValueError(
-                "Missing execution role - provide either:\n"
-                "1. Run in SageMaker with execution role\n"
-                "2. Add 'role_arn' to pipeline config"
-            )
+    if not role:
+        raise ValueError(
+            "Missing execution role - provide 'role_arn' in pipeline config"
+        )
 
     print("\nPipeline Configuration:")
     print(f"  Region: {region}")
