@@ -1,5 +1,6 @@
 {
   "name": "DemoPipeline",
+  "role_arn": "arn:aws:iam::787547338121:role/pipeline-testing",
   "description": "A sample data pipeline with dependencies.",
   "variables": [
     {

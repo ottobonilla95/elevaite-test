@@ -128,7 +128,6 @@ if __name__ == "__main__":
         config = load_json(sys.argv[1])
         pipeline = create_sagemaker_pipeline(config)
         print(f"\nSuccessfully created pipeline: {pipeline.name}")
-        print(f"Pipeline ARN: {pipeline._get_latest_execution_arn()}")
     except Exception as e:
         print(f"\nPipeline creation failed: {str(e)}")
         sys.exit(1)
