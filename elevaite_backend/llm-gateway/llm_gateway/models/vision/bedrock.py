@@ -38,6 +38,7 @@ class BedrockVisionProvider(BaseVisionProvider):
         config = config or {}
         retries = retries or 5
         max_tokens = max_tokens or 100
+        temperature = temperature or 0.5
 
         prepared_image_data = []
         for image in images:
@@ -65,17 +66,28 @@ class BedrockVisionProvider(BaseVisionProvider):
 
         formatted_prompt += "Assistant:"
 
+        is_anthropic_model = model_name.startswith("anthropic.")
+
         payload = {
-            "prompt": formatted_prompt,
-            "max_tokens_to_sample": max_tokens,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": (sys_msg + "\n\n" if sys_msg else "") + prompt,
+                },
+            ],
+            "max_tokens": max_tokens,
+            "temperature": temperature,
         }
+
+        if is_anthropic_model:
+            payload["anthropic_version"] = "bedrock-2023-05-31"
 
         for attempt in range(retries):
             tokens_in = -1
             tokens_out = -1
             try:
                 start_time = time.time()
-                response = self.client.invoke_model_with_response_stream(
+                response = self.client.invoke_model(
                     modelId=model_name,
                     body=json.dumps(payload),
                 )
@@ -83,14 +95,20 @@ class BedrockVisionProvider(BaseVisionProvider):
                 latency = time.time() - start_time
 
                 response_body_raw = response["body"].read().decode("utf-8")
-                logging.debug(f"Full response body: {response_body_raw}")
                 response_body = json.loads(response_body_raw)
 
-                if "completion" in response_body:
-                    completion_text = response_body["completion"].strip()
+                if response_body["type"] == "message" and "content" in response_body:
+                    content = response_body["content"]
+                    completion_text = " ".join(
+                        part.get("text", "")
+                        for part in content
+                        if isinstance(part, dict)
+                    ).strip()
 
-                    tokens_in = response_body.get("input_tokens", len(prompt.split()))
-                    tokens_out = response_body.get(
+                    tokens_in = response_body["usage"].get(
+                        "input_tokens", len(prompt.split())
+                    )
+                    tokens_out = response_body["usage"].get(
                         "output_tokens", len(completion_text.split())
                     )
 
@@ -101,9 +119,7 @@ class BedrockVisionProvider(BaseVisionProvider):
                         latency=latency,
                     )
 
-                raise ValueError(
-                    "Invalid response structure: Missing 'completion' key."
-                )
+                raise ValueError("Invalid response structure: Missing expected keys.")
 
             except ClientError as e:
                 logging.warning(
