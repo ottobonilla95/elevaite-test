@@ -127,6 +127,7 @@ if __name__ == "__main__":
     try:
         config = load_json(sys.argv[1])
         pipeline = create_sagemaker_pipeline(config)
+        pipeline.upsert(role_arn="arn:aws:iam::787547338121:role/pipeline-testing")
         print(f"\nSuccessfully created pipeline: {pipeline.name}")
     except Exception as e:
         print(f"\nPipeline creation failed: {str(e)}")
