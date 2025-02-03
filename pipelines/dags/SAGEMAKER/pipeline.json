@@ -31,6 +31,16 @@
       "dependencies": ["task1"],
       "input": ["task1_output"],
       "output": ["task2_output"]
+    },
+    {
+      "id": "task3",
+      "name": "Notebook Step",
+      "task_type": "jupyternotebook",
+      "src": "/home/vuxxs/GitHub/iopexses/elevaite/pipelines/dags/SAGEMAKER/notebook.ipynb",
+      "entrypoint": "main",
+      "dependencies": ["task2"],
+      "input": ["task2_output"],
+      "output": ["notebook_output"]
     }
   ],
   "schedule": {
