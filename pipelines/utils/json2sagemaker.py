@@ -2,133 +2,161 @@ import json
 import os
 import sys
 import boto3
-import sagemaker
-from typing import Dict, Any
-from dotenv import load_dotenv
-from sagemaker.processing import ScriptProcessor, ProcessingInput, ProcessingOutput
+from sagemaker.processing import ScriptProcessor
 from sagemaker.workflow.pipeline import Pipeline
-from sagemaker.workflow.parameters import ParameterString
 from sagemaker.workflow.steps import ProcessingStep
 
+REQUIRED_ENV_VARS = [
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_REGION",
+    "AWS_ROLE_ARN",
+]
+_missing = [var for var in REQUIRED_ENV_VARS if var not in os.environ]
+if _missing:
+    raise EnvironmentError(f"Missing environment variables: {', '.join(_missing)}")
 
-def load_json(file_path: str) -> Dict[str, Any]:
-    with open(file_path, "r") as f:
+boto3.setup_default_session(region_name=os.environ["AWS_REGION"])
+
+
+def load_pipeline_definition(json_file: str) -> dict:
+    """Load pipeline definition from a JSON file."""
+    with open(json_file, "r") as f:
         return json.load(f)
 
 
-def verify_aws_configuration():
-    try:
-        sts = boto3.client("sts")
-        identity = sts.get_caller_identity()
-        print("\nAWS Configuration Verified:")
-        print(f"  Account ID: {identity['Account']}")
-        print(f"  ARN: {identity['Arn']}")
-        print(f"  Region: {boto3.Session().region_name}")
-    except Exception as e:
-        print("\nAWS Configuration Error!")
-        raise ValueError(
-            "Invalid AWS configuration - check credentials and region"
-        ) from e
+def create_pipeline(
+    pipeline_def: dict, container_image: str = "", instance_type: str = "ml.m5.xlarge"
+) -> Pipeline:
+    """
+    Create a SageMaker Pipeline from a JSON definition.
 
+    Args:
+        pipeline_def: The dictionary containing the pipeline definition.
+        container_image: The URI of the container image to use for processing.
+                         If None, the value of the environment variable
+                         'SAGEMAKER_CONTAINER_IMAGE' will be used.
+        instance_type: The SageMaker instance type to use (default: "ml.m5.xlarge").
 
-def create_sagemaker_pipeline(pipeline_config: Dict[str, Any]) -> Pipeline:
-    boto_session = boto3.Session(
-        region_name=pipeline_config.get("region"),
-        profile_name=pipeline_config.get("aws_profile"),
-        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-        # aws_session_token=os.environ["AWS_SESSION_TOKEN"],
-    )
+    Returns:
+        A sagemaker.workflow.pipeline.Pipeline object.
+    """
+    if container_image is None:
+        container_image = os.getenv("SAGEMAKER_CONTAINER_IMAGE")
+        if container_image is None:
+            raise ValueError(
+                "No container image provided and SAGEMAKER_CONTAINER_IMAGE is not set in the environment."
+            )
 
-    region = boto_session.region_name or "us-west-2"
-    if not boto_session.region_name:
-        boto_session = boto3.Session(region_name=region)
+    steps = {}
+    step_list = []
 
-    sagemaker_session = sagemaker.Session(
-        boto_session=boto_session, default_bucket=pipeline_config.get("s3_bucket")
-    )
-    role = pipeline_config.get("role_arn")
+    role = os.environ["AWS_ROLE_ARN"]
 
-    if not role:
-        raise ValueError(
-            "Missing execution role - provide 'role_arn' in pipeline config"
-        )
+    for task in pipeline_def["tasks"]:
+        task_id = task["id"]
 
-    print("\nPipeline Configuration:")
-    print(f"  Region: {region}")
-    print(f"  SageMaker Bucket: {sagemaker_session.default_bucket()}")
-    print(f"  Execution Role: {role}")
+        if task["task_type"] == "pyscript":
+            command = ["python"]
+        elif task["task_type"] == "jupyternotebook":
+            command = ["papermill"]
+        else:
+            raise ValueError(f"Unknown task_type: {task['task_type']}")
 
-    variables = pipeline_config["variables"]
-    tasks = pipeline_config["tasks"]
-    parameter_dict = {
-        var["name"]: ParameterString(name=var["name"]) for var in variables
-    }
+        # For each input variable, we use a placeholder syntax to denote dependency.
+        job_args = []
+        for var in task.get("input", []):
+            source_task = None
+            for t in pipeline_def["tasks"]:
+                if var in t.get("output", []):
+                    source_task = t["id"]
+                    break
+            if source_task is None:
+                raise ValueError(f"Input variable {var} is not produced by any task")
+            job_args.extend([f"--{var}", f"{{{{ {source_task}.{var} }}}}"])
 
-    steps = []
-    task_results = {}
+        if "entrypoint" in task:
+            job_args.insert(0, task["entrypoint"])
 
-    for task in tasks:
         processor = ScriptProcessor(
-            image_uri=task.get("image_uri", "python:3.8"),
-            command=["python3"],
+            image_uri=container_image,
+            command=command,
+            instance_type=instance_type,
+            instance_count=1,
             role=role,
-            instance_type=task.get("instance_type", "ml.m5.xlarge"),
-            instance_count=task.get("instance_count", 1),
-            sagemaker_session=sagemaker_session,
-            base_job_name=f"{pipeline_config['name']}-{task['id']}",
         )
 
-        # Input handling
-        inputs = [
-            ProcessingInput(
-                source=parameter_dict.get(var) or task_results.get(var),
-                destination=f"/opt/ml/processing/input/{var}",
-            )
-            for var in task.get("input", [])
-        ]
-
-        # Output handling
-        outputs = [
-            ProcessingOutput(
-                output_name=output_var,
-                source=f"/opt/ml/processing/output/{output_var}",
-                destination=task.get("output_s3_uri", None),
-            )
-            for output_var in task.get("output", [])
+        # Dependencies are resolved via the 'dependencies' field in the JSON.
+        depends_on = [
+            steps[dep] for dep in task.get("dependencies", []) if dep in steps
         ]
 
         step = ProcessingStep(
-            name=task["name"],
+            name=task_id,
             processor=processor,
-            inputs=inputs,
-            outputs=outputs,
+            code=task["src"],
+            job_arguments=job_args,
+            depends_on=depends_on,
         )
 
-        steps.append(step)
-        task_results[task["id"]] = task.get("output", [])
+        steps[task_id] = step
+        step_list.append(step)
 
-    return Pipeline(
-        name=pipeline_config["name"],
-        parameters=list(parameter_dict.values()),
-        steps=steps,
-        sagemaker_session=sagemaker_session,
+    pipeline = Pipeline(
+        name=pipeline_def.get("name", "SageMakerPipeline"),
+        parameters=[],
+        steps=step_list,
     )
+    return pipeline
+
+
+def upsert_pipeline(pipeline: Pipeline) -> dict:
+    """
+    Upsert the given pipeline to SageMaker.
+
+    Args:
+        pipeline: The Pipeline object to upsert.
+
+    Returns:
+        The upsert response dictionary.
+    """
+    role = os.environ["AWS_ROLE_ARN"]
+    return pipeline.upsert(role_arn=role)
+
+
+def start_pipeline(pipeline: Pipeline, parameters: dict = {}):
+    """
+    Start a pipeline execution.
+
+    Args:
+        pipeline: The Pipeline object to execute.
+        parameters: (Optional) Dictionary of parameter names to values.
+
+    Returns:
+        The pipeline execution object.
+    """
+    if parameters is None:
+        parameters = {}
+    return pipeline.start(parameters=parameters)
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    # verify_aws_configuration()
 
     if len(sys.argv) != 2:
         print("Usage: python json2sagemaker.py <json_file>")
         sys.exit(1)
 
-    try:
-        config = load_json(sys.argv[1])
-        pipeline = create_sagemaker_pipeline(config)
-        pipeline.upsert(role_arn="arn:aws:iam::787547338121:role/pipeline-testing")
-        print(f"\nSuccessfully created pipeline: {pipeline.name}")
-    except Exception as e:
-        print(f"\nPipeline creation failed: {str(e)}")
-        sys.exit(1)
+    json_file = sys.argv[1]
+    pipeline_def = load_pipeline_definition(json_file)
+    pipeline = create_pipeline(pipeline_def)
+
+    print("SageMaker Pipeline definition:")
+    print(pipeline.definition())
+
+    print("Upserting pipeline...")
+    upsert_response = upsert_pipeline(pipeline)
+    print("Upsert response:", upsert_response)
+
+    print("Starting pipeline execution...")
+    execution = start_pipeline(pipeline)
+    print("Pipeline execution started. Execution ARN:", execution.arn)
