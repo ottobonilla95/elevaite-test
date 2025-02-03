@@ -1,0 +1,40 @@
+{
+  "name": "TestPipeline",
+  "description": "A test pipeline for json2sagemaker",
+  "variables": [
+    {
+      "name": "task1_output",
+      "var_type": "string"
+    },
+    {
+      "name": "task2_output",
+      "var_type": "string"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task1",
+      "name": "Task 1",
+      "task_type": "pyscript",
+      "src": "/home/vuxxs/GitHub/iopexses/elevaite/pipelines/dags/SAGEMAKER/script.py",
+      "entrypoint": "main",
+      "dependencies": [],
+      "input": [],
+      "output": ["task1_output"]
+    },
+    {
+      "id": "task2",
+      "name": "Task 2",
+      "task_type": "pyscript",
+      "src": "/home/vuxxs/GitHub/iopexses/elevaite/pipelines/dags/SAGEMAKER/script.py",
+      "entrypoint": "run_generate_topics",
+      "dependencies": ["task1"],
+      "input": ["task1_output"],
+      "output": ["task2_output"]
+    }
+  ],
+  "schedule": {
+    "frequency": "daily",
+    "time": "02:00"
+  }
+}
