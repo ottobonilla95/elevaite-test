@@ -77,6 +77,7 @@ export function PdfDisplay(props: PdfDisplayProps): JSX.Element {
     useEffect(() => {
         if (!contractsContext.selectedContract) {
             setPdfData(undefined);
+            setPdfReference(null);
             return;
         }
         if (contractsContext.selectedContract.file_ref !== pdfReference) setPdfReference(contractsContext.selectedContract.file_ref);

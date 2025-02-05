@@ -186,7 +186,7 @@ export function ContractsListV2(): JSX.Element {
         function getQuickList(contract: ContractObject, type: CONTRACT_TYPES): VerificationQuickListItem {
             return {
                 irrelevant: contract.content_type === type,
-                verified: contract.verification?.[type]?.every(item => item.verification_status),
+                verified: contract.verification?.[type]?.every(item => item.verification_status) && contract.verification?.[type]?.length !== 0,
                 unverifiedItems: contract.verification?.[type]?.filter(item => !item.verification_status).map(item => {
                     const relevantContract = contractsContext.getContractById(item.file_id ?? "");
                     return {
@@ -334,9 +334,9 @@ export function ContractsListV2(): JSX.Element {
                 {item.irrelevant ? <span className="irrelevant">—</span> :
                     listItem.status === ContractStatus.Extracting ? <span className="pending" title="This file is still being processed"><ElevaiteIcons.SVGInstanceProgress /></span> :
                         listItem.status === ContractStatus.ExtractionFailed ? <span className="failed" title="This file failed to extract"><ElevaiteIcons.SVGXmark /></span> :
-                            item.verified ? 
+                            item.verified ?
                                 <MatchButton contract={listItem} />
-                            :
+                                :
                                 <MismatchButton contract={listItem} items={item.unverifiedItems} index={index} listLength={displayContracts.length} />
                 }
             </div>
@@ -400,7 +400,7 @@ export function ContractsListV2(): JSX.Element {
                         title={`${isStatusRowVisible ? "Close" : "Open"} the row of single-button status filters`}
                     >
                         <span>Status Filters</span>
-                        <ElevaiteIcons.SVGChevron type="down"/>
+                        <ElevaiteIcons.SVGChevron type="down" />
                     </CommonButton>
                 </div>
             </div>
