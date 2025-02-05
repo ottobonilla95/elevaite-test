@@ -58,10 +58,17 @@ class PipelineTaskCreate(PipelineTaskBase):
     pass
 
 
+class PipelineTaskUpdate(PipelineTaskBase):
+    dependencies: List["PipelineTask"]
+    input: List["PipelineVariable"]
+    output: List["PipelineVariable"]
+
+
 class PipelineTask(PipelineTaskBase):
     id: UUID4
     dependencies: List["PipelineTask"]
     input: List["PipelineVariable"]
+    output: List["PipelineVariable"]
 
     class Config:
         orm_mode = True
