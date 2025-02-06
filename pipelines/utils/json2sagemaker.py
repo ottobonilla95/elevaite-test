@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import time
 import boto3
 from sagemaker.processing import ScriptProcessor
 from sagemaker.workflow.pipeline import Pipeline
@@ -169,6 +170,28 @@ def start_pipeline(pipeline: Pipeline, parameters: dict = {}):
     return pipeline.start(parameters=parameters)
 
 
+def monitor_pipeline(execution_arn: str, poll_interval: int = 30):
+    """
+    Monitor a SageMaker pipeline execution until completion.
+
+    Args:
+        execution_arn: The ARN of the pipeline execution.
+        poll_interval: Time in seconds between status checks (default: 30).
+    """
+    client = boto3.client("sagemaker")
+    print("Monitoring pipeline execution...")
+    while True:
+        response = client.describe_pipeline_execution(
+            PipelineExecutionArn=execution_arn
+        )
+        status = response.get("PipelineExecutionStatus")
+        print(f"Current status: {status}")
+        if status in ["Succeeded", "Failed", "Stopped"]:
+            break
+        time.sleep(poll_interval)
+    print(f"Pipeline execution finished with status: {status}")
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2 or len(sys.argv) > 3:
         print("Usage: python json2sagemaker.py <json_file> [persist_job_name]")
@@ -197,3 +220,6 @@ if __name__ == "__main__":
     print("Starting pipeline execution...")
     execution = start_pipeline(pipeline)
     print("Pipeline execution started. Execution ARN:", execution.arn)
+
+    # Start monitoring the pipeline execution
+    monitor_pipeline(execution.arn)
