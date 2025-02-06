@@ -45,11 +45,11 @@ def create_embedding_request(provider_type, model_name):
     )
 
 
-def test_embed_documents_with_onprem(model_provider_factory):
+def test_embed_documents_with_onprem():
     """
     Test the embedding service using OnPrem API.
     """
-    service = UniversalService(model_provider_factory)
+    service = UniversalService()
 
     request = create_embedding_request(
         EmbeddingType.ON_PREM, "Snowflake--snowflake-arctic-embed-m"
@@ -66,11 +66,11 @@ def test_embed_documents_with_onprem(model_provider_factory):
     )
 
 
-def test_embed_documents_with_openai(model_provider_factory):
+def test_embed_documents_with_openai():
     """
     Test the embedding service using OpenAI API.
     """
-    service = UniversalService(model_provider_factory)
+    service = UniversalService()
 
     request = create_embedding_request(EmbeddingType.OPENAI, "text-embedding-ada-002")
 
@@ -83,11 +83,11 @@ def test_embed_documents_with_openai(model_provider_factory):
     validate_embedding_response(response, request, "OpenAI")
 
 
-def test_embed_documents_with_gemini(model_provider_factory):
+def test_embed_documents_with_gemini():
     """
     Test the embedding service using Gemini API.
     """
-    service = UniversalService(model_provider_factory)
+    service = UniversalService()
 
     request = create_embedding_request(
         EmbeddingType.GEMINI, "models/text-embedding-004"
@@ -102,11 +102,11 @@ def test_embed_documents_with_gemini(model_provider_factory):
     validate_embedding_response(response, request, "Gemini")
 
 
-def test_embed_documents_with_bedrock_with_anthropic(model_provider_factory):
+def test_embed_documents_with_bedrock_with_anthropic():
     """
     Test the embedding service using AWS Bedrock.
     """
-    service = UniversalService(model_provider_factory)
+    service = UniversalService()
 
     request = create_embedding_request(
         EmbeddingType.BEDROCK, "anthropic.claude-instant-v1"

@@ -17,7 +17,7 @@ from .models.embeddings.core.interfaces import (
 class EmbeddingService:
     """Service class to handle embedding requests."""
 
-    def __init__(self, factory: ModelProviderFactory):
+    def __init__(self, factory: ModelProviderFactory = ModelProviderFactory()):
         self.factory = factory
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -37,7 +37,7 @@ class EmbeddingService:
 class TextGenerationService:
     """Service class to handle text generation requests."""
 
-    def __init__(self, factory: ModelProviderFactory):
+    def __init__(self, factory: ModelProviderFactory = ModelProviderFactory()):
         self.factory = factory
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -76,7 +76,7 @@ class TextGenerationService:
 class VisionService:
     """Service class to handle image-to-text requests."""
 
-    def __init__(self, factory: ModelProviderFactory):
+    def __init__(self, factory: ModelProviderFactory = ModelProviderFactory()):
         self.factory = factory
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -136,8 +136,8 @@ class RequestType(str, Enum):
 class UniversalService:
     """Service class to handle various types of AI operations."""
 
-    def __init__(self, factory: ModelProviderFactory):
-        self.factory = factory
+    def __init__(self):
+        self.factory = ModelProviderFactory()
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def handle_request(self, request_type: RequestType, provider_type, **kwargs) -> Any:
