@@ -1,5 +1,3 @@
-# llm-gateway
-
 ## Installation
 
 Add as your Poetry or UV dependency or include in your `requirements.txt` as an editable:
@@ -66,3 +64,6 @@ pytest
 ```
 
 This will run the full test suite to verify that everything is set up correctly.
+
+## More information
+Refer to `/documentation`
