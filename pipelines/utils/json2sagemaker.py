@@ -170,7 +170,7 @@ def start_pipeline(pipeline: Pipeline, parameters: dict = {}):
 
 def monitor_pipeline(execution_arn: str, poll_interval: int = 30):
     """
-    Monitor a SageMaker pipeline execution until completion.
+    Monitor a SageMaker pipeline execution until completion, displaying detailed step information.
 
     Args:
         execution_arn: The ARN of the pipeline execution.
@@ -178,15 +178,33 @@ def monitor_pipeline(execution_arn: str, poll_interval: int = 30):
     """
     client = boto3.client("sagemaker")
     print("Monitoring pipeline execution...")
+
     while True:
+        # Describe the overall pipeline execution
         response = client.describe_pipeline_execution(
             PipelineExecutionArn=execution_arn
         )
         status = response.get("PipelineExecutionStatus")
-        print(f"Current status: {status}")
+        print(f"Current pipeline status: {status}")
+
+        # List all steps in the pipeline execution
+        steps_response = client.list_pipeline_execution_steps(
+            PipelineExecutionArn=execution_arn
+        )
+
+        for step in steps_response.get("PipelineExecutionSteps", []):
+            step_name = step.get("StepName")
+            step_status = step.get("StepStatus")
+            failure_reason = step.get("FailureReason", "N/A")
+            print(f"Step '{step_name}' - Status: {step_status}")
+            if step_status == "Failed":
+                print(f"  Failure reason: {failure_reason}")
+
         if status in ["Succeeded", "Failed", "Stopped"]:
             break
+
         time.sleep(poll_interval)
+
     print(f"Pipeline execution finished with status: {status}")
 
 
