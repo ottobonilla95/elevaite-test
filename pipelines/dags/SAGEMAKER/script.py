@@ -1,26 +1,40 @@
 import sys
+import json
+import os
 
 
 def main():
-    task1_output = "output_from_task1"
-    # Inject the output into the global namespace so that the json2sagemaker executor can pick it up
-    globals()["task1_output"] = task1_output
-    print("main() executed, produced task1_output =", task1_output)
+    output_path = "/opt/ml/processing/output/task1_output.json"
+    task1_output = {"task1_output": "output_from_task1"}
+
+    with open(output_path, "w") as f:
+        json.dump(task1_output, f)
+
+    print(f"main() executed, saved task1_output to {output_path}")
 
 
 def run_generate_topics():
-    # Retrieve input from globals (populated by the previous task)
-    input_value = globals().get("task1_output", "default_value")
-    task2_output = input_value + "_processed"
-    globals()["task2_output"] = task2_output
-    print("run_generate_topics() executed, produced task2_output =", task2_output)
+    input_path = "/opt/ml/processing/output/task1_output.json"
+    output_path = "/opt/ml/processing/output/task2_output.json"
+
+    if os.path.exists(input_path):
+        with open(input_path, "r") as f:
+            data = json.load(f)
+            input_value = data.get("task1_output", "default_value")
+    else:
+        input_value = "default_value"
+
+    task2_output = {"task2_output": input_value + "_processed"}
+
+    with open(output_path, "w") as f:
+        json.dump(task2_output, f)
+
+    print(f"run_generate_topics() executed, saved task2_output to {output_path}")
 
 
 if __name__ == "__main__":
-    # When called from the command line, expect the entrypoint function name as an argument.
-
-    if len(sys.argv) > 1:
-        entrypoint = sys.argv[1]
+    if len(sys.argv) > 2 and sys.argv[1] == "--entrypoint":
+        entrypoint = sys.argv[2]
         if entrypoint == "main":
             main()
         elif entrypoint == "run_generate_topics":
@@ -28,5 +42,4 @@ if __name__ == "__main__":
         else:
             print(f"Unknown entrypoint: {entrypoint}")
     else:
-        # Default action when no entrypoint is provided.
         main()
