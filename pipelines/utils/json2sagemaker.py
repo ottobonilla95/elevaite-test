@@ -13,6 +13,7 @@ REQUIRED_ENV_VARS = [
     "AWS_REGION",
     "AWS_ROLE_ARN",
 ]
+
 _missing = [var for var in REQUIRED_ENV_VARS if var not in os.environ]
 if _missing:
     raise EnvironmentError(f"Missing environment variables: {', '.join(_missing)}")
@@ -69,21 +70,26 @@ def create_pipeline(
         else:
             raise ValueError(f"Unknown task_type: {task['task_type']}")
 
-        # Build job arguments by looking up inputs from prior tasks.
-        job_args = []
+        # File paths for input/output
+        input_path = f"/opt/ml/processing/input/{task_id}.json"
+        output_path = f"/opt/ml/processing/output/{task_id}.json"
+
+        # Build job arguments
+        job_args = ["--entrypoint", task["entrypoint"], "--output", output_path]
+
         for var in task.get("input", []):
-            source_task = None
-            for t in pipeline_def["tasks"]:
-                if var in t.get("output", []):
-                    source_task = t["id"]
-                    break
-            if source_task is None:
+            source_task = next(
+                (t["id"] for t in pipeline_def["tasks"] if var in t.get("output", [])),
+                None,
+            )
+            if not source_task:
                 raise ValueError(f"Input variable {var} is not produced by any task")
-            job_args.extend([f"--{var}", f"{{{{ {source_task}.{var} }}}}"])
 
-        if "entrypoint" in task:
-            job_args.insert(0, task["entrypoint"])
+            job_args.extend(
+                [f"--{var}", f"/opt/ml/processing/output/{source_task}.json"]
+            )
 
+        # Define processor
         processor = ScriptProcessor(
             image_uri=container_image,
             command=command,
@@ -108,12 +114,8 @@ def create_pipeline(
         steps[task_id] = step
         step_list.append(step)
 
-    # Determine whether to persist the job name:
-    #  - If the pipeline JSON explicitly provides "persist_job_name", use it.
-    #  - Otherwise, use the provided persist_job_name_flag.
-    persist_job_name = pipeline_def.get("persist_job_name")
-    if persist_job_name is None:
-        persist_job_name = persist_job_name_flag
+    # Determine whether to persist the job name
+    persist_job_name = pipeline_def.get("persist_job_name", persist_job_name_flag)
 
     pipeline_args = {
         "name": pipeline_def.get("name", "SageMakerPipeline"),
@@ -131,13 +133,9 @@ def create_pipeline(
                 use_custom_job_prefix=True
             )
         except Exception as e:
-            print(
-                "Warning: Could not configure custom job prefixing. Falling back to default behavior. Error:",
-                e,
-            )
+            print("Warning: Could not configure custom job prefixing. Error:", e)
 
-    pipeline = Pipeline(**pipeline_args)
-    return pipeline
+    return Pipeline(**pipeline_args)
 
 
 def upsert_pipeline(pipeline: Pipeline) -> dict:
@@ -198,17 +196,12 @@ if __name__ == "__main__":
         sys.exit(1)
 
     json_file = sys.argv[1]
-    if len(sys.argv) == 3:
-        persist_flag_input = sys.argv[2].lower()
-        if persist_flag_input in ["true", "1", "yes"]:
-            user_persist_flag = True
-        else:
-            user_persist_flag = False
-    else:
-        user_persist_flag = False
+    persist_flag = (
+        sys.argv[2].lower() in ["true", "1", "yes"] if len(sys.argv) == 3 else False
+    )
 
     pipeline_def = load_pipeline_definition(json_file)
-    pipeline = create_pipeline(pipeline_def, persist_job_name_flag=user_persist_flag)
+    pipeline = create_pipeline(pipeline_def, persist_job_name_flag=persist_flag)
 
     print("SageMaker Pipeline definition:")
     print(pipeline.definition())
