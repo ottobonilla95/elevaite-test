@@ -26,7 +26,10 @@ def load_pipeline_definition(json_file: str) -> dict:
 
 
 def create_pipeline(
-    pipeline_def: dict, container_image: str = "", instance_type: str = "ml.m5.xlarge"
+    pipeline_def: dict,
+    persist_job_name_flag: bool,
+    container_image: str = "",
+    instance_type: str = "ml.m5.xlarge",
 ) -> Pipeline:
     """
     Create a SageMaker Pipeline from a JSON definition.
@@ -34,9 +37,11 @@ def create_pipeline(
     Args:
         pipeline_def: The dictionary containing the pipeline definition.
         container_image: The URI of the container image to use for processing.
-                         If None, the value of the environment variable
-                         'SAGEMAKER_CONTAINER_IMAGE' will be used.
+                         If None, the environment variable 'SAGEMAKER_CONTAINER_IMAGE'
+                         will be used.
         instance_type: The SageMaker instance type to use (default: "ml.m5.xlarge").
+        persist_job_name_flag: Boolean flag used if the pipeline JSON does not specify
+                               the "persist_job_name" key.
 
     Returns:
         A sagemaker.workflow.pipeline.Pipeline object.
@@ -63,7 +68,7 @@ def create_pipeline(
         else:
             raise ValueError(f"Unknown task_type: {task['task_type']}")
 
-        # For each input variable, we use a placeholder syntax to denote dependency.
+        # Build job arguments by looking up inputs from prior tasks.
         job_args = []
         for var in task.get("input", []):
             source_task = None
@@ -86,7 +91,7 @@ def create_pipeline(
             role=role,
         )
 
-        # Dependencies are resolved via the 'dependencies' field in the JSON.
+        # Resolve explicit dependencies.
         depends_on = [
             steps[dep] for dep in task.get("dependencies", []) if dep in steps
         ]
@@ -102,11 +107,35 @@ def create_pipeline(
         steps[task_id] = step
         step_list.append(step)
 
-    pipeline = Pipeline(
-        name=pipeline_def.get("name", "SageMakerPipeline"),
-        parameters=[],
-        steps=step_list,
-    )
+    # Determine whether to persist the job name:
+    #  - If the pipeline JSON explicitly provides "persist_job_name", use it.
+    #  - Otherwise, use the provided persist_job_name_flag.
+    persist_job_name = pipeline_def.get("persist_job_name")
+    if persist_job_name is None:
+        persist_job_name = persist_job_name_flag
+
+    pipeline_args = {
+        "name": pipeline_def.get("name", "SageMakerPipeline"),
+        "parameters": [],
+        "steps": step_list,
+    }
+
+    if persist_job_name:
+        try:
+            from sagemaker.workflow.pipeline_definition_config import (
+                PipelineDefinitionConfig,
+            )
+
+            pipeline_args["pipeline_definition_config"] = PipelineDefinitionConfig(
+                use_custom_job_prefix=True
+            )
+        except Exception as e:
+            print(
+                "Warning: Could not configure custom job prefixing. Falling back to default behavior. Error:",
+                e,
+            )
+
+    pipeline = Pipeline(**pipeline_args)
     return pipeline
 
 
@@ -141,14 +170,22 @@ def start_pipeline(pipeline: Pipeline, parameters: dict = {}):
 
 
 if __name__ == "__main__":
-
-    if len(sys.argv) != 2:
-        print("Usage: python json2sagemaker.py <json_file>")
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
+        print("Usage: python json2sagemaker.py <json_file> [persist_job_name]")
         sys.exit(1)
 
     json_file = sys.argv[1]
+    if len(sys.argv) == 3:
+        persist_flag_input = sys.argv[2].lower()
+        if persist_flag_input in ["true", "1", "yes"]:
+            user_persist_flag = True
+        else:
+            user_persist_flag = False
+    else:
+        user_persist_flag = False
+
     pipeline_def = load_pipeline_definition(json_file)
-    pipeline = create_pipeline(pipeline_def)
+    pipeline = create_pipeline(pipeline_def, persist_job_name_flag=user_persist_flag)
 
     print("SageMaker Pipeline definition:")
     print(pipeline.definition())
