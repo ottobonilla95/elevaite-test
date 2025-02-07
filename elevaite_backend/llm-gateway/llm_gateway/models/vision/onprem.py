@@ -1,4 +1,3 @@
-import base64
 import json
 import logging
 import time
@@ -34,7 +33,11 @@ class OnPremVisionProvider(BaseVisionProvider):
         config: Optional[Dict[str, Any]],
     ) -> TextGenerationResponse:
         model_name = model_name or "MiniCPM-V-2_6"
+        temperature = temperature if temperature is not None else 0.5
+        max_tokens = max_tokens if max_tokens is not None else 100
+        sys_msg = sys_msg or ""
         prompt = prompt or ""
+        retries = retries if retries is not None else 5
         config = config or {}
 
         files = []
@@ -51,40 +54,70 @@ class OnPremVisionProvider(BaseVisionProvider):
             elif isinstance(img, bytes):
                 files.append(("image_files", (f"{idx}.jpg", img, "image/jpeg")))
             else:
-                raise ValueError(
-                    "Images must be either file paths (str) or image bytes (bytes)."
-                )
+                raise ValueError("Images must be either URL strings or image bytes.")
 
         messages = [
             {"role": "user", "content": [prompt] + [idx for idx in range(len(images))]}
         ]
 
+        onprem_generation_args = {
+            "temperature": temperature,
+            "max_new_tokens": max_tokens,
+            "sys_msg": sys_msg,
+            "prompt": prompt,
+            "do_sample": config.get("do_sample", False),
+        }
+
+        # We dump the top-level generation arguments and include the original config
         data = {
             "json_messages": json.dumps(messages),
+            "json_generation_args": json.dumps(onprem_generation_args),
             "json_kwargs": json.dumps(config),
         }
 
-        try:
-            start_time = time.time()
-            response = requests.post(
-                get_model_endpoint(model_name),
-                files=files,
-                data=data,
-                auth=(self.user, self.secret),
-                verify=False,
-            )
-            latency = time.time() - start_time
+        for attempt in range(retries):
+            try:
+                if self.user is None or self.secret is None:
+                    raise EnvironmentError("Missing required authentication details.")
 
-            if response.status_code == 200:
-                response_text = response.text
-                return TextGenerationResponse(
-                    text=response_text,
-                    tokens_in=count_tokens([prompt]),
-                    tokens_out=count_tokens([response_text]),
-                    latency=latency,
+                tokens_in = count_tokens([prompt])
+                start_time = time.time()
+                response = requests.post(
+                    get_model_endpoint(model_name),
+                    files=files,
+                    data=data,
+                    auth=(self.user, self.secret),
+                    verify=True,
                 )
-        except requests.exceptions.RequestException as e:
-            raise ValueError(f"Request failed: {e}")
+                latency = time.time() - start_time
+
+                if response.status_code == 200:
+                    response_text = response.text.strip()
+                    tokens_out = count_tokens([response_text])
+                    return TextGenerationResponse(
+                        text=response_text,
+                        tokens_in=tokens_in,
+                        tokens_out=tokens_out,
+                        latency=latency,
+                    )
+                else:
+                    logging.warning(
+                        f"Attempt {attempt + 1}/{retries} failed: {response.text}. Retrying..."
+                    )
+                    if attempt == retries - 1:
+                        raise RuntimeError(
+                            f"OnPrem vision call failed after {retries} attempts: {response.text}"
+                        )
+                time.sleep((2**attempt) * 0.5)
+            except requests.exceptions.RequestException as e:
+                logging.warning(
+                    f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying..."
+                )
+                if attempt == retries - 1:
+                    raise RuntimeError(
+                        f"OnPrem vision call failed after {retries} attempts: {e}"
+                    )
+                time.sleep((2**attempt) * 0.5)
 
         raise RuntimeError("All retries failed for image processing.")
 
