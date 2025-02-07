@@ -20,11 +20,7 @@ def sanitize_pipeline_name(name: str) -> str:
     return "".join(sanitized_words)
 
 
-def convert_script_to_pipeline_json(
-    script_path: str,
-    description: str = "Pipeline generated from script functions",
-    schedule: dict = {},
-):
+def convert_script_to_pipeline_json(script_path: str, schedule: dict):
     """
     Parses a Python script to extract top-level function definitions and
     generates a pipeline JSON definition that runs these functions in order.
@@ -34,14 +30,10 @@ def convert_script_to_pipeline_json(
       - Every subsequent function depends on the immediately preceding task.
       - For each task, an output variable is defined as <function_name>_output.
       - For tasks after the first, the input variable is the previous task's output.
+      - The task's description is taken directly from the function's docstring.
 
     The generated JSON file is saved to ~/generated_pipelines with a filename
     based on the original script file name (e.g. buying_groceries.py → BuyingGroceries.json).
-
-    Args:
-        script_path (str): Path to the Python script.
-        description (str): Description of the pipeline.
-        schedule (dict): Optional schedule dict (e.g., {"frequency": "daily", "time": "02:00"}).
     """
     if not os.path.exists(script_path):
         raise FileNotFoundError(f"Script file {script_path} not found.")
@@ -49,15 +41,20 @@ def convert_script_to_pipeline_json(
     with open(script_path, "r") as f:
         node = ast.parse(f.read(), filename=script_path)
 
-    func_names = [n.name for n in node.body if isinstance(n, ast.FunctionDef)]
+    # Extract each function and its docstring
+    func_defs = [
+        (n.name, ast.get_docstring(n) or "")
+        for n in node.body
+        if isinstance(n, ast.FunctionDef)
+    ]
 
-    if not func_names:
+    if not func_defs:
         raise ValueError("No functions found in the script.")
 
     tasks = []
     variables = []
 
-    for idx, func in enumerate(func_names):
+    for idx, (func, func_doc) in enumerate(func_defs):
         task_id = f"task{idx+1}"
         output_var = f"{func}_output"
         variables.append({"name": output_var, "var_type": "string"})
@@ -71,9 +68,10 @@ def convert_script_to_pipeline_json(
             "dependencies": [],
             "input": [],
             "output": [output_var],
+            "description": func_doc,
         }
         if idx > 0:
-            prev_func = func_names[idx - 1]
+            prev_func, _ = func_defs[idx - 1]
             prev_task_id = f"task{idx}"
             prev_output = f"{prev_func}_output"
             task["dependencies"] = [prev_task_id]
@@ -87,7 +85,7 @@ def convert_script_to_pipeline_json(
 
     pipeline = {
         "name": pipeline_name,
-        "description": description,
+        "description": "",
         "variables": variables,
         "tasks": tasks,
     }
@@ -138,16 +136,12 @@ def convert_script_to_pipeline_json(
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python convert_script.py <path_to_script.py>")
+        print("Usage: python convert_script.py <path_to_script.py> [cron_schedule]")
         sys.exit(1)
 
     script_file = sys.argv[1]
+    # If a cron schedule is provided as a command-line argument, use it; otherwise, schedule is omitted.
+    cron_schedule = sys.argv[2] if len(sys.argv) > 2 else None
+    sched = {"cron": cron_schedule} if cron_schedule else None
 
-    # TODO: Adjust this
-    sched = {"frequency": "daily", "time": "02:00"}
-
-    convert_script_to_pipeline_json(
-        script_path=script_file,
-        description="A test pipeline for json2sagemaker",
-        schedule=sched,
-    )
+    convert_script_to_pipeline_json(script_path=script_file, schedule=sched or {})
