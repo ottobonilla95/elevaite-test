@@ -100,6 +100,36 @@ def convert_script_to_pipeline_json(
 
     output_file = os.path.join(out_dir, f"{pipeline_name}.json")
 
+    # Safety check: prompt if the output file already exists.
+    if os.path.exists(output_file):
+        while True:
+            choice = (
+                input(
+                    f"File {output_file} already exists. Overwrite? ([y]es (default), [n]o, [r]ename with increment): "
+                )
+                .strip()
+                .lower()
+            )
+            if choice in ("", "y"):
+                # Overwrite the file.
+                break
+            elif choice == "n":
+                print("Skipping file creation.")
+                return
+            elif choice == "r":
+                base = os.path.join(out_dir, pipeline_name)
+                ext = ".json"
+                counter = 1
+                new_file = f"{base}{counter}{ext}"
+                while os.path.exists(new_file):
+                    counter += 1
+                    new_file = f"{base}{counter}{ext}"
+                output_file = new_file
+                print(f"Renaming output file to {output_file}")
+                break
+            else:
+                print("Invalid choice. Please enter 'y', 'n', or 'r'.")
+
     with open(output_file, "w") as f:
         json.dump(pipeline, f, indent=2)
 
