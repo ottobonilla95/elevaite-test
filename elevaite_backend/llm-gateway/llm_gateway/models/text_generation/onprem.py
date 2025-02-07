@@ -93,9 +93,9 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
 
         onprem_generation_args = {
             "text_inputs": onprem_prompt,
-            "max_new_tokens": config.get("max_tokens", 8000),
+            "max_new_tokens": config.get("max_tokens", max_tokens),
             "return_full_text": False,
-            "temperature": config.get("temperature", 0.01),
+            "temperature": config.get("temperature", temperature),
             "do_sample": config.get("do_sample", False),
         }
 
