@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, List, TypeGuard
+from typing import Any, List, Optional, TypeGuard
 
 from pydantic import UUID4, BaseModel
 
@@ -23,6 +23,11 @@ class PipelineVariableBase(BaseModel):
 
 class PipelineVariableCreate(PipelineVariableBase):
     pass
+
+
+class PipelineVariableUpdate(BaseModel):
+    name: Optional[str] = None
+    var_type: Optional[str] = None
 
 
 class PipelineVariable(PipelineVariableBase):
@@ -82,6 +87,12 @@ class PipelineBase(BaseModel):
 
 class PipelineCreate(PipelineBase):
     pass
+
+
+class PipelineUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    entrypoint: Optional[str] = None
 
 
 class Pipeline(PipelineBase):
