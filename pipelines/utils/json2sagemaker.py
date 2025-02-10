@@ -20,6 +20,43 @@ if _missing:
 
 boto3.setup_default_session(region_name=os.environ["AWS_REGION"])
 
+# Global dictionary to cache persistent processors by command type.
+CACHED_PROCESSORS = {}
+
+
+def get_cached_processor(
+    container_image: str, command: list, instance_type: str, role: str
+) -> ScriptProcessor:
+    """
+    Returns a cached ScriptProcessor for the given command type.
+    If none exists, creates one, caches it, and prints a warning message.
+    """
+    key = tuple(command)
+    if key not in CACHED_PROCESSORS:
+        processor = ScriptProcessor(
+            image_uri=container_image,
+            command=command,
+            instance_type=instance_type,
+            instance_count=1,
+            role=role,
+        )
+        CACHED_PROCESSORS[key] = processor
+        print(
+            "⚠️⚠️ WARNING: A PERSISTENT CONTAINER HAS BEEN INITIALIZED. REMEMBER TO CALL shutdown_processors() AT THE END OF YOUR PIPELINE EXECUTION! ⚠️⚠️"
+        )
+    return CACHED_PROCESSORS[key]
+
+
+def shutdown_processors():
+    """
+    Shutdowns (clears) all cached processors.
+    REMINDER: ⚠️⚠️ YOU MUST CALL shutdown_processors() ONCE PER PIPELINE EXECUTION TO RELEASE RESOURCES! ⚠️⚠️
+    In a real-world scenario, add any necessary API calls to gracefully stop the container.
+    """
+    global CACHED_PROCESSORS
+    CACHED_PROCESSORS.clear()
+    print("⚠️⚠️ ALL CACHED CONTAINERS HAVE BEEN SHUT DOWN. ⚠️⚠️")
+
 
 def load_pipeline_definition(json_file: str) -> dict:
     """Load pipeline definition from a JSON file."""
@@ -36,10 +73,13 @@ def create_pipeline(
     """
     Create a SageMaker Pipeline from a JSON definition.
 
+    Reusesa persistent container. This means multiple pipeline steps
+    may run in the same container.
+
     Args:
         pipeline_def: The dictionary containing the pipeline definition.
         container_image: The URI of the container image to use for processing.
-                         If None, the environment variable 'SAGEMAKER_CONTAINER_IMAGE'
+                         If empty, the environment variable 'SAGEMAKER_CONTAINER_IMAGE'
                          will be used.
         instance_type: The SageMaker instance type to use (default: "ml.m5.xlarge").
         persist_job_name_flag: Boolean flag used if the pipeline JSON does not specify
@@ -57,7 +97,6 @@ def create_pipeline(
 
     steps = {}
     step_list = []
-
     role = os.environ["AWS_ROLE_ARN"]
 
     for task in pipeline_def["tasks"]:
@@ -89,14 +128,8 @@ def create_pipeline(
                 [f"--{var}", f"/opt/ml/processing/output/{source_task}.json"]
             )
 
-        # Define processor
-        processor = ScriptProcessor(
-            image_uri=container_image,
-            command=command,
-            instance_type=instance_type,
-            instance_count=1,
-            role=role,
-        )
+        # Use a cached processor for the given command type
+        processor = get_cached_processor(container_image, command, instance_type, role)
 
         # Resolve explicit dependencies.
         depends_on = [
