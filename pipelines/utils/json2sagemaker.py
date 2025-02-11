@@ -402,7 +402,7 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict):
                 "docker",
                 "build",
                 "-t",
-                "sagemaker-pipeline-image",
+                pipeline_def["name"].lower(),
                 "-f",
                 dockerfile_path,
                 "--build-arg",
@@ -426,7 +426,7 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict):
         pipeline = create_pipeline(
             pipeline_def,
             persist_job_name_flag=True,
-            container_image="sagemaker-pipeline-image",
+            container_image=pipeline_def["name"],
             instance_type="ml.m5.xlarge",
         )
 
@@ -450,7 +450,7 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict):
         if os.path.exists(dockerfile_path):
             os.remove(dockerfile_path)
             print(f"Deleted the Dockerfile at {dockerfile_path}")
-        remove_docker_image("sagemaker-pipeline-image")
+        remove_docker_image(pipeline_def["name"])
 
 
 if __name__ == "__main__":
