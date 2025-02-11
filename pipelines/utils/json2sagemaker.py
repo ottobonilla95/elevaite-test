@@ -259,7 +259,6 @@ def create_pipeline(
             job_args.extend(
                 [f"--{var}", f"/opt/ml/processing/output/{source_task}.json"]
             )
-
         # Use a cached processor for the given command type
         processor = get_cached_processor(container_image, command, instance_type, role)
 
@@ -275,6 +274,9 @@ def create_pipeline(
             job_arguments=job_args,
             depends_on=depends_on,
         )
+
+        # Truncate job_name after it got processed
+        step.job_name = step.job_name[:63] if step.job_name else task_id
 
         steps[task_id] = step
         step_list.append(step)
