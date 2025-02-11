@@ -14,6 +14,7 @@ REQUIRED_ENV_VARS = [
     "AWS_SECRET_ACCESS_KEY",
     "AWS_REGION",
     "AWS_ROLE_ARN",
+    "ECR_BASE_REPO_URL",
 ]
 
 _missing = [var for var in REQUIRED_ENV_VARS if var not in os.environ]
@@ -205,7 +206,7 @@ def create_pipeline(
     """
     Create a SageMaker Pipeline from a JSON definition.
 
-    Reusesa persistent container. This means multiple pipeline steps
+    Reuses a persistent container. This means multiple pipeline steps
     may run in the same container.
 
     Args:
@@ -386,23 +387,37 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict):
     aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
     aws_region = os.getenv("AWS_REGION")
     aws_role_arn = os.getenv("AWS_ROLE_ARN")
+    ecr_base_repo = os.getenv("ECR_BASE_REPO_URL")
 
-    if not all([aws_access_key, aws_secret_key, aws_region, aws_role_arn]):
+    if (
+        not aws_access_key
+        or not aws_secret_key
+        or not aws_region
+        or not aws_role_arn
+        or not ecr_base_repo
+    ):
         raise OSError(
-            "Missing environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_ROLE_ARN"
+            "Missing environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_ROLE_ARN, ECR_BASE_REPO_URL"
         )
 
-    # Build the Docker image with the environment variables passed as build args
-    try:
-        print(f"Building Docker image from {dockerfile_path}...")
+    image_tag = "latest"
+    ecr_base_repo = ecr_base_repo.rstrip("/")
+    image_name = f"{ecr_base_repo}/{pipeline_def['name'].lower()}:{image_tag}"
 
-        # Run the Docker build command and capture the output
+    try:
+        registry = ecr_base_repo.split("/")[0]
+        print(f"Logging in to ECR registry {registry}...")
+        login_cmd = f"aws ecr get-login-password --region {aws_region} | docker login --username AWS --password-stdin {registry}"
+        subprocess.run(login_cmd, shell=True, check=True)
+
+        print(f"Building Docker image {image_name} from {dockerfile_path}...")
+
         result = subprocess.run(
             [
                 "docker",
                 "build",
                 "-t",
-                pipeline_def["name"].lower(),
+                image_name,
                 "-f",
                 dockerfile_path,
                 "--build-arg",
@@ -423,10 +438,22 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict):
         print(f"Docker build output:\n{result.stdout}")
         print(f"Docker build errors:\n{result.stderr}")
 
+        # Push the built Docker image to ECR.
+        print(f"Pushing Docker image {image_name} to ECR...")
+        push_result = subprocess.run(
+            ["docker", "push", image_name],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        print(f"Docker push output:\n{push_result.stdout}")
+        print(f"Docker push errors:\n{push_result.stderr}")
+
+        # Use the pushed image in the SageMaker pipeline.
         pipeline = create_pipeline(
             pipeline_def,
             persist_job_name_flag=True,
-            container_image=pipeline_def["name"],
+            container_image=image_name,
             instance_type="ml.m5.xlarge",
         )
 
@@ -440,17 +467,17 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict):
         monitor_pipeline(execution_arn)
 
     except subprocess.CalledProcessError as e:
-        print(f"Error building Docker image: {e}")
+        print(f"Error during Docker operations: {e}")
         print(f"Output:\n{e.stdout}")
         print(f"Error:\n{e.stderr}")
         raise e
 
     finally:
-        # Clean up
+        # Remove the temporary Dockerfile and the local Docker image.
         if os.path.exists(dockerfile_path):
             os.remove(dockerfile_path)
             print(f"Deleted the Dockerfile at {dockerfile_path}")
-        remove_docker_image(pipeline_def["name"])
+        remove_docker_image(image_name)
 
 
 if __name__ == "__main__":
