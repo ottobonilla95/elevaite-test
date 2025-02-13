@@ -184,7 +184,6 @@ def shutdown_processors():
     """
     Shutdowns (clears) all cached processors.
     REMINDER: ⚠️⚠️ YOU MUST CALL shutdown_processors() ONCE PER PIPELINE EXECUTION TO RELEASE RESOURCES! ⚠️⚠️
-    In a real-world scenario, add any necessary API calls to gracefully stop the container.
     """
     global CACHED_PROCESSORS
     CACHED_PROCESSORS.clear()
@@ -402,7 +401,7 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict):
 
     image_tag = "latest"
     ecr_base_repo = ecr_base_repo.rstrip("/")
-    image_name = f"{ecr_base_repo}/{pipeline_def['name'].lower()}:{image_tag}"
+    image_name = f"{ecr_base_repo}:{image_tag}"
 
     try:
         registry = ecr_base_repo.split("/")[0]
@@ -478,6 +477,7 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict):
             os.remove(dockerfile_path)
             print(f"Deleted the Dockerfile at {dockerfile_path}")
         remove_docker_image(image_name)
+        shutdown_processors()
 
 
 if __name__ == "__main__":
