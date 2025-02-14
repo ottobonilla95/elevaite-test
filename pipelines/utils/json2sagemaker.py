@@ -85,31 +85,32 @@ def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfil
     """Dynamically create a Dockerfile based on the pipeline definition."""
     dependencies = set()
 
-    # Check if the pipeline definition contains tasks with a valid 'src' path
     if not pipeline_def["tasks"]:
         raise ValueError("Pipeline definition must have tasks with 'src' paths")
 
-    # Derive the project root from the first task's 'src' path
+    # Get the running script's directory.
+    running_script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Get the directory of the first task's source file.
     first_task_src = pipeline_def["tasks"][0]["src"]
-    project_root = os.path.abspath(os.path.dirname(first_task_src))
+    task_src_dir = os.path.abspath(os.path.dirname(first_task_src))
+
+    # Compute the common project root between the running script and the task's src.
+    project_root = os.path.commonpath([running_script_dir, task_src_dir])
 
     # Inspect each task in the pipeline definition and gather dependencies from the 'src' paths.
     for task in pipeline_def["tasks"]:
         if task["task_type"] == "pyscript":
             script_path = task["src"]
             if os.path.exists(script_path):
-                # Search through the project root (above 'src') for local modules
+                # Search through the project root for local modules
                 dependencies.update(get_python_dependencies(script_path, project_root))
-
-    # Add external dependencies
-    # dependencies.update(["sagemaker", "boto3"])
 
     print(f"Dependencies being added to the Dockerfile: {dependencies}")
 
     local_dependencies = set()
     external_dependencies = set()
 
-    # Separate local and external dependencies
+    # Separate local and external dependencies.
     for dep in dependencies:
         if check_pypi_dependency(dep):
             external_dependencies.add(dep)
@@ -122,7 +123,7 @@ def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfil
     with open(dockerfile_path, "w") as dockerfile:
         dockerfile.write("FROM python:3.8-slim\n")
 
-        # Install external dependencies with pip (no local modules)
+        # Install external dependencies with pip.
         if external_dependencies:
             dockerfile.write(
                 "RUN pip install --no-cache-dir "
@@ -130,19 +131,19 @@ def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfil
                 + "\n"
             )
 
-        # Copy local dependencies into the Docker image
+        # Copy local dependencies into the Docker image.
         for local_dep in local_dependencies:
-            # Get the relative path to the project root for each local dependency
+            # Get the relative path to the project root for each local dependency.
             relative_local_dep = os.path.relpath(local_dep, project_root)
             dockerfile.write(f"COPY {relative_local_dep} /opt/ml/processing/\n")
 
-        # Copy the entire project folder to the container
+        # Copy the entire project folder to the container.
         dockerfile.write(f"COPY {os.path.basename(project_root)} /opt/ml/processing/\n")
 
-        # Set the working directory
+        # Set the working directory.
         dockerfile.write("WORKDIR /opt/ml/processing\n")
 
-        # Default command for the container
+        # Default command for the container.
         dockerfile.write('CMD ["python", "${ENTRY_POINT}"]\n')
 
     print(f"Dockerfile created at {dockerfile_path}")
