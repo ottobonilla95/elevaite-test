@@ -79,12 +79,11 @@ def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfil
     # Compute the common project root between the running script and the task's src.
     project_root = os.path.commonpath([running_script_dir, task_src_dir])
 
-    # Inspect each task in the pipeline definition and gather dependencies from the 'src' paths.
+    # Inspect each task in the pipeline definition and gather dependencies
     for task in pipeline_def["tasks"]:
         if task["task_type"] == "pyscript":
             script_path = task["src"]
             if os.path.exists(script_path):
-                # Search through the project root for local modules
                 dependencies.update(get_python_dependencies(script_path, project_root))
 
     print(f"Dependencies being added to the Dockerfile: {dependencies}")
@@ -105,6 +104,16 @@ def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfil
     with open(dockerfile_path, "w") as dockerfile:
         dockerfile.write("FROM python:3.8-slim\n")
 
+        # Create required directory structure
+        dockerfile.write(
+            """
+RUN mkdir -p /opt/ml/processing/input && \
+    mkdir -p /opt/ml/processing/output && \
+    mkdir -p /opt/ml/processing/code && \
+    chmod -R 777 /opt/ml/processing
+"""
+        )
+
         # Install external dependencies with pip.
         if external_dependencies:
             dockerfile.write(
@@ -115,15 +124,16 @@ def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfil
 
         # Copy local dependencies into the Docker image.
         for local_dep in local_dependencies:
-            # Get the relative path to the project root for each local dependency.
             relative_local_dep = os.path.relpath(local_dep, project_root)
-            dockerfile.write(f"COPY {relative_local_dep} /opt/ml/processing/\n")
+            dockerfile.write(f"COPY {relative_local_dep} /opt/ml/processing/code/\n")
 
         # Copy the entire project folder to the container.
-        dockerfile.write(f"COPY {os.path.basename(project_root)} /opt/ml/processing/\n")
+        dockerfile.write(
+            f"COPY {os.path.basename(project_root)} /opt/ml/processing/code/\n"
+        )
 
         # Set the working directory.
-        dockerfile.write("WORKDIR /opt/ml/processing\n")
+        dockerfile.write("WORKDIR /opt/ml/processing/code\n")
 
         # Default command for the container.
         dockerfile.write('CMD ["python", "${ENTRY_POINT}"]\n')
@@ -155,6 +165,12 @@ def get_cached_processor(
             instance_type=instance_type,
             instance_count=1,
             role=role,
+            volume_size_in_gb=30,
+            max_runtime_in_seconds=86400,  # 24 hours
+            base_job_name="processing",
+            env={
+                "PYTHONUNBUFFERED": "1"  # Ensures Python output is sent to CloudWatch immediately
+            },
         )
         CACHED_PROCESSORS[key] = processor
         print(
