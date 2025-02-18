@@ -1,7 +1,6 @@
 from .providers.sagemaker import SageMakerPipelineProvider
-from .providers.base import PipelineProvider
 from .interfaces.pipeline_types import ProviderType
-from typing import List, Type
+from typing import List
 
 
 def universal_create_pipelines() -> List[str]:
