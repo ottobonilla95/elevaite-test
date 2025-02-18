@@ -1,4 +1,3 @@
-import boto3
 from uuid import UUID
 from typing import Callable
 from sqlalchemy.orm import Session, Query
@@ -6,8 +5,6 @@ from sqlalchemy.orm import Session, Query
 
 from ..db import models
 
-from pipelines.utils import json2sagemaker
-from pipelines.utils.json2airflow import load_json_from_path, run_python_script
 from elevaitelib.schemas.pipeline import (
     PipelineCreate,
     PipelineScheduleCreate,
