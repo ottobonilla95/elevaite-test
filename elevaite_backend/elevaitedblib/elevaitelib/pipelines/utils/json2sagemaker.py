@@ -6,8 +6,8 @@ import boto3
 from sagemaker.workflow.pipeline import Pipeline
 from sagemaker.workflow.steps import ProcessingStep
 
-from common.cloudwatch import monitor_pipeline
-from common.docker import (
+from .common.cloudwatch import monitor_pipeline
+from .common.docker import (
     create_dockerfile,
     get_cached_processor,
     remove_docker_image,
