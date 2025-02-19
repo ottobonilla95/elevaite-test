@@ -3,7 +3,7 @@ from airflow.models import DagBag, DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.papermill_operator import PapermillOperator
 
-from pipelines.utils.json2airflow import load_json_from_path, run_python_script
+from ..utils.json2airflow import load_json_from_path, run_python_script
 
 
 def create_dag_from_pipeline(pipeline: dict) -> DAG:
