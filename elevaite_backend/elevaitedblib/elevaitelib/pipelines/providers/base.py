@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Any
 
 
 class PipelineProvider(ABC):
@@ -7,41 +7,43 @@ class PipelineProvider(ABC):
         pass
 
     @abstractmethod
-    def create_pipelines(self, file_paths: List[str]) -> str:
+    def create_pipelines(self, pipeline_configs: List[Any]) -> int:
         """
-        Abstract method to create pipelines based on the list of file paths.
+        Abstract method to create pipelines based on the provided configurations.
 
-        :param file_paths: List of file paths to be processed.
-        :return: Status message after processing.
-        """
-        pass
-
-    @abstractmethod
-    def delete_pipelines(self, image_names: List[str]) -> str:
-        """
-        Abstract method to delete pipelines based on the list of file paths.
-
-        :param image_names: List of image names corresponding to pipelines to be deleted.
-        :return: Status message after deletion.
+        :param pipeline_configs: A list of pipeline configuration objects. This could be file paths,
+                                 dictionaries, or any structure representing a pipeline definition.
+        :return: An integer status code (e.g., 200 for success).
         """
         pass
 
     @abstractmethod
-    def monitor_pipelines(self, execution_arns: List[str]) -> List[str]:
+    def delete_pipelines(self, pipeline_ids: List[str]) -> int:
         """
-        Abstract method to monitor pipelines based on the list of file paths.
+        Abstract method to delete pipelines based on the provided identifiers.
 
-        :param execution_arns: List of role names corresponding to pipelines to be monitored.
-        :return: List of status messages or outputs for each pipeline.
+        :param pipeline_ids: A list of identifiers corresponding to pipelines to be deleted.
+                             For instance, these could be image names for SageMaker or DAG IDs for Airflow.
+        :return: An integer status code after deletion.
         """
         pass
 
     @abstractmethod
-    def rerun_pipelines(self, execution_arns: List[str]) -> str:
+    def monitor_pipelines(self, pipeline_run_ids: List[str]) -> List[str]:
         """
-        Abstract method to rerun pipelines based on the list of file paths.
+        Abstract method to monitor pipelines based on the provided run identifiers.
 
-        :param execution_arns: List of role names corresponding to pipelines to be rerun.
-        :return: Status message after processing the rerun.
+        :param pipeline_run_ids: A list of identifiers corresponding to pipeline runs to be monitored.
+        :return: A list of status messages or outputs for each pipeline.
+        """
+        pass
+
+    @abstractmethod
+    def rerun_pipelines(self, pipeline_ids: List[str]) -> int:
+        """
+        Abstract method to rerun pipelines based on the provided identifiers.
+
+        :param pipeline_ids: A list of identifiers corresponding to pipelines to be rerun.
+        :return: An integer status code after processing the rerun.
         """
         pass
