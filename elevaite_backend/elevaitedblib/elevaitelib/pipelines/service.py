@@ -1,4 +1,5 @@
 from .providers.sagemaker import SageMakerPipelineProvider
+from .providers.airflow import AirflowPipelineProvider
 from .interfaces.pipeline_types import ProviderType
 from typing import List, Dict, Any
 
@@ -12,13 +13,16 @@ def create_pipelines_for_provider(
     provider_type: str, file_paths: List[str]
 ) -> Dict[str, Any]:
     try:
-        if provider_type != ProviderType.SAGEMAKER:
+        if provider_type == ProviderType.SAGEMAKER:
+            pipeline_provider = SageMakerPipelineProvider()
+        elif provider_type == ProviderType.AIRFLOW:
+            pipeline_provider = AirflowPipelineProvider()
+        else:
             return {
                 "code": 400,
-                "message": f"Unknown provider type: {provider_type}. Only '{ProviderType.SAGEMAKER}' is supported.",
+                "message": f"Unknown provider type: {provider_type}. Supported providers are: {ProviderType.SAGEMAKER} and {ProviderType.AIRFLOW}.",
             }
 
-        pipeline_provider = SageMakerPipelineProvider()
         result_code = pipeline_provider.create_pipelines(file_paths)
 
         if result_code == 200:
@@ -37,24 +41,27 @@ def create_pipelines_for_provider(
 
 
 def delete_pipelines_for_provider(
-    provider_type: str, image_names: List[str]
+    provider_type: str, pipeline_ids: List[str]
 ) -> Dict[str, Any]:
     try:
-        if provider_type != ProviderType.SAGEMAKER:
+        if provider_type == ProviderType.SAGEMAKER:
+            pipeline_provider = SageMakerPipelineProvider()
+        elif provider_type == ProviderType.AIRFLOW:
+            pipeline_provider = AirflowPipelineProvider()
+        else:
             return {
                 "code": 400,
-                "message": f"Unknown provider type: {provider_type}. Only '{ProviderType.SAGEMAKER}' is supported.",
+                "message": f"Unknown provider type: {provider_type}. Supported providers are: {ProviderType.SAGEMAKER} and {ProviderType.AIRFLOW}.",
             }
 
-        pipeline_provider = SageMakerPipelineProvider()
-        result_code = pipeline_provider.delete_pipelines(image_names)
+        result_code = pipeline_provider.delete_pipelines(pipeline_ids)
 
         if result_code == 200:
             return {"code": 200, "message": "Pipelines deleted successfully."}
         else:
             return {
                 "code": result_code,
-                "message": "Pipeline deletion failed. Please verify the image names or deletion criteria.",
+                "message": "Pipeline deletion failed. Please verify the pipeline identifiers.",
             }
 
     except Exception as error:
@@ -65,17 +72,20 @@ def delete_pipelines_for_provider(
 
 
 def monitor_pipelines_for_provider(
-    provider_type: str, execution_arns: List[str]
+    provider_type: str, execution_ids: List[str]
 ) -> Dict[str, Any]:
     try:
-        if provider_type != ProviderType.SAGEMAKER:
+        if provider_type == ProviderType.SAGEMAKER:
+            pipeline_provider = SageMakerPipelineProvider()
+        elif provider_type == ProviderType.AIRFLOW:
+            pipeline_provider = AirflowPipelineProvider()
+        else:
             return {
                 "code": 400,
-                "message": f"Unknown provider type: {provider_type}. Only '{ProviderType.SAGEMAKER}' is supported.",
+                "message": f"Unknown provider type: {provider_type}. Supported providers are: {ProviderType.SAGEMAKER} and {ProviderType.AIRFLOW}.",
             }
 
-        pipeline_provider = SageMakerPipelineProvider()
-        outputs = pipeline_provider.monitor_pipelines(execution_arns)
+        outputs = pipeline_provider.monitor_pipelines(execution_ids)
 
         return {
             "code": 200,
@@ -91,24 +101,27 @@ def monitor_pipelines_for_provider(
 
 
 def rerun_pipelines_for_provider(
-    provider_type: str, execution_arns: List[str]
+    provider_type: str, execution_ids: List[str]
 ) -> Dict[str, Any]:
     try:
-        if provider_type != ProviderType.SAGEMAKER:
+        if provider_type == ProviderType.SAGEMAKER:
+            pipeline_provider = SageMakerPipelineProvider()
+        elif provider_type == ProviderType.AIRFLOW:
+            pipeline_provider = AirflowPipelineProvider()
+        else:
             return {
                 "code": 400,
-                "message": f"Unknown provider type: {provider_type}. Only '{ProviderType.SAGEMAKER}' is supported.",
+                "message": f"Unknown provider type: {provider_type}. Supported providers are: {ProviderType.SAGEMAKER} and {ProviderType.AIRFLOW}.",
             }
 
-        pipeline_provider = SageMakerPipelineProvider()
-        result_code = pipeline_provider.rerun_pipelines(execution_arns)
+        result_code = pipeline_provider.rerun_pipelines(execution_ids)
 
         if result_code == 200:
             return {"code": 200, "message": "Pipelines rerun successfully."}
         else:
             return {
                 "code": result_code,
-                "message": "Pipeline rerun failed. Please verify the execution ARNs and try again.",
+                "message": "Pipeline rerun failed. Please verify the execution identifiers and try again.",
             }
 
     except Exception as error:
