@@ -174,7 +174,7 @@ def start_pipeline(pipeline: Pipeline, parameters: dict = {}):
     return pipeline.start(parameters=parameters)
 
 
-def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict):
+def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict, watch: bool = True):
     dockerfile_path = "/tmp/Dockerfile"
 
     # Create the Dockerfile dynamically based on pipeline definition
@@ -262,7 +262,8 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict):
         execution_arn = execution.arn
         print(f"Pipeline started. Execution ARN: {execution_arn}")
 
-        monitor_pipeline(execution_arn)
+        if watch:
+            monitor_pipeline(execution_arn)
 
     except subprocess.CalledProcessError as e:
         print(f"Error during Docker operations: {e}")
