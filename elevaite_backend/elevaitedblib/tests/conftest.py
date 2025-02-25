@@ -1,14 +1,28 @@
 import os
 import sys
+import json
 import pytest
 import subprocess
 
 
 @pytest.fixture
 def pipeline_files():
-    files = ["/home/vuxxs/generated_pipelines/Script.json"]
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    json_file_path = os.path.join(current_dir, "ExamplePipeline.json")
+    new_src_path = os.path.join(current_dir, "example_pipeline.py")
 
-    return files
+    with open(json_file_path, "r") as f:
+        data = json.load(f)
+
+    tasks = data.get("tasks", [])
+    for task in tasks:
+        if isinstance(task, dict) and "src" in task:
+            task["src"] = new_src_path
+
+    with open(json_file_path, "w") as f:
+        json.dump(data, f, indent=2)
+
+    return [json_file_path]
 
 
 def install_load_dotenv(package):
