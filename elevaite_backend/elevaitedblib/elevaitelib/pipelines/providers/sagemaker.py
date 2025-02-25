@@ -1,5 +1,5 @@
 import threading
-from typing import List
+from typing import List, Union
 
 from .base import PipelineProvider
 from ..utils.common.docker import remove_docker_image as delete
@@ -47,19 +47,21 @@ class SageMakerPipelineProvider(PipelineProvider):
 
         return 200
 
-    def monitor_pipelines(self, execution_arn_list: List[str]) -> List[str]:
+    def monitor_pipelines(
+        self, execution_arn_list: List[str], summarize: bool = False
+    ) -> List[Union[str, dict]]:
         threads = []
         outputs = []
         lock = threading.Lock()
 
         def monitor_pipeline_thread(execution_arn: str):
-            status = monitor(execution_arn=execution_arn)
+            result = monitor(execution_arn=execution_arn, summarize=summarize)
             with lock:
-                outputs.append(status)
+                outputs.append(result)
 
         for execution_arn in execution_arn_list:
             thread = threading.Thread(
-                target=monitor_pipeline_thread, args=(execution_arn)
+                target=monitor_pipeline_thread, args=(execution_arn,)
             )
             threads.append(thread)
             thread.start()
