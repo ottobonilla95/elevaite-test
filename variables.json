@@ -45,5 +45,9 @@
   },
   "pipelines": {
     "NEXT_PUBLIC_BACKEND_URL": "http://localhost:9005/"
+  },
+  "creative_insight": {
+    "NEXT_PUBLIC_CREATIVE_BACKEND_URL": "http://localhost:8000/api",
+    "NEXT_PUBLIC_CREATIVE_URL": "http://localhost:8080/static/images/"
   }
 }

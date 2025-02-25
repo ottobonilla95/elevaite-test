@@ -1,20 +1,23 @@
 // app/page.tsx
 "use client";
 import { useState, useEffect } from "react";
-import { AdSurfaceDropdown } from "@/components/AdSurfaceDropdown";
-import BrandDropdown from "@/components/BrandDropdown";
-import CampaignDropdown from "@/components/CampaignDropdown";
-import CreativeTable from "@/components/CreativeTable";
-import MainNav from "@/components/NavBar";
-import CampaignTable from "@/components/CampaignTable";
-import { AdSurfaceBrandPair, CampaignData, CreativeData, CampaignPerformance } from "@/types";
-import { Button } from '@/components/ui/button';
-import {Tabs,TabsContent,TabsList,TabsTrigger} from "@/components/ui/tabs";
-// import { Share , X} from "lucide-react";
-import ShareIcon from "@/components/ui/ShareIcon";
+import { AdSurfaceDropdown } from "../components/AdSurfaceDropdown";
+import BrandDropdown from "../components/BrandDropdown";
+import CampaignDropdown from "../components/CampaignDropdown";
+import CreativeTable from "../components/CreativeTable";
+import MainNav from "../components/NavBar";
+import CampaignTable from "../components/CampaignTable";
+import { AdSurfaceBrandPair, CampaignData, CreativeData, CampaignPerformance } from "../types";
+import { Button } from '../components/ui/button';
+import {Tabs,TabsContent,TabsList,TabsTrigger} from "../components/ui/tabs";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../components/ui/resizable";
+import { Icons } from '../components/ui/icons';
+import ChatComponent from "../components/ChatComponent";
 
+const API_BASE_URL  = "http://localhost:8000/api";
+const CREATIVE_BASE_URL  = "http://localhost:8080/static/images/";
 
-const API_BASE_URL = "http://localhost:8000/api";
+// const API_BASE_URL = "http://localhost:8000/api";
 
 export default function Home() {
   const [pairs, setPairs] = useState<AdSurfaceBrandPair[]>([]);
@@ -26,7 +29,7 @@ export default function Home() {
   const [data, setData] = useState<CampaignData[]>([]);
   const [creativeData, setCreativeData] = useState<CreativeData[]>([]);
   const [campaignPerformance, setCampaignPerformance] = useState<CampaignPerformance[]>([]);
-
+  const [isChatOpen, setIsChatOpen] = useState(true); 
 
   useEffect(() => {
     const fetchPairs = async () => {
@@ -54,11 +57,13 @@ export default function Home() {
   useEffect(() => {
     const fetchCampaignData = async () => {
       if (selectedAdSurface && selectedBrand) {
+        console.log("The Environment APIs are : ",API_BASE_URL,CREATIVE_BASE_URL);
         try {
           const response = await fetch(
             `${API_BASE_URL}/campaign_data?ad_surface=${selectedAdSurface}&brand=${selectedBrand}`
           );
           const json = await response.json();
+          console.log("The Environment APIs are : ",API_BASE_URL,CREATIVE_BASE_URL);
           console.log("Received Payload:",json.campaign_data, json.creative_data);
           const campaignPerformance = json.campaign_data.map((item: any) => ({
             Campaign_Name: item.Campaign_Name,
@@ -72,7 +77,11 @@ export default function Home() {
             Insights: item.insights,
           }));
 
-          const creativeData = json.creative_data.map((item: any) => ({...item,}));
+          const creativeData = json.creative_data.map((item: any) => ({
+            ...item,
+            Full_File_URL: CREATIVE_BASE_URL ? `${CREATIVE_BASE_URL}${item.Full_File_URL}` : item.Full_File_URL,
+            URL: CREATIVE_BASE_URL ? `${CREATIVE_BASE_URL}${item.URL}` : item.URL,
+          }));
           setCreativeData(creativeData);
           setCampaignPerformance(campaignPerformance);
           setCampaigns(json.campaigns);
@@ -102,13 +111,25 @@ export default function Home() {
   );
   const selectedCreatives = selectedCampaign ? creativeData.filter(item => item.Campaign_Name === selectedCampaign): creativeData;
   const selectedCampaignPerformance = selectedCampaign? campaignPerformance.filter(item => item.Campaign_Name === selectedCampaign): campaignPerformance;
-
+  const handleChatClose = () => {
+    setIsChatOpen(false);
+  };
   return (
     <div>
       <MainNav/>  
     <main className="flex min-h-screen flex-col items-left pl-10 pt-10 pr-10 mr-10 ml-10 rounded-lg" style={{ backgroundColor: 'hsl(var(--main-background))' }}>
-
-    
+      {!isChatOpen && (
+      <Button
+        variant="default"
+        className="fixed bottom-4 right-4 rounded-full shadow-lg gap-2 hover:scale-105 transition-transform"
+        onClick={() => setIsChatOpen(true)}
+      >
+        <Icons.Message />
+        
+      </Button>
+    )}
+    <ResizablePanelGroup direction="horizontal" className="min-h-screen">
+    <ResizablePanel defaultSize={70} minSize={50} className="p-10 pr-8">
       <div className="z-10 max-w-5xl w-full  justify-between text-sm lg:flex">
         <h1 className="text-4xl ">Campaign & Creative Insights</h1>
       </div>
@@ -160,15 +181,29 @@ export default function Home() {
       </div>
       </TabsContent>
       </Tabs>
-
       {selectedAdSurface && selectedBrand && (
         <div className="m-6 w-full flex justify-end">  {/* Added mt-6 for spacing */}
           <Button variant="outline" className="gap-2" onClick={() => window.print()}>
-            <ShareIcon/>Export
+            <Icons.Share/>Export
           </Button>
         </div>
       )}
+    </ResizablePanel>
+    {isChatOpen && (<ResizableHandle withHandle className="mx-2" />)}
+    {isChatOpen && (
+            <ResizablePanel 
+              defaultSize={30}
+              minSize={25}
+              maxSize={45}
+              collapsible
+              collapsedSize={0}
+              className="border-l relative overflow:clip"
+            >
+              <ChatComponent onClose={handleChatClose} /> {/* Pass handleChatClose to close the chat */}
+            </ResizablePanel>
+          )}
 
+    </ResizablePanelGroup>
     </main>
     </div>
   );

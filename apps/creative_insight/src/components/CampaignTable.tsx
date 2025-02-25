@@ -1,12 +1,14 @@
 "use client";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CampaignPerformance } from "@/types";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { CampaignPerformance } from "../types";
 import { useState } from "react";
 
 const CampaignTable = ({ performanceData }: { performanceData: CampaignPerformance[] }) => {
   console.log("The data is received:", performanceData);
   if (!performanceData?.length) return <div className="text-muted-foreground">No performance data available</div>;
+
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
   const metrics = [
     { label: "Campaign Name", key: "Campaign_Name", format: "text" },
     { label: "Duration (days)", key: "Duration", format: "number" },
@@ -32,7 +34,8 @@ const CampaignTable = ({ performanceData }: { performanceData: CampaignPerforman
               {metrics.map((metric) => (
                 <TableHead
                   key={metric.key}
-                  className={`min-w-[150px] max-w-[200px] whitespace-nowrap ${metric.key === "Campaign_Name" ? "text-left" : "text-right"}`}
+                  className={`min-w-[150px] max-w-[200px] p-8 whitespace-nowrap border-l `}
+                  title={metric.label} 
                 >
                   {metric.label}
                 </TableHead>
@@ -43,11 +46,10 @@ const CampaignTable = ({ performanceData }: { performanceData: CampaignPerforman
           <TableBody>
             {performanceData.map((campaign) => (
               <TableRow
-              key={campaign.Campaign_Name}
-              onClick={() => handleRowClick(campaign.Campaign_Name)} // Add onClick event here
-              className="cursor-pointer"
+                key={campaign.Campaign_Name}
+                onClick={() => handleRowClick(campaign.Campaign_Name)}
+                className="cursor-pointer"
               >
-
                 {metrics.map((metric) => {
                   const value = campaign[metric.key as keyof CampaignPerformance];
 
@@ -55,7 +57,6 @@ const CampaignTable = ({ performanceData }: { performanceData: CampaignPerforman
                   let displayValue = "-"; // Default value if data is missing
                   if (value !== undefined && value !== null) {
                     if (metric.format === "percentage") {
-                      // Ensure value is a number before applying toFixed
                       displayValue = `${(value as number * 100).toFixed(2)}%`;
                     } else if (metric.format === "number") {
                       displayValue = (value as number).toLocaleString();
@@ -63,22 +64,30 @@ const CampaignTable = ({ performanceData }: { performanceData: CampaignPerforman
                       displayValue = value as string;
                     }
                   }
-
+                  const isInsightsColumn = metric.key === "Insights";
                   return (
-                    <TableCell key={`${metric.key}-${campaign.Campaign_Name}`} className={`min-w-[150px] max-w-[200px] overflow-x-auto`}>
+                    <TableCell
+                      key={`${metric.key}-${campaign.Campaign_Name}`}
+                      className={`min-w-[150px] max-w-[200px] overflow-hidden border-l border-b ${
+                        isInsightsColumn ? "min-w-[500px]" : "truncate text-ellipsis"
+                      }`}
+                      title={displayValue}
+                    >
                       <div className="p-2">
-                        {metric.key === "Insights" ? (
-                          // Apply line-clamp to the "Creative Insights" column
-                          <p className={`text-muted-foreground whitespace-normal text-left text-xs ${
-                            expandedRow === campaign.Campaign_Name ? "whitespace-normal" : "line-clamp-5"
-                          }`}>
+                        {isInsightsColumn ? (
+                          <p
+                            className={`text-muted-foreground whitespace-normal text-left text-xs ${
+                              expandedRow === campaign.Campaign_Name ? "whitespace-normal" : "line-clamp-5"
+                            }`}
+                          >
                             {displayValue}
                           </p>
                         ) : (
-                          <p className="text-muted-foreground whitespace-nowrap text-right">{displayValue}</p>
+                          <p className="text-muted-foreground whitespace-nowrap text-right truncate">{displayValue}</p>
                         )}
                       </div>
                     </TableCell>
+
                   );
                 })}
               </TableRow>

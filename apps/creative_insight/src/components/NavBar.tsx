@@ -1,9 +1,7 @@
 // components/Navbar.tsx
 
 import { useState } from 'react';
-import { Sun, Moon } from 'lucide-react'; // Import Lucide icons for light/dark toggle
-import SunIcon from './ui/SunIcon';
-import MoonIcon from './ui/MoonIcon';
+import { Icons } from '../components/ui/icons';
 
 const Navbar: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false); // State for dark mode toggle
@@ -16,9 +14,9 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="flex justify-between items-center text-foreground pt-4 mr-4 ">
+    <nav className="flex justify-between items-center text-foreground pt-4 m-2">
       {/* Left Section */}
-      <div className="flex items-center ml-4 p-4 mb-4">
+      <div className="flex items-center ml-4 p-4 mb-4 ">
       {/* <ElevaiteIcons.SVGFilter/> */}
       <img
           src={isDarkMode ? '/ElevAIte_dark.svg' : '/ElevAIte.svg'}
@@ -29,10 +27,10 @@ const Navbar: React.FC = () => {
       {/* Right Section */}
       <div>
         <button
-          className="p-2 text-foreground dark:text-primary hover:bg-muted dark:hover:bg-muted rounded-full"
+          className="p-5 mr-10 text-foreground dark:text-primary hover:bg-muted dark:hover:bg-muted rounded-full"
           onClick={toggleTheme}
         >
-          {isDarkMode ? <SunIcon/> : <MoonIcon/> }
+          {isDarkMode ? <Icons.Sun/> : <Icons.Moon/> }
         </button>
       </div>
     </nav>
