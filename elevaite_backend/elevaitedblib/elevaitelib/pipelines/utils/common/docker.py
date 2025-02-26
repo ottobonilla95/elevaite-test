@@ -63,6 +63,26 @@ def find_local_dependency(dep: str, project_root: str) -> str:
     return ""
 
 
+def find_project_root(script_path: str) -> str:
+    """
+    Walk up from the script's directory until a directory containing
+    either 'pyproject.toml' or 'requirements.txt' is found.
+    This directory is assumed to be the project root.
+    """
+    current_dir = os.path.dirname(os.path.abspath(script_path))
+    markers = {"pyproject.toml", "requirements.txt"}
+    while True:
+        if markers.intersection(os.listdir(current_dir)):
+            return current_dir
+        parent_dir = os.path.dirname(current_dir)
+        if parent_dir == current_dir:
+            # Reached the filesystem root without finding any markers.
+            raise ValueError(
+                "Project root not found (no pyproject.toml or requirements.txt found)"
+            )
+        current_dir = parent_dir
+
+
 def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfile"):
     """Dynamically create a Dockerfile based on the pipeline definition."""
     dependencies = set()
@@ -70,14 +90,9 @@ def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfil
     if not pipeline_def["tasks"]:
         raise ValueError("Pipeline definition must have tasks with 'src' paths")
 
-    # Get the running script's directory.
-    running_script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Get the directory of the first task's source file.
+    # Derive the project root from the first task's source file
     first_task_src = pipeline_def["tasks"][0]["src"]
-    task_src_dir = os.path.abspath(os.path.dirname(first_task_src))
-
-    # Compute the common project root between the running script and the task's src.
-    project_root = os.path.commonpath([running_script_dir, task_src_dir])
+    project_root = find_project_root(first_task_src)
 
     # Inspect each task in the pipeline definition and gather dependencies
     for task in pipeline_def["tasks"]:
