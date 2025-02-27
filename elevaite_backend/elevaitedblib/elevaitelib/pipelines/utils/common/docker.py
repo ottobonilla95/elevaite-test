@@ -69,13 +69,20 @@ def get_python_dependencies(script_path: str, project_root: str) -> set:
 
 
 def find_local_dependency(dep: str, project_root: str) -> str:
-    """Check if the dependency exists locally in the project root or one level above."""
-    # First, check the project root
+    """Check if the dependency exists locally in the project root,
+    or inside the project’s main package folder, or one level above."""
+    # First, check the project root directly.
     dep_path = os.path.join(project_root, dep.replace(".", os.sep))
     if os.path.exists(dep_path):
         return dep_path
 
-    # If not found, check one level up
+    # Next, check inside the project folder if the project code lives in a subdirectory
+    project_folder = os.path.join(project_root, os.path.basename(project_root))
+    dep_path = os.path.join(project_folder, dep.replace(".", os.sep))
+    if os.path.exists(dep_path):
+        return dep_path
+
+    # Lastly, check one level up.
     parent_dir = os.path.dirname(project_root)
     dep_path = os.path.join(parent_dir, dep.replace(".", os.sep))
     if os.path.exists(dep_path):
