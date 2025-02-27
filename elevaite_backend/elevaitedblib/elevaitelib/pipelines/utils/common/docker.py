@@ -398,19 +398,25 @@ RUN apt-get update && \\
 """
         )
 
-        # Install dependencies in smaller batches to identify problematic packages
+        # Install dependencies in smaller batches with retry logic
         if external_dependencies:
-            # Install packages in batches of 5 to isolate installation issues
             deps_list = list(external_dependencies)
             for i in range(0, len(deps_list), 5):
                 batch = deps_list[i : i + 5]
-                # Install each batch with error handling
+                batch_str = " ".join(batch)
                 dockerfile.write(
                     f"""
-RUN pip install --no-cache-dir --upgrade pip && \\
-    pip install --no-cache-dir {' '.join(batch)} || \\
-    echo "Warning: Some packages in batch {i//5 + 1} failed to install: {' '.join(batch)}"
-"""
+        RUN pip install --no-cache-dir --upgrade pip && \\
+            for i in 1 2 3; do \\
+                if pip install --no-cache-dir {batch_str}; then \\
+                    break; \\
+                elif [ "$i" = "3" ]; then \\
+                    echo "Error: Failed to install packages: {batch_str}" && exit 1; \\
+                else \\
+                    echo "Attempt $i failed. Retrying..." && sleep 1; \\
+                fi; \\
+            done
+        """
                 )
 
         # Copy the entire project folder to the container
