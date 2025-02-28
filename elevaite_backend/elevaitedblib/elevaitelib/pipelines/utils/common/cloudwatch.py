@@ -1,5 +1,60 @@
+from datetime import datetime
 import time
 import boto3
+
+
+def tail_cloudwatch_logs(job_name: str, poll_interval: int = 5):
+    """
+    Continuously poll and print CloudWatch logs for a SageMaker processing job.
+
+    Args:
+        job_name: The name of the SageMaker processing job.
+        poll_interval: Seconds between log fetches (default: 5 seconds).
+    """
+    logs_client = boto3.client("logs")
+    log_group = "/aws/sagemaker/ProcessingJobs"
+
+    streams = logs_client.describe_log_streams(
+        logGroupName=log_group,
+        logStreamNamePrefix=job_name,
+        orderBy="LogStreamName",
+        limit=1,
+    )
+
+    if not streams.get("logStreams"):
+        print(f"No log streams found for job {job_name}")
+        return
+
+    log_stream = streams["logStreams"][0]["logStreamName"]
+    print(f"Tail logs for job '{job_name}' on stream '{log_stream}'")
+
+    next_token = None
+
+    try:
+        while True:
+            kwargs = {
+                "logGroupName": log_group,
+                "logStreamName": log_stream,
+                "startFromHead": True,
+            }
+            if next_token:
+                kwargs["nextToken"] = next_token
+
+            response = logs_client.get_log_events(**kwargs)
+            events = response.get("events", [])
+            if events:
+                for event in events:
+                    print(event["message"])
+            else:
+                pass
+
+            new_token = response.get("nextForwardToken")
+            if new_token == next_token:
+                time.sleep(poll_interval)
+            else:
+                next_token = new_token
+    except KeyboardInterrupt:
+        print("Stopped tailing logs.")
 
 
 def get_processing_job_name(step_details: dict) -> str:
