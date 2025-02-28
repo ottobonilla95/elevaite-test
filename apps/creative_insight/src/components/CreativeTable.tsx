@@ -59,18 +59,17 @@ const CreativeTable = ({ creatives }: { creatives: CreativeData[] }) => {
   };
 
   return (
-    <div className="rounded-md border h-full">
-      <div className="flex overflow-x-auto h-full">
-        <Table className="min-w-[800px]">
-          <TableHeader className="sticky top-0 bg-background z-20">
+      <div className="rounded-md border flex h-full shadow-[inset_-10px_0_12px_-8px_rgba(0,0,0,0.1)]">
+        <Table className="min-w-[800px] ">
+          <TableHeader className="sticky top-0 bg-thbackground z-20 ">
             <TableRow>
-              <TableHead className="sticky left-0 bg-background z-30 min-w-[100px] max-w-[250px] truncate">
+              <TableHead className="sticky left-0 bg-thbackground z-30 min-w-[100px] max-w-[250px] truncate ">
                 Preview
               </TableHead>
               {attributes.slice(1).map((attr) => (
                 <TableHead
                   key={attr.label}
-                  className={`${getColumnClass(attr.type)} truncate p-8 border-l`}
+                  className={`${getColumnClass(attr.type)} truncate p-4 border-l`}
                   title={attr.label}
                 >
                   {attr.label}
@@ -86,11 +85,11 @@ const CreativeTable = ({ creatives }: { creatives: CreativeData[] }) => {
                 {/* Sticky Preview Column */}
                 <TableCell
                   key={`URL-${creative.Unique_ID}`}
-                  className="sticky left-0 bg-background z-10 min-w-[100px] max-w-[250px] h-12 px-4 overflow-x-auto text-ellipsis border-l"
+                  className="sticky left-0 bg-mainbackground z-10 min-w-[100px] max-w-[250px] h-12 px-4 overflow-x-auto text-ellipsis border-l"
                 >
                   <Dialog>
                     <DialogTrigger asChild>
-                      <div className="w-[180px] h-18 bg-muted/50 cursor-pointer ">
+                      <div className="w-[180px] h-18  cursor-pointer ">
                         <img
                           src={creative["URL"] as string}
                           alt="Creative Preview"
@@ -154,7 +153,6 @@ const CreativeTable = ({ creatives }: { creatives: CreativeData[] }) => {
           </TableBody>
         </Table>
       </div>
-    </div>
   );
 };
 

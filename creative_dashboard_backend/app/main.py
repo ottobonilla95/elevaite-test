@@ -58,6 +58,10 @@ except pd.errors.EmptyDataError as e:
 except Exception as e:
     print(f"Unexpected error loading campaign CSV: {e}")
     campaign_df = pd.DataFrame()  # empty dataframe as fallback
+    
+@app.get("api/hc")
+async def hc():
+    return {"status":"LIVE"}
 
 @app.get("/api/adsurface_brand_pairs")
 async def get_adsurface_brand_pairs():

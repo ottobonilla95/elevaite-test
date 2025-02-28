@@ -26,15 +26,14 @@ const CampaignTable = ({ performanceData }: { performanceData: CampaignPerforman
   };
 
   return (
-    <div className="rounded-md border h-[350px]">
-      <div className="flex overflow-x-auto h-full">
+      <div className="rounded-md border flex h-full shadow-[inset_-10px_0_12px_-8px_rgba(0,0,0,0.1)]">
         <Table className="min-w-[800px]">
           <TableHeader className="sticky top-0 bg-background z-20">
             <TableRow>
               {metrics.map((metric) => (
                 <TableHead
                   key={metric.key}
-                  className={`min-w-[150px] max-w-[200px] p-8 whitespace-nowrap border-l `}
+                  className={`min-w-[150px] max-w-[200px] p-4 whitespace-nowrap border-l `}
                   title={metric.label} 
                 >
                   {metric.label}
@@ -95,7 +94,6 @@ const CampaignTable = ({ performanceData }: { performanceData: CampaignPerforman
           </TableBody>
         </Table>
       </div>
-    </div>
   );
 };
 

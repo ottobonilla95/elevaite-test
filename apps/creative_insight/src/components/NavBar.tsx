@@ -14,9 +14,9 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="flex justify-between items-center text-foreground pt-4 m-2">
+    <nav className="flex justify-between items-center text-foreground bg-mainbackground mb-8 shadow-sm">
       {/* Left Section */}
-      <div className="flex items-center ml-4 p-4 mb-4 ">
+      <div className="flex items-center ml-6 p-2 ">
       {/* <ElevaiteIcons.SVGFilter/> */}
       <img
           src={isDarkMode ? '/ElevAIte_dark.svg' : '/ElevAIte.svg'}

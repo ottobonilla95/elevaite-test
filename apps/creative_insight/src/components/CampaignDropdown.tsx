@@ -11,7 +11,8 @@ import {
     campaigns: string[];
     selectedCampaign: string;
     setSelectedCampaign: (value: string) => void;
-    selectedBrand: string; // added selectedBrand to props
+    selectedBrand: string;
+    selectedAdSurface: string;
   }
   
   const CampaignDropdown = ({
@@ -19,6 +20,7 @@ import {
     selectedCampaign,
     setSelectedCampaign,
     selectedBrand,
+    selectedAdSurface,
   }: CampaignDropdownProps) => {
     return (
       <div className="space-y-2">
@@ -28,7 +30,7 @@ import {
 
       <Select
         onValueChange={setSelectedCampaign}
-        disabled={!selectedBrand} // disabled if no brand is selected
+        disabled={!selectedAdSurface} // disabled if no brand is selected
       >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Select a Campaign" />
