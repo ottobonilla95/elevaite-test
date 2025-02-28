@@ -68,113 +68,312 @@ def get_cloudwatch_logs(job_name: str, start_time=None, end_time=None) -> list:
 
 
 def monitor_pipeline(
-    execution_arn: str, poll_interval: int = 30, summarize: bool = False
+    execution_arn: str,
+    poll_interval: int = 30,
+    summarize: bool = False,
+    is_bedrock: bool = False,
 ):
     """
-    Monitor a SageMaker pipeline execution until completion.
+    Monitor a pipeline execution until completion.
 
-    If summarize is False (default), detailed information is printed to stdout.
-    If summarize is True, key summary information is accumulated and returned as a dict.
+    For SageMaker pipelines (is_bedrock=False), it uses SageMaker API calls to monitor detailed step status.
+    For Bedrock (Step Functions) pipelines (is_bedrock=True), it uses Step Functions API to monitor detailed step-by-step events.
+
+    This implementation for Bedrock pipelines processes the full execution history on every poll and updates step details
+    based on TaskStateEntered, TaskStateExited, and failure events (TaskFailed, TaskTimedOut, TaskAborted) by matching events via timestamps.
+    Additionally, if the overall execution fails and a step remains in 'InProgress', it is marked as 'Failed'
+    using overall execution error details if available.
 
     Args:
         execution_arn: The ARN of the pipeline execution.
         poll_interval: Time in seconds between status checks (default: 30).
-        summarize: Whether to accumulate a structured summary instead of printing details.
+        summarize: If True, accumulate a structured summary instead of printing details.
+        is_bedrock: If True, use Step Functions (Bedrock) monitoring logic.
 
     Returns:
         If summarize is False: The final pipeline execution status as a string.
         If summarize is True: A dictionary containing the pipeline execution summary.
     """
-    client = boto3.client("sagemaker")
+    if is_bedrock:
+        client = boto3.client("stepfunctions")
+        terminal_statuses = ["SUCCEEDED", "FAILED", "TIMED_OUT", "ABORTED"]
+        if summarize:
+            summary = {
+                "execution_arn": execution_arn,
+                "poll_interval": poll_interval,
+                "current_status": None,
+                "final_status": None,
+                "steps": {},
+            }
+        else:
+            print(f"Monitoring Bedrock (Step Functions) execution: {execution_arn}")
 
-    if summarize:
-        summary = {
-            "execution_arn": execution_arn,
-            "poll_interval": poll_interval,
-            "current_status": None,
-            "final_status": None,
-            "steps": {},
-        }
-    else:
-        print(f"Monitoring pipeline execution: {execution_arn}")
+        # Dictionary to hold step details keyed by step name.
+        steps = {}
+        # Mapping from TaskStateEntered event id to step name.
+        state_map = {}
+        # Set to track steps that have had their failure logs processed.
+        failed_steps_processed = set()
 
-    # Track steps we've seen fail to avoid duplicate log processing
-    failed_steps_processed = set()
+        while True:
+            # Get overall execution status.
+            exec_response = client.describe_execution(executionArn=execution_arn)
+            status = exec_response.get("status")
+            if summarize:
+                summary["current_status"] = status
+            else:
+                print(f"\nCurrent execution status: {status}")
 
-    while True:
-        response = client.describe_pipeline_execution(
-            PipelineExecutionArn=execution_arn
-        )
-        status = response.get("PipelineExecutionStatus")
+            # Retrieve full execution history with pagination.
+            events = []
+            next_token = None
+            while True:
+                kwargs = {
+                    "executionArn": execution_arn,
+                    "maxResults": 100,
+                    "reverseOrder": False,
+                }
+                if next_token:
+                    kwargs["nextToken"] = next_token
+                history_response = client.get_execution_history(**kwargs)
+                events.extend(history_response.get("events", []))
+                next_token = history_response.get("nextToken")
+                if not next_token:
+                    break
+
+            # Process events in chronological order.
+            for event in events:
+                event_type = event.get("type")
+                event_time = event.get("timestamp")
+
+                # Process TaskStateEntered: record step details.
+                if event_type == "TaskStateEntered":
+                    details = event.get("stateEnteredEventDetails", {})
+                    step_name = details.get("name")
+                    if step_name:
+                        state_map[event.get("id")] = step_name
+                        if step_name not in steps:
+                            steps[step_name] = {
+                                "step_name": step_name,
+                                "status": "InProgress",
+                                "entered_time": (
+                                    event_time.isoformat() if event_time else None
+                                ),
+                            }
+                            if details.get("input"):
+                                steps[step_name]["input"] = details.get("input")
+                        else:
+                            steps[step_name]["entered_time"] = (
+                                event_time.isoformat()
+                                if event_time
+                                else steps[step_name].get("entered_time")
+                            )
+
+                # Process successful completion via TaskStateExited.
+                elif event_type == "TaskStateExited":
+                    details = event.get("stateExitedEventDetails", {})
+                    step_name = details.get("name")
+                    if step_name and step_name in steps:
+                        steps[step_name]["status"] = "Succeeded"
+                        steps[step_name]["exited_time"] = (
+                            event_time.isoformat() if event_time else None
+                        )
+                        if details.get("output"):
+                            steps[step_name]["output"] = details.get("output")
+
+                # Process failure events.
+                elif event_type in ["TaskFailed", "TaskTimedOut", "TaskAborted"]:
+                    prev_event_id = event.get("previousEventId")
+                    step_name = state_map.get(prev_event_id)
+
+                    # Fallback: if mapping failed, search for an InProgress step with entered_time before this event.
+                    if not step_name:
+                        candidate = None
+                        candidate_time = None
+                        for s_name, details in steps.items():
+                            if details.get("status") == "InProgress" and details.get(
+                                "entered_time"
+                            ):
+                                try:
+                                    entered_time = datetime.fromisoformat(
+                                        details["entered_time"].replace("Z", "+00:00")
+                                    )
+                                except Exception:
+                                    continue
+                                if event_time and entered_time < event_time:
+                                    if candidate is None or (
+                                        entered_time
+                                        and candidate_time
+                                        and entered_time > candidate_time
+                                    ):
+                                        candidate = s_name
+                                        candidate_time = entered_time
+                        step_name = candidate
+
+                    if step_name and step_name in steps:
+                        details = (
+                            event.get("taskFailedEventDetails")
+                            or event.get("taskTimedOutEventDetails")
+                            or event.get("taskAbortedEventDetails")
+                            or {}
+                        )
+                        error = details.get("error", "No error provided")
+                        cause = details.get("cause", "No cause provided")
+                        failure_reason = f"Error: {error}; Cause: {cause}"
+                        steps[step_name]["status"] = "Failed"
+                        steps[step_name]["exited_time"] = (
+                            event_time.isoformat() if event_time else None
+                        )
+                        steps[step_name]["failure_reason"] = failure_reason
+                        if step_name not in failed_steps_processed:
+                            failed_steps_processed.add(step_name)
+                            job_name = get_processing_job_name(event)
+                            if job_name:
+                                logs = get_cloudwatch_logs(job_name)
+                                steps[step_name]["logs"] = (
+                                    logs[-50:] if logs and len(logs) > 50 else logs
+                                )
+                            else:
+                                steps[step_name]["logs"] = [
+                                    "No logs available or insufficient permissions"
+                                ]
+
+            # Fallback update: if overall status is terminal and any step remains InProgress, update with overall error details.
+            if status in terminal_statuses:
+                if status == "FAILED":
+                    overall_error = exec_response.get("error", "Unknown error")
+                    overall_cause = exec_response.get("cause", "No cause provided")
+                    overall_failure_reason = (
+                        f"Execution error: {overall_error}; Cause: {overall_cause}"
+                    )
+                    for s_name, details in steps.items():
+                        if details.get("status") == "InProgress":
+                            details["status"] = "Failed"
+                            details["failure_reason"] = overall_failure_reason
+                break
+
+            # Output step details during execution.
+            if not summarize:
+                for step_detail in steps.values():
+                    s_name = step_detail.get("step_name")
+                    s_status = step_detail.get("status")
+                    print(f"Step '{s_name}': Status: {s_status}")
+                    if s_status == "Succeeded" and "output" in step_detail:
+                        print(f"   Output: {step_detail['output']}")
+                    elif s_status == "Failed":
+                        print(f"   Failure reason: {step_detail.get('failure_reason')}")
+                        if "logs" in step_detail:
+                            print("   Logs:")
+                            for log in step_detail["logs"]:
+                                print(f"      {log}")
+
+            time.sleep(poll_interval)
 
         if summarize:
-            summary["current_status"] = status
+            summary["final_status"] = status
+            summary["steps"] = list(steps.values())
+            return summary
         else:
-            print(f"\nCurrent pipeline status: {status}")
+            print(f"\n🏁 Execution finished with status: {status}")
+            return status
 
-        steps_response = client.list_pipeline_execution_steps(
-            PipelineExecutionArn=execution_arn
-        )
+    else:
+        # SageMaker mode remains unchanged.
+        client = boto3.client("sagemaker")
+        if summarize:
+            summary = {
+                "execution_arn": execution_arn,
+                "poll_interval": poll_interval,
+                "current_status": None,
+                "final_status": None,
+                "steps": {},
+            }
+        else:
+            print(f"Monitoring pipeline execution: {execution_arn}")
 
-        for step in steps_response.get("PipelineExecutionSteps", []):
-            step_name = step.get("StepName")
-            step_status = step.get("StepStatus")
+        failed_steps_processed = set()
+
+        while True:
+            response = client.describe_pipeline_execution(
+                PipelineExecutionArn=execution_arn
+            )
+            status = response.get("PipelineExecutionStatus")
 
             if summarize:
-                step_summary = summary["steps"].get(step_name, {"step_name": step_name})
-                step_summary["status"] = step_status
-                summary["steps"][step_name] = step_summary
+                summary["current_status"] = status
             else:
-                # Display basic step information
-                status_symbol = (
-                    "✅"
-                    if step_status == "Succeeded"
-                    else "❌" if step_status == "Failed" else "⏳"
-                )
-                print(f"{status_symbol} Step '{step_name}' - Status: {step_status}")
+                print(f"\nCurrent pipeline status: {status}")
 
-            if step_status == "Failed" and step_name not in failed_steps_processed:
-                failed_steps_processed.add(step_name)
-                failure_reason = step.get("FailureReason", "No failure reason provided")
+            steps_response = client.list_pipeline_execution_steps(
+                PipelineExecutionArn=execution_arn
+            )
+
+            for step in steps_response.get("PipelineExecutionSteps", []):
+                step_name = step.get("StepName")
+                step_status = step.get("StepStatus")
 
                 if summarize:
-                    summary["steps"][step_name]["failure_reason"] = failure_reason
-                    job_name = get_processing_job_name(step)
-                    if job_name:
-                        logs = get_cloudwatch_logs(job_name)
-                        if logs:
-                            relevant_logs = logs[-50:] if len(logs) > 50 else logs
-                            summary["steps"][step_name]["logs"] = relevant_logs
-                        else:
-                            summary["steps"][step_name]["logs"] = [
-                                "No logs available or insufficient permissions"
-                            ]
+                    step_summary = summary["steps"].get(
+                        step_name, {"step_name": step_name}
+                    )
+                    step_summary["status"] = step_status
+                    summary["steps"][step_name] = step_summary
                 else:
-                    print(f"\n🔍 Detailed failure information for step '{step_name}':")
-                    print(f"Failure reason: {failure_reason}")
+                    status_symbol = (
+                        "✅"
+                        if step_status == "Succeeded"
+                        else "❌" if step_status == "Failed" else "⏳"
+                    )
+                    print(f"{status_symbol} Step '{step_name}' - Status: {step_status}")
 
-                    job_name = get_processing_job_name(step)
-                    if job_name:
-                        print(f"\n📋 CloudWatch Logs for job '{job_name}':")
-                        logs = get_cloudwatch_logs(job_name)
-                        if logs:
-                            relevant_logs = logs[-50:] if len(logs) > 50 else logs
-                            print("\nLast log entries before failure:")
-                            for log in relevant_logs:
-                                print(f"    {log}")
-                        else:
-                            print("    No logs available or insufficient permissions")
-                    print("\n" + "=" * 80 + "\n")
+                if step_status == "Failed" and step_name not in failed_steps_processed:
+                    failed_steps_processed.add(step_name)
+                    failure_reason = step.get(
+                        "FailureReason", "No failure reason provided"
+                    )
 
-        if status in ["Succeeded", "Failed", "Stopped"]:
-            break
+                    if summarize:
+                        summary["steps"][step_name]["failure_reason"] = failure_reason
+                        job_name = get_processing_job_name(step)
+                        if job_name:
+                            logs = get_cloudwatch_logs(job_name)
+                            if logs:
+                                relevant_logs = logs[-50:] if len(logs) > 50 else logs
+                                summary["steps"][step_name]["logs"] = relevant_logs
+                            else:
+                                summary["steps"][step_name]["logs"] = [
+                                    "No logs available or insufficient permissions"
+                                ]
+                    else:
+                        print(
+                            f"\n🔍 Detailed failure information for step '{step_name}':"
+                        )
+                        print(f"Failure reason: {failure_reason}")
 
-        time.sleep(poll_interval)
+                        job_name = get_processing_job_name(step)
+                        if job_name:
+                            print(f"\n📋 CloudWatch Logs for job '{job_name}':")
+                            logs = get_cloudwatch_logs(job_name)
+                            if logs:
+                                relevant_logs = logs[-50:] if len(logs) > 50 else logs
+                                print("Last log entries before failure:")
+                                for log in relevant_logs:
+                                    print(f"    {log}")
+                            else:
+                                print(
+                                    "    No logs available or insufficient permissions"
+                                )
+                        print("\n" + "=" * 80 + "\n")
 
-    if summarize:
-        summary["final_status"] = status
-        summary["steps"] = list(summary["steps"].values())
-        return summary
-    else:
-        print(f"\n🏁 Pipeline execution finished with status: {status}")
-        return status
+            if status in ["Succeeded", "Failed", "Stopped"]:
+                break
+
+            time.sleep(poll_interval)
+
+        if summarize:
+            summary["final_status"] = status
+            summary["steps"] = list(summary["steps"].values())
+            return summary
+        else:
+            print(f"\n🏁 Pipeline execution finished with status: {status}")
+            return status
