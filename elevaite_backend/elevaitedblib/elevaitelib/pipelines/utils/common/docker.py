@@ -410,15 +410,14 @@ RUN apt-get update && \
             dockerfile.write(
                 f"""
 RUN pip install --no-cache-dir --upgrade pip && \
-    for i in 1 2 3; do \
+    attempt=0; \
+    until [ $attempt -ge 3 ]; do \
         if pip install --no-cache-dir {batch_str}; then \
             break; \
-        elif [ "$i" = "3" ]; then \
-            echo "Error: Failed to install packages: {batch_str}" && exit 1; \
-        else \
-            echo "Attempt $i failed. Retrying..." && sleep 1; \
         fi; \
-    done
+        attempt=$((attempt+1)); \
+        echo "Attempt $attempt failed. Retrying..." && sleep 1; \
+    done || (echo "Error: Failed to install packages: {batch_str}" && exit 1)
 """
             )
 
