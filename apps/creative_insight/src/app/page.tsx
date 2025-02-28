@@ -194,7 +194,7 @@ export default function Home() {
       </TabsContent>
       </Tabs>
       {selectedAdSurface && selectedBrand && (
-        <div className="m-6 w-full flex justify-end">  {/* Added mt-6 for spacing */}
+        <div className="pb-4 w-full flex justify-end">  {/* Added mt-6 for spacing */}
           <Button variant="outline" className="gap-2" onClick={() => window.print()}>
             <Icons.Share/>Export
           </Button>
