@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import re
 import boto3
 from datetime import datetime
 from typing import Dict, Any, Union
@@ -17,6 +18,17 @@ REQUIRED_ENV_VARS = [
 _missing = [var for var in REQUIRED_ENV_VARS if var not in os.environ]
 if _missing:
     raise EnvironmentError(f"Missing environment variables: {', '.join(_missing)}")
+
+# Extract account ID and role name from AWS_ROLE_ARN
+role_arn = os.environ["AWS_ROLE_ARN"]
+match = re.search(r"arn:aws:iam::(\d+):role/([^/]+)", role_arn)
+
+if match:
+    account_id, role_name = match.groups()
+else:
+    raise ValueError(
+        "Invalid AWS_ROLE_ARN format. Expected: arn:aws:iam::<account_id>:role/<role_name>"
+    )
 
 boto3.setup_default_session(region_name=os.environ["AWS_REGION"])
 stepfunctions = boto3.client("stepfunctions")
@@ -37,7 +49,7 @@ def convert_to_step_functions(pipeline_def):
         dependencies = task.get("dependencies", [])
 
         if task["task_type"] == "pyscript":
-            task_resource = f"arn:aws:lambda:{os.environ['AWS_REGION']}:123456789012:function:{task_id}"
+            task_resource = f"arn:aws:lambda:{os.environ['AWS_REGION']}:{account_id}:function:{task_id}"
             parameters = {"FunctionName": task_id, "Payload.$": "$"}
         elif task["task_type"] == "jupyternotebook":
             task_resource = "arn:aws:states:::bedrock:invokeModel"
@@ -51,6 +63,9 @@ def convert_to_step_functions(pipeline_def):
             "Parameters": parameters,
             "ResultPath": f"$.{output_var}" if output_var else None,
         }
+
+        if output_var:
+            state["ResultPath"] = f"$.{output_var}"
 
         next_tasks = [
             t["id"]
@@ -89,7 +104,6 @@ def serialize_with_datetime_conversion(data):
 
 
 def deploy_pipeline(pipeline_def):
-    role_arn = os.environ["AWS_ROLE_ARN"]
     state_machine_definition = convert_to_step_functions(pipeline_def)
 
     state_machine_definition_json = json.dumps(
@@ -126,7 +140,7 @@ def run_pipeline(pipeline_def, watch: bool = True):
 
     if watch:
         summary: Union[str, Dict[str, Any]] = monitor_pipeline(
-            execution_arn, summarize=True
+            execution_arn, summarize=True, is_bedrock=True
         )
 
         if isinstance(summary, dict):
