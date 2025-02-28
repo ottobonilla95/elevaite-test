@@ -210,10 +210,11 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict, watch: bool = True)
 
         print(f"Building Docker image {image_name} from {dockerfile_path}...")
 
-        result = subprocess.run(
+        process = subprocess.Popen(
             [
                 "docker",
                 "build",
+                "--progress=plain",
                 "-t",
                 image_name,
                 "-f",
@@ -228,13 +229,20 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict, watch: bool = True)
                 f"AWS_ROLE_ARN={aws_role_arn}",
                 ".",
             ],
-            check=True,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
         )
 
-        print(f"Docker build output:\n{result.stdout}")
-        print(f"Docker build errors:\n{result.stderr}")
+        assert process.stdout is not None
+
+        for line in process.stdout:
+            print(line, end="")
+
+        process.wait()
+
+        print(f"Docker build output:\n{process.stdout}")
+        print(f"Docker build errors:\n{process.stderr}")
 
         # Push the built Docker image to ECR.
         print(f"Pushing Docker image {image_name} to ECR...")

@@ -357,44 +357,42 @@ def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfil
         if local_path:
             print(f"Found local dependency: {top_level_package} at {local_path}")
             local_dependencies.add(local_path)
+        elif top_level_package in project_dependencies or is_valid_pypi_package(
+            top_level_package
+        ):
+            print(f"Adding external dependency: {top_level_package}")
+            external_dependencies.add(top_level_package)
         else:
-            # If it's in project_dependencies, we trust that it's a valid package
-            if top_level_package in project_dependencies or is_valid_pypi_package(
-                top_level_package
-            ):
-                print(f"Adding external dependency: {top_level_package}")
-                external_dependencies.add(top_level_package)
-            else:
-                print(
-                    f"⚠️ Warning: '{top_level_package}' is neither local nor a valid PyPI package. Skipping."
-                )
+            print(
+                f"⚠️ Warning: '{top_level_package}' is neither local nor a valid PyPI package. Skipping."
+            )
 
     print(f"External dependencies to install: {external_dependencies}")
     print(f"Local dependencies to copy: {local_dependencies}")
 
-    # Create a Dockerfile with the dependencies.
+    # Create the Dockerfile
     with open(dockerfile_path, "w") as dockerfile:
-        dockerfile.write("FROM python:3.8-slim\n")
+        dockerfile.write("FROM python:3.11-slim\n")
+        dockerfile.write("ENV DEBIAN_FRONTEND=noninteractive\n")
 
         # Create required directory structure
         dockerfile.write(
             """
-RUN mkdir -p /opt/ml/processing/input && \\
-    mkdir -p /opt/ml/processing/output && \\
-    mkdir -p /opt/ml/processing/code && \\
+RUN mkdir -p /opt/ml/processing/input && \
+    mkdir -p /opt/ml/processing/output && \
+    mkdir -p /opt/ml/processing/code && \
     chmod -R 777 /opt/ml/processing
 """
         )
 
-        # Install base build tools that might be needed for some packages
+        # Install necessary build tools
         dockerfile.write(
             """
-RUN apt-get update && \\
-    apt-get install -y --no-install-recommends \\
-    build-essential \\
-    gcc \\
-    && apt-get clean \\
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 """
         )
 
@@ -406,17 +404,17 @@ RUN apt-get update && \\
                 batch_str = " ".join(batch)
                 dockerfile.write(
                     f"""
-        RUN pip install --no-cache-dir --upgrade pip && \\
-            for i in 1 2 3; do \\
-                if pip install --no-cache-dir {batch_str}; then \\
-                    break; \\
-                elif [ "$i" = "3" ]; then \\
-                    echo "Error: Failed to install packages: {batch_str}" && exit 1; \\
-                else \\
-                    echo "Attempt $i failed. Retrying..." && sleep 1; \\
-                fi; \\
-            done
-        """
+RUN pip install --no-cache-dir --upgrade pip && \
+    for i in 1 2 3; do \
+        if pip install --no-cache-dir {batch_str}; then \
+            break; \
+        elif [ "$i" = "3" ]; then \
+            echo "Error: Failed to install packages: {batch_str}" && exit 1; \
+        else \
+            echo "Attempt $i failed. Retrying..." && sleep 1; \
+        fi; \
+    done
+"""
                 )
 
         # Copy the entire project folder to the container
