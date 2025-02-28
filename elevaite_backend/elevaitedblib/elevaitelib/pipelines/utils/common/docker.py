@@ -403,14 +403,12 @@ RUN apt-get update && \
 """
         )
 
-        # Install dependencies in smaller batches with retry logic
+        # Install all external dependencies
         if external_dependencies:
             deps_list = list(external_dependencies)
-            for i in range(0, len(deps_list), 5):
-                batch = deps_list[i : i + 5]
-                batch_str = " ".join(batch)
-                dockerfile.write(
-                    f"""
+            batch_str = " ".join(deps_list)
+            dockerfile.write(
+                f"""
 RUN pip install --no-cache-dir --upgrade pip && \
     for i in 1 2 3; do \
         if pip install --no-cache-dir {batch_str}; then \
@@ -422,7 +420,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
         fi; \
     done
 """
-                )
+            )
 
         # Copy the entire project folder to the container
         project_name = os.path.basename(project_root)
