@@ -112,6 +112,8 @@ def extract_requirements_from_file(file_path: str) -> Set[str]:
             if line:
                 requirements.add(line)
 
+    if requirements:
+        print(f"Dependencies found in {file_path}: {requirements}")
     return requirements
 
 
@@ -145,6 +147,8 @@ def extract_setup_dependencies(setup_file: str) -> Set[str]:
             package = match.group(1)
             requirements.add(package)
 
+    if requirements:
+        print(f"Dependencies found in {setup_file}: {requirements}")
     return requirements
 
 
@@ -182,6 +186,9 @@ def extract_pyproject_dependencies(pyproject_file: str) -> Set[str]:
         print("Warning: toml package not installed, skipping pyproject.toml parsing")
     except Exception as e:
         print(f"Error parsing pyproject.toml: {e}")
+
+    if requirements:
+        print(f"Dependencies found in {pyproject_file}: {requirements}")
 
     return requirements
 
