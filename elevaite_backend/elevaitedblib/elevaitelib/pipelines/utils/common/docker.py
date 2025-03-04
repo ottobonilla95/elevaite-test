@@ -292,17 +292,58 @@ def find_project_root(script_path: str) -> str:
     either 'pyproject.toml', 'setup.py', or 'requirements.txt' is found.
     This directory is assumed to be the project root.
     """
+    # Define project-specific markers.
+    project_markers = {"pyproject.toml", "setup.py", "requirements.txt"}
     current_dir = os.path.dirname(os.path.abspath(script_path))
-    markers = {"pyproject.toml", "setup.py", "requirements.txt"}
+    print(f"[DEBUG] Starting search for project root from: {current_dir}")
+
+    # If the current directory itself has a marker, use it.
+    if any(
+        os.path.exists(os.path.join(current_dir, marker)) for marker in project_markers
+    ):
+        print(
+            f"[DEBUG] Found project marker in current directory: {current_dir}. Stopping search."
+        )
+        return current_dir
+
+    candidate = None
     while True:
-        if any(os.path.exists(os.path.join(current_dir, marker)) for marker in markers):
-            return current_dir
         parent_dir = os.path.dirname(current_dir)
         if parent_dir == current_dir:
-            # Reached the filesystem root without finding any markers.
-            # As a fallback, just use the script's directory
-            return os.path.dirname(os.path.abspath(script_path))
+            print(
+                "[DEBUG] Reached filesystem root without finding any project marker. Using current directory."
+            )
+            break
+
+        print(f"[DEBUG] Checking parent directory: {parent_dir}")
+        # Check if a project marker exists in the parent directory.
+        if any(
+            os.path.exists(os.path.join(parent_dir, marker))
+            for marker in project_markers
+        ):
+            candidate = parent_dir
+            print(f"[DEBUG] Found project marker in directory: {parent_dir}")
+            # Check for a global marker (.git) in the parent's parent.
+            grandparent = os.path.dirname(parent_dir)
+            if os.path.exists(os.path.join(grandparent, ".git")):
+                print(
+                    f"[DEBUG] Global marker (.git) found in grandparent: {grandparent}. Stopping at {parent_dir}"
+                )
+                break
+            else:
+                print(
+                    f"[DEBUG] No global marker in grandparent: {grandparent}. Stopping search at {parent_dir}"
+                )
+                break
         current_dir = parent_dir
+
+    project_root = (
+        candidate
+        if candidate is not None
+        else os.path.dirname(os.path.abspath(script_path))
+    )
+    print(f"[DEBUG] Project root determined as: {project_root}")
+    return project_root
 
 
 def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfile"):
