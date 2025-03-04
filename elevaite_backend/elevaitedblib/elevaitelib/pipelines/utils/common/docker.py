@@ -450,16 +450,17 @@ RUN apt-get update && \
             batch_str = " ".join(deps_list)
             dockerfile.write(
                 f"""
-RUN pip install --no-cache-dir --upgrade pip && \
-    attempt=0; \
-    until [ $attempt -ge 3 ]; do \
-        if pip install --no-cache-dir {batch_str}; then \
-            break; \
-        fi; \
-        attempt=$((attempt+1)); \
-        echo "Attempt $attempt failed. Retrying..." && sleep 1; \
-    done || (echo "Error: Failed to install packages: {batch_str}" && exit 1)
-"""
+        RUN mkdir -p /tmp/pipelines_pip_cache && \
+            pip install --upgrade pip && \
+            attempt=0; \
+            until [ $attempt -ge 3 ]; do \
+                if pip install --cache-dir /tmp/pipelines_pip_cache {batch_str}; then \
+                    break; \
+                fi; \
+                attempt=$((attempt+1)); \
+                echo "Attempt $attempt failed. Retrying..." && sleep 1; \
+            done || (echo "Error: Failed to install packages: {batch_str}" && exit 1)
+        """
             )
 
         # Copy the entire project folder to the container
