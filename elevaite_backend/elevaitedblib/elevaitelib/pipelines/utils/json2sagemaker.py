@@ -4,6 +4,8 @@ import sys
 import subprocess
 import time
 import boto3
+from botocore.config import Config
+from sagemaker.session import Session
 from sagemaker.workflow.pipeline import Pipeline
 from sagemaker.workflow.steps import ProcessingStep
 
@@ -14,6 +16,7 @@ from elevaitelib.pipelines.utils.common.docker import (
     remove_docker_image,
     shutdown_processors,
 )
+
 
 REQUIRED_ENV_VARS = [
     "AWS_ACCESS_KEY_ID",
@@ -28,6 +31,18 @@ if _missing:
     raise EnvironmentError(f"Missing environment variables: {', '.join(_missing)}")
 
 boto3.setup_default_session(region_name=os.environ["AWS_REGION"])
+
+
+sagemaker_client = boto3.client(
+    "sagemaker",
+    config=Config(retries={"max_attempts": 5}, connect_timeout=240, read_timeout=240),
+    region_name=os.environ["AWS_REGION"],
+)
+
+sagemaker_session = Session(
+    boto_session=boto3.Session(region_name=os.environ["AWS_REGION"]),
+    sagemaker_client=sagemaker_client,
+)
 
 
 def load_pipeline_definition(json_file: str) -> dict:
@@ -142,7 +157,7 @@ def create_pipeline(
         except Exception as e:
             print("Warning: Could not configure custom job prefixing. Error:", e)
 
-    return Pipeline(**pipeline_args)
+    return Pipeline(**pipeline_args, sagemaker_session=sagemaker_session)
 
 
 def upsert_pipeline(pipeline: Pipeline) -> dict:
