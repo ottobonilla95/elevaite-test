@@ -347,8 +347,7 @@ def find_project_root(script_path: str) -> str:
 
 
 def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfile"):
-    """Dynamically create a Dockerfile based on the pipeline definition with improved dependency handling."""
-    script_dependencies = set()
+    """Dynamically create a Dockerfile based on the pipeline definition with `uv` and `python-dotenv` installed via pipx."""
 
     if not pipeline_def.get("tasks"):
         raise ValueError("Pipeline definition must have tasks with 'src' paths")
@@ -358,110 +357,43 @@ def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfil
     project_root = find_project_root(first_task_src)
     print(f"Project root identified as: {project_root}")
 
-    # First get dependencies from project files
-    project_dependencies = get_project_dependencies(project_root)
-    print(f"Dependencies from project files: {project_dependencies}")
-
-    # Then inspect each task in the pipeline definition and gather additional dependencies
-    for task in pipeline_def["tasks"]:
-        if task["task_type"] == "pyscript":
-            script_path = task["src"]
-            if os.path.exists(script_path):
-                task_deps = get_python_dependencies(script_path, project_root)
-                script_dependencies.update(task_deps)
-
-    print(f"Additional dependencies from scripts: {script_dependencies}")
-
-    # Combine all dependencies
-    all_dependencies = project_dependencies.union(script_dependencies)
-
-    # Initialize sets for external and local dependencies
-    local_dependencies = set()
-    external_dependencies = set()
-
-    # Always include python-dotenv
-    external_dependencies.add("python-dotenv")
-
-    # Process dependencies
-    for dep in all_dependencies:
-        # Extract the top-level package name
-        top_level_package = dep.split(".")[0]
-
-        # Check if this is a known mapped import
-        if top_level_package in IMPORT_TO_PACKAGE_MAP:
-            print(
-                f"Found mapped dependency: {top_level_package} -> {IMPORT_TO_PACKAGE_MAP[top_level_package]}"
-            )
-            external_dependencies.add(IMPORT_TO_PACKAGE_MAP[top_level_package])
-            continue
-
-        # Skip standard library modules
-        if top_level_package in standard_modules:
-            print(f"Skipping standard library module: {top_level_package}")
-            continue
-
-        # Try to find it locally
-        local_path = find_local_dependency(top_level_package, project_root)
-        if local_path:
-            print(f"Found local dependency: {top_level_package} at {local_path}")
-            local_dependencies.add(local_path)
-        elif top_level_package in project_dependencies or is_valid_pypi_package(
-            top_level_package
-        ):
-            print(f"Adding external dependency: {top_level_package}")
-            external_dependencies.add(top_level_package)
-        else:
-            print(
-                f"⚠️ Warning: '{top_level_package}' is neither local nor a valid PyPI package. Skipping."
-            )
-
-    print(f"External dependencies to install: {external_dependencies}")
-    print(f"Local dependencies to copy: {local_dependencies}")
-
     # Create the Dockerfile
     with open(dockerfile_path, "w") as dockerfile:
         dockerfile.write("FROM python:3.11-slim\n")
         dockerfile.write("ENV DEBIAN_FRONTEND=noninteractive\n")
 
-        # Create required directory structure
-        dockerfile.write(
-            """
-RUN mkdir -p /opt/ml/processing/input && \
-    mkdir -p /opt/ml/processing/output && \
-    mkdir -p /opt/ml/processing/code && \
-    chmod -R 777 /opt/ml/processing
-"""
-        )
-
-        # Install necessary build tools
+        # Install dependencies
         dockerfile.write(
             """
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    python3-pip \
+    pipx \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && pipx ensurepath
 """
         )
 
-        # Install all external dependencies
-        if external_dependencies:
-            deps_list = list(external_dependencies)
-            batch_str = " ".join(deps_list)
-            dockerfile.write(
-                f"""
-        RUN mkdir -p /tmp/pipelines_pip_cache && \
-            pip install --upgrade pip && \
-            attempt=0; \
-            until [ $attempt -ge 3 ]; do \
-                if pip install --cache-dir /tmp/pipelines_pip_cache {batch_str}; then \
-                    break; \
-                fi; \
-                attempt=$((attempt+1)); \
-                echo "Attempt $attempt failed. Retrying..." && sleep 1; \
-            done || (echo "Error: Failed to install packages: {batch_str}" && exit 1)
-        """
-            )
+        dockerfile.write(
+            """
+ENV PATH=/root/.local/bin:$PATH
+"""
+        )
+
+        # Install python-dotenv via pip because sagemaker refuses to pick it up otherwise
+        dockerfile.write(
+            """
+RUN pip install python-dotenv
+"""
+        )
+
+        dockerfile.write(
+            """
+RUN pipx install uv
+"""
+        )
 
         # Copy the entire project folder to the container
         project_name = os.path.basename(project_root)
@@ -469,27 +401,169 @@ RUN apt-get update && \
             f"COPY {project_name} /opt/ml/processing/code/{project_name}\n"
         )
 
-        # Copy local dependencies if they're outside the project folder
-        for local_dep in local_dependencies:
-            if project_root not in local_dep or not local_dep.startswith(project_root):
-                relative_local_dep = os.path.relpath(
-                    local_dep, os.path.dirname(project_root)
-                )
-                dest_path = os.path.join(
-                    "/opt/ml/processing/code", os.path.basename(local_dep)
-                )
-                dockerfile.write(f"COPY {relative_local_dep} {dest_path}\n")
-
         # Set the working directory
         dockerfile.write("WORKDIR /opt/ml/processing/code\n")
 
         # Add the processing/code directory to PYTHONPATH
         dockerfile.write("ENV PYTHONPATH=/opt/ml/processing/code:$PYTHONPATH\n")
 
-        # Default command for the container
-        dockerfile.write('CMD ["python", "${ENTRY_POINT}"]\n')
+        cmd_parts = []
+        for task in pipeline_def["tasks"]:
+            if task["task_type"] == "pyscript":
+                script_path = task["src"]
+                cmd_parts.append(f"uv sync && uv run ./{script_path}")
+
+        if cmd_parts:
+            full_cmd = " && ".join(cmd_parts)
+            dockerfile.write(f'CMD ["sh", "-c", "{full_cmd}"]\n')
 
     print(f"Dockerfile created at {dockerfile_path}")
+
+
+# def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfile"):
+#     """Dynamically create a Dockerfile based on the pipeline definition."""
+#     script_dependencies = set()
+
+#     if not pipeline_def.get("tasks"):
+#         raise ValueError("Pipeline definition must have tasks with 'src' paths")
+
+#     # Derive the project root from the first task's source file
+#     first_task_src = pipeline_def["tasks"][0]["src"]
+#     project_root = find_project_root(first_task_src)
+#     print(f"Project root identified as: {project_root}")
+
+#     # First get dependencies from project files
+#     project_dependencies = get_project_dependencies(project_root)
+#     print(f"Dependencies from project files: {project_dependencies}")
+
+#     # Then inspect each task in the pipeline definition and gather additional dependencies
+#     for task in pipeline_def["tasks"]:
+#         if task["task_type"] == "pyscript":
+#             script_path = task["src"]
+#             if os.path.exists(script_path):
+#                 task_deps = get_python_dependencies(script_path, project_root)
+#                 script_dependencies.update(task_deps)
+
+#     print(f"Additional dependencies from scripts: {script_dependencies}")
+
+#     # Combine all dependencies
+#     all_dependencies = project_dependencies.union(script_dependencies)
+
+#     # Initialize sets for external and local dependencies
+#     local_dependencies = set()
+#     external_dependencies = set()
+
+#     # Always include python-dotenv
+#     external_dependencies.add("python-dotenv")
+
+#     # Process dependencies
+#     for dep in all_dependencies:
+#         # Extract the top-level package name
+#         top_level_package = dep.split(".")[0]
+
+#         # Check if this is a known mapped import
+#         if top_level_package in IMPORT_TO_PACKAGE_MAP:
+#             print(
+#                 f"Found mapped dependency: {top_level_package} -> {IMPORT_TO_PACKAGE_MAP[top_level_package]}"
+#             )
+#             external_dependencies.add(IMPORT_TO_PACKAGE_MAP[top_level_package])
+#             continue
+
+#         # Skip standard library modules
+#         if top_level_package in standard_modules:
+#             print(f"Skipping standard library module: {top_level_package}")
+#             continue
+
+#         # Try to find it locally
+#         local_path = find_local_dependency(top_level_package, project_root)
+#         if local_path:
+#             print(f"Found local dependency: {top_level_package} at {local_path}")
+#             local_dependencies.add(local_path)
+#         elif top_level_package in project_dependencies or is_valid_pypi_package(
+#             top_level_package
+#         ):
+#             print(f"Adding external dependency: {top_level_package}")
+#             external_dependencies.add(top_level_package)
+#         else:
+#             print(
+#                 f"⚠️ Warning: '{top_level_package}' is neither local nor a valid PyPI package. Skipping."
+#             )
+
+#     print(f"External dependencies to install: {external_dependencies}")
+#     print(f"Local dependencies to copy: {local_dependencies}")
+
+#     # Create the Dockerfile
+#     with open(dockerfile_path, "w") as dockerfile:
+#         dockerfile.write("FROM python:3.11-slim\n")
+#         dockerfile.write("ENV DEBIAN_FRONTEND=noninteractive\n")
+
+#         # Create required directory structure
+#         dockerfile.write(
+#             """
+# RUN mkdir -p /opt/ml/processing/input && \
+#     mkdir -p /opt/ml/processing/output && \
+#     mkdir -p /opt/ml/processing/code && \
+#     chmod -R 777 /opt/ml/processing
+# """
+#         )
+
+#         # Install necessary build tools
+#         dockerfile.write(
+#             """
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends \
+#     build-essential \
+#     gcc \
+#     && apt-get clean && rm -rf /var/lib/apt/lists/*
+# """
+#         )
+
+#         # Install all external dependencies
+#         if external_dependencies:
+#             deps_list = list(external_dependencies)
+#             batch_str = " ".join(deps_list)
+#             dockerfile.write(
+#                 f"""
+#         RUN mkdir -p /tmp/pipelines_pip_cache && \
+#             pip install --upgrade pip && \
+#             attempt=0; \
+#             until [ $attempt -ge 3 ]; do \
+#                 if pip install --cache-dir /tmp/pipelines_pip_cache {batch_str}; then \
+#                     break; \
+#                 fi; \
+#                 attempt=$((attempt+1)); \
+#                 echo "Attempt $attempt failed. Retrying..." && sleep 1; \
+#             done || (echo "Error: Failed to install packages: {batch_str}" && exit 1)
+#         """
+#             )
+
+#         # Copy the entire project folder to the container
+#         project_name = os.path.basename(project_root)
+#         dockerfile.write(
+#             f"COPY {project_name} /opt/ml/processing/code/{project_name}\n"
+#         )
+
+#         # Copy local dependencies if they're outside the project folder
+#         for local_dep in local_dependencies:
+#             if project_root not in local_dep or not local_dep.startswith(project_root):
+#                 relative_local_dep = os.path.relpath(
+#                     local_dep, os.path.dirname(project_root)
+#                 )
+#                 dest_path = os.path.join(
+#                     "/opt/ml/processing/code", os.path.basename(local_dep)
+#                 )
+#                 dockerfile.write(f"COPY {relative_local_dep} {dest_path}\n")
+
+#         # Set the working directory
+#         dockerfile.write("WORKDIR /opt/ml/processing/code\n")
+
+#         # Add the processing/code directory to PYTHONPATH
+#         dockerfile.write("ENV PYTHONPATH=/opt/ml/processing/code:$PYTHONPATH\n")
+
+#         # Default command for the container
+#         dockerfile.write('CMD ["python", "${ENTRY_POINT}"]\n')
+
+#     print(f"Dockerfile created at {dockerfile_path}")
 
 
 def remove_docker_image(image_name: str):

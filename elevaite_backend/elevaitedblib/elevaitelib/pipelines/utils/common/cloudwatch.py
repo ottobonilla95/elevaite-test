@@ -134,11 +134,6 @@ def monitor_pipeline(
     For SageMaker pipelines (is_bedrock=False), it uses SageMaker API calls to monitor detailed step status.
     For Bedrock (Step Functions) pipelines (is_bedrock=True), it uses Step Functions API to monitor detailed step-by-step events.
 
-    This implementation for Bedrock pipelines processes the full execution history on every poll and updates step details
-    based on TaskStateEntered, TaskStateExited, and failure events (TaskFailed, TaskTimedOut, TaskAborted) by matching events via timestamps.
-    Additionally, if the overall execution fails and a step remains in 'InProgress', it is marked as 'Failed'
-    using overall execution error details if available.
-
     Args:
         execution_arn: The ARN of the pipeline execution.
         poll_interval: Time in seconds between status checks (default: 30).
