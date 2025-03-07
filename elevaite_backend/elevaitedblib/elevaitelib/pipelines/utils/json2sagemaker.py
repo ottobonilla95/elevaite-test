@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import subprocess
+import time
 import boto3
 from sagemaker.workflow.pipeline import Pipeline
 from sagemaker.workflow.steps import ProcessingStep
@@ -145,17 +146,19 @@ def create_pipeline(
 
 
 def upsert_pipeline(pipeline: Pipeline) -> dict:
-    """
-    Upsert the given pipeline to SageMaker.
-
-    Args:
-        pipeline: The Pipeline object to upsert.
-
-    Returns:
-        The upsert response dictionary.
-    """
+    """Upsert the given pipeline to SageMaker."""
     role = os.environ["AWS_ROLE_ARN"]
-    return pipeline.upsert(role_arn=role)
+
+    print("Starting pipeline upsert...")
+    start_time = time.time()
+
+    try:
+        response = pipeline.upsert(role_arn=role)
+        print(f"Pipeline upsert completed in {time.time() - start_time:.2f} seconds")
+        return response
+    except Exception as e:
+        print(f"Error during pipeline upsert: {e}")
+        raise
 
 
 def start_pipeline(pipeline: Pipeline, parameters: dict = {}):
@@ -242,7 +245,8 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict, watch: bool = True)
         process.wait()
 
         print(f"Docker build output:\n{process.stdout}")
-        print(f"Docker build errors:\n{process.stderr}")
+        if process.stderr:
+            print(f"Docker build errors:\n{process.stderr}")
 
         # Push the built Docker image to ECR.
         print(f"Pushing Docker image {image_name} to ECR...")
@@ -253,7 +257,8 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict, watch: bool = True)
             text=True,
         )
         print(f"Docker push output:\n{push_result.stdout}")
-        print(f"Docker push errors:\n{push_result.stderr}")
+        if push_result.stderr:
+            print(f"Docker push errors:\n{push_result.stderr}")
 
         # Use the pushed image in the SageMaker pipeline.
         pipeline = create_pipeline(
