@@ -1,0 +1,44 @@
+$mainGap: 20px;
+
+.chatbot-layout-container {
+    height: 100vh;
+    width: 100vw;
+    background-color: var(--ev-colors-background);
+    
+    display: grid;
+    grid-template-areas:
+        "nav nav"
+        "chat chat";
+    grid-template-rows: 55px 1fr;
+    grid-template-columns: 280px 1fr;
+    gap: $mainGap;
+    padding: 0 $mainGap $mainGap;
+    
+    /* Fix 1: Allow container to scroll when content overflows */
+    overflow: auto;
+    
+    & > .navbar-container {
+        grid-area: nav;
+        margin-left: -$mainGap;
+    }
+    
+    & > .session-bar-container {
+        grid-area: side;
+    } 
+    
+    & > .chatbot-main-container {
+        grid-area: chat;
+        /* Fix 2: Make the main content area scrollable */
+        overflow-y: auto;
+        /* Fix 3: Allow content to be full height */
+        min-height: 0;
+    }
+}
+
+/* Fix 4: Ensure the body and html elements don't prevent scrolling */
+html, body {
+    overflow: auto;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
