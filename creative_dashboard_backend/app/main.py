@@ -43,6 +43,7 @@ origins = [
     "http://localhost:3000",
     "https://elevaite-creative-insight.iopex.ai",
     "http://elevaite-creative-insight.iopex.ai",
+    "https://elevaite-assist.iopex.ai"
 ]
 
 # Add CORS middleware
