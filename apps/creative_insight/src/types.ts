@@ -39,6 +39,8 @@ export interface CreativeData {
   
 export interface CampaignPerformance {
   Campaign_Name: string;
+  Start_Date:string;
+  End_Date:string;
   Booked_Impressions: number;
   Clickable_Impressions: number;
   Clicks: number;
@@ -47,6 +49,7 @@ export interface CampaignPerformance {
   ECPM:number;
   Budget:number;
   Insights:string;
+  Scheduled_Events:string;
 }
 
 export interface CampaignData {

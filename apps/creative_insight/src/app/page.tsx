@@ -14,8 +14,9 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../compone
 import { Icons } from '../components/ui/icons';
 import ChatComponent from "../components/ChatComponent";
 
-const API_BASE_URL  = "http://localhost:8000/api";
-const CREATIVE_BASE_URL  = "http://localhost:8080/static/images/";
+
+const API_BASE_URL  = process.env.NEXT_PUBLIC_API_BASE_URL||"http://localhost:8000/api";
+const CREATIVE_BASE_URL  = process.env.NEXT_PUBLIC_CREATIVE_BASE_URL||"http://localhost:8080/static/images/";
 
 // const API_BASE_URL = "http://localhost:8000/api";
 
@@ -68,6 +69,7 @@ export default function Home() {
             `${API_BASE_URL}/campaign_data?ad_surface=${selectedAdSurface}&brand=${selectedBrand}`
           );
           const json = await response.json();
+          console.log("THE JSON IS:",json);
           console.log("The Environment APIs are : ",API_BASE_URL,CREATIVE_BASE_URL);
           console.log("Received Payload:",json.campaign_data, json.creative_data);
           const campaignPerformance = json.campaign_data.map((item: any) => ({
@@ -79,7 +81,10 @@ export default function Home() {
             Duration: Number(item.Duration),
             Budget: Number(item.Budget),
             ECPM: Number(item.ECPM),
+            Start_Date: item.Start_Date,
+            End_Date: item.End_Date,
             Insights: item.insights,
+            Scheduled_Events: item.Scheduled_Events,
           }));
 
           const creativeData = json.creative_data.map((item: any) => ({

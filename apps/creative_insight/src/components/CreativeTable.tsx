@@ -17,11 +17,18 @@ const getFileType = (File_Name: string) => {
 
 const CreativeTable = ({ creatives }: { creatives: CreativeData[] }) => {
   if (!creatives?.length) return <div className="text-muted-foreground">No creatives available</div>;
-
+  console.log("Received the creative Object:",creatives);
   const attributes = [
     {label: "Preview", key: "URL", type: "image" },
-    {label: "Creative ID", key: "Unique_ID", type: "text" },
+    {label: "Creative ID", key: "creative_id", type: "text" },
     { label: "Campaign Name", key: "Campaign_Name", type: "text" },
+    {label: "Start Date", key: "Start_Date", type: "numeric" },
+    {label: "End Date", key: "End_Date", type: "numeric" },
+    {label: "Scheduled Events", key: "Scheduled_Events", type: "text" },
+    { label: "Delivered Trips", key: "Delivered_Trips", type: "numeric" },
+    { label: "Clicks", key: "Clicks", type: "numeric" },
+    { label: "CTR", key: "CTR", type: "numeric" },
+    { label: "Summary", key: "creative_insight", type: "text" },
     { label: "Letters", key: "No_of_Letters", type: "numeric" },
     { label: "Words", key: "No_of_Words", type: "numeric" },
     { label: "Logo (Y/N)", key: "Brand_Logo_Present", type: "text" },
@@ -37,25 +44,35 @@ const CreativeTable = ({ creatives }: { creatives: CreativeData[] }) => {
     { label: "Product Description Text", key: "Is_Product_Description_In_Text", type: "text" },
     { label: "Background Colors", key: "Colors_Background", type: "text" },
     { label: "Length of Ad(Video)", key: "Creative_Video_Length", type: "numeric" },
-    { label: "Classification", key: "Creative_classification", type: "text" },
+    // { label: "Classification", key: "Creative_classification", type: "text" },
     { label: "Landscape", key: "Landscape", type: "text" },
     { label: "Person", key: "Person", type: "text" },
     { label: "Animal", key: "Animal", type: "text" },
-    { label: "Clickable Impressions", key: "Clickable_Impressions", type: "numeric" },
-    { label: "Delivered Trips", key: "Delivered_Trips", type: "numeric" },
-    { label: "CTR", key: "CTR", type: "numeric" },
   ];
 
-  const getDisplayValue = (value: any) => {
+
+  const getDisplayValue = (value: any, key: string) => {
     if (value == null || value === '') return '-';
+    if (key === "CTR") {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        return (numValue * 100).toFixed(2) + '%';
+      }
+    }
     return value;
   };
-
-  const getColumnClass = (type: string) => {
-    if (type === "numeric") {
-      return "min-w-[100px] max-w-[150px]";
+  
+  const getColumnClass = (type: string,key: string) => {
+    if (key === "creative_insight") {
+      return "min-w-[400px] max-w-[600px]  whitespace-pre-line text-left text-xs truncate text-ellipsis "; 
     }
-    return "min-w-[200px] max-w-[300px]";
+    else if (key === "Start_Date" || key === "End_Date") {
+      return "min-w-[130px] max-w-[200px] truncate";
+    }
+    if (type === "numeric") {
+      return "min-w-[100px] max-w-[150px] truncate";
+    }
+    return "min-w-[200px] max-w-[300px] truncate";
   };
 
   return (
@@ -63,13 +80,13 @@ const CreativeTable = ({ creatives }: { creatives: CreativeData[] }) => {
         <Table className="min-w-[800px] ">
           <TableHeader className="sticky top-0 bg-thbackground z-20 ">
             <TableRow>
-              <TableHead className="sticky left-0 bg-thbackground z-30 min-w-[100px] max-w-[250px] truncate ">
+              <TableHead className="sticky left-0 bg-thbackground z-30 min-w-[100px] max-w-[250px] p-4 ">
                 Preview
               </TableHead>
               {attributes.slice(1).map((attr) => (
                 <TableHead
                   key={attr.label}
-                  className={`${getColumnClass(attr.type)} truncate p-4 border-l`}
+                  className={`${getColumnClass(attr.type,attr.key)}  p-4 border-l`}
                   title={attr.label}
                 >
                   {attr.label}
@@ -130,21 +147,21 @@ const CreativeTable = ({ creatives }: { creatives: CreativeData[] }) => {
                 {attributes.slice(1).map((attr) => (
                   <TableCell
                     key={`${attr.key}-${creative.Unique_ID}`}
-                    className={`${getColumnClass(attr.type)} h-12 px-4 overflow-x-auto text-ellipsis border-l`}
-                    title={getDisplayValue(creative[attr.key as keyof CreativeData])}
+                    className={`${getColumnClass(attr.type,attr.key)} overflow-clip text-ellipsis border-l`}
+                    title={getDisplayValue(creative[attr.key as keyof CreativeData],attr.key)}
                   >
                     {attr.key === "combinedIndustryVertical" ? (
                       <p className="text-muted-foreground">
                         {creative["Industry_sectors"]} / {creative["Verticals"]}
                       </p>
                     ) : (
-                      <p className="text-muted-foreground p-2 truncate">
-                        {attr.key === "Creative_Video_Length"
-                          ? creative[attr.key as keyof CreativeData] === 0
-                            ? "N/A(Image)"
-                            : getDisplayValue(creative[attr.key as keyof CreativeData])
-                          : getDisplayValue(creative[attr.key as keyof CreativeData])}
-                      </p>
+                    <p className="text-muted-foreground p-2 ">
+                      {attr.key === "Creative_Video_Length"
+                        ? creative[attr.key as keyof CreativeData] === 0
+                          ? "N/A(Image)"
+                          : getDisplayValue(creative[attr.key as keyof CreativeData], attr.key)
+                        : getDisplayValue(creative[attr.key as keyof CreativeData], attr.key)}
+                    </p>
                     )}
                   </TableCell>
                 ))}

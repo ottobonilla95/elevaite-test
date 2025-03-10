@@ -1,12 +1,41 @@
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Optional
+from pydantic import BaseModel
+from typing import List, Optional, Dict, Any
 import pandas as pd
-from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import os
 
-app = FastAPI()
+# Response Classes
+class HealthCheckResponse(BaseModel):
+    status: str
+
+class ErrorResponse(BaseModel):
+    error: str
+
+class AdSurfaceBrandPair(BaseModel):
+    Ad_Surface: str
+    Brand: str
+
+class AdSurfaceBrandPairsResponse(BaseModel):
+    adsurface_brand_pairs: List[AdSurfaceBrandPair]
+
+class CampaignDataResponse(BaseModel):
+    campaigns: List[str]
+    creative_data: List[Dict[str, Any]]
+    campaign_data: List[Dict[str, Any]]
+
+class ReloadResponse(BaseModel):
+    status: str
+
+app = FastAPI(    
+    title="Creative Insight API",
+    description="API for retrieving campaign and creative data for analysis",
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc"
+    )
+
 load_dotenv()
 
 origins = [
@@ -15,7 +44,6 @@ origins = [
     "https://elevaite-creative-insight.iopex.ai",
     "http://elevaite-creative-insight.iopex.ai",
 ]
-
 
 # Add CORS middleware
 app.add_middleware(
@@ -26,44 +54,82 @@ app.add_middleware(
     allow_headers=['Content-Type', 'Authorization'],
 )
 
-# Directory where the CSV files are stored
 CSV_DIR = os.getenv("CSV_DIR_PATH")
-CREATIVE_CSV_FILE = os.getenv("CREATIVE_CSV_FILE")
-CAMPAIGN_CSV_FILE = os.getenv("CAMPAIGN_CSV_FILE")
+if CSV_DIR is None:
+    print("WARNING: CSV_DIR_PATH environment variable is not set!")
+    CSV_DIR = "/app/csv_files"  # Fallback to a default value
 
-# print(CSV_DIR,CREATIVE_CSV_FILE,CAMPAIGN_CSV_FILE)
+CREATIVE_CSV_FILE = os.getenv("CREATIVE_CSV_FILE")
+if CREATIVE_CSV_FILE is None:
+    print("WARNING: CREATIVE_CSV_FILE environment variable is not set!")
+    CREATIVE_CSV_FILE = "CSV1"  # Fallback to a default value
+
+CAMPAIGN_CSV_FILE = os.getenv("CAMPAIGN_CSV_FILE")
+if CAMPAIGN_CSV_FILE is None:
+    print("WARNING: CAMPAIGN_CSV_FILE environment variable is not set!")
+    CAMPAIGN_CSV_FILE = "CSV2"  # Fallback to a default value
+
+print(f"Using CSV_DIR: {CSV_DIR}")
+print(f"Using CREATIVE_CSV_FILE: {CREATIVE_CSV_FILE}")
+print(f"Using CAMPAIGN_CSV_FILE: {CAMPAIGN_CSV_FILE}")
+
+# Create directory if it doesn't exist
+os.makedirs(CSV_DIR, exist_ok=True)
+
+# Print paths for debugging
+print(f"CSV Directory: {CSV_DIR}")
+print(f"Creative CSV path: {os.path.join(CSV_DIR, CREATIVE_CSV_FILE)}")
+print(f"Campaign CSV path: {os.path.join(CSV_DIR, CAMPAIGN_CSV_FILE)}")
 
 # Load the CSVs
-try:
-    creative_df = pd.read_csv(os.path.join(CSV_DIR, CREATIVE_CSV_FILE))
-    creative_df = creative_df.fillna('')
-except FileNotFoundError as e:
-    print(f"Error loading creative CSV file: {e}")
-    creative_df = pd.DataFrame()  # empty dataframe as fallback
-except pd.errors.EmptyDataError as e:
-    print(f"Error: CSV file is empty: {e}")
-    creative_df = pd.DataFrame()  # empty dataframe as fallback
-except Exception as e:
-    print(f"Unexpected error loading creative CSV: {e}")
-    creative_df = pd.DataFrame()  # empty dataframe as fallback
+creative_df = pd.DataFrame()  # Initialize with empty dataframe
+campaign_df = pd.DataFrame()  # Initialize with empty dataframe
 
-try:
-    campaign_df = pd.read_csv(os.path.join(CSV_DIR, CAMPAIGN_CSV_FILE))
-except FileNotFoundError as e:
-    print(f"Error loading campaign CSV file: {e}")
-    campaign_df = pd.DataFrame()  # empty dataframe as fallback
-except pd.errors.EmptyDataError as e:
-    print(f"Error: CSV file is empty: {e}")
-    campaign_df = pd.DataFrame()  # empty dataframe as fallback
-except Exception as e:
-    print(f"Unexpected error loading campaign CSV: {e}")
-    campaign_df = pd.DataFrame()  # empty dataframe as fallback
+def load_csv_files():
+    global creative_df, campaign_df
     
-@app.get("api/hc")
-async def hc():
-    return {"status":"LIVE"}
+    try:
+        creative_path = os.path.join(CSV_DIR, CREATIVE_CSV_FILE)
+        if os.path.exists(creative_path):
+            creative_df = pd.read_csv(creative_path)
+            creative_df = creative_df.fillna('')
+            print(f"Successfully loaded creative CSV with {len(creative_df)} rows")
+        else:
+            print(f"Creative CSV file not found at: {creative_path}")
+    except Exception as e:
+        print(f"Error loading creative CSV: {e}")
+    
+    try:
+        campaign_path = os.path.join(CSV_DIR, CAMPAIGN_CSV_FILE)
+        if os.path.exists(campaign_path):
+            campaign_df = pd.read_csv(campaign_path)
+            campaign_df = campaign_df.fillna('')
+            print(f"Successfully loaded campaign CSV with {len(campaign_df)} rows")
+        else:
+            print(f"Campaign CSV file not found at: {campaign_path}")
+    except Exception as e:
+        print(f"Error loading campaign CSV: {e}")
 
-@app.get("/api/adsurface_brand_pairs")
+# Load CSV files on startup
+load_csv_files()
+
+# Add a reload endpoint to reload CSV files after they've been updated
+@app.post("/api/reload_csv",
+        response_model=ReloadResponse,
+        description="Reloads CSV files from disk to update data")
+async def reload_csv_files():
+    load_csv_files()
+    return {"status": "CSV files reloaded"}
+
+# Rest of your API endpoints...
+@app.get("/api/hc", response_model=HealthCheckResponse, 
+         description="Health check endpoint to verify API is running")
+async def hc():
+    return {"status": "LIVE"}
+
+@app.get("/api/adsurface_brand_pairs",response_model=AdSurfaceBrandPairsResponse,
+         responses={500: {"model": ErrorResponse}},
+         description="Returns all unique Ad Surface and Brand combinations available in the dataset")
 async def get_adsurface_brand_pairs():
     try:
         pairs = creative_df[['Ad_Surface', 'Brand']].drop_duplicates().to_dict('records')
@@ -76,11 +142,13 @@ async def get_adsurface_brand_pairs():
         print(f"Unexpected error in get_adsurface_brand_pairs: {e}")
         return {"error": f"Unexpected error: {e}"}
 
-@app.get("/api/campaign_data")
+@app.get("/api/campaign_data", 
+         response_model=CampaignDataResponse,
+         responses={404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+         description="Returns campaign and creative data filtered by Ad Surface and Brand")
 async def get_campaign_data(ad_surface: str, brand: str):
     try:
         print(f"Request received for ad_surface: {ad_surface}, brand: {brand}")
-        
         # Filter the creative and campaign data
         filtered_creative_df = creative_df[(creative_df['Ad_Surface'] == ad_surface) & (creative_df['Brand'] == brand)]
         filtered_campaign_df = campaign_df[(campaign_df['Ad_Surface'] == ad_surface) & (campaign_df['Brand'] == brand)]
@@ -93,8 +161,8 @@ async def get_campaign_data(ad_surface: str, brand: str):
         campaigns = filtered_creative_df['Campaign_Name'].unique().tolist()
         creative_data = filtered_creative_df.to_dict('records')
         campaign_data = filtered_campaign_df.to_dict('records')
-
-        print(f"Campaigns found: {campaigns}, Sent Data: {campaign_data}")
+        
+        print(f"Creative Data Sent:{creative_data}")
         return {
             "campaigns": campaigns,
             "creative_data": creative_data,

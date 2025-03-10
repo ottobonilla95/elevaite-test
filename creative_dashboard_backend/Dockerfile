@@ -5,24 +5,17 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Install dependencies
-# Copy only requirements files first to leverage Docker cache
+# Copy requirements first for better caching
 COPY requirements.txt .
-
-# Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create static directory inside the container (if it doesn't exist)
-RUN mkdir -p /app/static
+# Copy the application code
+COPY ./app /app
 
-# Copy the rest of the application code
-COPY . .
+# Create the directory for CSV files
+RUN mkdir -p /app/csv_files
 
-# Expose port 8000 (or any port your app uses)
-EXPOSE 8000
-
-# Set the command to run the application
-CMD ["python", "app/main.py"]
+# Command to run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

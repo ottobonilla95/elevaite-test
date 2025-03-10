@@ -11,7 +11,10 @@ const CampaignTable = ({ performanceData }: { performanceData: CampaignPerforman
 
   const metrics = [
     { label: "Campaign Name", key: "Campaign_Name", format: "text" },
+    { label: "Start Date", key: "Start_Date", type: "text" },
+    { label: "End Date", key: "End_Date", type: "text" },
     { label: "Duration (days)", key: "Duration", format: "number" },
+    { label: "Scheduled Events", key: "Scheduled_Events", type: "text" },
     { label: "Budget", key: "Budget", format: "number" },
     { label: "Clickable Impressions", key: "Booked_Impressions", format: "number" },
     { label: "Delivered Trips", key: "Clickable_Impressions", format: "number" },
