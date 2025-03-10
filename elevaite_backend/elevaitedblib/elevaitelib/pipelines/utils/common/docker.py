@@ -396,10 +396,7 @@ RUN pipx install uv
         )
 
         # Copy the entire project folder to the container
-        project_name = os.path.basename(project_root)
-        dockerfile.write(
-            f"COPY {project_name} /opt/ml/processing/code/{project_name}\n"
-        )
+        dockerfile.write(f"COPY . /opt/ml/processing/code/\n")
 
         # Set the working directory
         dockerfile.write("WORKDIR /opt/ml/processing/code\n")
