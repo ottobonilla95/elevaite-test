@@ -382,7 +382,7 @@ ENV PATH=/root/.local/bin:$PATH
 """
         )
 
-        # Install python-dotenv via pip because sagemaker refuses to pick it up otherwise
+        # Install python-dotenv via pip because SageMaker refuses to pick it up otherwise
         dockerfile.write(
             """
 RUN pip install python-dotenv
@@ -404,11 +404,17 @@ RUN pipx install uv
         # Add the processing/code directory to PYTHONPATH
         dockerfile.write("ENV PYTHONPATH=/opt/ml/processing/code:$PYTHONPATH\n")
 
+        dockerfile.write(
+            """
+RUN uv sync
+"""
+        )
+
         cmd_parts = []
         for task in pipeline_def["tasks"]:
             if task["task_type"] == "pyscript":
                 script_path = task["src"]
-                cmd_parts.append(f"uv sync && uv run ./{script_path}")
+                cmd_parts.append(f". .venv/bin/activate && uv run ./{script_path}")
 
         if cmd_parts:
             full_cmd = " && ".join(cmd_parts)
