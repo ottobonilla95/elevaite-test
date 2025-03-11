@@ -347,7 +347,7 @@ def find_project_root(script_path: str) -> str:
 
 
 def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfile"):
-    """Dynamically create a Dockerfile based on the pipeline definition with `uv` and `python-dotenv` installed via pipx."""
+    """Dynamically create a Dockerfile based on the pipeline definition with `uv`."""
 
     if not pipeline_def.get("tasks"):
         raise ValueError("Pipeline definition must have tasks with 'src' paths")
@@ -359,68 +359,30 @@ def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfil
 
     # Create the Dockerfile
     with open(dockerfile_path, "w") as dockerfile:
-        dockerfile.write("FROM python:3.11-slim\n")
+        dockerfile.write("FROM ghcr.io/astral-sh/uv:0.6.5\n")
         dockerfile.write("ENV DEBIAN_FRONTEND=noninteractive\n")
 
-        # Install dependencies
-        dockerfile.write(
-            """
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    build-essential \
-    gcc \
-    python3-pip \
-    pipx \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && pipx ensurepath
-"""
-        )
+        # Instruct uv to use python3 as the interpreter
+        # dockerfile.write("ENV UV_PYTHON=python3\n")
 
-        dockerfile.write(
-            """
-ENV PATH=/root/.local/bin:$PATH
-"""
-        )
-
-        # Install python-dotenv via pip because SageMaker refuses to pick it up otherwise
-        dockerfile.write(
-            """
-RUN pip install python-dotenv
-"""
-        )
-
-        dockerfile.write(
-            """
-RUN pipx install uv
-"""
-        )
-
-        # Copy the entire project folder to the container
-        dockerfile.write(f"COPY . /opt/ml/processing/code/\n")
-
-        # Set the working directory
+        dockerfile.write("COPY . /opt/ml/processing/code/\n")
         dockerfile.write("WORKDIR /opt/ml/processing/code\n")
-
-        # Add the processing/code directory to PYTHONPATH
         dockerfile.write("ENV PYTHONPATH=/opt/ml/processing/code:$PYTHONPATH\n")
 
-        dockerfile.write(
-            """
-RUN uv sync
-"""
-        )
-
+        # Build the command: run uv sync at container startup and then run each pyscript
         cmd_parts = []
         for task in pipeline_def["tasks"]:
             if task["task_type"] == "pyscript":
                 script_path = task["src"]
-                cmd_parts.append(f". .venv/bin/activate && uv run ./{script_path}")
+                # Compute the relative path from the project root to the script
+                relative_script_path = os.path.relpath(script_path, project_root)
+                cmd_parts.append(f"uv run ./{relative_script_path}")
 
         if cmd_parts:
-            full_cmd = " && ".join(cmd_parts)
+            full_cmd = "uv sync && " + " && ".join(cmd_parts)
             dockerfile.write(f'CMD ["sh", "-c", "{full_cmd}"]\n')
 
-    print(f"Dockerfile created at {dockerfile_path}")
+    print(f"[DEBUG] Dockerfile created at {dockerfile_path}")
 
 
 # def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfile"):
