@@ -1,629 +1,434 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+"use client";
+
+import React, { useState } from "react";
 import {
-    Brain, BookOpen, MessageSquare, PenTool, Database,
-    Search, Zap, FolderOpen, Code, Server, Sparkles, Layers
-} from 'lucide-react';
-
-// Import types
-import { NodeItem, Connection, Message, NodeType, NodeCategory } from './type';
-
-// Import components
-import AnimationStyles from './AnimationStyles';
-import Header from './Header';
-import Sidebar from './Sidebar';
-import FlowWorkspace from './FlowWorkspace';
-import ChatPanel from './ChatPanel';
-import NodeMetrics from './NodeMetrics';
-
-// Import utils
-import { getNodeIcon, createQueryFlow } from '../lib/utils';
+    Code,
+    Globe,
+    MessageSquare,
+    Search,
+    Zap,
+    BrainCircuit,
+    MemoryStick,
+    LayoutGrid,
+    Thermometer,
+    Settings,
+    Database
+} from "lucide-react";
 
 const AgentConfigForm = () => {
-    // State for managing nodes and connections
-    const [nodes, setNodes] = useState<NodeItem[]>([
-        {
-            id: 'router-1',
-            type: 'Router',
-            category: 'agent',
-            position: { x: 300, y: 150 },
-            connected: [],
-            metrics: {
-                completionTime: 120,
-                successRate: 98.5,
-                processingCount: 1254,
-                errorRate: 1.5
-            }
-        }
-    ]);
-    const [connections, setConnections] = useState<Connection[]>([]);
+    // State for agent name and type
+    const [agentName, setAgentName] = useState("");
+    const [agentType, setAgentType] = useState("transaction");
+    const [businessDomain, setBusinessDomain] = useState("customer-service");
 
-    // State for drag and drop
-    const [isDragging, setIsDragging] = useState(false);
-    const [draggedNode, setDraggedNode] = useState<string | null>(null);
-    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    // State for tool selection
+    const [tools, setTools] = useState({
+        api: false,
+        web: false,
+        rag: false,
+    });
 
-    // State for connection drawing
-    const [isDrawingConnection, setIsDrawingConnection] = useState(false);
-    const [connectionStart, setConnectionStart] = useState<string | null>(null);
-    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    // State for memory options
+    const [memory, setMemory] = useState({
+        shortTerm: true,
+        longTerm: false,
+    });
 
-    // UI state
-    const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [sidebarCategory, setSidebarCategory] = useState<'agents' | 'components' | 'tools'>('agents');
-    const [showFlow, setShowFlow] = useState(true);
-    const [showMetrics, setShowMetrics] = useState(true);
+    // State for routing configuration
+    const [routing, setRouting] = useState("simple");
 
-    // Chat state
-    const [userQuery, setUserQuery] = useState('');
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [isProcessing, setIsProcessing] = useState(false);
+    // State for temperature
+    const [temperature, setTemperature] = useState(0.7);
 
-    // References
-    const workspaceRef = useRef<HTMLDivElement>(null);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    // State for prompt
+    const [prompt, setPrompt] = useState("");
 
-    // Sidebar items organized by category
-    const sidebarItems: Record<string, any[]> = {
-        agents: [
-            { id: 'router', type: 'Router', description: 'Routes queries to specialized agents', icon: <Brain className="w-4 h-4" /> },
-            { id: 'rag', type: 'RAG', description: 'Retrieval Augmented Generation', icon: <BookOpen className="w-4 h-4" /> },
-            { id: 'qa', type: 'Q&A', description: 'Question & Answer Specialist', icon: <MessageSquare className="w-4 h-4" /> },
-            { id: 'summarizer', type: 'Summarizer', description: 'Creates concise summaries', icon: <PenTool className="w-4 h-4" /> },
-        ],
-        components: [
-            { id: 'db', type: 'Database', description: 'SQL Database Connector', icon: <Database className="w-4 h-4" /> },
-            { id: 'web', type: 'Web Search', description: 'Internet Search Component', icon: <Search className="w-4 h-4" /> },
-            { id: 'compute', type: 'Compute', description: 'Mathematical Computation', icon: <Zap className="w-4 h-4" /> },
-            { id: 'file', type: 'File Reader', description: 'Reads document files', icon: <FolderOpen className="w-4 h-4" /> },
-        ],
-        tools: [
-            { id: 'code', type: 'Code Execution', description: 'Executes code snippets', icon: <Code className="w-4 h-4" /> },
-            { id: 'api', type: 'API Connector', description: 'External API integration', icon: <Server className="w-4 h-4" /> },
-            { id: 'llm', type: 'LLM', description: 'Language model processing', icon: <Sparkles className="w-4 h-4" /> },
-            { id: 'vector', type: 'Vector Store', description: 'Semantic search database', icon: <Layers className="w-4 h-4" /> },
-        ],
+    // State for model selection
+    const [model, setModel] = useState("gpt-4");
+
+    const handleToolChange = (name: "api" | "web" | "rag") => {
+        setTools(prev => ({ ...prev, [name]: !prev[name] }));
     };
 
-    // Auto-scroll to the latest message
-    useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-    }, [messages]);
+    const handleMemoryChange = (name: "shortTerm" | "longTerm") => {
+        setMemory(prev => ({ ...prev, [name]: !prev[name] }));
+    };
 
-    // Track mouse position for drawing connections
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            if (workspaceRef.current) {
-                const rect = workspaceRef.current.getBoundingClientRect();
-                setMousePos({
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top
-                });
-            }
+    const handleTemperatureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setTemperature(parseFloat(e.target.value));
+    };
 
-            if (isDragging && draggedNode) {
-                handleDragMove(e);
-            }
-        };
-
-        const handleMouseUp = () => {
-            if (isDragging) {
-                setIsDragging(false);
-                setDraggedNode(null);
-            }
-        };
-
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-
-        return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [isDragging, draggedNode]);
-
-    // Handle starting a node drag operation
-    const handleDragStart = (e: React.MouseEvent, nodeId: string, fromSidebar = false) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (fromSidebar) {
-            // Create a new node from sidebar item
-            const category = sidebarCategory.slice(0, -1) as NodeCategory; // Remove 's' from plural
-            const nodeType = sidebarItems[sidebarCategory].find(item => item.id === nodeId)?.type as NodeType;
-
-            if (!nodeType) return;
-
-            const workspaceRect = workspaceRef.current?.getBoundingClientRect();
-            if (!workspaceRect) return;
-
-            const newNodeId = `${nodeId}-${uuidv4().slice(0, 8)}`;
-
-            // Generate specialized metrics for the new node
-            const metrics = generateSpecializedMetrics(nodeType);
-
-            const newNode: NodeItem = {
-                id: newNodeId,
-                type: nodeType,
-                category,
-                position: {
-                    x: e.clientX - workspaceRect.left - 90,
-                    y: e.clientY - workspaceRect.top - 30
-                },
-                connected: [],
-                metrics
-            };
-
-            setNodes(prev => [...prev, newNode]);
-            setDraggedNode(newNodeId);
-        } else {
-            // Drag existing node
-            setDraggedNode(nodeId);
-        }
-
-        const nodeElement = e.currentTarget as HTMLElement;
-        const rect = nodeElement.getBoundingClientRect();
-
-        setDragOffset({
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
-        });
-
-        setIsDragging(true);
-    };
-
-    // Generate specialized metrics based on node type
-    const generateSpecializedMetrics = (nodeType: NodeType) => {
-        switch (nodeType) {
-            case 'RAG':
-                return {
-                    completionTime: Math.floor(Math.random() * 200) + 50,
-                    successRate: 90 + Math.random() * 9,
-                    relevance: 90 + Math.random() * 9,
-                    coherence: 88 + Math.random() * 9,
-                    accuracy: 86 + Math.random() * 10
-                };
-            case 'Database':
-                return {
-                    completionTime: Math.floor(Math.random() * 200) + 50,
-                    successRate: 90 + Math.random() * 9,
-                    queryTime: Math.floor(Math.random() * 100) + 20,
-                    records: Math.floor(Math.random() * 2000) + 100,
-                    cacheHit: Math.floor(Math.random() * 30) + 70
-                };
-            case 'Web Search':
-                return {
-                    completionTime: Math.floor(Math.random() * 200) + 50,
-                    successRate: 90 + Math.random() * 9,
-                    sources: Math.floor(Math.random() * 15) + 3,
-                    freshness: Math.floor(Math.random() * 15) + 85,
-                    relevance: Math.floor(Math.random() * 15) + 85
-                };
-            case 'LLM':
-                return {
-                    completionTime: Math.floor(Math.random() * 200) + 50,
-                    successRate: 90 + Math.random() * 9,
-                    tokens: Math.floor(Math.random() * 1000) + 300,
-                    latency: Math.floor(Math.random() * 400) + 200,
-                    perplexity: 2 + Math.random() * 3
-                };
-            case 'Q&A':
-                return {
-                    completionTime: Math.floor(Math.random() * 200) + 50,
-                    successRate: 90 + Math.random() * 9,
-                    precision: Math.floor(Math.random() * 10) + 90,
-                    recall: Math.floor(Math.random() * 20) + 80,
-                    f1Score: Math.floor(Math.random() * 15) + 85
-                };
-            case 'Code Execution':
-                return {
-                    completionTime: Math.floor(Math.random() * 200) + 50,
-                    successRate: 90 + Math.random() * 9,
-                    runtime: Math.floor(Math.random() * 100) + 20,
-                    memory: Math.floor(Math.random() * 50) + 10,
-                    success: Math.floor(Math.random() * 10) + 90
-                };
-            default:
-                return {
-                    completionTime: Math.floor(Math.random() * 200) + 50,
-                    successRate: 90 + Math.random() * 9,
-                    processingCount: Math.floor(Math.random() * 1000) + 100,
-                    errorRate: Math.random() * 5
-                };
-        }
-    };
-
-    // Handle dragging a node
-    const handleDragMove = (e: MouseEvent) => {
-        if (!isDragging || !draggedNode || !workspaceRef.current) return;
-
-        const workspaceRect = workspaceRef.current.getBoundingClientRect();
-
-        setNodes(prevNodes =>
-            prevNodes.map(node => {
-                if (node.id === draggedNode) {
-                    return {
-                        ...node,
-                        position: {
-                            x: Math.max(0, e.clientX - workspaceRect.left - dragOffset.x),
-                            y: Math.max(0, e.clientY - workspaceRect.top - dragOffset.y)
-                        }
-                    };
-                }
-                return node;
-            })
-        );
-    };
-
-    // Start drawing a connection from a node
-    const startConnection = (nodeId: string) => {
-        setIsDrawingConnection(true);
-        setConnectionStart(nodeId);
-    };
-
-    // Complete a connection to a target node
-    const completeConnection = (targetNodeId: string) => {
-        if (!connectionStart || connectionStart === targetNodeId) {
-            setIsDrawingConnection(false);
-            setConnectionStart(null);
-            return;
-        }
-
-        // Check if connection already exists
-        const connectionExists = connections.some(
-            conn => conn.from === connectionStart && conn.to === targetNodeId
-        );
-
-        if (!connectionExists) {
-            // Generate specialized connection metrics
-            const fromNode = nodes.find(n => n.id === connectionStart);
-            const toNode = nodes.find(n => n.id === targetNodeId);
-
-            let dataVolume = Math.floor(Math.random() * 500) + 50; // Default
-            let latency = Math.floor(Math.random() * 200) + 10; // Default
-
-            // Adjust based on node types
-            if (fromNode && toNode) {
-                // Database to RAG connections have high data volume
-                if (fromNode.type === 'Database' && toNode.type === 'RAG') {
-                    dataVolume = Math.floor(Math.random() * 1000) + 500;
-                }
-
-                // Web Search connections have higher latency
-                if (fromNode.type === 'Web Search') {
-                    latency = Math.floor(Math.random() * 300) + 100;
-                }
-
-                // LLM connections have medium to high data volume
-                if (fromNode.type === 'LLM' || toNode.type === 'LLM') {
-                    dataVolume = Math.floor(Math.random() * 800) + 200;
-                }
-            }
-
-            const connectionMetrics = {
-                dataVolume,
-                latency,
-                successRate: 90 + Math.random() * 9.9
-            };
-
-            const newConnection: Connection = {
-                id: `conn-${connectionStart}-${targetNodeId}-${uuidv4().slice(0, 6)}`,
-                from: connectionStart,
-                to: targetNodeId,
-                metrics: connectionMetrics
-            };
-
-            setConnections(prev => [...prev, newConnection]);
-
-            // Update the connected property of the source node
-            setNodes(prevNodes =>
-                prevNodes.map(node => {
-                    if (node.id === connectionStart) {
-                        return {
-                            ...node,
-                            connected: [...node.connected, targetNodeId]
-                        };
-                    }
-                    return node;
-                })
-            );
-        }
-
-        setIsDrawingConnection(false);
-        setConnectionStart(null);
-    };
-
-    // Delete a connection
-    const deleteConnection = (connectionId: string) => {
-        const conn = connections.find(c => c.id === connectionId);
-        if (!conn) return;
-
-        setConnections(connections.filter(c => c.id !== connectionId));
-
-        // Update the connected property of the source node
-        setNodes(prevNodes =>
-            prevNodes.map(node => {
-                if (node.id === conn.from) {
-                    return {
-                        ...node,
-                        connected: node.connected.filter(id => id !== conn.to)
-                    };
-                }
-                return node;
-            })
-        );
-    };
-
-    // Delete a node
-    const deleteNode = (nodeId: string) => {
-        // Don't allow deleting the router node
-        if (nodeId === 'router-1') return;
-
-        // Remove all connections involving this node
-        setConnections(connections.filter(conn => conn.from !== nodeId && conn.to !== nodeId));
-
-        // Remove the node
-        setNodes(nodes.filter(node => node.id !== nodeId));
-
-        // Update connected arrays in other nodes
-        setNodes(prevNodes =>
-            prevNodes.map(node => {
-                if (node.connected.includes(nodeId)) {
-                    return {
-                        ...node,
-                        connected: node.connected.filter(id => id !== nodeId)
-                    };
-                }
-                return node;
-            })
-        );
-    };
-
-    // Process a user query and animate the flow
-    const handleQuerySubmit = () => {
-        if (!userQuery.trim()) return;
-
-        // Add user query to messages
-        const userMessage: Message = {
-            id: `msg-${uuidv4().slice(0, 8)}`,
-            type: 'user',
-            text: userQuery,
-            timestamp: new Date()
+        // Prepare the configuration data
+        const config = {
+            agentName,
+            agentType,
+            businessDomain,
+            tools,
+            memory,
+            routing,
+            temperature,
+            prompt,
+            model,
         };
 
-        setMessages(prev => [...prev, userMessage]);
-        setIsProcessing(true);
+        console.log("Agent Configuration:", config);
 
-        // Determine query type and create appropriate flow
-        const query = userQuery.toLowerCase();
-        let queryType = 'general';
-
-        if (query.includes('product') || query.includes('iphone') || query.includes('how many')) {
-            queryType = 'product';
-        } else if (query.includes('calculate') || query.includes('sum') || query.includes('average')) {
-            queryType = 'calculation';
-        } else if (query.includes('code') || query.includes('function') || query.includes('programming')) {
-            queryType = 'coding';
-        }
-
-        // Update metrics for all nodes with specialized values
-        setNodes(prevNodes =>
-            prevNodes.map(node => ({
-                ...node,
-                metrics: generateSpecializedMetrics(node.type)
-            }))
-        );
-
-        // Create flow connections based on query type
-        createQueryFlow(queryType, nodes, setNodes, setConnections);
-
-        // Show flow view
-        setShowFlow(true);
-
-        // Simulate response messages with appropriate timing
-        simulateAgentResponses(queryType);
-
-        // Clear input
-        setUserQuery('');
-    };
-
-    // Simulate agent responses for a given query type
-    const simulateAgentResponses = (queryType: string) => {
-        const addMessage = (type: Message['type'], text: string, agent?: string, delay = 0) => {
-            setTimeout(() => {
-                const newMessage: Message = {
-                    id: `msg-${uuidv4().slice(0, 8)}`,
-                    type,
-                    text,
-                    agent,
-                    timestamp: new Date()
-                };
-
-                setMessages(prev => [...prev, newMessage]);
-
-                // If this is the final message, set isProcessing to false
-                if (type === 'final') {
-                    setIsProcessing(false);
-                }
-            }, delay);
-        };
-
-        // Router response first
-        addMessage(
-            'agent',
-            `Query classified as ${queryType} request. Routing to appropriate agents and components.`,
-            'Router',
-            300
-        );
-
-        if (queryType === 'product') {
-            addMessage(
-                'component',
-                'Searching product database for relevant information.',
-                'Database',
-                1000
-            );
-
-            addMessage(
-                'component',
-                'Retrieving up-to-date information from web sources.',
-                'Web Search',
-                1800
-            );
-
-            addMessage(
-                'agent',
-                'Combining database and web information to provide comprehensive response.',
-                'RAG',
-                2800
-            );
-
-            addMessage(
-                'final',
-                'Here is the product information you requested. Our database shows 12 iPhone models released since 2020, while web searches indicate 16 models including standard, mini/Plus, Pro, and Pro Max variants of iPhone 12, 13, 14, and 15 series.',
-                undefined,
-                3800
-            );
-        } else if (queryType === 'calculation') {
-            addMessage(
-                'component',
-                'Reading source data from available documents.',
-                'File Reader',
-                1000
-            );
-
-            addMessage(
-                'component',
-                'Performing calculation operations on the extracted data.',
-                'Compute',
-                2000
-            );
-
-            addMessage(
-                'final',
-                'Calculation complete. Based on the provided information, the result has been computed accurately.',
-                undefined,
-                3000
-            );
-        } else if (queryType === 'coding') {
-            addMessage(
-                'component',
-                'Generating code solution based on your requirements.',
-                'LLM',
-                1000
-            );
-
-            addMessage(
-                'component',
-                'Executing and testing the generated code for correctness.',
-                'Code Execution',
-                2500
-            );
-
-            addMessage(
-                'final',
-                'Code solution generated and verified. The function works as expected and follows best practices.',
-                undefined,
-                3500
-            );
-        } else {
-            // General query
-            addMessage(
-                'agent',
-                'Analyzing your question and retrieving relevant information.',
-                'Q&A',
-                1000
-            );
-
-            addMessage(
-                'final',
-                'Here is the answer to your question. If you need more specialized processing, try asking about products, calculations, or coding tasks.',
-                undefined,
-                2500
-            );
-        }
-    };
-
-    // Handle example query click
-    const handleExampleClick = (example: string) => {
-        setUserQuery(example);
-        setTimeout(() => handleQuerySubmit(), 100);
-    };
-
-    // Helper function to get icon for a node type
-    const getNodeIconHelper = (type: NodeType): JSX.Element => {
-        return getNodeIcon(type, sidebarItems);
+        // Simple alert instead of toast
+        alert("Configuration Saved: Your AI agent has been configured successfully.");
     };
 
     return (
-        <div className="h-screen w-screen flex flex-col overflow-hidden">
-            {/* Add style for animations */}
-            <AnimationStyles />
+        <form onSubmit={handleSubmit} className="w-full max-w-4xl mx-auto">
+            {/* Agent Basic Info Card */}
+            <div className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-6">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-orange-600"></div>
+                <div className="p-6">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="p-2 rounded-md bg-orange-500/10">
+                            <Settings className="h-6 w-6 text-orange-500" />
+                        </div>
+                        <h2 className="text-xl font-semibold">Agent Details</h2>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                        Define the core properties of your agent
+                    </p>
 
-            {/* Header */}
-            <Header
-                sidebarOpen={sidebarOpen}
-                setSidebarOpen={setSidebarOpen}
-                showFlow={showFlow}
-                setShowFlow={setShowFlow}
-                showMetrics={showMetrics}
-                setShowMetrics={setShowMetrics}
-            />
+                    <div className="space-y-4">
+                        {/* Agent Name */}
+                        <div>
+                            <label htmlFor="agentName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Agent Name
+                            </label>
+                            <input
+                                type="text"
+                                id="agentName"
+                                value={agentName}
+                                onChange={(e) => setAgentName(e.target.value)}
+                                placeholder="Enter agent name"
+                                className="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            />
+                        </div>
 
-            {/* Main content */}
-            <div className="flex-1 flex overflow-hidden">
-                {/* Sidebar */}
-                <Sidebar
-                    sidebarOpen={sidebarOpen}
-                    sidebarCategory={sidebarCategory}
-                    setSidebarCategory={setSidebarCategory}
-                    sidebarItems={sidebarItems}
-                    handleDragStart={handleDragStart}
-                />
+                        {/* Agent Type */}
+                        <div>
+                            <label htmlFor="agentType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Agent Type
+                            </label>
+                            <select
+                                id="agentType"
+                                value={agentType}
+                                onChange={(e) => setAgentType(e.target.value)}
+                                className="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            >
+                                <option value="transaction">Transaction Command Agent</option>
+                                <option value="analysis">Analysis Command Agent</option>
+                                <option value="assistant">General Assistant</option>
+                                <option value="specialist">Domain Specialist</option>
+                            </select>
+                        </div>
 
-                {/* Main content area with flow and chat views */}
-                <div className="flex-1 flex overflow-hidden">
-                    {/* Flow workspace - visible when showFlow is true */}
-                    {showFlow && (
-                        <FlowWorkspace
-                            workspaceRef={workspaceRef}
-                            nodes={nodes}
-                            setNodes={setNodes}
-                            connections={connections}
-                            setConnections={setConnections}
-                            isDragging={isDragging}
-                            draggedNode={draggedNode}
-                            isDrawingConnection={isDrawingConnection}
-                            connectionStart={connectionStart}
-                            mousePos={mousePos}
-                            showMetrics={showMetrics}
-                            handleDragStart={handleDragStart}
-                            startConnection={startConnection}
-                            completeConnection={completeConnection}
-                            deleteConnection={deleteConnection}
-                            deleteNode={deleteNode}
-                            getNodeIcon={getNodeIconHelper}
-                            sidebarCategory={sidebarCategory}
-                            sidebarItems={sidebarItems}
-                            isProcessing={isProcessing}
-                        />
-                    )}
+                        {/* Business Domain */}
+                        <div>
+                            <label htmlFor="businessDomain" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Business Domain
+                            </label>
+                            <select
+                                id="businessDomain"
+                                value={businessDomain}
+                                onChange={(e) => setBusinessDomain(e.target.value)}
+                                className="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            >
+                                <option value="customer-service">Customer Service</option>
+                                <option value="sales">Sales</option>
+                                <option value="marketing">Marketing</option>
+                                <option value="hr">Human Resources</option>
+                                <option value="finance">Finance</option>
+                                <option value="it">IT Operations</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                    {/* Chat panel */}
-                    <ChatPanel
-                        showFlow={showFlow}
-                        messages={messages}
-                        userQuery={userQuery}
-                        setUserQuery={setUserQuery}
-                        handleQuerySubmit={handleQuerySubmit}
-                        handleExampleClick={handleExampleClick}
-                        isProcessing={isProcessing}
-                        messagesEndRef={messagesEndRef}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* Model Selection Card */}
+                <div className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-bl-full z-0"></div>
+                    <div className="relative z-10 p-6">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="p-2 rounded-md bg-orange-500/10">
+                                <BrainCircuit className="h-6 w-6 text-orange-500" />
+                            </div>
+                            <h2 className="text-xl font-semibold">Model Selection</h2>
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                            Choose the foundation model for your agent
+                        </p>
+                        <select
+                            value={model}
+                            onChange={(e) => setModel(e.target.value)}
+                            className="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        >
+                            <option value="gpt-4">GPT-4 Turbo</option>
+                            <option value="claude-3">Claude 3 Sonnet</option>
+                            <option value="claude-3-haiku">Claude 3 Haiku</option>
+                            <option value="llama-3">Llama 3</option>
+                            <option value="gemini-1.5">Gemini 1.5 Pro</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* Temperature Card */}
+                <div className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-bl-full z-0"></div>
+                    <div className="relative z-10 p-6">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="p-2 rounded-md bg-orange-500/10">
+                                <Thermometer className="h-6 w-6 text-orange-500" />
+                            </div>
+                            <h2 className="text-xl font-semibold">Temperature</h2>
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                            Adjust creativity vs precision balance
+                        </p>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Value: </span>
+                                <span className="text-sm font-mono bg-orange-500/10 text-orange-700 dark:text-orange-400 px-2 py-1 rounded">
+                                    {temperature.toFixed(2)}
+                                </span>
+                            </div>
+                            <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                value={temperature}
+                                onChange={handleTemperatureChange}
+                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                            />
+                            <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
+                                <div className="flex items-center gap-1">
+                                    <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                                    <span>Precise</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <span>Creative</span>
+                                    <div className="h-2 w-2 rounded-full bg-orange-500"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Agent Prompt Card */}
+            <div className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-6">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-orange-600"></div>
+                <div className="p-6">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="p-2 rounded-md bg-orange-500/10">
+                            <MessageSquare className="h-6 w-6 text-orange-500" />
+                        </div>
+                        <h2 className="text-xl font-semibold">Agent Prompt</h2>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                        Define the behavior and capabilities of your AI agent
+                    </p>
+                    <textarea
+                        placeholder="Enter detailed instructions for your AI agent..."
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        className="w-full min-h-[120px] p-3 border border-gray-300 dark:border-gray-600 rounded-md resize-y bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     />
                 </div>
             </div>
-        </div>
+
+            {/* Tool Selection Card */}
+            <div className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-6">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-orange-600"></div>
+                <div className="p-6">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="p-2 rounded-md bg-orange-500/10">
+                            <LayoutGrid className="h-6 w-6 text-orange-500" />
+                        </div>
+                        <h2 className="text-xl font-semibold">Tool Selection</h2>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                        Enable capabilities that your agent can leverage
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* API Access Card */}
+                        <div
+                            className={`p-4 rounded-lg cursor-pointer transition-all ${tools.api ? 'bg-orange-500/10 border-2 border-orange-500/50' : 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:shadow-md'}`}
+                            onClick={() => handleToolChange("api")}
+                        >
+                            <div className="flex items-center gap-4">
+                                <input
+                                    type="checkbox"
+                                    id="api"
+                                    checked={tools.api}
+                                    onChange={() => handleToolChange("api")}
+                                    className="h-4 w-4 text-orange-500 rounded focus:ring-orange-500 border-gray-300"
+                                />
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2">
+                                        <Code className="h-4 w-4 text-orange-600" />
+                                        <label htmlFor="api" className="font-medium cursor-pointer">API Access</label>
+                                    </div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 pt-1">Connect to enterprise systems</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Web Browsing Card */}
+                        <div
+                            className={`p-4 rounded-lg cursor-pointer transition-all ${tools.web ? 'bg-orange-500/10 border-2 border-orange-500/50' : 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:shadow-md'}`}
+                            onClick={() => handleToolChange("web")}
+                        >
+                            <div className="flex items-center gap-4">
+                                <input
+                                    type="checkbox"
+                                    id="web"
+                                    checked={tools.web}
+                                    onChange={() => handleToolChange("web")}
+                                    className="h-4 w-4 text-orange-500 rounded focus:ring-orange-500 border-gray-300"
+                                />
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2">
+                                        <Globe className="h-4 w-4 text-orange-600" />
+                                        <label htmlFor="web" className="font-medium cursor-pointer">Web Browsing</label>
+                                    </div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 pt-1">Search and retrieve online information</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* RAG System Card */}
+                        <div
+                            className={`p-4 rounded-lg cursor-pointer transition-all ${tools.rag ? 'bg-orange-500/10 border-2 border-orange-500/50' : 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:shadow-md'}`}
+                            onClick={() => handleToolChange("rag")}
+                        >
+                            <div className="flex items-center gap-4">
+                                <input
+                                    type="checkbox"
+                                    id="rag"
+                                    checked={tools.rag}
+                                    onChange={() => handleToolChange("rag")}
+                                    className="h-4 w-4 text-orange-500 rounded focus:ring-orange-500 border-gray-300"
+                                />
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2">
+                                        <Database className="h-4 w-4 text-orange-600" />
+                                        <label htmlFor="rag" className="font-medium cursor-pointer">RAG System</label>
+                                    </div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 pt-1">Access proprietary knowledge base</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* Memory Options Card */}
+                <div className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-orange-600"></div>
+                    <div className="p-6">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="p-2 rounded-md bg-orange-500/10">
+                                <MemoryStick className="h-6 w-6 text-orange-500" />
+                            </div>
+                            <h2 className="text-xl font-semibold">Memory Options</h2>
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                            Configure how your agent remembers context
+                        </p>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
+                                <div className="flex flex-col gap-1">
+                                    <label htmlFor="shortTerm" className="font-medium">Short-term Memory</label>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Retain context within conversations</p>
+                                </div>
+                                <div className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        id="shortTerm"
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={memory.shortTerm}
+                                        onChange={() => handleMemoryChange('shortTerm')}
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"></div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
+                                <div className="flex flex-col gap-1">
+                                    <label htmlFor="longTerm" className="font-medium">Long-term Memory</label>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Remember context across sessions</p>
+                                </div>
+                                <div className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        id="longTerm"
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={memory.longTerm}
+                                        onChange={() => handleMemoryChange('longTerm')}
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Routing Configuration Card */}
+                <div className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-orange-600"></div>
+                    <div className="p-6">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="p-2 rounded-md bg-orange-500/10">
+                                <LayoutGrid className="h-6 w-6 text-orange-500" />
+                            </div>
+                            <h2 className="text-xl font-semibold">Routing Configuration</h2>
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                            Define how your agent handles complex queries
+                        </p>
+                        <select
+                            value={routing}
+                            onChange={(e) => setRouting(e.target.value)}
+                            className="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        >
+                            <option value="simple">Simple Routing</option>
+                            <option value="agent-router">Agent Router</option>
+                            <option value="multi-agent">Multi-Agent Routing</option>
+                        </select>
+                        <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                            {routing === "simple" && "Routes all queries through a single decision path."}
+                            {routing === "agent-router" && "Uses a dedicated router agent to direct queries to specialized agents."}
+                            {routing === "multi-agent" && "Employs multiple agents working collaboratively to solve complex tasks."}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Submit Button Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+                <div className="p-6 flex justify-center">
+                    <button
+                        type="submit"
+                        className="inline-flex items-center justify-center px-8 py-3 rounded-md text-white font-medium bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                    >
+                        <Zap className="mr-2 h-5 w-5" />
+                        Configure Agent
+                    </button>
+                </div>
+            </div>
+        </form>
     );
 };
 
