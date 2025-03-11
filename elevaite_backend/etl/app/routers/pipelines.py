@@ -24,63 +24,55 @@
 # router = APIRouter(prefix="/pipeline", tags=["pipelines"])
 
 
-# @router.get("", response_model=list[pipeline_schemas.Pipeline])
-# def getPipelines(
-#     request: Request,  # uncomment this when using validator
-#     skip: int = 0,
-#     limit: int = 10,
-#     # db=Depends(get_db),
-#     project_id: UUID = Header(
-#         ...,
-#         alias="X-elevAIte-ProjectId",
-#         description="project_id under which connector instances are queried",
-#     ),
-#     validation_info: dict[str, Any] = Depends(
-#         route_validator_map[(api_schemas.APINamespace.ETL_API, "getPipelines")]
-#     ),
-# ):
-#     db: Session = request.state.db  # uncomment this when using validator
-#     all_query_authorized_types_filter_function = (
-#         rbacValidator.get_post_validation_types_filter_function_for_all_query(
-#             models.Collection, validation_info
-#         )
-#     )  # uncomment this when using validator
-#     return pipeline_service.getPipelinesOfProject(
-#         db=db,
-#         skip=skip,
-#         limit=limit,
-#         project_id=project_id,
-#         filter_function=all_query_authorized_types_filter_function,
-#     )
+@router.get("", response_model=list[pipeline_schemas.Pipeline])
+def getPipelines(
+    request: Request,  # uncomment this when using validator
+    skip: int = 0,
+    limit: int = 10,
+    # db=Depends(get_db),
+    project_id: UUID = Header(
+        ...,
+        alias="X-elevAIte-ProjectId",
+        description="project_id under which connector instances are queried",
+    ),
+    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, "getPipelines")]),
+):
+    db: Session = request.state.db  # uncomment this when using validator
+    all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(
+        models.Pipeline, validation_info
+    )  # uncomment this when using validator
+    return pipeline_service.getPipelinesOfProject(
+        db=db,
+        skip=skip,
+        limit=limit,
+        project_id=project_id,
+        filter_function=all_query_authorized_types_filter_function,
+    )
 
 
-# @router.get("/{pipeline_id}", response_model=pipeline_schemas.Pipeline)
-# def getPipelineById(
-#     request: Request,  # uncomment this when using validator
-#     pipeline_id: str,
-#     project_id: UUID = Header(
-#         ...,
-#         alias="X-elevAIte-ProjectId",
-#         description="project_id under which connector instances are queried",
-#     ),
-#     # db=Depends(get_db),
-#     validation_info: dict[str, Any] = Depends(
-#         route_validator_map[(api_schemas.APINamespace.ETL_API, "getPipelineById")]
-#     ),
-# ):
-#     db: Session = request.state.db  # uncomment this when using validator
-#     print(validation_info)
-#     all_query_authorized_types_filter_function = (
-#         rbacValidator.get_post_validation_types_filter_function_for_all_query(
-#             models.Collection, validation_info
-#         )
-#     )  # uncomment this when using validator
-#     return pipeline_service.getPipelineById(
-#         db=db,
-#         id=pipeline_id,
-#         project_id=project_id,
-#         filter_function=all_query_authorized_types_filter_function,
-#     )
+@router.get("/{pipeline_id}", response_model=pipeline_schemas.Pipeline)
+def getPipelineById(
+    request: Request,  # uncomment this when using validator
+    pipeline_id: str,
+    project_id: UUID = Header(
+        ...,
+        alias="X-elevAIte-ProjectId",
+        description="project_id under which connector instances are queried",
+    ),
+    # db=Depends(get_db),
+    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, "getPipelineById")]),
+):
+    db: Session = request.state.db  # uncomment this when using validator
+    print(validation_info)
+    all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(
+        models.Collection, validation_info
+    )  # uncomment this when using validator
+    return pipeline_service.getPipelineById(
+        db=db,
+        id=pipeline_id,
+        project_id=project_id,
+        filter_function=all_query_authorized_types_filter_function,
+    )
 
 
 # @router.post("", response_model=pipeline_schemas.Pipeline)
@@ -96,27 +88,23 @@
 #     return pipeline_service.createPipeline(db=db, dto=createPipelineDto)
 
 
-# @router.get(
-#     "/{pipeline_id}/configuration",
-#     response_model=list[configuration_schemas.Configuration],
-# )
-# def getPipelineConfigurations(
-#     request: Request,  # uncomment when using validator
-#     pipeline_id: str,
-#     # db: Session = Depends(get_db),  # comment this when using validator
-#     validation_info: dict[str, Any] = Depends(
-#         route_validator_map[
-#             (api_schemas.APINamespace.ETL_API, "getPipelineConfigurations")
-#         ]
-#     ),  # uncomment this to use validator
-# ):
+@router.get(
+    "/{pipeline_id}/configuration",
+    response_model=list[configuration_schemas.Configuration],
+)
+def getPipelineConfigurations(
+    request: Request,  # uncomment when using validator
+    pipeline_id: str,
+    # db: Session = Depends(get_db),  # comment this when using validator
+    validation_info: dict[str, Any] = Depends(
+        route_validator_map[(api_schemas.APINamespace.ETL_API, "getPipelineConfigurations")]
+    ),  # uncomment this to use validator
+):
+    db: Session = request.state.db  # uncomment this when using validator
+    all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(
+        models.Configuration, validation_info
+    )  # uncomment this when using validator
 
-#     db: Session = request.state.db  # uncomment this when using validator
-#     all_query_authorized_types_filter_function = (
-#         rbacValidator.get_post_validation_types_filter_function_for_all_query(
-#             models.Configuration, validation_info
-#         )
-#     )  # uncomment this when using validator
 
 #     return conf_service.getConfigurationsOfPipeline(
 #         db=db,
@@ -125,27 +113,23 @@
 #     )
 
 
-# @router.get("/{pipeline_id}/instance", response_model=list[instance_schemas.Instance])
-# def getPipelineInstances(
-#     request: Request,
-#     pipeline_id: str,
-#     # db=Depends(get_db),
-#     validation_info: dict[str, Any] = Depends(
-#         route_validator_map[(api_schemas.APINamespace.ETL_API, "getPipelineInstances")]
-#     ),
-#     project_id: UUID = Header(
-#         ...,
-#         alias="X-elevAIte-ProjectId",
-#         description="project_id under which connector instances are queried",
-#     ),
-# ) -> Sequence[instance_schemas.Instance]:
+@router.get("/{pipeline_id}/instance", response_model=list[instance_schemas.Instance])
+def getPipelineInstances(
+    request: Request,
+    pipeline_id: str,
+    # db=Depends(get_db),
+    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, "getPipelineInstances")]),
+    project_id: UUID = Header(
+        ...,
+        alias="X-elevAIte-ProjectId",
+        description="project_id under which connector instances are queried",
+    ),
+) -> Sequence[instance_schemas.Instance]:
+    db: Session = request.state.db
+    all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(
+        models.Instance, validation_info
+    )
 
-#     db: Session = request.state.db
-#     all_query_authorized_types_filter_function = (
-#         rbacValidator.get_post_validation_types_filter_function_for_all_query(
-#             models.Instance, validation_info
-#         )
-#     )
 
 #     return instance_service.getInstancesOfPipeline(
 #         db=db,

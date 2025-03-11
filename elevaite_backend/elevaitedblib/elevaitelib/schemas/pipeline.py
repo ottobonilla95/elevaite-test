@@ -79,6 +79,15 @@ class PipelineTask(PipelineTaskBase):
         orm_mode = True
 
 
+class PipelineTaskDependency(BaseModel):
+    task_id: str
+
+
+class PipelineSource(Enum):
+    ELEVAITE = "elevaite"
+    EXPERIMENT = "experiment"
+
+
 class PipelineBase(BaseModel):
     name: str
     description: str

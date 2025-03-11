@@ -1,5 +1,5 @@
 from uuid import UUID
-from typing import Callable
+from typing import Callable, Union
 from sqlalchemy.orm import Session, Query
 
 
@@ -19,13 +19,22 @@ from elevaitelib.schemas.pipeline import (
 # --- Pipeline Endpoints ---
 
 
-def get_pipelines(db: Session, skip: int = 0, limit: int = 0) -> list[models.Pipeline]:
-    return db.query(models.Pipeline).offset(skip).limit(limit).all()
+def get_pipelines(
+    db: Session,
+    filter_function: Union[Callable[[Query], Query], None],
+    skip: int = 0,
+    limit: int = 0,
+) -> list[models.Pipeline]:
+    query = db.query(models.Pipeline)
+
+    if filter_function is not None:  # uncomment this when using validator
+        query = filter_function(query)
+    return query.offset(skip).limit(limit).all()
 
 
 def get_pipelines_of_project(
     db: Session,
-    filter_function: Callable[[Query], Query],
+    filter_function: Union[Callable[[Query], Query], None],
     project_id: UUID,
     skip: int = 0,
     limit: int = 0,
@@ -34,17 +43,12 @@ def get_pipelines_of_project(
 
     if filter_function is not None:  # uncomment this when using validator
         query = filter_function(query)
-    return (
-        query.filter(models.Pipeline.projects.any(id=project_id))
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    return query.filter(models.Pipeline.projects.any(id=project_id)).offset(skip).limit(limit).all()
 
 
 def get_pipeline_by_id(
     db: Session,
-    pipeline_id: UUID,
+    pipeline_id: str,
     filter_function: Callable[[Query], Query] | None = None,
 ) -> models.Pipeline:
     query = db.query(models.Pipeline)
@@ -66,12 +70,8 @@ def create_pipeline(db: Session, pipeline_dto: PipelineCreate) -> models.Pipelin
     return _pipeline
 
 
-def update_pipeline(
-    db: Session, pipeline_id: UUID, dto: PipelineUpdate
-) -> models.Pipeline:
-    _pipeline = (
-        db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
-    )
+def update_pipeline(db: Session, pipeline_id: str, dto: PipelineUpdate) -> models.Pipeline:
+    _pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
     if dto.name is not None:
         _pipeline.name = dto.name
     if dto.description is not None:
@@ -83,24 +83,16 @@ def update_pipeline(
     return _pipeline
 
 
-def delete_pipeline(db: Session, pipeline_id: UUID) -> models.Pipeline:
-    _pipeline = (
-        db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
-    )
+def delete_pipeline(db: Session, pipeline_id: str) -> models.Pipeline:
+    _pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
     db.delete(_pipeline)
     db.commit()
     return _pipeline
 
 
-def add_tasks_to_pipeline(
-    db: Session, pipeline_id: str, task_id: str
-) -> models.Pipeline:
-    _pipeline = (
-        db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
-    )
-    _task = (
-        db.query(models.PipelineTask).filter(models.PipelineTask.id == task_id).one()
-    )
+def add_tasks_to_pipeline(db: Session, pipeline_id: str, task_id: str) -> models.Pipeline:
+    _pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
+    _task = db.query(models.PipelineTask).filter(models.PipelineTask.id == task_id).one()
     _pipeline.tasks.append(_task)
     db.commit()
     db.refresh(_pipeline)
@@ -110,9 +102,7 @@ def add_tasks_to_pipeline(
 # --- Pipeline Schedule Endpoints ---
 
 
-def create_pipeline_schedule(
-    db: Session, pipeline_id: UUID, dto: PipelineScheduleCreate
-) -> models.PipelineSchedule:
+def create_pipeline_schedule(db: Session, pipeline_id: str, dto: PipelineScheduleCreate) -> models.PipelineSchedule:
     pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
     schedule = models.PipelineSchedule(**dto.dict())
     pipeline.schedule = schedule
@@ -122,14 +112,12 @@ def create_pipeline_schedule(
     return schedule
 
 
-def get_pipeline_schedule(db: Session, pipeline_id: UUID) -> models.PipelineSchedule:
+def get_pipeline_schedule(db: Session, pipeline_id: str) -> models.PipelineSchedule:
     pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
     return pipeline.schedule
 
 
-def update_pipeline_schedule(
-    db: Session, pipeline_id: UUID, dto: PipelineScheduleCreate
-) -> models.PipelineSchedule:
+def update_pipeline_schedule(db: Session, pipeline_id: str, dto: PipelineScheduleCreate) -> models.PipelineSchedule:
     pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
     schedule = pipeline.schedule
     if schedule is None:
@@ -144,7 +132,7 @@ def update_pipeline_schedule(
     return schedule
 
 
-def delete_pipeline_schedule(db: Session, pipeline_id: UUID) -> models.PipelineSchedule:
+def delete_pipeline_schedule(db: Session, pipeline_id: str) -> models.PipelineSchedule:
     pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
     schedule = pipeline.schedule
     if schedule:
@@ -158,7 +146,7 @@ def delete_pipeline_schedule(db: Session, pipeline_id: UUID) -> models.PipelineS
 
 def get_pipeline_tasks(
     db: Session,
-    filter_function: Callable[[Query], Query],
+    filter_function: Union[Callable[[Query], Query], None],
     skip: int = 0,
     limit: int = 0,
 ) -> list[models.PipelineTask]:
@@ -167,6 +155,18 @@ def get_pipeline_tasks(
     if filter_function is not None:  # uncomment this when using validator
         query = filter_function(query)
     return query.offset(skip).limit(limit).all()
+
+
+def get_pipeline_task_by_id(
+    db: Session,
+    filter_function: Union[Callable[[Query], Query], None],
+    id: str,
+) -> models.PipelineTask:
+    query = db.query(models.PipelineTask)
+
+    if filter_function is not None:  # uncomment this when using validator
+        query = filter_function(query)
+    return query.filter(models.PipelineTask.id == id).one()
 
 
 def create_pipeline_task(db: Session, dto: PipelineTaskCreate) -> models.PipelineTask:
@@ -178,38 +178,24 @@ def create_pipeline_task(db: Session, dto: PipelineTaskCreate) -> models.Pipelin
     return _task
 
 
-def update_pipeline_task(
-    db: Session, id: str, dto: PipelineTaskUpdate
-) -> models.PipelineTask:
+def update_pipeline_task(db: Session, id: str, dto: PipelineTaskUpdate) -> models.PipelineTask:
     _task = db.query(models.PipelineTask).filter(models.PipelineTask.id == id).one()
     if dto.dependencies:
         _task.dependencies = []
         for dep in dto.dependencies:
-            __task = (
-                db.query(models.PipelineTask)
-                .filter(models.PipelineTask.id == dep.id)
-                .one()
-            )
+            __task = db.query(models.PipelineTask).filter(models.PipelineTask.id == dep.id).one()
             _task.dependencies.append(__task)
 
     if dto.input:
         _task.input = []
         for var in dto.input:
-            _var = (
-                db.query(models.PipelineVariable)
-                .filter(models.PipelineVariable.name == var.name)
-                .one()
-            )
+            _var = db.query(models.PipelineVariable).filter(models.PipelineVariable.name == var.name).one()
             _task.input.append(_var)
 
     if dto.output:
         _task.output = []
         for var in dto.output:
-            _var = (
-                db.query(models.PipelineVariable)
-                .filter(models.PipelineVariable.name == var.name)
-                .one()
-            )
+            _var = db.query(models.PipelineVariable).filter(models.PipelineVariable.name == var.name).one()
             _task.output.append(_var)
 
     if dto.name:
@@ -227,20 +213,14 @@ def update_pipeline_task(
 
 
 def delete_pipeline_task(db: Session, task_id: str) -> models.PipelineTask:
-    _task = (
-        db.query(models.PipelineTask).filter(models.PipelineTask.id == task_id).one()
-    )
+    _task = db.query(models.PipelineTask).filter(models.PipelineTask.id == task_id).one()
     db.delete(_task)
     db.commit()
     return _task
 
 
-def add_dependency_to_task(
-    db: Session, target_id: str, dep_id: str
-) -> models.PipelineTask:
-    _target = (
-        db.query(models.PipelineTask).filter(models.PipelineTask.id == target_id).one()
-    )
+def add_dependency_to_task(db: Session, target_id: str, dep_id: str) -> models.PipelineTask:
+    _target = db.query(models.PipelineTask).filter(models.PipelineTask.id == target_id).one()
     _dep = db.query(models.PipelineTask).filter(models.PipelineTask.id == dep_id).one()
 
     _target.dependencies.append(_dep)
@@ -249,12 +229,8 @@ def add_dependency_to_task(
     return _target
 
 
-def remove_dependency_from_task(
-    db: Session, target_id: str, dep_id: str
-) -> models.PipelineTask:
-    _target = (
-        db.query(models.PipelineTask).filter(models.PipelineTask.id == target_id).one()
-    )
+def remove_dependency_from_task(db: Session, target_id: str, dep_id: str) -> models.PipelineTask:
+    _target = db.query(models.PipelineTask).filter(models.PipelineTask.id == target_id).one()
     _dep = db.query(models.PipelineTask).filter(models.PipelineTask.id == dep_id).one()
     if _dep in _target.dependencies:
         _target.dependencies.remove(_dep)
@@ -268,7 +244,7 @@ def remove_dependency_from_task(
 
 def get_pipeline_variables(
     db: Session,
-    filter_function: Callable[[Query], Query],
+    filter_function: Union[Callable[[Query], Query], None],
     skip: int = 0,
     limit: int = 0,
 ):
@@ -279,9 +255,7 @@ def get_pipeline_variables(
     return query.offset(skip).limit(limit).all()
 
 
-def create_pipeline_variable(
-    db: Session, dto: PipelineVariableCreate
-) -> models.PipelineVariable:
+def create_pipeline_variable(db: Session, dto: PipelineVariableCreate) -> models.PipelineVariable:
     _var = models.PipelineVariable(name=dto.name, var_type=dto.var_type)
 
     db.add(_var)
@@ -290,14 +264,8 @@ def create_pipeline_variable(
     return _var
 
 
-def update_pipeline_variable(
-    db: Session, variable_id: UUID, dto: PipelineVariableUpdate
-) -> models.PipelineVariable:
-    _var = (
-        db.query(models.PipelineVariable)
-        .filter(models.PipelineVariable.id == variable_id)
-        .one()
-    )
+def update_pipeline_variable(db: Session, variable_id: UUID, dto: PipelineVariableUpdate) -> models.PipelineVariable:
+    _var = db.query(models.PipelineVariable).filter(models.PipelineVariable.id == variable_id).one()
     if dto.name is not None:
         _var.name = dto.name
     if dto.var_type is not None:
@@ -308,11 +276,7 @@ def update_pipeline_variable(
 
 
 def delete_pipeline_variable(db: Session, variable_id: UUID) -> models.PipelineVariable:
-    _var = (
-        db.query(models.PipelineVariable)
-        .filter(models.PipelineVariable.id == variable_id)
-        .one()
-    )
+    _var = db.query(models.PipelineVariable).filter(models.PipelineVariable.id == variable_id).one()
     db.delete(_var)
     db.commit()
     return _var
