@@ -1,19 +1,20 @@
-[tool.poetry]
+[project]
 name = "rbac_lib"
 version = "0.1.0"
 description = ""
-authors = ["John Zachariadis <johnbelly95@gmail.com>"]
+authors = [
+  {name="John Zachariadis", email="<johnbelly95@gmail.com>"}
+]
 readme = "README.md"
+requires-python = "~=3.11"
 
-[tool.poetry.dependencies]
-python = "~3.11"
-fastapi = "0.111.0"
-requests = "2.31.0"
-redis = "5.0.4"
-elevaitelib = { path = "../elevaitedblib", develop = true }
-fusionauth-client = "^1.53.0"
+dependencies = [
+"fastapi==0.111.0",
+"requests==2.31.0",
+"redis==5.0.4",
+"fusionauth-client>=1.53.0",
+"elevaitelib",
+]
 
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.uv.sources]
+elevaitelib = { workspace = true }

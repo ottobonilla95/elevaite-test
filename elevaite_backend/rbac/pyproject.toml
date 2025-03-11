@@ -1,49 +1,47 @@
-[tool.poetry]
+[project]
 name = "rbac_api"
 version = "0.1.0"
 description = ""
-authors = ["Akash Bharadwaj Karthik <bharadwajkarthik.a@northeastern.edu>"]
+authors = [{name="Akash Bharadwaj Karthik", email="<bharadwajkarthik.a@northeastern.edu>"}
+]
 readme = "README.md"
+requires-python = "~=3.11"
 
-[tool.poetry.dependencies]
-python = "~3.11"
-alembic = "^1.13.1"
-annotated-types = "0.6.0"
-anyio = "4.2.0"
-certifi = "2024.2.2"
-cffi = "1.16.0"
-charset-normalizer = "3.3.2"
-click = "8.1.7"
-colorama = "0.4.6"
-dnspython = "2.6.1"
-email-validator = "^2.1.1"
-fastapi = "0.111.0"
-greenlet = "3.0.3"
-h11 = "0.14.0"
-idna = "3.6"
-mako = "1.3.2"
-markupsafe = "2.1.5"
-psycopg2-binary = "2.9.9"
-pycparser = "2.21"
-pydantic = { version = ">=1.10.15", extras = ["email"] }
-pydantic-core = "2.18.2"
-python-dotenv = "1.0.1"
-redis = "5.0.4"
-requests = "2.31.0"
-sniffio = "1.3.1"
-sqlalchemy = "2.0.30"
-starlette = "0.37.2"
-typing-extensions = "4.9.0"
-urllib3 = "~2.0.7"
-uvicorn = "^0.29.0"
-elevaitelib = { path = "../elevaitedblib", develop = true }
-rbac_lib = { path = "../rbac-lib", develop = true }
+dependencies = [
+"alembic>=1.13.1",
+"annotated-types==0.6.0",
+"anyio==4.2.0",
+"certifi==2024.2.2",
+"cffi==1.16.0",
+"charset-normalizer==3.3.2",
+"click==8.1.7",
+"colorama==0.4.6",
+"dnspython==2.6.1",
+"email-validator>=2.1.1",
+"fastapi==0.111.0",
+"greenlet==3.0.3",
+"h11==0.14.0",
+"idna==3.6",
+"mako==1.3.2",
+"markupsafe==2.1.5",
+"psycopg2-binary==2.9.9",
+"pycparser==2.21",
+"pydantic[email]>=1.10.15",
+"pydantic-core==2.18.2",
+"python-dotenv==1.0.1",
+"redis==5.0.4",
+"requests==2.31.0",
+"sniffio==1.3.1",
+"sqlalchemy==2.0.30",
+"starlette==0.37.2",
+"typing-extensions==4.9.0",
+"urllib3~=2.0.7",
+"uvicorn>=0.29.0",
+"elevaitelib",
+"rbac_lib"
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.2.1"
-pytest-asyncio = "^0.23.7"
-pytest-cov = "^5.0.0"
+[tool.uv.sources]
+elevaitelib = { workspace = true }
+rbac_lib = { workspace = true }
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
