@@ -2,7 +2,7 @@
 
 ## Structure
 
-This repository utilizes [Turborepo](https://turbo.build/repo/docs) on NodeJS for JavaScript/TypeScript applications and packages and [Poetry](https://python-poetry.org/) for Python APIs and middleware programs.
+This repository utilizes [Turborepo](https://turbo.build/repo/docs) on NodeJS for JavaScript/TypeScript applications and packages and [uv](https://docs.astral.sh/uv/) for Python APIs and middleware programs.
 
 ### Turborepo Setup
 
