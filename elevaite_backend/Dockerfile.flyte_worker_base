@@ -13,23 +13,19 @@ ENV VENV /opt/venv
 RUN python3 -m venv ${VENV}
 ENV PATH="${VENV}/bin:$PATH"
 
-RUN pip install poetry
-
-ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1 \
-    POETRY_VIRTUALENVS_CREATE=1 \
-    POETRY_CACHE_DIR=/tmp/poetry_cache 
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # WORKDIR /elevaite
 
 COPY elevaite_client/ /root/elevaite_client
 WORKDIR /root/elevaite_client
-RUN poetry build
+RUN uv sync
 
 # Install Python dependencies
 COPY flyte-worker/requirements.txt /root
-RUN pip install -r /root/requirements.txt
-RUN pip install /root/elevaite_client/dist/elevaite_client-0.1.2-py3-none-any.whl
+RUN uv pip install -r /root/requirements.txt
+RUN uv pip install /root/elevaite_client/dist/elevaite_client-0.1.2-py3-none-any.whl
 
 # Copy the actual code
 # COPY flyte-worker /root

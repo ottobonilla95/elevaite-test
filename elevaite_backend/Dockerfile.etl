@@ -1,24 +1,20 @@
 FROM python:3.11-buster as builder
 
-RUN pip install poetry
-
-ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1 \
-    POETRY_VIRTUALENVS_CREATE=1 \
-    POETRY_CACHE_DIR=/tmp/poetry_cache
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 WORKDIR /elevaite
 COPY elevaitedblib ./elevaitedblib
-COPY elevaite_client  ./elevaite_client
+COPY elevaite_client ./elevaite_client
 COPY rbac-lib ./rbac-lib
 
 WORKDIR /elevaite/app
-COPY ./etl/pyproject.toml ./etl/poetry.lock ./
+COPY ./etl/pyproject.toml ./
 RUN touch README.md
 
 RUN ls -la
 
-RUN --mount=type=cache,target=$POETRY_CACHE_DIR poetry install --no-root
+RUN uv sync
 
 FROM python:3.11-slim-buster as runtime
 
@@ -29,13 +25,11 @@ COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 WORKDIR /elevaite
 COPY elevaitedblib ./elevaitedblib
-COPY elevaite_client  ./elevaite_client
+COPY elevaite_client ./elevaite_client
 COPY rbac-lib ./rbac-lib
 
 COPY ./etl/app ./app
-COPY ./etl/pyproject.toml ./etl/poetry.lock ./elevaitedblib ./elevaite_client ./rbac-lib ./
-
-
+COPY ./etl/pyproject.toml ./elevaitedblib ./elevaite_client ./rbac-lib ./
 
 EXPOSE 9004
 

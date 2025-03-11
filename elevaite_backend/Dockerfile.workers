@@ -2,18 +2,15 @@ FROM python:3.11-alpine
 RUN mkdir elevaite
 WORKDIR /elevaite
 
-RUN pip install poetry
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
-ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1 \
-    POETRY_VIRTUALENVS_CREATE=1 \
-    POETRY_CACHE_DIR=/tmp/poetry_cache
 
 # WORKDIR /elevaite
 
 COPY . .
 WORKDIR /elevaite/workers
 
-RUN poetry install && rm -rf $POETRY_CACHE_DIR
+RUN uv sync
 
-CMD ["poetry", "run", "python", "-u", "main.py"]
+CMD ["uv", "run", "python", "-u", "main.py"]

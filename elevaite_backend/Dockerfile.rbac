@@ -1,13 +1,13 @@
 FROM python:3.11-alpine
 RUN mkdir elevaite
 WORKDIR /elevaite
-RUN pip3 install poetry
-RUN poetry config virtualenvs.create false
-RUN pip install --no-cache-dir --upgrade uvicorn==0.23.2
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN uv pip install --no-cache-dir --upgrade uvicorn==0.23.2
 # Install dependencies
 COPY . .
 WORKDIR /elevaite/rbac
-RUN poetry install
+RUN uv sync
 
 WORKDIR /elevaite/rbac/rbac_api
 EXPOSE 9005
