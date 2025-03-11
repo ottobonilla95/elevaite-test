@@ -1,6 +1,6 @@
 ## Installation
 
-Add as your Poetry or UV dependency or include in your `requirements.txt` as an editable:
+Add as your UV dependency or include in your `requirements.txt` as an editable:
 
 ```txt
 -e path/to/llm-gateway
