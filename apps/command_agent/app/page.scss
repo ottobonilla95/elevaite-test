@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Basic reset for proper spacing and scrolling */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, 
+body {
+  height: 100%;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Container styles with proper scrolling */
+.chatbot-layout-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  overflow-y: auto;
+  position: relative;
+  padding-top: var(--navbar-height, 52px); /* Ensure content starts below navbar */
+}
+
+.chatbot-main-container {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  width: 100%;
+  padding-bottom: 4rem;
+  margin-top: 1rem;
+}
+
+/* Base variables */
+:root {
+  --sidebar-width: 48px;
+  --navbar-height: 52px;
+  --orange-primary: #ff5722;
+  --orange-secondary: #ff7043;
+}
+
+/* Ensure all wrappers allow scrolling */
+#__next,
+.appContainer,
+main,
+[data-overlay-container="true"] {
+  min-height: 100vh;
+  height: auto !important;
+  overflow-y: auto !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fix navbar positioning */
+.NavBar, 
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background-color: #1a1a2e;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Dark mode specific styles */
+.dark {
+  --tw-bg-opacity: 1;
+  background-color: rgba(17, 24, 39, var(--tw-bg-opacity));
+  color: rgba(243, 244, 246, var(--tw-text-opacity));
+}
+
+/* Custom gradient text for IOPEX branding */
+.iopex-gradient-text {
+  @apply font-bold;
+  background: linear-gradient(to right, #ff5722, #ff9800);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Custom shadow for cards */
+.iopex-card {
+  @apply rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 10px -5px rgba(0, 0, 0, 0.06);
+  }
+}
+
+/* Form element styling */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+select,
+textarea {
+  @apply w-full p-2 rounded-md border transition-colors duration-200;
+  @apply border-gray-300 dark:border-gray-600;
+  @apply bg-white dark:bg-gray-700;
+  @apply text-gray-900 dark:text-gray-100;
+  
+  &:focus {
+    @apply outline-none ring-2 ring-orange-500 border-transparent;
+  }
+  
+  &::placeholder {
+    @apply text-gray-400 dark:text-gray-500;
+  }
+}
+
+/* Range input styling */
+input[type="range"] {
+  @apply appearance-none w-full h-2 rounded-lg;
+  @apply bg-gray-200 dark:bg-gray-700;
+  
+  &::-webkit-slider-thumb {
+    @apply appearance-none w-4 h-4 rounded-full bg-orange-500;
+    @apply cursor-pointer;
+  }
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  @apply h-4 w-4 text-orange-500 rounded;
+  @apply focus:ring-orange-500 border-gray-300;
+}
+
+/* Button styling */
+button[type="submit"] {
+  @apply inline-flex items-center justify-center px-8 py-3 rounded-md;
+  @apply text-white font-medium;
+  @apply bg-gradient-to-r from-orange-500 to-orange-600;
+  @apply hover:from-orange-600 hover:to-orange-700;
+  @apply transition-colors duration-200;
+  @apply focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2;
+}
+
+/* Responsive containers */
+.container-responsive {
+  @apply w-full max-w-4xl mx-auto px-4 sm:px-6;
+}
+
+/* Fix content padding for scrolling */
+.content-area {
+  padding-bottom: 120px; /* Extra padding at bottom for better UX */
+}
+
+/* Fix for dark mode toggle */
+.dark-mode-toggle {
+  @apply rounded-full p-2 text-gray-400 hover:text-white;
+  @apply focus:outline-none focus:ring-2 focus:ring-orange-500;
+}
+
+/* Ensure footer stays at bottom */
+footer {
+  @apply mt-auto py-4;
+}
