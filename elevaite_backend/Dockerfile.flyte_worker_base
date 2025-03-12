@@ -13,17 +13,26 @@ ENV VENV /opt/venv
 RUN python3 -m venv ${VENV}
 ENV PATH="${VENV}/bin:$PATH"
 
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+# The installer requires curl (and certificates) to download the release archive
+RUN apt-get install -y --no-install-recommends curl ca-certificates
+
+# Download the latest installer
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+
+# Run the installer then remove it
+RUN sh /uv-installer.sh && rm /uv-installer.sh
+
+# Ensure the installed binary is on the `PATH`
+ENV PATH="/root/.local/bin/:$PATH"
 
 # WORKDIR /elevaite
 
-COPY elevaite_client/ /root/elevaite_client
+COPY ./elevaite_backend/elevaite_client/ /root/elevaite_client
 WORKDIR /root/elevaite_client
 RUN uv sync
 
 # Install Python dependencies
-COPY flyte-worker/requirements.txt /root
+COPY ./elevaite_backend/flyte-worker/requirements.txt /root
 RUN uv pip install -r /root/requirements.txt
 RUN uv pip install /root/elevaite_client/dist/elevaite_client-0.1.2-py3-none-any.whl
 

@@ -2,15 +2,22 @@ FROM python:3.11-alpine
 RUN mkdir elevaite
 WORKDIR /elevaite
 
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+# The installer requires curl (and certificates) to download the release archive
+RUN apk update && apk upgrade && apk add --no-cache curl ca-certificates
 
+# Download the latest installer
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
 
-# WORKDIR /elevaite
+# Run the installer then remove it
+RUN sh /uv-installer.sh && rm /uv-installer.sh
 
-COPY . .
-WORKDIR /elevaite/workers
+# Ensure the installed binary is on the `PATH`
+ENV PATH="/root/.local/bin/:$PATH"
+
+COPY ./elevaite_backend ./elevaite_backend
+COPY ./pyproject.toml ./
 
 RUN uv sync
 
+WORKDIR /elevaite/elevaite_backend/workers
 CMD ["uv", "run", "python", "-u", "main.py"]

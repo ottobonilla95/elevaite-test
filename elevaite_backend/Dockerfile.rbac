@@ -1,15 +1,25 @@
 FROM python:3.11-alpine
 RUN mkdir elevaite
 WORKDIR /elevaite
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-RUN uv pip install --no-cache-dir --upgrade uvicorn==0.23.2
+# The installer requires curl (and certificates) to download the release archive
+RUN apk update && apk upgrade && apk add --no-cache curl ca-certificates
+
+# Download the latest installer
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+
+# Run the installer then remove it
+RUN sh /uv-installer.sh && rm /uv-installer.sh
+
+# Ensure the installed binary is on the `PATH`
+ENV PATH="/root/.local/bin/:$PATH"
+RUN uv pip install --no-cache-dir --upgrade uvicorn==0.23.2 --system
 # Install dependencies
-COPY . .
-WORKDIR /elevaite/rbac
+COPY ./elevaite_backend ./elevaite_backend
+COPY ./pyproject.toml ./
+
 RUN uv sync
 
-WORKDIR /elevaite/rbac/rbac_api
+WORKDIR /elevaite/elevaite_backend/rbac/rbac_api
 EXPOSE 9005
 ENV PORT 9005
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9005"]

@@ -1,35 +1,47 @@
 FROM python:3.11-buster as builder
 
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+# The installer requires curl (and certificates) to download the release archive
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates
+
+# Download the latest installer
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+
+# Run the installer then remove it
+RUN sh /uv-installer.sh && rm /uv-installer.sh
+
+# Ensure the installed binary is on the `PATH`
+ENV PATH="/root/.local/bin/:$PATH"
 
 WORKDIR /elevaite
-COPY elevaitedblib ./elevaitedblib
-COPY elevaite_client ./elevaite_client
-COPY rbac-lib ./rbac-lib
+COPY ./elevaite_backend/elevaitedblib ./elevaite_backend/elevaitedblib
+COPY ./elevaite_backend/elevaite_client ./elevaite_backend/elevaite_client
+COPY ./elevaite_backend/rbac-lib ./elevaite_backend/rbac-lib
+COPY ./pyproject.toml ./
 
-WORKDIR /elevaite/app
-COPY ./etl/pyproject.toml ./
+RUN uv sync
+
+WORKDIR /elevaite/elevaite_backend/app
+COPY ./elevaite_backend/etl/pyproject.toml ./
 RUN touch README.md
 
 RUN ls -la
 
-RUN uv sync
+RUN uv venv --python 3.11
 
 FROM python:3.11-slim-buster as runtime
 
-ENV VIRTUAL_ENV=/elevaite/app/.venv \
-    PATH="/elevaite/app/.venv/bin:$PATH"
+ENV VIRTUAL_ENV=/elevaite/elevaite_backend/app/.venv \
+    PATH="/elevaite/elevaite_backend/app/.venv/bin:$PATH"
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 WORKDIR /elevaite
-COPY elevaitedblib ./elevaitedblib
-COPY elevaite_client ./elevaite_client
-COPY rbac-lib ./rbac-lib
+COPY ./elevaite_backend/elevaitedblib ./elevaite_backendelevaitedblib
+COPY ./elevaite_backend/elevaite_client ./elevaite_backend/elevaite_client
+COPY ./elevaite_backend/rbac-lib ./elevaite_backend/rbac-lib
 
-COPY ./etl/app ./app
-COPY ./etl/pyproject.toml ./elevaitedblib ./elevaite_client ./rbac-lib ./
+COPY ./elevaite_backend/etl/app ./elevaite_backend/app
+COPY ./elevaite_backend/etl/pyproject.toml ./elevaite_backend/elevaitedblib ./elevaite_backend/elevaite_client ./elevaite_backend/rbac-lib ./
 
 EXPOSE 9004
 

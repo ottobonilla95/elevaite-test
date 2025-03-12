@@ -1,8 +1,8 @@
 services:
   etl:
     build:
-      context: ./elevaite_backend
-      dockerfile: ./Dockerfile.etl
+      context: .
+      dockerfile: ./elevaite_backend/Dockerfile.etl
     environment:
       SQLALCHEMY_DATABASE_URL: ${ETL_DATABASE_URL}
       QDRANT_URL: ${QDRANT_URL}
@@ -27,8 +27,8 @@ services:
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
   rbac:
     build:
-      context: ./elevaite_backend
-      dockerfile: ./Dockerfile.rbac
+      context: .
+      dockerfile: ./elevaite_backend/Dockerfile.rbac
     environment:
       SQLALCHEMY_DATABASE_URL: ${RBAC_DATABASE_URL}
       FUSIONAUTH_URL: ${FUSIONAUTH_URL}
@@ -47,8 +47,8 @@ services:
       REDIS_USERNAME: ${REDIS_USERNAME}
   workers:
     build:
-      context: ./elevaite_backend
-      dockerfile: ./Dockerfile.workers
+      context: .
+      dockerfile: ./elevaite_backend/Dockerfile.workers
     environment:
       SQLALCHEMY_DATABASE_URL: ${ETL_DATABASE_URL}
       QDRANT_URL: ${QDRANT_URL}
