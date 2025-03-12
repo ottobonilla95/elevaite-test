@@ -12,3 +12,4 @@ dependencies = []
 
 [tool.uv.workspace]
 members = ["elevaite_backend/*"]
+exclude = ["elevaite_backend/rbac-legacy"]
