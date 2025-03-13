@@ -359,22 +359,53 @@ def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfil
 
     # Create the Dockerfile
     with open(dockerfile_path, "w") as dockerfile:
-        dockerfile.write("FROM ghcr.io/astral-sh/uv:0.6.5\n")
-        dockerfile.write("ENV DEBIAN_FRONTEND=noninteractive\n")
+        dockerfile.write("FROM alpine:3.20\n")
 
-        # Instruct uv to use python3 as the interpreter
-        # dockerfile.write("ENV UV_PYTHON=python3\n")
+        # Install required packages for
+        dockerfile.write(
+            """
+RUN apk add --no-cache \
+    curl \
+    ca-certificates \
+    gcc \
+    musl-dev \
+    linux-headers
+"""
+        )
 
+        # Ensure we use GCC instead of musl-clang
+        dockerfile.write(
+            """
+ENV CC=gcc
+ENV CXX=g++
+"""
+        )
+
+        # Install uv package manager
+        dockerfile.write(
+            """
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+RUN sh /uv-installer.sh && rm /uv-installer.sh
+"""
+        )
+
+        dockerfile.write("ENV PATH=/root/.local/bin:$PATH\n")
+
+        # Create a virtual environment explicitly
+        dockerfile.write("RUN uv venv --python 3.10\n")
+
+        # Install sagemaker-training
+        dockerfile.write("RUN uv pip install sagemaker-training\n")
+
+        # Copy project code to container
         dockerfile.write("COPY . /opt/ml/processing/code/\n")
         dockerfile.write("WORKDIR /opt/ml/processing/code\n")
-        dockerfile.write("ENV PYTHONPATH=/opt/ml/processing/code:$PYTHONPATH\n")
 
         # Build the command: run uv sync at container startup and then run each pyscript
         cmd_parts = []
         for task in pipeline_def["tasks"]:
             if task["task_type"] == "pyscript":
                 script_path = task["src"]
-                # Compute the relative path from the project root to the script
                 relative_script_path = os.path.relpath(script_path, project_root)
                 cmd_parts.append(f"uv run ./{relative_script_path}")
 
