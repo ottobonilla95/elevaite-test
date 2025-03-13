@@ -1,5 +1,6 @@
 from .providers.sagemaker import SageMakerPipelineProvider
-from .providers.airflow import AirflowPipelineProvider
+
+# from .providers.airflow import AirflowPipelineProvider
 from .interfaces.pipeline_types import ProviderType
 from typing import List, Dict, Any
 
@@ -16,7 +17,8 @@ def create_pipelines_for_provider(
         if provider_type == ProviderType.SAGEMAKER:
             pipeline_provider = SageMakerPipelineProvider()
         elif provider_type == ProviderType.AIRFLOW:
-            pipeline_provider = AirflowPipelineProvider()
+            # pipeline_provider = AirflowPipelineProvider()
+            pass
         else:
             return {
                 "code": 400,
@@ -47,7 +49,8 @@ def delete_pipelines_for_provider(
         if provider_type == ProviderType.SAGEMAKER:
             pipeline_provider = SageMakerPipelineProvider()
         elif provider_type == ProviderType.AIRFLOW:
-            pipeline_provider = AirflowPipelineProvider()
+            # pipeline_provider = AirflowPipelineProvider()
+            pass
         else:
             return {
                 "code": 400,
@@ -78,7 +81,8 @@ def monitor_pipelines_for_provider(
         if provider_type == ProviderType.SAGEMAKER:
             pipeline_provider = SageMakerPipelineProvider()
         elif provider_type == ProviderType.AIRFLOW:
-            pipeline_provider = AirflowPipelineProvider()
+            # pipeline_provider = AirflowPipelineProvider()
+            pass
         else:
             return {
                 "code": 400,
@@ -107,7 +111,8 @@ def rerun_pipelines_for_provider(
         if provider_type == ProviderType.SAGEMAKER:
             pipeline_provider = SageMakerPipelineProvider()
         elif provider_type == ProviderType.AIRFLOW:
-            pipeline_provider = AirflowPipelineProvider()
+            # pipeline_provider = AirflowPipelineProvider()
+            pass
         else:
             return {
                 "code": 400,
