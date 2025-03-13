@@ -359,25 +359,17 @@ def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfil
 
     # Create the Dockerfile
     with open(dockerfile_path, "w") as dockerfile:
-        dockerfile.write("FROM alpine:3.20\n")
+        dockerfile.write("FROM python:3.10-slim\n")
 
-        # Install required packages for
+        # Install required packages
         dockerfile.write(
             """
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     gcc \
-    musl-dev \
-    linux-headers
-"""
-        )
-
-        # Ensure we use GCC instead of musl-clang
-        dockerfile.write(
-            """
-ENV CC=gcc
-ENV CXX=g++
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 """
         )
 
@@ -392,14 +384,22 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
         dockerfile.write("ENV PATH=/root/.local/bin:$PATH\n")
 
         # Create a virtual environment explicitly
-        dockerfile.write("RUN uv venv --python 3.10\n")
+        dockerfile.write("RUN uv venv /opt/venv\n")
 
-        # Install sagemaker-training
-        dockerfile.write("RUN uv pip install sagemaker-training\n")
+        # Make sure we activate the venv in all operations
+        dockerfile.write("ENV PATH=/opt/venv/bin:$PATH\n")
 
-        # Copy project code to container
-        dockerfile.write("COPY . /opt/ml/processing/code/\n")
+        dockerfile.write("RUN uv pip install sagemaker-training python-dotenv\n")
+
+        # Copy project code to the container
+        relative_project_root = os.path.relpath(project_root, os.getcwd())
+        dockerfile.write(f"COPY {relative_project_root} /opt/ml/processing/code/\n")
+
         dockerfile.write("WORKDIR /opt/ml/processing/code\n")
+
+        dockerfile.write("ENV PYTHONPATH=/opt/ml/processing/code:$PYTHONPATH\n")
+
+        dockerfile.write("RUN uv sync\n")
 
         # Build the command: run uv sync at container startup and then run each pyscript
         cmd_parts = []
@@ -410,7 +410,7 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
                 cmd_parts.append(f"uv run ./{relative_script_path}")
 
         if cmd_parts:
-            full_cmd = "uv sync && " + " && ".join(cmd_parts)
+            full_cmd = " && ".join(cmd_parts)
             dockerfile.write(f'CMD ["sh", "-c", "{full_cmd}"]\n')
 
     print(f"[DEBUG] Dockerfile created at {dockerfile_path}")
