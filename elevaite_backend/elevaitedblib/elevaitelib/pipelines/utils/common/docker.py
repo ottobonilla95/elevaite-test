@@ -359,17 +359,16 @@ def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfil
 
     # Create the Dockerfile
     with open(dockerfile_path, "w") as dockerfile:
-        dockerfile.write("FROM python:3.10-slim\n")
+        dockerfile.write("FROM debian:bullseye-slim\n")
 
-        # Install required packages
+        # Install uv
         dockerfile.write(
             """
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    ca-certificates \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \\
+    curl \\
+    ca-certificates \\
+    gcc \\
+    build-essential && rm -rf /var/lib/apt/lists/*
 """
         )
 
@@ -383,22 +382,21 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
 
         dockerfile.write("ENV PATH=/root/.local/bin:$PATH\n")
 
-        # Create a virtual environment explicitly
-        dockerfile.write("RUN uv venv /opt/venv\n")
-
-        # Make sure we activate the venv in all operations
-        dockerfile.write("ENV PATH=/opt/venv/bin:$PATH\n")
-
-        dockerfile.write("RUN uv pip install sagemaker-training python-dotenv\n")
-
         # Copy project code to the container
         relative_project_root = os.path.relpath(project_root, os.getcwd())
         dockerfile.write(f"COPY {relative_project_root} /opt/ml/processing/code/\n")
 
         dockerfile.write("WORKDIR /opt/ml/processing/code\n")
-
         dockerfile.write("ENV PYTHONPATH=/opt/ml/processing/code:$PYTHONPATH\n")
 
+        # Create and activate virtual environment
+        dockerfile.write("RUN uv venv\n")
+        dockerfile.write("ENV PATH=/opt/ml/processing/code/.venv/bin:$PATH\n")
+
+        # TODO: deal with this later
+        dockerfile.write("RUN uv pip install python-dotenv\n")
+
+        # Sync
         dockerfile.write("RUN uv sync\n")
 
         # Build the command: run uv sync at container startup and then run each pyscript
@@ -413,7 +411,7 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
             full_cmd = " && ".join(cmd_parts)
             dockerfile.write(f'CMD ["sh", "-c", "{full_cmd}"]\n')
 
-    print(f"[DEBUG] Dockerfile created at {dockerfile_path}")
+    print(f"Dockerfile created at {dockerfile_path}")
 
 
 # def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfile"):
