@@ -6,7 +6,7 @@ import boto3
 from datetime import datetime
 from typing import Dict, Any, Union
 
-from elevaitelib.pipelines.utils.common.cloudwatch import monitor_pipeline
+from common.cloudwatch import monitor_pipeline
 
 REQUIRED_ENV_VARS = [
     "AWS_ACCESS_KEY_ID",

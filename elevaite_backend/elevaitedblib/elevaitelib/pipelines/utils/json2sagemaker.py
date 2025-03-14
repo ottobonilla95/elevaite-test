@@ -9,12 +9,10 @@ from sagemaker.session import Session
 from sagemaker.workflow.pipeline import Pipeline
 from sagemaker.workflow.steps import ProcessingStep
 
-from elevaitelib.pipelines.utils.common.cloudwatch import monitor_pipeline
-from elevaitelib.pipelines.utils.common.docker import (
+from common.cloudwatch import monitor_pipeline
+from common.docker import (
     create_dockerfile,
     get_cached_processor,
-    remove_docker_image,
-    shutdown_processors,
 )
 
 
@@ -301,11 +299,12 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict, watch: bool = True)
 
     finally:
         # Remove the temporary Dockerfile and the local Docker image.
-        if os.path.exists(dockerfile_path):
-            os.remove(dockerfile_path)
-            print(f"Deleted the Dockerfile at {dockerfile_path}")
-        remove_docker_image(image_name)
-        shutdown_processors()
+        # if os.path.exists(dockerfile_path):
+        #     os.remove(dockerfile_path)
+        #     print(f"Deleted the Dockerfile at {dockerfile_path}")
+        # remove_docker_image(image_name)
+        # shutdown_processors()
+        pass
 
 
 if __name__ == "__main__":
