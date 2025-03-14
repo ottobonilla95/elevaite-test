@@ -594,16 +594,12 @@ def get_cached_processor(
             },
         )
         CACHED_PROCESSORS[key] = processor
-        print(
-            "⚠️⚠️ WARNING: A PERSISTENT CONTAINER HAS BEEN INITIALIZED. REMEMBER TO CALL shutdown_processors() AT THE END OF YOUR PIPELINE EXECUTION! ⚠️⚠️"
-        )
     return CACHED_PROCESSORS[key]
 
 
 def shutdown_processors():
     """
     Shutdowns (clears) all cached processors.
-    REMINDER: ⚠️⚠️ YOU MUST CALL shutdown_processors() ONCE PER PIPELINE EXECUTION TO RELEASE RESOURCES! ⚠️⚠️
     """
     global CACHED_PROCESSORS
     CACHED_PROCESSORS.clear()

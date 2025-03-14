@@ -13,6 +13,7 @@ from common.cloudwatch import monitor_pipeline
 from common.docker import (
     create_dockerfile,
     get_cached_processor,
+    shutdown_processors,
 )
 
 
@@ -303,7 +304,7 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict, watch: bool = True)
         #     os.remove(dockerfile_path)
         #     print(f"Deleted the Dockerfile at {dockerfile_path}")
         # remove_docker_image(image_name)
-        # shutdown_processors()
+        shutdown_processors()
         pass
 
 
