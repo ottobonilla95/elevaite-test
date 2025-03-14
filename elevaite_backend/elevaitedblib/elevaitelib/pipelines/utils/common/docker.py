@@ -403,15 +403,6 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
         if not dependencies:
             dockerfile.write("RUN uv sync\n")
 
-        # Build the command: run uv sync at container startup and execute the script
-        if task["task_type"] == "pyscript":
-            relative_script_path = os.path.relpath(
-                task["src"], start=os.path.dirname(project_root)
-            )
-            dockerfile.write(
-                f'CMD ["sh", "-c", "uv sync && uv run ./{relative_script_path}"]\n'
-            )
-
     print(f"Dockerfile created at {dockerfile_path}")
 
 

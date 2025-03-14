@@ -116,17 +116,11 @@ def create_pipeline(
         # Use a cached processor for the given command type
         processor = get_cached_processor(container_image, command, instance_type, role)
 
-        # Resolve explicit dependencies.
-        depends_on = [
-            steps[dep] for dep in task.get("dependencies", []) if dep in steps
-        ]
-
         step = ProcessingStep(
             name=task_id,
             processor=processor,
             code=task["src"],
             job_arguments=job_args,
-            depends_on=depends_on,
         )
 
         # Truncate job_name after it got processed
