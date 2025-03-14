@@ -5,7 +5,7 @@ from .base import PipelineProvider
 from ..utils.common.docker import remove_docker_image as delete
 from ..utils.json2sagemaker import (
     load_pipeline_definition,
-    run_pipeline_with_dynamic_dockerfile,
+    run_tasks_from_json,
     monitor_pipeline,
 )
 
@@ -19,7 +19,7 @@ class SageMakerPipelineProvider(PipelineProvider):
 
         def run_pipeline(file_path: str):
             pipeline_def = load_pipeline_definition(file_path)
-            run_pipeline_with_dynamic_dockerfile(pipeline_def=pipeline_def, watch=False)
+            run_tasks_from_json(pipeline_def=pipeline_def, watch=False)
 
         for file_path in file_paths:
             thread = threading.Thread(target=run_pipeline, args=(file_path,))
@@ -76,7 +76,7 @@ class SageMakerPipelineProvider(PipelineProvider):
 
         def rerun_pipeline(execution_arn: str):
             pipeline_def = load_pipeline_definition(execution_arn)
-            run_pipeline_with_dynamic_dockerfile(pipeline_def=pipeline_def, watch=False)
+            run_tasks_from_json(pipeline_def=pipeline_def, watch=False)
 
         for execution_arn in execution_arns:
             thread = threading.Thread(target=rerun_pipeline, args=(execution_arn))

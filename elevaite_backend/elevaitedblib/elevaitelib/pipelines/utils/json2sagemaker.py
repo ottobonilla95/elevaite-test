@@ -191,13 +191,13 @@ def start_pipeline(pipeline: Pipeline, parameters: dict = {}):
     return pipeline.start(parameters=parameters)
 
 
-def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict, watch: bool = True):
-    dockerfile_path = "/tmp/Dockerfile"
+def run_tasks_from_json(pipeline_def: dict, watch: bool = True):
+    """Scans for dependencies, builds Docker images per task, and pushes them one by one."""
 
-    # Create the Dockerfile dynamically based on pipeline definition
-    create_dockerfile(pipeline_def, dockerfile_path)
+    if "tasks" not in pipeline_def or not pipeline_def["tasks"]:
+        raise ValueError("Pipeline definition must contain at least one task.")
 
-    # Get environment variables from the current environment
+    # Get required environment variables
     aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
     aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
     aws_region = os.getenv("AWS_REGION")
@@ -211,101 +211,109 @@ def run_pipeline_with_dynamic_dockerfile(pipeline_def: dict, watch: bool = True)
         or not aws_role_arn
         or not ecr_base_repo
     ):
-        raise OSError(
-            "Missing environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_ROLE_ARN, ECR_BASE_REPO_URL"
-        )
+        raise OSError("Missing required AWS environment variables.")
 
-    image_tag = "latest"
     ecr_base_repo = ecr_base_repo.rstrip("/")
-    image_name = f"{ecr_base_repo}:{image_tag}"
 
-    try:
-        registry = ecr_base_repo.split("/")[0]
-        print(f"Logging in to ECR registry {registry}...")
-        login_cmd = f"aws ecr get-login-password --region {aws_region} | docker login --username AWS --password-stdin {registry}"
-        subprocess.run(login_cmd, shell=True, check=True)
+    for idx, task in enumerate(pipeline_def["tasks"]):
+        task_name = task.get("name", f"task_{idx}")
+        dockerfile_path = f"/tmp/Dockerfile_{task_name}"
+        image_name = f"{ecr_base_repo}:latest"
 
-        print(f"Building Docker image {image_name} from {dockerfile_path}...")
+        print(f"\nProcessing Task: {task_name} | Creating Dockerfile...\n")
 
-        process = subprocess.Popen(
-            [
-                "docker",
-                "build",
-                "--progress=plain",
-                "-t",
-                image_name,
-                "-f",
-                dockerfile_path,
-                "--build-arg",
-                f"AWS_ACCESS_KEY_ID={aws_access_key}",
-                "--build-arg",
-                f"AWS_SECRET_ACCESS_KEY={aws_secret_key}",
-                "--build-arg",
-                f"AWS_REGION={aws_region}",
-                "--build-arg",
-                f"AWS_ROLE_ARN={aws_role_arn}",
-                ".",
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
+        # Dynamically create Dockerfile for this task
+        create_dockerfile(task, dockerfile_path)
 
-        assert process.stdout is not None
+        try:
+            registry = ecr_base_repo.split("/")[0]
+            print(f"\nLogging in to ECR registry {registry}...")
+            login_cmd = f"aws ecr get-login-password --region {aws_region} | docker login --username AWS --password-stdin {registry}"
+            subprocess.run(login_cmd, shell=True, check=True)
 
-        for line in process.stdout:
-            print(line, end="")
+            print(f"\nBuilding Docker image {image_name} from {dockerfile_path}...\n")
 
-        process.wait()
+            process = subprocess.Popen(
+                [
+                    "docker",
+                    "build",
+                    "--progress=plain",
+                    "-t",
+                    image_name,
+                    "-f",
+                    dockerfile_path,
+                    "--build-arg",
+                    f"AWS_ACCESS_KEY_ID={aws_access_key}",
+                    "--build-arg",
+                    f"AWS_SECRET_ACCESS_KEY={aws_secret_key}",
+                    "--build-arg",
+                    f"AWS_REGION={aws_region}",
+                    "--build-arg",
+                    f"AWS_ROLE_ARN={aws_role_arn}",
+                    ".",
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
 
-        print(f"Docker build output:\n{process.stdout}")
-        if process.stderr:
-            print(f"Docker build errors:\n{process.stderr}")
+            assert process.stdout is not None
 
-        # Push the built Docker image to ECR.
-        print(f"Pushing Docker image {image_name} to ECR...")
-        push_result = subprocess.run(
-            ["docker", "push", image_name],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        print(f"Docker push output:\n{push_result.stdout}")
-        if push_result.stderr:
-            print(f"Docker push errors:\n{push_result.stderr}")
+            for line in process.stdout:
+                print(line, end="")
 
-        # Use the pushed image in the SageMaker pipeline.
-        pipeline = create_pipeline(
-            pipeline_def,
-            persist_job_name_flag=True,
-            container_image=image_name,
-            instance_type="ml.m5.xlarge",
-        )
+            process.wait()
 
-        upsert_response = upsert_pipeline(pipeline)
-        print("Upsert response:", upsert_response)
+            print(f"\nDocker build completed for {task_name}.\n")
 
-        execution = start_pipeline(pipeline)
-        execution_arn = execution.arn
-        print(f"Pipeline started. Execution ARN: {execution_arn}")
+            # Push the built Docker image to ECR.
+            print(f"\nPushing Docker image {image_name} to ECR...\n")
+            push_result = subprocess.run(
+                ["docker", "push", image_name],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            print(f"Docker push output:\n{push_result.stdout}")
 
-        if watch:
-            monitor_pipeline(execution_arn)
+            # If errors occur, log them
+            if push_result.stderr:
+                print(f"Docker push errors:\n{push_result.stderr}")
 
-    except subprocess.CalledProcessError as e:
-        print(f"Error during Docker operations: {e}")
-        print(f"Output:\n{e.stdout}")
-        print(f"Error:\n{e.stderr}")
-        raise e
+            # Run the pipeline for this task using the pushed image
+            print(f"\nCreating pipeline for task: {task_name}...\n")
+            pipeline = create_pipeline(
+                {"tasks": [task]},
+                persist_job_name_flag=True,
+                container_image=image_name,
+                instance_type="ml.m5.xlarge",
+            )
 
-    finally:
-        # Remove the temporary Dockerfile and the local Docker image.
-        # if os.path.exists(dockerfile_path):
-        #     os.remove(dockerfile_path)
-        #     print(f"Deleted the Dockerfile at {dockerfile_path}")
-        # remove_docker_image(image_name)
-        shutdown_processors()
-        pass
+            upsert_response = upsert_pipeline(pipeline)
+            print(f"Upsert response for {task_name}: {upsert_response}")
+
+            execution = start_pipeline(pipeline)
+            execution_arn = execution.arn
+            print(f"Pipeline started for {task_name}. Execution ARN: {execution_arn}")
+
+            if watch:
+                monitor_pipeline(execution_arn)
+
+        except subprocess.CalledProcessError as e:
+            print(f"Error during Docker operations for task {task_name}: {e}")
+            print(f"Output:\n{e.stdout}")
+            print(f"Error:\n{e.stderr}")
+            raise e
+
+        finally:
+            # Cleanup: remove Dockerfile
+            if os.path.exists(dockerfile_path):
+                os.remove(dockerfile_path)
+                print(f"Deleted temporary Dockerfile: {dockerfile_path}")
+            # remove_docker_image(image_name)
+            shutdown_processors()
+
+    print("\nAll tasks have been processed successfully!\n")
 
 
 if __name__ == "__main__":
@@ -319,7 +327,7 @@ if __name__ == "__main__":
     )
 
     pipeline_def = load_pipeline_definition(json_file)
-    run_pipeline_with_dynamic_dockerfile(pipeline_def)
+    run_tasks_from_json(pipeline_def)
     # pipeline = create_pipeline(pipeline_def, persist_job_name_flag=persist_flag)
     # upsert_response = upsert_pipeline(pipeline)
 

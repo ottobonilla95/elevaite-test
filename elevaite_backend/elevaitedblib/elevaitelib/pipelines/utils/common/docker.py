@@ -346,15 +346,14 @@ def find_project_root(script_path: str) -> str:
     return project_root
 
 
-def create_dockerfile(pipeline_def: dict, dockerfile_path: str = "/tmp/Dockerfile"):
-    """Dynamically create a Dockerfile based on the pipeline definition with `uv`."""
+def create_dockerfile(task: dict, dockerfile_path: str = "/tmp/Dockerfile"):
+    """Dynamically create a Dockerfile based on a single task definition with `uv`."""
 
-    if not pipeline_def.get("tasks"):
-        raise ValueError("Pipeline definition must have tasks with 'src' paths")
+    if "src" not in task:
+        raise ValueError("Task definition must include a 'src' path.")
 
-    # Derive the project root from the first task's source file
-    first_task_src = pipeline_def["tasks"][0]["src"]
-    project_root = find_project_root(first_task_src)
+    # Derive the project root from the task's source file
+    project_root = find_project_root(task["src"])
     print(f"Project root identified as: {project_root}")
 
     # Create the Dockerfile
@@ -395,28 +394,21 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
 
         dockerfile.write("RUN uv pip install python-dotenv\n")
 
-        # Check for dependencies and install them
-        for task in pipeline_def["tasks"]:
-            dependencies = task.get("dependencies")
-            if dependencies:
-                for dependency in dependencies:
-                    dockerfile.write(f"RUN uv pip install {dependency}\n")
+        # Install dependencies if provided
+        dependencies = task.get("dependencies", [])
+        for dependency in dependencies:
+            dockerfile.write(f"RUN uv pip install {dependency}\n")
 
-        # If dependencies are not provided, use sync
-        if not any(task.get("dependencies") for task in pipeline_def["tasks"]):
+        # If no dependencies are provided, use sync
+        if not dependencies:
             dockerfile.write("RUN uv sync\n")
 
-        # Build the command: run uv sync at container startup and then run each pyscript
-        cmd_parts = []
-        for task in pipeline_def["tasks"]:
-            if task["task_type"] == "pyscript":
-                script_path = task["src"]
-                relative_script_path = os.path.relpath(script_path, project_root)
-                cmd_parts.append(f"uv run ./{relative_script_path}")
-
-        if cmd_parts:
-            full_cmd = " && ".join(cmd_parts)
-            dockerfile.write(f'CMD ["sh", "-c", "{full_cmd}"]\n')
+        # Build the command: run uv sync at container startup and execute the script
+        if task["task_type"] == "pyscript":
+            relative_script_path = os.path.relpath(task["src"], project_root)
+            dockerfile.write(
+                f'CMD ["sh", "-c", "uv sync && uv run ./{relative_script_path}"]\n'
+            )
 
     print(f"Dockerfile created at {dockerfile_path}")
 
