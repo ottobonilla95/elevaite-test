@@ -217,13 +217,20 @@ def run_tasks_from_json(pipeline_def: dict, watch: bool = True):
 
     for idx, task in enumerate(pipeline_def["tasks"]):
         task_name = task.get("name", f"task_{idx}")
-        dockerfile_path = f"/tmp/Dockerfile_{task_name}"
+        dockerfile_path = task.get("dockerfile")
+
+        if dockerfile_path and os.path.exists(dockerfile_path):
+            print(
+                f"\nUsing provided Dockerfile for task {task_name}: {dockerfile_path}\n"
+            )
+        else:
+            dockerfile_path = f"/tmp/Dockerfile_{task_name}"
+            print(
+                f"\nNo valid Dockerfile provided. Creating one for task {task_name} at {dockerfile_path}...\n"
+            )
+            create_dockerfile(task, dockerfile_path)
+
         image_name = f"{ecr_base_repo}:latest"
-
-        print(f"\nProcessing Task: {task_name} | Creating Dockerfile...\n")
-
-        # Dynamically create Dockerfile for this task
-        create_dockerfile(task, dockerfile_path)
 
         try:
             registry = ecr_base_repo.split("/")[0]
@@ -307,7 +314,7 @@ def run_tasks_from_json(pipeline_def: dict, watch: bool = True):
 
         finally:
             # Cleanup: remove Dockerfile
-            if os.path.exists(dockerfile_path):
+            if not task.get("dockerfile") and os.path.exists(dockerfile_path):
                 os.remove(dockerfile_path)
                 print(f"Deleted temporary Dockerfile: {dockerfile_path}")
             # remove_docker_image(image_name)
