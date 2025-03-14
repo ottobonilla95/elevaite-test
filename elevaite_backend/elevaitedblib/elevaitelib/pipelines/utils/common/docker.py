@@ -393,11 +393,18 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
         dockerfile.write("RUN uv venv\n")
         dockerfile.write("ENV PATH=/opt/ml/processing/code/.venv/bin:$PATH\n")
 
-        # TODO: deal with this later
         dockerfile.write("RUN uv pip install python-dotenv\n")
 
-        # Sync
-        dockerfile.write("RUN uv sync\n")
+        # Check for dependencies and install them
+        for task in pipeline_def["tasks"]:
+            dependencies = task.get("dependencies")
+            if dependencies:
+                for dependency in dependencies:
+                    dockerfile.write(f"RUN uv pip install {dependency}\n")
+
+        # If dependencies are not provided, use sync
+        if not any(task.get("dependencies") for task in pipeline_def["tasks"]):
+            dockerfile.write("RUN uv sync\n")
 
         # Build the command: run uv sync at container startup and then run each pyscript
         cmd_parts = []
