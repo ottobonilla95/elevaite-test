@@ -1,4 +1,3 @@
-import uuid
 from typing import Callable, Union
 
 from elevaitelib.orm.crud import pipeline as pipeline_crud
@@ -20,7 +19,6 @@ def getPipelines(
 def getPipelinesOfProject(
     db: Session,
     filter_function: Union[Callable[[Query], Query], None],
-    project_id: uuid.UUID,
     skip: int = 0,
     limit: int = 10,
 ):
@@ -29,7 +27,6 @@ def getPipelinesOfProject(
         skip=skip,
         limit=limit,
         filter_function=filter_function,
-        project_id=project_id,
     )
     return r
 
@@ -37,7 +34,6 @@ def getPipelinesOfProject(
 def getPipelineById(
     db: Session,
     id: str,
-    project_id: uuid.UUID,
     filter_function: Union[Callable[[Query], Query], None],
 ):
     pipeline = pipeline_crud.get_pipeline_by_id(db=db, pipeline_id=id, filter_function=filter_function)

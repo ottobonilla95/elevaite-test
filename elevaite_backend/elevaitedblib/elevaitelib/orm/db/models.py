@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, List, Optional, Annotated
+from typing import Any, Dict, List, Optional, Annotated
 import uuid
 from pydantic import Json
 from sqlalchemy import (
@@ -122,6 +122,7 @@ class PipelineTask(Base):
     name: Mapped[str] = mapped_column()
     task_type: Mapped[PipelineTaskType] = mapped_column(Enum(PipelineTaskType))
     src: Mapped[str] = mapped_column()
+    config: Mapped[Dict[str, Any]] = mapped_column(MutableJson, default={})
 
     dependencies: Mapped[List["PipelineTask"]] = relationship("PipelineTask", uselist=True)
     input: Mapped[List["PipelineVariable"]] = relationship("PipelineVariable")

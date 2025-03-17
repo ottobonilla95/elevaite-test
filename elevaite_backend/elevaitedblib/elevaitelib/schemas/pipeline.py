@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, List, Optional, TypeGuard
+from typing import Any, Dict, List, Optional, TypeGuard
 
 from pydantic import UUID4, BaseModel
 
@@ -57,6 +57,7 @@ class PipelineTaskBase(BaseModel):
     name: str
     task_type: PipelineTaskType
     src: str
+    config: Dict[str, Any]
 
 
 class PipelineTaskCreate(PipelineTaskBase):

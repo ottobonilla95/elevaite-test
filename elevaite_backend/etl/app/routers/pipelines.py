@@ -1,21 +1,19 @@
-# from pprint import pprint
-# from typing import Annotated, Any, List, Dict, Sequence, Type, Callable, Optional
-# from fastapi import APIRouter, Body, Depends, Request, Header
-# from uuid import UUID
-# from sqlalchemy.orm import Session, Query
-# from ..services import (
-#     configurations as conf_service,
-#     instances as instance_service,
-#     pipelines as pipeline_service,
-# )
-# from .deps import get_db
-# from elevaitelib.orm.db import models
-# from elevaitelib.schemas import (
-#     configuration as configuration_schemas,
-#     instance as instance_schemas,
-#     pipeline as pipeline_schemas,
-#     api as api_schemas,
-# )
+from typing import Annotated, Any, Sequence
+from fastapi import APIRouter, Body, Depends, Request, Header
+from uuid import UUID
+from sqlalchemy.orm import Session
+from ..services import (
+    configurations as conf_service,
+    instances as instance_service,
+    pipelines as pipeline_service,
+)
+from elevaitelib.orm.db import models
+from elevaitelib.schemas import (
+    configuration as configuration_schemas,
+    instance as instance_schemas,
+    pipeline as pipeline_schemas,
+    api as api_schemas,
+)
 
 # from rbac_lib import route_validator_map, RBACValidatorProvider
 
@@ -30,11 +28,6 @@ def getPipelines(
     skip: int = 0,
     limit: int = 10,
     # db=Depends(get_db),
-    project_id: UUID = Header(
-        ...,
-        alias="X-elevAIte-ProjectId",
-        description="project_id under which connector instances are queried",
-    ),
     validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, "getPipelines")]),
 ):
     db: Session = request.state.db  # uncomment this when using validator
@@ -45,7 +38,6 @@ def getPipelines(
         db=db,
         skip=skip,
         limit=limit,
-        project_id=project_id,
         filter_function=all_query_authorized_types_filter_function,
     )
 
@@ -54,11 +46,6 @@ def getPipelines(
 def getPipelineById(
     request: Request,  # uncomment this when using validator
     pipeline_id: str,
-    project_id: UUID = Header(
-        ...,
-        alias="X-elevAIte-ProjectId",
-        description="project_id under which connector instances are queried",
-    ),
     # db=Depends(get_db),
     validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, "getPipelineById")]),
 ):
@@ -70,7 +57,6 @@ def getPipelineById(
     return pipeline_service.getPipelineById(
         db=db,
         id=pipeline_id,
-        project_id=project_id,
         filter_function=all_query_authorized_types_filter_function,
     )
 

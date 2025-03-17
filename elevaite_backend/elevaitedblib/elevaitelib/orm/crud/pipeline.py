@@ -35,7 +35,6 @@ def get_pipelines(
 def get_pipelines_of_project(
     db: Session,
     filter_function: Union[Callable[[Query], Query], None],
-    project_id: UUID,
     skip: int = 0,
     limit: int = 0,
 ) -> list[models.Pipeline]:
@@ -43,7 +42,7 @@ def get_pipelines_of_project(
 
     if filter_function is not None:  # uncomment this when using validator
         query = filter_function(query)
-    return query.filter(models.Pipeline.projects.any(id=project_id)).offset(skip).limit(limit).all()
+    return query.offset(skip).limit(limit).all()
 
 
 def get_pipeline_by_id(
@@ -170,7 +169,7 @@ def get_pipeline_task_by_id(
 
 
 def create_pipeline_task(db: Session, dto: PipelineTaskCreate) -> models.PipelineTask:
-    _task = models.PipelineTask(name=dto.name, task_type=dto.task_type, src=dto.src)
+    _task = models.PipelineTask(name=dto.name, task_type=dto.task_type, src=dto.src, config=dto.config)
 
     db.add(_task)
     db.commit()
@@ -206,6 +205,9 @@ def update_pipeline_task(db: Session, id: str, dto: PipelineTaskUpdate) -> model
 
     if dto.src:
         _task.src = dto.src
+
+    if dto.config:
+        _task.config = dto.config
 
     db.commit()
     db.refresh(_task)
@@ -264,7 +266,7 @@ def create_pipeline_variable(db: Session, dto: PipelineVariableCreate) -> models
     return _var
 
 
-def update_pipeline_variable(db: Session, variable_id: UUID, dto: PipelineVariableUpdate) -> models.PipelineVariable:
+def update_pipeline_variable(db: Session, variable_id: str, dto: PipelineVariableUpdate) -> models.PipelineVariable:
     _var = db.query(models.PipelineVariable).filter(models.PipelineVariable.id == variable_id).one()
     if dto.name is not None:
         _var.name = dto.name
@@ -275,7 +277,7 @@ def update_pipeline_variable(db: Session, variable_id: UUID, dto: PipelineVariab
     return _var
 
 
-def delete_pipeline_variable(db: Session, variable_id: UUID) -> models.PipelineVariable:
+def delete_pipeline_variable(db: Session, variable_id: str) -> models.PipelineVariable:
     _var = db.query(models.PipelineVariable).filter(models.PipelineVariable.id == variable_id).one()
     db.delete(_var)
     db.commit()
