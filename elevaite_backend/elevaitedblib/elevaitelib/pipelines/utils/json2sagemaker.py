@@ -59,9 +59,6 @@ def create_pipeline(
     """
     Create a SageMaker Pipeline from a JSON definition.
 
-    Reuses a persistent container. This means multiple pipeline steps
-    may run in the same container.
-
     Args:
         pipeline_def: The dictionary containing the pipeline definition.
         container_image: The URI of the container image to use for processing.
@@ -95,7 +92,6 @@ def create_pipeline(
         else:
             raise ValueError(f"Unknown task_type: {task['task_type']}")
 
-        # File paths for input/output
         input_path = f"/opt/ml/processing/input/{task_id}.json"
         output_path = f"/opt/ml/processing/output/{task_id}.json"
 
@@ -113,7 +109,7 @@ def create_pipeline(
             job_args.extend(
                 [f"--{var}", f"/opt/ml/processing/output/{source_task}.json"]
             )
-        # Use a cached processor for the given command type
+        # Use the cached processor for the given command type
         processor = get_cached_processor(container_image, command, instance_type, role)
 
         step = ProcessingStep(
@@ -154,7 +150,7 @@ def create_pipeline(
 
 
 def upsert_pipeline(pipeline: Pipeline) -> dict:
-    """Upsert the given pipeline to SageMaker."""
+    """Upsert (update or create) the given pipeline to SageMaker."""
     role = os.environ["AWS_ROLE_ARN"]
 
     print("Starting pipeline upsert...")
@@ -329,8 +325,3 @@ if __name__ == "__main__":
 
     pipeline_def = load_pipeline_definition(json_file)
     run_tasks_from_json(pipeline_def)
-    # pipeline = create_pipeline(pipeline_def, persist_job_name_flag=persist_flag)
-    # upsert_response = upsert_pipeline(pipeline)
-
-    # execution = start_pipeline(pipeline)
-    # monitor_pipeline(execution.arn)
