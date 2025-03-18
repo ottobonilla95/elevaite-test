@@ -1,164 +1,459 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Basic reset for proper spacing and scrolling */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
-html, 
-body {
-  height: 100%;
-  overflow-y: auto;
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-/* Container styles with proper scrolling */
-.chatbot-layout-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  width: 100%;
-  overflow-y: auto;
-  position: relative;
-  padding-top: var(--navbar-height, 52px); /* Ensure content starts below navbar */
-}
-
+/* Main layout structure */
 .chatbot-main-container {
-  flex: 1;
-  overflow-y: auto;
-  position: relative;
-  width: 100%;
-  padding-bottom: 4rem;
-  margin-top: 1rem;
-}
-
-/* Base variables */
-:root {
-  --sidebar-width: 48px;
-  --navbar-height: 52px;
-  --orange-primary: #ff5722;
-  --orange-secondary: #ff7043;
-}
-
-/* Ensure all wrappers allow scrolling */
-#__next,
-.appContainer,
-main,
-[data-overlay-container="true"] {
-  min-height: 100vh;
-  height: auto !important;
-  overflow-y: auto !important;
   display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Clean white background for the main area */
+.agent-flow-designer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  background-color: white;
+  overflow: hidden;
+}
+
+/* Header styles */
+.agent-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: white;
+}
+
+.header-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.view-toggle button {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.view-toggle button.active {
+  background-color: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+}
+
+.view-toggle button:not(.active) {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+/* Main content area with sidebar and workspace */
+.designer-content {
+  display: flex;
+  height: calc(100vh - 4rem);
+  overflow: hidden;
+}
+
+/* Sidebar styles */
+.designer-sidebar {
+  width: 16rem;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+}
+
+.sidebar-header {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.sidebar-tabs button {
+  flex: 1;
+  padding: 0.625rem 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+}
+
+.sidebar-tabs button.active {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+}
+
+.sidebar-items {
+  padding: 0.75rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.sidebar-item {
+  padding: 0.625rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  margin-bottom: 0.625rem;
+  background-color: white;
+  cursor: grab;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.sidebar-item:hover {
+  transform: translateX(0.25rem);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-item-content {
+  display: flex;
+  align-items: center;
+}
+
+.item-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+}
+
+.item-details h3 {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.item-details p {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Workspace styles */
+.designer-workspace {
+  flex: 1;
+  position: relative;
+  overflow: auto;
+  background-color: #f9fafb;
+  background-image: 
+    linear-gradient(to right, rgba(209, 213, 219, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(209, 213, 219, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Chat panel styles */
+.chat-panel {
+  width: 21rem;
+  border-left: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.chat-input {
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Node styles */
+.flow-node {
+  position: absolute;
+  width: 11rem;
+  border-radius: 0.5rem;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.node-header {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 0.5rem 0.5rem 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.node-content {
+  padding: 0.75rem;
+}
+
+/* Agent node */
+.node-agent .node-header {
+  background-color: rgba(79, 70, 229, 0.1);
+  border-bottom-color: rgba(79, 70, 229, 0.2);
+}
+
+.agent-icon {
+  background-color: rgba(79, 70, 229, 0.1);
+  color: #4f46e5;
+}
+
+/* Component node */
+.node-component .node-header {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-bottom-color: rgba(16, 185, 129, 0.2);
+}
+
+.component-icon {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+/* Tool node */
+.node-tool .node-header {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-bottom-color: rgba(245, 158, 11, 0.2);
+}
+
+.tool-icon {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
+
+/* Message styling */
+.message {
+  max-width: 90%;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid transparent;
+}
+
+.message-user {
+  background-color: rgba(79, 70, 229, 0.1);
+  border-color: rgba(79, 70, 229, 0.2);
+  margin-left: auto;
+}
+
+.message-agent {
+  background-color: rgba(79, 70, 229, 0.1);
+  border-color: rgba(79, 70, 229, 0.2);
+}
+
+.message-component {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.message-tool {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.message-final {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.message-timestamp {
+  text-align: right;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.25rem;
+}
+
+/* Connection lines */
+svg.connection-line path {
+  fill: none;
+  stroke: rgba(99, 102, 241, 0.6);
+  stroke-width: 2;
+}
+
+/* Example queries */
+.example-query {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.example-query:hover {
+  background-color: #f3f4f6;
+}
+
+/* Additional styles to support current component implementation */
+.grid-pattern {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-color: #f9fafb;
+}
+
+.glass-panel {
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+}
+
+/* Animation for connection lines */
+@keyframes draw-line {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-draw-line {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: draw-line 0.5s ease-in-out forwards;
+}
+
+/* Additional utility classes needed for current components */
+.h-screen {
+  height: 100vh;
+}
+
+.w-screen {
+  width: 100vw;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
   flex-direction: column;
 }
 
-/* Fix navbar positioning */
-.NavBar, 
-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  background-color: #1a1a2e;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+.overflow-hidden {
+  overflow: hidden;
 }
 
-/* Dark mode specific styles */
-.dark {
-  --tw-bg-opacity: 1;
-  background-color: rgba(17, 24, 39, var(--tw-bg-opacity));
-  color: rgba(243, 244, 246, var(--tw-text-opacity));
+.flex-1 {
+  flex: 1 1 0%;
 }
 
-/* Custom gradient text for IOPEX branding */
-.iopex-gradient-text {
-  @apply font-bold;
-  background: linear-gradient(to right, #ff5722, #ff9800);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.border-b {
+  border-bottom-width: 1px;
 }
 
-/* Custom shadow for cards */
-.iopex-card {
-  @apply rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800;
-  transition: all 0.2s ease;
+.border-r {
+  border-right-width: 1px;
+}
+
+.border-l {
+  border-left-width: 1px;
+}
+
+.border-t {
+  border-top-width: 1px;
+}
+
+.border {
+  border-width: 1px;
+}
+
+.border-gray-200\/50 {
+  border-color: rgba(229, 231, 235, 0.5);
+}
+
+.shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.bg-primary\/10 {
+  background-color: rgba(99, 102, 241, 0.1);
+}
+
+.text-primary {
+  color: #6366f1;
+}
+
+.bg-primary {
+  background-color: #6366f1;
+}
+
+.border-primary {
+  border-color: #6366f1;
+}
+
+.bg-primary\/60 {
+  background-color: rgba(99, 102, 241, 0.6);
+}
+
+.text-white {
+  color: #ffffff;
+}
+
+.z-0 {
+  z-index: 0;
+}
+
+.z-10 {
+  z-index: 10;
+}
+
+.pointer-events-none {
+  pointer-events: none;
+}
+
+.pointer-events-all {
+  pointer-events: all;
+}
+
+.w-full {
+  width: 100%;
+}
+
+/* Responsive styling */
+@media (min-width: 768px) {
+  .hidden.md\:flex {
+    display: flex;
+  }
   
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 10px -5px rgba(0, 0, 0, 0.06);
+  .md\:w-\[350px\] {
+    width: 350px;
   }
 }
 
-/* Form element styling */
-input[type="text"],
-input[type="number"],
-input[type="email"],
-select,
-textarea {
-  @apply w-full p-2 rounded-md border transition-colors duration-200;
-  @apply border-gray-300 dark:border-gray-600;
-  @apply bg-white dark:bg-gray-700;
-  @apply text-gray-900 dark:text-gray-100;
-  
-  &:focus {
-    @apply outline-none ring-2 ring-orange-500 border-transparent;
-  }
-  
-  &::placeholder {
-    @apply text-gray-400 dark:text-gray-500;
-  }
+/* Classes for the current implementation */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
 
-/* Range input styling */
-input[type="range"] {
-  @apply appearance-none w-full h-2 rounded-lg;
-  @apply bg-gray-200 dark:bg-gray-700;
-  
-  &::-webkit-slider-thumb {
-    @apply appearance-none w-4 h-4 rounded-full bg-orange-500;
-    @apply cursor-pointer;
-  }
+.duration-300 {
+  transition-duration: 300ms;
 }
 
-/* Checkbox styling */
-input[type="checkbox"] {
-  @apply h-4 w-4 text-orange-500 rounded;
-  @apply focus:ring-orange-500 border-gray-300;
+.ease-in-out {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Button styling */
-button[type="submit"] {
-  @apply inline-flex items-center justify-center px-8 py-3 rounded-md;
-  @apply text-white font-medium;
-  @apply bg-gradient-to-r from-orange-500 to-orange-600;
-  @apply hover:from-orange-600 hover:to-orange-700;
-  @apply transition-colors duration-200;
-  @apply focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2;
-}
-
-/* Responsive containers */
-.container-responsive {
-  @apply w-full max-w-4xl mx-auto px-4 sm:px-6;
-}
-
-/* Fix content padding for scrolling */
-.content-area {
-  padding-bottom: 120px; /* Extra padding at bottom for better UX */
-}
-
-/* Fix for dark mode toggle */
-.dark-mode-toggle {
-  @apply rounded-full p-2 text-gray-400 hover:text-white;
-  @apply focus:outline-none focus:ring-2 focus:ring-orange-500;
-}
-
-/* Ensure footer stays at bottom */
-footer {
-  @apply mt-auto py-4;
+/* Add any needed primary color variables */
+:root {
+  --primary-color: #6366f1; /* Indigo color */
+  --primary-light: rgba(99, 102, 241, 0.1);
+  --component-color: #10b981; /* Emerald color */
+  --component-light: rgba(16, 185, 129, 0.1);
+  --tool-color: #f59e0b; /* Amber color */
+  --tool-light: rgba(245, 158, 11, 0.1);
 }
