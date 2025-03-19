@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Any
+from typing import List
 
 
 class PipelineProvider(ABC):
@@ -7,12 +7,11 @@ class PipelineProvider(ABC):
         pass
 
     @abstractmethod
-    def create_pipelines(self, pipeline_configs: List[Any]) -> int:
+    def create_pipelines(self, pipeline_configs: List[dict]) -> int:
         """
         Abstract method to create pipelines based on the provided configurations.
 
-        :param pipeline_configs: A list of pipeline configuration objects. This could be file paths,
-                                 dictionaries, or any structure representing a pipeline definition.
+        :param pipeline_configs: A list of pipeline configuration objects.
         :return: An integer status code (e.g., 200 for success).
         """
         pass
@@ -29,11 +28,14 @@ class PipelineProvider(ABC):
         pass
 
     @abstractmethod
-    def monitor_pipelines(self, pipeline_run_ids: List[str]) -> List[str]:
+    def monitor_pipelines(
+        self, pipeline_run_ids: List[str], summarize: bool
+    ) -> List[str]:
         """
         Abstract method to monitor pipelines based on the provided run identifiers.
 
         :param pipeline_run_ids: A list of identifiers corresponding to pipeline runs to be monitored.
+        :param summarize: A boolean allowing you to choose whether you want summarized logs or not.
         :return: A list of status messages or outputs for each pipeline.
         """
         pass

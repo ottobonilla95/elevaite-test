@@ -5,7 +5,7 @@ from .interfaces.pipeline_types import ProviderType
 from typing import List, Dict, Any
 
 
-def universal_create_pipelines() -> List[str]:
+def get_available_providers() -> List[str]:
     providers = [provider.value for provider in ProviderType]
     return providers
 
