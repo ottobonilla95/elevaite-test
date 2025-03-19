@@ -1,32 +1,14 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from model import HealthCheckResponse,ErrorResponse,AdSurfaceBrandPairsResponse,CampaignDataResponse,ReloadResponse,InferencePayload,InferenceResponse
 import pandas as pd
 from dotenv import load_dotenv
 import os
+from db_connector import db_connector
+from sql_agent_inference import sql_inference
+import json
+from fastapi.responses import StreamingResponse, JSONResponse
 
-# Response Classes
-class HealthCheckResponse(BaseModel):
-    status: str
-
-class ErrorResponse(BaseModel):
-    error: str
-
-class AdSurfaceBrandPair(BaseModel):
-    Ad_Surface: str
-    Brand: str
-
-class AdSurfaceBrandPairsResponse(BaseModel):
-    adsurface_brand_pairs: List[AdSurfaceBrandPair]
-
-class CampaignDataResponse(BaseModel):
-    campaigns: List[str]
-    creative_data: List[Dict[str, Any]]
-    campaign_data: List[Dict[str, Any]]
-
-class ReloadResponse(BaseModel):
-    status: str
 
 app = FastAPI(    
     title="Creative Insight API",
@@ -49,7 +31,7 @@ origins = [
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=['*'],
     allow_credentials=True,
     allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allow_headers=['Content-Type', 'Authorization'],
@@ -179,6 +161,34 @@ async def get_campaign_data(ad_surface: str, brand: str):
         print(f"Unexpected error in get_campaign_data: {e}")
         return {"error": f"Unexpected error: {e}"}
 
+@app.options("/api/sqlagent")
+async def options_sqlagent():
+    return JSONResponse(
+        content={},
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        }
+    )
+
+@app.post("/api/sqlagent",
+          responses={500: {"model": ErrorResponse} ,200: {"model": InferenceResponse},},
+          description="Accepts a natural language query and returns a stream of data from the SQL Agent."
+          )
+async def post_message(inference_payload: InferencePayload):
+    try:
+        async def event_generator():
+            async for chunk in sql_inference(inference_payload):
+                yield f"data: {json.dumps(chunk)}\n\n"
+                
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8005)

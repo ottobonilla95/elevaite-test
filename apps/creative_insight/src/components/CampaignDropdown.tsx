@@ -5,7 +5,7 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-  } from "../components/ui/select";
+  } from "./ui/select";
   
   interface CampaignDropdownProps {
     campaigns: string[];
@@ -24,7 +24,7 @@ import {
   }: CampaignDropdownProps) => {
     return (
       <div className="space-y-2">
-      <label className="text-sm font-medium block ml-2">
+      <label className="text-sm font-medium block ml-2" htmlFor="campaign-select">
         Campaign
       </label>
 
@@ -32,7 +32,7 @@ import {
         onValueChange={setSelectedCampaign}
         disabled={!selectedAdSurface} // disabled if no brand is selected
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-[180px]" id="campaign-select">
           <SelectValue placeholder="Select a Campaign" />
         </SelectTrigger>
         <SelectContent>

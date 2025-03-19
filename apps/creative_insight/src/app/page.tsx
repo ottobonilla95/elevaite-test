@@ -7,7 +7,7 @@ import CampaignDropdown from "../components/CampaignDropdown";
 import CreativeTable from "../components/CreativeTable";
 import MainNav from "../components/NavBar";
 import CampaignTable from "../components/CampaignTable";
-import { AdSurfaceBrandPair, CampaignData, CreativeData, CampaignPerformance } from "../types";
+import type  { AdSurfaceBrandPair, ApiResponse, CreativeData, CampaignPerformance,PairsResponse  } from "../lib/interfaces";
 import { Button } from '../components/ui/button';
 import {Tabs,TabsContent,TabsList,TabsTrigger} from "../components/ui/tabs";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../components/ui/resizable";
@@ -15,20 +15,20 @@ import { Icons } from '../components/ui/icons';
 import ChatComponent from "../components/ChatComponent";
 
 
-const API_BASE_URL  = process.env.NEXT_PUBLIC_API_BASE_URL||"http://localhost:8000/api";
-const CREATIVE_BASE_URL  = process.env.NEXT_PUBLIC_CREATIVE_BASE_URL||"http://localhost:8080/static/images/";
+const API_BASE_URL  = process.env.NEXT_PUBLIC_API_BASE_URL??"http://localhost:8000/api";
+const CREATIVE_BASE_URL  = process.env.NEXT_PUBLIC_CREATIVE_BASE_URL??"http://localhost:8080/static/images/";
 
 // const API_BASE_URL = "http://localhost:8000/api";
 
-export default function Home() {
+export default function Home(): JSX.Element {
   const [pairs, setPairs] = useState<AdSurfaceBrandPair[]>([]);
-  const [adSurfaces, setAdSurfaces] = useState<string[]>([]);
+  // const [adSurfaces, setAdSurfaces] = useState<string[]>([]);
   const [brands,setBrands] = useState<string[]>([]);
   const [selectedAdSurface, setSelectedAdSurface] = useState<string>("");
   const [selectedBrand, setSelectedBrand] = useState<string>("");
   const [selectedCampaign, setSelectedCampaign] = useState<string>("");
   const [campaigns, setCampaigns] = useState<string[]>([]);
-  const [data, setData] = useState<CampaignData[]>([]);
+  // const [data, setData] = useState<CampaignData[]>([]);
   const [creativeData, setCreativeData] = useState<CreativeData[]>([]);
   const [campaignPerformance, setCampaignPerformance] = useState<CampaignPerformance[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false); 
@@ -37,14 +37,14 @@ export default function Home() {
     const fetchPairs = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/adsurface_brand_pairs`);
-        const json = await response.json();
+        const json = await response.json() as PairsResponse;
         setPairs(json.adsurface_brand_pairs);
       } catch (error) {
         console.error("Error fetching pairs:", error);
       }
     };
 
-    fetchPairs();
+    void fetchPairs();
   }, []);
 
   useEffect(() => {
@@ -61,18 +61,18 @@ export default function Home() {
   }, [pairs]);
 
   useEffect(() => {
-    const fetchCampaignData = async () => {
+    const fetchCampaignData = async () : Promise<void> => {
       if (selectedAdSurface && selectedBrand) {
         console.log("The Environment APIs are : ",API_BASE_URL,CREATIVE_BASE_URL);
         try {
           const response = await fetch(
             `${API_BASE_URL}/campaign_data?ad_surface=${selectedAdSurface}&brand=${selectedBrand}`
           );
-          const json = await response.json();
+          const json = await response.json() as ApiResponse;
           console.log("THE JSON IS:",json);
           console.log("The Environment APIs are : ",API_BASE_URL,CREATIVE_BASE_URL);
           console.log("Received Payload:",json.campaign_data, json.creative_data);
-          const campaignPerformance = json.campaign_data.map((item: any) => ({
+          const campaignPerformanceData = json.campaign_data.map((item: CampaignPerformance) => ({
             Campaign_Name: item.Campaign_Name,
             Booked_Impressions: Number(item.Booked_Impressions),
             Clickable_Impressions: Number(item.Clickable_Impressions),
@@ -83,17 +83,21 @@ export default function Home() {
             ECPM: Number(item.ECPM),
             Start_Date: item.Start_Date,
             End_Date: item.End_Date,
-            Insights: item.insights,
+            Insights: item.Insights,
             Scheduled_Events: item.Scheduled_Events,
           }));
 
-          const creativeData = json.creative_data.map((item: any) => ({
+          const creativeDataItems = json.creative_data.map((item): CreativeData => ({
             ...item,
-            Full_File_URL: CREATIVE_BASE_URL ? `${CREATIVE_BASE_URL}${item.Full_File_URL}` : item.Full_File_URL,
-            URL: CREATIVE_BASE_URL ? `${CREATIVE_BASE_URL}${item.URL}` : item.URL,
+            Full_File_URL: CREATIVE_BASE_URL 
+              ? `${CREATIVE_BASE_URL}${item.Full_File_URL}`
+              : item.Full_File_URL,
+            URL: CREATIVE_BASE_URL 
+              ? `${CREATIVE_BASE_URL}${item.URL}`
+              : item.URL,
           }));
-          setCreativeData(creativeData);
-          setCampaignPerformance(campaignPerformance);
+          setCreativeData(creativeDataItems);
+          setCampaignPerformance(campaignPerformanceData);
           setCampaigns(json.campaigns);
 
           if (!selectedCampaign) {
@@ -109,7 +113,7 @@ export default function Home() {
         }
       };
 
-    fetchCampaignData();
+    void fetchCampaignData();
   }, [selectedAdSurface, selectedBrand, selectedCampaign]);
 
   const filteredAdSurfaces = Array.from(
@@ -118,16 +122,10 @@ export default function Home() {
         .filter((item) => item.Brand === selectedBrand)
         .map((item) => item.Ad_Surface)
     )
-  // const filteredBrands = Array.from(
-  //   new Set(
-  //     pairs
-  //       .filter((item) => item.Ad_Surface === selectedAdSurface)
-  //       .map((item) => item.Brand)
-  //   )
   );
   const selectedCreatives = selectedCampaign ? creativeData.filter(item => item.Campaign_Name === selectedCampaign): creativeData;
   const selectedCampaignPerformance = selectedCampaign? campaignPerformance.filter(item => item.Campaign_Name === selectedCampaign): campaignPerformance;
-  const handleChatClose = () => {
+  const handleChatClose = (): void=> {
     setIsChatOpen(false);
   };
   return (
@@ -138,7 +136,7 @@ export default function Home() {
       <Button
         variant="default"
         className="fixed bottom-4 right-4 rounded-full shadow-lg gap-2 hover:scale-105 transition-transform"
-        onClick={() => setIsChatOpen(true)}
+        onClick={() => {setIsChatOpen(true);}}
       >
         <Icons.Message />
         
@@ -173,12 +171,6 @@ export default function Home() {
           selectedBrand={selectedBrand}
           selectedAdSurface={selectedAdSurface}
         />
-        {/* <Button
-          variant="outline"
-          className="mt-7 text-muted-foreground"
-          onClick={() => {setSelectedAdSurface("");setSelectedBrand("");setSelectedCampaign("");}}>
-          <X className="h-4 w-4" /> Clear
-        </Button> */}
       </div>
       <Tabs defaultValue="Creative Insights" className="mt-5 mb-5">
         <TabsList className="w-full justify-start">
@@ -198,16 +190,16 @@ export default function Home() {
       </div>
       </TabsContent>
       </Tabs>
-      {selectedAdSurface && selectedBrand && (
+      {selectedAdSurface && selectedBrand ? (
         <div className="pb-4 w-full flex justify-end">  {/* Added mt-6 for spacing */}
-          <Button variant="outline" className="gap-2" onClick={() => window.print()}>
+          <Button variant="outline" className="gap-2" onClick={() => {window.print();}}>
             <Icons.Share/>Export
           </Button>
         </div>
-      )}
+      ): null}
     </ResizablePanel>
-    {isChatOpen && (<ResizableHandle withHandle className="mx-2" />)}
-    {isChatOpen && (
+    {isChatOpen ?  (<ResizableHandle withHandle className="mx-2" />): null}
+    {isChatOpen  ? (
             <ResizablePanel 
               defaultSize={30}
               minSize={25}
@@ -218,7 +210,7 @@ export default function Home() {
             >
               <ChatComponent onClose={handleChatClose} /> {/* Pass handleChatClose to close the chat */}
             </ResizablePanel>
-          )}
+          ) : null}
 
     </ResizablePanelGroup>
     </main>

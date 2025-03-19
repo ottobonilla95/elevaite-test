@@ -1,7 +1,7 @@
 // components/Navbar.tsx
 
 import { useState } from 'react';
-import { Icons } from '../components/ui/icons';
+import { Icons } from './ui/icons';
 
 const Navbar: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false); // State for dark mode toggle

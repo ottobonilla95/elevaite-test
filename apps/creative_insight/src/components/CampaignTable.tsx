@@ -1,13 +1,14 @@
 "use client";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
-import { CampaignPerformance } from "../types";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
+import { CampaignPerformance } from "../lib/interfaces";
 import { useState } from "react";
 
-const CampaignTable = ({ performanceData }: { performanceData: CampaignPerformance[] }) => {
+const CampaignTable = ({ performanceData }: { performanceData: CampaignPerformance[] }): JSX.Element => {
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
   console.log("The data is received:", performanceData);
   if (!performanceData?.length) return <div className="text-muted-foreground">No performance data available</div>;
 
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const metrics = [
     { label: "Campaign Name", key: "Campaign_Name", format: "text" },
@@ -49,7 +50,7 @@ const CampaignTable = ({ performanceData }: { performanceData: CampaignPerforman
             {performanceData.map((campaign) => (
               <TableRow
                 key={campaign.Campaign_Name}
-                onClick={() => handleRowClick(campaign.Campaign_Name)}
+                onClick={() => {handleRowClick(campaign.Campaign_Name);}}
                 className="cursor-pointer"
               >
                 {metrics.map((metric) => {
@@ -57,7 +58,7 @@ const CampaignTable = ({ performanceData }: { performanceData: CampaignPerforman
 
                   // Check if value is defined and handle accordingly
                   let displayValue = "-"; // Default value if data is missing
-                  if (value !== undefined && value !== null) {
+                  if (value !== null) {
                     if (metric.format === "percentage") {
                       displayValue = `${(value as number * 100).toFixed(2)}%`;
                     } else if (metric.format === "number") {
@@ -78,14 +79,14 @@ const CampaignTable = ({ performanceData }: { performanceData: CampaignPerforman
                       <div className="p-2">
                         {isInsightsColumn ? (
                           <p
-                            className={`text-muted-foreground whitespace-normal text-left text-xs ${
+                            className={`text-foreground whitespace-normal text-left text-xs ${
                               expandedRow === campaign.Campaign_Name ? "whitespace-normal" : "line-clamp-5"
                             }`}
                           >
                             {displayValue}
                           </p>
                         ) : (
-                          <p className="text-muted-foreground whitespace-nowrap text-right truncate">{displayValue}</p>
+                          <p className="text-foreground whitespace-nowrap text-right truncate">{displayValue}</p>
                         )}
                       </div>
                     </TableCell>

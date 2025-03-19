@@ -8,12 +8,12 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from "../components/ui/command";
+} from "./ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "../components/ui/popover";
+} from "./ui/popover";
 import { useState, useEffect } from "react";
 
 interface AdSurfaceDropdownProps {
@@ -50,11 +50,22 @@ export function AdSurfaceDropdown({
   
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium block ml-2">Ad Surface</label>
+      {/* <label className="text-sm font-medium block ml-2">Ad Surface</label> */}
+      <label htmlFor="adSurfaceTrigger" className="text-sm font-medium block ml-2">
+        Ad Surface
+      </label>
+
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger  className="relative focus:outline-none focus:ring-1 focus:ring-ring rounded-md hover:outline-none hover:ring-1 hover:ring-ring data-[state=open]:outline-none data-[state=open]:ring-1 data-[state=open]:ring-ring">
+        <PopoverTrigger  id="adSurfaceTrigger" className="relative focus:outline-none focus:ring-1 focus:ring-ring rounded-md hover:outline-none hover:ring-1 hover:ring-ring data-[state=open]:outline-none data-[state=open]:ring-1 data-[state=open]:ring-ring">
           <div
             role="combobox"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                handlePopoverToggle();
+              }
+            }}
+            tabIndex={0}
+            aria-controls="ad-surface-list"
             aria-expanded={open ? "true" : "false"}
             className={cn(
               "flex h-9 w-[180px] items-center justify-between rounded-md border border-input px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground  cursor-pointer ",
@@ -67,7 +78,7 @@ export function AdSurfaceDropdown({
               : "Select Ad Surface"}
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-[200px] p-0">
+        <PopoverContent id="ad-surface-list" className="w-[200px] p-0">
           <Command>
             <CommandInput placeholder="Search ad surface..." />
             <CommandList>

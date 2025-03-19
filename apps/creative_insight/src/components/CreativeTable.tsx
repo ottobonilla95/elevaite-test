@@ -1,22 +1,23 @@
 "use client";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
-import { CreativeData } from "../types";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
+import Image from 'next/image';
+import type { CreativeData } from "../lib/interfaces";
 import {
   Dialog,
   DialogContent,
   DialogTrigger,
   DialogHeader,
   DialogTitle,
-} from "../components/ui/dialog";
+} from "./ui/dialog";
 
-const getFileType = (File_Name: string) => {
+const getFileType = (fileName: string) => {
   const videoExtensions = ['.mp4', '.mov', '.gif'];
-  const extension = File_Name?.split('.').pop()?.toLowerCase() || '';
+  const extension = fileName?.split('.').pop()?.toLowerCase() ?? '';
   return videoExtensions.includes(`.${extension}`) ? 'video' : 'image';
 };
 
-const CreativeTable = ({ creatives }: { creatives: CreativeData[] }) => {
-  if (!creatives?.length) return <div className="text-muted-foreground">No creatives available</div>;
+const CreativeTable = ({ creatives }: { creatives: CreativeData[] }) : JSX.Element => {
+  if (!creatives?.length) return <div className="text-foreground">No creatives available</div>;
   console.log("Received the creative Object:",creatives);
   const attributes = [
     {label: "Preview", key: "URL", type: "image" },
@@ -51,16 +52,17 @@ const CreativeTable = ({ creatives }: { creatives: CreativeData[] }) => {
   ];
 
 
-  const getDisplayValue = (value: any, key: string) => {
-    if (value == null || value === '') return '-';
+  const getDisplayValue = (value: string | number | boolean | null | undefined, key: string): string => {
+    if (value === null || value === undefined) return '-';
     if (key === "CTR") {
-      const numValue = parseFloat(value);
-      if (!isNaN(numValue)) {
-        return (numValue * 100).toFixed(2) + '%';
+      if (typeof value === 'number') {
+        return (value * 100).toFixed(2) + '%';
       }
+      return '-';
     }
-    return value;
+    return String(value);
   };
+  
   
   const getColumnClass = (type: string,key: string) => {
     if (key === "creative_insight") {
@@ -107,8 +109,8 @@ const CreativeTable = ({ creatives }: { creatives: CreativeData[] }) => {
                   <Dialog>
                     <DialogTrigger asChild>
                       <div className="w-[180px] h-18  cursor-pointer ">
-                        <img
-                          src={creative["URL"] as string}
+                        <img 
+                          src={creative.URL as string}
                           alt="Creative Preview"
                           className="h-[20vh] p-2 object-contain hover:opacity-80 transition-opacity"
                         />
@@ -125,8 +127,10 @@ const CreativeTable = ({ creatives }: { creatives: CreativeData[] }) => {
                               controls
                               autoPlay
                               className="max-w-full max-h-[60vh] mx-auto object-contain"
-                              src={creative.Full_File_URL as string}
-                            />
+                              src={creative.Full_File_URL as string}>
+                                 <track kind="captions" srcLang="en" label="english_captions" />
+                              </video>
+
                           ) : (
                             <img
                               src={creative.Full_File_URL as string}
@@ -135,7 +139,7 @@ const CreativeTable = ({ creatives }: { creatives: CreativeData[] }) => {
                             />
                           )}
                         </div>
-                        <div className="text-sm text-muted-foreground text-center px-4 break-all">
+                        <div className="text-sm text-foreground text-center px-4 break-all">
                           {creative.File_Name}
                         </div>
                       </div>
@@ -148,14 +152,14 @@ const CreativeTable = ({ creatives }: { creatives: CreativeData[] }) => {
                   <TableCell
                     key={`${attr.key}-${creative.Unique_ID}`}
                     className={`${getColumnClass(attr.type,attr.key)} overflow-clip text-ellipsis border-l`}
-                    title={getDisplayValue(creative[attr.key as keyof CreativeData],attr.key)}
+                    title={getDisplayValue(creative[attr.key as keyof CreativeData] as string,attr.key) as string}
                   >
                     {attr.key === "combinedIndustryVertical" ? (
-                      <p className="text-muted-foreground">
-                        {creative["Industry_sectors"]} / {creative["Verticals"]}
+                      <p className="text-foreground">
+                        {creative.Industry_sectors} / {creative.Verticals}
                       </p>
                     ) : (
-                    <p className="text-muted-foreground p-2 ">
+                    <p className="text-foreground p-2 ">
                       {attr.key === "Creative_Video_Length"
                         ? creative[attr.key as keyof CreativeData] === 0
                           ? "N/A(Image)"
