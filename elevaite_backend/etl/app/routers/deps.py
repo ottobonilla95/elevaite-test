@@ -3,13 +3,11 @@ from dotenv import load_dotenv
 import pika
 from elevaitelib.orm.db.database import SessionLocal
 from qdrant_client import AsyncQdrantClient
-from flytekit.configuration import Config
-from flytekit.remote import FlyteRemote
 from elevaitelib.schemas import (
     api as api_schemas,
 )
 
-from rbac_lib import route_validator_map
+from rbac_api import route_validator_map
 
 
 def get_db():
@@ -66,15 +64,15 @@ def get_qdrant_connection():
     return AsyncQdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
 
 
-def get_flyte_remote() -> FlyteRemote:
-    load_dotenv()
-    DEFAULT_DOMAIN = os.getenv("FLYTE_DOMAIN")
-    DEFAULT_PROJECT = os.getenv("FLYTE_PROJECT")
-    return FlyteRemote(
-        config=Config.auto(),
-        default_project=DEFAULT_PROJECT if DEFAULT_PROJECT is not None else "elevaite",
-        default_domain=DEFAULT_DOMAIN if DEFAULT_DOMAIN is not None else "development",
-    )
+# def get_flyte_remote() -> FlyteRemote:
+#     load_dotenv()
+#     DEFAULT_DOMAIN = os.getenv("FLYTE_DOMAIN")
+#     DEFAULT_PROJECT = os.getenv("FLYTE_PROJECT")
+#     return FlyteRemote(
+#         config=Config.auto(),
+#         default_project=DEFAULT_PROJECT if DEFAULT_PROJECT is not None else "elevaite",
+#         default_domain=DEFAULT_DOMAIN if DEFAULT_DOMAIN is not None else "development",
+#     )
 
 
 def get_validation_info(namespace: api_schemas.APINamespace, target: str):

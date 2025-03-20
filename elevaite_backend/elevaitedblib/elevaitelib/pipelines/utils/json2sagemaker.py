@@ -9,8 +9,8 @@ from sagemaker.session import Session
 from sagemaker.workflow.pipeline import Pipeline
 from sagemaker.workflow.steps import ProcessingStep
 
-from common.cloudwatch import monitor_pipeline
-from common.docker import (
+from .common.cloudwatch import monitor_pipeline
+from .common.docker import (
     create_dockerfile,
     get_cached_processor,
     shutdown_processors,
@@ -74,9 +74,7 @@ def create_pipeline(
     if container_image is None:
         container_image = os.getenv("SAGEMAKER_CONTAINER_IMAGE")
         if container_image is None:
-            raise ValueError(
-                "No container image provided and SAGEMAKER_CONTAINER_IMAGE is not set in the environment."
-            )
+            raise ValueError("No container image provided and SAGEMAKER_CONTAINER_IMAGE is not set in the environment.")
 
     steps = {}
     step_list = []
@@ -106,9 +104,7 @@ def create_pipeline(
             if not source_task:
                 raise ValueError(f"Input variable {var} is not produced by any task")
 
-            job_args.extend(
-                [f"--{var}", f"/opt/ml/processing/output/{source_task}.json"]
-            )
+            job_args.extend([f"--{var}", f"/opt/ml/processing/output/{source_task}.json"])
         # Use the cached processor for the given command type
         processor = get_cached_processor(container_image, command, instance_type, role)
 
@@ -140,9 +136,7 @@ def create_pipeline(
                 PipelineDefinitionConfig,
             )
 
-            pipeline_args["pipeline_definition_config"] = PipelineDefinitionConfig(
-                use_custom_job_prefix=True
-            )
+            pipeline_args["pipeline_definition_config"] = PipelineDefinitionConfig(use_custom_job_prefix=True)
         except Exception as e:
             print("Warning: Could not configure custom job prefixing. Error:", e)
 
@@ -194,13 +188,7 @@ def run_tasks_from_json(pipeline_def: dict, watch: bool = True):
     aws_role_arn = os.getenv("AWS_ROLE_ARN")
     ecr_base_repo = os.getenv("ECR_BASE_REPO_URL")
 
-    if (
-        not aws_access_key
-        or not aws_secret_key
-        or not aws_region
-        or not aws_role_arn
-        or not ecr_base_repo
-    ):
+    if not aws_access_key or not aws_secret_key or not aws_region or not aws_role_arn or not ecr_base_repo:
         raise OSError("Missing required AWS environment variables.")
 
     ecr_base_repo = ecr_base_repo.rstrip("/")
@@ -210,14 +198,10 @@ def run_tasks_from_json(pipeline_def: dict, watch: bool = True):
         dockerfile_path = task.get("dockerfile")
 
         if dockerfile_path and os.path.exists(dockerfile_path):
-            print(
-                f"\nUsing provided Dockerfile for task {task_name}: {dockerfile_path}\n"
-            )
+            print(f"\nUsing provided Dockerfile for task {task_name}: {dockerfile_path}\n")
         else:
             dockerfile_path = f"/tmp/Dockerfile_{task_name}"
-            print(
-                f"\nNo valid Dockerfile provided. Creating one for task {task_name} at {dockerfile_path}...\n"
-            )
+            print(f"\nNo valid Dockerfile provided. Creating one for task {task_name} at {dockerfile_path}...\n")
             create_dockerfile(task, dockerfile_path)
 
         image_name = f"{ecr_base_repo}:latest"
@@ -225,7 +209,9 @@ def run_tasks_from_json(pipeline_def: dict, watch: bool = True):
         try:
             registry = ecr_base_repo.split("/")[0]
             print(f"\nLogging in to ECR registry {registry}...")
-            login_cmd = f"aws ecr get-login-password --region {aws_region} | docker login --username AWS --password-stdin {registry}"
+            login_cmd = (
+                f"aws ecr get-login-password --region {aws_region} | docker login --username AWS --password-stdin {registry}"
+            )
             subprocess.run(login_cmd, shell=True, check=True)
 
             print(f"\nBuilding Docker image {image_name} from {dockerfile_path}...\n")
@@ -319,9 +305,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     json_file = sys.argv[1]
-    persist_flag = (
-        sys.argv[2].lower() in ["true", "1", "yes"] if len(sys.argv) == 3 else False
-    )
+    persist_flag = sys.argv[2].lower() in ["true", "1", "yes"] if len(sys.argv) == 3 else False
 
     pipeline_def = load_pipeline_definition(json_file)
     run_tasks_from_json(pipeline_def)

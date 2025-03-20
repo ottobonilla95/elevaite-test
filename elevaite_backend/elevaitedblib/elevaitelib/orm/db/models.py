@@ -29,6 +29,7 @@ from ...schemas.pipeline import PipelineStepStatus
 from ...schemas.application import ApplicationType
 from ...schemas.apikey import ApikeyPermissionsType
 from .database import Base
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 class Application(Base):
@@ -88,6 +89,19 @@ class InstanceChartData(Base):
     instance: Mapped[Instance] = relationship(back_populates="chartData")
 
 
+class InstancePipelineStepStatus(Base):
+    __tablename__ = "instance_pipeline_step_statuses"
+
+    instanceId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("instances.id"), primary_key=True)
+    stepId: Mapped[str] = mapped_column()
+    status: Mapped[PipelineStepStatus] = mapped_column(Enum(PipelineStepStatus))
+    startTime: Mapped[Optional[str]]
+    endTime: Mapped[Optional[str]]
+    meta: Mapped[list[InstancePipelineStepData]] = mapped_column(MutableJson, default=[])
+
+    instance = relationship("Instance", back_populates="pipelineStepStatuses")
+
+
 class Pipeline(Base):
     __tablename__ = "pipelines"
 
@@ -122,24 +136,11 @@ class PipelineTask(Base):
     name: Mapped[str] = mapped_column()
     task_type: Mapped[PipelineTaskType] = mapped_column(Enum(PipelineTaskType))
     src: Mapped[str] = mapped_column()
-    config: Mapped[Dict[str, Any]] = mapped_column(MutableJson, default={})
+    config: Mapped[Json] = mapped_column(MutableJson, default={})
 
     dependencies: Mapped[List["PipelineTask"]] = relationship("PipelineTask", uselist=True)
     input: Mapped[List["PipelineVariable"]] = relationship("PipelineVariable")
     output: Mapped[List["PipelineVariable"]] = relationship("PipelineVariable")
-
-
-class InstancePipelineStepStatus(Base):
-    __tablename__ = "instance_pipeline_step_statuses"
-
-    instanceId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("instances.id"), primary_key=True)
-    stepId: Mapped[str] = mapped_column()
-    status: Mapped[PipelineStepStatus] = mapped_column(Enum(PipelineStepStatus))
-    startTime: Mapped[Optional[str]]
-    endTime: Mapped[Optional[str]]
-    meta: Mapped[list[InstancePipelineStepData]] = mapped_column(MutableJson, default=[])
-
-    instance = relationship("Instance", back_populates="pipelineStepStatuses")
 
 
 class Configuration(Base):
@@ -148,13 +149,14 @@ class Configuration(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     applicationId: Mapped[int] = mapped_column(ForeignKey("applications.id"))
     name: Mapped[str] = mapped_column(String, unique=True)
+    pipelineId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("pipelines.id"), nullable=False)
     createDate: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
     updateDate: Mapped[datetime] = mapped_column(DateTime, nullable=True, onupdate=get_utc_datetime)
     isTemplate: Mapped[bool]
     raw: Mapped[Json] = mapped_column(JSONB)
 
     instances: Mapped[List[Instance]] = relationship(back_populates="configuration", uselist=True)
-    application: Mapped[Application] = relationship("Application")
+    pipeline: Mapped[Pipeline] = relationship(back_populates="configurations")
 
 
 class DatasetTag(Base):
