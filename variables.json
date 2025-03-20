@@ -48,6 +48,7 @@
   },
   "creative_insight": {
     "NEXT_PUBLIC_CREATIVE_BACKEND_URL": "http://localhost:8000/api",
-    "NEXT_PUBLIC_CREATIVE_URL": "http://localhost:8080/static/images/"
+    "NEXT_PUBLIC_CREATIVE_URL": "http://localhost:8080/static/images/",
+    "NEXT_PUBLIC_API_BASE_URL_SQLAGENT": "http://localhost:8000/api"
   }
 }
