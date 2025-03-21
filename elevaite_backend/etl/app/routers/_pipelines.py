@@ -8,11 +8,11 @@ from elevaitelib.pipelines.schemas.requests import (
     RerunPipelinesRequest,
 )
 from elevaitelib.pipelines.service import (
-    # universal_create_pipelines,
     create_pipelines_for_provider,
     delete_pipelines_for_provider,
     monitor_pipelines_for_provider,
     rerun_pipelines_for_provider,
+    get_available_providers,
 )
 
 rbacValidator = RBACValidatorProvider.get_instance()
@@ -20,12 +20,12 @@ rbacValidator = RBACValidatorProvider.get_instance()
 router = APIRouter(prefix="/_pipeline", tags=["_pipelines"])
 
 
-# @router.get("/providers", response_model=List[str])
-# def get_providers():
-#     """
-#     Returns a list of all supported pipeline providers.
-#     """
-#     return universal_create_pipelines()
+@router.get("/providers", response_model=List[str])
+def get_providers():
+    """
+    Returns a list of all supported pipeline providers.
+    """
+    return get_available_providers()
 
 
 @router.post("/create", response_model=Dict[str, Any])
