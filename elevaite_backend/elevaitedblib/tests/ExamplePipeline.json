@@ -16,7 +16,7 @@
       "id": "task1",
       "name": "Task for main",
       "task_type": "pyscript",
-      "src": "[placeholder]",
+      "src": "/home/john/work/elevaite/elevaite_backend/elevaitedblib/tests/example_pipeline.py",
       "entrypoint": "main",
       "dependencies": [],
       "input": [],
@@ -29,7 +29,7 @@
       "id": "task2",
       "name": "Task for run_generate_topics",
       "task_type": "pyscript",
-      "src": "[placeholder]",
+      "src": "/home/john/work/elevaite/elevaite_backend/elevaitedblib/tests/example_pipeline.py",
       "entrypoint": "run_generate_topics",
       "dependencies": [
         "task1"

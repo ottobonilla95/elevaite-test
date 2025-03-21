@@ -112,6 +112,7 @@ class Pipeline(Base):
 
     tasks: Mapped[List["PipelineTask"]] = relationship("PipelineTask")
     schedule: Mapped["PipelineSchedule"] = relationship("PipelineSchedule")
+    instances: Mapped["Instance"] = relationship(back_populates="pipeline")
 
 
 class PipelineSchedule(Base):
@@ -129,18 +130,58 @@ class PipelineVariable(Base):
     var_type: Mapped[str] = mapped_column()  # Maybe an enum?
 
 
+pipeline_task_pipeline_task_dependecies = Table(
+    "pipeline_task_pipeline_task_dependecies",
+    Base.metadata,
+    Column("depends_on", Uuid, ForeignKey("pipeline_tasks.id")),
+    Column("dependent_id", Uuid, ForeignKey("pipeline_tasks.id")),
+)
+
+pipeline_task_pipeline_vars_input = Table(
+    "pipeline_task_pipeline_vars_input",
+    Base.metadata,
+    Column("task_id", Uuid, ForeignKey("pipeline_tasks.id")),
+    Column("var_id", String, ForeignKey("pipeline_variables.name")),
+)
+
+pipeline_task_pipeline_vars_output = Table(
+    "pipeline_task_pipeline_vars_output",
+    Base.metadata,
+    Column("task_id", Uuid, ForeignKey("pipeline_tasks.id")),
+    Column("var_id", String, ForeignKey("pipeline_variables.name")),
+)
+
+
 class PipelineTask(Base):
     __tablename__ = "pipeline_tasks"
 
-    id: Mapped[str] = mapped_column(primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column()
     task_type: Mapped[PipelineTaskType] = mapped_column(Enum(PipelineTaskType))
     src: Mapped[str] = mapped_column()
+    entrypoint: Mapped[str] = mapped_column()
+    description: Mapped[str] = mapped_column()
     config: Mapped[Json] = mapped_column(MutableJson, default={})
+    pipelineId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("pipelines.id"), nullable=False)
 
-    dependencies: Mapped[List["PipelineTask"]] = relationship("PipelineTask", uselist=True)
-    input: Mapped[List["PipelineVariable"]] = relationship("PipelineVariable")
-    output: Mapped[List["PipelineVariable"]] = relationship("PipelineVariable")
+    dependencies: Mapped[List["PipelineTask"]] = relationship(
+        "PipelineTask",
+        secondary=pipeline_task_pipeline_task_dependecies,
+        primaryjoin=id == pipeline_task_pipeline_task_dependecies.c.dependent_id,
+        secondaryjoin=id == pipeline_task_pipeline_task_dependecies.c.depends_on,
+    )
+    input: Mapped[List["PipelineVariable"]] = relationship(
+        "PipelineVariable",
+        secondary=pipeline_task_pipeline_vars_input,
+        primaryjoin=id == pipeline_task_pipeline_vars_input.c.task_id,
+        secondaryjoin=id == pipeline_task_pipeline_vars_input.c.var_id,
+    )
+    output: Mapped[List["PipelineVariable"]] = relationship(
+        "PipelineVariable",
+        secondary=pipeline_task_pipeline_vars_output,
+        primaryjoin=id == pipeline_task_pipeline_vars_output.c.task_id,
+        secondaryjoin=id == pipeline_task_pipeline_vars_output.c.var_id,
+    )
 
 
 class Configuration(Base):
@@ -149,14 +190,14 @@ class Configuration(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     applicationId: Mapped[int] = mapped_column(ForeignKey("applications.id"))
     name: Mapped[str] = mapped_column(String, unique=True)
-    pipelineId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("pipelines.id"), nullable=False)
+    # pipelineId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("pipelines.id"), nullable=False)
     createDate: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
     updateDate: Mapped[datetime] = mapped_column(DateTime, nullable=True, onupdate=get_utc_datetime)
     isTemplate: Mapped[bool]
     raw: Mapped[Json] = mapped_column(JSONB)
 
     instances: Mapped[List[Instance]] = relationship(back_populates="configuration", uselist=True)
-    pipeline: Mapped[Pipeline] = relationship(back_populates="configurations")
+    # pipeline: Mapped[Pipeline] = relationship(back_populates="configurations")
 
 
 class DatasetTag(Base):

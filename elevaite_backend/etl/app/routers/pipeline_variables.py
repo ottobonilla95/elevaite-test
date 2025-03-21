@@ -1,12 +1,12 @@
 from typing import Annotated
 from elevaitelib.schemas import pipeline as pipeline_schemas
 from fastapi import APIRouter, Body, Depends
-from rbac_api import RBACValidatorProvider
+# from rbac_api import RBACValidatorProvider
 
 from ..services import pipeline_variables as service
 from .deps import get_db
 
-rbacValidator = RBACValidatorProvider.get_instance()
+# rbacValidator = RBACValidatorProvider.get_instance()
 
 router = APIRouter(prefix="/pipeline/var", tags=["pipeline variables"])
 

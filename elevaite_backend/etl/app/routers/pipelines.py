@@ -2,6 +2,8 @@ from typing import Annotated, Any, Sequence
 from fastapi import APIRouter, Body, Depends, Request, Header
 from uuid import UUID
 from sqlalchemy.orm import Session
+
+from .deps import get_db
 from ..services import (
     configurations as conf_service,
     instances as instance_service,
@@ -27,18 +29,19 @@ def getPipelines(
     request: Request,  # uncomment this when using validator
     skip: int = 0,
     limit: int = 10,
-    # db=Depends(get_db),
-    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, "getPipelines")]),
+    db=Depends(get_db),
+    # validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, "getPipelines")]),
 ):
-    db: Session = request.state.db  # uncomment this when using validator
-    all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(
-        models.Pipeline, validation_info
-    )  # uncomment this when using validator
+    # db: Session = request.state.db  # uncomment this when using validator
+    # all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(
+    # models.Pipeline, validation_info
+    # )  # uncomment this when using validator
     return pipeline_service.getPipelinesOfProject(
         db=db,
         skip=skip,
         limit=limit,
-        filter_function=all_query_authorized_types_filter_function,
+        # filter_function=all_query_authorized_types_filter_function,
+        filter_function=None,
     )
 
 
@@ -46,18 +49,19 @@ def getPipelines(
 def getPipelineById(
     request: Request,  # uncomment this when using validator
     pipeline_id: str,
-    # db=Depends(get_db),
-    validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, "getPipelineById")]),
+    db=Depends(get_db),
+    # validation_info: dict[str, Any] = Depends(route_validator_map[(api_schemas.APINamespace.ETL_API, "getPipelineById")]),
 ):
-    db: Session = request.state.db  # uncomment this when using validator
-    print(validation_info)
-    all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(
-        models.Collection, validation_info
-    )  # uncomment this when using validator
+    # db: Session = request.state.db  # uncomment this when using validator
+    # print(validation_info)
+    # all_query_authorized_types_filter_function = rbacValidator.get_post_validation_types_filter_function_for_all_query(
+    # models.Collection, validation_info
+    # )  # uncomment this when using validator
     return pipeline_service.getPipelineById(
         db=db,
         id=pipeline_id,
-        filter_function=all_query_authorized_types_filter_function,
+        # filter_function=all_query_authorized_types_filter_function,
+        filter_function=None,
     )
 
 
