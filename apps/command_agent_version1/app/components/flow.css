@@ -1,0 +1,88 @@
+/* Add these rules to your flow.css or globals.css */
+
+/* Global container fixes */
+html, body, #__next {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+  
+  /* Fix for scrollable sidebar */
+  .designer-sidebar {
+    width: 16rem;
+    border-right: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow-y: auto;
+    position: relative;
+    z-index: 10;
+  }
+  
+  /* Make sidebar items scrollable */
+  .sidebar-items {
+    overflow-y: auto;
+    flex: 1;
+    padding: 0.75rem;
+  }
+  
+  /* Fix main content container */
+  .flex-1 {
+    flex: 1 1 0%;
+    min-width: 0;
+    position: relative;
+  }
+  
+  /* ReactFlow container - force full size */
+  .react-flow, 
+  .react-flow__container,
+  .react-flow__viewport,
+  .react-flow__pane {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  
+  /* Fix visibility of edges and connections */
+  .react-flow__edge {
+    z-index: 5;
+    pointer-events: all;
+  }
+  
+  .react-flow__edge-path {
+    stroke: #3b82f6;
+    stroke-width: 2;
+    fill: none;
+  }
+  
+  .react-flow__connection-path {
+    stroke: #3b82f6;
+    stroke-width: 2;
+    stroke-dasharray: 5;
+    fill: none;
+  }
+  
+  /* Fix dragging and dropping nodes */
+  .react-flow__node {
+    z-index: 3;
+    position: absolute;
+  }
+  
+  /* Ensure handles are visible and properly positioned */
+  .react-flow__handle {
+    position: absolute;
+    width: 10px !important;
+    height: 10px !important;
+    background-color: #3b82f6 !important;
+    border: 2px solid white !important;
+    border-radius: 50%;
+    z-index: 5;
+  }
+  
+  /* Make the pane properly scrollable */
+  .designer-content {
+    display: flex;
+    height: calc(100vh - 52px); /* Adjust to your navbar height */
+    overflow: hidden;
+    position: relative;
+  }

@@ -1,0 +1,410 @@
+/* Main layout structure */
+.chatbot-main-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  overflow-y: auto; /* Changed from hidden to auto */
+}
+.chat-message-container {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Agent Flow Designer */
+.agent-flow-designer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  background-color: white;
+  overflow-y: auto; /* Changed from hidden to auto */
+}
+
+/* Designer content area with sidebar and workspace */
+.designer-content {
+  display: flex;
+  height: calc(100vh - 52px); /* Updated to match your navbar height */
+  min-height: 600px; /* Added minimum height to ensure content is visible */
+  overflow-y: auto; /* Changed from hidden to auto */
+  padding-top: 10px; /* Add some padding to prevent content from being cut off */
+}
+
+/* Sidebar styles */
+.designer-sidebar {
+  width: 16rem;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  overflow-y: auto; /* Added to make sidebar scrollable */
+  max-height: 100%; /* Ensure sidebar doesn't overflow */
+}
+
+.sidebar-header {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky; /* Keep header visible when scrolling */
+  top: 0;
+  background-color: white;
+  z-index: 10;
+}
+
+.sidebar-items {
+  padding: 0.75rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.sidebar-item {
+  padding: 0.625rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  margin-bottom: 0.625rem;
+  background-color: white;
+  cursor: grab;
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    transform: translateX(0.25rem);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.sidebar-item-content {
+  display: flex;
+  align-items: center;
+}
+
+.item-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+}
+
+/* Agent Node Styles */
+.custom-node {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background-color: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  width: 250px;
+  transition: all 0.2s ease;
+  animation: scaleIn 0.2s ease forwards;
+
+  &:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border-color: #d1d5db;
+  }
+}
+
+.custom-node-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.agent-type-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: #f3f4f6;
+}
+
+/* Connection handles */
+.connection-handle {
+  width: 12px !important;
+  height: 12px !important;
+  background-color: #3b82f6 !important;
+  border: 2px solid white !important;
+  cursor: crosshair !important;
+}
+
+.node-handle-group {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  &.top {
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  &.right {
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  &.bottom {
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  &.left {
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+}
+
+/* Drag handle */
+.drag-handle {
+  cursor: move;
+}
+
+/* React Flow styles */
+.react-flow {
+  width: 100%;
+  height: 100%;
+  overflow: visible !important; /* Make sure flow content is visible */
+}
+
+.react-flow__pane {
+  cursor: grab;
+}
+
+.react-flow__pane.react-flow__pane--dragging {
+  cursor: grabbing;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+  stroke: #3b82f6;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #2563eb;
+  stroke-width: 3;
+}
+
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+/* Make sure arrows are visible */
+.react-flow__edge {
+  z-index: 5;
+}
+
+.react-flow__edge-path, .react-flow__connection-path {
+  stroke: #3b82f6;
+  stroke-width: 2;
+}
+
+/* Ensure handles are properly positioned and visible */
+.react-flow__handle {
+  width: 12px !important;
+  height: 12px !important;
+  background-color: #3b82f6 !important;
+  border: 2px solid white !important;
+  z-index: 10;
+}
+
+/* Flow container styles */
+.react-flow__container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Chat interface styles */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto; /* Changed to allow scrolling */
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.message {
+  max-width: 75%;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  
+  &.user {
+    background-color: #3b82f6;
+    color: white;
+    align-self: flex-end;
+    margin-left: auto;
+  }
+  
+  &.bot {
+    background-color: #f3f4f6;
+    color: #111827;
+    align-self: flex-start;
+  }
+}
+
+.chat-input {
+  display: flex;
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+  position: sticky; /* Keep input at bottom when scrolling */
+  bottom: 0;
+  background-color: white;
+  
+  input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem 0 0 0.375rem;
+  }
+}
+
+/* Configuration modal */
+.config-modal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  
+  .modal-content {
+    background-color: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    width: 24rem;
+    max-width: 90%;
+  }
+}
+
+/* Agent background colors */
+.agent-bg {
+  &-router {
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+  
+  &-web_search {
+    background-color: rgba(16, 185, 129, 0.1);
+  }
+  
+  &-api {
+    background-color: rgba(245, 158, 11, 0.1);
+  }
+  
+  &-data {
+    background-color: rgba(139, 92, 246, 0.1);
+  }
+  
+  &-troubleshooting {
+    background-color: rgba(239, 68, 68, 0.1);
+  }
+}
+
+/* Agent text colors */
+.agent-text {
+  &-router {
+    color: #3b82f6;
+  }
+  
+  &-web_search {
+    color: #10b981;
+  }
+  
+  &-api {
+    color: #f59e0b;
+  }
+  
+  &-data {
+    color: #8b5cf6;
+  }
+  
+  &-troubleshooting {
+    color: #ef4444;
+  }
+}
+
+/* Animations */
+@keyframes scaleIn {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes dashdraw {
+  from {
+    stroke-dashoffset: 10;
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease forwards;
+}
+
+/* React Flow background */
+.grid-pattern {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-color: #f9fafb;
+}
+
+/* Utility classes */
+.full-height {
+  height: 100vh;
+}
+
+.flex-grow {
+  flex-grow: 1;
+}
+
+.overflow-auto {
+  overflow: auto;
+}
+
+/* Fix for page layout */
+html, body, #__next {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+/* Ensure the flow canvas takes up available space but doesn't overflow */
+.flex-1 {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* Add these to ensure parent containers don't restrict scrolling */
+main {
+  height: 100vh !important;
+  width: 100vw !important;
+  overflow-y: auto !important;
+  padding-top: 0; /* Adjust if needed for your navbar */
+}
+
+/* Ensure the main app container inherits height and allows scrolling */
+.chatbot-layout-container {
+  height: 100%;
+  min-height: 100vh;
+  overflow-y: auto;
+}
