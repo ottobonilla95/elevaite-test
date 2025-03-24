@@ -22,18 +22,18 @@ export async function fetchChatbotResponse(userId: string, messageText: string, 
   const url = new URL(`${BACKEND_URL ?? ""}run`);
 
   const response = await fetch(url
-      , {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          "query": messageText,
-          "uid": userId,
-          "sid": sessionId,
-          "collection": chatbotGenAi,
-        }),
-      });
+    , {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        "query": messageText,
+        "uid": userId,
+        "sid": sessionId,
+        "collection": chatbotGenAi,
+      }),
+    });
   if (!response.ok) throw new Error("Failed to fetch");
   const data: unknown = await response.json();
   if (isChatMessageResponse(data)) return data;
@@ -44,7 +44,7 @@ export async function fetchChatbotResponse(userId: string, messageText: string, 
 
 export async function fetchSessionSummary(userId: string, sessionId: string): Promise<SessionSummaryObject> {
   const url = new URL(`${BACKEND_URL ?? ""}summarization?uid=${userId}&sid=${sessionId}`);
-  const response = await fetch(url);  
+  const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to fetch");
   const data: unknown = await response.json();
   if (isSessionSummaryResponse(data)) return data;

@@ -95,15 +95,15 @@ export enum PromptInputTypes {
 
 
 export interface UploadFileResponseObject {
-  image: string;
-  doc_type: string;
-  num_pages: number;
-  prompt: string;
+    image: string;
+    doc_type: string;
+    num_pages: number;
+    prompt: string;
 }
 
 export interface PageChangeResponseObject {
-  image: string;
-  prompt: string;
+    image: string;
+    prompt: string;
 }
 
 export interface regenerateResponseObject {

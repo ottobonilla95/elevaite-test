@@ -94,7 +94,7 @@ const AgentConfigForm: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showConfigPanel, setShowConfigPanel] = useState(false);
     const [activeTab, setActiveTab] = useState("actions");
-	const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
 
     // Store flow instance when it's ready
     const onInit = (instance: ReactFlowInstance) => {
@@ -477,103 +477,103 @@ const AgentConfigForm: React.FC = () => {
     }
 
     return (
-		<>
-			<HeaderBottom
-			workflowName={workflowName}
-			isLoading={isLoading}
-			handleDeployWorkflow={handleDeployWorkflow}
-			/>
-			<ReactFlowProvider>
-				<div className="agent-config-form" ref={reactFlowWrapper}>
-					{/* Designer Mode */}
-					{!isChatMode ? (
-						<>
-							{/* Designer Sidebar */}
-							<DesignerSidebar
-								workflowName={workflowName}
-								handleDragStart={handleDragStart}
-								handleDeployWorkflow={handleDeployWorkflow}
-								handleSaveWorkflow={handleSaveWorkflow}
-								isLoading={isLoading}
-								activeTab={activeTab}
-								setActiveTab={setActiveTab}
-							/>
+        <>
+            <HeaderBottom
+                workflowName={workflowName}
+                isLoading={isLoading}
+                handleDeployWorkflow={handleDeployWorkflow}
+            />
+            <ReactFlowProvider>
+                <div className="agent-config-form" ref={reactFlowWrapper}>
+                    {/* Designer Mode */}
+                    {!isChatMode ? (
+                        <>
+                            {/* Designer Sidebar */}
+                            <DesignerSidebar
+                                workflowName={workflowName}
+                                handleDragStart={handleDragStart}
+                                handleDeployWorkflow={handleDeployWorkflow}
+                                handleSaveWorkflow={handleSaveWorkflow}
+                                isLoading={isLoading}
+                                activeTab={activeTab}
+                                setActiveTab={setActiveTab}
+                            />
 
-							{/* Main Canvas */}
-							<div className="designer-content">
-								<DesignerCanvas
-									nodes={nodes}
-									edges={edges}
-									setNodes={setNodes}
-									setEdges={setEdges}
-									onDrop={onDrop}
-									onDragOver={onDragOver}
-									onNodeSelect={handleNodeSelect}
-									onInit={onInit}
-								/>
+                            {/* Main Canvas */}
+                            <div className="designer-content">
+                                <DesignerCanvas
+                                    nodes={nodes}
+                                    edges={edges}
+                                    setNodes={setNodes}
+                                    setEdges={setEdges}
+                                    onDrop={onDrop}
+                                    onDragOver={onDragOver}
+                                    onNodeSelect={handleNodeSelect}
+                                    onInit={onInit}
+                                />
 
-								{/* Configuration Panel - shown when a node is selected */}
-								{showConfigPanel && selectedNode && (
-									<div className={`config-panel-container${!sidebarOpen ? ' shrinked' : ''}`}>
-										<ConfigPanel
-											agentName={selectedNode.data.name}
-											agentType={selectedNode.data.type}
-											description={selectedNode.data.description || ""}
-											onEditPrompt={handleOpenPromptModal}
-											onSave={handleSaveAgentConfig}
-											onClose={() => setShowConfigPanel(false)}
-											onNameChange={(newName) => handleAgentNameChange(selectedNode.id, newName)}
-											toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-											sidebarOpen={sidebarOpen}
-										/>
-									</div>
-								)}
-							</div>
+                                {/* Configuration Panel - shown when a node is selected */}
+                                {showConfigPanel && selectedNode && (
+                                    <div className={`config-panel-container${!sidebarOpen ? ' shrinked' : ''}`}>
+                                        <ConfigPanel
+                                            agentName={selectedNode.data.name}
+                                            agentType={selectedNode.data.type}
+                                            description={selectedNode.data.description || ""}
+                                            onEditPrompt={handleOpenPromptModal}
+                                            onSave={handleSaveAgentConfig}
+                                            onClose={() => setShowConfigPanel(false)}
+                                            onNameChange={(newName) => handleAgentNameChange(selectedNode.id, newName)}
+                                            toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                                            sidebarOpen={sidebarOpen}
+                                        />
+                                    </div>
+                                )}
+                            </div>
 
-							{/* Agent Configuration Modal */}
-							{selectedNode && (
-								<AgentConfigModal
-									isOpen={isPromptModalOpen}
-									nodeData={selectedNode ? {
-										id: selectedNode.id,
-										type: selectedNode.data.type,
-										name: selectedNode.data.name,
-										shortId: selectedNode.data.shortId,
-										prompt: selectedNode.data.prompt,
-										description: selectedNode.data.description,
-										tags: selectedNode.data.tags
-									} : null}
-									onClose={handleClosePromptModal}
-									onSave={handleSavePrompt}
-								/>
-							)}
-						</>
-					) : (
-						/* Chat Mode */
-						<>
-							{/* Chat Sidebar */}
-							<ChatSidebar
-								workflowName={workflowName}
-								workflowId={workflowIdRef.current}
-								onExitChat={() => setIsChatMode(false)}
-								onCreateNewWorkflow={handleCreateNewWorkflow}
-								isLoading={isLoading}
-							/>
+                            {/* Agent Configuration Modal */}
+                            {selectedNode && (
+                                <AgentConfigModal
+                                    isOpen={isPromptModalOpen}
+                                    nodeData={selectedNode ? {
+                                        id: selectedNode.id,
+                                        type: selectedNode.data.type,
+                                        name: selectedNode.data.name,
+                                        shortId: selectedNode.data.shortId,
+                                        prompt: selectedNode.data.prompt,
+                                        description: selectedNode.data.description,
+                                        tags: selectedNode.data.tags
+                                    } : null}
+                                    onClose={handleClosePromptModal}
+                                    onSave={handleSavePrompt}
+                                />
+                            )}
+                        </>
+                    ) : (
+                        /* Chat Mode */
+                        <>
+                            {/* Chat Sidebar */}
+                            <ChatSidebar
+                                workflowName={workflowName}
+                                workflowId={workflowIdRef.current}
+                                onExitChat={() => setIsChatMode(false)}
+                                onCreateNewWorkflow={handleCreateNewWorkflow}
+                                isLoading={isLoading}
+                            />
 
-							{/* Chat Interface */}
-							<div className="chat-content">
-								<ChatInterface
-									onExitChat={() => setIsChatMode(false)}
-									onCreateNewWorkflow={handleCreateNewWorkflow}
-									workflowName={workflowName}
-									workflowId={workflowIdRef.current}
-								/>
-							</div>
-						</>
-					)}
-				</div>
-			</ReactFlowProvider>
-		</>
+                            {/* Chat Interface */}
+                            <div className="chat-content">
+                                <ChatInterface
+                                    onExitChat={() => setIsChatMode(false)}
+                                    onCreateNewWorkflow={handleCreateNewWorkflow}
+                                    workflowName={workflowName}
+                                    workflowId={workflowIdRef.current}
+                                />
+                            </div>
+                        </>
+                    )}
+                </div>
+            </ReactFlowProvider>
+        </>
     );
 };
 
