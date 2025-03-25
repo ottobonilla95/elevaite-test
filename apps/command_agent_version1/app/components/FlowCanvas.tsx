@@ -42,8 +42,48 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
     const [nodes, setNodes, onNodesChange] = useNodesState<Node[]>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
 
+    // Function to update node data - will be passed to AgentNode component
+    const updateNodeData = useCallback((nodeId: string, newData: { name?: string, prompt?: string }) => {
+        console.log("Updating node data:", nodeId, newData);
+
+        // Update the node in our internal state
+        setNodes(prevNodes =>
+            prevNodes.map(node =>
+                node.id === nodeId
+                    ? {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            ...(newData.name && { name: newData.name }),
+                            ...(newData.prompt !== undefined && { prompt: newData.prompt })
+                        }
+                    }
+                    : node
+            )
+        );
+
+        // Also update external nodes state
+        setExternalNodes(prevNodes =>
+            prevNodes.map(node =>
+                node.id === nodeId
+                    ? {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            ...(newData.name && { name: newData.name }),
+                            ...(newData.prompt !== undefined && { prompt: newData.prompt })
+                        }
+                    }
+                    : node
+            )
+        );
+    }, [setExternalNodes]);
+
     // Memoize node types to prevent unnecessary re-renders
-    const nodeTypes = useMemo(() => ({ agent: AgentNode }), []);
+    // Pass updateNodeData to the AgentNode component
+    const nodeTypes = useMemo(() => ({
+        agent: (props) => <AgentNode {...props} updateNodeData={updateNodeData} />
+    }), [updateNodeData]);
 
     // Default edge options
     const defaultEdgeOptions = useMemo(() => ({
@@ -81,13 +121,9 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
         // Apply changes to internal state first
         onNodesChange(changes);
 
-        // Then sync back to parent after a short delay
-        // Using setTimeout to avoid state update during render
+        // Then sync back to parent
         setTimeout(() => {
-            setExternalNodes(current => {
-                // Get the current internal nodes state
-                return nodes;
-            });
+            setExternalNodes([...nodes]);
         }, 0);
     }, [nodes, onNodesChange, setExternalNodes]);
 
@@ -98,7 +134,7 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
 
         // Sync back to parent
         setTimeout(() => {
-            setExternalEdges(edges);
+            setExternalEdges([...edges]);
         }, 0);
     }, [edges, onEdgesChange, setExternalEdges]);
 
@@ -168,6 +204,7 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
                 proOptions={{ hideAttribution: true }}
                 className="grid-pattern"
                 connectionMode="loose"
+                selectNodesOnDrag={false}
             >
                 <Background color="#888" gap={20} />
                 <Controls showInteractive={false} />

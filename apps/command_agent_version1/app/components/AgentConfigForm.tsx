@@ -19,14 +19,15 @@ import {
     Plus
 } from "lucide-react";
 import { WorkflowAPI } from "../api/workflowApi";
+
 // Define proper types
 interface NodeData {
     id: string;
     shortId?: string;
     type: AgentType;
     name: string;
+    prompt?: string;
     onDelete: (id: string) => void;
-    onConfigure: (id: string) => void;
 }
 
 interface Node {
@@ -72,6 +73,7 @@ interface WorkflowConfig {
         uuid: string;
         type: AgentType;
         name: string;
+        prompt?: string;
         position: {
             x: number;
             y: number;
@@ -108,6 +110,12 @@ const AGENT_TYPES: AgentTypeDefinition[] = [
         type: "data",
         name: "Data Agent",
         description: "Processes and analyzes data"
+    },
+    {
+        id: "troubleshoot-1",
+        type: "troubleshooting",
+        name: "Troubleshooting Agent",
+        description: "Helps solve problems"
     }
 ];
 
@@ -132,13 +140,11 @@ const AgentConfigForm = () => {
     const [edges, setEdges] = useState<Edge[]>([]);
 
     // State for UI
-    const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [workflowName, setWorkflowName] = useState("My Agent Workflow");
-    const [isConfiguring, setIsConfiguring] = useState(false);
     const [isChatMode, setIsChatMode] = useState(false);
     const [chatInput, setChatInput] = useState("");
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-    const [isLoading, setIsLoading] = useState(false); // Add loading state
+    const [isLoading, setIsLoading] = useState(false);
 
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
@@ -156,17 +162,6 @@ const AgentConfigForm = () => {
         console.log("Deleting node with ID:", nodeId);
 
         setNodes(prevNodes => {
-            // Log current nodes for debugging
-            console.log("Current nodes:", prevNodes.map(n => ({ id: n.id, name: n.data.name })));
-
-            // Check if the node exists before deletion
-            const nodeExists = prevNodes.some(node => node.id === nodeId);
-            if (!nodeExists) {
-                console.error("Node not found for deletion:", nodeId);
-                return prevNodes; // Return unchanged if node doesn't exist
-            }
-
-            // Remove the node
             const updatedNodes = prevNodes.filter(node => node.id !== nodeId);
             console.log("Nodes after deletion:", updatedNodes.map(n => n.id));
             return updatedNodes;
@@ -180,29 +175,7 @@ const AgentConfigForm = () => {
             console.log("Edges after deletion:", updatedEdges);
             return updatedEdges;
         });
-
-        // Clear selection if needed
-        if (selectedNode && selectedNode.id === nodeId) {
-            setSelectedNode(null);
-            setIsConfiguring(false);
-        }
-    }, [selectedNode]);
-
-    const handleConfigureNode = useCallback((nodeId: string) => {
-        console.log("Configuring node with ID:", nodeId);
-        const node = nodes.find(n => n.id === nodeId);
-        if (node) {
-            setSelectedNode(node);
-            setIsConfiguring(true);
-        } else {
-            console.error("Node not found for configuration:", nodeId);
-        }
-    }, [nodes]);
-
-    const handleCloseConfig = () => {
-        setIsConfiguring(false);
-        setSelectedNode(null);
-    };
+    }, []);
 
     // Handle dropping an agent onto the canvas
     const onDrop = useCallback(
@@ -234,8 +207,8 @@ const AgentConfigForm = () => {
                                 shortId: agentData.id,
                                 type: agentData.type,
                                 name: agentData.name,
-                                onDelete: handleDeleteNode,
-                                onConfigure: handleConfigureNode
+                                prompt: "", // Initialize with empty prompt
+                                onDelete: handleDeleteNode
                             },
                         };
 
@@ -247,7 +220,7 @@ const AgentConfigForm = () => {
                 }
             }
         },
-        [handleDeleteNode, handleConfigureNode]
+        [handleDeleteNode]
     );
 
     // Handle drag over
@@ -256,7 +229,7 @@ const AgentConfigForm = () => {
         event.dataTransfer.dropEffect = "move";
     }, []);
 
-    // Handle drag start for agent types
+    //// Handle drag start for agent types
     const handleDragStart = (event: React.DragEvent<HTMLDivElement>, agent: AgentTypeDefinition) => {
         event.dataTransfer.setData("application/reactflow", JSON.stringify(agent));
         event.dataTransfer.effectAllowed = "move";
@@ -371,6 +344,7 @@ const AgentConfigForm = () => {
                 uuid: node.id,
                 type: node.data.type,
                 name: node.data.name,
+                prompt: node.data.prompt, // Include prompt in saved workflow
                 position: node.position
             })),
             connections: edges.map(edge => ({
@@ -413,20 +387,7 @@ const AgentConfigForm = () => {
 
     // Get CSS class for agent type
     const getAgentColorClass = (type: AgentType) => {
-        switch (type) {
-            case "router":
-                return "bg-blue-100 text-blue-600";
-            case "web_search":
-                return "bg-emerald-100 text-emerald-600";
-            case "api":
-                return "bg-amber-100 text-amber-600";
-            case "data":
-                return "bg-purple-100 text-purple-600";
-            case "troubleshooting":
-                return "bg-red-100 text-red-600";
-            default:
-                return "bg-gray-100 text-gray-600";
-        }
+        return AGENT_STYLES[type]?.bgClass + " " + AGENT_STYLES[type]?.textClass || "bg-gray-100 text-gray-600";
     };
 
     // If not yet mounted, return a loading placeholder that matches server-side rendering
@@ -614,61 +575,6 @@ const AgentConfigForm = () => {
                         </div>
                     )}
                 </div>
-
-                {/* Configuration modal */}
-                {isConfiguring && selectedNode && (
-                    <div className="config-modal" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-                        <div className="modal-content" style={{ backgroundColor: 'white', borderRadius: '8px', padding: '1.5rem', width: '24rem', maxWidth: '90%' }}>
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-medium">Configure {selectedNode.data.name}</h3>
-                                <button
-                                    onClick={handleCloseConfig}
-                                    className="text-gray-500 hover:text-gray-700"
-                                >
-                                    <X size={18} />
-                                </button>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Agent Name</label>
-                                    <input
-                                        type="text"
-                                        value={selectedNode.data.name}
-                                        onChange={(e) => {
-                                            const newName = e.target.value;
-                                            setNodes((prevNodes) =>
-                                                prevNodes.map((n) =>
-                                                    n.id === selectedNode.id
-                                                        ? { ...n, data: { ...n.data, name: newName } }
-                                                        : n
-                                                )
-                                            );
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Agent Type</label>
-                                    <div className="py-2 px-3 bg-gray-100 rounded-md text-sm">{selectedNode.data.type}</div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Node ID</label>
-                                    <div className="py-2 px-3 bg-gray-100 rounded-md text-sm font-mono text-gray-600 break-all">{selectedNode.id}</div>
-                                </div>
-
-                                <button
-                                    onClick={handleCloseConfig}
-                                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                                >
-                                    Apply Configuration
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
         </ReactFlowProvider>
     );

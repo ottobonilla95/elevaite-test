@@ -1,4 +1,3 @@
-/* Add these rules to your flow.css or globals.css */
 
 /* Global container fixes */
 html, body, #__next {
@@ -82,7 +81,7 @@ html, body, #__next {
   /* Make the pane properly scrollable */
   .designer-content {
     display: flex;
-    height: calc(100vh - 52px); /* Adjust to your navbar height */
+    height: calc(100vh - 52px); /* Adjust to  navbar height */
     overflow: hidden;
     position: relative;
   }
