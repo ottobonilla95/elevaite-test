@@ -1,3 +1,4 @@
+// FlowCanvas.tsx - Position fix
 "use client";
 
 import React, { useCallback, useRef, useEffect, useState, useMemo } from "react";
@@ -11,7 +12,8 @@ import ReactFlow, {
     Node,
     Edge,
     Connection,
-    ReactFlowInstance
+    ReactFlowInstance,
+    applyNodeChanges
 } from "react-flow-renderer";
 import AgentNode from "./AgentNode";
 
@@ -24,6 +26,11 @@ interface FlowCanvasProps {
     onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
 }
 
+// Define nodeTypes outside the component to prevent error
+const createNodeTypes = (updateNodeData) => ({
+    agent: (props) => <AgentNode {...props} updateNodeData={updateNodeData} />
+});
+
 const FlowCanvas: React.FC<FlowCanvasProps> = ({
     nodes: externalNodes,
     edges: externalEdges,
@@ -34,6 +41,12 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
 }) => {
     // Track if component is mounted
     const [mounted, setMounted] = useState(false);
+
+    // Track if we're currently dragging to prevent sync issues
+    const isDraggingRef = useRef(false);
+
+    // Track if external nodes have changed
+    const externalNodesRef = useRef(externalNodes);
 
     // ReactFlow instance
     const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -80,10 +93,7 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
     }, [setExternalNodes]);
 
     // Memoize node types to prevent unnecessary re-renders
-    // Pass updateNodeData to the AgentNode component
-    const nodeTypes = useMemo(() => ({
-        agent: (props) => <AgentNode {...props} updateNodeData={updateNodeData} />
-    }), [updateNodeData]);
+    const nodeTypes = useMemo(() => createNodeTypes(updateNodeData), [updateNodeData]);
 
     // Default edge options
     const defaultEdgeOptions = useMemo(() => ({
@@ -101,9 +111,14 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
         setMounted(true);
     }, []);
 
-    // Sync external nodes to internal state
+    // Update ref when external nodes change
     useEffect(() => {
-        if (mounted && externalNodes) {
+        externalNodesRef.current = externalNodes;
+    }, [externalNodes]);
+
+    // Sync external nodes to internal state, but only when not dragging
+    useEffect(() => {
+        if (mounted && externalNodes && !isDraggingRef.current) {
             console.log("Syncing external nodes to internal state:", externalNodes);
             setNodes(externalNodes);
         }
@@ -118,13 +133,37 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
 
     // Handle node changes (position, etc)
     const handleNodesChange = useCallback((changes) => {
-        // Apply changes to internal state first
+        // Check if we're starting to drag
+        const dragStart = changes.some(change =>
+            change.type === 'position' && change.dragging === true
+        );
+
+        // Check if we're ending a drag
+        const dragEnd = changes.some(change =>
+            change.type === 'position' && change.dragging === false && isDraggingRef.current
+        );
+
+        // Update dragging state
+        if (dragStart) {
+            isDraggingRef.current = true;
+        }
+
+        // Apply changes to the internal state
         onNodesChange(changes);
 
-        // Then sync back to parent
-        setTimeout(() => {
-            setExternalNodes([...nodes]);
-        }, 0);
+        // If drag ended, update external state
+        if (dragEnd) {
+            requestAnimationFrame(() => {
+                isDraggingRef.current = false;
+                setExternalNodes(nodes);
+            });
+        }
+
+        // For non-position changes, also update external state
+        const hasNonPositionChanges = changes.some(change => change.type !== 'position');
+        if (hasNonPositionChanges && !isDraggingRef.current) {
+            setExternalNodes(nodes);
+        }
     }, [nodes, onNodesChange, setExternalNodes]);
 
     // Handle edge changes
@@ -132,10 +171,14 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
         // Apply changes to internal state
         onEdgesChange(changes);
 
-        // Sync back to parent
-        setTimeout(() => {
-            setExternalEdges([...edges]);
-        }, 0);
+        // Sync back to parent only when necessary
+        const hasEdgeRemoval = changes.some(change => change.type === 'remove');
+        if (hasEdgeRemoval) {
+            // Use requestAnimationFrame to batch updates
+            requestAnimationFrame(() => {
+                setExternalEdges(edges);
+            });
+        }
     }, [edges, onEdgesChange, setExternalEdges]);
 
     // Handle connections between nodes
@@ -157,9 +200,7 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
             setEdges(updatedEdges);
 
             // Sync to parent
-            setTimeout(() => {
-                setExternalEdges(updatedEdges);
-            }, 0);
+            setExternalEdges(updatedEdges);
         },
         [defaultEdgeOptions, edges, setEdges, setExternalEdges]
     );
@@ -177,6 +218,14 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
         }, 200);
     }, []);
 
+    // Handle node drag stop specifically
+    const onNodeDragStop = useCallback((event, node) => {
+        // Update external nodes with the new position
+        setExternalNodes(current =>
+            current.map(n => n.id === node.id ? { ...n, position: node.position } : n)
+        );
+    }, [setExternalNodes]);
+
     // If not yet mounted, return a placeholder
     if (!mounted) {
         return <div className="w-full h-full bg-gray-50" />;
@@ -191,6 +240,7 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
                 onEdgesChange={handleEdgesChange}
                 onConnect={handleConnect}
                 onInit={onInit}
+                onNodeDragStop={onNodeDragStop}
                 nodeTypes={nodeTypes}
                 defaultEdgeOptions={defaultEdgeOptions}
                 connectionLineStyle={{ stroke: '#3b82f6', strokeWidth: 2, strokeDasharray: '5,5' }}
@@ -204,7 +254,9 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
                 proOptions={{ hideAttribution: true }}
                 className="grid-pattern"
                 connectionMode="loose"
-                selectNodesOnDrag={false}
+                nodesDraggable={true}
+                elementsSelectable={true}
+                snapToGrid={false}
             >
                 <Background color="#888" gap={20} />
                 <Controls showInteractive={false} />

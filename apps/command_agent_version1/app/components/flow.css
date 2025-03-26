@@ -85,3 +85,16 @@ html, body, #__next {
     overflow: hidden;
     position: relative;
   }
+  /* Fix for ReactFlow draggable nodes */
+.react-flow__node {
+  cursor: grab !important;
+}
+
+.react-flow__node.dragging {
+  cursor: grabbing !important;
+}
+
+/* Make sure handles are properly positioned */
+.react-flow__handle {
+  z-index: 10;
+}
