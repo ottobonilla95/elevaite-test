@@ -5,14 +5,19 @@ description = "Enhanced logging utility for FastAPI applications with AWS CloudW
 readme = "README.md"
 requires-python = "==3.11.11"
 dependencies = [
-    "boto3>=1.37.16",
+    "boto3",
+    "opentelemetry-api>=1.31.1",
+    "opentelemetry-instrumentation-logging>=0.52b1",
+    "opentelemetry-sdk>=1.31.1",
+    "opentelemetry-exporter-otlp>=1.31.1",
+    "opentelemetry-semantic-conventions>=0.49b0",
 ]
 
 [project.optional-dependencies]
 test = [
-    "fastapi>=0.100.0",
-    "uvicorn>=0.22.0",
-    "httpx>=0.24.1",
+    "fastapi",
+    "uvicorn",
+    "httpx",
 ]
 
 [build-system]

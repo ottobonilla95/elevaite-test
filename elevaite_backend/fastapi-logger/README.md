@@ -61,6 +61,10 @@ The `FastAPILogger` class accepts the following parameters:
 | log_group | str | None | CloudWatch log group name (required if cloudwatch_enabled is True) |
 | log_stream | str | None | CloudWatch log stream name (required if cloudwatch_enabled is True) |
 | filter_fastapi | bool | False | Whether to filter out standard FastAPI logs when sending to CloudWatch |
+| service_name | str | "fastapi-service" | Service name for OpenTelemetry (used if configure_otel is True) |
+| otlp_endpoint | Optional[str] | None | OpenTelemetry collector endpoint (e.g. 'http://localhost:4317') |
+| configure_otel | bool | False | Whether to configure OpenTelemetry with this logger instance |
+| resource_attributes | Optional[Dict[str, str]] | None | Additional resource attributes for OpenTelemetry |
 
 ## AWS Credentials
 
