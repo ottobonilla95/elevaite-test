@@ -15,6 +15,7 @@ dependencies = [
   "sqlalchemy-json>=0.7.0",
   "qdrant-client>=1.9.1",
   "elevaite_client",
+  "boto3>=1.37.1",
 ]
 
 [tool.uv.sources]
