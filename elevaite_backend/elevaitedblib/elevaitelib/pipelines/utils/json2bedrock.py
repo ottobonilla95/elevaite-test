@@ -94,6 +94,320 @@ class BedrockKnowledgeBase:
         # Create the Bedrock client
         self.bedrock_agent = boto3.client("bedrock-agent")
         self.bedrock_agent_runtime = boto3.client("bedrock-agent-runtime")
+        # Create the OpenSearch client if collection ARN is provided
+        if config.get("opensearchCollectionArn"):
+            self.aoss_client = boto3.client("opensearchserverless")
+            self.collection_arn = config.get("opensearchCollectionArn")
+            if self.collection_arn:
+                self.collection_id = self.collection_arn.split("/")[-1]
+            self.vector_index_name = config.get("vectorIndexName", "bedrock-kb-index")
+
+    def _ensure_opensearch_index_exists(self) -> bool:
+        """Create the OpenSearch index if it doesn't exist."""
+        if not hasattr(self, "aoss_client"):
+            logger.warning(
+                "No OpenSearch collection specified, skipping index creation"
+            )
+            return False
+
+        try:
+            logger.info(
+                f"Ensuring index '{self.vector_index_name}' exists in collection {self.collection_id}..."
+            )
+
+            try:
+                collection_response = self.aoss_client.batch_get_collection(
+                    ids=[self.collection_id]
+                )
+                collections = collection_response.get("collectionDetails", [])
+
+                if not collections:
+                    logger.error(f"Collection {self.collection_id} not found")
+                    return False
+
+                collection = collections[0]
+                if collection.get("status") != "ACTIVE":
+                    wait_time = 60  # seconds to wait for collection to become active
+                    logger.warning(
+                        f"Collection {self.collection_id} exists but status is {collection.get('status')}, waiting up to {wait_time}s for ACTIVE status..."
+                    )
+
+                    # Wait for collection to become active
+                    start_time = time.time()
+                    while time.time() - start_time < wait_time:
+                        time.sleep(10)
+                        collection_response = self.aoss_client.batch_get_collection(
+                            ids=[self.collection_id]
+                        )
+                        if (
+                            collection_response.get("collectionDetails")[0].get(
+                                "status"
+                            )
+                            == "ACTIVE"
+                        ):
+                            logger.info(
+                                f"Collection {self.collection_id} is now ACTIVE"
+                            )
+                            break
+                    else:
+                        logger.error(
+                            f"Timed out waiting for collection {self.collection_id} to become ACTIVE"
+                        )
+                        return False
+
+                logger.info(
+                    f"Verified collection {self.collection_id} exists and is active"
+                )
+            except ClientError as e:
+                logger.error(f"Failed to verify collection status: {e}")
+                return False
+
+            try:
+                all_policies = []
+
+                try:
+                    # Try to list policies directly first
+                    policies_response = self.aoss_client.list_access_policies(
+                        type="data"
+                    )
+                    all_policies = policies_response.get("accessPolicySummaries", [])
+                except Exception as e:
+                    logger.warning(f"Error listing access policies: {e}")
+
+                # Check if policy for this collection exists
+                policy_exists = False
+                for policy in all_policies:
+                    if self.collection_id in policy.get("name", ""):
+                        policy_exists = True
+                        logger.info(
+                            f"Data access policy already exists for collection {self.collection_id}"
+                        )
+                        break
+
+                # Create policy if it doesn't exist
+                if not policy_exists:
+                    # Create a shorter policy name that fits the constraints
+                    # Must be <= 32 chars, follow pattern [a-z][a-z0-9-]+
+                    policy_name = f"aoss-{self.collection_id[:20]}-policy"
+                    logger.info(
+                        f"Creating data access policy '{policy_name}' for collection {self.collection_id}"
+                    )
+
+                    policy_document = [
+                        {
+                            "Resource": f"aoss:collection/{self.collection_id}",
+                            "Permission": [
+                                "aoss:CreateIndex",
+                                "aoss:DeleteIndex",
+                                "aoss:UpdateIndex",
+                                "aoss:DescribeIndex",
+                                "aoss:ReadDocument",
+                                "aoss:WriteDocument",
+                            ],
+                            "ResourceType": "index",
+                            "Principal": "*",
+                        }
+                    ]
+
+                    self.aoss_client.create_access_policy(
+                        name=policy_name,
+                        type="data",
+                        policy=json.dumps(policy_document),
+                        description=f"Data access policy for collection {self.collection_id}",
+                    )
+                    logger.info(
+                        f"Created data access policy for collection {self.collection_id}"
+                    )
+
+                    # Wait for policy to take effect
+                    logger.info("Waiting for policy to propagate (10 seconds)...")
+                    time.sleep(10)
+            except ClientError as e:
+                logger.warning(f"Failed to create access policy: {e}")
+                # Continue anyway, policy might already exist or be managed elsewhere
+
+            try:
+                # First, try using batch_get_collection to get the endpoint
+                collection_response = self.aoss_client.batch_get_collection(
+                    ids=[self.collection_id]
+                )
+                collections = collection_response.get("collectionDetails", [])
+
+                # Get the region
+                region = self.session.region_name or "us-west-2"
+
+                # Construct the endpoint using the standard format
+                collection_endpoint = (
+                    f"{self.collection_id}.{region}.aoss.amazonaws.com"
+                )
+                logger.info(
+                    f"Using constructed OpenSearch endpoint: {collection_endpoint}"
+                )
+            except ClientError as e:
+                logger.error(f"Failed to get collection endpoint: {e}")
+
+                # Fallback solution if API calls fail
+                region = self.session.region_name or "us-west-2"
+                collection_endpoint = (
+                    f"{self.collection_id}.{region}.aoss.amazonaws.com"
+                )
+                logger.warning(
+                    f"Using fallback constructed endpoint after API failure: {collection_endpoint}"
+                )
+
+            try:
+                # Use the AWS OpenSearch Serverless create_index API instead of REST API
+                logger.info(
+                    f"Creating index '{self.vector_index_name}' in collection {self.collection_id} using AWS API..."
+                )
+
+                # Prepare the index settings
+                index_settings = {
+                    "mappings": {
+                        "properties": {
+                            "content": {"type": "text"},
+                            "metadata": {"type": "object"},
+                            "bedrock_embedding": {
+                                "type": "knn_vector",
+                                "dimension": 1536,  # Titan embedding dimension
+                                "method": {
+                                    "name": "hnsw",
+                                    "space_type": "cosinesimil",
+                                    "engine": "nmslib",
+                                    "parameters": {"ef_construction": 128, "m": 16},
+                                },
+                            },
+                        }
+                    }
+                }
+
+                try:
+                    if hasattr(self.aoss_client, "create_index"):
+                        response = self.aoss_client.create_index(
+                            id=f"{self.collection_id}/{self.vector_index_name}",
+                            name=self.vector_index_name,
+                            collectionId=self.collection_id,
+                            body=json.dumps(index_settings),
+                        )
+                        logger.info(
+                            f"Successfully created index via boto3 API: {response}"
+                        )
+                        time.sleep(5)  # Wait for index to be ready
+                        return True
+                except Exception as e:
+                    if "already exists" in str(e).lower():
+                        logger.info(
+                            f"Index '{self.vector_index_name}' already exists (from boto3 API error)"
+                        )
+                        return True
+                    logger.warning(f"Failed to create index via boto3 API: {e}")
+
+                logger.info("Attempting to create index using REST API...")
+                import requests
+                from requests_aws4auth import AWS4Auth
+
+                region = self.session.region_name or "us-west-2"
+                credentials = self.session.get_credentials()
+
+                auth = AWS4Auth(
+                    credentials.access_key,
+                    credentials.secret_key,
+                    region,
+                    "aoss",
+                    session_token=credentials.token,
+                )
+
+                # REST API request
+                host = f"{self.collection_id}.{region}.aoss.amazonaws.com"
+                url = f"https://{host}/{self.vector_index_name}"
+
+                logger.info(f"Using OpenSearch REST API endpoint: {url}")
+
+                try:
+                    head_response = requests.head(url, auth=auth, timeout=30)
+
+                    if head_response.status_code == 200:
+                        logger.info(
+                            f"Index '{self.vector_index_name}' already exists, no need to create it"
+                        )
+                        return True
+                    elif head_response.status_code != 404:
+                        logger.warning(
+                            f"Unexpected status code checking index: {head_response.status_code}"
+                        )
+                except Exception as e:
+                    logger.warning(f"Error checking if index exists: {e}")
+
+                # Create the index with multiple retries
+                max_retries = 3
+                for retry in range(max_retries):
+                    try:
+                        if retry > 0:
+                            logger.info(
+                                f"Retry {retry+1}/{max_retries} creating index..."
+                            )
+                            time.sleep(5 * (retry + 1))
+
+                        # Create the index
+                        response = requests.put(
+                            url,
+                            auth=auth,
+                            json=index_settings,
+                            headers={"Content-Type": "application/json"},
+                            timeout=30,
+                        )
+
+                        if response.status_code in [200, 201]:
+                            logger.info(
+                                f"Successfully created index '{self.vector_index_name}' via REST API"
+                            )
+                            time.sleep(10)  # Wait for index to be fully ready
+                            return True
+                        elif (
+                            response.status_code == 400
+                            and "already_exists" in response.text
+                        ):
+                            logger.info(
+                                f"Index '{self.vector_index_name}' already exists (from REST API)"
+                            )
+                            return True
+                        else:
+                            logger.warning(
+                                f"REST API index creation failed: {response.status_code} - {response.text}"
+                            )
+                            # If the error is about index settings, try again with simpler settings
+                            if "settings" in response.text.lower():
+                                logger.info("Retrying without index settings...")
+                                index_settings = {
+                                    "mappings": {
+                                        "properties": {
+                                            "content": {"type": "text"},
+                                            "metadata": {"type": "object"},
+                                            "bedrock_embedding": {
+                                                "type": "knn_vector",
+                                                "dimension": 1536,
+                                            },
+                                        }
+                                    }
+                                }
+                    except Exception as e:
+                        logger.warning(f"Error creating index (attempt {retry+1}): {e}")
+
+                logger.error(
+                    f"Failed to create index '{self.vector_index_name}' after multiple attempts"
+                )
+                logger.error(
+                    "All methods to create index failed. Cannot proceed with knowledge base creation."
+                )
+                return False
+
+            except Exception as e:
+                logger.error(f"Error creating index: {e}")
+                return False
+
+        except Exception as e:
+            logger.error(f"Error ensuring OpenSearch index exists: {e}")
+            return False
 
     def create_or_update(self) -> str:
         """Create or update the knowledge base."""
@@ -104,6 +418,15 @@ class BedrockKnowledgeBase:
                 f"Knowledge base '{self.kb_name}' already exists (ID: {self.kb_id})."
             )
             return self.kb_id
+
+        # Ensure the OpenSearch index exists before creating the knowledge base
+        if hasattr(self, "aoss_client"):
+            index_created = self._ensure_opensearch_index_exists()
+            if not index_created:
+                logger.error(
+                    "Could not create OpenSearch index, knowledge base creation will fail"
+                )
+                raise ValueError("Failed to create required OpenSearch index")
 
         logger.info(f"Creating knowledge base '{self.kb_name}'...")
 
@@ -458,6 +781,12 @@ class KnowledgeBaseTaskExecutor:
 
         kb = self.knowledge_bases[kb_name]
 
+        if kb is None:
+            logger.error(
+                f"Knowledge base '{kb_name}' failed to be created earlier. Cannot execute task."
+            )
+            return False
+
         query = task.get("query")
         assert query, "Query must be specified for knowledge base task"
 
@@ -644,12 +973,35 @@ def main():
                     knowledge_bases[kb_name] = kb
                     logger.info(f"Using knowledge base '{kb_name}' (ID: {kb_id})")
                 except Exception as e:
-                    logger.error(f"Failed to create knowledge base '{kb_name}': {e}")
-                    proceed = input(
-                        f"Do you want to proceed without knowledge base '{kb_name}'? (y/n): "
-                    ).lower()
-                    if proceed != "y":
-                        return 1
+                    error_msg = str(e)
+                    logger.error(
+                        f"Failed to create knowledge base '{kb_name}': {error_msg}"
+                    )
+
+                    # Report the error more clearly
+                    if (
+                        "no such index" in error_msg.lower()
+                        or "index not found" in error_msg.lower()
+                    ):
+                        logger.error(
+                            "OpenSearch index error: The required index is missing."
+                        )
+                    elif "Bad Authorization" in error_msg or "403" in error_msg:
+                        logger.error(
+                            "Authorization error: The IAM role doesn't have sufficient permissions."
+                        )
+                    elif "ValidationException" in error_msg:
+                        logger.error("Validation error when creating knowledge base.")
+                    elif "AccessDeniedException" in error_msg:
+                        logger.error("Access denied error. Check IAM permissions.")
+                    else:
+                        logger.error(f"Knowledge base creation failed: {error_msg}")
+
+                    # Knowledge base creation is critical - exit with error
+                    logger.error(
+                        f"Stopping execution - knowledge base '{kb_name}' is required but could not be created"
+                    )
+                    return 1
 
         # Initialize task executors
         lambda_executor = LambdaTaskExecutor(context)
