@@ -5,6 +5,7 @@ from pydantic import UUID4, BaseModel
 
 from .pipeline import PipelineStepStatus
 from .configuration import Configuration
+from ..pipelines.interfaces.pipeline_types import ProviderType
 
 
 class InstanceStatus(str, Enum):
@@ -156,6 +157,7 @@ class InstanceCreateDTO(BaseModel):
     projectId: UUID4
     selectedPipelineId: UUID4
     instanceName: str
+    provider: ProviderType
 
 
 class InstanceUpdate(BaseModel):

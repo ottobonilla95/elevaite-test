@@ -10,7 +10,10 @@ from app.routers.configurations import router as configuration_router
 from app.routers.datasets import router as datasets_router
 from app.routers.collections import router as collections_router
 from app.routers.service_now import router as service_now_router
-# from app.routers.pipelines import router as pipelines_router
+from app.routers.pipelines import router as pipelines_router
+from app.routers._pipelines import router as _pipelines_router
+from app.routers.pipeline_tasks import router as pipeline_tasks_router
+from app.routers.pipeline_variables import router as pipeline_vars_router
 
 from app.util.RedisSingleton import RedisSingleton
 from app.util.ElasticSingleton import ElasticSingleton
@@ -32,8 +35,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.include_router(applications_router)
-# app.include_router(pipelines_router)
+# app.include_router(applications_router)
+app.include_router(pipelines_router)
+app.include_router(pipeline_tasks_router)
+app.include_router(pipeline_vars_router)
+app.include_router(_pipelines_router)
 app.include_router(instances_router)
 app.include_router(configuration_router)
 app.include_router(datasets_router)

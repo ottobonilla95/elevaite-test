@@ -1,0 +1,39 @@
+2023 Aug 24 10:24:55 sw-core syslogd started: BusyBox v1.34.1
+2023 Aug 24 10:25:17.117 sw-core swlogd svcCmm mSOCK DBG2:  smgrProcessCmmMsg@1615 ARP Update for vrf 0: ip 10.103.104.1 mac 00:00:00:00:00:00 port 0, op 0 from IPCMM
+2023 Aug 24 10:25:17.117 sw-core swlogd svcCmm mSOCK DBG2:  smgrSendMsgToNIs@799 slot=255 len=48
+2023 Aug 24 10:25:17.118 sw-core swlogd svcCmm mSOCK DBG2:  smgrNiReacSend@757 slot=1 len=48 id=0x2f0026
+2023 Aug 24 10:25:17.118 sw-core swlogd svcCmm mSOCK DBG2:  smgrNiReacSend@757 slot=2 len=48 id=0x2f0026
+2023 Aug 24 10:25:17.118 sw-core swlogd svcNi mSVC INFO: SVCN: ALU_SMGR_SDP_ARP_UPDATE.
+2023 Aug 24 10:25:17.118 sw-core swlogd svcCmm mSOCK DBG2:  smgrNiReacSend@757 slot=3 len=48 id=0x2f0026
+2023 Aug 24 10:25:17.118 sw-core swlogd svcNi mSVC ERR: SVCN: Gtw:10.103.104.1 not found in NHOP DB
+2023 Aug 24 10:25:17.122 sw-core swlogd svcCmm mSOCK DBG2:  smgrNiReacSend@757 slot=4 len=48 id=0x2f0026
+2023 Aug 24 10:25:17.122 sw-core swlogd svcCmm mSERV INFO:  smgrSendSdpArpUpdMesg@3032 ARP Update for IP 10.103.104.1, flag 0 and port 0 send to NIs
+2023 Aug 24 10:25:17.122 sw-core swlogd svcCmm mSOCK DBG2:  smgrCmmReacReceive@1235 len=36 msgLen=24 msgId=0xff203 ip=0x7f02 socket=43 count=1193
+2023 Aug 24 10:25:17.123 sw-core swlogd svcCmm mSOCK DBG2:  smgrProcessCmmMsg@1615 ARP Update for vrf 0: ip 10.103.104.1 mac b4:0c:25:e0:80:11 port 255, op 1 from IPCMM
+2023 Aug 24 10:25:17.123 sw-core swlogd svcCmm mIPRM DBG1:  smgrIprmHandleArpUpdate@1798 ARP ADD for MAC b4:0c:25:e0:80:11 received with invalid gPort
+2023 Aug 24 10:25:17.123 sw-core swlogd svcCmm mSOCK DBG2:  smgrCmmReacReceive@1235 len=36 msgLen=24 msgId=0xff203 ip=0x7f02 socket=43 count=1194
+2023 Aug 24 10:25:17.128 sw-core swlogd svcCmm mSOCK DBG2:  smgrProcessCmmMsg@1615 ARP Update for vrf 0: ip 10.103.104.1 mac b4:0c:25:e0:80:11 port 33554482, op 1 from IPCMM
+2023 Aug 24 10:25:17.129 sw-core swlogd svcCmm mSOCK DBG2:  smgrSendMsgToNIs@799 slot=255 len=48
+2023 Aug 24 10:25:17.129 sw-core swlogd svcCmm mSOCK DBG2:  smgrNiReacSend@757 slot=1 len=48 id=0x2f0026
+2023 Aug 24 10:25:17.129 sw-core swlogd svcCmm mSOCK DBG2:  smgrNiReacSend@757 slot=2 len=48 id=0x2f0026
+2023 Aug 24 10:25:17.130 sw-core swlogd svcNi mSVC INFO: SVCN: ALU_SMGR_SDP_ARP_UPDATE.
+2023 Aug 24 10:25:17.130 sw-core swlogd svcCmm mSOCK DBG2:  smgrNiReacSend@757 slot=3 len=48 id=0x2f0026
+2023 Aug 24 10:25:17.130 sw-core swlogd svcNi mSVC ERR: SVCN: Gtw:10.103.104.1 not found in NHOP DB
+2023 Aug 24 10:25:17.134 sw-core swlogd svcCmm mSOCK DBG2:  smgrNiReacSend@757 slot=4 len=48 id=0x2f0026
+2023 Aug 24 10:25:17.134 sw-core swlogd svcCmm mSERV INFO:  smgrSendSdpArpUpdMesg@3032 ARP Update for IP 10.103.104.1, flag 1 and port 33554482 send to NIs
+2023 Aug 24 10:25:17.134 sw-core swlogd svcCmm mSOCK DBG2:  smgrCmmReacReceive@1235 len=36 msgLen=24 msgId=0xff203 ip=0x7f02 socket=43 count=1195
+2023 Aug 24 10:25:45.407 sw-core swlogd svcNi mSVC INFO: svcnSendSLNDynNvpMsg(111) - Sending 1 VPs at VP 1 VP count is 1
+2023 Aug 24 10:26:17.117 sw-core swlogd svcCmm mSOCK DBG2:  smgrProcessCmmMsg@1615 ARP Update for vrf 0: ip 10.103.104.1 mac 00:00:00:00:00:00 port 0, op 0 from IPCMM
+2023 Aug 24 10:26:17.118 sw-core swlogd svcCmm mSOCK DBG2:  smgrSendMsgToNIs@799 slot=255 len=48
+2023 Aug 24 10:26:17.118 sw-core swlogd svcCmm mSOCK DBG2:  smgrNiReacSend@757 slot=1 len=48 id=0x2f0026
+2023 Aug 24 10:26:17.118 sw-core swlogd svcCmm mSOCK DBG2:  smgrNiReacSend@757 slot=2 len=48 id=0x2f0026
+2023 Aug 24 10:26:17.119 sw-core swlogd svcNi mSVC INFO: SVCN: ALU_SMGR_SDP_ARP_UPDATE.
+2023 Aug 24 10:26:17.119 sw-core swlogd svcCmm mSOCK DBG2:  smgrNiReacSend@757 slot=3 len=48 id=0x2f0026
+2023 Aug 24 10:26:17.119 sw-core swlogd svcNi mSVC ERR: SVCN: Gtw:10.103.104.1 not found in NHOP DB
+2023 Aug 24 10:26:17.123 sw-core swlogd svcCmm mSOCK DBG2:  smgrNiReacSend@757 slot=4 len=48 id=0x2f0026
+2023 Aug 24 10:26:17.123 sw-core swlogd svcCmm mSERV INFO:  smgrSendSdpArpUpdMesg@3032 ARP Update for IP 10.103.104.1, flag 0 and port 0 send to NIs
+2023 Aug 24 10:26:17.123 sw-core swlogd svcCmm mSOCK DBG2:  smgrCmmReacReceive@1235 len=36 msgLen=24 msgId=0xff203 ip=0x7f02 socket=43 count=1196
+2023 Aug 24 10:26:17.124 sw-core swlogd svcCmm mSOCK DBG2:  smgrProcessCmmMsg@1615 ARP Update for vrf 0: ip 10.103.104.1 mac b4:0c:25:e0:80:11 port 255, op 1 from IPCMM
+2023 Aug 24 10:26:17.124 sw-core swlogd svcCmm mIPRM DBG1:  smgrIprmHandleArpUpdate@1798 ARP ADD for MAC b4:0c:25:e0:80:11 received with invalid gPort
+2023 Aug 24 10:26:17.124 sw-core swlogd svcCmm mSOCK DBG2:  smgrCmmReacReceive@1235 len=36 msgLen=24 msgId=0xff203 ip=0x7f02 socket=43 count=1197
+2023 Aug 24 10:26:17.200 sw-core swlogd svcCmm mSOCK DBG2:  smgrProcessCmmMsg@1615 ARP Update for vrf 0: ip 10.103.104.1 mac b4:0c:25:e0:80:11 port 33554482, op 1 from IPCMM

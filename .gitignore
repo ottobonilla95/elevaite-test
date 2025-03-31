@@ -56,3 +56,4 @@ logfile
 htmlcov
 /media_backend/static/images
 **/tests/.env
+airflow_venv
