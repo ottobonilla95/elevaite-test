@@ -93,7 +93,6 @@ def createApplicationInstance(
     _instance = instance_crud.create_instance(db, _instance_create)
     if not is_instance(_instance):
         raise HTTPException(status_code=500, detail="Error inserting instance in database")
-        raise HTTPException(status_code=500, detail="Error inserting instance in database")
 
     if not is_pipeline(_pipeline):
         _instance_update = InstanceUpdate(comment="Pipeline was not found.", status=InstanceStatus.FAILED)
