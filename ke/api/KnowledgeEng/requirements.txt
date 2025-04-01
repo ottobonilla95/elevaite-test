@@ -1,9 +1,0 @@
-langchain
-fastapi
-uvicorn
-tiktoken
-openai
-datasets
-qdrant_client
-bs4
-validators

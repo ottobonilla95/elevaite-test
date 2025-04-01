@@ -1,1 +1,0 @@
-https://docs.paloaltonetworks.com/pan-os/9-1/pan-os-web-interface-help/globalprotect/network-globalprotect-portals/globalprotect-portals-agent-configuration-tab/globalprotect-portals-agent-config-selection-criteria-tab
