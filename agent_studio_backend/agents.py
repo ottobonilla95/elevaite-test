@@ -31,7 +31,6 @@ class WebAgent(Agent):
 
         Your response should be in the format:
         {{ "routing": "respond", "content": "The answer to the query."}}
-
         """
         messages=[{"role": "system", "content": system_prompt},{"role": "user", "content": query}]
 
