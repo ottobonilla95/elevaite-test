@@ -1,9 +1,0 @@
-## Install the necesssay stuff (well some of these are not needed but installed)
-openai==0.28.1 
-qdrant_client==1.2.0
-tiktoken
-langchain==0.0.191
-fastapi
-uvicorn
-sse-starlette
-python-dotenv
