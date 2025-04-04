@@ -343,12 +343,6 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
           filename: item,
         };
       }),
-      media: data.media?.map((item) => {
-        return {
-          id: item + new Date().toISOString(),
-          filename: item,
-        };
-      }),
     };
     return newMessage;
   }

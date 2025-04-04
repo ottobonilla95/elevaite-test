@@ -1,4 +1,4 @@
-from tools import weather_forecast
+from agent_studio_backend.tools import weather_forecast
 from data_classes import Agent
 from utils import agent_schema
 from typing import Any
@@ -25,10 +25,9 @@ class WebAgent(Agent):
         query : what is the sum of 12 and 13, and web results for "latest news on Toshiba.
         """
         tries = 0
-        routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = self.system_prompt.prompt + f"""
         Here are the routing options:
-        {routing_options}
+        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
 
         Your response should be in the format:
         {{ "routing": "respond", "content": "The answer to the query."}}
@@ -82,13 +81,12 @@ class ToshibaAgent(Agent):
         """
         tries = 0
         start_time = datetime.now()
-        routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = self.system_prompt.prompt + f"""
         Here are the routing options:
-        {routing_options}
+        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
 
         Your response should be in the format:
-        {{ "routing": "routing type", "content": "The relevant response."}}
+        {{ "routing": "respond", "content": "The answer to the query."}}
         """
         messages=[{"role": "system", "content": system_prompt},{"role": "user", "content": query}]
 
@@ -138,10 +136,9 @@ class DataAgent(Agent):
         The data contains customer ID, Order numbers and location in each row.
         """
         tries = 0
-        routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = self.system_prompt.prompt + f"""
         Here are the routing options:
-        {routing_options}
+        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
 
         Your response should be in the format:
         {{ "routing": "respond", "content": "The answer to the query."}}
@@ -192,10 +189,9 @@ class APIAgent(Agent):
         1. Weather API - to answer any weather related queries for a city.
         """
         tries = 0
-        routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = self.system_prompt.prompt + f"""
         Here are the routing options:
-        {routing_options}
+        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
 
         Your response should be in the format:
         {{ "routing": "respond", "content": "The answer to the query."}}
@@ -334,26 +330,9 @@ class CommandAgent(Agent):
 
         messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": query}]
 
-
         while tries < self.max_retries:
             print("\n\nCommand Agent Tries: ", tries)
             try:
-                if self.active_agents:
-                    print("\n\nActive Agents: ", self.active_agents)
-                    new_agents = []
-                    messages += [{"role": "assistant", "tool_calls": self.active_agents}, ]
-                    for agent in self.active_agents:
-                        print("\n\nAgent Called: ", agent)
-                        tool_id = agent.id
-                        arguments = json.loads(agent.function.arguments)
-                        arguments["query"] = query
-                        function_name = agent.function.name
-                        result = agent_store[function_name](**arguments)
-                        print(result)
-                        messages += [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
-                        if result["routing"] == "continue":
-                            new_agents.append(agent)
-                    self.active_agents = new_agents
                 response = client.chat.completions.create(
                     model="o3-mini",
                     messages=messages,
@@ -366,8 +345,7 @@ class CommandAgent(Agent):
                 print("\n\nResponse: ", response)
                 if response.choices[0].finish_reason == "tool_calls":
                     tool_calls = response.choices[0].message.tool_calls
-                    print("\n\nTool Calls: ", tool_calls)
-                    messages += [{"role": "assistant", "tool_calls": tool_calls},]
+                    messages += [{"role": "assistant", "tool_calls": tool_calls}, ]
                     for tool in tool_calls:
                         print("\n\nAgent Called: ", tool)
                         tool_id = tool.id
@@ -379,8 +357,6 @@ class CommandAgent(Agent):
                             result = tool_store[function_name](**arguments)
                         print(result)
                         messages += [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
-                        if result["routing"] == "continue":
-                            self.active_agents.append(tool)
 
                 else:
                     return response.choices[0].message.content
@@ -395,8 +371,8 @@ toshiba_agent = ToshibaAgent(name="ToshibaAgent",
                 system_prompt=toshiba_agent_system_prompt,
                 persona="Helper",
                 functions=[get_knowledge.openai_schema],
-                routing_options={"ask": "If you think you need to ask more information or context from the user to answer the question.",
-                                 "continue": "If you think you have the answer, you can stop here.",
+                routing_options={"continue": "If you think you can't answer the query, you can continue to the next tool or do some reasoning.",
+                                 "respond": "If you think you have the answer, you can stop here.",
                                  "give_up": "If you think you can't answer the query, you can give up and let the user know."
                                  },
 

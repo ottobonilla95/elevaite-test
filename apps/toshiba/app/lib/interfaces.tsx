@@ -61,7 +61,6 @@ export const defaultSession: SessionObject = {
 export interface ChatMessageResponse {
     text: string;
     refs: string[];
-    media?: string[];
 }
 
 export interface ChatMessageObject {
@@ -74,7 +73,6 @@ export interface ChatMessageObject {
     feedback?: string;
     feedbackfiles?: ChatMessageFileObject[];
     files?: ChatMessageFileObject[];
-    media?: ChatMessageFileObject[];
 }
 
 export interface ChatMessageFileObject {
