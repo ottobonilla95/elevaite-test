@@ -9,7 +9,7 @@ import "./CommonMenu.scss";
 
 export interface CommonMenuItem<T> {
     label: string;
-    onClick: (item: T) => void;
+    onClick: (item?: T) => void;
     tooltip?: string;
     isDisabled?: boolean;
 }
@@ -41,7 +41,7 @@ export function CommonMenu<T>(props: CommonMenuProps<T>): JSX.Element {
     }
 
     function handleClick(menuItem: CommonMenuItem<T>): void {
-        if (props.item) menuItem.onClick(props.item);
+        menuItem.onClick(props.item);
         closeMenu();
     }
 

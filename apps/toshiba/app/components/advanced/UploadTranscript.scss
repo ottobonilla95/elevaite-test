@@ -1,0 +1,54 @@
+
+
+.upload-transcript-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 30px 60px;
+    border-radius: 8px;
+
+    background-color: var(--ev-colors-background);
+    color: var(--ev-colors-text);
+
+    & .title {
+        font-size: 20px;
+        text-align: center;
+        color: var(--ev-colors-secondaryText);
+    }
+
+    & .transcript-area-container {
+        padding: 10px;
+        background-color: var(--ev-colors-backgroundHighContrast);
+        border-radius: 8px;
+
+        & .transcript-area {
+            padding: 10px;
+
+            &:focus-within {
+                border-color: var(--ev-colors-highlight);
+            }
+
+            & > textarea {
+                height: 400px;
+                width: 600px;
+            }
+        }
+    }
+
+    & .controls-container {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+
+        & > button {
+            padding: 10px 20px;
+            font-size: 12px;
+            background-color: var(--ev-colors-primary);
+            border: 1px solid var(--ev-colors-borderColor);
+
+            &.process {
+                background-color: var(--ev-colors-highlight);
+            }
+        }
+    }
+}

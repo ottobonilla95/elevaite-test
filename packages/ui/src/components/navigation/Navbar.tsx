@@ -130,7 +130,6 @@ export function NavBar(props: NavBarProps): JSX.Element {
           {props.user?.name}
 
           <CommonMenu<NavbarMenuItem>
-            item={undefined}
             menu={userMenu}
             left
             sideCover

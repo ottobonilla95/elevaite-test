@@ -1,6 +1,7 @@
-import { CommonButton, CommonModal } from ".";
 import { ElevaiteIcons } from "../icons/elevaite";
+import { CommonButton } from "./CommonButton";
 import "./CommonDialog.scss";
+import { CommonModal } from "./CommonModal";
 
 
 

@@ -1,4 +1,4 @@
-/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- This is a catch-all, disabled users will have other means to do the same thing. >.< */
+/* eslint-disable jsx-a11y/no-static-element-interactions -- This is a catch-all, disabled users will have other means to do the same thing. >.< */
 "use client";
 import { createPortal } from 'react-dom';
 import "./CommonModal.scss";

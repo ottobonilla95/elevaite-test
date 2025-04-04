@@ -17,6 +17,19 @@ import SVGThumbs from "./svgThumbs";
 import SVGUpload from "./svgUpload";
 import SVGPaperClip from "./svgPaperClip";
 import SVGRefresh from "./svgRefresh.tsx";
+import SVGActionUpvote from "./svgActionUpvote.tsx";
+import SVGActionDownvote from "./svgActionDownvote.tsx";
+import SVGActionRefresh from "./svgActionRefresh.tsx";
+import SVGActionFlag from "./svgActionFlag.tsx";
+import SVGActionCopy from "./svgActionCopy.tsx";
+import SVGMenuCreate from "./svgMenuCreate.tsx";
+import SVGMenuScorecard from "./svgMenuScorecard.tsx";
+import SVGMenuDiscover from "./svgMenuDiscover.tsx";
+import SVGMenuSettings from "./svgMenuSettings.tsx";
+import SVGAddFile from "./svgAddFile.tsx";
+import SVGInstructions from "./svgInstructions.tsx";
+import SVGSettings from "./svgSettings.tsx";
+import SVGFolder from "./svgFolder.tsx";
 
 
 
@@ -40,4 +53,17 @@ export const ChatbotIcons = {
     SVGDownloadExport,
     SVGPaperClip,
     SVGRefresh,
+    SVGActionUpvote,
+    SVGActionDownvote,
+    SVGActionRefresh,
+    SVGActionFlag,
+    SVGActionCopy,
+    SVGMenuCreate,
+    SVGMenuScorecard,
+    SVGMenuDiscover,
+    SVGMenuSettings,
+    SVGAddFile,
+    SVGInstructions,
+    SVGSettings,
+    SVGFolder,
 };

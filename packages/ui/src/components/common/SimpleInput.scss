@@ -2,11 +2,10 @@
 
 .simple-input-container {
     position: relative;
-    display: flex;
-    align-items: center;
-    gap: 5px;
     padding: 2px 5px;
-
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     border: 1px solid var(--ev-colors-borderColor);
     border-radius: 4px;
     color: var(--ev-colors-text);
@@ -15,12 +14,39 @@
         border-color: var(--ev-colors-tertiary-text);
     }
 
-    & > input {
+    & .simple-input-contents {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    & input {
         flex-grow: 1;
         background-color: transparent;
 
         &:focus {
             outline: none;
+        }
+    }
+
+    & .bottom-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+
+        & .prompts-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+
+
+            & .prompt-button {
+                font-size: 14px;
+                color: var(--ev-colors-secondaryText);
+                border: 1px solid var(--ev-colors-borderColor);
+                padding: 5px 15px;
+            }
         }
     }
 
@@ -37,7 +63,7 @@
         border: none;
         border-radius: 8px;
         
-        & > input {
+        & input {
             padding: 10px;
             background-color: var(--ev-colors-background);
             border: 1px solid var(--ev-colors-borderColor);

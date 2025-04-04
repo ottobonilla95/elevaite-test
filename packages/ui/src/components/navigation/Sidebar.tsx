@@ -49,7 +49,6 @@ function SidebarIcon({ children, ...props }: SidebarIconProps): JSX.Element {
       ].filter(Boolean).join(" ")}
       title={props.description}
       href={props.link}
-      target={props.link.startsWith("http") ? "_blank" : undefined}
     >
       {children}
     </Link>

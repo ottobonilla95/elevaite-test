@@ -1,5 +1,6 @@
 "use client";
-import { KeyboardEvent, MutableRefObject, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, type MutableRefObject, useEffect, useRef, useState } from "react";
+import { CommonButton } from "./CommonButton";
 import "./SimpleInput.scss";
 
 
@@ -10,6 +11,8 @@ interface SimpleInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEleme
     leftIcon?: React.ReactNode;
     hideLeftIcon?: boolean;
     rightIcon?: React.ReactNode;
+    bottomRightIcon?: React.ReactNode;
+    inlinePrompts?: string[];
     hideRightIcon?: boolean;
     autoSize?: boolean;
     passedRef?: MutableRefObject<HTMLInputElement|null>;
@@ -18,7 +21,7 @@ interface SimpleInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEleme
     onKeyDown?: (key: string, event: KeyboardEvent<HTMLInputElement>) => void;
 }
 
-export function SimpleInput({autoSize, wrapperClassName, useCommonStyling, leftIcon, hideLeftIcon, rightIcon, hideRightIcon, passedRef, value, onChange, onKeyDown, ...props}: SimpleInputProps): JSX.Element {
+export function SimpleInput({autoSize, wrapperClassName, useCommonStyling, leftIcon, hideLeftIcon, rightIcon, bottomRightIcon, inlinePrompts, hideRightIcon, passedRef, value, onChange, onKeyDown, ...props}: SimpleInputProps): JSX.Element {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const textMeasureRef = useRef<HTMLSpanElement | null>(null);
     const [inputWidth, setInputWidth] = useState<string | undefined>(undefined);
@@ -27,7 +30,7 @@ export function SimpleInput({autoSize, wrapperClassName, useCommonStyling, leftI
     useEffect(() => {
         if (autoSize && textMeasureRef.current && inputRef.current) {
             const contentWidth = textMeasureRef.current.offsetWidth;
-            setInputWidth(`${contentWidth + 10}px`);
+            setInputWidth(`${(contentWidth + 10).toString()}px`);
         }
     }, [value, autoSize]);
 
@@ -40,6 +43,10 @@ export function SimpleInput({autoSize, wrapperClassName, useCommonStyling, leftI
         if (onKeyDown) onKeyDown(event.key, event);
     }
 
+    function handlePromptClick(prompt: string): void {
+        if (onChange) onChange(prompt);
+    }
+
 
     return (
         <div className={[
@@ -47,27 +54,46 @@ export function SimpleInput({autoSize, wrapperClassName, useCommonStyling, leftI
             wrapperClassName,
             useCommonStyling ? "common-style" : undefined,
         ].filter(Boolean).join(" ")}>
-            {leftIcon && !hideLeftIcon ? leftIcon : undefined}
-            {autoSize && (
-                <span
-                    className="autosize-area"
-                    ref={textMeasureRef}
-                >
-                    {value || props.placeholder || ""}
-                </span>
-            )}
-            <input
-                ref={(element) => {
-                    inputRef.current = element;
-                    if (passedRef) { passedRef.current = element; }
-                }}
-                value={value}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown}
-                style={autoSize && inputWidth ? { width: inputWidth } : undefined}
-                {...props}
-            />
-            {rightIcon && !hideRightIcon ? rightIcon : undefined}
+            <div className="simple-input-contents">
+                {leftIcon && !hideLeftIcon ? leftIcon : undefined}
+                {!autoSize ? undefined : (
+                    <span
+                        className="autosize-area"
+                        ref={textMeasureRef}
+                    >
+                        {value || props.placeholder || ""}
+                    </span>
+                )}
+                <input
+                    ref={(element) => {
+                        inputRef.current = element;
+                        if (passedRef) { passedRef.current = element; }
+                    }}
+                    value={value}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
+                    style={autoSize && inputWidth ? { width: inputWidth } : undefined}
+                    {...props}
+                />
+                {rightIcon && !hideRightIcon ? rightIcon : undefined}
+            </div>
+            {!inlinePrompts ? undefined :
+                <div className="bottom-row">
+                    <div className="prompts-row">
+                        {inlinePrompts.map((prompt, index) => 
+                            <CommonButton
+                                key={prompt + index.toString()}
+                                className="prompt-button"
+                                noBackground
+                                onClick={() => { handlePromptClick(prompt); }}
+                            >
+                                {prompt}
+                            </CommonButton>
+                        )}
+                    </div>
+                    {bottomRightIcon && !hideRightIcon ? bottomRightIcon : undefined}
+                </div>
+            }
         </div>
     );
 }

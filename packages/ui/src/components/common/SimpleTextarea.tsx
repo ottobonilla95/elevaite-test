@@ -1,4 +1,4 @@
-import { KeyboardEvent, MutableRefObject } from "react";
+import { type KeyboardEvent, type MutableRefObject } from "react";
 import "./SimpleTextarea.scss";
 
 
