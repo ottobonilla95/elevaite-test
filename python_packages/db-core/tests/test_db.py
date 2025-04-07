@@ -97,7 +97,7 @@ class TestSessionManagement:
             schema_name = result.scalar()
 
             # Verify schema name includes tenant ID
-            assert f"test_tenant_tenant1" == schema_name
+            assert "test_tenant_tenant1" == schema_name
 
             # Close session
             session.close()
@@ -119,7 +119,7 @@ class TestSessionManagement:
             schema_name = result.scalar()
 
             # Verify schema name includes tenant ID
-            assert f"test_tenant_tenant1" == schema_name
+            assert "test_tenant_tenant1" == schema_name
 
             # Close session
             await session.close()
@@ -135,7 +135,7 @@ class TestSessionManagement:
         def test_function(db):
             # The decorator should set the search path, but we'll still add this line
             # to ensure the test passes consistently
-            db.execute(text(f'SET search_path TO "test_tenant_tenant1", public'))
+            db.execute(text('SET search_path TO "test_tenant_tenant1", public'))
 
             # Execute the query
             result = db.execute(text("SELECT current_schema()"))
@@ -149,7 +149,7 @@ class TestSessionManagement:
             schema_name = test_function(db=db_session)
 
             # Verify schema name includes tenant ID
-            assert f"test_tenant_tenant1" == schema_name
+            assert "test_tenant_tenant1" == schema_name
         finally:
             # Reset tenant ID
             set_current_tenant_id(None)
@@ -161,7 +161,7 @@ class TestSessionManagement:
         @tenant_async_db_session
         async def test_async_function(db):
             # Set schema path for consistency
-            await db.execute(text(f'SET search_path TO "test_tenant_tenant1", public'))
+            await db.execute(text('SET search_path TO "test_tenant_tenant1", public'))
 
             # Execute the query
             result = await db.execute(text("SELECT current_schema()"))
@@ -175,7 +175,7 @@ class TestSessionManagement:
             schema_name = await test_async_function(db=async_db_session)
 
             # Verify schema name includes tenant ID
-            assert f"test_tenant_tenant1" == schema_name
+            assert "test_tenant_tenant1" == schema_name
         finally:
             # Reset tenant ID
             set_current_tenant_id(None)
