@@ -270,9 +270,16 @@ def set_tenant_search_path(engine: Union[Engine, AsyncEngine], schema_name: str)
 
     # For synchronous engines
     try:
-        with engine.connect() as conn:
+        # Create a connection and explicitly commit the change
+        with engine.begin() as conn:
             conn.execute(text(f'SET search_path TO "{schema_name}", public'))
-            return True
+            
+        # Verify the search path was set correctly
+        with engine.connect() as conn:
+            result = conn.execute(text("SHOW search_path"))
+            logger.info(f"Set search path to: {result.scalar()}")
+            
+        return True
     except SQLAlchemyError as e:
         logger.error(f"Error setting search path to {schema_name}: {e}")
         return False

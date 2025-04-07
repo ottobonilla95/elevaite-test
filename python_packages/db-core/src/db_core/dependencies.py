@@ -59,19 +59,28 @@ tenant_id_dependency = Depends(get_tenant_id)
 
 def get_tenant_db(
     settings: MultitenancySettings = multitenancy_settings_dependency,
-    _: str = tenant_id_dependency,  # This ensures a valid tenant ID exists but we don't use the value
+    tenant_id: str = tenant_id_dependency,  # Use the value now to explicitly set the schema
 ) -> Generator[Session, None, None]:
     """
     FastAPI dependency for getting a tenant-specific database session.
 
     Args:
         settings: The multitenancy settings
-        tenant_id: The tenant ID
+        tenant_id: The tenant ID (explicitly used to set the schema)
 
     Yields:
         SQLAlchemy session with tenant context
     """
     db = get_tenant_session(settings)
+    
+    # Always set the search path explicitly for the current tenant
+    # This ensures isolation between requests even with connection pooling
+    if tenant_id:
+        from db_core.utils import get_schema_name
+        from sqlalchemy import text
+        schema = get_schema_name(tenant_id, settings)
+        db.execute(text(f'SET search_path TO "{schema}", public'))
+        
     try:
         yield db
     finally:
@@ -80,19 +89,28 @@ def get_tenant_db(
 
 async def get_tenant_async_db(
     settings: MultitenancySettings = multitenancy_settings_dependency,
-    _: str = tenant_id_dependency,  # This ensures a valid tenant ID exists but we don't use the value
+    tenant_id: str = tenant_id_dependency,  # Use the value now to explicitly set the schema
 ) -> AsyncGenerator[AsyncSession, None]:
     """
     FastAPI dependency for getting a tenant-specific async database session.
 
     Args:
         settings: The multitenancy settings
-        tenant_id: The tenant ID
+        tenant_id: The tenant ID (explicitly used to set the schema)
 
     Yields:
         SQLAlchemy async session with tenant context
     """
     db = await get_tenant_async_session(settings)
+    
+    # Always set the search path explicitly for the current tenant
+    # This ensures isolation between requests even with connection pooling
+    if tenant_id:
+        from db_core.utils import get_schema_name
+        from sqlalchemy import text
+        schema = get_schema_name(tenant_id, settings)
+        await db.execute(text(f'SET search_path TO "{schema}", public'))
+        
     try:
         yield db
     finally:

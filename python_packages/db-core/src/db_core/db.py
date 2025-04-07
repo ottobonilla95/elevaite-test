@@ -6,7 +6,7 @@ import logging
 from functools import wraps
 from typing import Any, Dict, Optional
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from sqlalchemy.pool import NullPool
@@ -140,7 +140,7 @@ def get_tenant_session(settings: Optional[MultitenancySettings] = None) -> Sessi
         tenant_id = get_current_tenant_id()
         if tenant_id:
             schema = get_schema_name(tenant_id, settings)
-            session.execute(f'SET search_path TO "{schema}", public')
+            session.execute(text(f'SET search_path TO "{schema}", public'))
 
     return session
 
@@ -170,7 +170,7 @@ async def get_tenant_async_session(settings: Optional[MultitenancySettings] = No
         tenant_id = get_current_tenant_id()
         if tenant_id:
             schema = get_schema_name(tenant_id, settings)
-            await session.execute(f'SET search_path TO "{schema}", public')
+            await session.execute(text(f'SET search_path TO "{schema}", public'))
 
     return session
 
@@ -189,8 +189,19 @@ def tenant_db_session(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if "db" not in kwargs:
-            session = get_tenant_session()
+            # Get settings from dependencies if possible
+            from db_core.dependencies import get_multitenancy_settings
+            settings = get_multitenancy_settings()
+            
+            session = get_tenant_session(settings)
             try:
+                # Ensure tenant search path is set directly on this session
+                tenant_id = get_current_tenant_id()
+                if tenant_id:
+                    schema = get_schema_name(tenant_id, settings)
+                    session.execute(text(f'SET search_path TO "{schema}", public'))
+
+                # Add session to kwargs (remove None default from decorated function)
                 kwargs["db"] = session
                 return func(*args, **kwargs)
             finally:
@@ -215,8 +226,19 @@ def tenant_async_db_session(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
         if "db" not in kwargs:
-            session = await get_tenant_async_session()
+            # Get settings from dependencies if possible
+            from db_core.dependencies import get_multitenancy_settings
+            settings = get_multitenancy_settings()
+            
+            session = await get_tenant_async_session(settings)
             try:
+                # Ensure tenant search path is set directly on this session
+                tenant_id = get_current_tenant_id()
+                if tenant_id:
+                    schema = get_schema_name(tenant_id, settings)
+                    await session.execute(text(f'SET search_path TO "{schema}", public'))
+                
+                # Add session to kwargs
                 kwargs["db"] = session
                 return await func(*args, **kwargs)
             finally:
