@@ -1,7 +1,7 @@
 [project]
-name = "fastapi-logger"
-version = "0.1.0"
-description = "Enhanced logging utility for FastAPI applications with AWS CloudWatch integration"
+name = "elevaite-logger"
+version = "0.2.0"
+description = "Enhanced logging utility for FastAPI applications with AWS CloudWatch integration, OpenTelemetry support, and code annotation capabilities"
 readme = "README.md"
 requires-python = "==3.11.11"
 dependencies = [

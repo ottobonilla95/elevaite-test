@@ -6,11 +6,13 @@ set -e
 # Parse command line arguments
 AWS_REQUIRED=true
 OTEL_TEST=false
+DECORATOR_TEST=false
 
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     --no-aws-check) AWS_REQUIRED=false; shift ;;
     --with-otel) OTEL_TEST=true; shift ;;
+    --with-decorators) DECORATOR_TEST=true; shift ;;
     *) echo "Unknown parameter: $1"; exit 1 ;;
   esac
 done
@@ -36,6 +38,14 @@ uv pip install -e ".[test]"
 # Run regular tests
 echo "Running standard tests..."
 python -m unittest discover -s tests
+
+# Run decorator example if requested
+if [ "$DECORATOR_TEST" = true ]; then
+  echo ""
+  echo "Running decorator example..."
+  echo "Starting example server - press Ctrl+C to stop after testing"
+  python examples/decorator_example.py
+fi
 
 # Run OpenTelemetry example if requested
 if [ "$OTEL_TEST" = true ]; then
