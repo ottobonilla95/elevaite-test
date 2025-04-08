@@ -4,7 +4,6 @@ Tests for the db module of db-core package.
 
 import pytest
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
 
 from db_core import Base, init_db
 from db_core.db import (
@@ -154,7 +153,9 @@ class TestSessionManagement:
             # Reset tenant ID
             set_current_tenant_id(None)
 
-    async def test_tenant_async_db_session_decorator(self, setup_async_db, multitenancy_settings, init_async_db_config, async_db_session):
+    async def test_tenant_async_db_session_decorator(
+        self, setup_async_db, multitenancy_settings, init_async_db_config, async_db_session
+    ):
         """Test tenant_async_db_session decorator."""
 
         # Define an async function with the decorator

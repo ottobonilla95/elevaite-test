@@ -59,6 +59,14 @@ target-version = "py311"
 select = ["E", "F", "B", "I"]
 ignore = []
 
+[tool.ruff.flake8-bugbear]
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.params.Depends",
+    "fastapi.Query",
+    "fastapi.params.Query",
+]
+
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true

@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 # Context variable to store the current tenant ID
 current_tenant_id: ContextVar[Optional[str]] = ContextVar("current_tenant_id", default=None)
 
+# Dictionary to store original openapi functions for each app (using weak references)
+_original_openapi_functions: Dict[int, Callable[..., Dict[str, Any]]] = {}
+
 
 def get_current_tenant_id() -> Optional[str]:
     """
@@ -138,12 +141,73 @@ class TenantMiddleware(BaseHTTPMiddleware):
             # Reset the tenant ID
             set_current_tenant_id(None)
 
+    @classmethod
+    def add_tenant_header_to_openapi(cls, app: FastAPI, settings: MultitenancySettings) -> None:
+        """
+        Add the tenant header to the OpenAPI documentation.
+
+        Args:
+            app: The FastAPI application
+            settings: The multitenancy settings
+        """
+        # Check if already patched by looking for this app's id in our dictionary
+        app_id = id(app)
+        if app_id in _original_openapi_functions:
+            # Already patched
+            return
+
+        # Store the original openapi function
+        _original_openapi_functions[app_id] = app.openapi
+
+        def custom_openapi():
+            if app.openapi_schema:
+                return app.openapi_schema
+
+            original_openapi = _original_openapi_functions[app_id]
+            openapi_schema: Dict[str, Any] = original_openapi()
+
+            if "components" not in openapi_schema:
+                openapi_schema["components"] = {}
+            if "parameters" not in openapi_schema["components"]:
+                openapi_schema["components"]["parameters"] = {}
+
+            # Define the tenant header parameter
+            openapi_schema["components"]["parameters"]["tenant_header"] = {
+                "name": settings.tenant_id_header,
+                "in": "header",
+                "required": True,
+                "schema": {
+                    "title": "Tenant ID",
+                    "type": "string",
+                    "default": settings.default_tenant_id or "tenant1",
+                    "example": settings.default_tenant_id or "tenant1",
+                },
+                "description": "The tenant identifier used for schema-based multitenancy",
+            }
+
+            # Add the tenant header parameter to all paths except docs and openapi
+            for path_name, path_item in openapi_schema["paths"].items():
+                # Skip documentation paths
+                if path_name.startswith("/docs") or path_name.startswith("/redoc") or path_name == "/openapi.json":
+                    continue
+
+                for operation in path_item.values():
+                    if "parameters" not in operation:
+                        operation["parameters"] = []
+                    operation["parameters"].append({"$ref": "#/components/parameters/tenant_header"})
+
+            app.openapi_schema = openapi_schema
+            return app.openapi_schema
+
+        app.openapi = custom_openapi
+
 
 def add_tenant_middleware(
     app: FastAPI,
     settings: MultitenancySettings,
     tenant_callback: Optional[Callable[[str], bool]] = None,
     excluded_paths: Optional[Dict[str, Any]] = None,
+    add_openapi_header: bool = True,
 ) -> None:
     """
     Add the tenant middleware to a FastAPI application.
@@ -153,6 +217,7 @@ def add_tenant_middleware(
         settings: The multitenancy settings
         tenant_callback: Optional callback function to validate tenant ID
         excluded_paths: Optional dictionary of path patterns to exclude from tenant validation
+        add_openapi_header: Whether to add the tenant header to OpenAPI documentation
     """
     app.add_middleware(
         TenantMiddleware,
@@ -160,3 +225,66 @@ def add_tenant_middleware(
         tenant_callback=tenant_callback,
         excluded_paths=excluded_paths,
     )
+
+    if add_openapi_header:
+        TenantMiddleware.add_tenant_header_to_openapi(app, settings)
+
+
+def add_tenant_header_to_openapi(cls, app: FastAPI, settings: MultitenancySettings) -> None:
+    """
+    Add the tenant header to the OpenAPI documentation.
+
+    Args:
+        app: The FastAPI application
+        settings: The multitenancy settings
+    """
+    # Check if already patched by looking for this app's id in our dictionary
+    app_id = id(app)
+    if app_id in _original_openapi_functions:
+        # Already patched
+        return
+
+    # Store the original openapi function
+    _original_openapi_functions[app_id] = app.openapi
+
+    def custom_openapi():
+        if app.openapi_schema:
+            return app.openapi_schema
+
+        original_openapi = _original_openapi_functions[app_id]
+        openapi_schema: Dict[str, Any] = original_openapi()
+
+        if "components" not in openapi_schema:
+            openapi_schema["components"] = {}
+        if "parameters" not in openapi_schema["components"]:
+            openapi_schema["components"]["parameters"] = {}
+
+        # Define the tenant header parameter
+        openapi_schema["components"]["parameters"]["tenant_header"] = {
+            "name": settings.tenant_id_header,
+            "in": "header",
+            "required": True,
+            "schema": {
+                "title": "Tenant ID",
+                "type": "string",
+                "default": settings.default_tenant_id or "tenant1",
+                "example": settings.default_tenant_id or "tenant1",
+            },
+            "description": "The tenant identifier used for schema-based multitenancy",
+        }
+
+        # Add the tenant header parameter to all paths except docs and openapi
+        for path_name, path_item in openapi_schema["paths"].items():
+            # Skip documentation paths
+            if path_name.startswith("/docs") or path_name.startswith("/redoc") or path_name == "/openapi.json":
+                continue
+
+            for operation in path_item.values():
+                if "parameters" not in operation:
+                    operation["parameters"] = []
+                operation["parameters"].append({"$ref": "#/components/parameters/tenant_header"})
+
+        app.openapi_schema = openapi_schema
+        return app.openapi_schema
+
+    app.openapi = custom_openapi

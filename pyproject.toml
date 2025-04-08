@@ -18,5 +18,7 @@ exclude = [
   "python_apps/exceltoppt",
   "python_apps/sla_chatbot_backend",
   "python_apps/flyte_worker",
+  "python_apps/media_backend",
+  "python_apps/pipelines",
   "python_packages/email_middleware",
 ]

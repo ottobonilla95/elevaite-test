@@ -72,15 +72,17 @@ def get_tenant_db(
         SQLAlchemy session with tenant context
     """
     db = get_tenant_session(settings)
-    
+
     # Always set the search path explicitly for the current tenant
     # This ensures isolation between requests even with connection pooling
     if tenant_id:
-        from db_core.utils import get_schema_name
         from sqlalchemy import text
+
+        from db_core.utils import get_schema_name
+
         schema = get_schema_name(tenant_id, settings)
         db.execute(text(f'SET search_path TO "{schema}", public'))
-        
+
     try:
         yield db
     finally:
@@ -102,15 +104,17 @@ async def get_tenant_async_db(
         SQLAlchemy async session with tenant context
     """
     db = await get_tenant_async_session(settings)
-    
+
     # Always set the search path explicitly for the current tenant
     # This ensures isolation between requests even with connection pooling
     if tenant_id:
-        from db_core.utils import get_schema_name
         from sqlalchemy import text
+
+        from db_core.utils import get_schema_name
+
         schema = get_schema_name(tenant_id, settings)
         await db.execute(text(f'SET search_path TO "{schema}", public'))
-        
+
     try:
         yield db
     finally:
