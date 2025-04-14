@@ -62,11 +62,11 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
       <div className="main-message-container">
         <div className="details-container">
           {props.isBot ? (
-            <span>
+              <span>
               ELEV<span className="highlight">AI</span>TE
             </span>
           ) : (
-            <span>{props.userName}</span>
+              <span>{props.userName}</span>
           )}
           <div>•</div>
           <span className="date">
@@ -75,89 +75,108 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
         </div>
 
         <div className="message">
-          <div dangerouslySetInnerHTML={{ __html: props.text }} />
+          <div dangerouslySetInnerHTML={{__html: props.text}}/>
         </div>
+        {!props.isBot ? null : (
+        <div className="media-container">
+          <a href="https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s" target="_blank" rel="noopener noreferrer">
+            <img src="https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s" alt="Example Image 1"/>
+          </a>
+          <a href="https://picsum.photos/seed/picsum/200/300" target="_blank" rel="noopener noreferrer">
+            <img src="https://picsum.photos/seed/picsum/200/300" alt="Example Image 2"/>
+          </a>
+          <a rel="noopener noreferrer">
+            <video width="150" controls>
+              <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4"/>
+            </video>
+          </a>
+
+        </div>
+        )}
+
 
         {!props.isBot ? null : (
-          <div className="controls-container">
-            <div className="voting-buttons">
-              <CommonButton
-                className={props.vote === 1 ? "active" : ""}
-                onClick={() => {
-                  handleVote(1);
-                }}
-              >
-                <ChatbotIcons.SVGThumbs type="up" />
-                {props.vote === 1 ? "Upvoted" : ""}
-              </CommonButton>
-              <CommonButton
-                className={props.vote === -1 ? "active" : ""}
-                onClick={() => {
-                  handleVote(-1);
-                }}
-              >
-                <ChatbotIcons.SVGThumbs type="down" />
-                {props.vote === -1 ? "Downvoted" : ""}
-              </CommonButton>
-            </div>
-
-            <CommonButton
-              className={isFeedbackOpen ? "active" : ""}
-              onClick={toggleFeedback}
-            >
-              <ChatbotIcons.SVGFeedback />
-              Provide Feedback
-            </CommonButton>
-
-            <div className="relevant-files-container">
-              <CommonButton
-                passedRef={filesButtonRef}
-                className={isFilesOpen ? "active" : ""}
-                onClick={toggleFiles}
-              >
-                <ChatbotIcons.SVGDocument />
-                Relevant Files
-              </CommonButton>
-              <ClickOutsideDetector
-                onOutsideClick={() => {
-                  setIsFilesOpen(false);
-                }}
-                ignoredRefs={[filesButtonRef]}
-              >
-                <div
-                  className={[
-                    "files-dropdown-container",
-                    isFilesOpen ? "open" : undefined,
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
+            <div className="controls-container">
+              <div className="voting-buttons">
+                <CommonButton
+                    className={props.vote === 1 ? "active" : ""}
+                    onClick={() => {
+                      handleVote(1);
+                    }}
                 >
-                  <div className="files-dropdown-accordion">
-                    <ChatMessageFiles files={props.files} />
+                  <ChatbotIcons.SVGThumbs type="up"/>
+                  {props.vote === 1 ? "Upvoted" : ""}
+                </CommonButton>
+                <CommonButton
+                    className={props.vote === -1 ? "active" : ""}
+                    onClick={() => {
+                      handleVote(-1);
+                    }}
+                >
+                  <ChatbotIcons.SVGThumbs type="down"/>
+                  {props.vote === -1 ? "Downvoted" : ""}
+                </CommonButton>
+              </div>
+
+              <CommonButton
+                  className={isFeedbackOpen ? "active" : ""}
+                  onClick={toggleFeedback}
+              >
+                <ChatbotIcons.SVGFeedback/>
+                Provide Feedback
+              </CommonButton>
+
+              <div className="relevant-files-container">
+                <CommonButton
+                    passedRef={filesButtonRef}
+                    className={isFilesOpen ? "active" : ""}
+                    onClick={toggleFiles}
+                >
+                  <ChatbotIcons.SVGDocument/>
+                  Relevant Files
+                </CommonButton>
+                <ClickOutsideDetector
+                    onOutsideClick={() => {
+                      setIsFilesOpen(false);
+                    }}
+                    ignoredRefs={[filesButtonRef]}
+                >
+                  <div
+                      className={[
+                        "files-dropdown-container",
+                        isFilesOpen ? "open" : undefined,
+                      ]
+                          .filter(Boolean)
+                          .join(" ")}
+                  >
+                    <div className="files-dropdown-accordion">
+                      <ChatMessageFiles files={props.files}/>
+                    </div>
                   </div>
-                </div>
-              </ClickOutsideDetector>
+                </ClickOutsideDetector>
+              </div>
             </div>
-          </div>
         )}
 
         {!props.isBot ? null : (
-          <div
-            className={[
-              "feedback-container",
-              isFeedbackOpen ? "open" : undefined,
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            <div className="feedback-accordion">
-              <ChatMessageFeedback
-                id={props.id}
-                feedback={props.feedback}
-                onFeedbackSubmit={() => {setIsFeedbackOpen(false)}}
-              />
+            <div
+                className={[
+                  "feedback-container",
+                  isFeedbackOpen ? "open" : undefined,
+                ]
+                    .filter(Boolean)
+                    .join(" ")}
+            >
+              <div className="feedback-accordion">
+                <ChatMessageFeedback
+                    id={props.id}
+                    feedback={props.feedback}
+                    onFeedbackSubmit={() => {
+                      setIsFeedbackOpen(false)
+                    }}
+                />
+              </div>
             </div>
-          </div>
         )}
       </div>
     </div>

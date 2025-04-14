@@ -92,6 +92,7 @@ class Agent(BaseModel):
     short_term_memory: bool = False
     long_term_memory: bool = False
     reasoning: bool = False
+    streaming: bool = False
     # input_type: Optional[Literal["text", "voice", "image"]] = "text"
     # output_type: Optional[Literal["text", "voice", "image"]] = "text"
     # Make input output type a list of types
@@ -106,6 +107,7 @@ class Agent(BaseModel):
     deployed: bool = False
     status: Literal["active", "paused", "terminated"] = "active"
     priority: Optional[int] = None
+    active_agents: Optional[List[str]] = None  # List of active agents
 
     # Agent, Human or Parent Agent
     failure_strategies: Optional[List[str]]

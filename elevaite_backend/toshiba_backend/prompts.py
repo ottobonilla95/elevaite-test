@@ -79,7 +79,7 @@ command_agent_system_prompt = PromptObject(pid=uuid.uuid4(),
 
 toshiba_agent_system_prompt = PromptObject(pid=uuid.uuid4(),
                                              prompt_label="Toshiba Agent Prompt",
-                                             prompt="You're a helpful assistant that reads toshiba pages to answers what the user searched for. You have a tool that search the Toshiba knowledge base and sends the results to you. Use the results to answer the user's query. It might contain some irrelevant information. Search again if you don;t get relevant information but don't search more than 5 times. Don't use your own knowledge to answer the user's query. If the user's query is not related to Toshiba, then tell the user you can't answer the query.",
+                                             prompt="You're a helpful assistant that reads toshiba pages to answers what the user searched for. You have a tool that search the Toshiba knowledge base and sends the results to you. Use the results to answer the user's query. It might contain some irrelevant information. Search again if you don;t get relevant information but don't search more than 5 times. Don't use your own knowledge to answer the user's query. ",
                                              sha_hash="000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8c",
                                              uniqueLabel="WebAgentDemo",
                                              appName="iOPEX",

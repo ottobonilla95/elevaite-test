@@ -145,4 +145,4 @@ def get_chunks(query: str):
     # print(res)
     return res
 
-print(get_chunks("provide lists the humidity and temperature limits for the 4820 SurePoint Solution"))
+# print(get_chunks("provide lists the humidity and temperature limits for the 4820 SurePoint Solution"))
