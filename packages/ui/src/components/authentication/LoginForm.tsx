@@ -5,11 +5,14 @@ import { z } from "zod";
 import { GoogleColorIcon } from "../icons/GoogleColor";
 import "./LoginForm.scss";
 import { SVGProps } from "react";
-
+import Link from "next/link";
 
 const formSchema = z
   .object({
-    email: z.string().email({ message: "Must be a valid Email" }).min(1, "Email is required"),
+    email: z
+      .string()
+      .email({ message: "Must be a valid Email" })
+      .min(1, "Email is required"),
     password: z.string().min(1, "Password is required"),
   })
   .required();
@@ -20,10 +23,15 @@ interface LoginFormProps {
     prevstate: string,
     formData: FormValues
   ) => Promise<"Invalid credentials." | "Something went wrong." | undefined>;
-  authenticateGoogle: () => Promise<"Invalid credentials." | "Something went wrong." | undefined>;
+  authenticateGoogle: () => Promise<
+    "Invalid credentials." | "Something went wrong." | undefined
+  >;
 }
 
-export function LogInForm({ authenticate, authenticateGoogle }: LoginFormProps): JSX.Element {
+export function LogInForm({
+  authenticate,
+  authenticateGoogle,
+}: LoginFormProps): JSX.Element {
   const {
     register,
     handleSubmit,
@@ -51,12 +59,16 @@ export function LogInForm({ authenticate, authenticateGoogle }: LoginFormProps):
     <div className="login-form-main-container ui-flex ui-flex-col ui-gap-[29px] ui-items-start ui-w-3/5 ui-text-white">
       <div className="ui-flex ui-flex-col ui-items-start ui-gap-5 ui-w-full">
         <form
+          id="login-form"
           className="ui-flex ui-flex-col ui-items-start ui-gap-3 ui-font-inter ui-w-full"
           // eslint-disable-next-line @typescript-eslint/no-misused-promises -- It's meant to be like this
           onSubmit={handleSubmit(onSubmit)}
         >
           {/* Email */}
-          <label className="labels ui-font-semibold ui-font-source_sans" htmlFor="email">
+          <label
+            className="labels ui-font-semibold ui-font-source_sans"
+            htmlFor="email"
+          >
             Email
           </label>
           <div className="input-wrapper">
@@ -67,12 +79,15 @@ export function LogInForm({ authenticate, authenticateGoogle }: LoginFormProps):
               id="email"
               {...register("email")}
             />
-            <EmailIcon/>
+            <EmailIcon />
           </div>
           <p className="ui-text-sm ui-text-red-500">{errors.email?.message}</p>
 
           {/* Password */}
-          <label className="labels ui-font-semibold ui-font-source_sans" htmlFor="password">
+          <label
+            className="labels ui-font-semibold ui-font-source_sans"
+            htmlFor="password"
+          >
             Password
           </label>
           <div className="input-wrapper">
@@ -84,18 +99,35 @@ export function LogInForm({ authenticate, authenticateGoogle }: LoginFormProps):
               type="password"
               {...register("password")}
             />
-            <PasswordIcon/>
+            <PasswordIcon />
           </div>
-          <p className="ui-text-sm ui-text-red-500">{errors.password?.message}</p>
-          <p className="ui-text-sm ui-text-red-500">{errors.root?.credentials?.message}</p>
+          <p className="ui-text-sm ui-text-red-500">
+            {errors.password?.message}
+          </p>
+          <p className="ui-text-sm ui-text-red-500">
+            {errors.root?.credentials?.message}
+          </p>
 
-          {/* Submit */}
-          <button className="sign-in-button ui-py-3 ui-px-10 ui-rounded-lg" type="submit">
-            Sign In
-          </button>
+          {/* Submit Buttons */}
+          <div className="ui-flex ui-flex-row ui-gap-4 ui-w-full">
+            <button
+              className="sign-in-button ui-py-3 ui-px-10 ui-rounded-lg ui-flex-1"
+              type="submit"
+            >
+              Sign In
+            </button>
+            <Link
+              href="/signup"
+              className="sign-up-button ui-py-3 ui-px-10 ui-rounded-lg ui-flex-1 ui-text-center"
+            >
+              Sign Up
+            </Link>
+          </div>
         </form>
       </div>
-      <div className="separator"><div>or</div></div>
+      <div className="separator">
+        <div>or</div>
+      </div>
       <button
         className="ui-flex ui-flex-row ui-items-center ui-justify-center ui-gap-3 ui-py-3 ui-px-10 ui-bg-[#161616] ui-w-full ui-rounded-lg"
         onClick={() => {
@@ -104,7 +136,7 @@ export function LogInForm({ authenticate, authenticateGoogle }: LoginFormProps):
             console.log(e);
           });
         }}
-        type="submit"
+        type="button"
       >
         <GoogleColorIcon />
         Sign In With Google
@@ -112,9 +144,6 @@ export function LogInForm({ authenticate, authenticateGoogle }: LoginFormProps):
     </div>
   );
 }
-
-
-
 
 function PasswordIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   return (
@@ -149,6 +178,3 @@ function EmailIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
     </svg>
   );
 }
-
-
-

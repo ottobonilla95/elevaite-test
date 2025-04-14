@@ -1,48 +1,50 @@
-
-
-
-
 .login-form-main-container {
+  & .labels {
+    font-size: 16px;
+  }
 
-    
-    & .labels {
-        font-size: 16px;
+  & .input-wrapper {
+    position: relative;
+    width: 100%;
+
+    & > input {
+      padding-left: 60px;
     }
-
-    & .input-wrapper {
-        position: relative;
-        width: 100%;
-
-        & > input {
-            padding-left: 60px;
-        }
-        & > svg {
-            position: absolute;
-            top: 0; bottom: 0; left: 20px;
-            margin: auto;
-        }
+    & > svg {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 20px;
+      margin: auto;
     }
+  }
 
-    & .sign-in-button {
-        background-color: var(--ev-colors-highlight);
+  & .sign-in-button {
+    background-color: var(--ev-colors-highlight);
+  }
+
+  & .sign-up-button {
+    background-color: var(--ev-colors-background);
+    border: 1px solid var(--ev-colors-highlight);
+    color: var(--ev-colors-highlight);
+  }
+
+  & .separator {
+    width: calc(100% - 100px);
+    margin: 20px 50px;
+    border-top: 1px solid var(--ev-colors-borderColor);
+    position: relative;
+
+    & > div {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      margin: auto;
+      width: min-content;
+      transform: translateY(-50%);
+      background-color: var(--ev-colors-primary);
+      padding: 0 10px;
     }
-
-    & .separator {
-        width: calc(100% - 100px);
-        margin: 20px 50px;
-        border-top: 1px solid var(--ev-colors-borderColor);
-        position: relative;
-
-        & > div  {
-            position: absolute;
-            top: 0;
-            left: 0; right: 0;
-            margin: auto;
-            width: min-content;
-            transform: translateY(-50%);
-            background-color: var(--ev-colors-primary);
-            padding: 0 10px;
-        }
-    }
-
+  }
 }

@@ -6,13 +6,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import React from "react";
 import { GoogleIcon } from "../icons/Google";
+import "./SignUpForm.scss";
 
 const formSchema = z
   .object({
     fullName: z.string().min(1, "Full Name is required"),
-    email: z.string().email({ message: "Must be a valid Email" }).min(1, "Email is required"),
+    email: z
+      .string()
+      .email({ message: "Must be a valid Email" })
+      .min(1, "Email is required"),
     password: z.string().min(6, "Password must be at least 6 characters"),
-    passwordConfirmation: z.string().min(1, "Password confirmation is required"),
+    passwordConfirmation: z
+      .string()
+      .min(1, "Password confirmation is required"),
   })
   .required()
   .refine((data) => data.password === data.passwordConfirmation, {
@@ -27,7 +33,11 @@ export function SignUpForm(): JSX.Element {
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<FormValues>({ resolver: zodResolver(formSchema), mode: "onSubmit", reValidateMode: "onChange" });
+  } = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     // eslint-disable-next-line no-console -- Temporary
@@ -39,12 +49,16 @@ export function SignUpForm(): JSX.Element {
     <div className="ui-flex ui-flex-col ui-gap-[29px] ui-items-start ui-w-3/5">
       <div className="ui-flex ui-flex-col ui-items-start ui-gap-5 ui-w-full">
         <form
+          id="signup-form"
           className="ui-flex ui-flex-col ui-items-start ui-gap-3 ui-font-inter ui-w-full"
           // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is meant to be like this.
           onSubmit={handleSubmit(onSubmit)}
         >
           {/* Full Name */}
-          <label className="ui-text-lg ui-font-semibold ui-font-source_sans" htmlFor="fullName">
+          <label
+            className="ui-text-lg ui-font-semibold ui-font-source_sans"
+            htmlFor="fullName"
+          >
             Full Name
           </label>
           <input
@@ -54,9 +68,14 @@ export function SignUpForm(): JSX.Element {
             id="fullName"
             {...register("fullName")}
           />
-          <p className="ui-text-sm ui-text-red-500">{errors.fullName?.message}</p>
+          <p className="ui-text-sm ui-text-red-500">
+            {errors.fullName?.message}
+          </p>
           {/* Email */}
-          <label className="ui-text-lg ui-font-semibold ui-font-source_sans" htmlFor="email">
+          <label
+            className="ui-text-lg ui-font-semibold ui-font-source_sans"
+            htmlFor="email"
+          >
             Email
           </label>
           <input
@@ -68,7 +87,10 @@ export function SignUpForm(): JSX.Element {
           />
           <p className="ui-text-sm ui-text-red-500">{errors.email?.message}</p>
           {/* Password */}
-          <label className="ui-text-lg ui-font-semibold ui-font-source_sans" htmlFor="password">
+          <label
+            className="ui-text-lg ui-font-semibold ui-font-source_sans"
+            htmlFor="password"
+          >
             Password
           </label>
           <input
@@ -79,9 +101,14 @@ export function SignUpForm(): JSX.Element {
             type="password"
             {...register("password")}
           />
-          <p className="ui-text-sm ui-text-red-500">{errors.password?.message}</p>
+          <p className="ui-text-sm ui-text-red-500">
+            {errors.password?.message}
+          </p>
           {/* Confirm Password */}
-          <label className="ui-text-lg ui-font-semibold ui-font-source_sans" htmlFor="passwordConfirmation">
+          <label
+            className="ui-text-lg ui-font-semibold ui-font-source_sans"
+            htmlFor="passwordConfirmation"
+          >
             Confirm Password
           </label>
           <input
@@ -92,10 +119,15 @@ export function SignUpForm(): JSX.Element {
             type="password"
             {...register("passwordConfirmation")}
           />
-          <p className="ui-text-sm ui-text-red-500">{errors.passwordConfirmation?.message}</p>
+          <p className="ui-text-sm ui-text-red-500">
+            {errors.passwordConfirmation?.message}
+          </p>
           {/* Submit */}
-          <button className="ui-py-3 ui-px-10 ui-bg-orange-500 ui-rounded-lg" type="submit">
-            Next
+          <button
+            className="ui-py-3 ui-px-10 ui-bg-orange-500 ui-rounded-lg"
+            type="submit"
+          >
+            Sign Up
           </button>
         </form>
         <span className="ui ui-font-medium ui-text-sm">
@@ -115,13 +147,12 @@ export function SignUpForm(): JSX.Element {
         or
         <line className="ui-w-full ui-h-px ui-bg-slate-300" />
       </div>
-      <button
-        className="ui-flex ui-flex-row ui-items-center ui-justify-center ui-gap-3 ui-py-3 ui-px-10 ui-bg-[#161616] ui-w-full ui-rounded-lg"
-        type="submit"
+      <Link
+        href="/login"
+        className="ui-flex ui-flex-row ui-items-center ui-justify-center ui-gap-3 ui-py-3 ui-px-10 ui-bg-[#161616] ui-w-full ui-rounded-lg ui-text-center"
       >
-        <GoogleIcon />
-        Sign Up With Google
-      </button>
+        Back to Login
+      </Link>
     </div>
   );
 }
