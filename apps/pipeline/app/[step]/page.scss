@@ -113,7 +113,7 @@
 
       .pipeline-position {
         display: flex;
-        justify-content: space-between;
+        justify-content: center;
         align-items: center;
         padding: 2rem;
         background-color: #282828;
@@ -150,13 +150,17 @@
           .position-title {
             font-size: 0.9rem;
             text-align: center;
+            width: 80px;
           }
+        }
 
-          .position-arrow {
-            margin: 0 1rem;
-            font-size: 1.5rem;
-            color: #666;
-          }
+        .position-arrow {
+          margin: 0 1rem;
+          font-size: 1.5rem;
+          color: #666;
+          display: flex;
+          align-items: center;
+          height: 50px;
         }
       }
     }
@@ -218,6 +222,14 @@
 
         .pipeline-position {
           min-width: 600px;
+
+          .position-step {
+            min-width: 80px;
+          }
+
+          .position-arrow {
+            min-width: 20px;
+          }
         }
       }
     }
