@@ -5,11 +5,13 @@ import isBetween from "dayjs/plugin/isBetween";
 import { useEffect, useState } from "react";
 import { useChat } from "../../ui/contexts/ChatContext";
 import "./ProjectSidebar.scss";
+import { WindowGrid } from "../../lib/interfaces";
+import { MainAreaSwitcher } from "./MainAreaSwitcher";
 
 // eslint-disable-next-line import/no-named-as-default-member -- I'm sure I didn't mean the other extend... >.<
 dayjs.extend(isBetween);
 
-interface ProjectFolder {    
+interface ProjectFolder {
     id: string;
     label: string;
     date: string;
@@ -65,28 +67,34 @@ const testData: ProjectFolder[] = [
     },
 ];
 
-export function ProjectSidebar(): JSX.Element {
+export function ProjectSidebar({ isExpanded, setIsExpanded }): JSX.Element {
     const chatContext = useChat();
-    const [isExpanded, setIsExpanded] = useState(false);
+    // const [isExpanded, setIsExpanded] = useState(false);
     const [displayFolders, setDisplayFolders] = useState<ProjectFolder[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedProject, setSelectedProject] = useState<string|undefined>();
-    const [selectedSession, setSelectedSession] = useState<string|undefined>();
-
-
+    const [selectedProject, setSelectedProject] = useState<string | undefined>();
+    const [selectedSession, setSelectedSession] = useState<string | undefined>();
 
     useEffect(() => {
+        // Initialize with test data for folders
         setDisplayFolders(testData);
-    }, []); // Change the dependency array here to whatever variable you're getting from the context
 
+        // If we have sessions in the context, we can use those too
+        if (chatContext.sessions.length > 0) {
+            setSelectedSession(chatContext.selectedSession?.id);
+        }
+    }, [chatContext.selectedSession?.id]);
 
     function toggleExpanded(): void {
         setIsExpanded(current => !current);
     }
 
     function handleCreate(): void {
-        console.log("Create")
-        chatContext.setActiveWindowGrid();
+        console.log("Create new chat");
+        // Add a new session to the context
+        chatContext.addNewSession();
+        // Show the welcome screen
+        chatContext.setActiveWindowGrid(WindowGrid.toshiba1);
     }
 
     function handleAdvancedSearch(): void {
@@ -98,18 +106,28 @@ export function ProjectSidebar(): JSX.Element {
     }
 
     function handleSessionClick(id: string): void {
+        console.log("Selected session:", id);
         setSelectedSession(id);
+
+        // If it's one of our context sessions, select it and show chat UI
+        const contextSession = chatContext.sessions.find(session => session.id === id);
+        if (contextSession) {
+            chatContext.setSelectedSession(id);
+            chatContext.setActiveWindowGrid(WindowGrid.active);
+        }
     }
 
-
-
+    // Helper to get the preview text for a message
+    function getMessagePreview(text: string): string {
+        return text.length > 30 ? text.substring(0, 30) + "..." : text;
+    }
 
     return (
         <div className={[
             "advanced-sidebar-container",
             "sidebar-area",
             isExpanded ? "is-open" : undefined,
-            ].filter(Boolean).join(" ")}
+        ].filter(Boolean).join(" ")}
         >
             <div className="advanced-sidebar-contents">
                 <div className="sidebar-button-wrapper">
@@ -119,11 +137,11 @@ export function ProjectSidebar(): JSX.Element {
                         noBackground
                         title={isExpanded ? "Minimize the sidebar" : "Expand the sidebar"}
                     >
-                        <ElevaiteIcons.SVGSideArrow/>
+                        <ElevaiteIcons.SVGSideArrow />
                     </CommonButton>
                 </div>
 
-                <div className="separator"/>
+                <div className="separator" />
 
                 <div className="sidebar-button-wrapper">
                     <CommonButton
@@ -131,19 +149,19 @@ export function ProjectSidebar(): JSX.Element {
                         className="create"
                         title="Create New Chat"
                     >
-                        <ChatbotIcons.SVGMenuCreate/>
-                        <div className="button-label">Create New Chat</div>
+                        <ChatbotIcons.SVGMenuCreate />
+                        <div className="button-label">New chat</div>
                     </CommonButton>
                 </div>
 
-                <div className="separator"/>
+                <div className="separator" />
 
-                <div className="search-container">
+                {/* <div className="search-container">
                     <SimpleInput
                         value={searchTerm}
                         onChange={setSearchTerm}
                         className="search-field"
-                        leftIcon={<ElevaiteIcons.SVGMagnifyingGlass/>}
+                        leftIcon={<ElevaiteIcons.SVGMagnifyingGlass />}
                         placeholder="Search..."
                     />
                     <CommonButton
@@ -153,32 +171,73 @@ export function ProjectSidebar(): JSX.Element {
                     >
                         Advanced Search
                     </CommonButton>
+                </div> */}
+
+                {/* Chat Sessions Container */}
+                <div className="chat-sessions-container">
+                    <div className="sessions-list">
+                        {chatContext.sessions.length === 0 ? (
+                            <div className="empty-sessions">No chats</div>
+                        ) : (
+                            chatContext.sessions.map(session => (
+                                <div key={session.id} className="session-container">
+                                    <CommonButton
+                                        className={[
+                                            "session-button",
+                                            chatContext.selectedSession?.id === session.id ? "active" : undefined
+                                        ].filter(Boolean).join(" ")}
+                                        noBackground
+                                        onClick={() => { handleSessionClick(session.id); }}
+                                    >
+                                        <div className="session-icon">
+                                            {/* Fix for SVGComment error - use a different icon that exists */}
+                                            <ChatbotIcons.SVGClipboard />
+                                        </div>
+                                        <div className="session-details">
+                                            <span className="session-title">{session.label || "Chat session"}</span>
+                                            <span className="session-preview">
+                                                {session.messages.length > 0
+                                                    ? getMessagePreview(session.messages[session.messages.length - 1].text)
+                                                    : "New conversation"}
+                                            </span>
+                                            <span className="session-date">
+                                                {session.creationDate
+                                                    ? dayjs(session.creationDate).format("MMM D, YYYY")
+                                                    : ""}
+                                            </span>
+                                        </div>
+                                    </CommonButton>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
-                
-                <div className="projects-label-container">
+
+                {/* Projects Container - Kept but hidden by default */}
+                <div className="projects-label-container" style={{ display: "none" }}>
                     <span>Projects</span>
                     <CommonButton noBackground title="Add new Project">
-                        <ChatbotIcons.SVGAdd/>
+                        <ChatbotIcons.SVGAdd />
                     </CommonButton>
                 </div>
 
-                <div className="projects-list">
+                <div className="projects-list" style={{ display: "none" }}>
                     <div className="projects-group-container">
-                        {displayFolders.map(folder => 
+                        {displayFolders.map(folder =>
                             <div key={folder.id} className="project-container">
                                 <CommonButton
                                     className={["project-label", selectedProject === folder.id ? "active" : undefined].filter(Boolean).join(" ")}
                                     noBackground
                                     onClick={() => { handleProjectClick(folder.id); }}
                                 >
-                                    <ChatbotIcons.SVGFolder/>
+                                    <ChatbotIcons.SVGFolder />
                                     <span>{folder.label}</span>
                                 </CommonButton>
                                 <div className={["sessions-container", selectedProject === folder.id ? "open" : undefined].filter(Boolean).join(" ")}>
                                     <div className="sessions-accordion">
                                         {folder.sessions.map(session =>
                                             <div className="session-wrapper" key={session.id}>
-                                                <CommonButton                                                    
+                                                <CommonButton
                                                     className={["session", selectedSession === session.id ? "active" : undefined].filter(Boolean).join(" ")}
                                                     noBackground
                                                     onClick={() => { handleSessionClick(session.id); }}
@@ -199,7 +258,7 @@ export function ProjectSidebar(): JSX.Element {
                         noBackground
                         className="settings-button"
                     >
-                        <ChatbotIcons.SVGSettings/>
+                        <ChatbotIcons.SVGSettings />
                         <span>Settings</span>
                     </CommonButton>
                 </div>
@@ -207,15 +266,3 @@ export function ProjectSidebar(): JSX.Element {
         </div>
     );
 }
-
-
-
-
-
-
-
-
-
-
-
-

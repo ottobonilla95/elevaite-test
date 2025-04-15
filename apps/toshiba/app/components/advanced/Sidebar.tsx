@@ -7,10 +7,9 @@ import { useChat } from "../../ui/contexts/ChatContext";
 import "./Sidebar.scss";
 import { WindowGrid } from "../../lib/interfaces";
 
-// eslint-disable-next-line import/no-named-as-default-member -- I'm sure I didn't mean the other extend... >.<
 dayjs.extend(isBetween);
 
-interface RecentChat {    
+interface RecentChat {
     id: string;
     label: string;
     date: string;
@@ -93,13 +92,13 @@ export function Sidebar(): JSX.Element {
 
         // Define time boundaries
         const sevenDaysAgo = now.subtract(7, "days");
-    
+
         // Group items into categories
         const categories = {
             recent: chats.filter(item => dayjs(item.date).isSame(dayjs(), "day")),
             sevenDaysAgo: chats.filter(item => dayjs(item.date).isBetween(dayjs().startOf("day"), sevenDaysAgo, null, "()")),
         };
-    
+
         // Build the result, sorting each category by date descending
         const result: RecentsChatsList[] = [
             { label: "Today", chats: categories.recent },
@@ -110,7 +109,7 @@ export function Sidebar(): JSX.Element {
                 chats: category.chats.sort((a, b) => dayjs(b.date).diff(dayjs(a.date)))
             }))
             .filter(category => !hideEmptyCategories || category.chats.length > 0);
-    
+
         return result;
     }
 
@@ -120,7 +119,7 @@ export function Sidebar(): JSX.Element {
             "advanced-sidebar-container",
             "sidebar-area",
             isExpanded ? "is-open" : undefined,
-            ].filter(Boolean).join(" ")}
+        ].filter(Boolean).join(" ")}
         >
             <div className="advanced-sidebar-contents">
                 <div className="sidebar-button-wrapper">
@@ -130,11 +129,11 @@ export function Sidebar(): JSX.Element {
                         noBackground
                         title={isExpanded ? "Minimize the sidebar" : "Expand the sidebar"}
                     >
-                        <ElevaiteIcons.SVGSideArrow/>
+                        <ElevaiteIcons.SVGSideArrow />
                     </CommonButton>
                 </div>
 
-                <div className="separator"/>
+                <div className="separator" />
 
                 <div className="sidebar-button-wrapper">
                     <CommonButton
@@ -142,7 +141,7 @@ export function Sidebar(): JSX.Element {
                         className="create"
                         title="Create New Chat"
                     >
-                        <ChatbotIcons.SVGMenuCreate/>
+                        <ChatbotIcons.SVGMenuCreate />
                         <div className="button-label">Create New Chat</div>
                     </CommonButton>
                 </div>
@@ -152,7 +151,7 @@ export function Sidebar(): JSX.Element {
                         title="Discover"
                         noBackground
                     >
-                        <ChatbotIcons.SVGMenuDiscover/>
+                        <ChatbotIcons.SVGMenuDiscover />
                         <div className="button-label">Discover</div>
                     </CommonButton>
                 </div>
@@ -162,14 +161,14 @@ export function Sidebar(): JSX.Element {
                         title="Dashboard"
                         noBackground
                     >
-                        <ChatbotIcons.SVGMenuScorecard/>
+                        <ChatbotIcons.SVGMenuScorecard />
                         <div className="button-label">Dashboard</div>
                     </CommonButton>
                 </div>
 
-                <div className="separator"/>
+                <div className="separator" />
 
-                <div className="search-container">
+                {/* <div className="search-container">
                     <SimpleInput
                         value={searchTerm}
                         onChange={setSearchTerm}
@@ -184,25 +183,25 @@ export function Sidebar(): JSX.Element {
                     >
                         Advanced Search
                     </CommonButton>
-                </div>
-                
+                </div> */}
+
                 <div className="recent-chats-container">
-                    {displayRecents.map(recentGroup => 
+                    {displayRecents.map(recentGroup =>
                         <div className="recent-chats-group-container" key={recentGroup.label}>
                             <div className="chat-group-label">
                                 {recentGroup.label}
                             </div>
                             <div className="chat-group-contents">
-                                {recentGroup.chats.length === 0 ? 
+                                {recentGroup.chats.length === 0 ?
                                     <div className="empty-group">No chats</div>
-                                :
-                                    recentGroup.chats.map(chat => 
+                                    :
+                                    recentGroup.chats.map(chat =>
                                         <SidebarSession
                                             key={chat.id}
                                             chat={chat}
                                             onClick={handleChatClick}
-                                        />                                        
-                                    )                                        
+                                        />
+                                    )
                                 }
                             </div>
                         </div>
@@ -240,14 +239,14 @@ function SidebarSession(props: SidebarSessionProps): JSX.Element {
             noBackground
         >
             <div className="sidebar-session-contents">
-                <div className="icon"><ChatbotIcons.SVGClipboard/></div>
+                <div className="icon"><ChatbotIcons.SVGClipboard /></div>
                 <div className="details">
                     <span className="title" title={props.chat.label}>{props.chat.label}</span>
                     <span className="date" title={props.chat.date ? dayjs(props.chat.date).format("ddd DD MMMM YYYY") : ""}>
                         {props.chat.date ? dayjs(props.chat.date).format("YYYY-MM-DD") : "-"}
                     </span>
                 </div>
-                <div className={["status", props.chat.status].filter(Boolean).join(" ")} title={props.chat.status}/>
+                <div className={["status", props.chat.status].filter(Boolean).join(" ")} title={props.chat.status} />
             </div>
         </CommonButton>
     );

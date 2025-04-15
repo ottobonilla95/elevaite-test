@@ -1,10 +1,9 @@
 "use client";
 import { ChatbotIcons, CommonButton, SimpleInput } from "@repo/ui/components";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useChat } from "../ui/contexts/ChatContext";
+import { WindowGrid } from "../lib/interfaces";
 import "./ChatbotInput.scss";
-
-
 
 interface ChatbotInputProps {
     bareBones?: boolean;
@@ -13,11 +12,18 @@ interface ChatbotInputProps {
     inlinePrompts?: string[];
 }
 
-
 export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
     const chatContext = useChat();
     const [text, setText] = useState("");
+    const [messageWasSent, setMessageWasSent] = useState(false);
 
+    // Effect to switch to active tab when a message is sent
+    useEffect(() => {
+        if (messageWasSent) {
+            chatContext.setActiveWindowGrid(WindowGrid.active);
+            setMessageWasSent(false);
+        }
+    }, [messageWasSent]);
 
     function handleTextChange(value: string): void {
         if (chatContext.isChatLoading) return;
@@ -30,6 +36,7 @@ export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
         setText("");
         if (!workingText.trim()) return;
         chatContext.addNewUserMessageToCurrentSession(workingText);
+        setMessageWasSent(true);
     }
 
     function handleKeyDown(key: string): void {
@@ -41,13 +48,21 @@ export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
         chatContext.getSessionSummary();
     }
 
+    function handlePromptClick(prompt: string): void {
+        if (chatContext.isChatLoading) return;
+        setText(prompt);
+
+        chatContext.addNewUserMessageToCurrentSession(prompt);
+
+        setMessageWasSent(true);
+    }
 
     return (
         <div className={[
-                "chatbot-input-container",
-                chatContext.isChatLoading ? "loading" : undefined,
-                props.bareBones ? "bare-bones" : undefined,
-            ].filter(Boolean).join(" ")}>
+            "chatbot-input-container",
+            chatContext.isChatLoading ? "loading" : undefined,
+            props.bareBones ? "bare-bones" : undefined,
+        ].filter(Boolean).join(" ")}>
             <SimpleInput
                 wrapperClassName="chatbot-input-field"
                 value={text}
@@ -62,12 +77,13 @@ export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
                         disabled={chatContext.isChatLoading}
                     >
                         {chatContext.isChatLoading ?
-                            <ChatbotIcons.SVGSpinner/> :
-                            <ChatbotIcons.SVGSend/>
+                            <ChatbotIcons.SVGSpinner /> :
+                            <ChatbotIcons.SVGSend />
                         }
-                    </CommonButton>                    
+                    </CommonButton>
                 }
                 inlinePrompts={props.inlinePrompts}
+            //InlinePromptClick={handlePromptClick}
             />
 
             {props.noSummarize ? undefined :
@@ -77,10 +93,11 @@ export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
                     onClick={handleSummarize}
                     disabled={chatContext.isChatLoading}
                 >
-                    <ChatbotIcons.SVGClipboard/>
+                    <ChatbotIcons.SVGClipboard />
                     <span>Summarize</span>
                 </CommonButton>
             }
         </div>
     );
 }
+
