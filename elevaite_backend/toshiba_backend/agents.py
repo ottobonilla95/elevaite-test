@@ -1,4 +1,4 @@
-from agent_studio_backend.tools import weather_forecast
+from tools import weather_forecast
 from data_classes import Agent
 from utils import agent_schema
 from typing import Any
@@ -25,9 +25,10 @@ class WebAgent(Agent):
         query : what is the sum of 12 and 13, and web results for "latest news on Toshiba.
         """
         tries = 0
+        routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = self.system_prompt.prompt + f"""
         Here are the routing options:
-        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
+        {routing_options}
 
         Your response should be in the format:
         {{ "routing": "respond", "content": "The answer to the query."}}
@@ -81,9 +82,10 @@ class ToshibaAgent(Agent):
         """
         tries = 0
         start_time = datetime.now()
+        routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = self.system_prompt.prompt + f"""
         Here are the routing options:
-        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
+        {routing_options}
 
         Your response should be in the format:
         {{ "routing": "routing type", "content": "The relevant response."}}
@@ -136,9 +138,10 @@ class DataAgent(Agent):
         The data contains customer ID, Order numbers and location in each row.
         """
         tries = 0
+        routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = self.system_prompt.prompt + f"""
         Here are the routing options:
-        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
+        {routing_options}
 
         Your response should be in the format:
         {{ "routing": "respond", "content": "The answer to the query."}}
@@ -189,9 +192,10 @@ class APIAgent(Agent):
         1. Weather API - to answer any weather related queries for a city.
         """
         tries = 0
+        routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = self.system_prompt.prompt + f"""
         Here are the routing options:
-        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
+        {routing_options}
 
         Your response should be in the format:
         {{ "routing": "respond", "content": "The answer to the query."}}

@@ -1,0 +1,10 @@
+python-dotenv
+pydantic
+fastapi
+uvicorn
+qdrant-client
+openai
+requests
+bs4
+markdownify
+matplotlib
