@@ -120,12 +120,16 @@ def deploy(request: dict):
 @app.get("/run")
 def run(request: fastapi.Request):
     query = request.query_params.get("query")
-    # res = json.loads(toshiba_agent.execute(query=query))["content"]
-    res = "Part number is 1234567890"
+    res = json.loads(toshiba_agent.execute(query=query))["content"]
+    # res = "Part number is 1234567890"
     # res = COMMAND_AGENT.execute(query)
-    return {"text": f"{res}", "refs": ["https://www.google.com"], "media": ["https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s",
-                                                                              "https://picsum.photos/seed/picsum/200/300",
-                                                                              "https://www.w3schools.com/html/mov_bbb.mp4"]}
+    # refs = ["https://www.google.com"]
+    # media = ["https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s",
+    #                                                                           "https://picsum.photos/seed/picsum/200/300",
+    #                                                                           "https://www.w3schools.com/html/mov_bbb.mp4"]
+    media = []
+    refs = []
+    return {"text": f"{res}", "refs": refs, "media": media}
     # res = json.loads(toshiba_agent.execute(query=query))["content"]
     # print(res)
     # response = {"text": f"{res}", "refs": ["https://www.google.com"]}

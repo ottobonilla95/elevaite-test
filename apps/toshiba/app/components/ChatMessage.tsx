@@ -79,17 +79,17 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
         </div>
         {!props.isBot ? null : (
         <div className="media-container">
-          <a href="https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s" target="_blank" rel="noopener noreferrer">
-            <img src="https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s" alt="Example Image 1"/>
-          </a>
-          <a href="https://picsum.photos/seed/picsum/200/300" target="_blank" rel="noopener noreferrer">
-            <img src="https://picsum.photos/seed/picsum/200/300" alt="Example Image 2"/>
-          </a>
-          <a rel="noopener noreferrer">
-            <video width="150" controls>
-              <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4"/>
-            </video>
-          </a>
+          {/*<a href="https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s" target="_blank" rel="noopener noreferrer">*/}
+          {/*  <img src="https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s" alt="Example Image 1"/>*/}
+          {/*</a>*/}
+          {/*<a href="https://picsum.photos/seed/picsum/200/300" target="_blank" rel="noopener noreferrer">*/}
+          {/*  <img src="https://picsum.photos/seed/picsum/200/300" alt="Example Image 2"/>*/}
+          {/*</a>*/}
+          {/*<a rel="noopener noreferrer">*/}
+          {/*  <video width="150" controls>*/}
+          {/*    <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4"/>*/}
+          {/*  </video>*/}
+          {/*</a>*/}
 
         </div>
         )}

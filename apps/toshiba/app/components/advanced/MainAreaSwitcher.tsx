@@ -47,7 +47,7 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
                 // This is the active chat interface for ongoing conversations
                 setActiveWindow([
                     <div key="chat" className="chat">
-                        <CoPilot>
+                        <CoPilot noUpload={true}>
                             <ChatbotWindow
                                 noSession
                                 noSummary
@@ -110,7 +110,7 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
                 // Default to welcome screen when no specific layout is set
                 setActiveWindow([
                     <div key="toshiba1" className="toshiba1">
-                        <CoPilot noUpload label="What can I help with?">
+                        <CoPilot noUpload={false} label="What can I help with?">
                             <CoPilotStart
                                 wide
                                 addedControls

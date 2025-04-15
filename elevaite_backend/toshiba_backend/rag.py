@@ -50,7 +50,7 @@ def get_chunks(query: str):
     # print(collection_name)
     qdrant_url = "http://3.101.65.253"
     qdrant_port = 5333
-    collection_name = "toshiba_pdf_1"
+    collection_name = "toshiba_pdf_7"
 
     client = QdrantClient(url=qdrant_url, port=qdrant_port)
 
@@ -145,4 +145,5 @@ def get_chunks(query: str):
     # print(res)
     return res
 
-# print(get_chunks("provide lists the humidity and temperature limits for the 4820 SurePoint Solution"))
+# print(get_chunks("What is the description for the part number 3AC01317900"))
+print(get_chunks("What is the description for the part number 3AC00668900"))
