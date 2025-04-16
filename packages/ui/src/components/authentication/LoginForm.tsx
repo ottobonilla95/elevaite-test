@@ -90,7 +90,7 @@ export function LogInForm({
   }, [setValue]);
 
   return (
-    <div className="login-form-main-container ui-flex ui-flex-col ui-gap-[29px] ui-items-start ui-w-3/5 ui-text-white">
+    <div className="login-form-main-container ui-flex ui-flex-col ui-gap-[29px] ui-items-start ui-w-full ui-max-w-l ui-text-white">
       <div className="ui-flex ui-flex-col ui-items-start ui-gap-5 ui-w-full">
         <form
           id="login-form"
