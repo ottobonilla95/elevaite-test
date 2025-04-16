@@ -21,6 +21,9 @@
 
   & .sign-in-button {
     background-color: var(--ev-colors-highlight);
+    width: 100%;
+    font-weight: 500;
+    padding: 12px 0;
   }
 
   & .sign-up-button {
@@ -29,12 +32,61 @@
     color: var(--ev-colors-highlight);
   }
 
+  & .auth-options-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 8px;
+    position: relative;
+    min-height: 28px;
+  }
+
+  & .remember-me-container {
+    display: flex;
+    align-items: center;
+
+    // Adjust the CommonCheckbox styling for this specific use case
+    & .common-checkbox-container {
+      gap: 12px;
+
+      & .checkbox-content {
+        height: 18px;
+        width: 18px;
+
+        & > input {
+          height: 18px;
+          width: 18px;
+        }
+      }
+
+      & .labels {
+        & .title {
+          color: var(--ev-colors-gray-400, #9ca3af);
+          font-size: 14px;
+        }
+      }
+    }
+  }
+
   & .forgot-password-link {
     transition: color 0.2s ease;
     text-decoration: none;
+    position: absolute;
+    right: 0;
 
     &:hover {
       color: var(--ev-colors-highlight);
+      text-decoration: underline;
+    }
+  }
+
+  & .register-link {
+    transition: color 0.2s ease;
+    text-decoration: none;
+    color: var(--ev-colors-highlight);
+
+    &:hover {
       text-decoration: underline;
     }
   }

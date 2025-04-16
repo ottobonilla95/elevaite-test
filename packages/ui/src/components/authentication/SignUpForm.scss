@@ -1,3 +1,9 @@
 .sign-in-link {
   color: var(--ev-colors-highlight);
+  transition: color 0.2s ease;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }

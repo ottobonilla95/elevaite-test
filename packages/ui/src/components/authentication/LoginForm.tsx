@@ -4,8 +4,9 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { GoogleColorIcon } from "../icons/GoogleColor";
 import "./LoginForm.scss";
-import { SVGProps } from "react";
+import { SVGProps, useEffect } from "react";
 import Link from "next/link";
+import { CommonCheckbox } from "../common/CommonCheckbox";
 
 const formSchema = z
   .object({
@@ -14,6 +15,7 @@ const formSchema = z
       .email({ message: "Must be a valid Email" })
       .min(1, "Email is required"),
     password: z.string().min(1, "Password is required"),
+    rememberMe: z.boolean().optional().default(false),
   })
   .required();
 type FormValues = z.infer<typeof formSchema>;
@@ -39,9 +41,21 @@ export function LogInForm({
     reset,
     setError,
     resetField,
+    setValue,
   } = useForm<FormValues>({ resolver: zodResolver(formSchema) });
 
   const onSubmit: SubmitHandler<FormValues> = async (data: FormValues) => {
+    // Handle remember me functionality
+    if (data.rememberMe) {
+      // Store email in localStorage
+      localStorage.setItem("rememberedEmail", data.email);
+      localStorage.setItem("rememberMe", "true");
+    } else {
+      // Clear remembered email
+      localStorage.removeItem("rememberedEmail");
+      localStorage.removeItem("rememberMe");
+    }
+
     const res = await authenticate("", data);
     if (res) {
       setError("root.credentials", { message: res });
@@ -54,6 +68,20 @@ export function LogInForm({
   async function handleGoogleClick(): Promise<void> {
     await authenticateGoogle();
   }
+
+  // Initialize form with remembered values
+  useEffect(() => {
+    // Check if we're in a browser environment
+    if (typeof window !== "undefined") {
+      const rememberedEmail = localStorage.getItem("rememberedEmail");
+      const rememberMe = localStorage.getItem("rememberMe") === "true";
+
+      if (rememberedEmail && rememberMe) {
+        setValue("email", rememberedEmail);
+        setValue("rememberMe", true);
+      }
+    }
+  }, [setValue]);
 
   return (
     <div className="login-form-main-container ui-flex ui-flex-col ui-gap-[29px] ui-items-start ui-w-3/5 ui-text-white">
@@ -101,6 +129,24 @@ export function LogInForm({
             />
             <PasswordIcon />
           </div>
+          {/* Remember Me and Forgot Password */}
+          <div className="auth-options-container">
+            <div className="remember-me-container">
+              <CommonCheckbox
+                label="Remember me"
+                defaultTrue={false}
+                onChange={(checked) => {
+                  setValue("rememberMe", checked);
+                }}
+              />
+            </div>
+            <Link
+              href="/forgot-password"
+              className="forgot-password-link ui-text-sm ui-text-gray-400 hover:ui-text-gray-300"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <p className="ui-text-sm ui-text-red-500">
             {errors.password?.message}
           </p>
@@ -108,30 +154,14 @@ export function LogInForm({
             {errors.root?.credentials?.message}
           </p>
 
-          {/* Submit Buttons */}
-          <div className="ui-flex ui-flex-row ui-gap-4 ui-w-full">
+          {/* Submit Button */}
+          <div className="ui-w-full ui-mt-2">
             <button
-              className="sign-in-button ui-py-3 ui-px-10 ui-rounded-lg ui-flex-1"
+              className="sign-in-button ui-py-3 ui-px-10 ui-rounded-lg ui-w-full"
               type="submit"
             >
               Sign In
             </button>
-            <Link
-              href="/signup"
-              className="sign-up-button ui-py-3 ui-px-10 ui-rounded-lg ui-flex-1 ui-text-center"
-            >
-              Sign Up
-            </Link>
-          </div>
-
-          {/* Forgot Password */}
-          <div className="ui-flex ui-justify-center ui-w-full ui-mt-2">
-            <Link
-              href="/forgot-password"
-              className="forgot-password-link ui-text-sm ui-text-gray-400 hover:ui-text-gray-300"
-            >
-              Forgot password?
-            </Link>
           </div>
         </form>
       </div>
@@ -151,6 +181,16 @@ export function LogInForm({
         <GoogleColorIcon />
         Sign In With Google
       </button>
+
+      {/* Register Link */}
+      <div className="ui-flex ui-justify-center ui-w-full ui-mt-6">
+        <span className="ui-text-sm ui-text-gray-400">
+          Don't have an account?{" "}
+          <Link href="/signup" className="register-link ui-text-[#E75F33]">
+            Register
+          </Link>
+        </span>
+      </div>
     </div>
   );
 }

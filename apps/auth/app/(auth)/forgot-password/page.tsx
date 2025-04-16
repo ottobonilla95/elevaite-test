@@ -28,48 +28,52 @@ function ForgotPassword(): JSX.Element {
         <div className="center-block">
           <div className="title">
             <span className="main">Forgot Password</span>
-            <span>Enter your email to reset your password.</span>
+            <span className="ui-w-3/5 ui-text-center">
+              Enter the email address you used when you joined and we&apos;ll
+              send you instructions to reset your password.
+              <br />
+              <br />
+              For security reasons, we do NOT store your password. So rest
+              assured that we will never send your password via email.
+            </span>
           </div>
-          
-          <div className="forgot-password-form">
+
+          <div className="forgot-password-form ui-w-3/5">
             <form className="ui-flex ui-flex-col ui-items-start ui-gap-3 ui-font-inter ui-w-full">
-              <label className="ui-text-sm ui-text-gray-400">Email</label>
+              <label
+                className="ui-text-lg ui-font-semibold ui-font-source_sans"
+                htmlFor="email"
+              >
+                Email
+              </label>
               <div className="ui-relative ui-w-full">
                 <input
                   type="email"
+                  id="email"
                   placeholder="Enter your email"
-                  className="ui-w-full ui-py-3 ui-pl-12 ui-pr-4 ui-bg-[#282828] ui-rounded-lg ui-border-none ui-outline-none"
+                  className="ui-w-full ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-rounded-lg ui-border-none ui-outline-none"
                 />
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width={20}
-                  height={17}
-                  fill="none"
-                  className="ui-absolute ui-left-4 ui-top-1/2 ui-transform ui--translate-y-1/2"
-                >
-                  <path
-                    fill="#898989"
-                    d="M18 .5H2C.9.5.01 1.4.01 2.5L0 14.5c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-12c0-1.1-.9-2-2-2Zm0 4-8 5-8-5v-2l8 5 8-5v2Z"
-                  />
-                </svg>
               </div>
-              
-              <div className="ui-flex ui-flex-row ui-gap-4 ui-w-full ui-mt-4">
+
+              <div className="ui-w-full ui-mt-4 ui-flex ui-justify-start">
                 <button
-                  className="ui-bg-[#E75F33] ui-py-3 ui-px-10 ui-rounded-lg ui-flex-1"
+                  className="ui-py-3 ui-px-10 ui-bg-orange-500 ui-rounded-lg ui-w-1/3 ui-font-medium"
                   type="submit"
                 >
-                  Reset Password
+                  Send Reset Instructions
                 </button>
               </div>
-              
-              <div className="ui-flex ui-justify-center ui-w-full ui-mt-2">
-                <Link
-                  href="/login"
-                  className="ui-text-sm ui-text-gray-400 hover:ui-text-gray-300"
-                >
-                  Back to Login
-                </Link>
+
+              <div className="ui-flex ui-justify-center ui-w-full ui-mt-4">
+                <span className="ui-text-sm ui-text-gray-400">
+                  Remember your password?{" "}
+                  <Link
+                    href="/login"
+                    className="ui-text-[#E75F33] hover:ui-underline"
+                  >
+                    Sign in
+                  </Link>
+                </span>
               </div>
             </form>
           </div>
@@ -78,7 +82,11 @@ function ForgotPassword(): JSX.Element {
         <div className="copyright">
           <span>Copyright 2023-2024</span>
           <span>•</span>
-          <a target="_blank" href="https://www.iopex.com/" rel="noopener noreferrer">
+          <a
+            target="_blank"
+            href="https://www.iopex.com/"
+            rel="noopener noreferrer"
+          >
             iOPEX Technologies
           </a>
         </div>

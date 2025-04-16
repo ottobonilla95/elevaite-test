@@ -10,7 +10,8 @@ import "./SignUpForm.scss";
 
 const formSchema = z
   .object({
-    fullName: z.string().min(1, "Full Name is required"),
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
     email: z
       .string()
       .email({ message: "Must be a valid Email" })
@@ -54,23 +55,50 @@ export function SignUpForm(): JSX.Element {
           // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is meant to be like this.
           onSubmit={handleSubmit(onSubmit)}
         >
-          {/* Full Name */}
-          <label
-            className="ui-text-lg ui-font-semibold ui-font-source_sans"
-            htmlFor="fullName"
-          >
-            Full Name
-          </label>
-          <input
-            className={`ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-w-full ui-rounded-lg ${
-              errors.fullName ? "ui-border-red-500 ui-border" : ""
-            }`}
-            id="fullName"
-            {...register("fullName")}
-          />
-          <p className="ui-text-sm ui-text-red-500">
-            {errors.fullName?.message}
-          </p>
+          {/* Name Fields */}
+          <div className="ui-w-full">
+            <div className="ui-flex ui-flex-row ui-gap-4 ui-w-full">
+              {/* First Name */}
+              <div className="ui-flex ui-flex-col ui-w-1/2 ui-gap-3">
+                <label
+                  className="ui-text-lg ui-font-semibold ui-font-source_sans"
+                  htmlFor="firstName"
+                >
+                  First Name
+                </label>
+                <input
+                  className={`ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-w-full ui-rounded-lg ${
+                    errors.firstName ? "ui-border-red-500 ui-border" : ""
+                  }`}
+                  id="firstName"
+                  {...register("firstName")}
+                />
+                <p className="ui-text-sm ui-text-red-500">
+                  {errors.firstName?.message}
+                </p>
+              </div>
+
+              {/* Last Name */}
+              <div className="ui-flex ui-flex-col ui-w-1/2 ui-gap-3">
+                <label
+                  className="ui-text-lg ui-font-semibold ui-font-source_sans"
+                  htmlFor="lastName"
+                >
+                  Last Name
+                </label>
+                <input
+                  className={`ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-w-full ui-rounded-lg ${
+                    errors.lastName ? "ui-border-red-500 ui-border" : ""
+                  }`}
+                  id="lastName"
+                  {...register("lastName")}
+                />
+                <p className="ui-text-sm ui-text-red-500">
+                  {errors.lastName?.message}
+                </p>
+              </div>
+            </div>
+          </div>
           {/* Email */}
           <label
             className="ui-text-lg ui-font-semibold ui-font-source_sans"
@@ -124,7 +152,7 @@ export function SignUpForm(): JSX.Element {
           </p>
           {/* Submit */}
           <button
-            className="ui-py-3 ui-px-10 ui-bg-orange-500 ui-rounded-lg"
+            className="ui-py-3 ui-px-10 ui-bg-orange-500 ui-rounded-lg ui-w-full ui-font-medium"
             type="submit"
           >
             Sign Up
@@ -142,17 +170,15 @@ export function SignUpForm(): JSX.Element {
           and to receive sessions news and updates.
         </span>
       </div>
-      <div className="ui-w-full ui-flex ui-flex-row ui-items-center ui-gap-4 ui-justify-center">
-        <line className="ui-w-full ui-h-px ui-bg-slate-300" />
-        or
-        <line className="ui-w-full ui-h-px ui-bg-slate-300" />
+      {/* Sign In Link */}
+      <div className="ui-flex ui-justify-center ui-w-full ui-mt-4">
+        <span className="ui-text-sm ui-text-gray-400">
+          Already have an account?{" "}
+          <Link href="/login" className="sign-in-link">
+            Sign in
+          </Link>
+        </span>
       </div>
-      <Link
-        href="/login"
-        className="ui-flex ui-flex-row ui-items-center ui-justify-center ui-gap-3 ui-py-3 ui-px-10 ui-bg-[#161616] ui-w-full ui-rounded-lg ui-text-center"
-      >
-        Back to Login
-      </Link>
     </div>
   );
 }
