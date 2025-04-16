@@ -4,8 +4,6 @@ import { useForm } from "react-hook-form";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import React from "react";
-import { GoogleIcon } from "../icons/Google";
 import "./SignUpForm.scss";
 
 const formSchema = z
@@ -158,17 +156,6 @@ export function SignUpForm(): JSX.Element {
             Sign Up
           </button>
         </form>
-        <span className="ui ui-font-medium ui-text-sm">
-          By signing up, I agree to sessions,{" "}
-          <Link className="ui ui-text-[#E75F33]" href="">
-            Terms & Conditions
-          </Link>
-          {", "}
-          <Link className="ui ui-text-[#E75F33]" href="">
-            Privacy Policy
-          </Link>{" "}
-          and to receive sessions news and updates.
-        </span>
       </div>
       {/* Sign In Link */}
       <div className="ui-flex ui-justify-center ui-w-full ui-mt-4">
