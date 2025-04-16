@@ -123,6 +123,16 @@ export function LogInForm({
               Sign Up
             </Link>
           </div>
+
+          {/* Forgot Password */}
+          <div className="ui-flex ui-justify-center ui-w-full ui-mt-2">
+            <Link
+              href="/forgot-password"
+              className="forgot-password-link ui-text-sm ui-text-gray-400 hover:ui-text-gray-300"
+            >
+              Forgot password?
+            </Link>
+          </div>
         </form>
       </div>
       <div className="separator">

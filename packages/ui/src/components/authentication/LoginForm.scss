@@ -29,6 +29,16 @@
     color: var(--ev-colors-highlight);
   }
 
+  & .forgot-password-link {
+    transition: color 0.2s ease;
+    text-decoration: none;
+
+    &:hover {
+      color: var(--ev-colors-highlight);
+      text-decoration: underline;
+    }
+  }
+
   & .separator {
     width: calc(100% - 100px);
     margin: 20px 50px;
