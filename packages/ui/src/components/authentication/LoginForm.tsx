@@ -42,6 +42,7 @@ export function LogInForm({
     setError,
     resetField,
     setValue,
+    getValues,
   } = useForm<FormValues>({ resolver: zodResolver(formSchema) });
 
   const onSubmit: SubmitHandler<FormValues> = async (data: FormValues) => {
@@ -61,6 +62,11 @@ export function LogInForm({
       setError("root.credentials", { message: res });
       resetField("password");
     } else {
+      // If login is successful and remember me is not checked, clear the storage
+      if (!data.rememberMe) {
+        localStorage.removeItem("rememberedEmail");
+        localStorage.removeItem("rememberMe");
+      }
       reset();
     }
   };
@@ -134,9 +140,25 @@ export function LogInForm({
             <div className="remember-me-container">
               <CommonCheckbox
                 label="Remember me"
-                defaultTrue={false}
+                defaultTrue={
+                  typeof window !== "undefined" &&
+                  localStorage.getItem("rememberMe") === "true"
+                }
                 onChange={(checked) => {
                   setValue("rememberMe", checked);
+                  // Update localStorage immediately when checkbox changes
+                  if (typeof window !== "undefined") {
+                    if (checked) {
+                      const email = getValues("email");
+                      if (email) {
+                        localStorage.setItem("rememberedEmail", email);
+                        localStorage.setItem("rememberMe", "true");
+                      }
+                    } else {
+                      localStorage.removeItem("rememberedEmail");
+                      localStorage.removeItem("rememberMe");
+                    }
+                  }
                 }}
               />
             </div>
@@ -171,7 +193,7 @@ export function LogInForm({
       <button
         className="ui-flex ui-flex-row ui-items-center ui-justify-center ui-gap-3 ui-py-3 ui-px-10 ui-bg-[#161616] ui-w-full ui-rounded-lg"
         onClick={() => {
-          handleGoogleClick().catch((e) => {
+          handleGoogleClick().catch((e: unknown) => {
             // eslint-disable-next-line no-console -- Temporary until better logging
             console.log(e);
           });
@@ -185,7 +207,7 @@ export function LogInForm({
       {/* Register Link */}
       <div className="ui-flex ui-justify-center ui-w-full ui-mt-6">
         <span className="ui-text-sm ui-text-gray-400">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/signup" className="register-link ui-text-[#E75F33]">
             Register
           </Link>
