@@ -28,7 +28,7 @@ function ForgotPassword(): JSX.Element {
         <div className="center-block">
           <div className="title">
             <span className="main">Forgot Password</span>
-            <span className="ui-w-3/5 ui-text-center">
+            <span className="ui-w-full ui-max-w-xl ui-text-center">
               Enter the email address you used when you joined and we&apos;ll
               send you instructions to reset your password.
               <br />
@@ -38,7 +38,7 @@ function ForgotPassword(): JSX.Element {
             </span>
           </div>
 
-          <div className="forgot-password-form ui-w-3/5">
+          <div className="forgot-password-form ui-w-full ui-max-w-xl">
             <form className="ui-flex ui-flex-col ui-items-start ui-gap-3 ui-font-inter ui-w-full">
               <div className="ui-relative ui-w-full">
                 <input
