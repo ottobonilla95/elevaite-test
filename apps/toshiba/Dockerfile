@@ -7,7 +7,7 @@ RUN apk update
 WORKDIR /app
 RUN npm install -g turbo
 COPY . .
-RUN turbo prune chatbot --docker
+RUN turbo prune toshiba --docker
 
 # Add lockfile and package.json's of isolated subworkspace
 FROM base AS installer
@@ -25,7 +25,7 @@ RUN npm ci
 # Build the project
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
-RUN npx --yes turbo run build --filter=chatbot...
+RUN npx --yes turbo run build --filter=toshiba...
 
 FROM base AS runner
 WORKDIR /app
@@ -38,14 +38,14 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 USER nextjs
 
-COPY --from=installer /app/apps/chatbot/next.config.mjs .
-COPY --from=installer /app/apps/chatbot/package.json .
+COPY --from=installer /app/apps/toshiba/next.config.mjs .
+COPY --from=installer /app/apps/toshiba/package.json .
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=installer --chown=nextjs:nodejs /app/apps/chatbot/.next/standalone ./
-COPY --from=installer --chown=nextjs:nodejs /app/apps/chatbot/.next/static ./apps/chatbot/.next/static
-COPY --from=installer --chown=nextjs:nodejs /app/apps/chatbot/public ./apps/chatbot/public
+COPY --from=installer --chown=nextjs:nodejs /app/apps/toshiba/.next/standalone ./
+COPY --from=installer --chown=nextjs:nodejs /app/apps/toshiba/.next/static ./apps/toshiba/.next/static
+COPY --from=installer --chown=nextjs:nodejs /app/apps/toshiba/public ./apps/toshiba/public
 
 USER nextjs
 
@@ -53,4 +53,4 @@ EXPOSE 3101
 
 ENV PORT 3101
 
-CMD node apps/chatbot/server.js
+CMD node apps/toshiba/server.js
