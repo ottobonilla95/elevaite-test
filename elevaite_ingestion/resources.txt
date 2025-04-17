@@ -1,0 +1,9 @@
+https://github.com/microsoft/markitdown
+
+https://github.com/DS4SD/docling
+
+https://github.com/unclecode/crawl4ai
+
+https://github.com/run-llama/llama_parse
+
+

@@ -1,0 +1,11 @@
+{
+    "STAGE_2: PARSING": {
+        "MODE": "s3",
+        "PARSING_MODE": "auto_parser",
+        "INPUT_BUCKET": null,
+        "OUTPUT_BUCKET": null,
+        "TOTAL_FILES": 0,
+        "EVENT_DETAILS": [],
+        "STATUS": "Failed"
+    }
+}

@@ -1,0 +1,11 @@
+{
+    "parsing": {
+        "default_parser": "pdf",
+        "default_tool": null,
+        "parsers": {}
+    },
+    "loading": {
+        "default_source": "local",
+        "sources": {}
+    }
+}

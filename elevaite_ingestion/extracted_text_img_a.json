@@ -1,0 +1,338 @@
+[
+  {
+    "image_id": "img_1_1",
+    "img_path": "extracted_images_only_a/page_1_img_1.png",
+    "caption": "",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 1,
+    "bounding_box": [
+      0.0,
+      543.0,
+      108.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_25_2",
+    "img_path": "extracted_images_only_a/page_25_img_2.png",
+    "caption": "Figure 6. Analog cables\nFigure 7. USB cables Identifying the 4820 I/O ports The input/output ports for the 4820 models are located toward the bottom at the back of the\nmonitor, as shown in Figure 8.",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 25,
+    "bounding_box": [
+      0.0,
+      176.0,
+      110.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_25_3",
+    "img_path": "extracted_images_only_a/page_25_img_3.png",
+    "caption": "Figure 6. Analog cables\nFigure 7. USB cables Identifying the 4820 I/O ports The input/output ports for the 4820 models are located toward the bottom at the back of the\nmonitor, as shown in Figure 8. Input/output ports",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 25,
+    "bounding_box": [
+      0.0,
+      187.0,
+      147.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_45_1",
+    "img_path": "extracted_images_only_a/page_45_img_1.png",
+    "caption": "Figure 25. On-screen display menu To navigate within one of the eight different menu choices, select one of the following: \u2022\nUse the minus (-) button to scroll through the main menu and any submenus (for example, to\ngo from the submenu H-Position to the submenu V-Position).\n\u2022\nUse the plus (+) button to select a submenu or item in a submenu (for example, to choose to\nchange the clock on your screen).\n\u2022\nUse the plus (+) and minus (-) buttons to choose your desired tuning adjustments from\namong those listed in a submenu.\n\u2022\nPress the minus (-) and plus (+) buttons together to save a setting and exit the item, submenu,\nor OSD (or select Exit). The descriptions of each menu item are: Auto Adjust\nAutomatically adjusts the video settings. Use this option when the display is first\nattached to a host or when a new video mode is used. Auto adjust can also be used\nat other times when the image quality degrades. Adjust Type Native\nWhen used with a new video mode, this setting resets to the default values (x, y\nposition, phase, clock) if the data is less than 3 lines; otherwise, the first character is\nset to the top-left of the screen.",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 45,
+    "bounding_box": [
+      0.0,
+      474.0,
+      389.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_49_1",
+    "img_path": "extracted_images_only_a/page_49_img_1.png",
+    "caption": "Figure 26. Touch Screen Utility installation dialog box Click Align and follow the instructions to calibrate the touch (see Figure 27).",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 49,
+    "bounding_box": [
+      0.0,
+      482.0,
+      404.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_50_1",
+    "img_path": "extracted_images_only_a/page_50_img_1.png",
+    "caption": "Figure 27. Mode tab Use the Mode tab to configure the mouse attributes associated with the touch panel (see Figure\n27).",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 50,
+    "bounding_box": [
+      0.0,
+      482.0,
+      404.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_51_1",
+    "img_path": "extracted_images_only_a/page_51_img_1.png",
+    "caption": "Figure 28. Sound tab Use the Sound tab to configure the sound attributes related to the touch panel (see Figure 28).",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 51,
+    "bounding_box": [
+      0.0,
+      482.0,
+      404.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_52_1",
+    "img_path": "extracted_images_only_a/page_52_img_1.png",
+    "caption": "Figure 29. Properties 1 tab Use the Properties 1 tab to see details of the touch hardware, to calibrate the touch, and to\nchange the advanced settings. Click on Advanced to go to the Advanced settings screen (see\nFigure 29).",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 52,
+    "bounding_box": [
+      0.0,
+      482.0,
+      404.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_53_1",
+    "img_path": "extracted_images_only_a/page_53_img_1.png",
+    "caption": "Figure 30. Advanced settings, Touch tab Use the Touch tab to show the right mouse button tool and to make use of the edge acceleration\ntool (see Figure 30).",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 53,
+    "bounding_box": [
+      0.0,
+      492.0,
+      444.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_54_1",
+    "img_path": "extracted_images_only_a/page_54_img_1.png",
+    "caption": "Figure 31. Advanced settings, Beam tab Use the Beam tab to change attributes of the beams used by the hardware that controls the touch\nfunction (see Figure 31).",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 54,
+    "bounding_box": [
+      0.0,
+      492.0,
+      444.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_55_2",
+    "img_path": "extracted_images_only_a/page_55_img_2.png",
+    "caption": "Figure 32. Advanced settings, Sound tab Use the Sound tab to configure the sound that is associated with a touch event (see Figure 32). Unintentional Touch Rejection Note: This section does not apply to non-touch models. The Toshiba Global Commerce Solutions4820 SurePoint Solution Models 2LG, 2LW, 2NG, 2NW,\n5LG, and 5LW contain support for Unintentional Touch Rejection (UTR), which is not enabled\nby default. UTR prevents unintended touches on the display screen from registering as mouse\nevents. UTR can be enabled or disabled, and you can configure a touch sensitivity level. The\ntouch sensitivity levels range from low to high. The sensitivity level determines the strength of\nunintentional touches that will be rejected: low for light touches, up to high for heavier touches.\nThe actual hardware settings for each of these sensitivity levels have been optimized and preset\nin the hardware, and they are not configurable. You can use the Diagnostics for POS Systems and Peripherals for the following:",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 55,
+    "bounding_box": [
+      0.0,
+      492.0,
+      444.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_60_1",
+    "img_path": "extracted_images_only_a/page_60_img_1.png",
+    "caption": "Figure 33. ELO Touchscreen Properties page Using the tabs on the main panel, make your selections.",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 60,
+    "bounding_box": [
+      0.0,
+      482.0,
+      404.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_65_1",
+    "img_path": "extracted_images_only_a/page_65_img_1.png",
+    "caption": "Pin (see Figure 35)\nVoltage (DC) 1\n+4.75 to +5.25 6\n+10.8 to +12.6 Figure 35. Powered USB connector and pin numbers",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 65,
+    "bounding_box": [
+      0.0,
+      238.0,
+      185.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_81_2",
+    "img_path": "extracted_images_only_a/page_81_img_2.png",
+    "caption": "This product has been tested and found to comply with the limits for Class A Information\nTechnology Equipment according to CISPR 32/European Standard EN 55032. The limits for Class\nA equipment were derived for commercial and industrial environments to provide reasonable\nprotection against interference with licensed communication equipment. Attention: This is a Class A product. In a domestic environment this product may cause\nradio interference, in which case the user may be required to take adequate measures. Responsible manufacturer: Toshiba Global Commerce Solutions, Inc.\n3901 South Miami Blvd.\nDurham, NC 27703\nUnited States of America European Community contact: Toshiba Global Commerce Solutions, Inc.\nBrand Manager - Europe, Middle East & Africa\nZ.1 Researchpark 160, 1731 Asse, Belgium\nTel: +43 676 9077970\ne-mail: rzuleger@toshibagcs.com",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 81,
+    "bounding_box": [
+      0.0,
+      256.0,
+      258.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_83_4",
+    "img_path": "extracted_images_only_a/page_83_img_4.png",
+    "caption": "Japanese Electrical Appliance and Material Safety Law statement Japanese power line harmonics compliance statement Japan Voluntary Control Council for Interference Class A statement",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 83,
+    "bounding_box": [
+      0.0,
+      587.0,
+      186.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_84_2",
+    "img_path": "extracted_images_only_a/page_84_img_2.png",
+    "caption": "Korean communications statement This is electromagnetic wave compatibility equipment for business (Type A). Sellers and users\nneed to pay attention to it. This is for any areas other than home. 84 \n4820 Models 2LG, 2LW, 2NG, 2NW, 5LG, and 5LW Guide",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 84,
+    "bounding_box": [
+      0.0,
+      603.0,
+      168.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_84_3",
+    "img_path": "extracted_images_only_a/page_84_img_3.png",
+    "caption": "Japan Electronics and Information Technology Industries\nAssociation (JEITA) statement Japan Electronics and Information Technology Industries Association (JEITA) Confirmed\nHarmonics Guidelines with Modifications (products greater than 20 A per phase). Korean communications statement",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 84,
+    "bounding_box": [
+      0.0,
+      419.0,
+      105.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_85_2",
+    "img_path": "extracted_images_only_a/page_85_img_2.png",
+    "caption": "Taiwan contact information",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 85,
+    "bounding_box": [
+      0.0,
+      258.0,
+      229.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_85_3",
+    "img_path": "extracted_images_only_a/page_85_img_3.png",
+    "caption": "Toshiba Global Commerce Solutions Taiwan Product Service Contact Info:\nToshiba Global Commerce Solutions, Inc.\nRm. 1, 5F., No.3-2, Park St., Nangang Dist., Taipei City, Taiwan\nTelephone: 0800-001-939 Cable ferrite requirement All cable ferrites are required to suppress radiated EMI emissions and must not be removed. Electrostatic discharge (ESD) Attention: Electrostatic discharge (ESD) damage can occur when there is a difference in\ncharge between the part, the product, and the service person. No damage will occur if the\nservice person and the part being installed are at the same charge level. ESD damage prevention Anytime a service action involves physical contact with logic cards, modules, back-panel pins,\nor other ESD sensitive (ESDS) parts, the service person must be connected to an ESD common\nground point on the product through the ESD wrist strap and cord.",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 85,
+    "bounding_box": [
+      0.0,
+      566.0,
+      181.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_86_2",
+    "img_path": "extracted_images_only_a/page_86_img_2.png",
+    "caption": "",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 86,
+    "bounding_box": [
+      0.0,
+      1164.0,
+      177.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_87_2",
+    "img_path": "extracted_images_only_a/page_87_img_2.png",
+    "caption": "Battery return program This product may contain sealed lead acid, nickel cadmium, nickel metal hydride, lithium, or\nlithium ion battery. Consult your user manual or service manual for specific battery information.\nThe battery must be recycled or disposed of properly. Recycling facilities may not be available\nin your area. For information on disposal of batteries outside the United States, go to the Battery\ndisposal website or contact your local waste disposal facility.",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 87,
+    "bounding_box": [
+      0.0,
+      505.0,
+      150.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_87_3",
+    "img_path": "extracted_images_only_a/page_87_img_3.png",
+    "caption": "CAUTION: Risk of explosion if battery is replaced by an incorrect type. Dispose of\nused batteries according to the instructions. Battery return program This product may contain sealed lead acid, nickel cadmium, nickel metal hydride, lithium, or\nlithium ion battery. Consult your user manual or service manual for specific battery information.\nThe battery must be recycled or disposed of properly. Recycling facilities may not be available\nin your area. For information on disposal of batteries outside the United States, go to the Battery\ndisposal website or contact your local waste disposal facility.",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 87,
+    "bounding_box": [
+      0.0,
+      441.0,
+      107.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_87_4",
+    "img_path": "extracted_images_only_a/page_87_img_4.png",
+    "caption": "",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 87,
+    "bounding_box": [
+      0.0,
+      841.0,
+      175.0,
+      8.0
+    ],
+    "embedding": null
+  },
+  {
+    "image_id": "img_88_8",
+    "img_path": "extracted_images_only_a/page_88_img_8.png",
+    "caption": "",
+    "filename": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+    "page_no": 88,
+    "bounding_box": [
+      0.0,
+      1039.0,
+      183.0,
+      8.0
+    ],
+    "embedding": null
+  }
+]

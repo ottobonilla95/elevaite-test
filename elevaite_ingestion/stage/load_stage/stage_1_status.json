@@ -1,0 +1,101 @@
+{
+    "STAGE_1: LOADING": {
+        "DATA_SOURCE": "s3",
+        "BUCKET_NAME": "kb-check-pdf",
+        "EVENT_DETAILS": [
+            {
+                "file_name": "6800 Hardware Service Guide (2).pdf",
+                "file_url": "s3://kb-check-pdf/6800 Hardware Service Guide (2).pdf",
+                "file_extension": "pdf",
+                "file_size(KB)": 88968.02,
+                "start_load_datetime": "2025-04-02 15:47:09",
+                "loading_time(SEC)": 7.41,
+                "status": "Success"
+            },
+            {
+                "file_name": "arlo.docx",
+                "file_url": "s3://kb-check-pdf/arlo.docx",
+                "file_extension": "docx",
+                "file_size(KB)": 34.18,
+                "start_load_datetime": "2025-04-02 15:47:16",
+                "loading_time(SEC)": 0.54,
+                "status": "Success"
+            },
+            {
+                "file_name": "6800 Parts Manual (3).pdf",
+                "file_url": "s3://kb-check-pdf/6800 Parts Manual (3).pdf",
+                "file_extension": "pdf",
+                "file_size(KB)": 19120.22,
+                "start_load_datetime": "2025-04-02 15:47:17",
+                "loading_time(SEC)": 6.96,
+                "status": "Success"
+            },
+            {
+                "file_name": "4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+                "file_url": "s3://kb-check-pdf/4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf",
+                "file_extension": "pdf",
+                "file_size(KB)": 8491.77,
+                "start_load_datetime": "2025-04-02 15:47:24",
+                "loading_time(SEC)": 6.15,
+                "status": "Success"
+            },
+            {
+                "file_name": "x-dense.pdf",
+                "file_url": "s3://kb-check-pdf/x-dense.pdf",
+                "file_extension": "pdf",
+                "file_size(KB)": 837.04,
+                "start_load_datetime": "2025-04-02 15:47:30",
+                "loading_time(SEC)": 2.07,
+                "status": "Success"
+            },
+            {
+                "file_name": "adding_memory_in_transformer.pdf",
+                "file_url": "s3://kb-check-pdf/adding_memory_in_transformer.pdf",
+                "file_extension": "pdf",
+                "file_size(KB)": 2898.96,
+                "start_load_datetime": "2025-04-02 15:47:32",
+                "loading_time(SEC)": 3.43,
+                "status": "Success"
+            },
+            {
+                "file_name": "Ross Fujitsu D75i Monitor Replacement with Calibration Instructions.pdf",
+                "file_url": "s3://kb-check-pdf/Ross Fujitsu D75i Monitor Replacement with Calibration Instructions.pdf",
+                "file_extension": "pdf",
+                "file_size(KB)": 3355.34,
+                "start_load_datetime": "2025-04-02 15:47:35",
+                "loading_time(SEC)": 4.1,
+                "status": "Success"
+            },
+            {
+                "file_name": "hp_manual.pdf",
+                "file_url": "s3://kb-check-pdf/hp_manual.pdf",
+                "file_extension": "pdf",
+                "file_size(KB)": 251.27,
+                "start_load_datetime": "2025-04-02 15:47:39",
+                "loading_time(SEC)": 1.26,
+                "status": "Success"
+            },
+            {
+                "file_name": "6200 Planning Install and Service Guide.pdf",
+                "file_url": "s3://kb-check-pdf/6200 Planning Install and Service Guide.pdf",
+                "file_extension": "pdf",
+                "file_size(KB)": 71229.24,
+                "start_load_datetime": "2025-04-02 15:47:41",
+                "loading_time(SEC)": 7.16,
+                "status": "Success"
+            },
+            {
+                "file_name": "kb_arlo_check.pdf",
+                "file_url": "s3://kb-check-pdf/kb_arlo_check.pdf",
+                "file_extension": "pdf",
+                "file_size(KB)": 113.21,
+                "start_load_datetime": "2025-04-02 15:47:48",
+                "loading_time(SEC)": 0.75,
+                "status": "Success"
+            }
+        ],
+        "TOTAL_LOADING_TIME(SEC)": 39.85,
+        "AVERAGE_LOADING_TIME(SEC)": 3.99,
+        "STATUS": "Completed"
+    }
+}

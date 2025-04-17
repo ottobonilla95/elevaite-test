@@ -1,0 +1,1300 @@
+[
+  {
+    "image_id": "img_1_1",
+    "image_path": "extracted_images_with_context_1/page_1_img_1.png",
+    "bbox": [
+      0,
+      8,
+      108,
+      543
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_11_1",
+    "image_path": "extracted_images_with_context_1/page_11_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "This guide provides information about planning, installing, and servicing the Toshiba Global\nCommerce Solutions 4820 SurePoint\u2122 Solution.",
+      "Throughout this guide, the following numeric terms refer to the Toshiba Global Commerce\nSolutions product name:"
+    ],
+    "rich_caption": "This guide provides information about planning, installing, and servicing the Toshiba Global\nCommerce Solutions 4820 SurePoint\u2122 Solution. Throughout this guide, the following numeric terms refer to the Toshiba Global Commerce\nSolutions product name:",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_12_1",
+    "image_path": "extracted_images_with_context_1/page_12_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "4.\nScroll down and select the appropriate manual listed under the Publications header, and\nthe PDF will be downloaded to your computer.",
+      "Accessing the TGCS Knowledgebase site",
+      "Toshiba Global Commerce Solutions has developed a variety of Knowledgebase articles to assist\nyou in using the Toshiba product set. To access the TGCS Knowledgebase articles:",
+      "1.\nLogin to the Toshiba Global Commerce Solutions web site at https://\ncommerce.toshiba.com/.\n2.\nClick Support.\n3.\nSelect a product from the Hardware or Software drop-down menu to display the product\npage.\n4.\nScroll down and select Read more under Knowledgebase."
+    ],
+    "rich_caption": "4.\nScroll down and select the appropriate manual listed under the Publications header, and\nthe PDF will be downloaded to your computer. Accessing the TGCS Knowledgebase site Toshiba Global Commerce Solutions has developed a variety of Knowledgebase articles to assist\nyou in using the Toshiba product set. To access the TGCS Knowledgebase articles: 1.\nLogin to the Toshiba Global Commerce Solutions web site at https://\ncommerce.toshiba.com/.\n2.\nClick Support.\n3.\nSelect a product from the Hardware or Software drop-down menu to display the product\npage.\n4.\nScroll down and select Read more under Knowledgebase.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_12_2",
+    "image_path": "extracted_images_with_context_1/page_12_img_2.png",
+    "bbox": [
+      61,
+      8,
+      219,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "4.\nScroll down and select the appropriate manual listed under the Publications header, and\nthe PDF will be downloaded to your computer.",
+      "Accessing the TGCS Knowledgebase site",
+      "Toshiba Global Commerce Solutions has developed a variety of Knowledgebase articles to assist\nyou in using the Toshiba product set. To access the TGCS Knowledgebase articles:",
+      "1.\nLogin to the Toshiba Global Commerce Solutions web site at https://\ncommerce.toshiba.com/.\n2.\nClick Support.\n3.\nSelect a product from the Hardware or Software drop-down menu to display the product\npage.\n4.\nScroll down and select Read more under Knowledgebase."
+    ],
+    "rich_caption": "4.\nScroll down and select the appropriate manual listed under the Publications header, and\nthe PDF will be downloaded to your computer. Accessing the TGCS Knowledgebase site Toshiba Global Commerce Solutions has developed a variety of Knowledgebase articles to assist\nyou in using the Toshiba product set. To access the TGCS Knowledgebase articles: 1.\nLogin to the Toshiba Global Commerce Solutions web site at https://\ncommerce.toshiba.com/.\n2.\nClick Support.\n3.\nSelect a product from the Hardware or Software drop-down menu to display the product\npage.\n4.\nScroll down and select Read more under Knowledgebase.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_12_3",
+    "image_path": "extracted_images_with_context_1/page_12_img_3.png",
+    "bbox": [
+      61,
+      8,
+      224,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "4.\nScroll down and select the appropriate manual listed under the Publications header, and\nthe PDF will be downloaded to your computer.",
+      "Accessing the TGCS Knowledgebase site",
+      "Toshiba Global Commerce Solutions has developed a variety of Knowledgebase articles to assist\nyou in using the Toshiba product set. To access the TGCS Knowledgebase articles:",
+      "1.\nLogin to the Toshiba Global Commerce Solutions web site at https://\ncommerce.toshiba.com/.\n2.\nClick Support.\n3.\nSelect a product from the Hardware or Software drop-down menu to display the product\npage.\n4.\nScroll down and select Read more under Knowledgebase."
+    ],
+    "rich_caption": "4.\nScroll down and select the appropriate manual listed under the Publications header, and\nthe PDF will be downloaded to your computer. Accessing the TGCS Knowledgebase site Toshiba Global Commerce Solutions has developed a variety of Knowledgebase articles to assist\nyou in using the Toshiba product set. To access the TGCS Knowledgebase articles: 1.\nLogin to the Toshiba Global Commerce Solutions web site at https://\ncommerce.toshiba.com/.\n2.\nClick Support.\n3.\nSelect a product from the Hardware or Software drop-down menu to display the product\npage.\n4.\nScroll down and select Read more under Knowledgebase.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_12_4",
+    "image_path": "extracted_images_with_context_1/page_12_img_4.png",
+    "bbox": [
+      0,
+      8,
+      24,
+      24
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_12_5",
+    "image_path": "extracted_images_with_context_1/page_12_img_5.png",
+    "bbox": [
+      61,
+      8,
+      234,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "4.\nScroll down and select the appropriate manual listed under the Publications header, and\nthe PDF will be downloaded to your computer.",
+      "Accessing the TGCS Knowledgebase site",
+      "Toshiba Global Commerce Solutions has developed a variety of Knowledgebase articles to assist\nyou in using the Toshiba product set. To access the TGCS Knowledgebase articles:",
+      "1.\nLogin to the Toshiba Global Commerce Solutions web site at https://\ncommerce.toshiba.com/.\n2.\nClick Support.\n3.\nSelect a product from the Hardware or Software drop-down menu to display the product\npage.\n4.\nScroll down and select Read more under Knowledgebase."
+    ],
+    "rich_caption": "4.\nScroll down and select the appropriate manual listed under the Publications header, and\nthe PDF will be downloaded to your computer. Accessing the TGCS Knowledgebase site Toshiba Global Commerce Solutions has developed a variety of Knowledgebase articles to assist\nyou in using the Toshiba product set. To access the TGCS Knowledgebase articles: 1.\nLogin to the Toshiba Global Commerce Solutions web site at https://\ncommerce.toshiba.com/.\n2.\nClick Support.\n3.\nSelect a product from the Hardware or Software drop-down menu to display the product\npage.\n4.\nScroll down and select Read more under Knowledgebase.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_15_1",
+    "image_path": "extracted_images_with_context_1/page_15_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Chapter 1. Introducing the Toshiba 4820 SurePoint Solution",
+      "Introducing the Toshiba 4820 SurePoint Solution",
+      "The Toshiba (see Figure 1) offers a selection of 4820 SurePoint\u2122 Solution touch screen and\nnon-touch screen displays that are optimized for use in a retail environment. These displays,\nalong with their associated options, are retail-hardened and designed to provide years of service.",
+      "These displays use light emitting diode (LED) technology to provide high-brightness and\npicture contrast. A glare-proof finish and an auto-adjust feature ensures a high quality image\nautomatically. The sealed design on the front glass of the monitor protects the display area and\ninternal components from environmental hazards such as liquids, dust, and cleansers, and an\nelectrostatic discharge (ESD) immunity system provides heightened safety for users."
+    ],
+    "rich_caption": "Chapter 1. Introducing the Toshiba 4820 SurePoint Solution Introducing the Toshiba 4820 SurePoint Solution The Toshiba (see Figure 1) offers a selection of 4820 SurePoint\u2122 Solution touch screen and\nnon-touch screen displays that are optimized for use in a retail environment. These displays,\nalong with their associated options, are retail-hardened and designed to provide years of service. These displays use light emitting diode (LED) technology to provide high-brightness and\npicture contrast. A glare-proof finish and an auto-adjust feature ensures a high quality image\nautomatically. The sealed design on the front glass of the monitor protects the display area and\ninternal components from environmental hazards such as liquids, dust, and cleansers, and an\nelectrostatic discharge (ESD) immunity system provides heightened safety for users.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_16_1",
+    "image_path": "extracted_images_with_context_1/page_16_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": "Figure 1. 4820 SurePoint Solution display shown with available options and stands",
+    "above_text": [],
+    "below_text": [
+      "This section describes the hardware options that are available for your 4820 SurePoint Solution\ndisplay."
+    ],
+    "rich_caption": "Figure 1. 4820 SurePoint Solution display shown with available options and stands This section describes the hardware options that are available for your 4820 SurePoint Solution\ndisplay.",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_17_1",
+    "image_path": "extracted_images_with_context_1/page_17_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Optional hardware\nDescription",
+      "Integrated monitor stand\nAn integrated monitor stand is available to\naccommodate both wide and narrow size\nfiller panels that are placed on the bottom of\nthe stand when mounting the monitor to a\nSurePOS 700 or 4694 Point-of-Sale Terminal\nwith a wide cover set installed or the SurePOS\n720, 740, and 780."
+    ],
+    "rich_caption": "Optional hardware\nDescription Integrated monitor stand\nAn integrated monitor stand is available to\naccommodate both wide and narrow size\nfiller panels that are placed on the bottom of\nthe stand when mounting the monitor to a\nSurePOS 700 or 4694 Point-of-Sale Terminal\nwith a wide cover set installed or the SurePOS\n720, 740, and 780.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_18_1",
+    "image_path": "extracted_images_with_context_1/page_18_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": "Figure 2 is a frontal view (measured diagonally) of the 12.1 inch and 15.0 inch touch and\nnon-touch 4820 SurePoint Solution displays.",
+    "above_text": [],
+    "below_text": [
+      "Note: Microsoft\u2122 DOS and Vista operating systems are not supported.",
+      "Views of the Toshiba 4820 SurePoint Solution display",
+      "This section describes the various models of the 4820 SurePoint\u2122 Solution displays.",
+      "Note: This section does not apply to non-touch models."
+    ],
+    "rich_caption": "Figure 2 is a frontal view (measured diagonally) of the 12.1 inch and 15.0 inch touch and\nnon-touch 4820 SurePoint Solution displays. Note: Microsoft\u2122 DOS and Vista operating systems are not supported. Views of the Toshiba 4820 SurePoint Solution display This section describes the various models of the 4820 SurePoint\u2122 Solution displays. Note: This section does not apply to non-touch models.",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_20_1",
+    "image_path": "extracted_images_with_context_1/page_20_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": "Figure 4. Rear view of 4820 SurePoint Solution displays",
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "Figure 4. Rear view of 4820 SurePoint Solution displays",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_21_1",
+    "image_path": "extracted_images_with_context_1/page_21_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "support Toshiba Global Commerce Solutions POS Monitor Inventory Driver due to the\nlack of USB connectivity and touch capability.",
+      "Environmental requirements",
+      "Table 5 lists the humidity and temperature limits for the 4820 SurePoint Solution.",
+      "Table 5. Environmental requirements"
+    ],
+    "rich_caption": "support Toshiba Global Commerce Solutions POS Monitor Inventory Driver due to the\nlack of USB connectivity and touch capability. Environmental requirements Table 5 lists the humidity and temperature limits for the 4820 SurePoint Solution. Table 5. Environmental requirements",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_23_1",
+    "image_path": "extracted_images_with_context_1/page_23_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Chapter 2. Installing the Toshiba Global Commerce Solutions\n4820",
+      "Installing the Toshiba Global Commerce Solutions 4820",
+      "This section describes procedures for setting up the 4820 SurePoint Solution displays and\nattachments."
+    ],
+    "rich_caption": "Chapter 2. Installing the Toshiba Global Commerce Solutions\n4820 Installing the Toshiba Global Commerce Solutions 4820 This section describes procedures for setting up the 4820 SurePoint Solution displays and\nattachments.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_24_1",
+    "image_path": "extracted_images_with_context_1/page_24_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": "Figure 5. Stand types",
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "Figure 5. Stand types",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_25_1",
+    "image_path": "extracted_images_with_context_1/page_25_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": "Figure 6. Analog cables\nFigure 7. USB cables",
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "Figure 6. Analog cables\nFigure 7. USB cables",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_25_2",
+    "image_path": "extracted_images_with_context_1/page_25_img_2.png",
+    "bbox": [
+      0,
+      8,
+      110,
+      176
+    ],
+    "caption": "Figure 8. Input/output ports (touch models only)",
+    "above_text": [],
+    "below_text": [
+      "Identifying the 4820 I/O ports"
+    ],
+    "rich_caption": "Figure 8. Input/output ports (touch models only) Identifying the 4820 I/O ports",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_25_3",
+    "image_path": "extracted_images_with_context_1/page_25_img_3.png",
+    "bbox": [
+      0,
+      8,
+      147,
+      187
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Figure 6. Analog cables\nFigure 7. USB cables",
+      "Identifying the 4820 I/O ports",
+      "The input/output ports for the 4820 models are located toward the bottom at the back of the\nmonitor, as shown in Figure 8."
+    ],
+    "rich_caption": "Figure 6. Analog cables\nFigure 7. USB cables Identifying the 4820 I/O ports The input/output ports for the 4820 models are located toward the bottom at the back of the\nmonitor, as shown in Figure 8.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_28_1",
+    "image_path": "extracted_images_with_context_1/page_28_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": "Figure 10 is a diagram of a free-standing stand for a 4820 touch and non-touch display with the\nback removed:",
+    "above_text": [],
+    "below_text": [
+      "Note: The following list describes the icons on the labels from left to right.",
+      "A\nType of display (LCD - liquid crystal display)",
+      "B\nThe two types of electrical power used in this monitor - direct (a solid line) and\nalternating current (a broken line)"
+    ],
+    "rich_caption": "Figure 10 is a diagram of a free-standing stand for a 4820 touch and non-touch display with the\nback removed: Note: The following list describes the icons on the labels from left to right. A\nType of display (LCD - liquid crystal display) B\nThe two types of electrical power used in this monitor - direct (a solid line) and\nalternating current (a broken line)",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_29_1",
+    "image_path": "extracted_images_with_context_1/page_29_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": "Figure 10. Free-standing stand parts drawing",
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "Figure 10. Free-standing stand parts drawing",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_34_1",
+    "image_path": "extracted_images_with_context_1/page_34_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": "Figure 15. Routing the cables",
+    "above_text": [],
+    "below_text": [
+      "See \u201cTailoring your installation\u201d on page 23 for installing optional I/O devices.",
+      "Routing the cables for the integrated stand"
+    ],
+    "rich_caption": "Figure 15. Routing the cables See \u201cTailoring your installation\u201d on page 23 for installing optional I/O devices. Routing the cables for the integrated stand",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_35_1",
+    "image_path": "extracted_images_with_context_1/page_35_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": "Figure 16 is a picture of a specialized integrated stand, which is designed to easily attach to the\nback of a SurePOS 500 4852-x6x.",
+    "above_text": [],
+    "below_text": [
+      "a.\nPlace the display on the stand mounting bracket. Make sure that the metal tabs on the\nstand slide into the appropriate slots on the back of the 4820 display.\nb.\nSecure the 4820 to the stand by using four screws.\nc.\nAttach the power and video cables to the 4820 display.",
+      "Note: Ensure that you have attached the power and video cables to the appropriate\nports in the back of the display.",
+      "4.\nPlug the power cord into an outlet and power on the system unit.\n5.\nGo to \u201cUsing the OSD menu\u201d on page 44 and auto adjust your screen for maximum\nviewing."
+    ],
+    "rich_caption": "Figure 16 is a picture of a specialized integrated stand, which is designed to easily attach to the\nback of a SurePOS 500 4852-x6x. a.\nPlace the display on the stand mounting bracket. Make sure that the metal tabs on the\nstand slide into the appropriate slots on the back of the 4820 display.\nb.\nSecure the 4820 to the stand by using four screws.\nc.\nAttach the power and video cables to the 4820 display. Note: Ensure that you have attached the power and video cables to the appropriate\nports in the back of the display. 4.\nPlug the power cord into an outlet and power on the system unit.\n5.\nGo to \u201cUsing the OSD menu\u201d on page 44 and auto adjust your screen for maximum\nviewing.",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_36_1",
+    "image_path": "extracted_images_with_context_1/page_36_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": "Figure 17. Securing the arm assembly to the SurePOS 700 or Point-of-Sale Terminal",
+    "above_text": [],
+    "below_text": [
+      "Installing the 4820 on your system",
+      "This section describes how to install the 4820 on your system."
+    ],
+    "rich_caption": "Figure 17. Securing the arm assembly to the SurePOS 700 or Point-of-Sale Terminal Installing the 4820 on your system This section describes how to install the 4820 on your system.",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_37_1",
+    "image_path": "extracted_images_with_context_1/page_37_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": "Figure 18. Securing the arm assembly to SurePOS 720, 740, 780\n4.\nAttach the 4820 to the stand.\n5.\nPlace the filler panel covers on the arm assembly, as shown in Figure 19.",
+    "above_text": [],
+    "below_text": [
+      "4.\nAttach the 4820 to the stand.\n5.\nInstall the options. (See \u201cInstalling options\u201d on page 40).",
+      "SurePOS 720, 740, or 780 with integration tray",
+      "Complete these steps when installing the integrated touch stand onto a SurePOS 720, 740, or 780\nwith an integration tray:"
+    ],
+    "rich_caption": "Figure 18. Securing the arm assembly to SurePOS 720, 740, 780\n4.\nAttach the 4820 to the stand.\n5.\nPlace the filler panel covers on the arm assembly, as shown in Figure 19. 4.\nAttach the 4820 to the stand.\n5.\nInstall the options. (See \u201cInstalling options\u201d on page 40). SurePOS 720, 740, or 780 with integration tray Complete these steps when installing the integrated touch stand onto a SurePOS 720, 740, or 780\nwith an integration tray:",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_38_1",
+    "image_path": "extracted_images_with_context_1/page_38_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": "Figure 19. Attaching the filler panel covers for the SurePOS 720, 740, 780\n6.\nSee \u201cTailoring your installation\u201d on page 23 and continue with your installation.",
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "Figure 19. Attaching the filler panel covers for the SurePOS 720, 740, 780\n6.\nSee \u201cTailoring your installation\u201d on page 23 and continue with your installation.",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_40_1",
+    "image_path": "extracted_images_with_context_1/page_40_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": "Figure 21. Securing the arm assembly to the SurePOS 720, 740, 780\n8.\nSee \u201cTailoring your installation\u201d on page 23 and continue with your installation.",
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "Figure 21. Securing the arm assembly to the SurePOS 720, 740, 780\n8.\nSee \u201cTailoring your installation\u201d on page 23 and continue with your installation.",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_44_1",
+    "image_path": "extracted_images_with_context_1/page_44_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "4820 SurePoint Solution displays do not require a power adapter if you use a powered USB\nconnection to the system unit. If you use a standard USB connection or are using the display for\nvideo only (no touch), a power adapter is required.",
+      "1.\nIf a power adapter is required, connect it to the 4820 and an electrical outlet. The 4820 power\nlight-emitting diode (LED) glows green.\n2.\nPower on the system.\n3.\nPower on the 4820."
+    ],
+    "rich_caption": "4820 SurePoint Solution displays do not require a power adapter if you use a powered USB\nconnection to the system unit. If you use a standard USB connection or are using the display for\nvideo only (no touch), a power adapter is required. 1.\nIf a power adapter is required, connect it to the 4820 and an electrical outlet. The 4820 power\nlight-emitting diode (LED) glows green.\n2.\nPower on the system.\n3.\nPower on the 4820.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_45_1",
+    "image_path": "extracted_images_with_context_1/page_45_img_1.png",
+    "bbox": [
+      0,
+      8,
+      389,
+      474
+    ],
+    "caption": "Figure 25. On-screen display menu",
+    "above_text": [],
+    "below_text": [
+      "The descriptions of each menu item are:",
+      "Auto Adjust\nAutomatically adjusts the video settings. Use this option when the display is first\nattached to a host or when a new video mode is used. Auto adjust can also be used\nat other times when the image quality degrades."
+    ],
+    "rich_caption": "Figure 25. On-screen display menu The descriptions of each menu item are: Auto Adjust\nAutomatically adjusts the video settings. Use this option when the display is first\nattached to a host or when a new video mode is used. Auto adjust can also be used\nat other times when the image quality degrades.",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_47_1",
+    "image_path": "extracted_images_with_context_1/page_47_img_1.png",
+    "bbox": [
+      61,
+      8,
+      224,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Table 9. Remote Power Control settings operation",
+      "Remote Power\nControl disabled",
+      "Remote Power\nControl enabled"
+    ],
+    "rich_caption": "Table 9. Remote Power Control settings operation Remote Power\nControl disabled Remote Power\nControl enabled",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_48_1",
+    "image_path": "extracted_images_with_context_1/page_48_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Firmware Revision\nProvides the current FirmWare (FW) revision level.",
+      "Date\nDisplays the date of the FirmWare issue.",
+      "Power on Hours\nYou can use this option to determine the number of hours that the power was on\nthe video board."
+    ],
+    "rich_caption": "Firmware Revision\nProvides the current FirmWare (FW) revision level. Date\nDisplays the date of the FirmWare issue. Power on Hours\nYou can use this option to determine the number of hours that the power was on\nthe video board.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_49_1",
+    "image_path": "extracted_images_with_context_1/page_49_img_1.png",
+    "bbox": [
+      0,
+      8,
+      404,
+      482
+    ],
+    "caption": "Figure 26. Touch Screen Utility installation dialog box",
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "Figure 26. Touch Screen Utility installation dialog box",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_50_1",
+    "image_path": "extracted_images_with_context_1/page_50_img_1.png",
+    "bbox": [
+      0,
+      8,
+      404,
+      482
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_51_1",
+    "image_path": "extracted_images_with_context_1/page_51_img_1.png",
+    "bbox": [
+      0,
+      8,
+      404,
+      482
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_52_1",
+    "image_path": "extracted_images_with_context_1/page_52_img_1.png",
+    "bbox": [
+      0,
+      8,
+      404,
+      482
+    ],
+    "caption": "Figure 29. Properties 1 tab",
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "Figure 29. Properties 1 tab",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_53_1",
+    "image_path": "extracted_images_with_context_1/page_53_img_1.png",
+    "bbox": [
+      0,
+      8,
+      444,
+      492
+    ],
+    "caption": "Figure 30. Advanced settings, Touch tab",
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "Figure 30. Advanced settings, Touch tab",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_54_1",
+    "image_path": "extracted_images_with_context_1/page_54_img_1.png",
+    "bbox": [
+      0,
+      8,
+      444,
+      492
+    ],
+    "caption": "Figure 31. Advanced settings, Beam tab",
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "Figure 31. Advanced settings, Beam tab",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_55_1",
+    "image_path": "extracted_images_with_context_1/page_55_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": "Figure 32. Advanced settings, Sound tab",
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "Figure 32. Advanced settings, Sound tab",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_55_2",
+    "image_path": "extracted_images_with_context_1/page_55_img_2.png",
+    "bbox": [
+      0,
+      8,
+      444,
+      492
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "The Toshiba Global Commerce Solutions4820 SurePoint Solution Models 2LG, 2LW, 2NG, 2NW,\n5LG, and 5LW contain support for Unintentional Touch Rejection (UTR), which is not enabled\nby default. UTR prevents unintended touches on the display screen from registering as mouse\nevents. UTR can be enabled or disabled, and you can configure a touch sensitivity level. The\ntouch sensitivity levels range from low to high. The sensitivity level determines the strength of\nunintentional touches that will be rejected: low for light touches, up to high for heavier touches.\nThe actual hardware settings for each of these sensitivity levels have been optimized and preset\nin the hardware, and they are not configurable."
+    ],
+    "rich_caption": "The Toshiba Global Commerce Solutions4820 SurePoint Solution Models 2LG, 2LW, 2NG, 2NW,\n5LG, and 5LW contain support for Unintentional Touch Rejection (UTR), which is not enabled\nby default. UTR prevents unintended touches on the display screen from registering as mouse\nevents. UTR can be enabled or disabled, and you can configure a touch sensitivity level. The\ntouch sensitivity levels range from low to high. The sensitivity level determines the strength of\nunintentional touches that will be rejected: low for light touches, up to high for heavier touches.\nThe actual hardware settings for each of these sensitivity levels have been optimized and preset\nin the hardware, and they are not configurable.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_57_1",
+    "image_path": "extracted_images_with_context_1/page_57_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Chapter 3. Maintaining the Toshiba Global Commerce Solutions\n4820",
+      "Maintaining the Toshiba Global Commerce Solutions 4820",
+      "This chapter provides information for maintaining the Toshiba Global Commerce Solutions 4820\nSurePoint Solution."
+    ],
+    "rich_caption": "Chapter 3. Maintaining the Toshiba Global Commerce Solutions\n4820 Maintaining the Toshiba Global Commerce Solutions 4820 This chapter provides information for maintaining the Toshiba Global Commerce Solutions 4820\nSurePoint Solution.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_57_2",
+    "image_path": "extracted_images_with_context_1/page_57_img_2.png",
+    "bbox": [
+      61,
+      8,
+      224,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Chapter 3. Maintaining the Toshiba Global Commerce Solutions\n4820",
+      "Maintaining the Toshiba Global Commerce Solutions 4820",
+      "This chapter provides information for maintaining the Toshiba Global Commerce Solutions 4820\nSurePoint Solution."
+    ],
+    "rich_caption": "Chapter 3. Maintaining the Toshiba Global Commerce Solutions\n4820 Maintaining the Toshiba Global Commerce Solutions 4820 This chapter provides information for maintaining the Toshiba Global Commerce Solutions 4820\nSurePoint Solution.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_59_1",
+    "image_path": "extracted_images_with_context_1/page_59_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Chapter 4. Troubleshooting common problems",
+      "Troubleshooting common problems",
+      "This section describes several troubleshooting methods to resolve common problems.",
+      "When a problem is encountered:",
+      "1.\nEnsure that all cables are connected and working properly (including power cables).\n2.\nEnsure that you are using the latest levels of the firmware (video, touch, and I/O) and\ndrivers (touch, Toshiba Global Commerce Solutions POS Monitor Inventory Driver, UPOS).\nIf you are not using the latest levels of the firmware, upgrade to the latest level and\nattempt to recreate your problem. Use Diagnostics for POS Systems and Peripherals at https://\ncommerce.toshiba.com/support to perform firmware upgrades."
+    ],
+    "rich_caption": "Chapter 4. Troubleshooting common problems Troubleshooting common problems This section describes several troubleshooting methods to resolve common problems. When a problem is encountered: 1.\nEnsure that all cables are connected and working properly (including power cables).\n2.\nEnsure that you are using the latest levels of the firmware (video, touch, and I/O) and\ndrivers (touch, Toshiba Global Commerce Solutions POS Monitor Inventory Driver, UPOS).\nIf you are not using the latest levels of the firmware, upgrade to the latest level and\nattempt to recreate your problem. Use Diagnostics for POS Systems and Peripherals at https://\ncommerce.toshiba.com/support to perform firmware upgrades.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_60_1",
+    "image_path": "extracted_images_with_context_1/page_60_img_1.png",
+    "bbox": [
+      0,
+      8,
+      404,
+      482
+    ],
+    "caption": "Figure 33. ELO Touchscreen Properties page",
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "Figure 33. ELO Touchscreen Properties page",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_60_2",
+    "image_path": "extracted_images_with_context_1/page_60_img_2.png",
+    "bbox": [
+      0,
+      8,
+      97,
+      88
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Troubleshooting the 4820 infrared touch screen using the Elo Touchscreen\nProperties page"
+    ],
+    "rich_caption": "Troubleshooting the 4820 infrared touch screen using the Elo Touchscreen\nProperties page",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_65_1",
+    "image_path": "extracted_images_with_context_1/page_65_img_1.png",
+    "bbox": [
+      0,
+      8,
+      185,
+      238
+    ],
+    "caption": "Figure 35. Powered USB connector and pin numbers",
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "Figure 35. Powered USB connector and pin numbers",
+    "matched_by": "heuristic"
+  },
+  {
+    "image_id": "img_69_1",
+    "image_path": "extracted_images_with_context_1/page_69_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Index\nPart Number\nUnits\nDescription",
+      "-8\n42M5671\n1\nCable, standard USB,\n1.8 m",
+      "-8\n42M5673\n1\nCable, standard USB,\n3.8 m"
+    ],
+    "rich_caption": "Index\nPart Number\nUnits\nDescription -8\n42M5671\n1\nCable, standard USB,\n1.8 m -8\n42M5673\n1\nCable, standard USB,\n3.8 m",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_73_1",
+    "image_path": "extracted_images_with_context_1/page_73_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Index\nPart Number\nUnits\nDescription",
+      "-\n84Y2853\n1\nRear cover, free-\nstanding stand\n(distributed), pearl\nwhite"
+    ],
+    "rich_caption": "Index\nPart Number\nUnits\nDescription -\n84Y2853\n1\nRear cover, free-\nstanding stand\n(distributed), pearl\nwhite",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_78_1",
+    "image_path": "extracted_images_with_context_1/page_78_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Note: The metal base and the surrounding arm cover are both shown to allow for precise\npositioning of the entire assembly (not just the base plate) during installation."
+    ],
+    "rich_caption": "Note: The metal base and the surrounding arm cover are both shown to allow for precise\npositioning of the entire assembly (not just the base plate) during installation.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_81_1",
+    "image_path": "extracted_images_with_context_1/page_81_img_1.png",
+    "bbox": [
+      61,
+      8,
+      224,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "to satisfy the protection requirements resulting from a non-recommended modification of the\nproduct, including the fitting of non-Toshiba Global Commerce Solutions option cards.",
+      "This product has been tested and found to comply with the limits for Class A Information\nTechnology Equipment according to CISPR 32/European Standard EN 55032. The limits for Class\nA equipment were derived for commercial and industrial environments to provide reasonable\nprotection against interference with licensed communication equipment.",
+      "Attention: This is a Class A product. In a domestic environment this product may cause\nradio interference, in which case the user may be required to take adequate measures."
+    ],
+    "rich_caption": "to satisfy the protection requirements resulting from a non-recommended modification of the\nproduct, including the fitting of non-Toshiba Global Commerce Solutions option cards. This product has been tested and found to comply with the limits for Class A Information\nTechnology Equipment according to CISPR 32/European Standard EN 55032. The limits for Class\nA equipment were derived for commercial and industrial environments to provide reasonable\nprotection against interference with licensed communication equipment. Attention: This is a Class A product. In a domestic environment this product may cause\nradio interference, in which case the user may be required to take adequate measures.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_81_2",
+    "image_path": "extracted_images_with_context_1/page_81_img_2.png",
+    "bbox": [
+      0,
+      8,
+      258,
+      256
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Toshiba Global Commerce Solutions, Inc.\nBrand Manager - Europe, Middle East & Africa\nZ.1 Researchpark 160, 1731 Asse, Belgium\nTel: +43 676 9077970\ne-mail: rzuleger@toshibagcs.com"
+    ],
+    "rich_caption": "Toshiba Global Commerce Solutions, Inc.\nBrand Manager - Europe, Middle East & Africa\nZ.1 Researchpark 160, 1731 Asse, Belgium\nTel: +43 676 9077970\ne-mail: rzuleger@toshibagcs.com",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_82_1",
+    "image_path": "extracted_images_with_context_1/page_82_img_1.png",
+    "bbox": [
+      61,
+      8,
+      224,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "wenn Erweiterungskomponenten von Fremdherstellern ohne Empfehlung der Toshiba Global\nCommerce Solutions gesteckt/eingebaut werden.",
+      "EN 55032 Klasse A Ger\u00e4te m\u00fcssen mit folgendem Warnhinweis versehen werden: \u201cWarnung:\nDieses ist eine Einrichtung der Klasse A. Diese Einrichtung kann im Wohnbereich Funk-\nSt\u00f6rungen verursachen; in diesem Fall kann vom Betreiber verlangt werden, angemessene\nMa\u03b2nahmen zu ergreifen und daf\u00fcr aufzukommen.\u201d",
+      "Deutschland: Einhaltung des Gesetzes \u00fcber die elektromagnetische Vertr\u00e4glichkeit von\nGer\u00e4ten"
+    ],
+    "rich_caption": "wenn Erweiterungskomponenten von Fremdherstellern ohne Empfehlung der Toshiba Global\nCommerce Solutions gesteckt/eingebaut werden. EN 55032 Klasse A Ger\u00e4te m\u00fcssen mit folgendem Warnhinweis versehen werden: \u201cWarnung:\nDieses ist eine Einrichtung der Klasse A. Diese Einrichtung kann im Wohnbereich Funk-\nSt\u00f6rungen verursachen; in diesem Fall kann vom Betreiber verlangt werden, angemessene\nMa\u03b2nahmen zu ergreifen und daf\u00fcr aufzukommen.\u201d Deutschland: Einhaltung des Gesetzes \u00fcber die elektromagnetische Vertr\u00e4glichkeit von\nGer\u00e4ten",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_83_1",
+    "image_path": "extracted_images_with_context_1/page_83_img_1.png",
+    "bbox": [
+      0,
+      8,
+      44,
+      59
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_83_2",
+    "image_path": "extracted_images_with_context_1/page_83_img_2.png",
+    "bbox": [
+      0,
+      8,
+      71,
+      508
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_83_3",
+    "image_path": "extracted_images_with_context_1/page_83_img_3.png",
+    "bbox": [
+      0,
+      8,
+      21,
+      20
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_83_4",
+    "image_path": "extracted_images_with_context_1/page_83_img_4.png",
+    "bbox": [
+      0,
+      8,
+      186,
+      587
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Japan Voluntary Control Council for Interference Class A statement"
+    ],
+    "rich_caption": "Japan Voluntary Control Council for Interference Class A statement",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_84_1",
+    "image_path": "extracted_images_with_context_1/page_84_img_1.png",
+    "bbox": [
+      61,
+      8,
+      224,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Attention: This is a Class A product based on the standard of the Voluntary Control\nCouncil for Interference (VCCI). If this equipment is used in a domestic environment,\nradio interference may occur, in which case, the user may be required to take corrective\nactions."
+    ],
+    "rich_caption": "Attention: This is a Class A product based on the standard of the Voluntary Control\nCouncil for Interference (VCCI). If this equipment is used in a domestic environment,\nradio interference may occur, in which case, the user may be required to take corrective\nactions.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_84_2",
+    "image_path": "extracted_images_with_context_1/page_84_img_2.png",
+    "bbox": [
+      0,
+      8,
+      168,
+      603
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "This is electromagnetic wave compatibility equipment for business (Type A). Sellers and users\nneed to pay attention to it. This is for any areas other than home."
+    ],
+    "rich_caption": "This is electromagnetic wave compatibility equipment for business (Type A). Sellers and users\nneed to pay attention to it. This is for any areas other than home.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_84_3",
+    "image_path": "extracted_images_with_context_1/page_84_img_3.png",
+    "bbox": [
+      0,
+      8,
+      105,
+      419
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Korean communications statement"
+    ],
+    "rich_caption": "Korean communications statement",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_84_4",
+    "image_path": "extracted_images_with_context_1/page_84_img_4.png",
+    "bbox": [
+      0,
+      8,
+      89,
+      493
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_84_5",
+    "image_path": "extracted_images_with_context_1/page_84_img_5.png",
+    "bbox": [
+      0,
+      8,
+      48,
+      305
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_85_1",
+    "image_path": "extracted_images_with_context_1/page_85_img_1.png",
+    "bbox": [
+      61,
+      8,
+      224,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Taiwan Class A compliance statement"
+    ],
+    "rich_caption": "Taiwan Class A compliance statement",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_85_2",
+    "image_path": "extracted_images_with_context_1/page_85_img_2.png",
+    "bbox": [
+      0,
+      8,
+      229,
+      258
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "Taiwan contact information"
+    ],
+    "rich_caption": "Taiwan contact information",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_85_3",
+    "image_path": "extracted_images_with_context_1/page_85_img_3.png",
+    "bbox": [
+      0,
+      8,
+      181,
+      566
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "All cable ferrites are required to suppress radiated EMI emissions and must not be removed.",
+      "Electrostatic discharge (ESD)",
+      "Attention: Electrostatic discharge (ESD) damage can occur when there is a difference in\ncharge between the part, the product, and the service person. No damage will occur if the\nservice person and the part being installed are at the same charge level.",
+      "ESD damage prevention"
+    ],
+    "rich_caption": "All cable ferrites are required to suppress radiated EMI emissions and must not be removed. Electrostatic discharge (ESD) Attention: Electrostatic discharge (ESD) damage can occur when there is a difference in\ncharge between the part, the product, and the service person. No damage will occur if the\nservice person and the part being installed are at the same charge level. ESD damage prevention",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_86_1",
+    "image_path": "extracted_images_with_context_1/page_86_img_1.png",
+    "bbox": [
+      61,
+      8,
+      195,
+      61
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [
+      "The ESD ground clip can be attached to any frame ground, ground braid, green wire ground,\nor the round ground prong on the AC power plug. Coax or connector outside shells can also be\nused.",
+      "Handling removed cards",
+      "Logic cards removed from a product should be placed in ESD protective containers. No other\nobject should be allowed inside the ESD container with the logic card. Attach tags or reports that\nmust accompany the card to the outside of the container."
+    ],
+    "rich_caption": "The ESD ground clip can be attached to any frame ground, ground braid, green wire ground,\nor the round ground prong on the AC power plug. Coax or connector outside shells can also be\nused. Handling removed cards Logic cards removed from a product should be placed in ESD protective containers. No other\nobject should be allowed inside the ESD container with the logic card. Attach tags or reports that\nmust accompany the card to the outside of the container.",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_86_2",
+    "image_path": "extracted_images_with_context_1/page_86_img_2.png",
+    "bbox": [
+      0,
+      8,
+      177,
+      1164
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_87_1",
+    "image_path": "extracted_images_with_context_1/page_87_img_1.png",
+    "bbox": [
+      0,
+      8,
+      24,
+      24
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_87_2",
+    "image_path": "extracted_images_with_context_1/page_87_img_2.png",
+    "bbox": [
+      0,
+      8,
+      150,
+      505
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_87_3",
+    "image_path": "extracted_images_with_context_1/page_87_img_3.png",
+    "bbox": [
+      0,
+      8,
+      107,
+      441
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_87_4",
+    "image_path": "extracted_images_with_context_1/page_87_img_4.png",
+    "bbox": [
+      0,
+      8,
+      175,
+      841
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_88_1",
+    "image_path": "extracted_images_with_context_1/page_88_img_1.png",
+    "bbox": [
+      0,
+      3,
+      347,
+      8
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_88_2",
+    "image_path": "extracted_images_with_context_1/page_88_img_2.png",
+    "bbox": [
+      0,
+      8,
+      16,
+      87
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_88_3",
+    "image_path": "extracted_images_with_context_1/page_88_img_3.png",
+    "bbox": [
+      0,
+      8,
+      59,
+      32
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_88_4",
+    "image_path": "extracted_images_with_context_1/page_88_img_4.png",
+    "bbox": [
+      0,
+      8,
+      63,
+      28
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_88_5",
+    "image_path": "extracted_images_with_context_1/page_88_img_5.png",
+    "bbox": [
+      0,
+      8,
+      62,
+      29
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_88_6",
+    "image_path": "extracted_images_with_context_1/page_88_img_6.png",
+    "bbox": [
+      0,
+      8,
+      58,
+      30
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_88_7",
+    "image_path": "extracted_images_with_context_1/page_88_img_7.png",
+    "bbox": [
+      0,
+      8,
+      13,
+      123
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_88_8",
+    "image_path": "extracted_images_with_context_1/page_88_img_8.png",
+    "bbox": [
+      0,
+      8,
+      183,
+      1039
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  },
+  {
+    "image_id": "img_96_1",
+    "image_path": "extracted_images_with_context_1/page_96_img_1.png",
+    "bbox": [
+      0,
+      8,
+      57,
+      287
+    ],
+    "caption": null,
+    "above_text": [],
+    "below_text": [],
+    "rich_caption": "",
+    "matched_by": null
+  }
+]
