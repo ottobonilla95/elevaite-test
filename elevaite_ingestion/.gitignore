@@ -1,2 +1,3 @@
 .env
 opensearch_db.py
+config.json
