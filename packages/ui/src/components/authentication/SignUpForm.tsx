@@ -45,7 +45,7 @@ export function SignUpForm(): JSX.Element {
   };
 
   return (
-    <div className="ui-flex ui-flex-col ui-gap-[29px] ui-items-start ui-w-3/5">
+    <div className="ui-flex ui-flex-col ui-gap-[29px] ui-items-start ui-w-full ui-max-w-xl">
       <div className="ui-flex ui-flex-col ui-items-start ui-gap-5 ui-w-full">
         <form
           id="signup-form"
