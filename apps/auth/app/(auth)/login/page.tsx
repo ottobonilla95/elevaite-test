@@ -1,7 +1,9 @@
-import { AuthFluff, LogInForm, ElevaiteIcons } from "@repo/ui/components";
+import { AuthFluff, ElevaiteIcons } from "@repo/ui/components";
 import type { JSX } from "react";
 import { authenticate, authenticateGoogle } from "../../lib/actions";
+import { CustomLoginForm } from "../../components/CustomLoginForm";
 import "./page.scss";
+import "./hide-register.css";
 
 function Login(): JSX.Element {
   return (
@@ -30,7 +32,7 @@ function Login(): JSX.Element {
             <span className="main">Sign in to ElevAIte</span>
             <span>Enter your login details below.</span>
           </div>
-          <LogInForm
+          <CustomLoginForm
             authenticate={authenticate}
             authenticateGoogle={authenticateGoogle}
           />

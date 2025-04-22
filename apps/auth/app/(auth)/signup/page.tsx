@@ -1,3 +1,8 @@
+import { redirect } from "next/navigation";
+import type { JSX } from "react";
+
+// Preserved for future re-enablement
+/*
 import { AuthFluff, SignUpForm, ElevaiteIcons } from "@repo/ui/components";
 import type { JSX } from "react";
 import "../login/page.scss";
@@ -46,6 +51,11 @@ function SignUp(): JSX.Element {
       </div>
     </div>
   );
+}
+*/
+
+function SignUp(): JSX.Element {
+  redirect("/login");
 }
 
 export default SignUp;

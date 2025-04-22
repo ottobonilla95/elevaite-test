@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import { stockConfig } from "@repo/lib";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Will be used when the registration is back
 import { IDP, registerToBackend } from "./app/lib/rbacActions";
 
 function getDomainWithoutSubdomain(url: string | URL): string {
@@ -61,6 +62,7 @@ export const authConfig = {
         return Response.redirect(new URL(ELEVAITE_HOMEPAGE, nextUrl));
       return false; // Redirect unauthenticated users to login page
     },
+    // eslint-disable-next-line @typescript-eslint/require-await -- Will be async when the registration is back, needs async signature
     async signIn(params) {
       const email = params.profile?.email ?? params.user.email;
       const firstName = params.profile?.given_name ?? params.user.givenName;
@@ -72,6 +74,9 @@ export const authConfig = {
           cause: { email, firstName, lastName, authToken },
         });
 
+      // Registration functionality commented out
+      // To re-enable, uncomment the code below
+      /*
       try {
         await registerToBackend({
           // email,
@@ -85,6 +90,9 @@ export const authConfig = {
         console.error(error);
         return false;
       }
+      */
+
+      // Only allow existing users to sign in
       return true;
     },
     ...stockConfig.callbacks,
