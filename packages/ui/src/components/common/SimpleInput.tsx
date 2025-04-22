@@ -15,18 +15,18 @@ interface SimpleInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEleme
     inlinePrompts?: string[];
     hideRightIcon?: boolean;
     autoSize?: boolean;
-    passedRef?: MutableRefObject<HTMLInputElement|null>;
+    passedRef?: MutableRefObject<HTMLInputElement | null>;
     value: string;
     onChange?: (value: string) => void;
     onKeyDown?: (key: string, event: KeyboardEvent<HTMLInputElement>) => void;
 }
 
-export function SimpleInput({autoSize, wrapperClassName, useCommonStyling, leftIcon, hideLeftIcon, rightIcon, bottomRightIcon, inlinePrompts, hideRightIcon, passedRef, value, onChange, onKeyDown, ...props}: SimpleInputProps): JSX.Element {
+export function SimpleInput({ autoSize, wrapperClassName, useCommonStyling, leftIcon, hideLeftIcon, rightIcon, bottomRightIcon, inlinePrompts, hideRightIcon, passedRef, value, onChange, onKeyDown, ...props }: SimpleInputProps): JSX.Element {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const textMeasureRef = useRef<HTMLSpanElement | null>(null);
     const [inputWidth, setInputWidth] = useState<string | undefined>(undefined);
-    
-    
+
+
     useEffect(() => {
         if (autoSize && textMeasureRef.current && inputRef.current) {
             const contentWidth = textMeasureRef.current.offsetWidth;
@@ -46,6 +46,10 @@ export function SimpleInput({autoSize, wrapperClassName, useCommonStyling, leftI
     function handlePromptClick(prompt: string): void {
         if (onChange) onChange(prompt);
     }
+
+
+
+    console.log("values", value)
 
 
     return (
@@ -76,11 +80,13 @@ export function SimpleInput({autoSize, wrapperClassName, useCommonStyling, leftI
                     {...props}
                 />
                 {rightIcon && !hideRightIcon ? rightIcon : undefined}
+                {bottomRightIcon && !hideRightIcon ? bottomRightIcon : undefined}
+
             </div>
             {!inlinePrompts ? undefined :
                 <div className="bottom-row">
-                    <div className="prompts-row">
-                        {inlinePrompts.map((prompt, index) => 
+                    {/* <div className="prompts-row">
+                        {inlinePrompts.map((prompt, index) =>
                             <CommonButton
                                 key={prompt + index.toString()}
                                 className="prompt-button"
@@ -90,8 +96,7 @@ export function SimpleInput({autoSize, wrapperClassName, useCommonStyling, leftI
                                 {prompt}
                             </CommonButton>
                         )}
-                    </div>
-                    {bottomRightIcon && !hideRightIcon ? bottomRightIcon : undefined}
+                    </div> */}
                 </div>
             }
         </div>

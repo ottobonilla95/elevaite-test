@@ -2,6 +2,8 @@ import { ChatbotIcons, CommonButton } from "@repo/ui/components";
 import { useChat } from "../../ui/contexts/ChatContext";
 import { ChatbotInput } from "../ChatbotInput";
 import "./CoPilotStart.scss";
+import { useState, useEffect } from "react";
+
 
 
 
@@ -33,9 +35,16 @@ interface CoPilotStartProps {
 export function CoPilotStart(props: CoPilotStartProps): JSX.Element {
     const chatContext = useChat();
 
+    const [text, setText] = useState("")
+
 
     function handlePromptClick(prompt: string): void {
         chatContext.addNewUserMessageToCurrentSession(prompt);
+    }
+
+    const handleTextChange = (value: string): void => {
+        if (chatContext.isChatLoading) return;
+        setText(value)
     }
 
     function handleAddFiles() {
@@ -46,7 +55,7 @@ export function CoPilotStart(props: CoPilotStartProps): JSX.Element {
         console.log("Adding instructions");
     }
 
-
+    console.log("common", props.inlinePrompts)
     return (
         <div className={["co-pilot-start-container", props.wide ? "wide" : undefined].filter(Boolean).join(" ")}>
             <div className="info">
@@ -75,12 +84,27 @@ export function CoPilotStart(props: CoPilotStartProps): JSX.Element {
                     bareBones
                     placeholder={props.inputPlaceholder ?? "or type your own question"}
                     inlinePrompts={props.inlinePrompts}
+                    text={text}
                 />
             </div>
 
-            {!props.addedControls ? undefined :
+            {!props.inlinePrompts ? undefined :
                 <div className="added-controls-container">
-                    <CommonButton className="added-control" noBackground onClick={handleAddFiles}>
+
+                    {props.inlinePrompts.map((prompt, index) =>
+                        <CommonButton
+                            className="added-control"
+                            noBackground
+                            onClick={() => handleTextChange(prompt)}
+                            key={index}
+                        >
+                            <span>{prompt}</span>
+                        </CommonButton>
+                    )}
+                </div>
+            }
+
+            {/* <CommonButton className="added-control" noBackground onClick={handleAddFiles}>
                         <span>Add files</span>
                         <span>Chats in this project can access file content.</span>
                         <ChatbotIcons.SVGAddFile />
@@ -89,9 +113,7 @@ export function CoPilotStart(props: CoPilotStartProps): JSX.Element {
                         <span>Add instructions</span>
                         <span>Customize the response in this project.</span>
                         <ChatbotIcons.SVGInstructions />
-                    </CommonButton>
-                </div>
-            }
+                    </CommonButton> */}
         </div>
     );
 }

@@ -162,6 +162,12 @@ $open-space: 300px;
                 padding: 20px 0;
             }
 
+            &.recents-heading{
+                font-weight: 400;
+                font-size: 14px;
+                color: red;
+            }
+
             & .session-container {
                 margin-bottom: 4px;
 
@@ -203,7 +209,7 @@ $open-space: 300px;
                         text-align: start;
                         
                         & .session-title {
-                            font-size: 14px;
+                            font-size: 12px;
                             font-weight: 500;
                             overflow: hidden;
                             text-overflow: ellipsis;
@@ -213,7 +219,7 @@ $open-space: 300px;
                         
                         & .session-preview {
                             font-size: 12px;
-                            color: var(--ev-colors-secondaryText);
+                            color: "#fff";
                             overflow: hidden;
                             text-overflow: ellipsis;
                             white-space: nowrap;

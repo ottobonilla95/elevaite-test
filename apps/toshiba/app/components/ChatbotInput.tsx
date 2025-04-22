@@ -10,6 +10,7 @@ interface ChatbotInputProps {
     noSummarize?: boolean;
     placeholder?: string;
     inlinePrompts?: string[];
+    text?: string;
 }
 
 export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
@@ -34,7 +35,19 @@ export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
         if (chatContext.isChatLoading) return;
         const workingText = text;
         setText("");
-        if (!workingText.trim()) return;
+
+        // If text is empty but we have inline prompts, use the first prompt
+        if (!workingText.trim()) {
+            if (props.inlinePrompts && props.inlinePrompts.length > 0) {
+                chatContext.addNewUserMessageToCurrentSession(props.inlinePrompts[0]);
+                setMessageWasSent(true);
+                return;
+            } else {
+                return; // No text and no prompts, don't send anything
+            }
+        }
+
+        // Normal case - we have text
         chatContext.addNewUserMessageToCurrentSession(workingText);
         setMessageWasSent(true);
     }
@@ -65,7 +78,7 @@ export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
         ].filter(Boolean).join(" ")}>
             <SimpleInput
                 wrapperClassName="chatbot-input-field"
-                value={text}
+                value={text && text !== "" ? text : props.text ?? ""}
                 onChange={handleTextChange}
                 onKeyDown={handleKeyDown}
                 placeholder={chatContext.isChatLoading ? "Please wait..." : props.placeholder ? props.placeholder : "Enter text and press ENTER"}
@@ -100,4 +113,3 @@ export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
         </div>
     );
 }
-

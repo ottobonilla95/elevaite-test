@@ -122,6 +122,8 @@ export function ProjectSidebar({ isExpanded, setIsExpanded }): JSX.Element {
         return text.length > 30 ? text.substring(0, 30) + "..." : text;
     }
 
+    console.log("chatContext", chatContext.sessions)
+
     return (
         <div className={[
             "advanced-sidebar-container",
@@ -179,36 +181,43 @@ export function ProjectSidebar({ isExpanded, setIsExpanded }): JSX.Element {
                         {chatContext.sessions.length === 0 ? (
                             <div className="empty-sessions">No chats</div>
                         ) : (
-                            chatContext.sessions.map(session => (
-                                <div key={session.id} className="session-container">
-                                    <CommonButton
-                                        className={[
-                                            "session-button",
-                                            chatContext.selectedSession?.id === session.id ? "active" : undefined
-                                        ].filter(Boolean).join(" ")}
-                                        noBackground
-                                        onClick={() => { handleSessionClick(session.id); }}
-                                    >
-                                        <div className="session-icon">
-                                            {/* Fix for SVGComment error - use a different icon that exists */}
-                                            <ChatbotIcons.SVGClipboard />
+                            <>
+                                <div style={{ fontWeight: 600, fontSize: '12px' }} >Recent Chats</div>
+                                {[...chatContext.sessions]
+                                    .filter(session => session.messages.length > 0)
+                                    .sort((a, b) => new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime())
+                                    .map(session => (
+                                        <div key={session.id} className="session-container">
+                                            <CommonButton
+                                                className={[
+                                                    "session-button",
+                                                    chatContext.selectedSession?.id === session.id ? "active" : undefined
+                                                ].filter(Boolean).join(" ")}
+                                                noBackground
+                                                onClick={() => { handleSessionClick(session.id); }}
+                                            >
+                                                <div className="session-icon">
+                                                    {/* Fix for SVGComment error - use a different icon that exists */}
+                                                    <ChatbotIcons.SVGClipboard />
+                                                </div>
+                                                <div className="session-details">
+                                                    {/* <span className="session-title">{session.label || "Chat session"}</span> */}
+                                                    <span className="session-preview">
+                                                        {session.messages.length > 0
+                                                            ? getMessagePreview(session.messages[session.messages.length - 1].text)
+                                                            : "New conversation"}
+                                                    </span>
+                                                    <span className="session-date">
+                                                        {session.creationDate
+                                                            ? dayjs(session.creationDate).format("MMM D, YYYY")
+                                                            : ""}
+                                                    </span>
+                                                </div>
+                                            </CommonButton>
                                         </div>
-                                        <div className="session-details">
-                                            <span className="session-title">{session.label || "Chat session"}</span>
-                                            <span className="session-preview">
-                                                {session.messages.length > 0
-                                                    ? getMessagePreview(session.messages[session.messages.length - 1].text)
-                                                    : "New conversation"}
-                                            </span>
-                                            <span className="session-date">
-                                                {session.creationDate
-                                                    ? dayjs(session.creationDate).format("MMM D, YYYY")
-                                                    : ""}
-                                            </span>
-                                        </div>
-                                    </CommonButton>
-                                </div>
-                            ))
+                                    ))
+                                }
+                            </>
                         )}
                     </div>
                 </div>
