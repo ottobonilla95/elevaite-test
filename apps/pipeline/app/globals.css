@@ -17,11 +17,18 @@
   color: white;
 }
 
+html,
 body {
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background-color: #000 !important;
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#__next,
+main {
+  background-color: #000 !important;
+  min-height: 100vh;
 }

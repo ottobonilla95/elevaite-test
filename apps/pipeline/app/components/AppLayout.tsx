@@ -58,7 +58,10 @@ export function AppLayout({
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ backgroundColor: "#000", background: "#000" }}
+    >
       <NavBar
         breadcrumbLabels={breadcrumbs}
         handleSearchInput={handleSearchInput}
@@ -68,7 +71,12 @@ export function AppLayout({
       />
       <main
         className="flex-grow"
-        style={{ paddingTop: "var(--navbar-height)" }}
+        style={{
+          paddingTop: "var(--navbar-height)",
+          backgroundColor: "#000",
+          background: "#000",
+          minHeight: "100vh",
+        }}
       >
         {children}
       </main>

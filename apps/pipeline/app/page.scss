@@ -1,79 +1,356 @@
-.pipeline-container {
+.pipeline-page {
   padding: 2rem;
   padding-top: 1rem;
-  max-width: 1200px;
+  width: 100%;
+  max-width: 100%;
   margin: 0 auto;
   color: white;
+  background-color: #000 !important;
+  min-height: 100vh;
 
-  .pipeline-header {
-    margin-bottom: 2rem;
-    text-align: center;
+  .pipeline-header-box {
+    width: 99%;
+    margin: 0 auto 1.5rem;
+    background-color: #212124;
+    border: 1px solid #2a2a2d;
+    border-radius: 12px;
+    padding: 1.5rem;
+    height: 60px;
+    display: flex;
+    align-items: center;
 
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    p {
-      font-size: 1.2rem;
-      color: #ccc;
-      margin-bottom: 1.5rem;
-    }
-
-    .pipeline-controls {
+    .header-content {
       display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 1rem;
-      margin-top: 1.5rem;
+      justify-content: space-between;
+      width: 100%;
 
-      .mode-selector {
+      h1 {
+        font-size: 1.5rem;
+        margin: 0;
+        color: white;
+      }
+
+      .header-controls {
         display: flex;
-        gap: 0.5rem;
+        align-items: center;
+        gap: 2rem;
 
-        button {
-          background-color: #333;
-          color: white;
-          border: none;
-          padding: 0.5rem 1.5rem;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 1rem;
-          transition: all 0.3s ease;
+        .project-selector,
+        .provider-display {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
 
-          &:hover {
-            background-color: #444;
+          span {
+            font-size: 0.9rem;
+            color: #ccc;
           }
 
-          &.active {
-            background-color: var(--ev-colors-highlight, #e75f33);
+          .provider-name {
+            color: white;
+            font-weight: bold;
+          }
+
+          select {
+            background-color: #2a2a2d;
+            color: white;
+            border: 1px solid #444;
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+          }
+        }
+      }
+    }
+
+    /* Mode selector removed */
+  }
+
+  // Pipeline visualization
+  .pipeline-visualization {
+    margin: 1rem 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 99%;
+    margin-left: auto;
+    margin-right: auto;
+
+    .pipeline-steps-container {
+      background-color: #212124;
+      border: 1px solid #2a2a2d;
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      height: 120px;
+
+      .pipeline-step-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        text-align: center;
+        z-index: 1;
+
+        &:hover {
+          transform: translateY(-5px);
+
+          .icon-circle {
+            border-color: var(--ev-colors-highlight, #e75f33);
+          }
+
+          .step-icon {
+            color: var(--ev-colors-highlight, #e75f33);
+          }
+        }
+
+        &.selected {
+          .icon-circle {
+            border-color: var(--ev-colors-highlight, #e75f33);
+            background-color: rgba(231, 95, 51, 0.1);
+          }
+
+          .step-icon {
+            color: var(--ev-colors-highlight, #e75f33);
+          }
+
+          .step-title {
+            color: var(--ev-colors-highlight, #e75f33);
+          }
+        }
+
+        .icon-circle {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          border: 2px solid #444;
+          background-color: #2a2a2d;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+          position: relative;
+          margin-bottom: 0.8rem;
+        }
+
+        .step-title {
+          font-weight: bold;
+          font-size: 0.8rem;
+          color: #ccc;
+          transition: color 0.3s ease;
+          line-height: 1.1;
+          text-align: center;
+        }
+
+        .step-icon {
+          width: 26px;
+          height: 26px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #999;
+          transition: color 0.3s ease;
+          margin-bottom: 0.1rem;
+
+          svg {
+            width: 100%;
+            height: 100%;
+          }
+
+          &.hourglass {
+            transform: rotate(180deg); // Bottom side full
           }
         }
       }
 
-      .provider-selector {
+      .pipeline-connector {
+        flex: 1;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        justify-content: center;
+        height: 100%;
+        position: relative;
+        z-index: 0;
+        padding: 0;
+        margin: 0;
 
-        label {
-          font-size: 1rem;
-          color: #ccc;
-        }
-
-        select {
-          background-color: #333;
-          color: white;
-          border: none;
-          padding: 0.5rem 1rem;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 1rem;
+        .connector-line {
+          height: 2px;
+          background-color: #444;
+          width: 100%;
         }
       }
     }
   }
 
+  // Step details panel
+  .step-details-panel {
+    background-color: #282828;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 0 auto 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: fadeIn 0.3s ease-in-out;
+    width: 99%;
+    margin-left: auto;
+    margin-right: auto;
+
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--ev-colors-highlight, #e75f33);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      &::before {
+        content: "";
+        width: 4px;
+        height: 24px;
+        background-color: var(--ev-colors-highlight, #e75f33);
+        border-radius: 2px;
+        display: inline-block;
+      }
+
+      .step-provider {
+        margin-left: auto;
+        font-size: 0.9rem;
+        background-color: #333;
+        color: #ccc;
+        padding: 0.3rem 0.6rem;
+        border-radius: 4px;
+        font-weight: normal;
+      }
+    }
+
+    p {
+      color: #ccc;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      padding-left: 1rem;
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .step-features {
+      margin-bottom: 1.5rem;
+
+      h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.8rem;
+        color: #ccc;
+      }
+
+      ul {
+        list-style-type: none;
+        padding-left: 1rem;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+
+        li {
+          position: relative;
+          padding-left: 1.5rem;
+          margin-bottom: 0.5rem;
+          color: #ccc;
+
+          &::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0.5rem;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--ev-colors-highlight, #e75f33);
+          }
+        }
+      }
+    }
+
+    .step-actions {
+      display: flex;
+      gap: 1rem;
+
+      button {
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        &::before {
+          content: "";
+          width: 16px;
+          height: 16px;
+          background-position: center;
+          background-repeat: no-repeat;
+          background-size: contain;
+        }
+      }
+
+      .learn-more-btn {
+        background-color: #444;
+        color: white;
+
+        &:hover {
+          background-color: #555;
+        }
+
+        &::before {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z'/%3E%3C/svg%3E");
+        }
+      }
+
+      .configure-btn {
+        background-color: #2c5282;
+        color: white;
+
+        &:hover {
+          background-color: #3182ce;
+        }
+
+        &::before {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z'/%3E%3C/svg%3E");
+        }
+      }
+
+      .execute-btn {
+        background-color: var(--ev-colors-highlight, #e75f33);
+        color: white;
+
+        &:hover {
+          background-color: darken(#e75f33, 10%);
+        }
+
+        &::before {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E");
+        }
+      }
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Original styles commented out for now
   .pipeline-content {
     display: flex;
     gap: 2rem;
@@ -322,27 +599,25 @@
       }
     }
   }
+  */
 }
 
-@media (max-width: 1024px) {
-  .pipeline-container {
-    .pipeline-content {
-      flex-direction: column;
+@media (max-width: 1200px) {
+  .pipeline-page {
+    .pipeline-visualization {
+      .pipeline-steps-container {
+        padding: 1.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 2rem;
+        height: auto;
 
-      .pipeline-right-panel {
-        .pipeline-flow {
-          .flow-diagram {
-            overflow-x: auto;
-            padding-bottom: 1rem;
+        .pipeline-step-box {
+          margin: 0.5rem 0;
+        }
 
-            .flow-step {
-              min-width: 80px;
-            }
-
-            .flow-arrow {
-              min-width: 20px;
-            }
-          }
+        .pipeline-connector {
+          display: none; // Hide connectors in wrapped view
         }
       }
     }
@@ -350,14 +625,77 @@
 }
 
 @media (max-width: 768px) {
-  .pipeline-container {
+  .pipeline-page {
     padding: 1rem;
 
-    .pipeline-visualization {
-      overflow-x: auto;
+    .pipeline-header-box {
+      height: auto;
+      padding: 1rem;
 
-      .pipeline-flow {
-        min-width: 600px;
+      .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+
+        .header-controls {
+          width: 100%;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.8rem;
+        }
+      }
+    }
+
+    .pipeline-visualization {
+      margin: 0.5rem 0 1rem;
+
+      .pipeline-steps-container {
+        padding: 1rem;
+
+        .pipeline-step-box {
+          .icon-circle {
+            width: 60px;
+            height: 60px;
+
+            .step-title {
+              font-size: 0.6rem;
+            }
+          }
+
+          .step-icon {
+            width: 22px;
+            height: 22px;
+          }
+        }
+      }
+    }
+
+    .step-details-panel {
+      margin: 0 1rem 1rem;
+      padding: 1rem;
+
+      h2 {
+        font-size: 1.3rem;
+
+        .step-provider {
+          font-size: 0.8rem;
+          padding: 0.2rem 0.4rem;
+        }
+      }
+
+      .step-features {
+        ul {
+          padding-left: 0.5rem;
+
+          li {
+            padding-left: 1.2rem;
+            font-size: 0.9rem;
+          }
+        }
+      }
+
+      .step-actions {
+        flex-wrap: wrap;
       }
     }
   }

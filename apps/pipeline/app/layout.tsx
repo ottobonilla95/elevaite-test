@@ -13,7 +13,9 @@ export const metadata: Metadata = {
   description: "ElevAIte's Pipeline Visualization and Management",
 };
 
-export default async function RootLayout({children,}: Readonly<{children: React.ReactNode;}>): Promise<JSX.Element> {
+export default async function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>): Promise<JSX.Element> {
   const session = await auth();
   const breadcrumbs: Record<string, { label: string; link: string }> = {
     home: {
@@ -23,13 +25,14 @@ export default async function RootLayout({children,}: Readonly<{children: React.
   };
 
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" style={{ backgroundColor: "#000" }}>
+      <body
+        className={inter.className}
+        style={{ backgroundColor: "#000", background: "#000" }}
+      >
         <SessionProvider session={session}>
           <ColorContextProvider>
-            <AppLayout breadcrumbs={breadcrumbs}>
-              {children}
-            </AppLayout>
+            <AppLayout breadcrumbs={breadcrumbs}>{children}</AppLayout>
           </ColorContextProvider>
         </SessionProvider>
       </body>
