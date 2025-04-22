@@ -5,8 +5,6 @@ import AppLayout from "../ui/AppLayout";
 import "./layout.css";
 import { auth } from "../../auth";
 
-
-
 export const metadata: Metadata = {
   title: "ElevAIte",
   description: "ElevAIte home",
@@ -47,39 +45,99 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
   },
   contracts: {
     label: "Contracts",
-    link: "/contracts"
+    link: "/contracts",
   },
   config: {
     label: "Config",
-    link: "/config"
+    link: "/config",
   },
-    dashboard: {
-      label: "Dashboard",
-      link: "/dashboard"
-    },
+  dashboard: {
+    label: "Dashboard",
+    link: "/dashboard",
+  },
 };
 
 const sidebarIcons: SidebarIconObject[] = [
-  { icon: <ElevaiteIcons.SVGAccess />, link: "/access", description: "Access Management" },
-  { icon: <ElevaiteIcons.Datasets />, link: "/datasets", description: "Datasets" },
+  {
+    icon: <ElevaiteIcons.SVGAccess />,
+    link: "/access",
+    description: "Access Management",
+  },
+  {
+    icon: <ElevaiteIcons.Datasets />,
+    link: "/datasets",
+    description: "Datasets",
+  },
   { icon: <ElevaiteIcons.SVGModels />, link: "/models", description: "Models" },
-  { icon: <ElevaiteIcons.Workbench />, link: "/workbench", description: "Workbench" },
-  { icon: <ElevaiteIcons.SVGCost />, link: "/cost", description: "Billing & Costs" },
-  { icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" },
-  { icon: <ElevaiteIcons.SVGSettings />, link: "https://playground-dev.iopex.ai", description: "Config" },
-  { icon: <ElevaiteIcons.SVGProjects className="rotate-180"  />, link: "/dashboard", description: "Dashboard" },
+  {
+    icon: <ElevaiteIcons.Workbench />,
+    link: "/workbench",
+    description: "Workbench",
+  },
+  {
+    icon: <ElevaiteIcons.SVGCost />,
+    link: "/cost",
+    description: "Billing & Costs",
+  },
+  {
+    icon: <ElevaiteIcons.SVGApplications />,
+    link: "/",
+    description: "Applications",
+  },
+  {
+    icon: <ElevaiteIcons.SVGSettings />,
+    link: "https://playground-dev.iopex.ai",
+    description: "Config",
+  },
+  {
+    icon: <ElevaiteIcons.SVGProjects className="rotate-180" />,
+    link: "/dashboard",
+    description: "Dashboard",
+  },
 ];
 
-const alcatelSidebarIcons: SidebarIconObject[] = [{ icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" }]
+const alcatelSidebarIcons: SidebarIconObject[] = [
+  {
+    icon: <ElevaiteIcons.SVGApplications />,
+    link: "/",
+    description: "Applications",
+  },
+];
 
+export default async function PageLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}): Promise<JSX.Element> {
+  // In development mode, use default sidebar icons
+  if (process.env.NODE_ENV === "development") {
+    return (
+      <AppLayout
+        breadcrumbLabels={breadcrumbLabels}
+        layout="user"
+        sidebarIcons={sidebarIcons}
+      >
+        {children}
+      </AppLayout>
+    );
+  }
 
-export default async function PageLayout({ children }: { children: React.ReactNode }): Promise<JSX.Element> {
-  const session = await auth()
+  // In production, use real auth
+  const session = await auth();
 
-  const isAlcatel = session?.user?.accountMemberships ? session.user.accountMemberships.filter((membership) => membership.account_id === "ab5eed01-46f1-423d-9da0-093814a898fc").length > 0 : false
+  const isAlcatel = session?.user?.accountMemberships
+    ? session.user.accountMemberships.filter(
+        (membership) =>
+          membership.account_id === "ab5eed01-46f1-423d-9da0-093814a898fc"
+      ).length > 0
+    : false;
 
   return (
-    <AppLayout breadcrumbLabels={breadcrumbLabels} layout="user" sidebarIcons={isAlcatel ? alcatelSidebarIcons : sidebarIcons}>
+    <AppLayout
+      breadcrumbLabels={breadcrumbLabels}
+      layout="user"
+      sidebarIcons={isAlcatel ? alcatelSidebarIcons : sidebarIcons}
+    >
       {children}
     </AppLayout>
   );
