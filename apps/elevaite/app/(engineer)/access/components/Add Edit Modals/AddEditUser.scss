@@ -1,8 +1,30 @@
+.user-created-confirmation {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 400px;
 
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
 
+  p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
 
-.add-edit-user-container {
+  .button-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
 
-    
-
+    .go-back-button {
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+  }
 }
