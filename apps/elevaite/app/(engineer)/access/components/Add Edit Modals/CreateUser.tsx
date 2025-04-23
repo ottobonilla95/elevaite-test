@@ -1,5 +1,5 @@
 import { CommonInput } from "@repo/ui/components";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AddEditBaseDialog } from "./AddEditBaseDialog";
 import "./AddEditUser.scss";
 
@@ -12,10 +12,27 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
   const [userFirstName, setUserFirstName] = useState("");
   const [userLastName, setUserLastName] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Email validation regex
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+  // Validate email when it changes
+  useEffect(() => {
+    if (!userEmail) {
+      setEmailError("");
+    } else if (!userEmail.includes("@")) {
+      setEmailError("Email must contain @ symbol");
+    } else if (!emailRegex.test(userEmail)) {
+      setEmailError("Please enter a valid email address");
+    } else {
+      setEmailError("");
+    }
+  }, [userEmail]);
+
   function handleClick(): void {
-    if (!userFirstName || !userLastName || !userEmail) return;
+    if (!userFirstName || !userLastName || !userEmail || emailError) return;
 
     setIsSubmitting(true);
     try {
@@ -38,7 +55,9 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
         onClose={props.onClose}
         onClick={handleClick}
         buttonLabel="Create"
-        disabled={!userFirstName || !userLastName || !userEmail}
+        disabled={
+          !userFirstName || !userLastName || !userEmail || Boolean(emailError)
+        }
         loading={isSubmitting}
       >
         <CommonInput
@@ -58,7 +77,13 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
           field={userEmail}
           onChange={setUserEmail}
           required
-          info="An invitation email will be sent to this address"
+          placeholder="example@company.com"
+          errorMessage={emailError}
+          info={
+            !emailError
+              ? "An invitation email will be sent to this address"
+              : undefined
+          }
         />
       </AddEditBaseDialog>
     </div>
