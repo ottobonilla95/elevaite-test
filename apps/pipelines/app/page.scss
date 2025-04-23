@@ -142,7 +142,7 @@ body {
           }
         }
 
-        &.selected {
+        &.highlighted {
           .icon-circle {
             border-color: var(--ev-colors-highlight, #e75f33);
             background-color: rgba(231, 95, 51, 0.1);
@@ -150,6 +150,21 @@ body {
 
           .step-icon {
             color: var(--ev-colors-highlight, #e75f33);
+          }
+
+          .step-title {
+            color: var(--ev-colors-highlight, #e75f33);
+          }
+        }
+
+        &.selected {
+          .icon-circle {
+            border-color: var(--ev-colors-highlight, #e75f33);
+            background-color: var(--ev-colors-highlight, #e75f33);
+          }
+
+          .step-icon {
+            color: white;
           }
 
           .step-title {
@@ -193,10 +208,6 @@ body {
           svg {
             width: 100%;
             height: 100%;
-          }
-
-          &.hourglass {
-            transform: rotate(180deg); // Bottom side full
           }
         }
       }

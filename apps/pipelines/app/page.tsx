@@ -404,14 +404,8 @@ export default function Home(): JSX.Element {
     switch (stepId) {
       case "loading":
         return (
-          <div className="step-icon hourglass">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm3 14H9v-1h6v1zm-3-9c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z" />
-            </svg>
+          <div className="step-icon">
+            <ElevaiteIcons.SVGSpinner size={26} />
           </div>
         );
       case "parsing":
@@ -508,7 +502,7 @@ export default function Home(): JSX.Element {
           {pipelineSteps.map((step, index) => (
             <React.Fragment key={step.id}>
               <div
-                className={`pipeline-step-box ${selectedStep === step.id ? "selected" : ""}`}
+                className={`pipeline-step-box ${selectedStep === step.id ? "selected" : ""} ${pipelineSteps.findIndex((s) => s.id === selectedStep) >= pipelineSteps.findIndex((s) => s.id === step.id) ? "highlighted" : ""}`}
                 onClick={() => handleStepSelect(step.id)}
                 title={step.description}
               >
