@@ -19,6 +19,18 @@ body {
   display: flex !important;
   flex-direction: column !important;
 
+  /* Hide default number input arrows */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield; /* Firefox */
+  }
+
   .pipeline-header-box {
     width: 99%;
     margin: 0 auto 0.5rem;

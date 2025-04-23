@@ -1,7 +1,8 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { pipelineSteps } from "./lib/pipelineData";
+import { ElevaiteIcons } from "../../../packages/ui/src/components/icons/elevaite";
 import "./page.scss";
 
 interface UploadingFile {
@@ -122,6 +123,279 @@ export default function Home(): JSX.Element {
   const handleDeleteFile = (fileId: string) => {
     setUploadingFiles((prevFiles) =>
       prevFiles.filter((file) => file.id !== fileId)
+    );
+  };
+
+  // Custom Dropdown Component
+  interface CustomDropdownProps {
+    options: { value: string; label: string }[];
+    defaultValue?: string;
+    onChange?: (value: string) => void;
+  }
+
+  // Custom Number Input Component
+  interface CustomNumberInputProps {
+    defaultValue?: number;
+    min?: number;
+    max?: number;
+    step?: number;
+    onChange?: (value: number) => void;
+  }
+
+  const CustomNumberInput: React.FC<CustomNumberInputProps> = ({
+    defaultValue = 0,
+    min = 0,
+    max = 10000,
+    step = 1,
+    onChange,
+  }) => {
+    const [value, setValue] = useState(defaultValue);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = parseInt(e.target.value, 10);
+      if (!isNaN(newValue)) {
+        updateValue(newValue);
+      }
+    };
+
+    const updateValue = (newValue: number) => {
+      // Ensure value is within min/max bounds
+      const boundedValue = Math.min(Math.max(newValue, min), max);
+      setValue(boundedValue);
+      if (onChange) {
+        onChange(boundedValue);
+      }
+    };
+
+    const increment = () => {
+      updateValue(value + step);
+    };
+
+    const decrement = () => {
+      updateValue(value - step);
+    };
+
+    return (
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <input
+          ref={inputRef}
+          type="number"
+          value={value}
+          onChange={handleChange}
+          min={min}
+          max={max}
+          step={step}
+          style={{
+            backgroundColor: "#161616",
+            color: "white",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            padding: "10px",
+            paddingRight: "60px", // Make room for the buttons
+            borderRadius: "8px",
+            fontSize: "14px",
+            width: "100%",
+            appearance: "textfield", // Remove default arrows
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            right: "10px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0px",
+          }}
+        >
+          <button
+            onClick={increment}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: "pointer",
+              padding: "2px",
+              color: "white",
+              transition: "color 0.2s ease",
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.color = "#e75f33";
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.color = "white";
+            }}
+          >
+            <div style={{ transform: "rotate(180deg)" }}>
+              <ElevaiteIcons.SVGChevron />
+            </div>
+          </button>
+          <button
+            onClick={decrement}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: "pointer",
+              padding: "2px",
+              color: "white",
+              transition: "color 0.2s ease",
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.color = "#e75f33";
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.color = "white";
+            }}
+          >
+            <ElevaiteIcons.SVGChevron />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const CustomDropdown: React.FC<CustomDropdownProps> = ({
+    options,
+    defaultValue,
+    onChange,
+  }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [selectedValue, setSelectedValue] = useState(
+      defaultValue || options[0]?.value || ""
+    );
+    const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+    // Find the label for the selected value
+    const selectedLabel =
+      options.find((option) => option.value === selectedValue)?.label || "";
+
+    // Handle click outside to close dropdown
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (
+          dropdownRef.current &&
+          !dropdownRef.current.contains(event.target as Node)
+        ) {
+          setIsOpen(false);
+        }
+      };
+
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, []);
+
+    const handleOptionClick = (value: string) => {
+      setSelectedValue(value);
+      setIsOpen(false);
+      if (onChange) {
+        onChange(value);
+      }
+    };
+
+    return (
+      <div
+        ref={dropdownRef}
+        style={{
+          position: "relative",
+          width: "100%",
+        }}
+      >
+        <div
+          onClick={() => setIsOpen(!isOpen)}
+          style={{
+            backgroundColor: "#161616",
+            color: "white",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            padding: "10px",
+            borderRadius: "8px",
+            fontSize: "14px",
+            width: "100%",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            cursor: "pointer",
+            transition: "border-color 0.2s ease",
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
+          }}
+        >
+          <span>{selectedLabel}</span>
+          <ElevaiteIcons.SVGChevron
+            style={{
+              transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.2s ease",
+              color: "#e75f33",
+            }}
+          />
+        </div>
+        {isOpen && (
+          <div
+            style={{
+              position: "absolute",
+              top: "calc(100% + 5px)",
+              left: 0,
+              width: "100%",
+              backgroundColor: "#161616",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderRadius: "8px",
+              zIndex: 10,
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+              maxHeight: "200px",
+              overflowY: "auto",
+            }}
+          >
+            {options.map((option) => (
+              <div
+                key={option.value}
+                onClick={() => handleOptionClick(option.value)}
+                style={{
+                  padding: "10px",
+                  cursor: "pointer",
+                  backgroundColor:
+                    selectedValue === option.value
+                      ? "rgba(231, 95, 51, 0.1)"
+                      : "transparent",
+                  color: selectedValue === option.value ? "#e75f33" : "white",
+                  transition: "background-color 0.2s ease, color 0.2s ease",
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    selectedValue === option.value
+                      ? "rgba(231, 95, 51, 0.2)"
+                      : "rgba(255, 255, 255, 0.05)";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    selectedValue === option.value
+                      ? "rgba(231, 95, 51, 0.1)"
+                      : "transparent";
+                }}
+              >
+                {option.label}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -431,21 +705,17 @@ export default function Home(): JSX.Element {
                     >
                       Data Source
                     </label>
-                    <select
-                      style={{
-                        backgroundColor: "#161616",
-                        color: "white",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        width: "100%",
-                      }}
-                    >
-                      <option value="s3">Amazon S3</option>
-                      <option value="local">Local Storage</option>
-                      <option value="database">Database</option>
-                    </select>
+                    <CustomDropdown
+                      options={[
+                        { value: "s3", label: "Amazon S3" },
+                        { value: "local", label: "Local Storage" },
+                        { value: "database", label: "Database" },
+                      ]}
+                      defaultValue="s3"
+                      onChange={(value) =>
+                        console.log("Selected data source:", value)
+                      }
+                    />
                   </div>
                   <div
                     style={{
@@ -467,21 +737,17 @@ export default function Home(): JSX.Element {
                     >
                       File Format
                     </label>
-                    <select
-                      style={{
-                        backgroundColor: "#161616",
-                        color: "white",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        width: "100%",
-                      }}
-                    >
-                      <option value="pdf">PDF</option>
-                      <option value="txt">Text</option>
-                      <option value="docx">Word Document</option>
-                    </select>
+                    <CustomDropdown
+                      options={[
+                        { value: "pdf", label: "PDF" },
+                        { value: "txt", label: "Text" },
+                        { value: "docx", label: "Word Document" },
+                      ]}
+                      defaultValue="pdf"
+                      onChange={(value) =>
+                        console.log("Selected file format:", value)
+                      }
+                    />
                   </div>
                 </div>
               )}
@@ -517,21 +783,20 @@ export default function Home(): JSX.Element {
                     >
                       Parser Type
                     </label>
-                    <select
-                      style={{
-                        backgroundColor: "#161616",
-                        color: "white",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        width: "100%",
-                      }}
-                    >
-                      <option value="default">Default Parser</option>
-                      <option value="ocr">OCR Parser</option>
-                      <option value="structured">Structured Data Parser</option>
-                    </select>
+                    <CustomDropdown
+                      options={[
+                        { value: "default", label: "Default Parser" },
+                        { value: "ocr", label: "OCR Parser" },
+                        {
+                          value: "structured",
+                          label: "Structured Data Parser",
+                        },
+                      ]}
+                      defaultValue="default"
+                      onChange={(value) =>
+                        console.log("Selected parser type:", value)
+                      }
+                    />
                   </div>
                   <div
                     style={{
@@ -553,21 +818,17 @@ export default function Home(): JSX.Element {
                     >
                       Language
                     </label>
-                    <select
-                      style={{
-                        backgroundColor: "#161616",
-                        color: "white",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        width: "100%",
-                      }}
-                    >
-                      <option value="en">English</option>
-                      <option value="es">Spanish</option>
-                      <option value="fr">French</option>
-                    </select>
+                    <CustomDropdown
+                      options={[
+                        { value: "en", label: "English" },
+                        { value: "es", label: "Spanish" },
+                        { value: "fr", label: "French" },
+                      ]}
+                      defaultValue="en"
+                      onChange={(value) =>
+                        console.log("Selected language:", value)
+                      }
+                    />
                   </div>
                 </div>
               )}
@@ -603,18 +864,14 @@ export default function Home(): JSX.Element {
                     >
                       Chunk Size
                     </label>
-                    <input
-                      type="number"
-                      defaultValue="1000"
-                      style={{
-                        backgroundColor: "#161616",
-                        color: "white",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        width: "100%",
-                      }}
+                    <CustomNumberInput
+                      defaultValue={1000}
+                      min={100}
+                      max={5000}
+                      step={100}
+                      onChange={(value) =>
+                        console.log("Chunk size changed:", value)
+                      }
                     />
                   </div>
                   <div
@@ -637,18 +894,14 @@ export default function Home(): JSX.Element {
                     >
                       Overlap
                     </label>
-                    <input
-                      type="number"
-                      defaultValue="200"
-                      style={{
-                        backgroundColor: "#161616",
-                        color: "white",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        width: "100%",
-                      }}
+                    <CustomNumberInput
+                      defaultValue={200}
+                      min={0}
+                      max={1000}
+                      step={50}
+                      onChange={(value) =>
+                        console.log("Overlap changed:", value)
+                      }
                     />
                   </div>
                 </div>
@@ -685,23 +938,20 @@ export default function Home(): JSX.Element {
                     >
                       Embedding Model
                     </label>
-                    <select
-                      style={{
-                        backgroundColor: "#161616",
-                        color: "white",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        width: "100%",
-                      }}
-                    >
-                      <option value="openai">OpenAI Embeddings</option>
-                      <option value="huggingface">
-                        HuggingFace Embeddings
-                      </option>
-                      <option value="custom">Custom Embeddings</option>
-                    </select>
+                    <CustomDropdown
+                      options={[
+                        { value: "openai", label: "OpenAI Embeddings" },
+                        {
+                          value: "huggingface",
+                          label: "HuggingFace Embeddings",
+                        },
+                        { value: "custom", label: "Custom Embeddings" },
+                      ]}
+                      defaultValue="openai"
+                      onChange={(value) =>
+                        console.log("Selected embedding model:", value)
+                      }
+                    />
                   </div>
                   <div
                     style={{
@@ -723,21 +973,17 @@ export default function Home(): JSX.Element {
                     >
                       Dimensions
                     </label>
-                    <select
-                      style={{
-                        backgroundColor: "#161616",
-                        color: "white",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        width: "100%",
-                      }}
-                    >
-                      <option value="768">768</option>
-                      <option value="1024">1024</option>
-                      <option value="1536">1536</option>
-                    </select>
+                    <CustomDropdown
+                      options={[
+                        { value: "768", label: "768" },
+                        { value: "1024", label: "1024" },
+                        { value: "1536", label: "1536" },
+                      ]}
+                      defaultValue="768"
+                      onChange={(value) =>
+                        console.log("Selected dimensions:", value)
+                      }
+                    />
                   </div>
                 </div>
               )}
@@ -773,21 +1019,17 @@ export default function Home(): JSX.Element {
                     >
                       Vector Database
                     </label>
-                    <select
-                      style={{
-                        backgroundColor: "#161616",
-                        color: "white",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        width: "100%",
-                      }}
-                    >
-                      <option value="pinecone">Pinecone</option>
-                      <option value="qdrant">Qdrant</option>
-                      <option value="faiss">FAISS</option>
-                    </select>
+                    <CustomDropdown
+                      options={[
+                        { value: "pinecone", label: "Pinecone" },
+                        { value: "qdrant", label: "Qdrant" },
+                        { value: "faiss", label: "FAISS" },
+                      ]}
+                      defaultValue="pinecone"
+                      onChange={(value) =>
+                        console.log("Selected vector database:", value)
+                      }
+                    />
                   </div>
                   <div
                     style={{
