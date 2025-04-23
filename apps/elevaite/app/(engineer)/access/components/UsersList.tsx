@@ -211,7 +211,7 @@ export function UsersList(props: UsersListProps): JSX.Element {
       <ListHeader
         label="Users List"
         addLabel="Add User"
-        addIcon={<ElevaiteIcons.SVGUser />}
+        addIcon={<ElevaiteIcons.SVGCross />}
         addAction={handleAddUser}
         onSearch={handleSearch}
         searchPlaceholder="Search Users"
