@@ -4,12 +4,38 @@ import { useRouter } from "next/navigation";
 import { pipelineSteps } from "./lib/pipelineData";
 import "./page.scss";
 
+interface UploadingFile {
+  id: string;
+  name: string;
+  size: string;
+  progress: number;
+  completed: boolean;
+}
+
 export default function Home(): JSX.Element {
   const [selectedStep, setSelectedStep] = useState<string | null>("loading");
   const [isMobile, setIsMobile] = useState(false);
-  const router = useRouter();
+  const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([
+    {
+      id: "1",
+      name: "document1.pdf",
+      size: "5 MB",
+      progress: 60,
+      completed: false,
+    },
+    {
+      id: "2",
+      name: "report.docx",
+      size: "2.3 MB",
+      progress: 100,
+      completed: true,
+    },
+  ]);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  // Keeping router for future use
+  const router = useRouter(); // eslint-disable-line no-unused-vars
   // TODO: Receive this from a call
-  const selectedProvider = "SageMaker";
+  const selectedProvider = "SageMaker"; // eslint-disable-line no-unused-vars
 
   useEffect(() => {
     const checkIfMobile = () => {
@@ -30,6 +56,73 @@ export default function Home(): JSX.Element {
 
   const handleStepSelect = (stepId: string) => {
     setSelectedStep(stepId === selectedStep ? "loading" : stepId);
+  };
+
+  const handleFileSelect = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const newFiles: UploadingFile[] = Array.from(files).map((file, index) => {
+        // Convert file size to readable format
+        const sizeInMB = file.size / (1024 * 1024);
+        const formattedSize =
+          sizeInMB < 1
+            ? `${Math.round(sizeInMB * 1024)} KB`
+            : `${sizeInMB.toFixed(1)} MB`;
+
+        return {
+          id: `new-${Date.now()}-${index}`,
+          name: file.name,
+          size: formattedSize,
+          progress: 0,
+          completed: false,
+        };
+      });
+
+      setUploadingFiles([...uploadingFiles, ...newFiles]);
+
+      // Simulate upload progress
+      newFiles.forEach((file) => {
+        simulateFileUpload(file.id);
+      });
+    }
+
+    // Reset the input value so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const simulateFileUpload = (fileId: string) => {
+    const interval = setInterval(() => {
+      setUploadingFiles((prevFiles) => {
+        const updatedFiles = prevFiles.map((file) => {
+          if (file.id === fileId && !file.completed) {
+            const newProgress = Math.min(file.progress + 10, 100);
+            const completed = newProgress === 100;
+
+            if (completed) {
+              clearInterval(interval);
+            }
+
+            return { ...file, progress: newProgress, completed };
+          }
+          return file;
+        });
+        return updatedFiles;
+      });
+    }, 500);
+  };
+
+  const handleDeleteFile = (fileId: string) => {
+    setUploadingFiles((prevFiles) =>
+      prevFiles.filter((file) => file.id !== fileId)
+    );
   };
 
   // Function to get the appropriate icon for each step
@@ -196,21 +289,23 @@ export default function Home(): JSX.Element {
       )}
       */}
 
-      {/* Configuration Box */}
+      {/* Configuration and Upload Files Boxes */}
       {selectedStep && (
         <div
           style={{
             width: "99%",
-            margin: "1rem auto 0",
+            margin: "0.5rem auto 0",
             display: "flex",
-            justifyContent: "center",
+            justifyContent: "space-between",
             flex: 1,
             overflow: "hidden",
+            gap: "16px",
           }}
         >
+          {/* Configuration Box */}
           <div
             style={{
-              width: "100%",
+              width: selectedStep === "loading" ? "calc(50% - 8px)" : "100%",
               backgroundColor: "#212124",
               border: "1px solid #2a2a2d",
               borderRadius: "12px",
@@ -228,7 +323,6 @@ export default function Home(): JSX.Element {
                 alignItems: isMobile ? "flex-start" : "center",
                 gap: isMobile ? "1rem" : "0",
                 padding: "1.5rem",
-                borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
               }}
             >
               <div style={{ display: "flex", alignItems: "center" }}>
@@ -300,7 +394,7 @@ export default function Home(): JSX.Element {
             <div
               style={{
                 flex: "1",
-                padding: "1.5rem",
+                padding: "0 1.5rem 1.5rem",
                 overflowY: "auto",
                 height: "100%",
               }}
@@ -740,7 +834,6 @@ export default function Home(): JSX.Element {
                 flexDirection: isMobile ? "column" : "row",
                 gap: "12px",
                 padding: "1.5rem",
-                borderTop: "1px solid rgba(255, 255, 255, 0.1)",
                 marginTop: "auto",
               }}
             >
@@ -802,6 +895,256 @@ export default function Home(): JSX.Element {
               </button>
             </div>
           </div>
+
+          {/* Upload Files Box - Only shown for Loading step */}
+          {selectedStep === "loading" && (
+            <div
+              style={{
+                width: "calc(50% - 8px)",
+                backgroundColor: "#212124",
+                border: "1px solid #2a2a2d",
+                borderRadius: "12px",
+                display: "flex",
+                flexDirection: "column",
+                height: "85%",
+              }}
+            >
+              {/* Header Section */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: isMobile ? "column" : "row",
+                  justifyContent: "space-between",
+                  alignItems: isMobile ? "flex-start" : "center",
+                  gap: isMobile ? "1rem" : "0",
+                  padding: "1.5rem",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <h1
+                    style={{
+                      fontSize: "1.5rem",
+                      margin: 0,
+                      color: "white",
+                      fontWeight: "normal",
+                    }}
+                  >
+                    Upload Files
+                  </h1>
+                </div>
+              </div>
+
+              {/* Upload Area */}
+              <div
+                style={{
+                  flex: "1",
+                  padding: "0 1.5rem 1.5rem",
+                  overflowY: "auto",
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                }}
+              >
+                {/* Top Section with Upload Box */}
+                <div
+                  style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                >
+                  {/* Dashed Border Upload Box */}
+                  <div
+                    style={{
+                      border: "2px dashed rgba(255, 255, 255, 0.2)",
+                      borderRadius: "8px",
+                      padding: "2rem",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: "1.5rem",
+                      cursor: "pointer",
+                      flex: 1,
+                    }}
+                    onClick={handleFileSelect}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="48"
+                      height="48"
+                      viewBox="0 0 24 24"
+                      fill="rgba(255, 255, 255, 0.5)"
+                      style={{ marginBottom: "1rem" }}
+                    >
+                      <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
+                    </svg>
+                    <p style={{ color: "white", marginBottom: "0.5rem" }}>
+                      Drag and drop your files here
+                    </p>
+                    <p
+                      style={{
+                        color: "rgba(255, 255, 255, 0.5)",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      or click to browse
+                    </p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      style={{ display: "none" }}
+                      onChange={handleFileChange}
+                    />
+                    <button
+                      onClick={handleFileSelect}
+                      style={{
+                        backgroundColor: "#444",
+                        color: "white",
+                        border: "none",
+                        padding: "8px 16px",
+                        borderRadius: "4px",
+                        marginTop: "1rem",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                      }}
+                    >
+                      Select Files
+                    </button>
+                  </div>
+                </div>
+
+                {/* Uploaded Files List - Now at the bottom */}
+                <div style={{ marginTop: "1rem" }}>
+                  {/* Render file items from state */}
+                  {uploadingFiles.length === 0 ? (
+                    <div
+                      style={{
+                        color: "#999",
+                        textAlign: "center",
+                        padding: "1rem",
+                      }}
+                    >
+                      No files uploaded yet
+                    </div>
+                  ) : (
+                    uploadingFiles.map((file) => (
+                      <div
+                        key={file.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "0.75rem",
+                          backgroundColor: "rgba(0, 0, 0, 0.2)",
+                          borderRadius: "8px",
+                          marginBottom: "0.75rem",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            marginRight: "12px",
+                          }}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="white"
+                            style={{ marginRight: "0.75rem" }}
+                          >
+                            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                          </svg>
+                          <div
+                            style={{ display: "flex", alignItems: "center" }}
+                          >
+                            <span
+                              style={{ color: "white", fontSize: "0.9rem" }}
+                            >
+                              {file.name}
+                            </span>
+                            <span
+                              style={{
+                                color: "rgba(255, 255, 255, 0.5)",
+                                fontSize: "0.8rem",
+                                margin: "0 4px",
+                              }}
+                            >
+                              •
+                            </span>
+                            <span
+                              style={{
+                                color: "rgba(255, 255, 255, 0.5)",
+                                fontSize: "0.8rem",
+                              }}
+                            >
+                              {file.size}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Progress bar - only shown for files that aren't completed */}
+                        {!file.completed && (
+                          <div
+                            style={{
+                              flex: 1,
+                              height: "4px",
+                              backgroundColor: "rgba(255, 255, 255, 0.1)",
+                              borderRadius: "2px",
+                              position: "relative",
+                              overflow: "hidden",
+                              margin: "0 12px",
+                            }}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                left: 0,
+                                top: 0,
+                                height: "100%",
+                                width: `${file.progress}%`,
+                                backgroundColor: "#4CAF50",
+                                borderRadius: "2px",
+                              }}
+                            ></div>
+                          </div>
+                        )}
+
+                        {/* If completed, add a spacer instead of progress bar */}
+                        {file.completed && <div style={{ flex: 1 }}></div>}
+
+                        <button
+                          onClick={() => handleDeleteFile(file.id)}
+                          style={{
+                            backgroundColor: "transparent",
+                            border: "none",
+                            color: "#e74c3c",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "4px",
+                          }}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Removed Action Buttons Section */}
+            </div>
+          )}
         </div>
       )}
 
