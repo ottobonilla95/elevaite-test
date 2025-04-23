@@ -58,8 +58,17 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = Boolean(auth?.user);
-      if (isLoggedIn)
+
+      // Allow access to reset-password page for authenticated users
+      if (isLoggedIn && nextUrl.pathname === "/reset-password") {
+        return true;
+      }
+
+      // Redirect authenticated users to homepage
+      if (isLoggedIn) {
         return Response.redirect(new URL(ELEVAITE_HOMEPAGE, nextUrl));
+      }
+
       return false; // Redirect unauthenticated users to login page
     },
     // eslint-disable-next-line @typescript-eslint/require-await -- Will be async when the registration is back, needs async signature

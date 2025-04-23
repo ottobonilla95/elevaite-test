@@ -70,7 +70,7 @@ export const authOptions: NextAuthConfig = {
               givenName: _user.firstName,
               familyName: _user.lastName,
               accessToken: res.response.token,
-              refreshToken: res.response.refreshToken
+              refreshToken: res.response.refreshToken,
             } satisfies User;
           } catch (error) {
             return null;

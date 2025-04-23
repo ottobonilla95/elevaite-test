@@ -3,11 +3,12 @@ import { AuthError } from "next-auth";
 import { signIn, signOut } from "../../auth";
 
 export async function authenticate(
-  prevState: string | undefined,
+  _prevState: string | undefined,
   formData: Record<"email" | "password", string>
 ): Promise<"Invalid credentials." | "Something went wrong." | undefined> {
   try {
     await signIn("credentials", formData);
+    return undefined;
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
@@ -21,7 +22,9 @@ export async function authenticate(
   }
 }
 
-export async function authenticateGoogle(): Promise<"Invalid credentials." | "Something went wrong." | undefined> {
+export async function authenticateGoogle(): Promise<
+  "Invalid credentials." | "Something went wrong." | undefined
+> {
   try {
     await signIn("google");
   } catch (error) {
@@ -37,7 +40,9 @@ export async function authenticateGoogle(): Promise<"Invalid credentials." | "So
   }
 }
 
-export async function logOut(): Promise<"Invalid credentials." | "Something went wrong." | undefined> {
+export async function logOut(): Promise<
+  "Invalid credentials." | "Something went wrong." | undefined
+> {
   try {
     // auth()
     await signOut({ redirectTo: "/login" });
@@ -51,5 +56,23 @@ export async function logOut(): Promise<"Invalid credentials." | "Something went
       }
     }
     throw error;
+  }
+}
+
+export async function resetPassword(_newPassword: string): Promise<void> {
+  try {
+    // In a real implementation, this would call an API to reset the password
+    // For now, we'll just simulate success
+
+    // Simulate a delay for the API call
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        resolve();
+      }, 1000);
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console -- Needed for error reporting
+    console.error("Error resetting password:", error);
+    throw new Error("Failed to reset password");
   }
 }
