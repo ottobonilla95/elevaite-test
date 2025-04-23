@@ -16,6 +16,8 @@ body {
   height: 100vh !important;
   max-height: 100vh !important;
   overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
 
   .pipeline-header-box {
     width: 99%;
@@ -79,7 +81,7 @@ body {
 
   // Pipeline visualization
   .pipeline-visualization {
-    margin: 1rem 0 2rem;
+    margin: 1rem 0 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -856,7 +858,7 @@ body {
     }
 
     .pipeline-steps-container.config-container {
-      min-height: calc(100vh - 250px) !important;
+      height: auto !important;
 
       .config-content {
         padding: 1rem;

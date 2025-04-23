@@ -109,6 +109,8 @@ export default function Home(): JSX.Element {
         height: "100vh",
         maxHeight: "100vh",
         overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <div className="pipeline-header-box">
@@ -202,6 +204,8 @@ export default function Home(): JSX.Element {
             margin: "1rem auto 0",
             display: "flex",
             justifyContent: "center",
+            flex: 1,
+            overflow: "hidden",
           }}
         >
           <div
@@ -210,9 +214,9 @@ export default function Home(): JSX.Element {
               backgroundColor: "#212124",
               border: "1px solid #2a2a2d",
               borderRadius: "12px",
-              minHeight: "500px",
               display: "flex",
               flexDirection: "column",
+              height: "85%",
             }}
           >
             {/* Header Section */}
@@ -298,6 +302,7 @@ export default function Home(): JSX.Element {
                 flex: "1",
                 padding: "1.5rem",
                 overflowY: "auto",
+                height: "100%",
               }}
             >
               {/* Configuration Options */}
@@ -736,6 +741,7 @@ export default function Home(): JSX.Element {
                 gap: "12px",
                 padding: "1.5rem",
                 borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+                marginTop: "auto",
               }}
             >
               <button
