@@ -25,10 +25,18 @@ export default async function RootLayout({
   };
 
   return (
-    <html lang="en" style={{ backgroundColor: "#000" }}>
+    <html
+      lang="en"
+      style={{ backgroundColor: "#000", height: "100%", overflow: "hidden" }}
+    >
       <body
         className={inter.className}
-        style={{ backgroundColor: "#000", background: "#000" }}
+        style={{
+          backgroundColor: "#000",
+          background: "#000",
+          height: "100%",
+          overflow: "hidden",
+        }}
       >
         <SessionProvider session={session}>
           <ColorContextProvider>

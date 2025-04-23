@@ -1,3 +1,10 @@
+html,
+body {
+  height: 100% !important;
+  overflow: hidden !important;
+  background-color: #000 !important;
+}
+
 .pipeline-page {
   padding: 2rem;
   padding-top: 1rem;
@@ -6,7 +13,9 @@
   margin: 0 auto;
   color: white;
   background-color: #000 !important;
-  min-height: 100vh;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
 
   .pipeline-header-box {
     width: 99%;
@@ -78,6 +87,11 @@
     margin-left: auto;
     margin-right: auto;
 
+    &:last-child {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
     .pipeline-steps-container {
       background-color: #212124;
       border: 1px solid #2a2a2d;
@@ -88,6 +102,8 @@
       justify-content: space-between;
       width: 100%;
       height: 120px;
+      overflow: hidden;
+      box-sizing: border-box;
 
       .pipeline-step-box {
         display: flex;
@@ -193,8 +209,8 @@
     }
   }
 
-  // Step details panel
-  .step-details-panel {
+  // Step details panel - commented out
+  /*.step-details-panel {
     background-color: #282828;
     border-radius: 8px;
     padding: 1.5rem;
@@ -349,6 +365,193 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  // Configuration content inside pipeline-steps-container
+  .config-container {
+    height: auto !important;
+    min-height: 500px !important;
+    align-items: stretch !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+  }
+
+  .config-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    padding: 1.5rem;
+    animation: fadeIn 0.3s ease-in-out;
+    justify-content: space-between;
+
+    .config-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+      .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+
+        .title-section {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+
+          h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            color: white;
+          }
+
+          .info-button {
+            width: 16px;
+            height: 16px;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &:hover {
+              color: var(--ev-colors-highlight, #e75f33);
+            }
+
+            svg {
+              width: 14px;
+              height: 14px;
+            }
+          }
+        }
+
+        .monitor-button {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          background-color: #2a2a2d;
+          color: white;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.9rem;
+          transition: all 0.3s ease;
+
+          svg {
+            width: 16px;
+            height: 16px;
+          }
+
+          &:hover {
+            background-color: #333;
+          }
+        }
+      }
+
+    .config-options {
+      width: 100%;
+      flex: 1;
+      margin-bottom: 2rem;
+
+      .option-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 2rem;
+        width: 100%;
+
+        .option-item {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          padding: 1rem;
+          box-sizing: border-box;
+          background-color: rgba(0, 0, 0, 0.2);
+          border-radius: 8px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+
+          label {
+            font-size: 14px;
+            color: var(--ev-colors-secondaryText, #808080);
+            font-weight: 600;
+          }
+
+          .option-input {
+            background-color: var(--ev-colors-background, #161616);
+            color: white;
+            border: 1px solid var(--ev-colors-borderColor, #FFFFFF1F);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            width: 100%;
+            box-sizing: border-box;
+
+            &:focus {
+              outline: 1px solid var(--ev-colors-highlight, #e75f33);
+              border-color: transparent;
+            }
+
+            &::placeholder {
+              opacity: 0.5;
+            }
+
+            &:disabled {
+              filter: brightness(1.5);
+            }
+          }
+        }
+      }
+
+    .config-actions {
+      display: flex;
+      gap: 1rem;
+      width: 100%;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+      button {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        font-weight: 600;
+
+        svg {
+          width: 16px;
+          height: 16px;
+        }
+      }
+
+      .run-button {
+        background-color: var(--ev-colors-highlight, #e75f33);
+        color: white;
+
+        &:hover {
+          background-color: darken(#e75f33, 10%);
+        }
+      }
+
+      .save-button {
+        background-color: #444;
+        color: white;
+
+        &:hover {
+          background-color: #555;
+        }
+      }
     }
   }
 
@@ -650,24 +853,71 @@
 
     .pipeline-visualization {
       margin: 0.5rem 0 1rem;
+    }
 
-      .pipeline-steps-container {
+    .pipeline-steps-container.config-container {
+      min-height: calc(100vh - 250px) !important;
+
+      .config-content {
         padding: 1rem;
 
-        .pipeline-step-box {
-          .icon-circle {
-            width: 60px;
-            height: 60px;
+        .config-header {
+          margin-bottom: 1.5rem;
 
-            .step-title {
-              font-size: 0.6rem;
+          .header-content {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+
+            .title-section {
+              margin-bottom: 0.5rem;
+
+              h1 {
+                font-size: 1.2rem;
+              }
+            }
+
+            .monitor-button {
+              align-self: flex-start;
             }
           }
+        }
 
-          .step-icon {
-            width: 22px;
-            height: 22px;
+        .config-options {
+          .option-group {
+            grid-template-columns: 1fr;
+            gap: 1rem;
           }
+        }
+
+        .config-actions {
+          flex-direction: column;
+          gap: 1rem;
+
+          button {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+      }
+    }
+
+    .pipeline-steps-container {
+      padding: 1rem;
+
+      .pipeline-step-box {
+        .icon-circle {
+          width: 60px;
+          height: 60px;
+
+          .step-title {
+            font-size: 0.6rem;
+          }
+        }
+
+        .step-icon {
+          width: 22px;
+          height: 22px;
         }
       }
     }

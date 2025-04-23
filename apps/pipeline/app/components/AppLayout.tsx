@@ -60,7 +60,12 @@ export function AppLayout({
   return (
     <div
       className="min-h-screen flex flex-col"
-      style={{ backgroundColor: "#000", background: "#000" }}
+      style={{
+        backgroundColor: "#000",
+        background: "#000",
+        height: "100vh",
+        overflow: "hidden",
+      }}
     >
       <NavBar
         breadcrumbLabels={breadcrumbs}
@@ -75,7 +80,8 @@ export function AppLayout({
           paddingTop: "var(--navbar-height)",
           backgroundColor: "#000",
           background: "#000",
-          minHeight: "100vh",
+          height: "calc(100vh - var(--navbar-height))",
+          overflow: "hidden",
         }}
       >
         {children}

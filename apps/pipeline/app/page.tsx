@@ -1,14 +1,32 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { pipelineSteps } from "./lib/pipelineData";
 import "./page.scss";
 
 export default function Home(): JSX.Element {
   const [selectedStep, setSelectedStep] = useState<string | null>("loading");
+  const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
   // TODO: Receive this from a call
   const selectedProvider = "SageMaker";
+
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    // Initial check
+    checkIfMobile();
+
+    // Add event listener for window resize
+    window.addEventListener("resize", checkIfMobile);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("resize", checkIfMobile);
+    };
+  }, []);
 
   const handleStepSelect = (stepId: string) => {
     setSelectedStep(stepId === selectedStep ? "loading" : stepId);
@@ -85,7 +103,13 @@ export default function Home(): JSX.Element {
   return (
     <div
       className="pipeline-page"
-      style={{ backgroundColor: "#000", background: "#000" }}
+      style={{
+        backgroundColor: "#000",
+        background: "#000",
+        height: "100vh",
+        maxHeight: "100vh",
+        overflow: "hidden",
+      }}
     >
       <div className="pipeline-header-box">
         <div className="header-content">
@@ -132,7 +156,7 @@ export default function Home(): JSX.Element {
         </div>
       </div>
 
-      {/* Step details panel that appears when a step is selected */}
+      {/* Original Step details panel
       {selectedStep && (
         <div className="step-details-panel">
           <h2>
@@ -141,7 +165,6 @@ export default function Home(): JSX.Element {
           </h2>
           <p>{pipelineSteps.find((s) => s.id === selectedStep)?.details}</p>
 
-          {/* Features list */}
           <div className="step-features">
             <h3>Key Features</h3>
             <ul>
@@ -166,6 +189,612 @@ export default function Home(): JSX.Element {
             >
               Configure
             </button>
+          </div>
+        </div>
+      )}
+      */}
+
+      {/* Configuration Box */}
+      {selectedStep && (
+        <div
+          style={{
+            width: "99%",
+            margin: "1rem auto 0",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              backgroundColor: "#212124",
+              border: "1px solid #2a2a2d",
+              borderRadius: "12px",
+              minHeight: "500px",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            {/* Header Section */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: isMobile ? "column" : "row",
+                justifyContent: "space-between",
+                alignItems: isMobile ? "flex-start" : "center",
+                gap: isMobile ? "1rem" : "0",
+                padding: "1.5rem",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <h1
+                  style={{
+                    fontSize: "1.5rem",
+                    margin: 0,
+                    color: "white",
+                    fontWeight: "normal",
+                  }}
+                >
+                  {pipelineSteps.find((s) => s.id === selectedStep)?.title}{" "}
+                  Configuration
+                </h1>
+                <div
+                  style={{
+                    marginLeft: "10px",
+                    width: "16px",
+                    height: "16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#999",
+                    cursor: "pointer",
+                  }}
+                  title={
+                    pipelineSteps.find((s) => s.id === selectedStep)?.details
+                  }
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                  </svg>
+                </div>
+              </div>
+              <button
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: "#2a2a2d",
+                  color: "white",
+                  border: "none",
+                  padding: "8px 16px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                </svg>
+                Monitor
+              </button>
+            </div>
+
+            {/* Form Elements Section */}
+            <div
+              style={{
+                flex: "1",
+                padding: "1.5rem",
+                overflowY: "auto",
+              }}
+            >
+              {/* Configuration Options */}
+              {selectedStep === "loading" && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isMobile
+                      ? "1fr"
+                      : "repeat(auto-fill, minmax(350px, 1fr))",
+                    gap: "24px",
+                    width: "100%",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                      padding: "16px",
+                      backgroundColor: "rgba(0, 0, 0, 0.2)",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: "14px",
+                        color: "#808080",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Data Source
+                    </label>
+                    <select
+                      style={{
+                        backgroundColor: "#161616",
+                        color: "white",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        width: "100%",
+                      }}
+                    >
+                      <option value="s3">Amazon S3</option>
+                      <option value="local">Local Storage</option>
+                      <option value="database">Database</option>
+                    </select>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                      padding: "16px",
+                      backgroundColor: "rgba(0, 0, 0, 0.2)",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: "14px",
+                        color: "#808080",
+                        fontWeight: 600,
+                      }}
+                    >
+                      File Format
+                    </label>
+                    <select
+                      style={{
+                        backgroundColor: "#161616",
+                        color: "white",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        width: "100%",
+                      }}
+                    >
+                      <option value="pdf">PDF</option>
+                      <option value="txt">Text</option>
+                      <option value="docx">Word Document</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {selectedStep === "parsing" && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isMobile
+                      ? "1fr"
+                      : "repeat(auto-fill, minmax(350px, 1fr))",
+                    gap: "24px",
+                    width: "100%",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                      padding: "16px",
+                      backgroundColor: "rgba(0, 0, 0, 0.2)",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: "14px",
+                        color: "#808080",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Parser Type
+                    </label>
+                    <select
+                      style={{
+                        backgroundColor: "#161616",
+                        color: "white",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        width: "100%",
+                      }}
+                    >
+                      <option value="default">Default Parser</option>
+                      <option value="ocr">OCR Parser</option>
+                      <option value="structured">Structured Data Parser</option>
+                    </select>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                      padding: "16px",
+                      backgroundColor: "rgba(0, 0, 0, 0.2)",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: "14px",
+                        color: "#808080",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Language
+                    </label>
+                    <select
+                      style={{
+                        backgroundColor: "#161616",
+                        color: "white",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        width: "100%",
+                      }}
+                    >
+                      <option value="en">English</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {selectedStep === "chunking" && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isMobile
+                      ? "1fr"
+                      : "repeat(auto-fill, minmax(350px, 1fr))",
+                    gap: "24px",
+                    width: "100%",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                      padding: "16px",
+                      backgroundColor: "rgba(0, 0, 0, 0.2)",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: "14px",
+                        color: "#808080",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Chunk Size
+                    </label>
+                    <input
+                      type="number"
+                      defaultValue="1000"
+                      style={{
+                        backgroundColor: "#161616",
+                        color: "white",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        width: "100%",
+                      }}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                      padding: "16px",
+                      backgroundColor: "rgba(0, 0, 0, 0.2)",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: "14px",
+                        color: "#808080",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Overlap
+                    </label>
+                    <input
+                      type="number"
+                      defaultValue="200"
+                      style={{
+                        backgroundColor: "#161616",
+                        color: "white",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        width: "100%",
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedStep === "embedding" && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isMobile
+                      ? "1fr"
+                      : "repeat(auto-fill, minmax(350px, 1fr))",
+                    gap: "24px",
+                    width: "100%",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                      padding: "16px",
+                      backgroundColor: "rgba(0, 0, 0, 0.2)",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: "14px",
+                        color: "#808080",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Embedding Model
+                    </label>
+                    <select
+                      style={{
+                        backgroundColor: "#161616",
+                        color: "white",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        width: "100%",
+                      }}
+                    >
+                      <option value="openai">OpenAI Embeddings</option>
+                      <option value="huggingface">
+                        HuggingFace Embeddings
+                      </option>
+                      <option value="custom">Custom Embeddings</option>
+                    </select>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                      padding: "16px",
+                      backgroundColor: "rgba(0, 0, 0, 0.2)",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: "14px",
+                        color: "#808080",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Dimensions
+                    </label>
+                    <select
+                      style={{
+                        backgroundColor: "#161616",
+                        color: "white",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        width: "100%",
+                      }}
+                    >
+                      <option value="768">768</option>
+                      <option value="1024">1024</option>
+                      <option value="1536">1536</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {selectedStep === "vectorstore" && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isMobile
+                      ? "1fr"
+                      : "repeat(auto-fill, minmax(350px, 1fr))",
+                    gap: "24px",
+                    width: "100%",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                      padding: "16px",
+                      backgroundColor: "rgba(0, 0, 0, 0.2)",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: "14px",
+                        color: "#808080",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Vector Database
+                    </label>
+                    <select
+                      style={{
+                        backgroundColor: "#161616",
+                        color: "white",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        width: "100%",
+                      }}
+                    >
+                      <option value="pinecone">Pinecone</option>
+                      <option value="qdrant">Qdrant</option>
+                      <option value="faiss">FAISS</option>
+                    </select>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                      padding: "16px",
+                      backgroundColor: "rgba(0, 0, 0, 0.2)",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: "14px",
+                        color: "#808080",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Index Name
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue="document-index"
+                      style={{
+                        backgroundColor: "#161616",
+                        color: "white",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        width: "100%",
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons Section */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: isMobile ? "column" : "row",
+                gap: "12px",
+                padding: "1.5rem",
+                borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+              }}
+            >
+              <button
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: isMobile ? "center" : "flex-start",
+                  gap: "8px",
+                  backgroundColor: "#e75f33",
+                  color: "white",
+                  border: "none",
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  width: isMobile ? "100%" : "auto",
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                Run Pipeline
+              </button>
+              <button
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: isMobile ? "center" : "flex-start",
+                  gap: "8px",
+                  backgroundColor: "#444",
+                  color: "white",
+                  border: "none",
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  width: isMobile ? "100%" : "auto",
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
+                </svg>
+                Save
+              </button>
+            </div>
           </div>
         </div>
       )}
