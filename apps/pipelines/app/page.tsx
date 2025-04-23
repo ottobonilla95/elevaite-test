@@ -1330,9 +1330,9 @@ export default function Home(): JSX.Element {
                           <div
                             style={{
                               flex: 1,
-                              height: "4px",
-                              backgroundColor: "rgba(255, 255, 255, 0.1)",
-                              borderRadius: "2px",
+                              height: "6px",
+                              backgroundColor: "#eef1f3",
+                              borderRadius: "5px",
                               position: "relative",
                               overflow: "hidden",
                               margin: "0 12px",
@@ -1345,7 +1345,7 @@ export default function Home(): JSX.Element {
                                 top: 0,
                                 height: "100%",
                                 width: `${file.progress}%`,
-                                backgroundColor: "#4CAF50",
+                                backgroundColor: "#30c292",
                                 borderRadius: "2px",
                               }}
                             ></div>
