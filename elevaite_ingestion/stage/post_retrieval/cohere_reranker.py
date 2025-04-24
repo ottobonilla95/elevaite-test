@@ -1,96 +1,167 @@
+# import os
+# import sys
+# import cohere
+# import numpy as np
+# from dotenv import load_dotenv
+# from scipy.stats import beta
+# from typing import List, Dict, Tuple
+
+# load_dotenv()
+
+# base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# sys.path.append(base_path)
+
+# from retrieval_stage.retrieve_qdrant import multi_strategy_search as enhanced_hybrid_search
+
+# cohere_client = cohere.Client(os.getenv("COHERE_API_KEY"))
+
+
+# def transform(x: float) -> float:
+#     """
+#     Transform scores using beta distribution CDF
+    
+#     Args:
+#         x: Raw score value
+        
+#     Returns:
+#         Transformed score
+#     """
+#     a, b = 0.4, 0.4
+#     return beta.cdf(x, a, b)
+
+
+# def rerank_chunks(query: str, chunks: List[str]) -> Tuple[List[float], List[float]]:
+#     """
+#     Rerank chunks using Cohere's reranking API
+    
+#     Args:
+#         query: User query
+#         chunks: List of text chunks to rerank
+        
+#     Returns:
+#         Tuple of (similarity_scores, chunk_values)
+#     """
+#     model = "rerank-english-v3.0"
+#     decay_rate = 30
+    
+#     reranked_results = cohere_client.rerank(model=model, query=query, documents=chunks)
+#     results = reranked_results.results
+#     reranked_indices = [result.index for result in results]
+#     reranked_similarity_scores = [result.relevance_score for result in results]
+    
+#     similarity_scores = [0] * len(chunks)
+#     chunk_values = [0] * len(chunks)
+#     for i, index in enumerate(reranked_indices):
+#         abs_val = transform(reranked_similarity_scores[i])
+#         similarity_scores[index] = abs_val
+#         chunk_values[index] = np.exp(-i / decay_rate) * abs_val
+    
+#     return similarity_scores, chunk_values
+
+
+# def cohere_rerank(query: str, chunks: List[Dict], top_k: int = 20) -> List[Dict]:
+#     """
+#     Simplified reranking function that returns reordered chunks
+    
+#     Args:
+#         query: User query
+#         chunks: List of chunk dictionaries with metadata
+#         top_k: Number of results to return
+        
+#     Returns:
+#         Reranked list of chunks
+#     """
+#     inputs = [chunk["chunk_text"] for chunk in chunks]
+#     response = cohere_client.rerank(
+#         query=query, 
+#         documents=inputs,
+#         top_n=top_k,
+#         model="rerank-english-v3.0"
+#     )
+#     return [chunks[result.index] for result in response.results]
+
 
 import os
 import sys
-import time
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import beta
-from typing import List, Dict
 import cohere
+import numpy as np
 from dotenv import load_dotenv
+from scipy.stats import beta
+from typing import List, Dict, Tuple
+
 load_dotenv()
 
 base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(base_path)
 
-from retrieval_stage.retrieve_qdrant import retrieve_chunks
+from retrieval_stage.retrieve_qdrant import retrieve_chunks_semantic, retrieve_by_payload, extract_part_numbers
 
 cohere_client = cohere.Client(os.getenv("COHERE_API_KEY"))
 
-def transform(x: float):
-    """
-    Transformation function to map the absolute relevance value to a value that is more uniformly distributed between 0 and 1.
-    """
+
+def transform(x: float) -> float:
+    """Transform scores using beta distribution CDF"""
     a, b = 0.4, 0.4
     return beta.cdf(x, a, b)
 
-def cohere_rerank(query: str, chunks: List[Dict], top_k: int = 20) -> List[Dict]:
-    inputs = [chunk["chunk_text"] for chunk in chunks]
-    response = cohere_client.rerank(
-        query=query,
-        documents=inputs,
-        top_n=top_k,
-        model="rerank-english-v3.0"
+
+def rerank_text_chunks(query: str, chunk_texts: List[str], decay_rate: int = 30) -> Tuple[List[float], List[float]]:
+    """Use Cohere reranker and apply beta CDF + exponential decay"""
+    reranked_results = cohere_client.rerank(
+        model="rerank-english-v3.0", query=query, documents=chunk_texts
     )
-    return [chunks[result.index] for result in response.results]
-
-def rerank_chunks(query: str, chunks: List[str]):
-    """
-    Use Cohere Rerank API to rerank the search results and compute relevance values.
-    """
-    model = "rerank-english-v3.0"
-    client = cohere.Client(api_key=os.environ["COHERE_API_KEY"])
-    decay_rate = 30
-
-    reranked_results = client.rerank(model=model, query=query, documents=chunks)
     results = reranked_results.results
-    reranked_indices = [result.index for result in results]
-    reranked_similarity_scores = [result.relevance_score for result in results]
-    print("##############ranked_similarity")
-    print(reranked_similarity_scores)
+    scores = [0.0] * len(chunk_texts)
+    values = [0.0] * len(chunk_texts)
 
-    similarity_scores = [0] * len(chunks)
-    chunk_values = [0] * len(chunks)
-    for i, index in enumerate(reranked_indices):
-        absolute_relevance_value = transform(reranked_similarity_scores[i])
-        similarity_scores[index] = absolute_relevance_value
-        chunk_values[index] = np.exp(-i / decay_rate) * absolute_relevance_value
+    for i, result in enumerate(results):
+        idx = result.index
+        transformed_score = transform(result.relevance_score)
+        scores[idx] = transformed_score
+        values[idx] = np.exp(-i / decay_rate) * transformed_score
 
-    return similarity_scores, chunk_values
+    return scores, values
 
 
-def plot_relevance_scores(chunk_values: List[float], start_index: int = None, end_index: int = None) -> None:
+def rerank_separately_then_merge(query: str, top_k: int = 30) -> Tuple[List[Dict], List[float]]:
     """
-    Visualize the relevance scores of each chunk in the document to the search query.
+    1. Rerank semantic chunks
+    2. Rerank payload (exact match) chunks
+    3. Merge both, return (chunks, values)
     """
-    plt.figure(figsize=(12, 5))
-    plt.title("Reelevancy of each chunk in the document to the search query")
-    plt.ylim(0, 1)
-    plt.xlabel("Chunk index")
-    plt.ylabel("Query-chunk relevance")
-    if start_index is None:
-        start_index = 0
-    if end_index is None:
-        end_index = len(chunk_values)
-    plt.scatter(range(start_index, end_index), chunk_values[start_index:end_index])
-    plt.show()
+    seen_ids = set()
+    final_chunks: List[Dict] = []
+    final_scores: List[float] = []
 
+    # --- Semantic Retrieval ---
+    semantic_chunks = retrieve_chunks_semantic(query, top_k=top_k)
+    semantic_texts = [c["chunk_text"] for c in semantic_chunks]
+    _, semantic_values = rerank_text_chunks(query, semantic_texts)
 
-# if __name__ == "__main__":
-#     # user_query = "what is the angle of the Tower of Pisa?"
-#     user_query = "provide lists the humidity and temperature limits for the 4820 SurePoint Solution"
-#     start_time = time.time()
+    for chunk, val in zip(semantic_chunks, semantic_values):
+        if chunk["chunk_id"] not in seen_ids:
+            seen_ids.add(chunk["chunk_id"])
+            chunk["search_type"] = "semantic"
+            final_chunks.append(chunk)
+            final_scores.append(val)
 
-#     retrieved_chunks = retrieve_chunks(user_query, top_k=20)
-#     print(f"\nRetrieved {len(retrieved_chunks)} chunks in {(time.time() - start_time):.2f} seconds")
+    # --- Payload Retrieval ---
+    part_numbers = extract_part_numbers(query)
+    if part_numbers:
+        payload_chunks = []
+        for pn in part_numbers:
+            payload_chunks.extend(retrieve_by_payload(pn, top_k=top_k))
 
-#     if retrieved_chunks:
-#         print("\n--- Cohere Rerank + Relevance Scoring ---")
-#         chunk_texts = [chunk["chunk_text"] for chunk in retrieved_chunks]
-#         similarity_scores, chunk_values = rerank_chunks(user_query, chunk_texts)
+        payload_chunks = [c for c in payload_chunks if c["chunk_id"] not in seen_ids]
+        payload_texts = [c["chunk_text"] for c in payload_chunks]
 
-#         for i, val in enumerate(chunk_values):
-#             print(f"Chunk {i} - Score: {val:.4f} | Text: {chunk_texts[i]}")
+        if payload_texts:
+            _, payload_values = rerank_text_chunks(query, payload_texts)
 
-#         plot_relevance_scores(chunk_values)
+            for chunk, val in zip(payload_chunks, payload_values):
+                seen_ids.add(chunk["chunk_id"])
+                chunk["search_type"] = "exact_match"
+                final_chunks.append(chunk)
+                final_scores.append(val + 0.05)
 
+    return final_chunks, final_scores
