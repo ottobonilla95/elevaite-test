@@ -1,73 +1,96 @@
-from fastapi import FastAPI, HTTPException
-from typing import List, Dict
+from fastapi import FastAPI, HTTPException, Query
+from pydantic import BaseModel
+from typing import List, Dict, Optional, Union
 import time
 
-from retrieval_stage.retrieve_qdrant import retrieve_chunks
-from post_retrieval.cohere_reranker import rerank_chunks
-from post_retrieval.rse import get_best_segments_greedy
+from retrieval_stage.retrieve_qdrant import multi_strategy_search as enhanced_hybrid_search
+from post_retrieval.cohere_reranker import rerank_separately_then_merge
+from post_retrieval.rse import get_best_segments
+
+class QueryRequest(BaseModel):
+    query: str
+    top_k: int = 30
+    segment_max_length: int = 4
+    overall_max_length: int = 12
+    minimum_value: float = 0.6
+    irrelevant_chunk_penalty: float = 0.2
+    segment_method: str = "greedy"
 
 app = FastAPI()
 
-@app.post("/query-chunks")
-async def query_chunks_api(query: str, top_k: int = 20):
-    """
-    API endpoint to retrieve and process chunks based on the query.
-
-    Args:
-        query (str): The user query.
-        top_k (int): Number of top chunks to retrieve from Qdrant.
-
-    Returns:
-        dict: Processed chunks and metadata.
-    """
+@app.post("/query")
+async def query_kb(request: QueryRequest):
     try:
-        chunks = retrieve_chunks(query, top_k=top_k)
-        if not chunks:
-            raise HTTPException(status_code=404, detail="No chunks found for the given query.")
+        total_start_time = time.time()
 
-        chunk_texts = [chunk["chunk_text"] for chunk in chunks]
+        retrieval_start_time = time.time()
+        retrieved_chunks, chunk_values = rerank_separately_then_merge(
+            query=request.query, 
+            top_k=request.top_k
+        )
+        retrieval_time = (time.time() - retrieval_start_time) * 1000
 
-        _, chunk_values = rerank_chunks(query, chunk_texts)
+        if not retrieved_chunks:
+            raise HTTPException(status_code=404, detail="No relevant information found for the given query.")
 
-        irrelevant_chunk_penalty = 0.2
-        max_length = 4
-        overall_max_length = 12
-        minimum_value = 0.6
+        relevance_values = [v - request.irrelevant_chunk_penalty for v in chunk_values]
 
-        relevance_values = [v - irrelevant_chunk_penalty for v in chunk_values]
-        
-        start_time = time.time()
-        best_segments, scores = get_best_segments_greedy(
-            relevance_values, max_length, overall_max_length, minimum_value)
-        end_time = time.time()
-        
-        retrieval_time_ms = (end_time - start_time) * 1000
+        segment_start_time = time.time()
+        best_segments, scores = get_best_segments(
+            relevance_values=relevance_values,
+            max_length=request.segment_max_length,
+            overall_max_length=request.overall_max_length,
+            minimum_value=request.minimum_value,
+            method=request.segment_method
+        )
+        segment_time = (time.time() - segment_start_time) * 1000
 
         selected_segments = []
         for i, (start, end) in enumerate(best_segments):
+            segment_chunks = []
+            for j in range(start, end):
+                chunk = retrieved_chunks[j]
+                segment_chunks.append({
+                    "chunk_id": chunk["chunk_id"],
+                    "chunk_text": chunk["chunk_text"],
+                    "is_table": chunk.get("is_table", False),
+                    "filename": chunk.get("filename"),
+                    "page_info": chunk.get("page_info"),
+                    "contextual_header": chunk.get("contextual_header"),
+                    "matched_image_path": chunk.get("matched_image_path"),
+                    "search_type": chunk.get("search_type", "semantic"),
+                    "relevance_score": chunk_values[j]
+                })
+
             segment_metadata = {
                 "segment_id": i + 1,
                 "score": scores[i],
-                "retrieval_latency_ms": retrieval_time_ms,
-                "chunks": [
-                    {
-                        "chunk_id": chunks[j]["chunk_id"],
-                        "chunk_text": chunk_texts[j],
-                        "filename": chunks[j].get("filename"),
-                        "page_range": chunks[j].get("page_range"),
-                        "contextual_header": chunks[j].get("contextual_header"),
-                        "matched_image_path": chunks[j].get("matched_image_path"),
-                    }
-                    for j in range(start, end)
-                ],
+                "chunks": segment_chunks
             }
             selected_segments.append(segment_metadata)
 
+        total_time = (time.time() - total_start_time) * 1000
+
         return {
-            "query": query,
+            "query": request.query,
             "selected_segments": selected_segments,
-            "retrieval_latency_ms": retrieval_time_ms,
+            "metrics": {
+                "total_retrieved_chunks": len(retrieved_chunks),
+                "selected_segment_count": len(best_segments),
+                "retrieval_time_ms": retrieval_time,
+                "segment_selection_time_ms": segment_time,
+                "total_processing_time_ms": total_time
+            }
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing query: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+@app.post("/query-chunks")
+async def query_chunks_api(query: str, top_k: int = Query(20)):
+    request = QueryRequest(query=query, top_k=top_k)
+    return await query_kb(request)
