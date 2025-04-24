@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { pipelineSteps } from "./lib/pipelineData";
 import { ElevaiteIcons } from "../../../packages/ui/src/components/icons/elevaite";
+import { AdaptiveConfigGrid } from "./components/AdaptiveConfigGrid";
 import "./page.scss";
 
 interface UploadingFile {
@@ -224,7 +225,7 @@ export default function Home(): JSX.Element {
           max={max}
           step={step}
           style={{
-            backgroundColor: "#161616",
+            backgroundColor: "#212124", // Match dropdown background color
             color: "white",
             border: "2px solid #3f3f41",
             padding: "10px",
@@ -233,9 +234,11 @@ export default function Home(): JSX.Element {
             fontSize: "14px",
             width: "100%",
             appearance: "textfield", // Remove default arrows
+            boxSizing: "border-box", // Ensure padding is included in width
           }}
         />
         <div
+          id="number-input-arrows"
           style={{
             position: "absolute",
             right: "10px",
@@ -244,6 +247,8 @@ export default function Home(): JSX.Element {
             display: "flex",
             flexDirection: "column",
             gap: "0px",
+            zIndex: 5, // Higher z-index to ensure visibility
+            pointerEvents: "auto", // Ensure clicks are registered
           }}
         >
           <button
@@ -740,229 +745,254 @@ export default function Home(): JSX.Element {
                     width: "100%",
                   }}
                 >
-                  {/* Data Source Selection */}
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "10px",
-                      padding: "16px",
-                      backgroundColor: "rgba(0, 0, 0, 0.2)",
-                      borderRadius: "8px",
-                      border: "2px solid #3f3f41",
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: "14px",
-                        color: "#808080",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Data Source
-                    </label>
-                    <CustomDropdown
-                      options={[
-                        { value: "s3", label: "Amazon S3" },
-                        { value: "local", label: "Local Storage" },
-                      ]}
-                      defaultValue={dataSource}
-                      onChange={(value) => {
-                        setDataSource(value);
-                        console.log("Selected data source:", value);
-                      }}
-                    />
-                  </div>
-
-                  {/* File Format Selection */}
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "10px",
-                      padding: "16px",
-                      backgroundColor: "rgba(0, 0, 0, 0.2)",
-                      borderRadius: "8px",
-                      border: "2px solid #3f3f41",
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: "14px",
-                        color: "#808080",
-                        fontWeight: 600,
-                      }}
-                    >
-                      File Format
-                    </label>
-                    <CustomDropdown
-                      options={[
-                        { value: "pdf", label: "PDF" },
-                        { value: "docx", label: "Word Document" },
-                        { value: "xlsx", label: "Excel Spreadsheet" },
-                        { value: "html", label: "HTML" },
-                      ]}
-                      defaultValue={fileFormat}
-                      onChange={(value) => {
-                        setFileFormat(value);
-                        console.log("Selected file format:", value);
-                      }}
-                    />
-                  </div>
-
-                  {/* S3 Specific Configuration */}
-                  {dataSource === "s3" && (
-                    <>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          S3 Bucket Name
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Enter bucket name"
-                          defaultValue="kb-check-pdf"
-                          style={{
-                            width: "100%",
-                            padding: "10px",
-                            backgroundColor: "#161616",
-                            border: "2px solid #3f3f41",
-                            borderRadius: "8px",
-                            color: "white",
-                            fontSize: "14px",
-                          }}
-                        />
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          AWS Region
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="e.g., us-east-1"
-                          defaultValue="us-east-2"
-                          style={{
-                            width: "100%",
-                            padding: "10px",
-                            backgroundColor: "#161616",
-                            border: "2px solid #3f3f41",
-                            borderRadius: "8px",
-                            color: "white",
-                            fontSize: "14px",
-                          }}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Local Storage Specific Configuration */}
-                  {dataSource === "local" && (
-                    <>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Input Directory
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Enter input directory path"
-                          defaultValue="/elevaite_ingestion/INPUT"
-                          style={{
-                            width: "100%",
-                            padding: "10px",
-                            backgroundColor: "#161616",
-                            border: "2px solid #3f3f41",
-                            borderRadius: "8px",
-                            color: "white",
-                            fontSize: "14px",
-                          }}
-                        />
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Output Directory
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Enter output directory path"
-                          defaultValue="/elevaite_ingestion/OUTPUT"
-                          style={{
-                            width: "100%",
-                            padding: "10px",
-                            backgroundColor: "#161616",
-                            border: "2px solid #3f3f41",
-                            borderRadius: "8px",
-                            color: "white",
-                            fontSize: "14px",
-                          }}
-                        />
-                      </div>
-                    </>
-                  )}
+                  <AdaptiveConfigGrid
+                    options={[
+                      {
+                        id: "data_source",
+                        children: (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "10px",
+                              padding: "16px",
+                              backgroundColor: "rgba(0, 0, 0, 0.2)",
+                              borderRadius: "8px",
+                              border: "2px solid #3f3f41",
+                            }}
+                          >
+                            <label
+                              style={{
+                                fontSize: "14px",
+                                color: "#808080",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Data Source
+                            </label>
+                            <CustomDropdown
+                              options={[
+                                { value: "s3", label: "Amazon S3" },
+                                { value: "local", label: "Local Storage" },
+                              ]}
+                              defaultValue={dataSource}
+                              onChange={(value) => {
+                                setDataSource(value);
+                                console.log("Selected data source:", value);
+                              }}
+                            />
+                          </div>
+                        ),
+                      },
+                      {
+                        id: "file_format",
+                        children: (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "10px",
+                              padding: "16px",
+                              backgroundColor: "rgba(0, 0, 0, 0.2)",
+                              borderRadius: "8px",
+                              border: "2px solid #3f3f41",
+                            }}
+                          >
+                            <label
+                              style={{
+                                fontSize: "14px",
+                                color: "#808080",
+                                fontWeight: 600,
+                              }}
+                            >
+                              File Format
+                            </label>
+                            <CustomDropdown
+                              options={[
+                                { value: "pdf", label: "PDF" },
+                                { value: "docx", label: "Word Document" },
+                                { value: "xlsx", label: "Excel Spreadsheet" },
+                                { value: "html", label: "HTML" },
+                              ]}
+                              defaultValue={fileFormat}
+                              onChange={(value) => {
+                                setFileFormat(value);
+                                console.log("Selected file format:", value);
+                              }}
+                            />
+                          </div>
+                        ),
+                      },
+                      ...(dataSource === "s3"
+                        ? [
+                            {
+                              id: "s3_bucket_name",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    S3 Bucket Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Enter bucket name"
+                                    defaultValue="kb-check-pdf"
+                                    style={{
+                                      width: "100%",
+                                      padding: "10px",
+                                      backgroundColor: "#212124",
+                                      border: "2px solid #3f3f41",
+                                      borderRadius: "8px",
+                                      color: "white",
+                                      fontSize: "14px",
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                            {
+                              id: "aws_region",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    AWS Region
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g., us-east-1"
+                                    defaultValue="us-east-2"
+                                    style={{
+                                      width: "100%",
+                                      padding: "10px",
+                                      backgroundColor: "#212124",
+                                      border: "2px solid #3f3f41",
+                                      borderRadius: "8px",
+                                      color: "white",
+                                      fontSize: "14px",
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                          ]
+                        : []),
+                      ...(dataSource === "local"
+                        ? [
+                            {
+                              id: "input_directory",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Input Directory
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Enter input directory path"
+                                    defaultValue="/elevaite_ingestion/INPUT"
+                                    style={{
+                                      width: "100%",
+                                      padding: "10px",
+                                      backgroundColor: "#212124",
+                                      border: "2px solid #3f3f41",
+                                      borderRadius: "8px",
+                                      color: "white",
+                                      fontSize: "14px",
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                            {
+                              id: "output_directory",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Output Directory
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Enter output directory path"
+                                    defaultValue="/elevaite_ingestion/OUTPUT"
+                                    style={{
+                                      width: "100%",
+                                      padding: "10px",
+                                      backgroundColor: "#212124",
+                                      border: "2px solid #3f3f41",
+                                      borderRadius: "8px",
+                                      color: "white",
+                                      fontSize: "14px",
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
                 </div>
               )}
 
@@ -975,201 +1005,235 @@ export default function Home(): JSX.Element {
                     width: "100%",
                   }}
                 >
-                  {/* Parsing Mode Selection */}
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "10px",
-                      padding: "16px",
-                      backgroundColor: "rgba(0, 0, 0, 0.2)",
-                      borderRadius: "8px",
-                      border: "2px solid #3f3f41",
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: "14px",
-                        color: "#808080",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Parsing Mode
-                    </label>
-                    <CustomDropdown
-                      options={[
-                        { value: "auto_parser", label: "Auto Parser" },
-                        { value: "custom_parser", label: "Custom Parser" },
-                      ]}
-                      defaultValue={parsingMode}
-                      onChange={(value) => {
-                        setParsingMode(value);
-                        console.log("Selected parsing mode:", value);
-                      }}
-                    />
-                  </div>
-
-                  {/* Parser Configuration Options */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: isMobile
-                        ? "1fr"
-                        : "calc(50% - 12px) calc(50% - 12px)",
-                      gap: "24px",
-                      width: "100%",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "10px",
-                        padding: "16px",
-                        backgroundColor: "rgba(0, 0, 0, 0.2)",
-                        borderRadius: "8px",
-                        border: "2px solid #3f3f41",
-                      }}
-                    >
-                      <label
-                        style={{
-                          fontSize: "14px",
-                          color: "#808080",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Parser Type
-                      </label>
-                      <CustomDropdown
-                        options={[
-                          { value: "pdf", label: "PDF Parser" },
-                          { value: "docx", label: "DOCX Parser" },
-                          { value: "xlsx", label: "XLSX Parser" },
-                          { value: "html", label: "HTML Parser" },
-                        ]}
-                        defaultValue={parserType || "pdf"}
-                        onChange={(value) => {
-                          setParserType(value);
-                          console.log("Selected parser type:", value);
-                        }}
-                      />
-                    </div>
-
-                    {parsingMode === "custom_parser" && parserType && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Parser Tool
-                        </label>
-                        <CustomDropdown
-                          options={
-                            parserType === "pdf"
-                              ? [{ value: "none", label: "None" }]
-                              : parserType === "docx" ||
-                                  parserType === "xlsx" ||
-                                  parserType === "html"
-                                ? [
-                                    {
-                                      value: "markitdown",
-                                      label: "Markitdown",
-                                    },
-                                    { value: "docling", label: "Docling" },
-                                    {
-                                      value: "llamaparse",
-                                      label: "LlamaParse",
-                                    },
-                                  ]
-                                : [{ value: "none", label: "None" }]
-                          }
-                          defaultValue={
-                            parserTool ||
-                            (parserType === "pdf" ? "none" : "markitdown")
-                          }
-                          onChange={(value) => {
-                            setParserTool(value);
-                            console.log("Selected parser tool:", value);
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {parsingMode === "custom_parser" && !parserType && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Parser Tool
-                        </label>
-                        <div style={{ color: "#808080", fontSize: "14px" }}>
-                          Select a parser type first
-                        </div>
-                      </div>
-                    )}
-
-                    {parsingMode === "auto_parser" && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Language
-                        </label>
-                        <CustomDropdown
-                          options={[
-                            { value: "en", label: "English" },
-                            { value: "es", label: "Spanish" },
-                            { value: "fr", label: "French" },
-                          ]}
-                          defaultValue="en"
-                          onChange={(value) =>
-                            console.log("Selected language:", value)
-                          }
-                        />
-                      </div>
-                    )}
-                  </div>
+                  <AdaptiveConfigGrid
+                    options={[
+                      {
+                        id: "parsing_mode",
+                        children: (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "10px",
+                              padding: "16px",
+                              backgroundColor: "rgba(0, 0, 0, 0.2)",
+                              borderRadius: "8px",
+                              border: "2px solid #3f3f41",
+                            }}
+                          >
+                            <label
+                              style={{
+                                fontSize: "14px",
+                                color: "#808080",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Parsing Mode
+                            </label>
+                            <CustomDropdown
+                              options={[
+                                { value: "auto_parser", label: "Auto Parser" },
+                                {
+                                  value: "custom_parser",
+                                  label: "Custom Parser",
+                                },
+                              ]}
+                              defaultValue={parsingMode}
+                              onChange={(value) => {
+                                setParsingMode(value);
+                                console.log("Selected parsing mode:", value);
+                              }}
+                            />
+                          </div>
+                        ),
+                      },
+                      {
+                        id: "parser_type",
+                        children: (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "10px",
+                              padding: "16px",
+                              backgroundColor: "rgba(0, 0, 0, 0.2)",
+                              borderRadius: "8px",
+                              border: "2px solid #3f3f41",
+                            }}
+                          >
+                            <label
+                              style={{
+                                fontSize: "14px",
+                                color: "#808080",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Parser Type
+                            </label>
+                            <CustomDropdown
+                              options={[
+                                { value: "pdf", label: "PDF Parser" },
+                                { value: "docx", label: "DOCX Parser" },
+                                { value: "xlsx", label: "XLSX Parser" },
+                                { value: "html", label: "HTML Parser" },
+                              ]}
+                              defaultValue={parserType || "pdf"}
+                              onChange={(value) => {
+                                setParserType(value);
+                                console.log("Selected parser type:", value);
+                              }}
+                            />
+                          </div>
+                        ),
+                      },
+                      ...(parsingMode === "custom_parser" && parserType
+                        ? [
+                            {
+                              id: "parser_tool",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Parser Tool
+                                  </label>
+                                  <CustomDropdown
+                                    options={
+                                      parserType === "pdf"
+                                        ? [{ value: "none", label: "None" }]
+                                        : parserType === "docx" ||
+                                            parserType === "xlsx" ||
+                                            parserType === "html"
+                                          ? [
+                                              {
+                                                value: "markitdown",
+                                                label: "Markitdown",
+                                              },
+                                              {
+                                                value: "docling",
+                                                label: "Docling",
+                                              },
+                                              {
+                                                value: "llamaparse",
+                                                label: "LlamaParse",
+                                              },
+                                            ]
+                                          : [{ value: "none", label: "None" }]
+                                    }
+                                    defaultValue={
+                                      parserTool ||
+                                      (parserType === "pdf"
+                                        ? "none"
+                                        : "markitdown")
+                                    }
+                                    onChange={(value) => {
+                                      setParserTool(value);
+                                      console.log(
+                                        "Selected parser tool:",
+                                        value
+                                      );
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                          ]
+                        : []),
+                      ...(parsingMode === "custom_parser" && !parserType
+                        ? [
+                            {
+                              id: "parser_tool_placeholder",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Parser Tool
+                                  </label>
+                                  <div
+                                    style={{
+                                      color: "#808080",
+                                      fontSize: "14px",
+                                    }}
+                                  >
+                                    Select a parser type first
+                                  </div>
+                                </div>
+                              ),
+                            },
+                          ]
+                        : []),
+                      ...(parsingMode === "auto_parser"
+                        ? [
+                            {
+                              id: "language",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Language
+                                  </label>
+                                  <CustomDropdown
+                                    options={[
+                                      { value: "en", label: "English" },
+                                      { value: "es", label: "Spanish" },
+                                      { value: "fr", label: "French" },
+                                    ]}
+                                    defaultValue="en"
+                                    onChange={(value) =>
+                                      console.log("Selected language:", value)
+                                    }
+                                  />
+                                </div>
+                              ),
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
                 </div>
               )}
 
@@ -1182,271 +1246,314 @@ export default function Home(): JSX.Element {
                     width: "100%",
                   }}
                 >
-                  {/* Chunking Strategy Selection */}
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "10px",
-                      padding: "16px",
-                      backgroundColor: "rgba(0, 0, 0, 0.2)",
-                      borderRadius: "8px",
-                      border: "2px solid #3f3f41",
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: "14px",
-                        color: "#808080",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Chunking Strategy
-                    </label>
-                    <CustomDropdown
-                      options={[
-                        {
-                          value: "semantic_chunking",
-                          label: "Semantic Chunking",
-                        },
-                        { value: "mdstructure", label: "Markdown Structure" },
-                        {
-                          value: "recursive_chunking",
-                          label: "Recursive Chunking",
-                        },
-                        {
-                          value: "sentence_chunking",
-                          label: "Sentence Chunking",
-                        },
-                      ]}
-                      defaultValue={chunkingStrategy}
-                      onChange={(value) => {
-                        setChunkingStrategy(value);
-                        console.log("Selected chunking strategy:", value);
-                      }}
-                    />
-                  </div>
-
-                  {/* Chunking Configuration Options */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: isMobile
-                        ? "1fr"
-                        : "calc(50% - 12px) calc(50% - 12px)",
-                      gap: "24px",
-                      width: "100%",
-                    }}
-                  >
-                    {/* Semantic Chunking Options */}
-                    {chunkingStrategy === "semantic_chunking" && (
-                      <>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "10px",
-                            padding: "16px",
-                            backgroundColor: "rgba(0, 0, 0, 0.2)",
-                            borderRadius: "8px",
-                            border: "2px solid #3f3f41",
-                          }}
-                        >
-                          <label
+                  <AdaptiveConfigGrid
+                    options={[
+                      {
+                        id: "chunking_strategy",
+                        children: (
+                          <div
                             style={{
-                              fontSize: "14px",
-                              color: "#808080",
-                              fontWeight: 600,
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "10px",
+                              padding: "16px",
+                              backgroundColor: "rgba(0, 0, 0, 0.2)",
+                              borderRadius: "8px",
+                              border: "2px solid #3f3f41",
                             }}
                           >
-                            Threshold Type
-                          </label>
-                          <CustomDropdown
-                            options={[
-                              { value: "percentile", label: "Percentile" },
-                              { value: "fixed", label: "Fixed" },
-                            ]}
-                            defaultValue={thresholdType}
-                            onChange={(value) => {
-                              setThresholdType(value);
-                              console.log("Threshold type changed:", value);
-                            }}
-                          />
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "10px",
-                            padding: "16px",
-                            backgroundColor: "rgba(0, 0, 0, 0.2)",
-                            borderRadius: "8px",
-                            border: "2px solid #3f3f41",
-                          }}
-                        >
-                          <label
+                            <label
+                              style={{
+                                fontSize: "14px",
+                                color: "#808080",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Chunking Strategy
+                            </label>
+                            <CustomDropdown
+                              options={[
+                                {
+                                  value: "semantic_chunking",
+                                  label: "Semantic Chunking",
+                                },
+                                {
+                                  value: "mdstructure",
+                                  label: "Markdown Structure",
+                                },
+                                {
+                                  value: "recursive_chunking",
+                                  label: "Recursive Chunking",
+                                },
+                                {
+                                  value: "sentence_chunking",
+                                  label: "Sentence Chunking",
+                                },
+                              ]}
+                              defaultValue={chunkingStrategy}
+                              onChange={(value) => {
+                                setChunkingStrategy(value);
+                                console.log(
+                                  "Selected chunking strategy:",
+                                  value
+                                );
+                              }}
+                            />
+                          </div>
+                        ),
+                      },
+                      {
+                        id: "chunk_size",
+                        children: (
+                          <div
                             style={{
-                              fontSize: "14px",
-                              color: "#808080",
-                              fontWeight: 600,
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "10px",
+                              padding: "16px",
+                              backgroundColor: "rgba(0, 0, 0, 0.2)",
+                              borderRadius: "8px",
+                              border: "2px solid #3f3f41",
                             }}
                           >
-                            Threshold Amount
-                          </label>
-                          <CustomNumberInput
-                            defaultValue={thresholdAmount}
-                            min={1}
-                            max={100}
-                            step={1}
-                            onChange={(value) => {
-                              setThresholdAmount(value);
-                              console.log("Threshold amount changed:", value);
-                            }}
-                          />
-                        </div>
-                      </>
-                    )}
-
-                    {/* Markdown Structure Options */}
-                    {chunkingStrategy === "mdstructure" && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                          gridColumn: "1 / -1",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Chunk Size
-                        </label>
-                        <CustomNumberInput
-                          defaultValue={chunkSize}
-                          min={100}
-                          max={5000}
-                          step={100}
-                          onChange={(value) => {
-                            setChunkSize(value);
-                            console.log("Chunk size changed:", value);
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {/* Recursive Chunking Options */}
-                    {chunkingStrategy === "recursive_chunking" && (
-                      <>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "10px",
-                            padding: "16px",
-                            backgroundColor: "rgba(0, 0, 0, 0.2)",
-                            borderRadius: "8px",
-                            border: "2px solid #3f3f41",
-                          }}
-                        >
-                          <label
+                            <label
+                              style={{
+                                fontSize: "14px",
+                                color: "#808080",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Chunk Size
+                            </label>
+                            <CustomNumberInput
+                              min={100}
+                              max={2000}
+                              step={50}
+                              defaultValue={chunkSize}
+                              onChange={(value) => {
+                                setChunkSize(value);
+                                console.log("Selected chunk size:", value);
+                              }}
+                            />
+                          </div>
+                        ),
+                      },
+                      {
+                        id: "chunk_overlap",
+                        children: (
+                          <div
                             style={{
-                              fontSize: "14px",
-                              color: "#808080",
-                              fontWeight: 600,
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "10px",
+                              padding: "16px",
+                              backgroundColor: "rgba(0, 0, 0, 0.2)",
+                              borderRadius: "8px",
+                              border: "2px solid #3f3f41",
                             }}
                           >
-                            Chunk Size
-                          </label>
-                          <CustomNumberInput
-                            defaultValue={chunkSize}
-                            min={100}
-                            max={5000}
-                            step={100}
-                            onChange={(value) => {
-                              setChunkSize(value);
-                              console.log("Chunk size changed:", value);
-                            }}
-                          />
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "10px",
-                            padding: "16px",
-                            backgroundColor: "rgba(0, 0, 0, 0.2)",
-                            borderRadius: "8px",
-                            border: "2px solid #3f3f41",
-                          }}
-                        >
-                          <label
-                            style={{
-                              fontSize: "14px",
-                              color: "#808080",
-                              fontWeight: 600,
-                            }}
-                          >
-                            Chunk Overlap
-                          </label>
-                          <CustomNumberInput
-                            defaultValue={chunkOverlap}
-                            min={0}
-                            max={1000}
-                            step={50}
-                            onChange={(value) => {
-                              setChunkOverlap(value);
-                              console.log("Chunk overlap changed:", value);
-                            }}
-                          />
-                        </div>
-                      </>
-                    )}
-
-                    {/* Sentence Chunking Options */}
-                    {chunkingStrategy === "sentence_chunking" && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                          gridColumn: "1 / -1",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Max Chunk Size
-                        </label>
-                        <CustomNumberInput
-                          defaultValue={maxChunkSize}
-                          min={100}
-                          max={5000}
-                          step={100}
-                          onChange={(value) => {
-                            setMaxChunkSize(value);
-                            console.log("Max chunk size changed:", value);
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
+                            <label
+                              style={{
+                                fontSize: "14px",
+                                color: "#808080",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Chunk Overlap
+                            </label>
+                            <CustomNumberInput
+                              min={0}
+                              max={500}
+                              step={10}
+                              defaultValue={chunkOverlap}
+                              onChange={(value) => {
+                                setChunkOverlap(value);
+                                console.log("Selected chunk overlap:", value);
+                              }}
+                            />
+                          </div>
+                        ),
+                      },
+                      ...(chunkingStrategy === "semantic_chunking"
+                        ? [
+                            {
+                              id: "semantic_model",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Semantic Model
+                                  </label>
+                                  <CustomDropdown
+                                    options={[
+                                      {
+                                        value: "openai",
+                                        label: "OpenAI",
+                                      },
+                                      {
+                                        value: "cohere",
+                                        label: "Cohere",
+                                      },
+                                      {
+                                        value: "huggingface",
+                                        label: "HuggingFace",
+                                      },
+                                    ]}
+                                    defaultValue="openai"
+                                    onChange={(value) =>
+                                      console.log(
+                                        "Selected semantic model:",
+                                        value
+                                      )
+                                    }
+                                  />
+                                </div>
+                              ),
+                            },
+                            {
+                              id: "threshold_type",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Threshold Type
+                                  </label>
+                                  <CustomDropdown
+                                    options={[
+                                      {
+                                        value: "percentile",
+                                        label: "Percentile",
+                                      },
+                                      { value: "fixed", label: "Fixed" },
+                                    ]}
+                                    defaultValue={thresholdType}
+                                    onChange={(value) => {
+                                      setThresholdType(value);
+                                      console.log(
+                                        "Threshold type changed:",
+                                        value
+                                      );
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                            {
+                              id: "threshold_amount",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Threshold Amount
+                                  </label>
+                                  <CustomNumberInput
+                                    defaultValue={thresholdAmount}
+                                    min={1}
+                                    max={100}
+                                    step={1}
+                                    onChange={(value) => {
+                                      setThresholdAmount(value);
+                                      console.log(
+                                        "Threshold amount changed:",
+                                        value
+                                      );
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                          ]
+                        : []),
+                      ...(chunkingStrategy === "sentence_chunking"
+                        ? [
+                            {
+                              id: "max_chunk_size",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Max Chunk Size
+                                  </label>
+                                  <CustomNumberInput
+                                    defaultValue={maxChunkSize}
+                                    min={100}
+                                    max={5000}
+                                    step={100}
+                                    onChange={(value) => {
+                                      setMaxChunkSize(value);
+                                      console.log(
+                                        "Max chunk size changed:",
+                                        value
+                                      );
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
                 </div>
               )}
 
@@ -1459,215 +1566,237 @@ export default function Home(): JSX.Element {
                     width: "100%",
                   }}
                 >
-                  {/* Embedding Provider Selection */}
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "10px",
-                      padding: "16px",
-                      backgroundColor: "rgba(0, 0, 0, 0.2)",
-                      borderRadius: "8px",
-                      border: "2px solid #3f3f41",
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: "14px",
-                        color: "#808080",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Embedding Provider
-                    </label>
-                    <CustomDropdown
-                      options={[
-                        { value: "openai", label: "OpenAI" },
-                        { value: "cohere", label: "Cohere" },
-                        {
-                          value: "local",
-                          label: "Local (Sentence Transformers)",
-                        },
-                        { value: "amazon_bedrock", label: "Amazon Bedrock" },
-                      ]}
-                      defaultValue={embeddingProvider}
-                      onChange={(value) => {
-                        setEmbeddingProvider(value);
-                        console.log("Selected embedding provider:", value);
-                      }}
-                    />
-                  </div>
-
-                  {/* Embedding Model Selection */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: isMobile
-                        ? "1fr"
-                        : "calc(50% - 12px) calc(50% - 12px)",
-                      gap: "24px",
-                      width: "100%",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "10px",
-                        padding: "16px",
-                        backgroundColor: "rgba(0, 0, 0, 0.2)",
-                        borderRadius: "8px",
-                        border: "2px solid #3f3f41",
-                      }}
-                    >
-                      <label
-                        style={{
-                          fontSize: "14px",
-                          color: "#808080",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Embedding Model
-                      </label>
-                      <CustomDropdown
-                        options={
-                          embeddingProvider === "openai"
-                            ? [
+                  <AdaptiveConfigGrid
+                    options={[
+                      {
+                        id: "embedding_provider",
+                        children: (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "10px",
+                              padding: "16px",
+                              backgroundColor: "rgba(0, 0, 0, 0.2)",
+                              borderRadius: "8px",
+                              border: "2px solid #3f3f41",
+                            }}
+                          >
+                            <label
+                              style={{
+                                fontSize: "14px",
+                                color: "#808080",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Embedding Provider
+                            </label>
+                            <CustomDropdown
+                              options={[
+                                { value: "openai", label: "OpenAI" },
+                                { value: "cohere", label: "Cohere" },
                                 {
-                                  value: "text-embedding-ada-002",
-                                  label: "text-embedding-ada-002 (1536 dim)",
+                                  value: "local",
+                                  label: "Local (Sentence Transformers)",
                                 },
                                 {
-                                  value: "text-embedding-3-small",
-                                  label: "text-embedding-3-small (1536 dim)",
+                                  value: "amazon_bedrock",
+                                  label: "Amazon Bedrock",
                                 },
-                                {
-                                  value: "text-embedding-3-large",
-                                  label: "text-embedding-3-large (3072 dim)",
-                                },
-                              ]
-                            : embeddingProvider === "cohere"
-                              ? [
-                                  {
-                                    value: "embed-english-light-v3.0",
-                                    label:
-                                      "embed-english-light-v3.0 (1024 dim)",
-                                  },
-                                  {
-                                    value: "embed-english-v3.0",
-                                    label: "embed-english-v3.0 (1024 dim)",
-                                  },
-                                  {
-                                    value: "embed-multilingual-v3.0",
-                                    label: "embed-multilingual-v3.0 (1024 dim)",
-                                  },
-                                ]
-                              : embeddingProvider === "local"
-                                ? [
-                                    {
-                                      value: "all-MiniLM-L6-v2",
-                                      label: "all-MiniLM-L6-v2 (384 dim)",
-                                    },
-                                    {
-                                      value: "all-mpnet-base-v2",
-                                      label: "all-mpnet-base-v2 (768 dim)",
-                                    },
-                                  ]
-                                : embeddingProvider === "amazon_bedrock"
+                              ]}
+                              defaultValue={embeddingProvider}
+                              onChange={(value) => {
+                                setEmbeddingProvider(value);
+                                console.log(
+                                  "Selected embedding provider:",
+                                  value
+                                );
+                              }}
+                            />
+                          </div>
+                        ),
+                      },
+                      {
+                        id: "embedding_model",
+                        children: (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "10px",
+                              padding: "16px",
+                              backgroundColor: "rgba(0, 0, 0, 0.2)",
+                              borderRadius: "8px",
+                              border: "2px solid #3f3f41",
+                            }}
+                          >
+                            <label
+                              style={{
+                                fontSize: "14px",
+                                color: "#808080",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Embedding Model
+                            </label>
+                            <CustomDropdown
+                              options={
+                                embeddingProvider === "openai"
                                   ? [
                                       {
-                                        value: "titan-embed-text-v1",
-                                        label: "Titan Embed Text v1",
+                                        value: "text-embedding-ada-002",
+                                        label:
+                                          "text-embedding-ada-002 (1536 dim)",
+                                      },
+                                      {
+                                        value: "text-embedding-3-small",
+                                        label:
+                                          "text-embedding-3-small (1536 dim)",
+                                      },
+                                      {
+                                        value: "text-embedding-3-large",
+                                        label:
+                                          "text-embedding-3-large (3072 dim)",
                                       },
                                     ]
-                                  : [{ value: "none", label: "None" }]
-                        }
-                        defaultValue={embeddingModel}
-                        onChange={(value) => {
-                          setEmbeddingModel(value);
-                          console.log("Selected embedding model:", value);
-                        }}
-                      />
-                    </div>
-
-                    {/* API Key Input for providers that need it */}
-                    {(embeddingProvider === "openai" ||
-                      embeddingProvider === "cohere") && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          API Key
-                        </label>
-                        <input
-                          type="password"
-                          placeholder="Enter API key"
-                          style={{
-                            backgroundColor: "#161616",
-                            color: "white",
-                            border: "2px solid #3f3f41",
-                            padding: "10px",
-                            borderRadius: "8px",
-                            fontSize: "14px",
-                            width: "100%",
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {/* AWS Region for Amazon Bedrock */}
-                    {embeddingProvider === "amazon_bedrock" && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          AWS Region
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="e.g., us-east-1"
-                          defaultValue="us-east-2"
-                          style={{
-                            backgroundColor: "#161616",
-                            color: "white",
-                            border: "2px solid #3f3f41",
-                            padding: "10px",
-                            borderRadius: "8px",
-                            fontSize: "14px",
-                            width: "100%",
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
+                                  : embeddingProvider === "cohere"
+                                    ? [
+                                        {
+                                          value: "embed-english-light-v3.0",
+                                          label:
+                                            "embed-english-light-v3.0 (1024 dim)",
+                                        },
+                                        {
+                                          value: "embed-english-v3.0",
+                                          label:
+                                            "embed-english-v3.0 (1024 dim)",
+                                        },
+                                        {
+                                          value: "embed-multilingual-v3.0",
+                                          label:
+                                            "embed-multilingual-v3.0 (1024 dim)",
+                                        },
+                                      ]
+                                    : embeddingProvider === "local"
+                                      ? [
+                                          {
+                                            value: "all-MiniLM-L6-v2",
+                                            label: "all-MiniLM-L6-v2 (384 dim)",
+                                          },
+                                          {
+                                            value: "all-mpnet-base-v2",
+                                            label:
+                                              "all-mpnet-base-v2 (768 dim)",
+                                          },
+                                        ]
+                                      : embeddingProvider === "amazon_bedrock"
+                                        ? [
+                                            {
+                                              value: "titan-embed-text-v1",
+                                              label: "Titan Embed Text v1",
+                                            },
+                                          ]
+                                        : [{ value: "none", label: "None" }]
+                              }
+                              defaultValue={embeddingModel}
+                              onChange={(value) => {
+                                setEmbeddingModel(value);
+                                console.log("Selected embedding model:", value);
+                              }}
+                            />
+                          </div>
+                        ),
+                      },
+                      ...(embeddingProvider === "openai" ||
+                      embeddingProvider === "cohere"
+                        ? [
+                            {
+                              id: "api_key",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    API Key
+                                  </label>
+                                  <input
+                                    type="password"
+                                    placeholder="Enter API key"
+                                    style={{
+                                      backgroundColor: "#212124",
+                                      color: "white",
+                                      border: "2px solid #3f3f41",
+                                      padding: "10px",
+                                      borderRadius: "8px",
+                                      fontSize: "14px",
+                                      width: "100%",
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                          ]
+                        : []),
+                      ...(embeddingProvider === "amazon_bedrock"
+                        ? [
+                            {
+                              id: "aws_region",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    AWS Region
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g., us-east-1"
+                                    defaultValue="us-east-2"
+                                    style={{
+                                      backgroundColor: "#212124",
+                                      color: "white",
+                                      border: "2px solid #3f3f41",
+                                      padding: "10px",
+                                      borderRadius: "8px",
+                                      fontSize: "14px",
+                                      width: "100%",
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
                 </div>
               )}
 
@@ -1680,420 +1809,446 @@ export default function Home(): JSX.Element {
                     width: "100%",
                   }}
                 >
-                  {/* Vector Database Selection */}
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "10px",
-                      padding: "16px",
-                      backgroundColor: "rgba(0, 0, 0, 0.2)",
-                      borderRadius: "8px",
-                      border: "2px solid #3f3f41",
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: "14px",
-                        color: "#808080",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Vector Database
-                    </label>
-                    <CustomDropdown
-                      options={[
-                        { value: "pinecone", label: "Pinecone" },
-                        { value: "qdrant", label: "Qdrant" },
-                        { value: "chroma", label: "Chroma" },
-                      ]}
-                      defaultValue={vectorDb}
-                      onChange={(value) => {
-                        setVectorDb(value);
-                        console.log("Selected vector database:", value);
-                      }}
-                    />
-                  </div>
-
-                  {/* Database-specific Configuration */}
-                  {vectorDb === "pinecone" && (
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: isMobile
-                          ? "1fr"
-                          : "calc(50% - 12px) calc(50% - 12px)",
-                        gap: "24px",
-                        width: "100%",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          API Key
-                        </label>
-                        <input
-                          type="password"
-                          placeholder="Enter Pinecone API key"
-                          style={{
-                            backgroundColor: "#161616",
-                            color: "white",
-                            border: "2px solid #3f3f41",
-                            padding: "10px",
-                            borderRadius: "8px",
-                            fontSize: "14px",
-                            width: "100%",
-                          }}
-                        />
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Cloud
-                        </label>
-                        <CustomDropdown
-                          options={[
-                            { value: "aws", label: "AWS" },
-                            { value: "gcp", label: "GCP" },
-                            { value: "azure", label: "Azure" },
-                          ]}
-                          defaultValue="aws"
-                          onChange={(value) =>
-                            console.log("Selected cloud:", value)
-                          }
-                        />
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Region
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="e.g., us-east-1"
-                          defaultValue="us-east-1"
-                          style={{
-                            backgroundColor: "#161616",
-                            color: "white",
-                            border: "2px solid #3f3f41",
-                            padding: "10px",
-                            borderRadius: "8px",
-                            fontSize: "14px",
-                            width: "100%",
-                          }}
-                        />
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Index Name
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Enter index name"
-                          defaultValue="kb-final10"
-                          style={{
-                            backgroundColor: "#161616",
-                            color: "white",
-                            border: "2px solid #3f3f41",
-                            padding: "10px",
-                            borderRadius: "8px",
-                            fontSize: "14px",
-                            width: "100%",
-                          }}
-                        />
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Dimension
-                        </label>
-                        <CustomNumberInput
-                          defaultValue={1536}
-                          min={1}
-                          max={4096}
-                          step={1}
-                          onChange={(value) =>
-                            console.log("Dimension changed:", value)
-                          }
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {vectorDb === "qdrant" && (
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: isMobile
-                          ? "1fr"
-                          : "calc(50% - 12px) calc(50% - 12px)",
-                        gap: "24px",
-                        width: "100%",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Host
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Enter host URL"
-                          defaultValue="http://localhost"
-                          style={{
-                            backgroundColor: "#161616",
-                            color: "white",
-                            border: "2px solid #3f3f41",
-                            padding: "10px",
-                            borderRadius: "8px",
-                            fontSize: "14px",
-                            width: "100%",
-                          }}
-                        />
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Port
-                        </label>
-                        <CustomNumberInput
-                          defaultValue={5333}
-                          min={1}
-                          max={65535}
-                          step={1}
-                          onChange={(value) =>
-                            console.log("Port changed:", value)
-                          }
-                        />
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                          gridColumn: "1 / -1",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Collection Name
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Enter collection name"
-                          defaultValue="toshiba_pdf_7"
-                          style={{
-                            backgroundColor: "#161616",
-                            color: "white",
-                            border: "2px solid #3f3f41",
-                            padding: "10px",
-                            borderRadius: "8px",
-                            fontSize: "14px",
-                            width: "100%",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {vectorDb === "chroma" && (
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: isMobile
-                          ? "1fr"
-                          : "calc(50% - 12px) calc(50% - 12px)",
-                        gap: "24px",
-                        width: "100%",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Database Path
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Enter database path"
-                          defaultValue="data/chroma_db"
-                          style={{
-                            backgroundColor: "#161616",
-                            color: "white",
-                            border: "2px solid #3f3f41",
-                            padding: "10px",
-                            borderRadius: "8px",
-                            fontSize: "14px",
-                            width: "100%",
-                          }}
-                        />
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "10px",
-                          padding: "16px",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          border: "2px solid #3f3f41",
-                        }}
-                      >
-                        <label
-                          style={{
-                            fontSize: "14px",
-                            color: "#808080",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Collection Name
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Enter collection name"
-                          defaultValue="kb-chroma"
-                          style={{
-                            backgroundColor: "#161616",
-                            color: "white",
-                            border: "2px solid #3f3f41",
-                            padding: "10px",
-                            borderRadius: "8px",
-                            fontSize: "14px",
-                            width: "100%",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
+                  <AdaptiveConfigGrid
+                    options={[
+                      {
+                        id: "vector_database",
+                        children: (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "10px",
+                              padding: "16px",
+                              backgroundColor: "rgba(0, 0, 0, 0.2)",
+                              borderRadius: "8px",
+                              border: "2px solid #3f3f41",
+                            }}
+                          >
+                            <label
+                              style={{
+                                fontSize: "14px",
+                                color: "#808080",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Vector Database
+                            </label>
+                            <CustomDropdown
+                              options={[
+                                { value: "pinecone", label: "Pinecone" },
+                                { value: "qdrant", label: "Qdrant" },
+                                { value: "chroma", label: "Chroma" },
+                              ]}
+                              defaultValue={vectorDb}
+                              onChange={(value) => {
+                                setVectorDb(value);
+                                console.log("Selected vector database:", value);
+                              }}
+                            />
+                          </div>
+                        ),
+                      },
+                      ...(vectorDb === "pinecone"
+                        ? [
+                            {
+                              id: "pinecone_api_key",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    API Key
+                                  </label>
+                                  <input
+                                    type="password"
+                                    placeholder="Enter Pinecone API key"
+                                    style={{
+                                      backgroundColor: "#212124",
+                                      color: "white",
+                                      border: "2px solid #3f3f41",
+                                      padding: "10px",
+                                      borderRadius: "8px",
+                                      fontSize: "14px",
+                                      width: "100%",
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                            {
+                              id: "pinecone_cloud",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Cloud
+                                  </label>
+                                  <CustomDropdown
+                                    options={[
+                                      { value: "aws", label: "AWS" },
+                                      { value: "gcp", label: "GCP" },
+                                      { value: "azure", label: "Azure" },
+                                    ]}
+                                    defaultValue="aws"
+                                    onChange={(value) =>
+                                      console.log("Selected cloud:", value)
+                                    }
+                                  />
+                                </div>
+                              ),
+                            },
+                            {
+                              id: "pinecone_region",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Region
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g., us-east-1"
+                                    defaultValue="us-east-1"
+                                    style={{
+                                      backgroundColor: "#212124",
+                                      color: "white",
+                                      border: "2px solid #3f3f41",
+                                      padding: "10px",
+                                      borderRadius: "8px",
+                                      fontSize: "14px",
+                                      width: "100%",
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                            {
+                              id: "pinecone_index",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Index Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Enter index name"
+                                    defaultValue="kb-final10"
+                                    style={{
+                                      backgroundColor: "#212124",
+                                      color: "white",
+                                      border: "2px solid #3f3f41",
+                                      padding: "10px",
+                                      borderRadius: "8px",
+                                      fontSize: "14px",
+                                      width: "100%",
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                            {
+                              id: "pinecone_dimension",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Dimension
+                                  </label>
+                                  <CustomNumberInput
+                                    defaultValue={1536}
+                                    min={1}
+                                    max={4096}
+                                    step={1}
+                                    onChange={(value) =>
+                                      console.log("Dimension changed:", value)
+                                    }
+                                  />
+                                </div>
+                              ),
+                            },
+                          ]
+                        : []),
+                      ...(vectorDb === "qdrant"
+                        ? [
+                            {
+                              id: "qdrant_host",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Host
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Enter host URL"
+                                    defaultValue="http://localhost"
+                                    style={{
+                                      backgroundColor: "#212124",
+                                      color: "white",
+                                      border: "2px solid #3f3f41",
+                                      padding: "10px",
+                                      borderRadius: "8px",
+                                      fontSize: "14px",
+                                      width: "100%",
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                            {
+                              id: "qdrant_port",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Port
+                                  </label>
+                                  <CustomNumberInput
+                                    defaultValue={5333}
+                                    min={1}
+                                    max={65535}
+                                    step={1}
+                                    onChange={(value) =>
+                                      console.log("Port changed:", value)
+                                    }
+                                  />
+                                </div>
+                              ),
+                            },
+                            {
+                              id: "qdrant_collection",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Collection Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Enter collection name"
+                                    defaultValue="toshiba_pdf_7"
+                                    style={{
+                                      backgroundColor: "#212124",
+                                      color: "white",
+                                      border: "2px solid #3f3f41",
+                                      padding: "10px",
+                                      borderRadius: "8px",
+                                      fontSize: "14px",
+                                      width: "100%",
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                          ]
+                        : []),
+                      ...(vectorDb === "chroma"
+                        ? [
+                            {
+                              id: "chroma_db_path",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Database Path
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Enter database path"
+                                    defaultValue="data/chroma_db"
+                                    style={{
+                                      backgroundColor: "#212124",
+                                      color: "white",
+                                      border: "2px solid #3f3f41",
+                                      padding: "10px",
+                                      borderRadius: "8px",
+                                      fontSize: "14px",
+                                      width: "100%",
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                            {
+                              id: "chroma_collection",
+                              children: (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    padding: "16px",
+                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                    borderRadius: "8px",
+                                    border: "2px solid #3f3f41",
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#808080",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Collection Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Enter collection name"
+                                    defaultValue="kb-chroma"
+                                    style={{
+                                      backgroundColor: "#212124",
+                                      color: "white",
+                                      border: "2px solid #3f3f41",
+                                      padding: "10px",
+                                      borderRadius: "8px",
+                                      fontSize: "14px",
+                                      width: "100%",
+                                    }}
+                                  />
+                                </div>
+                              ),
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
                 </div>
               )}
             </div>
