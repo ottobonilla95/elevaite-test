@@ -131,6 +131,8 @@ export default function Home(): JSX.Element {
     options: { value: string; label: string }[];
     defaultValue?: string;
     onChange?: (value: string) => void;
+    textColor?: string;
+    isHeaderDropdown?: boolean;
   }
 
   // Custom Number Input Component
@@ -271,6 +273,8 @@ export default function Home(): JSX.Element {
     options,
     defaultValue,
     onChange,
+    textColor,
+    isHeaderDropdown,
   }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedValue, setSelectedValue] = useState(
@@ -318,10 +322,10 @@ export default function Home(): JSX.Element {
         <div
           onClick={() => setIsOpen(!isOpen)}
           style={{
-            backgroundColor: "#161616",
+            backgroundColor: "#212124",
             color: "white",
             border: "1px solid rgba(255, 255, 255, 0.1)",
-            padding: "10px",
+            padding: isHeaderDropdown ? "6px 12px" : "10px",
             borderRadius: "8px",
             fontSize: "14px",
             width: "100%",
@@ -338,7 +342,7 @@ export default function Home(): JSX.Element {
             e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
           }}
         >
-          <span>{selectedLabel}</span>
+          <span style={{ color: textColor || "white" }}>{selectedLabel}</span>
           <ElevaiteIcons.SVGChevron
             style={{
               transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
@@ -354,7 +358,7 @@ export default function Home(): JSX.Element {
               top: "calc(100% + 5px)",
               left: 0,
               width: "100%",
-              backgroundColor: "#161616",
+              backgroundColor: "#212124",
               border: "1px solid rgba(255, 255, 255, 0.1)",
               borderRadius: "8px",
               zIndex: 10,
@@ -368,7 +372,7 @@ export default function Home(): JSX.Element {
                 key={option.value}
                 onClick={() => handleOptionClick(option.value)}
                 style={{
-                  padding: "10px",
+                  padding: isHeaderDropdown ? "6px 12px" : "10px",
                   cursor: "pointer",
                   backgroundColor:
                     selectedValue === option.value
@@ -481,15 +485,36 @@ export default function Home(): JSX.Element {
           <div className="header-controls">
             <div className="project-selector">
               <span>Project:</span>
-              <select>
-                <option value="default">Default Project</option>
-                {/* TODO: Add project options from backend */}
-              </select>
+              <div style={{ width: "180px" }}>
+                <CustomDropdown
+                  options={[
+                    { value: "default", label: "Default Project" },
+                    { value: "project1", label: "Project 1" },
+                    { value: "project2", label: "Project 2" },
+                  ]}
+                  defaultValue="default"
+                  onChange={(value) => console.log("Selected project:", value)}
+                  textColor="#e75f33"
+                  isHeaderDropdown={true}
+                />
+              </div>
             </div>
 
             <div className="provider-display">
               <span>Provider:</span>
-              <span className="provider-name">SageMaker</span>
+              <div
+                style={{
+                  backgroundColor: "#212124",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  color: "#ccc",
+                  fontWeight: "normal",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                SageMaker
+              </div>
               {/* TODO: Receive provider from backend */}
             </div>
           </div>
