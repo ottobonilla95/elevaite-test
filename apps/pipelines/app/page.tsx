@@ -322,9 +322,9 @@ export default function Home(): JSX.Element {
         <div
           onClick={() => setIsOpen(!isOpen)}
           style={{
-            backgroundColor: "#212124",
+            backgroundColor: isHeaderDropdown ? "#3f3f41" : "#212124",
             color: "white",
-            border: "2px solid #3f3f41",
+            border: isHeaderDropdown ? "none" : "2px solid #3f3f41",
             padding: isHeaderDropdown ? "6px 12px" : "10px",
             borderRadius: "8px",
             fontSize: "14px",
@@ -333,13 +333,23 @@ export default function Home(): JSX.Element {
             justifyContent: "space-between",
             alignItems: "center",
             cursor: "pointer",
-            transition: "border-color 0.2s ease",
+            transition: isHeaderDropdown
+              ? "background-color 0.2s ease"
+              : "border-color 0.2s ease",
           }}
           onMouseOver={(e) => {
-            e.currentTarget.style.borderColor = "#5f5f61";
+            if (isHeaderDropdown) {
+              e.currentTarget.style.backgroundColor = "#4f4f51";
+            } else {
+              e.currentTarget.style.borderColor = "#5f5f61";
+            }
           }}
           onMouseOut={(e) => {
-            e.currentTarget.style.borderColor = "#3f3f41";
+            if (isHeaderDropdown) {
+              e.currentTarget.style.backgroundColor = "#3f3f41";
+            } else {
+              e.currentTarget.style.borderColor = "#3f3f41";
+            }
           }}
         >
           <span style={{ color: textColor || "white" }}>{selectedLabel}</span>
@@ -358,8 +368,8 @@ export default function Home(): JSX.Element {
               top: "calc(100% + 5px)",
               left: 0,
               width: "100%",
-              backgroundColor: "#212124",
-              border: "2px solid #3f3f41",
+              backgroundColor: isHeaderDropdown ? "#3f3f41" : "#212124",
+              border: isHeaderDropdown ? "none" : "2px solid #3f3f41",
               borderRadius: "8px",
               zIndex: 10,
               boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
@@ -504,13 +514,13 @@ export default function Home(): JSX.Element {
               <span>Provider:</span>
               <div
                 style={{
-                  backgroundColor: "#212124",
+                  backgroundColor: "#3f3f41",
                   padding: "6px 12px",
                   borderRadius: "8px",
                   fontSize: "14px",
                   color: "#ccc",
                   fontWeight: "normal",
-                  border: "2px solid #3f3f41",
+                  border: "none",
                 }}
               >
                 SageMaker
@@ -1350,25 +1360,45 @@ export default function Home(): JSX.Element {
                           <div
                             style={{
                               flex: 1,
-                              height: "6px",
-                              backgroundColor: "#eef1f3",
-                              borderRadius: "5px",
-                              position: "relative",
-                              overflow: "hidden",
-                              margin: "0 12px",
+                              display: "flex",
+                              alignItems: "center",
                             }}
                           >
                             <div
                               style={{
-                                position: "absolute",
-                                left: 0,
-                                top: 0,
-                                height: "100%",
-                                width: `${file.progress}%`,
-                                backgroundColor: "#30c292",
-                                borderRadius: "2px",
+                                flex: 1,
+                                height: "6px",
+                                backgroundColor: "#eef1f3",
+                                borderRadius: "5px",
+                                position: "relative",
+                                overflow: "hidden",
+                                margin: "0 12px",
                               }}
-                            ></div>
+                            >
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  left: 0,
+                                  top: 0,
+                                  height: "100%",
+                                  width: `${file.progress}%`,
+                                  backgroundColor: "#30c292",
+                                  borderRadius: "2px",
+                                }}
+                              ></div>
+                            </div>
+                            <div
+                              style={{
+                                minWidth: "45px",
+                                textAlign: "right",
+                                fontSize: "14px",
+                                fontWeight: "500",
+                                color:
+                                  file.progress === 100 ? "#30c292" : "#ccc",
+                              }}
+                            >
+                              {Math.round(file.progress)}%
+                            </div>
                           </div>
                         )}
 
