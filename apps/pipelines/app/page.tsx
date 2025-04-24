@@ -357,7 +357,7 @@ export default function Home(): JSX.Element {
             style={{
               transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
               transition: "transform 0.2s ease",
-              color: "#e75f33",
+              color: isHeaderDropdown ? "#e75f33" : "white",
             }}
           />
         </div>
@@ -709,7 +709,7 @@ export default function Home(): JSX.Element {
                     display: "grid",
                     gridTemplateColumns: isMobile
                       ? "1fr"
-                      : "repeat(auto-fill, minmax(350px, 1fr))",
+                      : "calc(50% - 12px) calc(50% - 12px)",
                     gap: "24px",
                     width: "100%",
                   }}
@@ -787,7 +787,7 @@ export default function Home(): JSX.Element {
                     display: "grid",
                     gridTemplateColumns: isMobile
                       ? "1fr"
-                      : "repeat(auto-fill, minmax(350px, 1fr))",
+                      : "calc(50% - 12px) calc(50% - 12px)",
                     gap: "24px",
                     width: "100%",
                   }}
@@ -800,7 +800,7 @@ export default function Home(): JSX.Element {
                       padding: "16px",
                       backgroundColor: "rgba(0, 0, 0, 0.2)",
                       borderRadius: "8px",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      border: "2px solid #3f3f41",
                     }}
                   >
                     <label
@@ -835,7 +835,7 @@ export default function Home(): JSX.Element {
                       padding: "16px",
                       backgroundColor: "rgba(0, 0, 0, 0.2)",
                       borderRadius: "8px",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      border: "2px solid #3f3f41",
                     }}
                   >
                     <label
@@ -868,7 +868,7 @@ export default function Home(): JSX.Element {
                     display: "grid",
                     gridTemplateColumns: isMobile
                       ? "1fr"
-                      : "repeat(auto-fill, minmax(350px, 1fr))",
+                      : "calc(50% - 12px) calc(50% - 12px)",
                     gap: "24px",
                     width: "100%",
                   }}
@@ -881,7 +881,7 @@ export default function Home(): JSX.Element {
                       padding: "16px",
                       backgroundColor: "rgba(0, 0, 0, 0.2)",
                       borderRadius: "8px",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      border: "2px solid #3f3f41",
                     }}
                   >
                     <label
@@ -911,7 +911,7 @@ export default function Home(): JSX.Element {
                       padding: "16px",
                       backgroundColor: "rgba(0, 0, 0, 0.2)",
                       borderRadius: "8px",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      border: "2px solid #3f3f41",
                     }}
                   >
                     <label
@@ -942,7 +942,7 @@ export default function Home(): JSX.Element {
                     display: "grid",
                     gridTemplateColumns: isMobile
                       ? "1fr"
-                      : "repeat(auto-fill, minmax(350px, 1fr))",
+                      : "calc(50% - 12px) calc(50% - 12px)",
                     gap: "24px",
                     width: "100%",
                   }}
@@ -955,7 +955,7 @@ export default function Home(): JSX.Element {
                       padding: "16px",
                       backgroundColor: "rgba(0, 0, 0, 0.2)",
                       borderRadius: "8px",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      border: "2px solid #3f3f41",
                     }}
                   >
                     <label
@@ -990,7 +990,7 @@ export default function Home(): JSX.Element {
                       padding: "16px",
                       backgroundColor: "rgba(0, 0, 0, 0.2)",
                       borderRadius: "8px",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      border: "2px solid #3f3f41",
                     }}
                   >
                     <label
@@ -1023,7 +1023,7 @@ export default function Home(): JSX.Element {
                     display: "grid",
                     gridTemplateColumns: isMobile
                       ? "1fr"
-                      : "repeat(auto-fill, minmax(350px, 1fr))",
+                      : "calc(50% - 12px) calc(50% - 12px)",
                     gap: "24px",
                     width: "100%",
                   }}
@@ -1036,7 +1036,7 @@ export default function Home(): JSX.Element {
                       padding: "16px",
                       backgroundColor: "rgba(0, 0, 0, 0.2)",
                       borderRadius: "8px",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      border: "2px solid #3f3f41",
                     }}
                   >
                     <label
@@ -1068,7 +1068,7 @@ export default function Home(): JSX.Element {
                       padding: "16px",
                       backgroundColor: "rgba(0, 0, 0, 0.2)",
                       borderRadius: "8px",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      border: "2px solid #3f3f41",
                     }}
                   >
                     <label
