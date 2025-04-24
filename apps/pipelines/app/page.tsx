@@ -198,7 +198,7 @@ export default function Home(): JSX.Element {
           style={{
             backgroundColor: "#161616",
             color: "white",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
+            border: "2px solid #3f3f41",
             padding: "10px",
             paddingRight: "60px", // Make room for the buttons
             borderRadius: "8px",
@@ -324,7 +324,7 @@ export default function Home(): JSX.Element {
           style={{
             backgroundColor: "#212124",
             color: "white",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
+            border: "2px solid #3f3f41",
             padding: isHeaderDropdown ? "6px 12px" : "10px",
             borderRadius: "8px",
             fontSize: "14px",
@@ -336,10 +336,10 @@ export default function Home(): JSX.Element {
             transition: "border-color 0.2s ease",
           }}
           onMouseOver={(e) => {
-            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
+            e.currentTarget.style.borderColor = "#5f5f61";
           }}
           onMouseOut={(e) => {
-            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
+            e.currentTarget.style.borderColor = "#3f3f41";
           }}
         >
           <span style={{ color: textColor || "white" }}>{selectedLabel}</span>
@@ -359,7 +359,7 @@ export default function Home(): JSX.Element {
               left: 0,
               width: "100%",
               backgroundColor: "#212124",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
+              border: "2px solid #3f3f41",
               borderRadius: "8px",
               zIndex: 10,
               boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
@@ -510,7 +510,7 @@ export default function Home(): JSX.Element {
                   fontSize: "14px",
                   color: "#ccc",
                   fontWeight: "normal",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  border: "2px solid #3f3f41",
                 }}
               >
                 SageMaker
@@ -600,7 +600,7 @@ export default function Home(): JSX.Element {
             style={{
               width: selectedStep === "loading" ? "calc(50% - 8px)" : "100%",
               backgroundColor: "#212124",
-              border: "1px solid #2a2a2d",
+              border: "2px solid #3f3f41",
               borderRadius: "12px",
               display: "flex",
               flexDirection: "column",
@@ -712,7 +712,7 @@ export default function Home(): JSX.Element {
                       padding: "16px",
                       backgroundColor: "rgba(0, 0, 0, 0.2)",
                       borderRadius: "8px",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      border: "2px solid #3f3f41",
                     }}
                   >
                     <label
@@ -744,7 +744,7 @@ export default function Home(): JSX.Element {
                       padding: "16px",
                       backgroundColor: "rgba(0, 0, 0, 0.2)",
                       borderRadius: "8px",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      border: "2px solid #3f3f41",
                     }}
                   >
                     <label
@@ -1076,7 +1076,7 @@ export default function Home(): JSX.Element {
                       style={{
                         backgroundColor: "#161616",
                         color: "white",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        border: "2px solid #3f3f41",
                         padding: "10px",
                         borderRadius: "8px",
                         fontSize: "14px",
@@ -1163,7 +1163,7 @@ export default function Home(): JSX.Element {
               style={{
                 width: "calc(50% - 8px)",
                 backgroundColor: "#212124",
-                border: "1px solid #2a2a2d",
+                border: "2px solid #3f3f41",
                 borderRadius: "12px",
                 display: "flex",
                 flexDirection: "column",
@@ -1297,6 +1297,7 @@ export default function Home(): JSX.Element {
                           backgroundColor: "rgba(0, 0, 0, 0.2)",
                           borderRadius: "8px",
                           marginBottom: "0.75rem",
+                          border: "2px solid #3f3f41",
                         }}
                       >
                         <div

@@ -35,7 +35,7 @@ body {
     width: 99%;
     margin: 0 auto 0.5rem;
     background-color: #212124;
-    border: 1px solid #2a2a2d;
+    border: 2px solid #3f3f41;
     border-radius: 12px;
     padding: 1.5rem;
     height: 60px;
@@ -82,7 +82,7 @@ body {
           select {
             background-color: #212124;
             color: #e75f33;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 2px solid #3f3f41;
             padding: 10px;
             border-radius: 8px;
             cursor: pointer;
@@ -113,7 +113,7 @@ body {
 
     .pipeline-steps-container {
       background-color: #212124;
-      border: 1px solid #2a2a2d;
+      border: 2px solid #3f3f41;
       border-radius: 12px;
       padding: 1.5rem;
       display: flex;
@@ -510,7 +510,7 @@ body {
           box-sizing: border-box;
           background-color: rgba(0, 0, 0, 0.2);
           border-radius: 8px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 2px solid #3f3f41;
 
           label {
             font-size: 14px;
@@ -521,7 +521,7 @@ body {
           .option-input {
             background-color: var(--ev-colors-background, #161616);
             color: white;
-            border: 1px solid var(--ev-colors-borderColor, #FFFFFF1F);
+            border: 2px solid #3f3f41;
             padding: 10px;
             border-radius: 8px;
             font-size: 0.9rem;
