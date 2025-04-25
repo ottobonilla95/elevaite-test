@@ -95,7 +95,7 @@ class ToshibaAgent(Agent):
             # print("\n\nMessage: ",messages)
             try:
                 response = client.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model="gpt-4o",
                     messages=messages,
                     # functions=self.functions,
                     tools=self.functions,
@@ -106,6 +106,7 @@ class ToshibaAgent(Agent):
                 if response.choices[0].finish_reason=="tool_calls":
                     tool_calls = response.choices[0].message.tool_calls
                     messages+=[{"role": "assistant", "tool_calls": tool_calls},]
+                    print(tool_calls)
                     for tool in tool_calls:
                         print(tool.function.name)
                         tool_id = tool.id
@@ -119,6 +120,7 @@ class ToshibaAgent(Agent):
 
                 else:
                     print("Time taken by the agent: ",datetime.now()-start_time)
+                    print(response.choices[0].message.content)
                     return response.choices[0].message.content
             except Exception as e:
                 print("Time taken by the agent: ", datetime.now() - start_time)
@@ -390,7 +392,7 @@ toshiba_agent = ToshibaAgent(name="ToshibaAgent",
                 agent_id=uuid.uuid4(),
                 system_prompt=toshiba_agent_system_prompt,
                 persona="Helper",
-                functions=[get_part_description.openai_schema, get_part_number.openai_schema],
+                functions=[tool_schemas["query_retriever"]],
                 routing_options={"ask": "If you think you need to ask more information or context from the user to answer the question.",
                                  "continue": "If you think you have the answer, you can stop here.",
                                  "give_up": "If you think you can't answer the query, you can give up and let the user know."

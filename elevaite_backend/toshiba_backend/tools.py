@@ -9,6 +9,7 @@ import os
 from utils import client
 from rag import get_chunks
 import pandas as pd
+import requests
 
 dotenv.load_dotenv(".env.local")
 
@@ -146,6 +147,34 @@ def get_part_number(description: str, assembly_name: str) -> str:
     )
     return response.choices[0].message.content
 
+@function_schema
+def query_retriever(query: str) -> str:
+    """"
+    Use this tool to query the knowledge base. It will return the most relevant chunks of text from the database.
+    Questions can include part numbers, assembly names, descriptions and general queries.
+    """
+    url = "http://localhost:8001/query-chunks"
+    params = {
+        "query": query,
+        "top_k": 10
+    }
+
+    # Make the POST request
+    response = requests.post(url, params=params)
+    res = ""
+    for segment in response.json()["selected_segments"]:
+        for i,chunk in enumerate(segment["chunks"]):
+            print(chunk['contextual_header'])
+            print(chunk["chunk_text"])
+            print("*"*50)
+            res += f"Contextual Header: {chunk['contextual_header']}\n"
+            res += f"Chunk {i}:"+chunk["chunk_text"]+"\n"
+            res += f"Filename: {chunk['filename']}, Page Range: {chunk['page_info']}\n"
+            res += f"Matched Image Path: {chunk['matched_image_path']}\n"
+            res += "\n\n"
+    # print(res)
+    return res
+
 
 tool_store = {
     "add_numbers": add_numbers,
@@ -158,6 +187,7 @@ tool_store = {
     "get_knowledge": get_knowledge,
     "get_part_description": get_part_description,
     "get_part_number": get_part_number,
+    "query_retriever": query_retriever,
 }
 
 tool_schemas = {
@@ -171,5 +201,6 @@ tool_schemas = {
     "get_knowledge": get_knowledge.openai_schema,
     "get_part_description": get_part_description.openai_schema,
     "get_part_number": get_part_number.openai_schema,
+    "query_retriever": query_retriever.openai_schema,
 }
 
