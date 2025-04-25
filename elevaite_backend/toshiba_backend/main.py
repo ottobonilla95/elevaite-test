@@ -130,6 +130,12 @@ def run(request: fastapi.Request):
     # print(res)
     # response = {"text": f"{res}", "refs": ["https://www.google.com"]}
     # return response
+#  Table structure: table: header, columns, row values, each column must have same number of rows.
+# table: json format: {"header":"XYZ", column_labels: ["A", "B", "C"], "rows": [[1, 2, 3], [4, 5, 6], [7, 8, 9]]}
+# alternative: {"header":"XYZ" optional, values:[ object, object, object]}; Each object has label and values
+# object.label = "A", object.values = [1,2,3]
+#  Send example object to Thanos. For tables and sources pills
+
 
 
 if __name__ == "__main__":

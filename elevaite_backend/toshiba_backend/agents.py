@@ -8,7 +8,7 @@ from utils import client
 from datetime import datetime
 import uuid
 from data_classes import PromptObject
-from tools import web_search, add_numbers, get_customer_order, tool_schemas, get_customer_location, add_customer, get_knowledge
+from tools import web_search, add_numbers, get_customer_order, tool_schemas, get_customer_location, add_customer, get_knowledge, get_part_description, get_part_number
 from prompts import web_agent_system_prompt, api_agent_system_prompt, data_agent_system_prompt, toshiba_agent_system_prompt
 
 @agent_schema
@@ -390,7 +390,7 @@ toshiba_agent = ToshibaAgent(name="ToshibaAgent",
                 agent_id=uuid.uuid4(),
                 system_prompt=toshiba_agent_system_prompt,
                 persona="Helper",
-                functions=[get_knowledge.openai_schema],
+                functions=[get_part_description.openai_schema, get_part_number.openai_schema],
                 routing_options={"ask": "If you think you need to ask more information or context from the user to answer the question.",
                                  "continue": "If you think you have the answer, you can stop here.",
                                  "give_up": "If you think you can't answer the query, you can give up and let the user know."

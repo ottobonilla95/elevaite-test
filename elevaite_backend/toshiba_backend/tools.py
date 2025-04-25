@@ -8,6 +8,7 @@ import dotenv
 import os
 from utils import client
 from rag import get_chunks
+import pandas as pd
 
 dotenv.load_dotenv(".env.local")
 
@@ -117,6 +118,35 @@ def web_search(query: str,num: Optional[int]=2) -> str:
     )
     return response.choices[0].message.content
 
+@function_schema
+def get_part_description(part_number: str) -> str:
+    """"
+    Returns the description for a given part number.
+    """
+
+    df = pd.read_csv("toshiba_parts.csv")
+    return f"""
+    Description: {df[df["Part Number"]==part_number]["Description"].values[0]}
+    Assembly Name: {df[df["Part Number"]==part_number]["Assembly Name"].values[0]}
+    Image Link: {df[df["Part Number"]==part_number]["Image Link"].values[0]}
+    """
+
+@function_schema
+def get_part_number(description: str, assembly_name: str) -> str:
+    df = pd.read_csv("toshiba_parts.csv")
+    """"
+    Use this tool to get the part number for a given description and assembly name.
+    Or any other information you need from the part list for an assembly.
+    """
+    part_list = df[(df["Assembly Name"]==assembly_name)].to_string()
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "system", "content": f"Read the following text and find the part number for the given description."},
+                  {"role": "user", "content": part_list+f"\n\nDescription: {description} Give me the part number for the given description."}],
+    )
+    return response.choices[0].message.content
+
+
 tool_store = {
     "add_numbers": add_numbers,
     "weather_forecast": weather_forecast,
@@ -126,6 +156,8 @@ tool_store = {
     "get_customer_location": get_customer_location,
     "add_customer": add_customer,
     "get_knowledge": get_knowledge,
+    "get_part_description": get_part_description,
+    "get_part_number": get_part_number,
 }
 
 tool_schemas = {
@@ -137,5 +169,7 @@ tool_schemas = {
     "get_customer_location": get_customer_location.openai_schema,
     "add_customer": add_customer.openai_schema,
     "get_knowledge": get_knowledge.openai_schema,
+    "get_part_description": get_part_description.openai_schema,
+    "get_part_number": get_part_number.openai_schema,
 }
 
