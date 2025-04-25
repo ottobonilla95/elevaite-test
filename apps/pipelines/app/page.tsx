@@ -528,18 +528,155 @@ export default function Home(): JSX.Element {
           <div className="header-controls">
             <div className="project-selector">
               <span>Project:</span>
-              <div style={{ width: "180px" }}>
-                <CustomDropdown
-                  options={[
-                    { value: "default", label: "Default Project" },
-                    { value: "project1", label: "Project 1" },
-                    { value: "project2", label: "Project 2" },
-                  ]}
-                  defaultValue="default"
-                  onChange={(value) => console.log("Selected project:", value)}
-                  textColor="#e75f33"
-                  isHeaderDropdown={true}
-                />
+              <div style={{ width: "150px" }}>
+                {/* Custom dropdown with orange arrow */}
+                <div
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                  }}
+                >
+                  <div
+                    onClick={() => {
+                      // Toggle dropdown
+                      const dropdown =
+                        document.getElementById("project-dropdown");
+                      if (dropdown) {
+                        dropdown.style.display =
+                          dropdown.style.display === "none" ? "block" : "none";
+                      }
+                    }}
+                    style={{
+                      backgroundColor: "#3f3f41",
+                      color: "#e75f33",
+                      border: "none",
+                      padding: "6px 12px",
+                      borderRadius: "8px",
+                      fontSize: "14px",
+                      width: "100%",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "8px" /* Reduce space between text and arrow */,
+                      cursor: "pointer",
+                      transition: "background-color 0.2s ease",
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = "#4f4f51";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = "#3f3f41";
+                    }}
+                  >
+                    <span style={{ color: "#e75f33" }}>Default Project</span>
+                    <svg
+                      fill="none"
+                      viewBox="0 0 16 16"
+                      width={16}
+                      height={16}
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="m4 6.5 4 4 4-4"
+                        stroke="#e75f33"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                      />
+                    </svg>
+                  </div>
+                  <div
+                    id="project-dropdown"
+                    style={{
+                      display: "none",
+                      position: "absolute",
+                      top: "calc(100% + 5px)",
+                      left: 0,
+                      width: "100%",
+                      backgroundColor: "#3f3f41",
+                      border: "none",
+                      borderRadius: "8px",
+                      zIndex: 10,
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                      maxHeight: "200px",
+                      overflowY: "auto",
+                    }}
+                  >
+                    <div
+                      onClick={() => {
+                        document.getElementById(
+                          "project-dropdown"
+                        )!.style.display = "none";
+                      }}
+                      style={{
+                        padding: "6px 12px",
+                        cursor: "pointer",
+                        backgroundColor: "rgba(231, 95, 51, 0.1)",
+                        color: "#e75f33",
+                        transition:
+                          "background-color 0.2s ease, color 0.2s ease",
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          "rgba(231, 95, 51, 0.2)";
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          "rgba(231, 95, 51, 0.1)";
+                      }}
+                    >
+                      Default Project
+                    </div>
+                    <div
+                      onClick={() => {
+                        document.getElementById(
+                          "project-dropdown"
+                        )!.style.display = "none";
+                      }}
+                      style={{
+                        padding: "6px 12px",
+                        cursor: "pointer",
+                        backgroundColor: "transparent",
+                        color: "white",
+                        transition:
+                          "background-color 0.2s ease, color 0.2s ease",
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          "rgba(255, 255, 255, 0.05)";
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      Project 1
+                    </div>
+                    <div
+                      onClick={() => {
+                        document.getElementById(
+                          "project-dropdown"
+                        )!.style.display = "none";
+                      }}
+                      style={{
+                        padding: "6px 12px",
+                        cursor: "pointer",
+                        backgroundColor: "transparent",
+                        color: "white",
+                        transition:
+                          "background-color 0.2s ease, color 0.2s ease",
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          "rgba(255, 255, 255, 0.05)";
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      Project 2
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
