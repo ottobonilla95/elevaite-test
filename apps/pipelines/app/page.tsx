@@ -85,7 +85,12 @@ export default function Home(): JSX.Element {
   }, []);
 
   const handleStepSelect = (stepId: string) => {
-    setSelectedStep(stepId === selectedStep ? "loading" : stepId);
+    // If the step is already selected, do nothing
+    if (stepId === selectedStep) {
+      return;
+    }
+    // Otherwise, set the selected step to the clicked step
+    setSelectedStep(stepId);
   };
 
   const handleFileSelect = () => {
