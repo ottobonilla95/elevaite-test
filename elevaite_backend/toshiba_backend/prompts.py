@@ -86,6 +86,7 @@ toshiba_agent_system_prompt = PromptObject(pid=uuid.uuid4(),
  You can use these synonyms to create different queries if you don't get relevant information.
  
  List all the relevant resources you use.
+ Write the <answer> text in markdown format. If there is a table then make a table in markdown format.
  Answer format in JSON but don't use json markers:
  {"routing": "respond",
   "content": "Answer: <answer>
