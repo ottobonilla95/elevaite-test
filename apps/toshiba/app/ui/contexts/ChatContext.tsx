@@ -260,6 +260,7 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
         userId,
         messageText,
         passedSession.id,
+        passedSession.messages,
         selectedChatbotV,
         selectedGenAIBot
       );

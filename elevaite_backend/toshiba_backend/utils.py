@@ -167,3 +167,13 @@ def log_decorator(func: Callable) -> Callable:
             self.logs["output"].append(f"Error: {e}")
             raise
     return wrapper
+
+def convert_messages_to_chat_history(messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    """Converts a list of messages to a chat history format."""
+    # [{'id': 'userMessageId_0', 'date': '2025-04-27T20:50:59.912Z', 'isBot': False, 'userName': 'Unknown User', 'text': 'hi'}, {'id': 'chatbotMessageId_0', 'date': '2025-04-27T20:51:00.762Z', 'isBot': True, 'text': 'hi', 'userName': 'ElevAIte', 'files': [], 'media': []}, {'id': 'userMessageId_1', 'date': '2025-04-27T20:51:11.169Z', 'isBot': False, 'userName': 'Unknown User', 'text': 'hello'}]
+    chat_history = []
+    for message in messages:
+        role = "assistant" if message.get("isBot") else "user"
+        content = message.get("text", "")
+        chat_history.append({"role": role, "content": content})
+    return chat_history

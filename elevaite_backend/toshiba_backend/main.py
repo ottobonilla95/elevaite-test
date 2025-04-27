@@ -11,6 +11,7 @@ from tools import tool_schemas
 from starlette.middleware.cors import CORSMiddleware
 from agents import toshiba_agent
 import json
+from utils import convert_messages_to_chat_history
 
 
 dotenv.load_dotenv(".env.local")
@@ -117,10 +118,20 @@ def deploy(request: dict):
     except Exception as e:
         return {"status": f"Error: {e}"}
 
-@app.get("/run")
-def run(request: fastapi.Request):
-    query = request.query_params.get("query")
-    answer = toshiba_agent.execute(query=query)
+@app.post("/run")
+def run(request: dict):
+    print(request)
+    query = request.get("query")
+    chat_history = request.get("messages")
+    if chat_history:
+        chat_history = convert_messages_to_chat_history(chat_history)
+    else:
+        chat_history = []
+    chat_history.pop(-1)
+    for i in chat_history:
+        print(i)
+    answer = toshiba_agent.execute(query=query, chat_history=chat_history)
+    # answer = "hi"
     try:
         res = json.loads(answer)["content"]
     except:

@@ -68,7 +68,7 @@ class WebAgent(Agent):
 
 @agent_schema
 class ToshibaAgent(Agent):
-    def execute(self, query: Any) -> Any:
+    def execute(self, query: Any, chat_history: Any) -> Any:
         """
         Ask the agent anything related to arithmetic, customer orders numbers or web search and it will try to answer it.
         You can ask it multiple questions at once. No need to ask one question at a time. You can ask it for multiple customer ids, multiple arithmetic questions, or multiple web search queries.
@@ -88,7 +88,7 @@ class ToshibaAgent(Agent):
         Your response should be in the format:
         {{ "routing": "routing type", "content": "The relevant response."}}
         """
-        messages=[{"role": "system", "content": system_prompt},{"role": "user", "content": query}]
+        messages=[{"role": "system", "content": system_prompt}]+chat_history+[{"role": "user", "content": query}]
 
         while tries < self.max_retries:
             print(tries)
