@@ -28,6 +28,10 @@ def get_schema_name(tenant_id: str, settings: MultitenancySettings) -> str:
     Returns:
         The schema name
     """
+    # Check if tenant_id is a string
+    if not isinstance(tenant_id, str):
+        raise TypeError(f"tenant_id must be a string, got {type(tenant_id).__name__}")
+
     # Normalize tenant ID if case sensitivity is not required
     if not settings.case_sensitive_tenant_id:
         tenant_id = tenant_id.lower()
@@ -273,12 +277,12 @@ def set_tenant_search_path(engine: Union[Engine, AsyncEngine], schema_name: str)
         # Create a connection and explicitly commit the change
         with engine.begin() as conn:
             conn.execute(text(f'SET search_path TO "{schema_name}", public'))
-            
+
         # Verify the search path was set correctly
         with engine.connect() as conn:
             result = conn.execute(text("SHOW search_path"))
             logger.info(f"Set search path to: {result.scalar()}")
-            
+
         return True
     except SQLAlchemyError as e:
         logger.error(f"Error setting search path to {schema_name}: {e}")

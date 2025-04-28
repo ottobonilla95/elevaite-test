@@ -2,9 +2,9 @@
 Configuration options for schema-based multitenancy.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, ClassVar, Dict, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator, ConfigDict
 
 
 class MultitenancySettings(BaseModel):
@@ -31,8 +31,12 @@ class MultitenancySettings(BaseModel):
     # Custom tenant-specific database settings
     tenant_specific_settings: Dict[str, Dict[str, Any]] = {}
 
-    @validator("tenant_id_header")
+    @field_validator("tenant_id_header")
+    @classmethod
     def validate_header_name(cls, v):
         if not v:
             raise ValueError("Tenant ID header name cannot be empty")
         return v
+
+    # Use Pydantic v2 style config
+    model_config: ClassVar[ConfigDict] = ConfigDict(extra="allow")

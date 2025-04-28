@@ -112,8 +112,13 @@ async def get_tenant_async_db(
 
         from db_core.utils import get_schema_name
 
-        schema = get_schema_name(tenant_id, settings)
-        await db.execute(text(f'SET search_path TO "{schema}", public'))
+        # Handle the case where tenant_id might be a Depends object
+        if hasattr(tenant_id, "__call__"):
+            # Skip setting schema if tenant_id is a dependency
+            pass
+        else:
+            schema = get_schema_name(tenant_id, settings)
+            await db.execute(text(f'SET search_path TO "{schema}", public'))
 
     try:
         yield db
