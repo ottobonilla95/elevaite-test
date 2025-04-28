@@ -56,13 +56,37 @@ body {
     width: 100% !important;
   }
 
-  /* Add scrolling to dropdown options */
-  div[style*="top: calc(100% + 5px)"][style*="position: absolute"] {
-    max-height: 200px !important;
-    overflow-y: auto !important;
-    width: 100% !important;
-    scrollbar-width: thin;
-    scrollbar-color: #3f3f41 transparent;
+  /* Dropdown styling */
+  .dropdown-menu {
+    z-index: 9999 !important;
+    position: fixed !important;
+  }
+
+  /* Ensure proper stacking context for config options */
+  .adaptive-config-grid {
+    position: static !important;
+
+    .config-option {
+      position: relative !important;
+
+      /* Ensure consistent height for all dropdown containers */
+      & > div {
+        min-height: 80px !important;
+      }
+    }
+  }
+
+  /* Ensure dropdown containers don't create stacking context issues */
+  .adaptive-config-container {
+    overflow: visible !important;
+  }
+
+  /* Ensure all dropdowns have consistent styling */
+  div[style*="position: relative"] {
+    & > div[style*="display: flex"][style*="justify-content: space-between"] {
+      height: 40px !important;
+      box-sizing: border-box !important;
+    }
   }
 
   /* Fix for number input arrows positioning */

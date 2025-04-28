@@ -311,8 +311,6 @@ export default function Home(): JSX.Element {
     options,
     defaultValue,
     onChange,
-    textColor,
-    isHeaderDropdown,
   }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedValue, setSelectedValue] = useState(
@@ -324,7 +322,7 @@ export default function Home(): JSX.Element {
     const selectedLabel =
       options.find((option) => option.value === selectedValue)?.label || "";
 
-    // Handle click outside to close dropdown
+    // Handle click outside to close dropdown and update position on scroll
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
         if (
@@ -335,11 +333,23 @@ export default function Home(): JSX.Element {
         }
       };
 
+      // Force re-render when scrolling to update dropdown position
+      const handleScroll = () => {
+        if (isOpen) {
+          // Force a re-render to update the dropdown position
+          setIsOpen(false);
+          setTimeout(() => setIsOpen(true), 0);
+        }
+      };
+
       document.addEventListener("mousedown", handleClickOutside);
+      window.addEventListener("scroll", handleScroll, true);
+
       return () => {
         document.removeEventListener("mousedown", handleClickOutside);
+        window.removeEventListener("scroll", handleScroll, true);
       };
-    }, []);
+    }, [isOpen]);
 
     const handleOptionClick = (value: string) => {
       setSelectedValue(value);
@@ -357,13 +367,14 @@ export default function Home(): JSX.Element {
           width: "100%",
         }}
       >
+        {/* Dropdown Button */}
         <div
           onClick={() => setIsOpen(!isOpen)}
           style={{
-            backgroundColor: isHeaderDropdown ? "#3f3f41" : "#212124",
+            backgroundColor: "#212124",
             color: "white",
-            border: isHeaderDropdown ? "none" : "2px solid #3f3f41",
-            padding: isHeaderDropdown ? "6px 12px" : "10px",
+            border: "2px solid #3f3f41",
+            padding: "10px",
             borderRadius: "8px",
             fontSize: "14px",
             width: "100%",
@@ -371,45 +382,52 @@ export default function Home(): JSX.Element {
             justifyContent: "space-between",
             alignItems: "center",
             cursor: "pointer",
-            transition: isHeaderDropdown
-              ? "background-color 0.2s ease"
-              : "border-color 0.2s ease",
+            height: "40px",
+            boxSizing: "border-box",
           }}
           onMouseOver={(e) => {
-            if (isHeaderDropdown) {
-              e.currentTarget.style.backgroundColor = "#4f4f51";
-            } else {
-              e.currentTarget.style.borderColor = "#5f5f61";
-            }
+            e.currentTarget.style.borderColor = "#5f5f61";
           }}
           onMouseOut={(e) => {
-            if (isHeaderDropdown) {
-              e.currentTarget.style.backgroundColor = "#3f3f41";
-            } else {
-              e.currentTarget.style.borderColor = "#3f3f41";
-            }
+            e.currentTarget.style.borderColor = "#3f3f41";
           }}
         >
-          <span style={{ color: textColor || "white" }}>{selectedLabel}</span>
-          <ElevaiteIcons.SVGChevron
+          <span style={{ color: "white" }}>{selectedLabel || " "}</span>
+          <svg
+            fill="none"
+            viewBox="0 0 16 16"
+            width={16}
+            height={16}
+            xmlns="http://www.w3.org/2000/svg"
             style={{
               transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
               transition: "transform 0.2s ease",
-              color: isHeaderDropdown ? "#e75f33" : "white",
             }}
-          />
+          >
+            <path
+              d="m4 6.5 4 4 4-4"
+              stroke="white"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+            />
+          </svg>
         </div>
+
+        {/* Dropdown Options */}
         {isOpen && (
           <div
+            className="dropdown-menu"
             style={{
-              position: "absolute",
-              top: "calc(100% + 5px)",
-              left: 0,
-              width: "100%",
-              backgroundColor: isHeaderDropdown ? "#3f3f41" : "#212124",
-              border: isHeaderDropdown ? "none" : "2px solid #3f3f41",
+              position: "fixed",
+              top:
+                (dropdownRef.current?.getBoundingClientRect().bottom || 0) + 5,
+              left: dropdownRef.current?.getBoundingClientRect().left || 0,
+              width: dropdownRef.current?.offsetWidth || 0,
+              backgroundColor: "#212124",
+              border: "2px solid #3f3f41",
               borderRadius: "8px",
-              zIndex: 10,
+              zIndex: 9999, // Very high z-index to ensure it's above everything
               boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
               maxHeight: "200px",
               overflowY: "auto",
@@ -420,7 +438,7 @@ export default function Home(): JSX.Element {
                 key={option.value}
                 onClick={() => handleOptionClick(option.value)}
                 style={{
-                  padding: isHeaderDropdown ? "6px 12px" : "10px",
+                  padding: "10px",
                   cursor: "pointer",
                   backgroundColor:
                     selectedValue === option.value
@@ -428,6 +446,10 @@ export default function Home(): JSX.Element {
                       : "transparent",
                   color: selectedValue === option.value ? "#e75f33" : "white",
                   transition: "background-color 0.2s ease, color 0.2s ease",
+                  height: "40px",
+                  boxSizing: "border-box",
+                  display: "flex",
+                  alignItems: "center",
                 }}
                 onMouseOver={(e) => {
                   e.currentTarget.style.backgroundColor =
@@ -789,7 +811,7 @@ export default function Home(): JSX.Element {
               borderRadius: "12px",
               display: "flex",
               flexDirection: "column",
-              height: "85%",
+              height: "90%",
             }}
           >
             {/* Header Section */}
@@ -2474,7 +2496,7 @@ export default function Home(): JSX.Element {
                 borderRadius: "12px",
                 display: "flex",
                 flexDirection: "column",
-                height: "85%",
+                height: "90%",
               }}
             >
               {/* Header Section */}
