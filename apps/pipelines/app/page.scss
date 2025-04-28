@@ -89,6 +89,26 @@ body {
     }
   }
 
+  /* Warning flash animation */
+  @keyframes warning-flash {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 rgba(231, 95, 51, 0.4);
+    }
+    50% {
+      transform: scale(1.03);
+      box-shadow: 0 0 20px rgba(231, 95, 51, 0.6);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 rgba(231, 95, 51, 0.4);
+    }
+  }
+
+  .warning-flash {
+    animation: warning-flash 0.5s ease-in-out 3;
+  }
+
   /* Fix for number input arrows positioning */
   #number-input-arrows {
     position: absolute !important;
