@@ -813,7 +813,7 @@ export default function Home(): JSX.Element {
       {selectedStep && (
         <div
           style={{
-            width: "99%",
+            width: "100%",
             margin: "0.5rem auto 0",
             display: "flex",
             justifyContent: "space-between",
@@ -831,7 +831,7 @@ export default function Home(): JSX.Element {
               borderRadius: "12px",
               display: "flex",
               flexDirection: "column",
-              height: "90%",
+              height: "88%",
             }}
           >
             {/* Header Section */}
@@ -2516,7 +2516,7 @@ export default function Home(): JSX.Element {
                 borderRadius: "12px",
                 display: "flex",
                 flexDirection: "column",
-                height: "90%",
+                height: "88%",
               }}
             >
               {/* Header Section */}
