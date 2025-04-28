@@ -1,30 +1,31 @@
-"""SQLAlchemy ORM async session management."""
+"""SQLAlchemy ORM async session management with tenant awareness."""
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from typing import AsyncGenerator, cast
 
-from app.core.config import settings
-from app.db.orm_models import Base
+from sqlalchemy.ext.asyncio import AsyncSession
 
-# Create async engine
-async_engine = create_async_engine(
-    settings.DATABASE_URI,
-    echo=False,
-    future=True,
-)
+from db_core import get_tenant_async_db, get_current_tenant_id
 
-# Create async session factory
-AsyncSessionLocal = async_sessionmaker(
-    async_engine,
-    expire_on_commit=False,
-    autocommit=False,
-    autoflush=False,
-)
+from app.core.multitenancy import multitenancy_settings
 
 
-async def get_async_session():
-    """Get an async database session."""
-    session = AsyncSessionLocal()
-    try:
-        yield session
-    finally:
-        await session.close()
+async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
+    """Get a tenant-aware async database session."""
+    # Get the current tenant ID from the request
+    tenant_id = get_current_tenant_id()
+
+    # Use a string tenant ID, not a Depends object
+    if isinstance(tenant_id, str):
+        async for session in get_tenant_async_db(multitenancy_settings, tenant_id):
+            try:
+                yield session
+            finally:
+                await session.close()
+    else:
+        # Fallback to default tenant if tenant_id is not a string
+        default_tenant = cast(str, multitenancy_settings.default_tenant_id or "default")
+        async for session in get_tenant_async_db(multitenancy_settings, default_tenant):
+            try:
+                yield session
+            finally:
+                await session.close()

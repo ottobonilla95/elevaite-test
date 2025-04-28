@@ -2,10 +2,10 @@
 
 import re
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import List, Optional, Union, ClassVar
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 
 
 class UserBase(BaseModel):
@@ -20,7 +20,8 @@ class UserCreate(UserBase):
 
     password: str = Field(..., min_length=12)
 
-    @validator("password")
+    @field_validator("password")
+    @classmethod
     def password_strength(cls, v: str) -> str:
         """Validate password strength."""
         if len(v) < 12:
@@ -52,7 +53,8 @@ class PasswordUpdate(BaseModel):
     current_password: str
     new_password: str = Field(..., min_length=12)
 
-    @validator("new_password")
+    @field_validator("new_password")
+    @classmethod
     def password_strength(cls, v: str) -> str:
         """Validate password strength."""
         if len(v) < 12:
@@ -80,10 +82,14 @@ class UserResponse(UserBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        """Config."""
+    model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)
 
-        orm_mode = True
+
+class UserDetail(UserResponse):
+    """Detailed user information schema."""
+
+    status: str
+    last_login: Optional[datetime] = None
 
 
 class Token(BaseModel):
@@ -128,7 +134,8 @@ class PasswordResetConfirm(BaseModel):
     token: str
     new_password: str = Field(..., min_length=12)
 
-    @validator("new_password")
+    @field_validator("new_password")
+    @classmethod
     def password_strength(cls, v: str) -> str:
         """Validate password strength."""
         if len(v) < 12:
@@ -176,7 +183,4 @@ class SessionInfo(BaseModel):
     expires_at: datetime
     is_current: bool = False
 
-    class Config:
-        """Config."""
-
-        orm_mode = True
+    model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)

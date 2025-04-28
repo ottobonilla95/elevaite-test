@@ -1,14 +1,12 @@
-"""Authentication services using SQLAlchemy ORM."""
+"""Authentication services."""
 
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Tuple, TypeVar
+from typing import Optional, Tuple
 
-from fastapi import HTTPException, Request
-from fastapi import status as http_status
-from sqlalchemy import and_, update
+from fastapi import HTTPException, Request, status
+from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 from app.core.config import settings
 from app.core.security import (
@@ -21,20 +19,15 @@ from app.core.security import (
     verify_totp,
 )
 from app.db.activity_log import log_user_activity
-
-# from app.db.orm import get_async_session  # Uncomment if needed
 from app.db.orm_models import Session, User, UserStatus
 from app.schemas.user import UserCreate
 
 
-# Type variable for User model
-T = TypeVar("T", bound=User)
+# This file is deprecated. Use auth_orm.py instead.
 
 
 async def get_user_by_email(session: AsyncSession, email: str) -> Optional[User]:
-    """Get user by email in the current tenant context."""
-    # This function is automatically tenant-aware because the session
-    # is created with the tenant schema set in the search_path
+    """Get user by email."""
     result = await session.execute(select(User).where(User.email == email))
     return result.scalars().first()
 
@@ -43,25 +36,21 @@ async def authenticate_user(
     session: AsyncSession, email: str, password: str, totp_code: Optional[str] = None
 ) -> Optional[User]:
     """Authenticate a user with email and password."""
-    print(f"Authenticating user: {email}")
     user = await get_user_by_email(session, email)
 
     if not user:
-        print(f"User not found in authenticate_user: {email}")
         return None
 
-    print(f"Checking password for user: {email}")
     if not verify_password(password, user.hashed_password):
-        print(f"Password verification failed for user: {email}")
         # Increment failed login attempts
-        now = datetime.now(timezone.utc)
         stmt = (
             update(User)
             .where(User.id == user.id)
             .values(
                 failed_login_attempts=user.failed_login_attempts + 1,
-                locked_until=(now + timedelta(minutes=15) if user.failed_login_attempts + 1 >= 5 else None),
-                updated_at=now,  # Ensure updated_at is also timezone-aware
+                locked_until=(
+                    datetime.now(timezone.utc) + timedelta(minutes=15) if user.failed_login_attempts + 1 >= 5 else None
+                ),
             )
         )
         await session.execute(stmt)
@@ -70,39 +59,33 @@ async def authenticate_user(
 
     # Check if account is locked
     if user.locked_until and user.locked_until > datetime.now(timezone.utc):
-        print(f"Account is locked for user: {email}")
         return None
 
     # Check if account is active
-    print(f"Checking account status: {user.status}")
     if user.status != UserStatus.ACTIVE.value:
-        print(f"Account is not active for user: {email}, status: {user.status}")
         return None
 
     # Check MFA if enabled
     if user.mfa_enabled and not totp_code:
         raise HTTPException(
-            status_code=http_status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="TOTP code required",
         )
 
     if user.mfa_enabled and totp_code and user.mfa_secret and not verify_totp(totp_code, user.mfa_secret):
         raise HTTPException(
-            status_code=http_status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid TOTP code",
         )
 
     # Reset failed login attempts and update last login
-    # Use the same timezone format for all datetime objects
-    now = datetime.now(timezone.utc)
     stmt = (
         update(User)
         .where(User.id == user.id)
         .values(
             failed_login_attempts=0,
             locked_until=None,
-            last_login=now,
-            updated_at=now,  # Ensure updated_at is also timezone-aware
+            last_login=datetime.now(timezone.utc),
         )
     )
     await session.execute(stmt)
@@ -117,13 +100,14 @@ async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
     existing_user = await get_user_by_email(session, user_data.email)
     if existing_user:
         raise HTTPException(
-            status_code=http_status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
 
     # Create verification token
     verification_token = uuid.uuid4()
 
+    # Create user
     # Create user
     new_user = User(
         email=user_data.email,
@@ -135,19 +119,7 @@ async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
     )
     session.add(new_user)
     await session.commit()
-
-    # Refresh to get the full user object
-    try:
-        await session.refresh(new_user)
-    except Exception as e:
-        print(f"Error refreshing user: {e}")
-
-        # Get the user from the database instead of refreshing
-        stmt = select(User).where(User.email == user_data.email)
-        result = await session.execute(stmt)
-        found_user = result.scalars().first()
-        if found_user is not None:
-            new_user = found_user
+    await session.refresh(new_user)
 
     # TODO: Send verification email
 
@@ -156,15 +128,11 @@ async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
 
 async def create_user_session(session: AsyncSession, user_id: int, request: Request) -> Tuple[str, str]:
     """Create a new user session and return tokens."""
-    # Get the current tenant ID from the request
-    from db_core.middleware import get_current_tenant_id
+    # Create tokens
+    access_token = create_access_token(user_id)
+    refresh_token = create_refresh_token(user_id)
 
-    tenant_id = get_current_tenant_id()
-
-    # Create tokens with tenant ID
-    access_token = create_access_token(user_id, tenant_id=tenant_id)
-    refresh_token = create_refresh_token(user_id, tenant_id=tenant_id)
-
+    # Store session
     # Store session
     new_session = Session(
         user_id=user_id,
@@ -239,7 +207,7 @@ async def setup_mfa(session: AsyncSession, user_id: int) -> Tuple[str, str]:
 
     if not user:
         raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
 
@@ -265,7 +233,7 @@ async def activate_mfa(session: AsyncSession, user_id: int, totp_code: str) -> b
 
     if not user or not user.mfa_secret:
         raise HTTPException(
-            status_code=http_status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="MFA not set up",
         )
 

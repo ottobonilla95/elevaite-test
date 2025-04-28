@@ -1,19 +1,18 @@
 """Database connection and utilities."""
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, AsyncGenerator
 
 import sqlalchemy
-from databases import Database
-from sqlalchemy import Column, DateTime, MetaData, Table, create_engine
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, DateTime, MetaData, Table
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
+from db_core import get_tenant_async_db
 
-# SQLAlchemy database connection
-database = Database(settings.DATABASE_URI)
+from app.core.multitenancy import multitenancy_settings
+
+# SQLAlchemy metadata for tables
 metadata = MetaData()
-Base = declarative_base(metadata=metadata)
 
 
 # Base model with created_at and updated_at fields
@@ -28,14 +27,14 @@ class TimestampModel:
 
 async def create_tables() -> None:
     """Create database tables."""
-    engine = create_engine(str(settings.DATABASE_URI).replace("asyncpg", "psycopg2"))
-    metadata.create_all(engine)
-    await database.connect()
+    # This is now handled by the db-core package and tenant_db.py
+    # See app.db.tenant_db.initialize_db()
 
 
-async def get_db() -> Database:
-    """Get database connection."""
-    return database
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Get a tenant-aware database session."""
+    async for session in get_tenant_async_db(multitenancy_settings):
+        yield session
 
 
 # User activity logging table (for audit)
@@ -47,13 +46,14 @@ user_activity = Table(
     Column("action", sqlalchemy.String, nullable=False),
     Column("ip_address", sqlalchemy.String, nullable=True),
     Column("user_agent", sqlalchemy.String, nullable=True),
-    Column("timestamp", sqlalchemy.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False),
+    Column("timestamp", sqlalchemy.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False),
     Column("details", sqlalchemy.JSON, nullable=True),
 )
 
 
 # Helper functions
 async def log_user_activity(
+    session: AsyncSession,
     user_id: int,
     action: str,
     ip_address: Optional[str] = None,
@@ -61,7 +61,8 @@ async def log_user_activity(
     details: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Log user activity for audit purposes."""
-    await database.execute(
+    # Use SQLAlchemy Core with AsyncSession
+    await session.execute(
         user_activity.insert().values(
             user_id=user_id,
             action=action,
@@ -71,3 +72,4 @@ async def log_user_activity(
             details=details,
         )
     )
+    await session.commit()

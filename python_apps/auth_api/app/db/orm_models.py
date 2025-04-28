@@ -3,9 +3,9 @@
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Callable
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, String, DateTime, Boolean, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -25,13 +25,18 @@ class UserStatus(str, Enum):
     PENDING = "pending"
 
 
+# Define timezone-aware datetime functions
+def utcnow() -> datetime:
+    """Return the current UTC datetime with timezone info."""
+    return datetime.now(timezone.utc)
+
+
 class TimestampMixin:
     """Base mixin with timestamp fields."""
 
-    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False
-    )
+    # Use timezone-aware datetime functions
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
 
 class User(Base, TimestampMixin):
@@ -40,7 +45,7 @@ class User(Base, TimestampMixin):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(50), default=UserStatus.PENDING.value, nullable=False)
@@ -53,15 +58,15 @@ class User(Base, TimestampMixin):
 
     # Password reset
     password_reset_token: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    password_reset_expires: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    password_reset_expires: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Email verification
     verification_token: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), default=uuid.uuid4, nullable=True)
 
     # Last login information
-    last_login: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    last_login: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     failed_login_attempts: Mapped[int] = mapped_column(default=0, nullable=False)
-    locked_until: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    locked_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     sessions: Mapped[List["Session"]] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -79,7 +84,7 @@ class Session(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     refresh_token: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
-    expires_at: Mapped[datetime] = mapped_column(nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ip_address: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     user_agent: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)

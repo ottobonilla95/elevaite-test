@@ -9,9 +9,13 @@ from argon2.exceptions import VerifyMismatchError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from sqlalchemy.ext.asyncio import AsyncSession
+
+# Use passlib without the deprecated crypt module
 from passlib.context import CryptContext
 
 from app.core.config import settings
+from app.db.orm import get_async_session
 
 # Token URL
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_PREFIX}/auth/login")
@@ -47,7 +51,9 @@ def get_password_hash(password: str) -> str:
     return password_hasher.hash(password)
 
 
-def create_access_token(subject: Union[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(
+    subject: Union[str, Any], tenant_id: Optional[str] = None, expires_delta: Optional[timedelta] = None
+) -> str:
     """Create a JWT access token."""
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -55,14 +61,24 @@ def create_access_token(subject: Union[str, Any], expires_delta: Optional[timede
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode = {"exp": expire, "sub": str(subject), "type": "access"}
+
+    # Add tenant_id to the token if provided
+    if tenant_id:
+        to_encode["tenant_id"] = tenant_id
+
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 
-def create_refresh_token(subject: Union[str, Any]) -> str:
+def create_refresh_token(subject: Union[str, Any], tenant_id: Optional[str] = None) -> str:
     """Create a JWT refresh token."""
     expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
+
+    # Add tenant_id to the token if provided
+    if tenant_id:
+        to_encode["tenant_id"] = tenant_id
+
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
@@ -84,6 +100,48 @@ def verify_token(token: str, token_type: str) -> Dict[str, Any]:
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_async_session)):
+    """Get the current user from the token."""
+    from db_core.middleware import get_current_tenant_id
+    from app.db.orm_models import User
+    from sqlalchemy import select
+
+    # Verify the token
+    payload = verify_token(token, "access")
+    user_id = payload.get("sub")
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Check if the token's tenant matches the current tenant
+    token_tenant_id = payload.get("tenant_id")
+    current_tenant_id = get_current_tenant_id()
+
+    if token_tenant_id != current_tenant_id:
+        print(f"Token tenant mismatch: token={token_tenant_id}, current={current_tenant_id}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token is not valid for this tenant",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Get the user from the database
+    result = await session.execute(select(User).where(User.id == int(user_id)))
+    user = result.scalars().first()
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return user
 
 
 def generate_totp_secret() -> str:

@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select as async_select
 
 from app.core.config import settings
-from app.core.security import get_password_hash, oauth2_scheme, verify_token
+from app.core.security import get_password_hash, oauth2_scheme, verify_token, get_current_user
 from app.db.activity_log import log_user_activity
 from app.db.orm import get_async_session
 from app.db.orm_models import Session, User
@@ -30,6 +30,7 @@ from app.schemas.user import (
     Token,
     UserCreate,
     UserResponse,
+    UserDetail,
 )
 from app.services.auth_orm import (
     activate_mfa,
@@ -47,9 +48,15 @@ router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
 
+@router.get("/me", response_model=UserDetail)
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """Get information about the currently authenticated user."""
+    return current_user
+
+
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
-async def register_user(user_data: UserCreate, session: AsyncSession = Depends(get_async_session)):
+async def register_user(request: Request, user_data: UserCreate, session: AsyncSession = Depends(get_async_session)):
     """Register a new user."""
     user = await create_user(session, user_data)
     return user
@@ -57,11 +64,25 @@ async def register_user(user_data: UserCreate, session: AsyncSession = Depends(g
 
 @router.post("/login", response_model=Token)
 @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
-async def login(login_data: LoginRequest, request: Request, session: AsyncSession = Depends(get_async_session)):
+async def login(request: Request, login_data: LoginRequest, session: AsyncSession = Depends(get_async_session)):
     """Login with email and password."""
+    # Print debug information
+    print(f"Login attempt for email: {login_data.email}")
+
+    # Check if user exists
+    from app.services.auth_orm import get_user_by_email
+
+    user_check = await get_user_by_email(session, login_data.email)
+    if not user_check:
+        print(f"User not found: {login_data.email}")
+    else:
+        print(f"User found: {user_check.email}, status: {user_check.status}, verified: {user_check.is_verified}")
+
+    # Attempt authentication
     user = await authenticate_user(session, login_data.email, login_data.password, login_data.totp_code)
 
     if not user:
+        print(f"Authentication failed for: {login_data.email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -114,6 +135,7 @@ async def logout(token_data: RefreshTokenRequest, request: Request, session: Asy
     if user_id:
         # Log activity
         await log_user_activity(
+            session,
             user_id,
             "logout",
             ip_address=request.client.host if request.client else None,
@@ -148,7 +170,7 @@ async def verify_email(verification_data: EmailVerificationRequest, session: Asy
     # Get the user ID as a plain integer
     user_dict = dict(user.__dict__)
     user_id_value = user_dict["id"]
-    await log_user_activity(user_id_value, "email_verified")
+    await log_user_activity(session, user_id_value, "email_verified")
 
     return {"message": "Email successfully verified"}
 
@@ -156,7 +178,7 @@ async def verify_email(verification_data: EmailVerificationRequest, session: Asy
 @router.post("/forgot-password")
 @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
 async def forgot_password(
-    reset_data: PasswordResetRequest, request: Request, session: AsyncSession = Depends(get_async_session)
+    request: Request, reset_data: PasswordResetRequest, session: AsyncSession = Depends(get_async_session)
 ):
     """Initialize password reset flow."""
     # Find user by email
@@ -183,6 +205,7 @@ async def forgot_password(
     user_dict = dict(user.__dict__)
     user_id_value = user_dict["id"]
     await log_user_activity(
+        session,
         user_id_value,
         "password_reset_requested",
         ip_address=request.client.host if request.client else None,
@@ -232,7 +255,7 @@ async def reset_password(reset_data: PasswordResetConfirm, session: AsyncSession
     # Get the user ID as a plain integer
     user_dict = dict(user.__dict__)
     user_id_value = user_dict["id"]
-    await log_user_activity(user_id_value, "password_reset_completed")
+    await log_user_activity(session, user_id_value, "password_reset_completed")
 
     return {"message": "Password successfully reset"}
 
@@ -350,6 +373,6 @@ async def revoke_session(
     await session.commit()
 
     # Log activity
-    await log_user_activity(user_id, "session_revoked")
+    await log_user_activity(session, user_id, "session_revoked")
 
     return {"message": "Session successfully revoked"}

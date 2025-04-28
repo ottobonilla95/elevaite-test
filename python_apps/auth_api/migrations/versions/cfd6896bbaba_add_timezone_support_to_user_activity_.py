@@ -1,8 +1,8 @@
-"""Update models to use SQLAlchemy 2.0 style
+"""Add timezone support to user_activity timestamp field
 
-Revision ID: 5a78ac8f4024
-Revises: 72a50a53308c
-Create Date: 2025-04-10 18:46:22.856581
+Revision ID: cfd6896bbaba
+Revises: 2aa0b974a1b6
+Create Date: 2025-04-28 14:15:21.348543
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '5a78ac8f4024'
-down_revision: Union[str, None] = '72a50a53308c'
+revision: str = 'cfd6896bbaba'
+down_revision: Union[str, None] = '2aa0b974a1b6'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -1,13 +1,20 @@
 """Main FastAPI application."""
 
-from fastapi import FastAPI
+# Apply patches for third-party libraries
+from app.patches import starlette_patch, passlib_patch
+
 from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.security import HTTPBearer
 
+from db_core import TenantMiddleware
+
 from app.core.config import settings
-from app.db.orm_init import create_tables
+from app.core.multitenancy import multitenancy_settings
+from app.db.tenant_db import initialize_db
 from app.routers import auth
 
 security = HTTPBearer()
@@ -16,7 +23,8 @@ security = HTTPBearer()
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Initialize database on startup."""
-    await create_tables()
+    # Initialize tenant schemas and tables
+    await initialize_db()
     yield
 
 
@@ -28,6 +36,9 @@ app = FastAPI(
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
 )
+
+# Add tenant middleware
+app.add_middleware(TenantMiddleware, settings=multitenancy_settings)
 
 # Add security middleware
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
