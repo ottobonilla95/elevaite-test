@@ -10,7 +10,7 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.68.0",
     "uvicorn>=0.15.0",
-    "pydantic>=1.8.2,<2.0.0",
+    "pydantic>=1.10.5",
     "sqlalchemy>=1.4.23",
     "alembic>=1.7.4",
     "passlib>=1.7.4",
@@ -21,10 +21,10 @@ dependencies = [
     "databases>=0.5.3",
     "httpx>=0.23.0",
     "argon2-cffi>=21.3.0",  # Preferred over bcrypt for password hashing
-    "pydantic-settings>=2.0.0",  # For settings management
+    "pydantic-settings",  # For settings management
     "pyotp>=2.8.0",  # For 2FA
     "qrcode>=7.3.1",  # For 2FA QR code generation
-    "rate-limiter>=0.0.4",  # For rate limiting
+    "rate-limiter",  # For rate limiting
 ]
 
 [project.optional-dependencies]

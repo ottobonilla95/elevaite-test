@@ -13,7 +13,7 @@ maintainers = [{ name = "John Zachariadis", email = "your.email@example.com" }]
 dependencies = [
     "fastapi>=0.68.0",
     "sqlalchemy>=1.4.0",
-    "pydantic>=1.8.0",
+    "pydantic>=1.10.5",
     "alembic>=1.7.0",
     "psycopg2-binary>=2.9.0; platform_python_implementation != 'PyPy'",
     "psycopg2cffi>=2.9.0; platform_python_implementation == 'PyPy'",
