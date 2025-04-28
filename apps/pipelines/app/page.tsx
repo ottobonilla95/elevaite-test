@@ -73,15 +73,38 @@ export default function Home(): JSX.Element {
       setIsMobile(window.innerWidth < 768);
     };
 
+    // Function to close all dropdowns on resize
+    const closeAllDropdowns = () => {
+      // Close the project dropdown
+      const projectDropdown = document.getElementById("project-dropdown");
+      if (projectDropdown) {
+        projectDropdown.style.display = "none";
+      }
+
+      // Close any custom dropdowns by clicking outside them
+      const clickEvent = new MouseEvent("mousedown", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+      document.dispatchEvent(clickEvent);
+    };
+
+    // Combined handler for resize events
+    const handleResize = () => {
+      checkIfMobile();
+      closeAllDropdowns();
+    };
+
     // Initial check
     checkIfMobile();
 
     // Add event listener for window resize
-    window.addEventListener("resize", checkIfMobile);
+    window.addEventListener("resize", handleResize);
 
     // Cleanup
     return () => {
-      window.removeEventListener("resize", checkIfMobile);
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
@@ -342,7 +365,7 @@ export default function Home(): JSX.Element {
     const selectedLabel =
       options.find((option) => option.value === selectedValue)?.label || "";
 
-    // Handle click outside to close dropdown and update position on scroll
+    // Handle click outside to close dropdown and update position on scroll/resize
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
         if (
@@ -362,12 +385,21 @@ export default function Home(): JSX.Element {
         }
       };
 
+      // Close dropdown on window resize
+      const handleResize = () => {
+        if (isOpen) {
+          setIsOpen(false);
+        }
+      };
+
       document.addEventListener("mousedown", handleClickOutside);
       window.addEventListener("scroll", handleScroll, true);
+      window.addEventListener("resize", handleResize);
 
       return () => {
         document.removeEventListener("mousedown", handleClickOutside);
         window.removeEventListener("scroll", handleScroll, true);
+        window.removeEventListener("resize", handleResize);
       };
     }, [isOpen]);
 
