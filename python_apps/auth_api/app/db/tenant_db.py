@@ -16,7 +16,9 @@ from app.core.multitenancy import multitenancy_settings, DEFAULT_TENANTS
 from .models import Base
 
 # Update the multitenancy settings with the database URL from config
-multitenancy_settings.db_url = settings._database_env
+db_url = settings._database_env
+
+multitenancy_settings.db_url = db_url
 
 
 async def initialize_db():
@@ -24,7 +26,7 @@ async def initialize_db():
     # Initialize the database with tenant schemas
     init_db(
         settings=multitenancy_settings,
-        db_url=settings._database_env,
+        db_url=multitenancy_settings.db_url,
         create_schemas=True,
         base_model_class=Base,
         tenant_ids=DEFAULT_TENANTS,

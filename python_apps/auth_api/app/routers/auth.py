@@ -2,9 +2,10 @@
 
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel, Field
 
 # No security imports needed here as they're imported from app.core.security
 from slowapi import Limiter
@@ -322,6 +323,7 @@ async def reset_password(
             hashed_password=get_password_hash(reset_data.new_password),
             password_reset_token=None,
             password_reset_expires=None,
+            is_password_temporary=False,  # Mark password as permanent
         )
     )
     await session.execute(stmt)
@@ -339,6 +341,53 @@ async def reset_password(
     await log_user_activity(session, user_id_value, "password_reset_completed")
 
     return {"message": "Password successfully reset"}
+
+
+class ChangePasswordRequest(BaseModel):
+    """Change password request schema."""
+
+    new_password: str = Field(..., min_length=12)
+
+
+@router.post("/change-password")
+async def change_password(
+    request: Request,
+    change_data: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Change user password."""
+    # Update password
+    stmt = (
+        update(User)
+        .where(User.id == current_user.id)
+        .values(
+            hashed_password=get_password_hash(change_data.new_password),
+            is_password_temporary=False,  # Mark password as permanent
+        )
+    )
+    await session.execute(stmt)
+
+    # Invalidate all sessions for this user
+    stmt = (
+        update(Session)
+        .where(Session.user_id == current_user.id)
+        .values(is_active=False)
+    )
+    await session.execute(stmt)
+
+    await session.commit()
+
+    # Log activity
+    await log_user_activity(
+        session,
+        current_user.id,
+        "password_changed",
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+
+    return {"message": "Password successfully changed"}
 
 
 @router.post("/mfa/setup", response_model=MfaSetupResponse)

@@ -26,7 +26,14 @@ from app.core.config import settings
 target_metadata = Base.metadata
 
 # Set the database URL in the Alembic config
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URI)
+# Use the _database_env from settings or a default URL
+db_url = settings._database_env
+if not db_url:
+    # Use a default URL if not provided
+    db_url = "postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth_db"
+    print(f"Warning: Using default database URL: {db_url}")
+
+config.set_main_option("sqlalchemy.url", db_url)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
