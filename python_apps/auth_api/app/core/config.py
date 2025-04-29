@@ -1,21 +1,25 @@
 """Application configuration."""
 
+import os
 import secrets
 from typing import List, Union
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from dotenv import load_dotenv
 
 
 class Settings(BaseSettings):
     """Application settings."""
 
+    load_dotenv()
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore")
 
     # API Settings
     PROJECT_NAME: str = "Auth API"
     API_PREFIX: str = "/api"
-    DEBUG: bool = False
+    _debug_env = os.environ.get("DEBUG")
+    DEBUG: bool = _debug_env is not None
 
     # Security
     SECRET_KEY: str = secrets.token_urlsafe(32)
@@ -44,7 +48,10 @@ class Settings(BaseSettings):
     ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1"]
 
     # Database
-    DATABASE_URI: str = "postgresql+asyncpg://postgres:postgres@localhost:5433/auth"
+    _database_env = os.environ.get("SQLALCHEMY_DATABASE_URL")
+    DATABASE_URI: str = (
+        _database_env if _database_env is not None else "postgresql+asyncpg://postgres:postgres@localhost:5433/auth"
+    )
 
     # Email settings for password resets, etc.
     SMTP_TLS: bool = True
