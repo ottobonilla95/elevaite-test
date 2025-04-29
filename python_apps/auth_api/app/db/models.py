@@ -3,9 +3,9 @@
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import ForeignKey, String, DateTime
+from sqlalchemy import ForeignKey, String, DateTime, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -70,6 +70,7 @@ class User(Base, TimestampMixin):
 
     # Relationships
     sessions: Mapped[List["Session"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    activities: Mapped[List["UserActivity"]] = relationship("UserActivity", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         """String representation."""
@@ -95,3 +96,24 @@ class Session(Base, TimestampMixin):
     def __repr__(self) -> str:
         """String representation."""
         return f"<Session {self.id} for User {self.user_id}>"
+
+
+class UserActivity(Base, TimestampMixin):
+    """User activity logging model for audit purposes."""
+
+    __tablename__ = "user_activity"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    action: Mapped[str] = mapped_column(String(255), nullable=False)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    details: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+
+    # Relationship to User
+    user: Mapped["User"] = relationship("User", back_populates="activities")
+
+    def __repr__(self) -> str:
+        """String representation."""
+        return f"<UserActivity {self.id} - {self.action} by User {self.user_id}>"

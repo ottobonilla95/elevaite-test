@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.database import user_activity
+from app.db.models import UserActivity
 
 
 # Helper functions
@@ -18,14 +18,16 @@ async def log_user_activity(
     details: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Log user activity for audit purposes."""
-    await session.execute(
-        user_activity.insert().values(
-            user_id=user_id,
-            action=action,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            timestamp=datetime.now(timezone.utc),
-            details=details,
-        )
+    # Create a new UserActivity instance
+    activity = UserActivity(
+        user_id=user_id,
+        action=action,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        timestamp=datetime.now(timezone.utc),
+        details=details,
     )
+
+    # Add to session and commit
+    session.add(activity)
     await session.commit()
