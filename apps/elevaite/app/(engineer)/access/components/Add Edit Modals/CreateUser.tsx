@@ -1,11 +1,12 @@
 import { CommonInput } from "@repo/ui/components";
 import { useState, useEffect } from "react";
 import { AddEditBaseDialog } from "./AddEditBaseDialog";
+import { createUser } from "../../../lib/services/userService";
 import "./AddEditUser.scss";
 
 interface CreateUserProps {
   onClose: () => void;
-  onSuccess: (email: string) => void;
+  onSuccess: (email: string, message?: string) => void;
 }
 
 export function CreateUser(props: CreateUserProps): JSX.Element {
@@ -14,6 +15,7 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
   const [userEmail, setUserEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState("");
 
   // Email validation regex
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -31,19 +33,32 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
     }
   }, [userEmail]);
 
-  function handleClick(): void {
+  async function handleClick(): Promise<void> {
     if (!userFirstName || !userLastName || !userEmail || emailError) return;
 
     setIsSubmitting(true);
+    setApiError("");
+
     try {
-      // TODO: API call to create a user
-      setTimeout(() => {
-        props.onSuccess(userEmail);
-        setIsSubmitting(false);
-      }, 1000);
+      // Call the API to create a user
+      const result = await createUser({
+        firstName: userFirstName,
+        lastName: userLastName,
+        email: userEmail,
+      });
+
+      if (result.success) {
+        // User created successfully
+        props.onSuccess(userEmail, result.message);
+      } else {
+        // Error creating user
+        setApiError(result.message);
+      }
     } catch (error) {
       // eslint-disable-next-line no-console -- Needed
       console.error("Error creating user:", error);
+      setApiError("An unexpected error occurred. Please try again.");
+    } finally {
       setIsSubmitting(false);
     }
   }
@@ -56,7 +71,11 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
         onClick={handleClick}
         buttonLabel="Create"
         disabled={
-          !userFirstName || !userLastName || !userEmail || Boolean(emailError)
+          !userFirstName ||
+          !userLastName ||
+          !userEmail ||
+          Boolean(emailError) ||
+          isSubmitting
         }
         loading={isSubmitting}
       >
@@ -85,6 +104,8 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
               : undefined
           }
         />
+
+        {apiError && <div className="api-error-message">{apiError}</div>}
       </AddEditBaseDialog>
     </div>
   );

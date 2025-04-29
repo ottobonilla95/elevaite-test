@@ -43,6 +43,7 @@ export function UsersList(props: UsersListProps): JSX.Element {
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
   const [isUserCreatedModalOpen, setIsUserCreatedModalOpen] = useState(false);
   const [createdUserEmail, setCreatedUserEmail] = useState("");
+  const [createdUserMessage, setCreatedUserMessage] = useState("");
   const [selectedUser, setSelectedUser] = useState<
     ExtendedUserObject | undefined
   >();
@@ -169,8 +170,13 @@ export function UsersList(props: UsersListProps): JSX.Element {
     setIsUserCreatedModalOpen(false);
   }
 
-  function handleUserCreated(email: string): void {
+  function handleUserCreated(email: string, message?: string): void {
     setCreatedUserEmail(email);
+    if (message) {
+      setCreatedUserMessage(message);
+    } else {
+      setCreatedUserMessage("");
+    }
     setIsCreateUserModalOpen(false);
     setIsUserCreatedModalOpen(true);
   }
@@ -274,6 +280,7 @@ export function UsersList(props: UsersListProps): JSX.Element {
           <UserCreatedConfirmation
             email={createdUserEmail}
             onClose={handleUserCreatedModalClose}
+            message={createdUserMessage}
           />
         </CommonModal>
       )}
