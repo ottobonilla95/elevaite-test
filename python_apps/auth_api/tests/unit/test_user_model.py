@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from app.db.orm_models import User
+from app.db.models import User
 
 
 class TestUserModel:

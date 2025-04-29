@@ -17,7 +17,7 @@ from app.core.config import settings
 from app.core.security import get_password_hash, oauth2_scheme, verify_token, get_current_user
 from app.db.activity_log import log_user_activity
 from app.db.orm import get_async_session
-from app.db.orm_models import Session, User
+from app.db.models import Session, User
 from app.schemas.user import (
     EmailVerificationRequest,
     LoginRequest,

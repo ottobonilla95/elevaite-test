@@ -20,7 +20,7 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from app.db.orm_models import Base
+from app.db.models import Base
 from app.core.config import settings
 
 target_metadata = Base.metadata
@@ -67,6 +67,8 @@ def run_migrations_online() -> None:
     """
     # Handle the asyncpg case - create a sync engine for Alembic to work
     db_url = config.get_main_option("sqlalchemy.url")
+    if db_url is None:
+        raise Exception("DB URL not found")
     # Replace asyncpg with psycopg2 for Alembic to work
     sync_url = db_url.replace("asyncpg", "psycopg2")
 

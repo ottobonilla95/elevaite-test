@@ -13,7 +13,7 @@ from db_core.middleware import get_current_tenant_id
 
 from app.core.config import settings
 from app.core.multitenancy import multitenancy_settings, DEFAULT_TENANTS
-from app.db.orm_models import Base
+from .models import Base
 
 # Update the multitenancy settings with the database URL from config
 multitenancy_settings.db_url = settings.DATABASE_URI

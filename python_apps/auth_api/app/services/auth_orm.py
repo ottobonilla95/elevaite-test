@@ -23,7 +23,7 @@ from app.core.security import (
 from app.db.activity_log import log_user_activity
 
 # from app.db.orm import get_async_session  # Uncomment if needed
-from app.db.orm_models import Session, User, UserStatus
+from app.db.models import Session, User, UserStatus
 from app.schemas.user import UserCreate
 
 

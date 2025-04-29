@@ -105,7 +105,7 @@ def verify_token(token: str, token_type: str) -> Dict[str, Any]:
 async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_async_session)):
     """Get the current user from the token."""
     from db_core.middleware import get_current_tenant_id
-    from app.db.orm_models import User
+    from app.db.models import User
     from sqlalchemy import select
 
     # Verify the token

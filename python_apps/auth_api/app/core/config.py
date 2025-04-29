@@ -1,9 +1,9 @@
 """Application configuration."""
 
 import secrets
-from typing import List, Union, ClassVar
+from typing import List, Union
 
-from pydantic import AnyHttpUrl, field_validator, ConfigDict
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

@@ -17,7 +17,7 @@ from app.schemas.user import UserCreate
 from app.services.auth_orm import create_user, get_user_by_email
 from app.core.config import settings
 from app.core.multitenancy import multitenancy_settings
-from app.db.orm_models import Base
+from app.db.models import Base
 
 
 async def set_tenant_search_path(session, tenant_id):

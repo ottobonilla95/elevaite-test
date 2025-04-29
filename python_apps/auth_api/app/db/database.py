@@ -1,7 +1,7 @@
 """Database connection and utilities."""
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, AsyncGenerator
+from typing import AsyncGenerator
 
 import sqlalchemy
 from sqlalchemy import Column, DateTime, MetaData, Table
@@ -25,12 +25,6 @@ class TimestampModel:
     )
 
 
-async def create_tables() -> None:
-    """Create database tables."""
-    # This is now handled by the db-core package and tenant_db.py
-    # See app.db.tenant_db.initialize_db()
-
-
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get a tenant-aware database session."""
     async for session in get_tenant_async_db(multitenancy_settings):
@@ -51,25 +45,4 @@ user_activity = Table(
 )
 
 
-# Helper functions
-async def log_user_activity(
-    session: AsyncSession,
-    user_id: int,
-    action: str,
-    ip_address: Optional[str] = None,
-    user_agent: Optional[str] = None,
-    details: Optional[Dict[str, Any]] = None,
-) -> None:
-    """Log user activity for audit purposes."""
-    # Use SQLAlchemy Core with AsyncSession
-    await session.execute(
-        user_activity.insert().values(
-            user_id=user_id,
-            action=action,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            timestamp=datetime.now(timezone.utc),
-            details=details,
-        )
-    )
-    await session.commit()
+# Helper functions for user activity logging are now in app.db.activity_log

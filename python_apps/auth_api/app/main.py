@@ -1,7 +1,10 @@
 """Main FastAPI application."""
 
 # Apply patches for third-party libraries
-from app.patches import starlette_patch, passlib_patch
+# These patches are applied automatically when imported
+# pylint: disable=unused-import
+from app.patches import starlette_patch, passlib_patch  # noqa: F401
+# pylint: enable=unused-import
 
 from contextlib import asynccontextmanager
 
@@ -21,7 +24,7 @@ security = HTTPBearer()
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI):
+async def lifespan(_app: FastAPI):  # pylint: disable=unused-argument
     """Initialize database on startup."""
     # Initialize tenant schemas and tables
     await initialize_db()

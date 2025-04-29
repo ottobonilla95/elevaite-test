@@ -3,9 +3,9 @@
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import List, Optional, Callable
+from typing import List, Optional
 
-from sqlalchemy import ForeignKey, String, DateTime, Boolean, Integer
+from sqlalchemy import ForeignKey, String, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 

@@ -17,7 +17,7 @@ from db_core.utils import async_create_tenant_schema, get_schema_name
 
 from app.core.config import settings
 from app.core.multitenancy import multitenancy_settings
-from app.db.orm_models import Base
+from app.db.models import Base
 # Don't import the main app directly to avoid rate limiter issues
 # from app.main import app as main_app
 
