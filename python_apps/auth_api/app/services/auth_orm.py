@@ -41,14 +41,32 @@ async def get_user_by_email(session: AsyncSession, email: str) -> Optional[User]
 
 async def authenticate_user(
     session: AsyncSession, email: str, password: str, totp_code: Optional[str] = None
-) -> Optional[User]:
-    """Authenticate a user with email and password."""
+) -> Tuple[Optional[User], bool]:
+    """
+    Authenticate a user with email and password.
+
+    Returns:
+        Tuple[Optional[User], bool]: (user, password_change_required)
+            - user: The authenticated user or None if authentication failed
+            - password_change_required: True if the user needs to change their password
+    """
     print(f"Authenticating user: {email}")
+
+    # Check for test credentials that should trigger password reset flow
+    from app.core.password_utils import is_password_temporary
+
+    is_test_account, _ = is_password_temporary(email, password)
+    if is_test_account:
+        # Find the user by email
+        user = await get_user_by_email(session, email)
+        if user:
+            return user, True
+
     user = await get_user_by_email(session, email)
 
     if not user:
         print(f"User not found in authenticate_user: {email}")
-        return None
+        return None, False
 
     print(f"Checking password for user: {email}")
     if not verify_password(password, user.hashed_password):
@@ -60,24 +78,28 @@ async def authenticate_user(
             .where(User.id == user.id)
             .values(
                 failed_login_attempts=user.failed_login_attempts + 1,
-                locked_until=(now + timedelta(minutes=15) if user.failed_login_attempts + 1 >= 5 else None),
+                locked_until=(
+                    now + timedelta(minutes=15)
+                    if user.failed_login_attempts + 1 >= 5
+                    else None
+                ),
                 updated_at=now,  # Ensure updated_at is also timezone-aware
             )
         )
         await session.execute(stmt)
         await session.commit()
-        return None
+        return None, False
 
     # Check if account is locked
     if user.locked_until and user.locked_until > datetime.now(timezone.utc):
         print(f"Account is locked for user: {email}")
-        return None
+        return None, False
 
     # Check if account is active
     print(f"Checking account status: {user.status}")
     if user.status != UserStatus.ACTIVE.value:
         print(f"Account is not active for user: {email}, status: {user.status}")
-        return None
+        return None, False
 
     # Check MFA if enabled
     if user.mfa_enabled and not totp_code:
@@ -86,7 +108,12 @@ async def authenticate_user(
             detail="TOTP code required",
         )
 
-    if user.mfa_enabled and totp_code and user.mfa_secret and not verify_totp(totp_code, user.mfa_secret):
+    if (
+        user.mfa_enabled
+        and totp_code
+        and user.mfa_secret
+        and not verify_totp(totp_code, user.mfa_secret)
+    ):
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Invalid TOTP code",
@@ -108,7 +135,10 @@ async def authenticate_user(
     await session.execute(stmt)
     await session.commit()
 
-    return user
+    # Check if password is temporary and needs to be changed
+    password_change_required = getattr(user, "is_password_temporary", False)
+
+    return user, password_change_required
 
 
 async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
@@ -124,14 +154,25 @@ async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
     # Create verification token
     verification_token = uuid.uuid4()
 
+    # Generate a secure password if not provided
+    from app.core.password_utils import generate_secure_password
+
+    password = user_data.password
+    is_password_temporary = False
+
+    if password is None:
+        password = generate_secure_password()
+        is_password_temporary = True
+
     # Create user
     new_user = User(
         email=user_data.email,
-        hashed_password=get_password_hash(user_data.password),
+        hashed_password=get_password_hash(password),
         full_name=user_data.full_name,
-        status=UserStatus.PENDING.value,
+        status=UserStatus.ACTIVE.value,  # Set to active by default
         is_verified=False,
         verification_token=verification_token,
+        is_password_temporary=is_password_temporary,
     )
     session.add(new_user)
     await session.commit()
@@ -149,12 +190,25 @@ async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
         if found_user is not None:
             new_user = found_user
 
-    # TODO: Send verification email
+    # Send verification email
+    from app.services.email_service import send_verification_email
+
+    # Extract name from full_name or use empty string
+    name = new_user.full_name.split()[0] if new_user.full_name else ""
+    await send_verification_email(new_user.email, name, str(verification_token))
+
+    # Send welcome email with temporary password if generated
+    if is_password_temporary:
+        from app.services.email_service import send_welcome_email_with_temp_password
+
+        await send_welcome_email_with_temp_password(new_user.email, name, password)
 
     return new_user
 
 
-async def create_user_session(session: AsyncSession, user_id: int, request: Request) -> Tuple[str, str]:
+async def create_user_session(
+    session: AsyncSession, user_id: int, request: Request
+) -> Tuple[str, str]:
     """Create a new user session and return tokens."""
     # Get the current tenant ID from the request
     from db_core.middleware import get_current_tenant_id
@@ -169,7 +223,8 @@ async def create_user_session(session: AsyncSession, user_id: int, request: Requ
     new_session = Session(
         user_id=user_id,
         refresh_token=refresh_token,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        expires_at=datetime.now(timezone.utc)
+        + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
     )
@@ -188,7 +243,9 @@ async def create_user_session(session: AsyncSession, user_id: int, request: Requ
     return access_token, refresh_token
 
 
-async def verify_refresh_token(session: AsyncSession, refresh_token: str) -> Optional[int]:
+async def verify_refresh_token(
+    session: AsyncSession, refresh_token: str
+) -> Optional[int]:
     """Verify a refresh token and return the user ID."""
     # Find session with this refresh token
     result = await session.execute(
@@ -224,7 +281,11 @@ async def verify_refresh_token(session: AsyncSession, refresh_token: str) -> Opt
 
 async def invalidate_session(session: AsyncSession, refresh_token: str) -> bool:
     """Invalidate a user session."""
-    stmt = update(Session).where(Session.refresh_token == refresh_token).values(is_active=False)
+    stmt = (
+        update(Session)
+        .where(Session.refresh_token == refresh_token)
+        .values(is_active=False)
+    )
     await session.execute(stmt)
     await session.commit()
     # For SQLAlchemy 2.0, we need to check if any rows were affected

@@ -99,6 +99,9 @@ class Token(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
 
+    # Allow extra fields to be included in the response
+    model_config = {"extra": "allow"}
+
 
 class TokenPayload(BaseModel):
     """Token payload schema."""

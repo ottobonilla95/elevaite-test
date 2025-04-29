@@ -162,6 +162,15 @@ wheels = [
 ]
 
 [[package]]
+name = "aiosmtplib"
+version = "4.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/cf/d1/0ee117510ae0513f945ff3ee42edee20a3f236b2020c954f12ccd0931f95/aiosmtplib-4.0.1.tar.gz", hash = "sha256:10d426afe923edeb28ce0f007da0ee4060e9e12dd3890c162b22e1958da35761", size = 60797 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/81/f9/44fb8e33f2624fbcd40adee97143f6324123d80818f939f90a80ef5bade2/aiosmtplib-4.0.1-py3-none-any.whl", hash = "sha256:5f56ad99fa0653f32e80636f917dc0251489917d6a363a9b58a586e575d21f28", size = 27031 },
+]
+
+[[package]]
 name = "alembic"
 version = "1.15.2"
 source = { registry = "https://pypi.org/simple" }
@@ -285,21 +294,25 @@ name = "auth-api"
 version = "0.1.0"
 source = { editable = "python_apps/auth_api" }
 dependencies = [
+    { name = "aiosmtplib" },
     { name = "alembic" },
     { name = "argon2-cffi" },
     { name = "asyncpg" },
     { name = "bcrypt" },
     { name = "databases" },
+    { name = "db-core" },
+    { name = "email-validator" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "passlib" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "pyjwt" },
     { name = "pyotp" },
     { name = "python-jose" },
     { name = "python-multipart" },
     { name = "qrcode" },
-    { name = "rate-limiter" },
+    { name = "slowapi" },
     { name = "sqlalchemy" },
     { name = "uvicorn" },
 ]
@@ -311,17 +324,21 @@ dev = [
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
     { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "aiosmtplib", specifier = ">=2.0.0" },
     { name = "alembic", specifier = ">=1.7.4" },
     { name = "argon2-cffi", specifier = ">=21.3.0" },
     { name = "asyncpg", specifier = ">=0.27.0" },
     { name = "bcrypt", specifier = ">=3.2.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=22.1.0" },
     { name = "databases", specifier = ">=0.5.3" },
+    { name = "db-core", editable = "python_packages/db-core" },
+    { name = "email-validator", specifier = ">=2.0.0" },
     { name = "fastapi", specifier = ">=0.68.0" },
     { name = "httpx", specifier = ">=0.23.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=5.10.1" },
@@ -329,14 +346,16 @@ requires-dist = [
     { name = "passlib", specifier = ">=1.7.4" },
     { name = "pydantic", specifier = ">=1.10.5" },
     { name = "pydantic-settings" },
+    { name = "pyjwt", specifier = ">=2.6.0" },
     { name = "pyotp", specifier = ">=2.8.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.18.0" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0.0" },
     { name = "python-jose", specifier = ">=3.3.0" },
     { name = "python-multipart", specifier = ">=0.0.5" },
     { name = "qrcode", specifier = ">=7.3.1" },
-    { name = "rate-limiter" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.0.254" },
+    { name = "slowapi", specifier = ">=0.1.7" },
     { name = "sqlalchemy", specifier = ">=1.4.23" },
     { name = "uvicorn", specifier = ">=0.15.0" },
 ]
@@ -2199,6 +2218,20 @@ wheels = [
 ]
 
 [[package]]
+name = "limits"
+version = "5.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "deprecated" },
+    { name = "packaging" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c6/94/a04e64f487a56f97aff67c53df609cc19d5c3f3e7e5697ec8a1ff8413829/limits-5.1.0.tar.gz", hash = "sha256:b298e4af0b47997da03cbeee9df027ddc2328f8630546125e81083bb56311827", size = 94655 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/de/00/876a5ec60addda62ee13ac4b588a5afc0d1a86a431645a91711ceae834cf/limits-5.1.0-py3-none-any.whl", hash = "sha256:f368d4572ac3ef8190cb8b9911ed481175a0b4189894a63cac95cae39ebeb147", size = 60472 },
+]
+
+[[package]]
 name = "llm-gateway"
 version = "1.0.0"
 source = { virtual = "python_packages/llm-gateway" }
@@ -3652,18 +3685,6 @@ wheels = [
 ]
 
 [[package]]
-name = "rate-limiter"
-version = "0.0.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "redis" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/63/04/265d4b243f39d5039bd0adebae45a582b2838ed3dd9a52ba33ba93ac57b5/rate-limiter-0.0.3.tar.gz", hash = "sha256:ee8d03e9122ae6d1f2ec97f87e34bd26360b6bb40c82c8209f35da2a04df6d06", size = 3372 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5f/07/3d14460917da88b5d53f9c4d22c9987a9a7bcb41b78896cb18e3afffda51/rate_limiter-0.0.3-py3-none-any.whl", hash = "sha256:fcf7166437daca12c5daa1d4c0e274c577cb00dfd3f64a9b9082739882e78e08", size = 4529 },
-]
-
-[[package]]
 name = "rbac-api"
 version = "0.1.0"
 source = { virtual = "python_apps/rbac" }
@@ -4084,6 +4105,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050 },
+]
+
+[[package]]
+name = "slowapi"
+version = "0.1.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "limits" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a0/99/adfc7f94ca024736f061257d39118e1542bade7a52e86415a4c4ae92d8ff/slowapi-0.1.9.tar.gz", hash = "sha256:639192d0f1ca01b1c6d95bf6c71d794c3a9ee189855337b4821f7f457dddad77", size = 14028 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2b/bb/f71c4b7d7e7eb3fc1e8c0458a8979b912f40b58002b9fbf37729b8cb464b/slowapi-0.1.9-py3-none-any.whl", hash = "sha256:cfad116cfb84ad9d763ee155c1e5c5cbf00b0d47399a769b227865f5df576e36", size = 14670 },
 ]
 
 [[package]]

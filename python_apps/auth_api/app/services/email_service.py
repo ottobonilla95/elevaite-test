@@ -69,36 +69,36 @@ async def send_email(
 
 
 async def send_verification_email(
-    email: str, first_name: str, verification_token: str
+    email: str, name: str, verification_token: str
 ) -> bool:
     """
     Send email verification link to a new user.
 
     Args:
         email: User's email address
-        first_name: User's first name
+        name: User's name (first name or full name)
         verification_token: Verification token
 
     Returns:
         bool: True if email was sent successfully, False otherwise
     """
     verification_url = (
-        f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
+        f"{settings._frontend_url_env}/verify-email?token={verification_token}"
     )
 
     subject = "Verify your email address"
 
     text_body = f"""
-    Hello {first_name},
-    
+    Hello {name},
+
     Thank you for registering with elevAIte. Please verify your email address by clicking the link below:
-    
+
     {verification_url}
-    
+
     This link will expire in 24 hours.
-    
+
     If you did not register for an account, please ignore this email.
-    
+
     Best regards,
     The elevAIte Team
     """
@@ -107,7 +107,7 @@ async def send_verification_email(
     <html>
     <body>
         <h2>Welcome to elevAIte!</h2>
-        <p>Hello {first_name},</p>
+        <p>Hello {name},</p>
         <p>Thank you for registering with elevAIte. Please verify your email address by clicking the button below:</p>
         <p>
             <a href="{verification_url}" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">
@@ -125,35 +125,33 @@ async def send_verification_email(
     return await send_email(email, subject, text_body, html_body)
 
 
-async def send_password_reset_email(
-    email: str, first_name: str, reset_token: str
-) -> bool:
+async def send_password_reset_email(email: str, name: str, reset_token: str) -> bool:
     """
     Send password reset link to a user.
 
     Args:
         email: User's email address
-        first_name: User's first name
+        name: User's name (first name or full name)
         reset_token: Password reset token
 
     Returns:
         bool: True if email was sent successfully, False otherwise
     """
-    reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
+    reset_url = f"{settings._frontend_url_env}/reset-password?token={reset_token}"
 
     subject = "Reset your password"
 
     text_body = f"""
-    Hello {first_name},
-    
+    Hello {name},
+
     We received a request to reset your password. Please click the link below to reset your password:
-    
+
     {reset_url}
-    
+
     This link will expire in {settings.PASSWORD_RESET_TOKEN_EXPIRE_HOURS} hours.
-    
+
     If you did not request a password reset, please ignore this email.
-    
+
     Best regards,
     The elevAIte Team
     """
@@ -162,7 +160,7 @@ async def send_password_reset_email(
     <html>
     <body>
         <h2>Password Reset Request</h2>
-        <p>Hello {first_name},</p>
+        <p>Hello {name},</p>
         <p>We received a request to reset your password. Please click the button below to reset your password:</p>
         <p>
             <a href="{reset_url}" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">
@@ -181,32 +179,32 @@ async def send_password_reset_email(
 
 
 async def send_welcome_email_with_temp_password(
-    email: str, first_name: str, temp_password: str
+    email: str, name: str, temp_password: str
 ) -> bool:
     """
     Send welcome email with temporary password to a new user.
 
     Args:
         email: User's email address
-        first_name: User's first name
+        name: User's name (first name or full name)
         temp_password: Temporary password
 
     Returns:
         bool: True if email was sent successfully, False otherwise
     """
-    login_url = f"{settings.FRONTEND_URL}/login"
+    login_url = f"{settings._frontend_url_env}/login"
 
     subject = "Welcome to elevAIte - Your Temporary Password"
 
     text_body = f"""
-    Hello {first_name},
-    
+    Hello {name},
+
     Welcome to elevAIte! Your account has been created successfully.
-    
+
     Here is your temporary password: {temp_password}
-    
+
     Please log in at {login_url} with this temporary password. You will be prompted to change your password after your first login.
-    
+
     Best regards,
     The elevAIte Team
     """
@@ -215,10 +213,62 @@ async def send_welcome_email_with_temp_password(
     <html>
     <body>
         <h2>Welcome to elevAIte!</h2>
-        <p>Hello {first_name},</p>
+        <p>Hello {name},</p>
         <p>Your account has been created successfully.</p>
         <p>Here is your temporary password: <strong>{temp_password}</strong></p>
         <p>Please <a href="{login_url}">log in</a> with this temporary password. You will be prompted to change your password after your first login.</p>
+        <p>Best regards,<br>The elevAIte Team</p>
+    </body>
+    </html>
+    """
+
+    return await send_email(email, subject, text_body, html_body)
+
+
+async def send_password_reset_email_with_new_password(
+    email: str, name: str, new_password: str
+) -> bool:
+    """
+    Send password reset email with a new randomized password.
+
+    Args:
+        email: User's email address
+        name: User's name (first name or full name)
+        new_password: The new randomized password
+
+    Returns:
+        bool: True if email was sent successfully, False otherwise
+    """
+    login_url = f"{settings._frontend_url_env}/login"
+
+    subject = "Your Password Has Been Reset"
+
+    text_body = f"""
+    Hello {name},
+
+    Your password has been reset as requested. Here is your new temporary password:
+
+    {new_password}
+
+    Please log in at {login_url} with this temporary password. You will be prompted to change your password after your first login.
+
+    If you did not request a password reset, please contact support immediately.
+
+    Best regards,
+    The elevAIte Team
+    """
+
+    html_body = f"""
+    <html>
+    <body>
+        <h2>Password Reset Completed</h2>
+        <p>Hello {name},</p>
+        <p>Your password has been reset as requested. Here is your new temporary password:</p>
+        <p style="background-color: #f5f5f5; padding: 10px; font-family: monospace; font-size: 16px; border: 1px solid #ddd; border-radius: 4px;">
+            {new_password}
+        </p>
+        <p>Please <a href="{login_url}">log in</a> with this temporary password. You will be prompted to change your password after your first login.</p>
+        <p>If you did not request a password reset, please contact support immediately.</p>
         <p>Best regards,<br>The elevAIte Team</p>
     </body>
     </html>

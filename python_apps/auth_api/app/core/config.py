@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     """Application settings."""
 
     load_dotenv()
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"
+    )
 
     # API Settings
     PROJECT_NAME: str = "Auth API"
@@ -49,9 +51,9 @@ class Settings(BaseSettings):
 
     # Database
     _database_env = os.environ.get("SQLALCHEMY_DATABASE_URL")
-    DATABASE_URI: str = (
-        _database_env if _database_env is not None else "postgresql+asyncpg://postgres:postgres@localhost:5433/auth"
-    )
+
+    # Frontend URL for links in emails
+    _frontend_url_env = os.environ.get("FRONTEND_URL")
 
     # Email settings for password resets, etc.
     SMTP_TLS: bool = True

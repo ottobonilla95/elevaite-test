@@ -14,7 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select as async_select
 
 from app.core.config import settings
-from app.core.security import get_password_hash, oauth2_scheme, verify_token, get_current_user
+from app.core.security import (
+    get_password_hash,
+    oauth2_scheme,
+    verify_token,
+    get_current_user,
+)
 from app.db.activity_log import log_user_activity
 from app.db.orm import get_async_session
 from app.db.models import Session, User
@@ -54,9 +59,15 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
 @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
-async def register_user(request: Request, user_data: UserCreate, session: AsyncSession = Depends(get_async_session)):
+async def register_user(
+    request: Request,
+    user_data: UserCreate,
+    session: AsyncSession = Depends(get_async_session),
+):
     """Register a new user."""
     user = await create_user(session, user_data)
     return user
@@ -64,7 +75,11 @@ async def register_user(request: Request, user_data: UserCreate, session: AsyncS
 
 @router.post("/login", response_model=Token)
 @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
-async def login(request: Request, login_data: LoginRequest, session: AsyncSession = Depends(get_async_session)):
+async def login(
+    request: Request,
+    login_data: LoginRequest,
+    session: AsyncSession = Depends(get_async_session),
+):
     """Login with email and password."""
     # Print debug information
     print(f"Login attempt for email: {login_data.email}")
@@ -76,10 +91,19 @@ async def login(request: Request, login_data: LoginRequest, session: AsyncSessio
     if not user_check:
         print(f"User not found: {login_data.email}")
     else:
-        print(f"User found: {user_check.email}, status: {user_check.status}, verified: {user_check.is_verified}")
+        print(
+            f"User found: {user_check.email}, status: {user_check.status}, verified: {user_check.is_verified}"
+        )
+
+    # Check for test credentials that should trigger password reset flow
+    from app.core.password_utils import is_password_temporary
+
+    is_test_account, _ = is_password_temporary(login_data.email, login_data.password)
 
     # Attempt authentication
-    user = await authenticate_user(session, login_data.email, login_data.password, login_data.totp_code)
+    user, password_change_required = await authenticate_user(
+        session, login_data.email, login_data.password, login_data.totp_code
+    )
 
     if not user:
         print(f"Authentication failed for: {login_data.email}")
@@ -92,17 +116,29 @@ async def login(request: Request, login_data: LoginRequest, session: AsyncSessio
     # Get the user ID as a plain integer
     user_dict = dict(user.__dict__)
     user_id_value = user_dict["id"]
-    access_token, refresh_token = await create_user_session(session, user_id_value, request)
+    access_token, refresh_token = await create_user_session(
+        session, user_id_value, request
+    )
 
-    return {
+    response = {
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
     }
 
+    # Add password_change_required flag to the response dictionary
+    if password_change_required or is_test_account:
+        response = {**response, "password_change_required": True}
+
+    return response
+
 
 @router.post("/refresh", response_model=Token)
-async def refresh_token(token_data: RefreshTokenRequest, request: Request, session: AsyncSession = Depends(get_async_session)):
+async def refresh_token(
+    token_data: RefreshTokenRequest,
+    request: Request,
+    session: AsyncSession = Depends(get_async_session),
+):
     """Refresh access token using refresh token."""
     user_id = await verify_refresh_token(session, token_data.refresh_token)
 
@@ -127,7 +163,11 @@ async def refresh_token(token_data: RefreshTokenRequest, request: Request, sessi
 
 
 @router.post("/logout")
-async def logout(token_data: RefreshTokenRequest, request: Request, session: AsyncSession = Depends(get_async_session)):
+async def logout(
+    token_data: RefreshTokenRequest,
+    request: Request,
+    session: AsyncSession = Depends(get_async_session),
+):
     """Logout by invalidating the refresh token."""
     # Validate token first
     user_id = await verify_refresh_token(session, token_data.refresh_token)
@@ -149,10 +189,15 @@ async def logout(token_data: RefreshTokenRequest, request: Request, session: Asy
 
 
 @router.post("/verify-email")
-async def verify_email(verification_data: EmailVerificationRequest, session: AsyncSession = Depends(get_async_session)):
+async def verify_email(
+    verification_data: EmailVerificationRequest,
+    session: AsyncSession = Depends(get_async_session),
+):
     """Verify user email with token."""
     # Find user with this verification token
-    result = await session.execute(async_select(User).where(User.verification_token == verification_data.token))
+    result = await session.execute(
+        async_select(User).where(User.verification_token == verification_data.token)
+    )
     user = result.scalars().first()
 
     if not user:
@@ -162,7 +207,11 @@ async def verify_email(verification_data: EmailVerificationRequest, session: Asy
         )
 
     # Mark user as verified and active
-    stmt = update(User).where(User.id == user.id).values(is_verified=True, status="active", verification_token=None)
+    stmt = (
+        update(User)
+        .where(User.id == user.id)
+        .values(is_verified=True, status="active", verification_token=None)
+    )
     await session.execute(stmt)
     await session.commit()
 
@@ -178,27 +227,53 @@ async def verify_email(verification_data: EmailVerificationRequest, session: Asy
 @router.post("/forgot-password")
 @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
 async def forgot_password(
-    request: Request, reset_data: PasswordResetRequest, session: AsyncSession = Depends(get_async_session)
+    request: Request,
+    reset_data: PasswordResetRequest,
+    session: AsyncSession = Depends(get_async_session),
 ):
-    """Initialize password reset flow."""
+    """Initialize password reset flow with automatic password generation."""
     # Find user by email
-    result = await session.execute(async_select(User).where(User.email == reset_data.email))
+    result = await session.execute(
+        async_select(User).where(User.email == reset_data.email)
+    )
     user = result.scalars().first()
 
     # Always return success even if email doesn't exist (security)
     if not user:
-        return {"message": "If your email is registered, you will receive a password reset link"}
+        return {
+            "message": "If your email is registered, you will receive a password reset email"
+        }
 
-    # Generate reset token and expiration
-    reset_token = str(uuid.uuid4())
-    expires = datetime.now(timezone.utc) + timedelta(hours=settings.PASSWORD_RESET_TOKEN_EXPIRE_HOURS)
+    # Generate a new secure password
+    from app.core.password_utils import generate_secure_password
 
-    # Store token in database
-    stmt = update(User).where(User.id == user.id).values(password_reset_token=reset_token, password_reset_expires=expires)
+    new_password = generate_secure_password()
+
+    # Update user with new password
+    stmt = (
+        update(User)
+        .where(User.id == user.id)
+        .values(
+            hashed_password=get_password_hash(new_password),
+            is_password_temporary=True,  # Mark as temporary so user will be prompted to change it
+            password_reset_token=None,
+            password_reset_expires=None,
+        )
+    )
     await session.execute(stmt)
+
+    # Invalidate all sessions
+    stmt = update(Session).where(Session.user_id == user.id).values(is_active=False)
+    await session.execute(stmt)
+
     await session.commit()
 
-    # TODO: Send password reset email
+    # Send password reset email with the new password
+    from app.services.email_service import send_password_reset_email_with_new_password
+
+    # Extract name from full_name or use empty string
+    name = user.full_name.split()[0] if user.full_name else ""
+    await send_password_reset_email_with_new_password(user.email, name, new_password)
 
     # Log activity
     # Get the user ID as a plain integer
@@ -207,16 +282,20 @@ async def forgot_password(
     await log_user_activity(
         session,
         user_id_value,
-        "password_reset_requested",
+        "password_reset_completed",
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
     )
 
-    return {"message": "If your email is registered, you will receive a password reset link"}
+    return {
+        "message": "If your email is registered, you will receive a password reset email"
+    }
 
 
 @router.post("/reset-password")
-async def reset_password(reset_data: PasswordResetConfirm, session: AsyncSession = Depends(get_async_session)):
+async def reset_password(
+    reset_data: PasswordResetConfirm, session: AsyncSession = Depends(get_async_session)
+):
     """Reset password with token."""
     # Find user with this reset token
     result = await session.execute(
@@ -240,7 +319,9 @@ async def reset_password(reset_data: PasswordResetConfirm, session: AsyncSession
         update(User)
         .where(User.id == user.id)
         .values(
-            hashed_password=get_password_hash(reset_data.new_password), password_reset_token=None, password_reset_expires=None
+            hashed_password=get_password_hash(reset_data.new_password),
+            password_reset_token=None,
+            password_reset_expires=None,
         )
     )
     await session.execute(stmt)
@@ -261,7 +342,10 @@ async def reset_password(reset_data: PasswordResetConfirm, session: AsyncSession
 
 
 @router.post("/mfa/setup", response_model=MfaSetupResponse)
-async def setup_mfa_endpoint(token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_async_session)):
+async def setup_mfa_endpoint(
+    token: str = Depends(oauth2_scheme),
+    session: AsyncSession = Depends(get_async_session),
+):
     """Set up MFA for a user."""
     # Verify token
     payload = verify_token(token, "access")
@@ -278,7 +362,9 @@ async def setup_mfa_endpoint(token: str = Depends(oauth2_scheme), session: Async
 
 @router.post("/mfa/activate")
 async def activate_mfa_endpoint(
-    data: MfaVerifyRequest, token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_async_session)
+    data: MfaVerifyRequest,
+    token: str = Depends(oauth2_scheme),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """Activate MFA after verification."""
     # Verify token
@@ -299,7 +385,9 @@ async def activate_mfa_endpoint(
 
 @router.get("/sessions", response_model=List[SessionInfo])
 async def get_sessions(
-    request: Request, token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_async_session)
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """Get all active sessions for the current user."""
     # Verify token
@@ -343,7 +431,9 @@ async def get_sessions(
 
 @router.delete("/sessions/{session_id}")
 async def revoke_session(
-    session_id: int, token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_async_session)
+    session_id: int,
+    token: str = Depends(oauth2_scheme),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """Revoke a specific session."""
     # Verify token

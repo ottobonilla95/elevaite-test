@@ -24,13 +24,18 @@ dependencies = [
     "pydantic-settings",  # For settings management
     "pyotp>=2.8.0",  # For 2FA
     "qrcode>=7.3.1",  # For 2FA QR code generation
-    "db-core", 
+    "slowapi>=0.1.7",
+    "aiosmtplib>=2.0.0",
+    "email-validator>=2.0.0",
+    "db-core",
+    "PyJWT>=2.6.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.18.0",
+    "pytest-cov>=4.0.0",
     "black>=22.1.0",
     "isort>=5.10.1",
     "mypy>=0.931",
