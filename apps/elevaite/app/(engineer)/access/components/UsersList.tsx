@@ -12,9 +12,14 @@ import {
 } from "../../../lib/components/ListRow";
 import { useRoles } from "../../../lib/contexts/RolesContext";
 import {
+  ACCESS_MANAGEMENT_TABS,
   type ExtendedUserObject,
   type SortingObject,
 } from "../../../lib/interfaces";
+import {
+  fetchCombinedUsers,
+  refreshUsersList,
+} from "../../lib/services/authUserService";
 import { AddEditUser } from "./Add Edit Modals/AddEditUser";
 import { AddEditUserRoles } from "./Add Edit Modals/AddEditUserRoles";
 import { CreateUser } from "./Add Edit Modals/CreateUser";
@@ -80,13 +85,27 @@ export function UsersList(props: UsersListProps): JSX.Element {
     },
   ];
 
+  // State to store combined users (RBAC + Native Auth API)
+  const [combinedUsers, setCombinedUsers] = useState<ExtendedUserObject[]>([]);
+
+  // Fetch combined users when RBAC users change
+  useEffect(() => {
+    async function loadCombinedUsers(): Promise<void> {
+      const users = await fetchCombinedUsers(rolesContext.users);
+      setCombinedUsers(users);
+    }
+
+    void loadCombinedUsers();
+  }, [rolesContext.users]);
+
+  // Update display users when combined users, search term, or sorting changes
   useEffect(() => {
     arrangeDisplayUsers();
-  }, [rolesContext.users, searchTerm, sorting]);
+  }, [combinedUsers, searchTerm, sorting]);
 
   function arrangeDisplayUsers(): void {
     const usersClone = JSON.parse(
-      JSON.stringify(rolesContext.users)
+      JSON.stringify(combinedUsers)
     ) as ExtendedUserObject[];
 
     // Add display roles
@@ -179,6 +198,12 @@ export function UsersList(props: UsersListProps): JSX.Element {
     }
     setIsCreateUserModalOpen(false);
     setIsUserCreatedModalOpen(true);
+
+    // Refresh the users list to include the newly created user
+    void refreshUsersList();
+
+    // Trigger a refresh of the RBAC users as well
+    rolesContext.refresh(ACCESS_MANAGEMENT_TABS.USERS);
   }
 
   function handleSearch(term: string): void {
