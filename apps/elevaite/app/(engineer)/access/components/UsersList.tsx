@@ -23,6 +23,7 @@ import {
 import { AddEditUser } from "./Add Edit Modals/AddEditUser";
 import { AddEditUserRoles } from "./Add Edit Modals/AddEditUserRoles";
 import { CreateUser } from "./Add Edit Modals/CreateUser";
+import { ResetUserPassword } from "./Add Edit Modals/ResetUserPassword";
 import { UserCreatedConfirmation } from "./Add Edit Modals/UserCreatedConfirmation";
 import { UserRolesListRow } from "./smallParts/UserRolesListRow";
 import "./UsersList.scss";
@@ -30,6 +31,7 @@ import "./UsersList.scss";
 enum menuActions {
   EDIT_NAMES = "Edit Names",
   EDIT_ROLES = "Edit Roles",
+  RESET_PASSWORD = "Reset Password",
 }
 
 interface UsersListProps {
@@ -40,11 +42,14 @@ export function UsersList(props: UsersListProps): JSX.Element {
   const rolesContext = useRoles();
   const [displayUsers, setDisplayUsers] = useState<ExtendedUserObject[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
   const [sorting, setSorting] = useState<SortingObject<ExtendedUserObject>>({
     field: undefined,
   });
   const [isNamesModalOpen, setIsNamesModalOpen] = useState(false);
   const [isRolesModalOpen, setIsRolesModalOpen] = useState(false);
+  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] =
+    useState(false);
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
   const [isUserCreatedModalOpen, setIsUserCreatedModalOpen] = useState(false);
   const [createdUserEmail, setCreatedUserEmail] = useState("");
@@ -83,6 +88,17 @@ export function UsersList(props: UsersListProps): JSX.Element {
         handleMenuClick(item, menuActions.EDIT_ROLES);
       },
     },
+    // Only show reset password option to admins
+    ...(isCurrentUserAdmin
+      ? [
+          {
+            label: "Reset Password",
+            onClick: (item: ExtendedUserObject) => {
+              handleMenuClick(item, menuActions.RESET_PASSWORD);
+            },
+          },
+        ]
+      : []),
   ];
 
   // State to store combined users (RBAC + Native Auth API)
@@ -98,6 +114,39 @@ export function UsersList(props: UsersListProps): JSX.Element {
     void loadCombinedUsers();
   }, [rolesContext.users]);
 
+  // Check if current user is an admin
+  useEffect(() => {
+    async function checkAdminStatus(): Promise<void> {
+      try {
+        // In development mode, always set to true for testing
+        if (process.env.NODE_ENV === "development") {
+          setIsCurrentUserAdmin(true);
+          return;
+        }
+
+        // In production, make an API call to check admin status
+        const backendUrl = process.env.NEXT_PUBLIC_NATIVEAUTH_URL;
+        const response = await fetch(`${backendUrl}/api/auth/me`, {
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          setIsCurrentUserAdmin(false);
+          return;
+        }
+
+        const userData = (await response.json()) as { is_superuser?: boolean };
+        const isAdmin = Boolean(userData.is_superuser);
+        setIsCurrentUserAdmin(isAdmin);
+      } catch (error) {
+        // If there's an error, assume the user is not an admin for security
+        setIsCurrentUserAdmin(false);
+      }
+    }
+
+    void checkAdminStatus();
+  }, []);
+
   // Update display users when combined users, search term, or sorting changes
   useEffect(() => {
     arrangeDisplayUsers();
@@ -107,8 +156,6 @@ export function UsersList(props: UsersListProps): JSX.Element {
     const usersClone = JSON.parse(
       JSON.stringify(combinedUsers)
     ) as ExtendedUserObject[];
-
-    // Add display roles
 
     // Search
     const searchedList: ExtendedUserObject[] = searchTerm ? [] : usersClone;
@@ -122,11 +169,10 @@ export function UsersList(props: UsersListProps): JSX.Element {
           searchedList.push(item);
           continue;
         }
-        if (item.email?.toLowerCase().includes(searchTerm.toLowerCase())) {
+        if (item.email.toLowerCase().includes(searchTerm.toLowerCase())) {
           searchedList.push(item);
           continue;
         }
-        // Add other checks here as desired.
       }
     }
 
@@ -171,6 +217,11 @@ export function UsersList(props: UsersListProps): JSX.Element {
     console.log("Editing user roles");
   }
 
+  function handleResetPassword(user: ExtendedUserObject): void {
+    setSelectedUser(user);
+    setIsResetPasswordModalOpen(true);
+  }
+
   function handleNameModalClose(): void {
     setSelectedUser(undefined);
     setIsNamesModalOpen(false);
@@ -179,6 +230,11 @@ export function UsersList(props: UsersListProps): JSX.Element {
   function handleRolesModalClose(): void {
     setSelectedUser(undefined);
     setIsRolesModalOpen(false);
+  }
+
+  function handleResetPasswordModalClose(): void {
+    setSelectedUser(undefined);
+    setIsResetPasswordModalOpen(false);
   }
 
   function handleCreateUserModalClose(): void {
@@ -232,6 +288,9 @@ export function UsersList(props: UsersListProps): JSX.Element {
       case menuActions.EDIT_ROLES:
         handleEditUserRoles(user);
         break;
+      case menuActions.RESET_PASSWORD:
+        handleResetPassword(user);
+        break;
       default:
         break;
     }
@@ -241,9 +300,9 @@ export function UsersList(props: UsersListProps): JSX.Element {
     <div className="users-list-container">
       <ListHeader
         label="Users List"
-        addLabel="Add User"
-        addIcon={<ElevaiteIcons.SVGCross />}
-        addAction={handleAddUser}
+        addLabel={isCurrentUserAdmin ? "Add User" : undefined}
+        addIcon={isCurrentUserAdmin ? <ElevaiteIcons.SVGCross /> : undefined}
+        addAction={isCurrentUserAdmin ? handleAddUser : undefined}
         onSearch={handleSearch}
         searchPlaceholder="Search Users"
         isVisible={props.isVisible}
@@ -306,6 +365,15 @@ export function UsersList(props: UsersListProps): JSX.Element {
             email={createdUserEmail}
             onClose={handleUserCreatedModalClose}
             message={createdUserMessage}
+          />
+        </CommonModal>
+      )}
+      {!isResetPasswordModalOpen || !selectedUser ? null : (
+        <CommonModal onClose={handleResetPasswordModalClose}>
+          <ResetUserPassword
+            user={selectedUser}
+            onClose={handleResetPasswordModalClose}
+            onSuccess={handleUserCreated}
           />
         </CommonModal>
       )}

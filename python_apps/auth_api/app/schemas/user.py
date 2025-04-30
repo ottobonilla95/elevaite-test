@@ -41,6 +41,33 @@ class UserCreate(UserBase):
         return v
 
 
+class AdminPasswordReset(BaseModel):
+    """Admin password reset schema."""
+
+    email: EmailStr
+    new_password: str = Field(..., min_length=12)
+    is_one_time_password: bool = Field(default=True)
+
+    @field_validator("new_password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        """Validate password strength."""
+        if len(v) < 12:
+            raise ValueError("Password must be at least 12 characters")
+
+        # Check for at least one lowercase, one uppercase, one digit, and one special char
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Password must contain at least one special character")
+
+        return v
+
+
 class UserUpdate(BaseModel):
     """User update schema."""
 

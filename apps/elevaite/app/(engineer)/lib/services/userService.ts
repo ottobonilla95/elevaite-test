@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { auth } from "../../../../auth";
+import { isCurrentUserAdmin } from "./authUserService";
 
 interface CreateUserParams {
   firstName: string;
@@ -19,6 +21,8 @@ interface ApiErrorResponse {
 /**
  * Creates a new user by combining first and last name into full_name
  * and sending a request to the auth API
+ *
+ * This function requires admin privileges
  */
 export async function createUser(
   params: CreateUserParams
@@ -29,13 +33,44 @@ export async function createUser(
     // Combine first and last name into full_name as required by the API
     const fullName = `${firstName} ${lastName}`.trim();
 
-    // Force using localhost for development
-    const backendUrl = "http://localhost:8000";
-    const response = await fetch(`${backendUrl}/api/auth/register`, {
+    // Check if the current user is an admin
+    const isAdmin = await isCurrentUserAdmin();
+
+    if (!isAdmin && process.env.NODE_ENV !== "development") {
+      return {
+        success: false,
+        message:
+          "You don't have permission to create users. Admin privileges required.",
+      };
+    }
+
+    // Get the auth token from the session
+    const session = await auth();
+    const authToken = session?.authToken;
+
+    if (!authToken && process.env.NODE_ENV !== "development") {
+      return {
+        success: false,
+        message: "Authentication token not found. Please log in again.",
+      };
+    }
+
+    const backendUrl = process.env.NEXT_PUBLIC_NATIVEAUTH_URL;
+
+    // Use the admin endpoint with authentication
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    // Add authorization header if token exists
+    if (authToken) {
+      headers.Authorization = `Bearer ${authToken}`;
+    }
+
+    // Use the admin endpoint with authentication
+    const response = await fetch(`${backendUrl}/api/auth/admin/create-user`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
         email,
         full_name: fullName,

@@ -21,10 +21,12 @@ from app.core.security import (
     verify_token,
     get_current_user,
 )
+from app.core.deps import get_current_superuser
 from app.db.activity_log import log_user_activity
 from app.db.orm import get_async_session
 from app.db.models import Session, User
 from app.schemas.user import (
+    AdminPasswordReset,
     EmailVerificationRequest,
     LoginRequest,
     MfaSetupResponse,
@@ -69,9 +71,55 @@ async def register_user(
     user_data: UserCreate,
     session: AsyncSession = Depends(get_async_session),
 ):
-    """Register a new user."""
+    """Register a new user (public endpoint with rate limiting)."""
     user = await create_user(session, user_data)
     return user
+
+
+@router.post(
+    "/admin/create-user",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def admin_create_user(
+    request: Request,
+    user_data: UserCreate,
+    current_user: User = Depends(get_current_superuser),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Create a new user (admin only)."""
+    # Log the admin action
+    print(
+        f"Admin user {current_user.email} (ID: {current_user.id}) is creating a new user with email: {user_data.email}"
+    )
+
+    try:
+        user = await create_user(session, user_data)
+
+        # Log activity
+        details = {
+            "admin_user_id": current_user.id,
+            "admin_email": current_user.email,
+            "created_user_email": user_data.email,
+            "is_one_time_password": user_data.is_one_time_password,
+        }
+
+        await log_user_activity(
+            session,
+            current_user.id,
+            "user_created_by_admin",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            details=details,
+        )
+
+        return user
+    except HTTPException as e:
+        # Log failed attempt
+        print(
+            f"Admin user {current_user.email} failed to create user with email: {user_data.email}. Error: {e.detail}"
+        )
+        raise
 
 
 @router.post("/login", response_model=Token)
@@ -476,6 +524,89 @@ async def get_sessions(
         result.append(session_info)
 
     return result
+
+
+@router.post("/admin/reset-password")
+async def admin_reset_password(
+    request: Request,
+    reset_data: AdminPasswordReset,
+    current_user: User = Depends(get_current_superuser),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Reset a user's password (admin only)."""
+    # Log the admin action
+    print(
+        f"Admin user {current_user.email} (ID: {current_user.id}) is resetting password for {reset_data.email}"
+    )
+
+    # Find user by email
+    result = await session.execute(
+        async_select(User).where(User.email == reset_data.email)
+    )
+    user = result.scalars().first()
+
+    if not user:
+        # Log failed attempt
+        print(
+            f"Admin user {current_user.email} attempted to reset password for non-existent user: {reset_data.email}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    # Update user with new password
+    stmt = (
+        update(User)
+        .where(User.id == user.id)
+        .values(
+            hashed_password=get_password_hash(reset_data.new_password),
+            is_password_temporary=reset_data.is_one_time_password,
+            password_reset_token=None,
+            password_reset_expires=None,
+        )
+    )
+    await session.execute(stmt)
+
+    # Invalidate all sessions
+    stmt = update(Session).where(Session.user_id == user.id).values(is_active=False)
+    await session.execute(stmt)
+
+    await session.commit()
+
+    # Send password reset email with the new password
+    from app.services.email_service import send_password_reset_email_with_new_password
+
+    # Extract name from full_name or use empty string
+    name = user.full_name.split()[0] if user.full_name else ""
+    await send_password_reset_email_with_new_password(
+        user.email, name, reset_data.new_password
+    )
+
+    # Log activity
+    # Get the user ID as a plain integer
+    user_dict = dict(user.__dict__)
+    user_id_value = user_dict["id"]
+
+    # Create additional details for the log
+    details = {
+        "admin_user_id": current_user.id,
+        "admin_email": current_user.email,
+        "is_one_time_password": reset_data.is_one_time_password,
+    }
+
+    await log_user_activity(
+        session,
+        user_id_value,
+        "password_reset_by_admin",
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        details=details,
+    )
+
+    return {
+        "message": "Password reset successfully. The user will receive an email with the new password."
+    }
 
 
 @router.delete("/sessions/{session_id}")
