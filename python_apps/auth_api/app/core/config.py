@@ -50,17 +50,20 @@ class Settings(BaseSettings):
     ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1"]
 
     # Database
-    _database_env = os.environ.get("SQLALCHEMY_DATABASE_URL")
-
     @property
     def DATABASE_URI(self) -> str:
-        """Get the database URI from environment variable."""
-        if not self._database_env:
+        _database_env = os.environ.get("SQLALCHEMY_DATABASE_URL")
+        if not _database_env:
             raise ValueError("SQLALCHEMY_DATABASE_URL environment variable is not set")
-        return self._database_env
+        return _database_env
 
     # Frontend URL for links in emails
-    _frontend_url_env = os.environ.get("FRONTEND_URL")
+    @property
+    def FRONTEND_URI(self) -> str:
+        _frontend_env = os.environ.get("FRONTEND_URL")
+        if not _frontend_env:
+            raise ValueError("FRONTEND_URL environment variable is not set")
+        return _frontend_env
 
     # Email settings for password resets, etc.
     SMTP_TLS: bool = True

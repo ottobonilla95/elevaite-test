@@ -83,7 +83,7 @@ async def send_verification_email(
         bool: True if email was sent successfully, False otherwise
     """
     verification_url = (
-        f"{settings._frontend_url_env}/verify-email?token={verification_token}"
+        f"{settings.FRONTEND_URI}/verify-email?token={verification_token}"
     )
 
     subject = "Verify your email address"
@@ -137,7 +137,7 @@ async def send_password_reset_email(email: str, name: str, reset_token: str) -> 
     Returns:
         bool: True if email was sent successfully, False otherwise
     """
-    reset_url = f"{settings._frontend_url_env}/reset-password?token={reset_token}"
+    reset_url = f"{settings.FRONTEND_URI}/reset-password?token={reset_token}"
 
     subject = "Reset your password"
 
@@ -192,7 +192,7 @@ async def send_welcome_email_with_temp_password(
     Returns:
         bool: True if email was sent successfully, False otherwise
     """
-    login_url = f"{settings._frontend_url_env}/login"
+    login_url = f"{settings.FRONTEND_URI}/login"
 
     subject = "Welcome to elevAIte - Your Temporary Password"
 
@@ -239,7 +239,7 @@ async def send_password_reset_email_with_new_password(
     Returns:
         bool: True if email was sent successfully, False otherwise
     """
-    login_url = f"{settings._frontend_url_env}/login"
+    login_url = f"{settings.FRONTEND_URI}/login"
 
     subject = "Your Password Has Been Reset"
 

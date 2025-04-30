@@ -25,8 +25,7 @@ from app.core.config import settings
 target_metadata = Base.metadata
 
 # Set the database URL in the Alembic config
-# Use the _database_env from settings
-db_url = settings._database_env
+db_url = settings.DATABASE_URI
 if not db_url:
     raise ValueError(
         "Database URL not provided. Set SQLALCHEMY_DATABASE_URL environment variable."

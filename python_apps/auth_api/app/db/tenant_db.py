@@ -16,7 +16,7 @@ from app.core.multitenancy import multitenancy_settings, DEFAULT_TENANTS
 from .models import Base
 
 # Update the multitenancy settings with the database URL from config
-db_url = settings._database_env
+db_url = settings.DATABASE_URI
 
 multitenancy_settings.db_url = db_url
 
