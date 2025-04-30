@@ -1,14 +1,7 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 import { auth } from "./auth";
 
-// For development mode, create a simple middleware that allows all requests
-const devMiddleware = (_request: NextRequest): NextResponse => {
-  return NextResponse.next();
-};
-
-// For production mode, create a middleware that checks authentication
-const prodMiddleware = auth((req) => {
+// Middleware that checks authentication for all environments
+export default auth((req) => {
   if (req.auth?.user?.accountMemberships) {
     const newUrl = new URL("/", req.nextUrl.origin);
     const isAlcatel =
@@ -25,11 +18,6 @@ const prodMiddleware = auth((req) => {
     return Response.redirect(LOGIN_URL);
   }
 });
-
-// Export the appropriate middleware based on the environment
-export default process.env.NODE_ENV === "development"
-  ? devMiddleware
-  : prodMiddleware;
 
 export const config = {
   // https://nextjs.org/docs/app/building-your-application/routing/middleware#matcher

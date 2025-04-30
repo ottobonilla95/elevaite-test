@@ -5,10 +5,10 @@ export const authConfig = {
   session: { strategy: "jwt", maxAge: 3600 },
   callbacks: {
     authorized({ auth, request: { nextUrl: _nextUrl } }) {
-      // Always return true in development mode
-      if (process.env.NODE_ENV === "development") return true;
-
+      // Check if the user is logged in
       const isLoggedIn = Boolean(auth?.user);
+
+      // Check for Alcatel account membership
       if (auth?.user?.accountMemberships) {
         const isAlcatel =
           auth.user.accountMemberships.filter(
@@ -17,6 +17,8 @@ export const authConfig = {
           ).length > 0;
         if (_nextUrl.pathname !== "/" && isAlcatel) return false;
       }
+
+      // Only allow access if the user is logged in
       if (isLoggedIn) return true;
       return false; // Redirect unauthenticated users to login page
     },
