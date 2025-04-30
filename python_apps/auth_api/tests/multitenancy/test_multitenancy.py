@@ -19,7 +19,7 @@ from app.core.multitenancy import multitenancy_settings
 from app.db.models import Base
 
 # Use the test database URL
-from .conftest import TEST_DATABASE_URL
+from ..conftest import TEST_DATABASE_URL
 
 
 async def set_tenant_search_path(session, tenant_id):
@@ -34,16 +34,9 @@ async def set_tenant_search_path(session, tenant_id):
 async def test_tenant_isolation():
     """Test that users are isolated between tenants."""
     # Create engine
-    from app.core.config import settings
     from app.core.multitenancy import multitenancy_settings
 
-    # Set the database URL to use the test database
-    # Replace 'auth_db' with 'auth_test' in the database URL
-    if settings._database_env:
-        test_db_url = settings._database_env.replace("auth_db", "auth_test")
-    else:
-        test_db_url = "postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth_test"
-    multitenancy_settings.db_url = test_db_url
+    multitenancy_settings.db_url = TEST_DATABASE_URL
     assert multitenancy_settings.db_url, "Database URL is not set"
     engine = create_async_engine(multitenancy_settings.db_url)
 

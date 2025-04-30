@@ -19,13 +19,11 @@ from db_core.utils import async_create_tenant_schema, get_schema_name
 from app.core.config import settings
 from app.core.multitenancy import multitenancy_settings
 from app.db.models import Base
-# Don't import the main app directly to avoid rate limiter issues
-# from app.main import app as main_app
 
 
 # Test database URL - use a separate database for testing
 # Get the database URL from settings or use a default for testing
-db_url = settings._database_env
+db_url = settings.DATABASE_URI
 if not db_url:
     db_url = "postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth"
 TEST_DATABASE_URL = db_url.replace("/auth", "/auth_test").replace("auth_test_db", "auth_test")
