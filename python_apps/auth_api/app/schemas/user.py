@@ -19,6 +19,7 @@ class UserCreate(UserBase):
     """User creation schema."""
 
     password: str = Field(..., min_length=12)
+    is_one_time_password: bool = Field(default=False)
 
     @field_validator("password")
     @classmethod

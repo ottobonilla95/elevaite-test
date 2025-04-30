@@ -6,6 +6,8 @@ interface CreateUserParams {
   firstName: string;
   lastName: string;
   email: string;
+  password: string;
+  isOneTimePassword: boolean;
 }
 
 interface ApiErrorResponse {
@@ -22,12 +24,10 @@ export async function createUser(
   params: CreateUserParams
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const { firstName, lastName, email } = params;
+    const { firstName, lastName, email, password, isOneTimePassword } = params;
 
     // Combine first and last name into full_name as required by the API
     const fullName = `${firstName} ${lastName}`.trim();
-
-    const password = generateSecurePassword();
 
     // Force using localhost for development
     const backendUrl = "http://localhost:8000";
@@ -40,6 +40,7 @@ export async function createUser(
         email,
         full_name: fullName,
         password,
+        is_one_time_password: isOneTimePassword,
       }),
     });
 
@@ -112,7 +113,10 @@ export async function createUser(
 /**
  * Generates a secure random password that meets the requirements
  */
-function generateSecurePassword(): string {
+// eslint-disable-next-line @typescript-eslint/require-await -- Server functions must be async
+export async function generateSecurePassword(): Promise<string> {
+  "use server";
+
   const length = 16;
   const lowercase = "abcdefghijklmnopqrstuvwxyz";
   const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";

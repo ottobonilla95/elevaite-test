@@ -158,7 +158,7 @@ async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
     from app.core.password_utils import generate_secure_password
 
     password = user_data.password
-    is_password_temporary = False
+    is_password_temporary = user_data.is_one_time_password
 
     if password is None:
         password = generate_secure_password()
