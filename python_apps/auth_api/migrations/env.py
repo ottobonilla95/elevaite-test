@@ -2,7 +2,6 @@ from logging.config import fileConfig
 import os
 import sys
 from sqlalchemy import engine_from_config, pool
-from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
 
@@ -26,12 +25,12 @@ from app.core.config import settings
 target_metadata = Base.metadata
 
 # Set the database URL in the Alembic config
-# Use the _database_env from settings or a default URL
+# Use the _database_env from settings
 db_url = settings._database_env
 if not db_url:
-    # Use a default URL if not provided
-    db_url = "postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth_db"
-    print(f"Warning: Using default database URL: {db_url}")
+    raise ValueError(
+        "Database URL not provided. Set SQLALCHEMY_DATABASE_URL environment variable."
+    )
 
 config.set_main_option("sqlalchemy.url", db_url)
 

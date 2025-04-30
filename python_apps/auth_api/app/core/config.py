@@ -52,6 +52,13 @@ class Settings(BaseSettings):
     # Database
     _database_env = os.environ.get("SQLALCHEMY_DATABASE_URL")
 
+    @property
+    def DATABASE_URI(self) -> str:
+        """Get the database URI from environment variable."""
+        if not self._database_env:
+            raise ValueError("SQLALCHEMY_DATABASE_URL environment variable is not set")
+        return self._database_env
+
     # Frontend URL for links in emails
     _frontend_url_env = os.environ.get("FRONTEND_URL")
 
