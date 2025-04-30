@@ -227,8 +227,8 @@ async def test_default_tenant(test_client):
         # Create user directly with SQL
         await session.execute(
             text("""
-            INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, created_at, updated_at)
-            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, NOW(), NOW())
+            INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, created_at, updated_at)
+            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, FALSE, NOW(), NOW())
             """),
             {
                 "email": test_email,

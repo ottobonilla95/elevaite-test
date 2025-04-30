@@ -18,10 +18,26 @@ async def set_tenant_search_path(session, tenant_id):
 
 
 @pytest.mark.asyncio
-async def test_tenant_isolation_db():
+async def test_tenant_isolation_db(test_db_setup):
     """Test that users are isolated between tenants at the database level."""
     # Use direct database access instead of the ORM to avoid session issues
     from app.db.orm import get_async_session
+    from app.core.config import settings
+    from db_core import init_db
+    from app.db.models import Base
+
+    # Initialize the database with test settings
+    test_db_url = "postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth_test"
+    multitenancy_settings.db_url = test_db_url
+
+    # Initialize the database
+    init_db(
+        settings=multitenancy_settings,
+        db_url=test_db_url,
+        create_schemas=False,  # Already created in test_db_setup
+        base_model_class=Base,
+        is_async=True,
+    )
 
     # Create a unique email for this test
     import uuid
@@ -39,8 +55,8 @@ async def test_tenant_isolation_db():
         # Create user directly with SQL
         await session.execute(
             text("""
-            INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, created_at, updated_at)
-            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, NOW(), NOW())
+            INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, created_at, updated_at)
+            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, FALSE, NOW(), NOW())
             """),
             {
                 "email": test_email,
@@ -68,8 +84,8 @@ async def test_tenant_isolation_db():
         # Create user directly with SQL
         await session.execute(
             text("""
-            INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, created_at, updated_at)
-            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, NOW(), NOW())
+            INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, created_at, updated_at)
+            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, FALSE, NOW(), NOW())
             """),
             {
                 "email": test_email,  # Same email as in tenant1
@@ -257,8 +273,8 @@ async def test_cross_tenant_token_invalid(test_client: AsyncClient, test_session
     # Create the user directly with SQL
     await session.execute(
         text("""
-        INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, created_at, updated_at)
-        VALUES (:email, :password, :full_name, 'pending', FALSE, FALSE, FALSE, 0, NOW(), NOW())
+        INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, created_at, updated_at)
+        VALUES (:email, :password, :full_name, 'pending', FALSE, FALSE, FALSE, 0, FALSE, NOW(), NOW())
         """),
         {
             "email": test_email,

@@ -33,8 +33,19 @@ async def set_tenant_search_path(session, tenant_id):
 @pytest.mark.asyncio
 async def test_tenant_isolation():
     """Test that users are isolated between tenants."""
-    # Create engine using the test database URL
-    engine = create_async_engine(TEST_DATABASE_URL)
+    # Create engine
+    from app.core.config import settings
+    from app.core.multitenancy import multitenancy_settings
+
+    # Set the database URL to use the test database
+    # Replace 'auth_db' with 'auth_test' in the database URL
+    if settings._database_env:
+        test_db_url = settings._database_env.replace("auth_db", "auth_test")
+    else:
+        test_db_url = "postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth_test"
+    multitenancy_settings.db_url = test_db_url
+    assert multitenancy_settings.db_url, "Database URL is not set"
+    engine = create_async_engine(multitenancy_settings.db_url)
 
     # Define tenant IDs
     test_tenants = ["tenant1", "tenant2"]
@@ -45,9 +56,7 @@ async def test_tenant_isolation():
         for tenant_id in test_tenants:
             schema_name = get_schema_name(tenant_id, multitenancy_settings)
             print(f"  - Dropping schema {schema_name} if it exists...")
-            await conn.execute(
-                sqlalchemy.text(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE')
-            )
+            await conn.execute(sqlalchemy.text(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE'))
 
     # Now create fresh tenant schemas
     for tenant_id in test_tenants:
@@ -103,13 +112,9 @@ async def test_tenant_isolation():
         verify1_session = async_session()
         try:
             await set_tenant_search_path(verify1_session, "tenant1")
-            tenant1_user = await get_user_by_email(
-                verify1_session, "isolation@example.com"
-            )
+            tenant1_user = await get_user_by_email(verify1_session, "isolation@example.com")
             if tenant1_user:
-                print(
-                    f"User in tenant1: {tenant1_user.email}, {tenant1_user.full_name}"
-                )
+                print(f"User in tenant1: {tenant1_user.email}, {tenant1_user.full_name}")
             else:
                 print("User not found in tenant1!")
         finally:
@@ -119,13 +124,9 @@ async def test_tenant_isolation():
         verify2_session = async_session()
         try:
             await set_tenant_search_path(verify2_session, "tenant2")
-            tenant2_user = await get_user_by_email(
-                verify2_session, "isolation@example.com"
-            )
+            tenant2_user = await get_user_by_email(verify2_session, "isolation@example.com")
             if tenant2_user:
-                print(
-                    f"User in tenant2: {tenant2_user.email}, {tenant2_user.full_name}"
-                )
+                print(f"User in tenant2: {tenant2_user.email}, {tenant2_user.full_name}")
             else:
                 print("User not found in tenant2!")
         finally:
@@ -135,17 +136,10 @@ async def test_tenant_isolation():
         if tenant1_user and tenant2_user:
             print("\nVerifying that the users are different:")
             print(f"User IDs: tenant1={tenant1_user.id}, tenant2={tenant2_user.id}")
-            print(
-                f"Full names: tenant1='{tenant1_user.full_name}', tenant2='{tenant2_user.full_name}'"
-            )
+            print(f"Full names: tenant1='{tenant1_user.full_name}', tenant2='{tenant2_user.full_name}'")
 
-            if (
-                tenant1_user.id != tenant2_user.id
-                or tenant1_user.full_name != tenant2_user.full_name
-            ):
-                print(
-                    "\n✅ SUCCESS: Users with the same email exist in different tenants!"
-                )
+            if tenant1_user.id != tenant2_user.id or tenant1_user.full_name != tenant2_user.full_name:
+                print("\n✅ SUCCESS: Users with the same email exist in different tenants!")
             else:
                 print("\n❌ FAILURE: Users are not properly isolated between tenants.")
         else:
