@@ -1,7 +1,7 @@
 """Tests for the activity_log module."""
 
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timezone
 
 from app.db.activity_log import log_user_activity
@@ -34,7 +34,9 @@ class TestActivityLog:
         add_func = mock_session.run_sync.call_args[0][0]
 
         # Create a mock SQLAlchemy session to pass to the lambda
-        mock_sync_session = AsyncMock()
+        # Use a regular MagicMock instead of AsyncMock since the lambda function is synchronous
+
+        mock_sync_session = MagicMock()
         # Call the lambda with our mock
         add_func(mock_sync_session)
 
@@ -66,7 +68,9 @@ class TestActivityLog:
         add_func = mock_session.run_sync.call_args[0][0]
 
         # Create a mock SQLAlchemy session to pass to the lambda
-        mock_sync_session = AsyncMock()
+        # Use a regular MagicMock instead of AsyncMock since the lambda function is synchronous
+
+        mock_sync_session = MagicMock()
         # Call the lambda with our mock
         add_func(mock_sync_session)
 
@@ -103,7 +107,9 @@ class TestActivityLog:
         add_func = mock_session.run_sync.call_args[0][0]
 
         # Create a mock SQLAlchemy session to pass to the lambda
-        mock_sync_session = AsyncMock()
+        # Use a regular MagicMock instead of AsyncMock since the lambda function is synchronous
+
+        mock_sync_session = MagicMock()
         # Call the lambda with our mock
         add_func(mock_sync_session)
 

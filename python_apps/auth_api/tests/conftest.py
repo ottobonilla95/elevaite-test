@@ -1,6 +1,7 @@
 """Test fixtures for the authentication API."""
 
 import asyncio
+from datetime import datetime, timezone
 from typing import AsyncGenerator, Dict
 
 import pytest
@@ -23,7 +24,11 @@ from app.db.models import Base
 
 
 # Test database URL - use a separate database for testing
-TEST_DATABASE_URL = settings.DATABASE_URI.replace("/auth", "/auth_test")
+# Get the database URL from settings or use a default for testing
+db_url = settings._database_env
+if not db_url:
+    db_url = "postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth"
+TEST_DATABASE_URL = db_url.replace("/auth", "/auth_test").replace("auth_test_db", "auth_test")
 
 
 @pytest.fixture(scope="session")
@@ -151,31 +156,45 @@ async def test_user(test_session_factory) -> Dict:
         schema_name = get_schema_name("default", multitenancy_settings)
         await session.execute(text(f'SET search_path TO "{schema_name}"'))
 
-        # Create a test user
-        from app.services.auth_orm import create_user
-        from app.schemas.user import UserCreate
+        # Create a test user directly with SQL
+        from sqlalchemy import insert
+        from app.db.models import User
 
         # Use a unique email for each test
         import uuid
 
         unique_id = str(uuid.uuid4())[:8]
+        test_email = f"test_{unique_id}@example.com"
+        test_password = "Password123!@#"  # Match password requirements
 
-        user_data = UserCreate(
-            email=f"test_{unique_id}@example.com",
-            password="Password123!@#",  # Match password requirements
-            full_name="Test User",
+        # Create user directly with SQL to avoid greenlet issues
+        from app.core.security import get_password_hash
+
+        hashed_password = get_password_hash(test_password)
+
+        # Insert the user directly
+        stmt = (
+            insert(User)
+            .values(
+                email=test_email,
+                hashed_password=hashed_password,
+                full_name="Test User",
+                status="active",
+                is_verified=True,
+                is_password_temporary=False,
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
+            )
+            .returning(User.id)
         )
 
-        user = await create_user(session, user_data)
-
-        # Activate the user
-        user.is_verified = True
-        user.status = "active"
+        result = await session.execute(stmt)
+        user_id = result.scalar_one()
         await session.commit()
 
         # Reset tenant context
         set_current_tenant_id(None)
 
-        return {"id": user.id, "email": user.email, "password": "Password123!@#", "tenant": "default"}
+        return {"id": user_id, "email": test_email, "password": test_password, "tenant": "default"}
     finally:
         await session.close()
