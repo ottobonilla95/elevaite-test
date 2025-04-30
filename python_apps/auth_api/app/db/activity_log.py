@@ -29,5 +29,5 @@ async def log_user_activity(
     )
 
     # Add to session and commit
-    session.add(activity)
+    await session.run_sync(lambda s: s.add(activity))
     await session.commit()
