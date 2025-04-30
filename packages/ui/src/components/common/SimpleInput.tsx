@@ -49,7 +49,7 @@ export function SimpleInput({ autoSize, wrapperClassName, useCommonStyling, left
 
 
 
-    console.log("values", value)
+    console.log("values", value, value.length)
 
 
     return (
@@ -80,12 +80,11 @@ export function SimpleInput({ autoSize, wrapperClassName, useCommonStyling, left
                     {...props}
                 />
                 {rightIcon && !hideRightIcon ? rightIcon : undefined}
-                {bottomRightIcon && !hideRightIcon ? bottomRightIcon : undefined}
 
             </div>
             {!inlinePrompts ? undefined :
                 <div className="bottom-row">
-                    {/* <div className="prompts-row">
+                    <div className="prompts-row">
                         {inlinePrompts.map((prompt, index) =>
                             <CommonButton
                                 key={prompt + index.toString()}
@@ -96,7 +95,7 @@ export function SimpleInput({ autoSize, wrapperClassName, useCommonStyling, left
                                 {prompt}
                             </CommonButton>
                         )}
-                    </div> */}
+                    </div>
                 </div>
             }
         </div>

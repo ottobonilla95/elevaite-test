@@ -83,7 +83,7 @@ export function CoPilotStart(props: CoPilotStartProps): JSX.Element {
                     noSummarize
                     bareBones
                     placeholder={props.inputPlaceholder ?? "or type your own question"}
-                    inlinePrompts={props.inlinePrompts}
+                    // inlinePrompts={props.inlinePrompts}
                     text={text}
                 />
             </div>
@@ -105,15 +105,15 @@ export function CoPilotStart(props: CoPilotStartProps): JSX.Element {
             }
 
             {/* <CommonButton className="added-control" noBackground onClick={handleAddFiles}>
-                        <span>Add files</span>
-                        <span>Chats in this project can access file content.</span>
-                        <ChatbotIcons.SVGAddFile />
-                    </CommonButton>
-                    <CommonButton className="added-control" noBackground onClick={handleAddInstructions}>
-                        <span>Add instructions</span>
-                        <span>Customize the response in this project.</span>
-                        <ChatbotIcons.SVGInstructions />
-                    </CommonButton> */}
+                <span>Add files</span>
+                <span>Chats in this project can access file content.</span>
+                <ChatbotIcons.SVGAddFile />
+            </CommonButton>
+            <CommonButton className="added-control" noBackground onClick={handleAddInstructions}>
+                <span>Add instructions</span>
+                <span>Customize the response in this project.</span>
+                <ChatbotIcons.SVGInstructions />
+            </CommonButton> */}
         </div>
     );
 }

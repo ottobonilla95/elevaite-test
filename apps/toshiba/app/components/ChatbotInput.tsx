@@ -15,7 +15,7 @@ interface ChatbotInputProps {
 
 export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
     const chatContext = useChat();
-    const [text, setText] = useState("");
+    const [text, setText] = useState(props.text ?? "");
     const [messageWasSent, setMessageWasSent] = useState(false);
 
     // Effect to switch to active tab when a message is sent
@@ -70,6 +70,15 @@ export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
         setMessageWasSent(true);
     }
 
+    console.log("asdjnjsa", props)
+    console.log("text", text)
+
+    useEffect(() => {
+        if (props.text) {
+            setText(props.text);
+        }
+    }, [props.text]);
+
     return (
         <div className={[
             "chatbot-input-container",
@@ -78,12 +87,25 @@ export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
         ].filter(Boolean).join(" ")}>
             <SimpleInput
                 wrapperClassName="chatbot-input-field"
-                value={text && text !== "" ? text : props.text ?? ""}
+                // value={text && text !== "" ? text : props.text ?? ""}
+                value={text}
                 onChange={handleTextChange}
                 onKeyDown={handleKeyDown}
                 placeholder={chatContext.isChatLoading ? "Please wait..." : props.placeholder ? props.placeholder : "Enter text and press ENTER"}
                 disabled={chatContext.isChatLoading}
-                bottomRightIcon={
+                rightIcon={props.inlinePrompts ? undefined :
+                    <CommonButton
+                        className="chatbot-input-send-button"
+                        onClick={handleSend}
+                        disabled={chatContext.isChatLoading}
+                    >
+                        {chatContext.isChatLoading ?
+                            <ChatbotIcons.SVGSpinner /> :
+                            <ChatbotIcons.SVGSend />
+                        }
+                    </CommonButton>
+                }
+                bottomRightIcon={!props.inlinePrompts ? undefined :
                     <CommonButton
                         className="chatbot-input-send-button"
                         onClick={handleSend}
@@ -96,7 +118,6 @@ export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
                     </CommonButton>
                 }
                 inlinePrompts={props.inlinePrompts}
-            //InlinePromptClick={handlePromptClick}
             />
 
             {props.noSummarize ? undefined :

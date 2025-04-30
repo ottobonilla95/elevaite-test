@@ -1,12 +1,17 @@
 "use client";
 import { ChatbotIcons, CommonButton, ElevaiteIcons, SimpleInput } from "@repo/ui/components";
 import dayjs from "dayjs";
+import utc from 'dayjs/plugin/utc';
+import timezone from "dayjs/plugin/timezone"
 import isBetween from "dayjs/plugin/isBetween";
 import { useEffect, useState } from "react";
 import { useChat } from "../../ui/contexts/ChatContext";
 import "./ProjectSidebar.scss";
 import { WindowGrid } from "../../lib/interfaces";
 import { MainAreaSwitcher } from "./MainAreaSwitcher";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 // eslint-disable-next-line import/no-named-as-default-member -- I'm sure I didn't mean the other extend... >.<
 dayjs.extend(isBetween);
@@ -186,36 +191,42 @@ export function ProjectSidebar({ isExpanded, setIsExpanded }): JSX.Element {
                                 {[...chatContext.sessions]
                                     .filter(session => session.messages.length > 0)
                                     .sort((a, b) => new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime())
-                                    .map(session => (
-                                        <div key={session.id} className="session-container">
-                                            <CommonButton
-                                                className={[
-                                                    "session-button",
-                                                    chatContext.selectedSession?.id === session.id ? "active" : undefined
-                                                ].filter(Boolean).join(" ")}
-                                                noBackground
-                                                onClick={() => { handleSessionClick(session.id); }}
-                                            >
-                                                <div className="session-icon">
-                                                    {/* Fix for SVGComment error - use a different icon that exists */}
-                                                    <ChatbotIcons.SVGClipboard />
-                                                </div>
-                                                <div className="session-details">
-                                                    {/* <span className="session-title">{session.label || "Chat session"}</span> */}
-                                                    <span className="session-preview">
-                                                        {session.messages.length > 0
-                                                            ? getMessagePreview(session.messages[session.messages.length - 1].text)
-                                                            : "New conversation"}
-                                                    </span>
-                                                    <span className="session-date">
-                                                        {session.creationDate
-                                                            ? dayjs(session.creationDate).format("MMM D, YYYY")
-                                                            : ""}
-                                                    </span>
-                                                </div>
-                                            </CommonButton>
-                                        </div>
-                                    ))
+                                    .map(session => {
+                                        const formattedDate = dayjs(session.creationDate).format("YYYY-MM-DD");
+                                        const timeWithSpace = dayjs(session.creationDate).format("HH:mm");
+                                        const offset = dayjs(session.creationDate).format("Z");
+                                        return (
+                                            <div key={session.id} className="session-container">
+                                                <CommonButton
+                                                    className={[
+                                                        "session-button",
+                                                        chatContext.selectedSession?.id === session.id ? "active" : undefined
+                                                    ].filter(Boolean).join(" ")}
+                                                    noBackground
+                                                    onClick={() => { handleSessionClick(session.id); }}
+                                                >
+                                                    <div className="session-icon">
+                                                        {/* Fix for SVGComment error - use a different icon that exists */}
+                                                        <ChatbotIcons.SVGClipboard />
+                                                    </div>
+                                                    <div className="session-details">
+                                                        {/* <span className="session-title">{session.label || "Chat session"}</span> */}
+                                                        <span className="session-preview">
+                                                            {session.messages.length > 0
+                                                                ? getMessagePreview(session.messages[session.messages.length - 1].text)
+                                                                : "New conversation"}
+                                                        </span>
+                                                        <span className="session-date">
+                                                            {/* {session.creationDate
+                                                                ? ({ formattedDate } {timeWithSpace} GMT{offset})
+                                                            : ""} */}
+                                                            {formattedDate} | {timeWithSpace} | GMT{offset}
+                                                        </span>
+                                                    </div>
+                                                </CommonButton>
+                                            </div>
+                                        )
+                                    })
                                 }
                             </>
                         )}
