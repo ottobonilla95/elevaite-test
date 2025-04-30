@@ -515,3 +515,26 @@ async def revoke_session(
     await log_user_activity(session, user_id, "session_revoked")
 
     return {"message": "Session successfully revoked"}
+
+
+@router.get("/users")
+async def get_users(session: AsyncSession = Depends(get_async_session)):
+    """Get all users."""
+    result = await session.execute(async_select(User))
+    users = result.scalars().all()
+
+    # Convert to list of dictionaries
+    user_list = []
+    for user in users:
+        user_dict = {
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "status": "active" if user.status == "active" else "inactive",
+            "is_verified": user.is_verified,
+            "is_superuser": user.is_superuser,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+        }
+        user_list.append(user_dict)
+
+    return user_list
