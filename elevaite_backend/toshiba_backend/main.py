@@ -12,6 +12,7 @@ from starlette.middleware.cors import CORSMiddleware
 from agents import toshiba_agent
 import json
 from utils import convert_messages_to_chat_history
+from fastapi.responses import StreamingResponse
 
 
 dotenv.load_dotenv(".env.local")
@@ -120,7 +121,8 @@ def deploy(request: dict):
 
 @app.post("/run")
 def run(request: dict):
-    print(request)
+    refs = []
+    media = []
     query = request.get("query")
     chat_history = request.get("messages")
     if chat_history:
@@ -128,27 +130,18 @@ def run(request: dict):
     else:
         chat_history = []
     chat_history.pop(-1)
-    for i in chat_history:
-        print(i)
-    answer = toshiba_agent.execute(query=query, chat_history=chat_history)
-    # answer = "hi"
+    answer = toshiba_agent.execute2(query=query, chat_history=chat_history)
+    print(answer)
+
     try:
-        res = json.loads(answer)["content"]
+        content = json.loads(answer)["content"]
+        res = content["Answer"]
+        if content.get("References"):
+            for i in content.get("References"):
+                refs.append("Page: "+str(i["Page number"])+" File: "+str(i["Filename"]))
     except:
         res = answer
-    # res = "Part number is 1234567890"
-    # res = COMMAND_AGENT.execute(query)
-    # refs = ["https://www.google.com"]
-    # media = ["https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s",
-    #                                                                           "https://picsum.photos/seed/picsum/200/300",
-    #                                                                           "https://www.w3schools.com/html/mov_bbb.mp4"]
-    media = []
-    refs = []
     return {"text": f"{res}", "refs": refs, "media": media}
-    # res = json.loads(toshiba_agent.execute(query=query))["content"]
-    # print(res)
-    # response = {"text": f"{res}", "refs": ["https://www.google.com"]}
-    # return response
 #  Table structure: table: header, columns, row values, each column must have same number of rows.
 # table: json format: {"header":"XYZ", column_labels: ["A", "B", "C"], "rows": [[1, 2, 3], [4, 5, 6], [7, 8, 9]]}
 # alternative: {"header":"XYZ" optional, values:[ object, object, object]}; Each object has label and values

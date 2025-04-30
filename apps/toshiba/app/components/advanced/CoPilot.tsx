@@ -25,14 +25,14 @@ export function CoPilot(props: CoPilotProps): JSX.Element {
 
             <div className="co-pilot-header">
                 <span>{props.label ?? "CoPilot"}</span>
-                {props.noUpload ? undefined :
-                    <CommonButton
-                        className="upload-button"
-                        onClick={handleUploadTranscriptClick}
-                    >
-                        <ElevaiteIcons.SVGUpload/>
-                        Upload Transcript
-                    </CommonButton>
+                {props.noUpload ? undefined : undefined
+                    // <CommonButton
+                    //     className="upload-button"
+                    //     onClick={handleUploadTranscriptClick}
+                    // >
+                    //     <ElevaiteIcons.SVGUpload/>
+                    //     Upload Transcript
+                    // </CommonButton>
                 }
             </div>
 

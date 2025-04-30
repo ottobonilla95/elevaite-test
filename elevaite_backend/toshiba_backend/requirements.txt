@@ -9,5 +9,7 @@ bs4
 markdownify
 matplotlib
 cohere
+scipy
+cohere
 pandas
 scipy

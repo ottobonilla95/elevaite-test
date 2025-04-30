@@ -156,7 +156,7 @@ def query_retriever(query: str) -> str:
     url = "http://localhost:8001/query-chunks"
     params = {
         "query": query,
-        "top_k": 10
+        "top_k": 5
     }
 
     # Make the POST request
@@ -164,15 +164,15 @@ def query_retriever(query: str) -> str:
     res = ""
     for segment in response.json()["selected_segments"]:
         for i,chunk in enumerate(segment["chunks"]):
-            print(chunk['contextual_header'])
-            print(chunk["chunk_text"])
-            print("*"*50)
+            # print(chunk['contextual_header'])
+            # print(chunk["chunk_text"])
+            # print("*"*50)
             res += f"Contextual Header: {chunk['contextual_header']}\n"
             res += f"Chunk {i}:"+chunk["chunk_text"]+"\n"
             res += f"Filename: {chunk['filename']}, Page Range: {chunk['page_info']}\n"
             res += f"Matched Image Path: {chunk['matched_image_path']}\n"
             res += "\n\n"
-    # print(res)
+    print(len(res))
     return res
 
 

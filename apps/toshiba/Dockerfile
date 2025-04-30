@@ -49,8 +49,8 @@ COPY --from=installer --chown=nextjs:nodejs /app/apps/chatbot/public ./apps/chat
 
 USER nextjs
 
-EXPOSE 3101
+EXPOSE 3002
 
-ENV PORT 3101
+ENV PORT 3002
 
 CMD node apps/chatbot/server.js

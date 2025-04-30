@@ -72,7 +72,8 @@ const testData: ProjectFolder[] = [
     },
 ];
 
-export function ProjectSidebar({ isExpanded, setIsExpanded }): JSX.Element {
+// export function ProjectSidebar({ isExpanded, setIsExpanded }:ProjectSidebarProps): JSX.Element {
+export function ProjectSidebar({ isExpanded, setIsExpanded }: { isExpanded: boolean; setIsExpanded: React.Dispatch<React.SetStateAction<boolean>> }): JSX.Element {
     const chatContext = useChat();
     // const [isExpanded, setIsExpanded] = useState(false);
     const [displayFolders, setDisplayFolders] = useState<ProjectFolder[]>([]);
@@ -91,7 +92,7 @@ export function ProjectSidebar({ isExpanded, setIsExpanded }): JSX.Element {
     }, [chatContext.selectedSession?.id]);
 
     function toggleExpanded(): void {
-        setIsExpanded(current => !current);
+        setIsExpanded((current: boolean) => !current);
     }
 
     function handleCreate(): void {

@@ -1,4 +1,4 @@
-from agent_studio_backend.tools import weather_forecast
+from tools import weather_forecast
 from data_classes import Agent
 from utils import agent_schema
 from typing import Any
@@ -10,6 +10,7 @@ import uuid
 from data_classes import PromptObject
 from tools import web_search, add_numbers, get_customer_order, tool_schemas, get_customer_location, add_customer, get_knowledge, get_part_description, get_part_number
 from prompts import web_agent_system_prompt, api_agent_system_prompt, data_agent_system_prompt, toshiba_agent_system_prompt
+from prompts import TOSHIBA_AGENT_PROMPT2
 
 @agent_schema
 class WebAgent(Agent):
@@ -25,9 +26,10 @@ class WebAgent(Agent):
         query : what is the sum of 12 and 13, and web results for "latest news on Toshiba.
         """
         tries = 0
+        routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = self.system_prompt.prompt + f"""
         Here are the routing options:
-        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
+        {routing_options}
 
         Your response should be in the format:
         {{ "routing": "respond", "content": "The answer to the query."}}
@@ -70,25 +72,16 @@ class WebAgent(Agent):
 class ToshibaAgent(Agent):
     def execute(self, query: Any, chat_history: Any) -> Any:
         """
-        Ask the agent anything related to arithmetic, customer orders numbers or web search and it will try to answer it.
-        You can ask it multiple questions at once. No need to ask one question at a time. You can ask it for multiple customer ids, multiple arithmetic questions, or multiple web search queries.
-
-        You can ask:
-        query : what are the customer order numbers for customer id 1111 and 2222.
-        query : what is the sum of 2 and 3, and sum of 12 and 13.
-        query : what is the latest news on Toshiba and Apple.
-        query : what is the sum of 12 and 13, and web results for "latest news on Toshiba.
+        Toshiba agent to answer any question related to Toshiba parts, assemblies, general information, etc.
         """
         tries = 0
         start_time = datetime.now()
-        system_prompt = self.system_prompt.prompt + f"""
+        routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
+        system_prompt = self.system_prompt.prompt + f"""\n\n
         Here are the routing options:
-        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
-
-        Your response should be in the format:
-        {{ "routing": "routing type", "content": "The relevant response."}}
+        {routing_options}
         """
-        messages=[{"role": "system", "content": system_prompt}]+chat_history+[{"role": "user", "content": query}]
+        messages=chat_history+[{"role": "system", "content": system_prompt}]+[{"role": "user", "content": query}]
 
         while tries < self.max_retries:
             print(tries)
@@ -97,31 +90,100 @@ class ToshibaAgent(Agent):
                 response = client.chat.completions.create(
                     model="gpt-4o",
                     messages=messages,
-                    # functions=self.functions,
                     tools=self.functions,
-                    # parallel_tool_calls=True,
                     tool_choice="auto",
+                    temperature=0,
+                    response_format={"type": "json_object"},
                 )
+                begin_chat_time = datetime.now()
                 # print("\n\nResponse: ",response)
                 if response.choices[0].finish_reason=="tool_calls":
+                    tool_call_time = datetime.now()
+                    # print("Time taken by the agent to call the tool: ",begin_chat_time - tool_call_time)
                     tool_calls = response.choices[0].message.tool_calls
                     messages+=[{"role": "assistant", "tool_calls": tool_calls},]
-                    print(tool_calls)
+                    # print(tool_calls)
                     for tool in tool_calls:
                         print(tool.function.name)
                         tool_id = tool.id
+                        print(tool.id)
                         arguments = json.loads(tool.function.arguments)
+                        # arguments["query"] = 'for 6800, what is part number for a module'
+                        print(arguments)
                         function_name = tool.function.name
                         result = tool_store[function_name](**arguments)
-                        print(arguments)
-
+                        retrieve_time = datetime.now()
+                        print("Time taken by the agent to retrieve the data: ",retrieve_time - begin_chat_time)
                         # print(result)
                         messages+= [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
 
                 else:
                     print("Time taken by the agent: ",datetime.now()-start_time)
-                    print(response.choices[0].message.content)
+                    # print(response.choices[0].message.content)
                     return response.choices[0].message.content
+                # print(messages)
+            except Exception as e:
+                print("Time taken by the agent: ", datetime.now() - start_time)
+                print(f"Error: {e}")
+            tries += 1
+        print("Time taken by the agent: ", datetime.now() - start_time)
+        return json.dumps({"routing": "failed",
+                           "content": "Couldn't find the answer to your query. Please try again with a different query."})
+
+    def execute2(self, query: Any, chat_history: Any) -> Any:
+        """
+        Toshiba agent to answer any question related to Toshiba parts, assemblies, general information, etc.
+        """
+        tries = 0
+        start_time = datetime.now()
+        routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
+        system_prompt = TOSHIBA_AGENT_PROMPT2 + f"""\n\n
+        Here are the routing options:
+        {routing_options}
+        """
+        messages=chat_history+[{"role": "system", "content": system_prompt}]+[{"role": "user", "content": query}]
+        context = tool_store["query_retriever"](query)
+        messages+=[{"role": "user", "content": "Here is some context: "+context}]
+
+        while tries < self.max_retries:
+            print(tries)
+            # print("\n\nMessage: ",messages)
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=messages,
+                    tools=self.functions,
+                    tool_choice="auto",
+                    temperature=0,
+                    response_format={"type": "json_object"},
+                )
+                begin_chat_time = datetime.now()
+                # print("\n\nResponse: ",response)
+                if response.choices[0].finish_reason=="tool_calls":
+                    tool_call_time = datetime.now()
+                    print("Time taken by the agent to call the tool: ",tool_call_time-begin_chat_time)
+                    tool_calls = response.choices[0].message.tool_calls
+                    messages+=[{"role": "assistant", "tool_calls": tool_calls},]
+                    # print(tool_calls)
+                    for tool in tool_calls:
+                        print(tool.function.name)
+                        tool_id = tool.id
+                        print(tool.id)
+                        arguments = json.loads(tool.function.arguments)
+                        # arguments["query"] = 'for 6800, what is part number for a module'
+                        print(arguments)
+                        function_name = tool.function.name
+                        result = tool_store[function_name](**arguments)
+                        retrieve_time = datetime.now()
+                        print("Time taken by the agent to retrieve the data: ",retrieve_time - begin_chat_time)
+                        # print(result)
+                        messages+= [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
+
+                else:
+                    print("Time taken by the agent: ",datetime.now()-start_time)
+                    # print(response.choices[0].message.content)
+                    return response.choices[0].message.content
+                # print(messages)
             except Exception as e:
                 print("Time taken by the agent: ", datetime.now() - start_time)
                 print(f"Error: {e}")
@@ -138,9 +200,10 @@ class DataAgent(Agent):
         The data contains customer ID, Order numbers and location in each row.
         """
         tries = 0
+        routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = self.system_prompt.prompt + f"""
         Here are the routing options:
-        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
+        {routing_options}
 
         Your response should be in the format:
         {{ "routing": "respond", "content": "The answer to the query."}}
@@ -191,9 +254,10 @@ class APIAgent(Agent):
         1. Weather API - to answer any weather related queries for a city.
         """
         tries = 0
+        routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = self.system_prompt.prompt + f"""
         Here are the routing options:
-        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
+        {routing_options}
 
         Your response should be in the format:
         {{ "routing": "respond", "content": "The answer to the query."}}
@@ -404,7 +468,7 @@ toshiba_agent = ToshibaAgent(name="ToshibaAgent",
                 input_type=["text", "voice"],
                 output_type=["text", "voice"],
                 response_type="json",
-                max_retries=5,
+                max_retries=3,
                 timeout=None,
                 deployed=False,
                 status="active",
