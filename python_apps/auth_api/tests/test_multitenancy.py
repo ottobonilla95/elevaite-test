@@ -15,9 +15,11 @@ from db_core.utils import async_create_tenant_schema, get_schema_name
 
 from app.schemas.user import UserCreate
 from app.services.auth_orm import create_user, get_user_by_email
-from app.core.config import settings
 from app.core.multitenancy import multitenancy_settings
 from app.db.models import Base
+
+# Use the test database URL
+from .conftest import TEST_DATABASE_URL
 
 
 async def set_tenant_search_path(session, tenant_id):
@@ -31,8 +33,8 @@ async def set_tenant_search_path(session, tenant_id):
 @pytest.mark.asyncio
 async def test_tenant_isolation():
     """Test that users are isolated between tenants."""
-    # Create engine
-    engine = create_async_engine(settings.DATABASE_URI)
+    # Create engine using the test database URL
+    engine = create_async_engine(TEST_DATABASE_URL)
 
     # Define tenant IDs
     test_tenants = ["tenant1", "tenant2"]
@@ -43,7 +45,9 @@ async def test_tenant_isolation():
         for tenant_id in test_tenants:
             schema_name = get_schema_name(tenant_id, multitenancy_settings)
             print(f"  - Dropping schema {schema_name} if it exists...")
-            await conn.execute(sqlalchemy.text(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE'))
+            await conn.execute(
+                sqlalchemy.text(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE')
+            )
 
     # Now create fresh tenant schemas
     for tenant_id in test_tenants:
@@ -65,7 +69,11 @@ async def test_tenant_isolation():
         try:
             await set_tenant_search_path(tenant1_session, "tenant1")
             print("Creating user in tenant1...")
-            user_data1 = UserCreate(email="isolation@example.com", password="Password123!@#", full_name="Tenant 1 User")
+            user_data1 = UserCreate(
+                email="isolation@example.com",
+                password="Password123!@#",
+                full_name="Tenant 1 User",
+            )
 
             user1 = await create_user(tenant1_session, user_data1)
             print(f"Created user in tenant1: {user1.email} (ID: {user1.id})")
@@ -77,7 +85,11 @@ async def test_tenant_isolation():
         try:
             await set_tenant_search_path(tenant2_session, "tenant2")
             print("\nCreating user in tenant2 with the same email...")
-            user_data2 = UserCreate(email="isolation@example.com", password="Password456!@#", full_name="Tenant 2 User")
+            user_data2 = UserCreate(
+                email="isolation@example.com",
+                password="Password456!@#",
+                full_name="Tenant 2 User",
+            )
 
             user2 = await create_user(tenant2_session, user_data2)
             print(f"Created user in tenant2: {user2.email} (ID: {user2.id})")
@@ -91,9 +103,13 @@ async def test_tenant_isolation():
         verify1_session = async_session()
         try:
             await set_tenant_search_path(verify1_session, "tenant1")
-            tenant1_user = await get_user_by_email(verify1_session, "isolation@example.com")
+            tenant1_user = await get_user_by_email(
+                verify1_session, "isolation@example.com"
+            )
             if tenant1_user:
-                print(f"User in tenant1: {tenant1_user.email}, {tenant1_user.full_name}")
+                print(
+                    f"User in tenant1: {tenant1_user.email}, {tenant1_user.full_name}"
+                )
             else:
                 print("User not found in tenant1!")
         finally:
@@ -103,9 +119,13 @@ async def test_tenant_isolation():
         verify2_session = async_session()
         try:
             await set_tenant_search_path(verify2_session, "tenant2")
-            tenant2_user = await get_user_by_email(verify2_session, "isolation@example.com")
+            tenant2_user = await get_user_by_email(
+                verify2_session, "isolation@example.com"
+            )
             if tenant2_user:
-                print(f"User in tenant2: {tenant2_user.email}, {tenant2_user.full_name}")
+                print(
+                    f"User in tenant2: {tenant2_user.email}, {tenant2_user.full_name}"
+                )
             else:
                 print("User not found in tenant2!")
         finally:
@@ -115,10 +135,17 @@ async def test_tenant_isolation():
         if tenant1_user and tenant2_user:
             print("\nVerifying that the users are different:")
             print(f"User IDs: tenant1={tenant1_user.id}, tenant2={tenant2_user.id}")
-            print(f"Full names: tenant1='{tenant1_user.full_name}', tenant2='{tenant2_user.full_name}'")
+            print(
+                f"Full names: tenant1='{tenant1_user.full_name}', tenant2='{tenant2_user.full_name}'"
+            )
 
-            if tenant1_user.id != tenant2_user.id or tenant1_user.full_name != tenant2_user.full_name:
-                print("\n✅ SUCCESS: Users with the same email exist in different tenants!")
+            if (
+                tenant1_user.id != tenant2_user.id
+                or tenant1_user.full_name != tenant2_user.full_name
+            ):
+                print(
+                    "\n✅ SUCCESS: Users with the same email exist in different tenants!"
+                )
             else:
                 print("\n❌ FAILURE: Users are not properly isolated between tenants.")
         else:
