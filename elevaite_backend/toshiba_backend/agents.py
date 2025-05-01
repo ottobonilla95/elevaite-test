@@ -149,27 +149,30 @@ class ToshibaAgent(Agent):
 
 
         # Make a single call to query_retriever2 and store both context and sources
-        retrieval_result = tool_store["query_retriever2"](query)
-        context = retrieval_result[0]
-        sources = retrieval_result[1]
+        # retrieval_result = tool_store["query_retriever2"](query)
+        # context = retrieval_result[0]
+        # sources = retrieval_result[1]
+        # print("Time taken by the agent to retrieve the data: ",datetime.now()-start_time)
 
         # Initialize messages with chat history and system prompt
         messages = chat_history + [
             {"role": "system", "content": system_prompt},
-            {"role": "system", "content": context},
-            {"role": "user", "content": query}
+            {"role": "user", "content": "Answer this question: "+query},
+            # {"role": "user", "content": context},
         ]
 
         # Main loop for retries
         while tries < self.max_retries:
             try:
+                print("\n\nToshiba Agent Tries: ", tries)
+                start_time = datetime.now()
                 # Call the LLM
                 response = client.chat.completions.create(
-                    model="gpt-4.1-nano",
+                    model="gpt-4o",
                     messages=messages,
                     tools=self.functions,
                     tool_choice="auto",
-                    temperature=0,
+                    temperature=0.2,
                     response_format={"type": "json_object"},
                 )
 
@@ -177,6 +180,7 @@ class ToshibaAgent(Agent):
                 if response.choices[0].finish_reason == "tool_calls":
                     tool_calls = response.choices[0].message.tool_calls[:1]
                     messages.append({"role": "assistant", "tool_calls": tool_calls})
+                    print("\n\nTool Calls: ", tool_calls)
 
                     # Process all tool calls
                     for tool in tool_calls:
@@ -189,6 +193,7 @@ class ToshibaAgent(Agent):
 
                         # Add tool response to messages
                         messages.append({"role": "tool", "tool_call_id": tool_id, "content": str(result)})
+                        print("Time taken by the tool: ", datetime.now() - start_time)
                 else:
                     # Return final response
                     return response.choices[0].message.content
