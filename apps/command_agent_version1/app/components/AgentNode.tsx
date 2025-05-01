@@ -1,9 +1,9 @@
-// AgentNode.tsx
+// AgentNode.tsx - Improved to match Figma design
 "use client";
 
 import React, { memo } from "react";
 import { Handle, Position } from "react-flow-renderer";
-import { Router, Globe, Database, Link2, Wrench, Settings, X, Sliders } from "lucide-react";
+import { Router, Globe, Database, Link2, Wrench, Edit, X, Zap } from "lucide-react";
 import { AgentType, AGENT_STYLES } from "./type";
 
 interface NodeProps {
@@ -14,32 +14,44 @@ interface NodeProps {
         type: AgentType;
         name: string;
         prompt?: string;
+        tools?: string[];
         onDelete: (id: string) => void;
-        onConfigure: (id: string) => void;
+        onConfigure: () => void;
     };
     selected: boolean;
 }
 
 const AgentNode = memo(({ id, data, selected }: NodeProps) => {
-    const { type, name, shortId, onDelete, onConfigure } = data;
+    const { type, name, tools = [], onDelete, onConfigure } = data;
     const styles = AGENT_STYLES[type] || { bgClass: "bg-gray-100", textClass: "text-gray-600" };
 
     // Get the appropriate icon based on agent type
     const getAgentIcon = (type: AgentType) => {
         switch (type) {
             case "router":
-                return <Router size={20} />;
+                return <Router size={20} className="text-blue-600" />;
             case "web_search":
-                return <Globe size={20} />;
+                return <Globe size={20} className="text-blue-600" />;
             case "api":
-                return <Link2 size={20} />;
+                return <Link2 size={20} className="text-blue-600" />;
             case "data":
-                return <Database size={20} />;
+                return <Database size={20} className="text-blue-600" />;
             case "troubleshooting":
-                return <Wrench size={20} />;
+                return <Wrench size={20} className="text-blue-600" />;
             default:
-                return <Router size={20} />;
+                return <Router size={20} className="text-blue-600" />;
         }
+    };
+
+    // Get icon for tool
+    const getToolIcon = (toolName: string) => {
+        const toolIcons: { [key: string]: React.ReactNode } = {
+            "Tool 1": <Zap size={16} className="text-orange-500" />,
+            "Tool 2": <Database size={16} className="text-orange-500" />,
+            "Tool 3": <Link2 size={16} className="text-orange-500" />
+        };
+
+        return toolIcons[toolName] || <Zap size={16} className="text-orange-500" />;
     };
 
     const handleDelete = (e: React.MouseEvent) => {
@@ -49,83 +61,110 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
 
     const handleOpenConfig = (e: React.MouseEvent) => {
         e.stopPropagation();
-        onConfigure(id);
+        onConfigure();
+    };
+
+    // Clean subtitle text
+    const getSubtitle = (type: AgentType) => {
+        if (type === "web_search") return "web search";
+        return type.replace('_', ' ');
     };
 
     return (
         <div
-            className={`agent-node p-3 rounded-lg shadow-md bg-white border ${selected ? "border-blue-500" : "border-gray-200"
-                }`}
-            style={{ width: 200 }}
+            className={`agent-node p-4 rounded-lg bg-white shadow-sm ${selected ? "ring-2 ring-blue-400" : "border border-gray-200"}`}
+            style={{ width: 280 }}
         >
-            {/* Header with controls */}
-            <div className="flex justify-between items-center mb-2">
-                <div className={`py-0.5 px-2 rounded-md text-xs font-medium ${styles.bgClass} ${styles.textClass}`}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
+            {/* Header with title and controls */}
+            <div className="flex justify-between items-start mb-2">
+                <div className="flex items-start">
+                    <div className="p-2 rounded-md bg-blue-100 mr-3">
+                        {getAgentIcon(type)}
+                    </div>
+                    <div>
+                        <p className="font-medium text-gray-900">{name}</p>
+                        <p className="text-xs text-gray-500">{getSubtitle(type)}</p>
+                    </div>
                 </div>
                 <div className="flex space-x-1">
                     <button
                         onClick={handleOpenConfig}
                         className="p-1 text-gray-400 hover:text-gray-600 rounded"
                     >
-                        <Settings size={14} />
+                        <Edit size={16} />
                     </button>
                     <button
                         onClick={handleDelete}
-                        className="p-1 text-gray-400 hover:text-red-600 rounded"
+                        className="p-1 text-gray-400 hover:text-gray-600 rounded"
                     >
-                        <X size={14} />
+                        <X size={16} />
                     </button>
                 </div>
             </div>
 
-            {/* Agent content */}
-            <div className="flex flex-col items-center mt-2">
-                <div className={`p-2 rounded-full ${styles.bgClass} mb-2`}>
-                    {getAgentIcon(type)}
-                </div>
-                <div className="text-center">
-                    <p className="font-medium text-sm">{name}</p>
-                    {shortId && (
-                        <p className="text-xs text-gray-500">ID: {shortId}</p>
-                    )}
-                </div>
+            {/* Badge section - exactly matching Figma design */}
+            <div className="flex flex-wrap gap-1 mb-3">
+                <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
+                    Hosted
+                </span>
+                <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
+                    ClaudeGPT-4
+                </span>
+                <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
+                    Arlo Knowledge Base
+                </span>
             </div>
 
-            {/* Configure Agent Button */}
-            <div className="mt-3">
-                <button
-                    onClick={handleOpenConfig}
-                    className="w-full flex items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-2 rounded-md text-sm font-medium"
-                    title="Configure Agent"
-                >
-                    <Sliders className="w-4 h-4 mr-2" />
-                    Configure Agent
-                </button>
-            </div>
+            {/* Tools Section - with Edit button aligned to right */}
+            {(tools && tools.length > 0) && (
+                <div>
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-gray-700">Tools</span>
+                        <button
+                            onClick={handleOpenConfig}
+                            className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                        >
+                            <Edit size={14} />
+                        </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {tools.map((tool, index) => (
+                            <span
+                                key={index}
+                                className="inline-flex items-center px-2 py-1 bg-orange-50 text-orange-500 text-xs rounded"
+                            >
+                                {getToolIcon(tool)}
+                                <span className="ml-1">{tool}</span>
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
 
-            {/* Input Handle */}
+            {/* Input Handle - Blue dot at top */}
             <Handle
                 type="target"
                 position={Position.Top}
                 style={{
-                    background: "#9ca3af",
+                    background: "#3b82f6", // blue-500
                     width: 8,
                     height: 8,
                     top: -4,
+                    border: "2px solid white"
                 }}
                 id={`${id}-target`}
             />
 
-            {/* Output Handle */}
+            {/* Output Handle - Blue dot at bottom */}
             <Handle
                 type="source"
                 position={Position.Bottom}
                 style={{
-                    background: "#9ca3af",
+                    background: "#3b82f6", // blue-500
                     width: 8,
                     height: 8,
                     bottom: -4,
+                    border: "2px solid white"
                 }}
                 id={`${id}-source`}
             />
@@ -133,6 +172,7 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
     );
 });
 
-AgentNode.displayName = "AgentNode";
+// Add display name to avoid React warnings
+AgentNode.displayName = 'AgentNode';
 
 export default AgentNode;

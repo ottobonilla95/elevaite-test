@@ -1,4 +1,4 @@
-// FlowCanvas.tsx - Enhanced for better connection handling
+// FlowCanvas.tsx - Improved with delete option for edge labels
 "use client";
 
 import React, { useCallback, useState, useEffect } from "react";
@@ -13,18 +13,114 @@ import ReactFlow, {
     Connection,
     OnConnectStartParams,
     NodeChange,
-    NodePositionChange,
-    NodeSelectionChange,
     EdgeChange,
     ConnectionLineType,
     BackgroundVariant,
     ReactFlowInstance
 } from "react-flow-renderer";
+import { X } from "lucide-react";
 import AgentNode from "./AgentNode";
 
-// Node types
+// Custom edge component with improved UI and delete option
+const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, style = {}, markerEnd, source, target, sourcePosition, targetPosition }) => {
+    // Create a curved path between source and target
+    const edgePath = `M ${sourceX} ${sourceY} C ${sourceX} ${sourceY + 50} ${targetX} ${targetY - 50} ${targetX} ${targetY}`;
+
+    // Calculate the center point of the edge for label positioning
+    const centerX = (sourceX + targetX) / 2;
+    const centerY = (sourceY + targetY) / 2;
+
+    // Default to "Action" if not specified
+    const actionType = data?.actionType || "Action";
+
+    // Set color based on action type
+    let bgColor = "#4CAF50"; // Default green for "Action"
+    if (actionType === "Conditional") {
+        bgColor = "#FF9800"; // Orange for "Conditional"
+    } else if (actionType === "Notification") {
+        bgColor = "#9C27B0"; // Purple for "Notification"
+    } else if (actionType === "Delay") {
+        bgColor = "#FF5722"; // Deep Orange for "Delay"
+    }
+
+    // Function to remove label (will be passed to edge click handler)
+    const removeLabel = (event) => {
+        event.stopPropagation();
+        const customEvent = new CustomEvent('remove-edge-label', {
+            detail: { id }
+        });
+        document.dispatchEvent(customEvent);
+    };
+
+    return (
+        <>
+            <path
+                id={id}
+                className="react-flow__edge-path"
+                d={edgePath}
+                strokeWidth={2}
+                markerEnd={markerEnd}
+                style={style}
+            />
+            <foreignObject
+                width={110}
+                height={28}
+                x={centerX - 55}
+                y={centerY - 14}
+                className="edgebutton-foreignobject"
+                requiredExtensions="http://www.w3.org/1999/xhtml"
+            >
+                <div
+                    style={{
+                        background: bgColor,
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        width: 'fit-content',
+                        height: '100%',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    }}
+                    className="nodrag nopan"
+                >
+                    <span style={{ marginRight: '6px' }}>
+                        {actionType === "Action" ? "+ Action" : actionType}
+                    </span>
+                    <button
+                        onClick={removeLabel}
+                        style={{
+                            background: 'rgba(255,255,255,0.2)',
+                            border: 'none',
+                            borderRadius: '2px',
+                            width: '16px',
+                            height: '16px',
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: 'white',
+                        }}
+                    >
+                        <X size={12} />
+                    </button>
+                </div>
+            </foreignObject>
+        </>
+    );
+};
+
+// Define node and edge types outside the component
 const nodeTypes = {
     agent: AgentNode,
+};
+
+const edgeTypes = {
+    custom: CustomEdge,
 };
 
 interface FlowCanvasProps {
@@ -48,8 +144,7 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
     onNodeSelect,
     onInit
 }) => {
-    // State for connection line tracking
-    const [connectionNodeId, setConnectionNodeId] = useState<string | null>(null);
+    // State for tracking active connections and selections
     const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
 
     // Pass reactFlow instance to parent when ready
@@ -59,107 +154,82 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
         }
     }, [reactFlowInstance, onInit]);
 
+    // Add event listener for edge label removal
+    useEffect(() => {
+        const handleRemoveEdgeLabel = (event) => {
+            const { id } = event.detail;
+
+            // Remove the action type data but keep the edge
+            setEdges(prevEdges =>
+                prevEdges.map(edge => {
+                    if (edge.id === id) {
+                        // Remove the action type by setting it to null
+                        return {
+                            ...edge,
+                            data: null
+                        };
+                    }
+                    return edge;
+                })
+            );
+        };
+
+        document.addEventListener('remove-edge-label', handleRemoveEdgeLabel);
+
+        return () => {
+            document.removeEventListener('remove-edge-label', handleRemoveEdgeLabel);
+        };
+    }, [setEdges]);
+
     // Default edge options for better looking connections
     const defaultEdgeOptions = {
         animated: true,
         style: { stroke: '#3b82f6', strokeWidth: 2 },
-        type: 'smoothstep', // Use smoothstep for cleaner connections
+        type: 'custom', // Use custom edge type by default
         markerEnd: {
             type: MarkerType.ArrowClosed,
             color: '#3b82f6',
             width: 20,
             height: 20,
         },
+        data: {
+            actionType: "Action" // Default action type
+        }
     };
 
     // Helper function for snap-to-grid
-    const snapToGrid = (position: { x: number; y: number }, gridSize: number = 15) => {
+    const snapToGrid = (position, gridSize = 15) => {
         return {
             x: Math.round(position.x / gridSize) * gridSize,
             y: Math.round(position.y / gridSize) * gridSize,
         };
     };
 
-    // Handle node changes with improved position tracking
+    // Handle node changes (position, selection, etc.)
     const onNodesChange = useCallback(
         (changes: NodeChange[]) => {
-            // Process position changes with improved handling
-            const positionChanges = changes.filter(change =>
-                change.type === 'position' && 'position' in change
-            ) as NodePositionChange[];
-
-            const selectChanges = changes.filter(change =>
-                change.type === 'select' && 'selected' in change
-            ) as NodeSelectionChange[];
-
-            // Apply position changes with grid snapping
-            if (positionChanges.length > 0) {
-                setNodes(nds =>
-                    nds.map(node => {
-                        const posChange = positionChanges.find(
-                            c => c.id === node.id
-                        );
-
-                        if (posChange && posChange.position) {
-                            return {
-                                ...node,
-                                position: snapToGrid(posChange.position),
-                                style: {
-                                    ...node.style,
-                                    // Add subtle shadow for dragged nodes
-                                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
-                                }
-                            };
+            // Apply changes to nodes
+            setNodes(nds => {
+                return changes.reduce((acc, change) => {
+                    if (change.type === 'position' && 'position' in change && change.position) {
+                        // Apply grid snapping to position changes
+                        const node = acc.find(n => n.id === change.id);
+                        if (node) {
+                            node.position = snapToGrid(change.position);
                         }
-                        return node;
-                    })
-                );
-            }
-
-            // Apply selection changes
-            if (selectChanges.length > 0) {
-                setNodes(nds =>
-                    nds.map(node => {
-                        const selectChange = selectChanges.find(
-                            c => c.id === node.id
-                        );
-
-                        if (selectChange) {
-                            return {
-                                ...node,
-                                selected: selectChange.selected,
-                                // Highlight selected nodes
-                                style: {
-                                    ...node.style,
-                                    boxShadow: selectChange.selected ? '0 0 10px #3b82f6' : undefined
-                                }
-                            };
+                    } else if (change.type === 'select' && 'selected' in change) {
+                        // Apply selection changes
+                        const node = acc.find(n => n.id === change.id);
+                        if (node) {
+                            node.selected = change.selected;
                         }
-                        return node;
-                    })
-                );
-            }
-
-            // Handle other changes
-            const otherChanges = changes.filter(change =>
-                change.type !== 'position' && change.type !== 'select'
-            ) as EdgeChange[];
-
-            if (otherChanges.length > 0) {
-                // Let ReactFlow handle other types of changes
-                setNodes(nds => {
-                    const newNodes = [...nds];
-                    for (const change of otherChanges) {
-                        if (change.type === 'remove' && 'id' in change) {
-                            const index = newNodes.findIndex(n => n.id === change.id);
-                            if (index !== -1) {
-                                newNodes.splice(index, 1);
-                            }
-                        }
+                    } else if (change.type === 'remove' && 'id' in change) {
+                        // Remove nodes
+                        return acc.filter(n => n.id !== change.id);
                     }
-                    return newNodes;
-                });
-            }
+                    return acc;
+                }, [...nds]);
+            });
         },
         [setNodes]
     );
@@ -167,39 +237,29 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
     // Handle edge changes
     const onEdgesChange = useCallback(
         (changes: EdgeChange[]) => {
-            setEdges((eds) => {
-                // Filter out removed edges
-                return eds.filter((edge) => {
-                    for (const change of changes) {
-                        if (change.type === 'remove' && 'id' in change && change.id === edge.id) {
-                            return false;
-                        }
+            setEdges(eds => {
+                return changes.reduce((acc, change) => {
+                    if (change.type === 'remove' && 'id' in change) {
+                        // Remove edges
+                        return acc.filter(e => e.id !== change.id);
                     }
-                    return true;
-                });
+                    return acc;
+                }, [...eds]);
             });
         },
         [setEdges]
     );
 
-    // Handle connecting nodes with better edge styling
+    // Handle connecting nodes
     const onConnect = useCallback(
         (params: Connection) => {
-            // Check if connection already exists to prevent duplicates
-            const connectionExists = edges.some(
-                edge => edge.source === params.source && edge.target === params.target
-            );
+            console.log("Creating connection:", params);
 
-            if (connectionExists) {
-                console.log("Connection already exists");
-                return;
-            }
-
-            // Create new connection with standard styling
+            // Create new connection with the action type
             const newEdge = {
                 ...params,
                 id: `e-${params.source}-${params.target}-${Date.now()}`,
-                type: 'smoothstep', // Use smoothstep for cleaner connections
+                type: 'custom', // Use custom edge
                 animated: true,
                 style: { stroke: '#3b82f6', strokeWidth: 2 },
                 markerEnd: {
@@ -207,26 +267,21 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
                     color: '#3b82f6',
                     width: 20,
                     height: 20,
+                },
+                data: {
+                    actionType: "Action" // Default action type
                 }
             };
 
             // Add the new edge
             setEdges(eds => addEdge(newEdge, eds));
-
-            // After connection, select the target node
-            setTimeout(() => {
-                const targetNode = nodes.find(node => node.id === params.target);
-                if (targetNode && onNodeSelect) {
-                    onNodeSelect(targetNode);
-                }
-            }, 50);
         },
-        [edges, nodes, setEdges, onNodeSelect]
+        [setEdges]
     );
 
     // Handle clicking on a node
     const onNodeClick = useCallback(
-        (event: React.MouseEvent, node: Node) => {
+        (event, node) => {
             event.stopPropagation(); // Prevent event bubbling
             if (onNodeSelect) {
                 onNodeSelect(node);
@@ -235,32 +290,42 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
         [onNodeSelect]
     );
 
-    // Handle clicking on the background (don't deselect)
-    const onPaneClick = useCallback(() => {
-        // We do nothing here to prevent deselection
-        // The actual deselection will be handled by the close button
-    }, []);
+    // Handle clicking on an edge to change action type
+    const onEdgeClick = useCallback(
+        (event, edge) => {
+            // If the edge doesn't have a label, don't do anything
+            if (!edge.data) return;
 
-    // Handle connection start
-    const onConnectStart = useCallback(
-        (event: React.MouseEvent, params: OnConnectStartParams) => {
-            setConnectionNodeId(params.nodeId || null);
-        },
-        []
-    );
+            // Cycle through action types
+            const actionTypes = ["Action", "Conditional", "Notification", "Delay"];
+            const currentType = edge.data?.actionType || "Action";
+            const currentIndex = actionTypes.indexOf(currentType);
+            const nextIndex = (currentIndex + 1) % actionTypes.length;
+            const nextType = actionTypes[nextIndex];
 
-    // Handle connection end
-    const onConnectEnd = useCallback(
-        (event: MouseEvent) => {
-            setConnectionNodeId(null);
+            // Update the edge data
+            setEdges(eds =>
+                eds.map(e => {
+                    if (e.id === edge.id) {
+                        return {
+                            ...e,
+                            data: {
+                                ...e.data,
+                                actionType: nextType
+                            }
+                        };
+                    }
+                    return e;
+                })
+            );
         },
-        []
+        [setEdges]
     );
 
     // Handle flow initialization
-    const onLoad = (instance: ReactFlowInstance) => {
+    const onLoad = useCallback((instance) => {
         setReactFlowInstance(instance);
-    };
+    }, []);
 
     return (
         <div className="reactflow-wrapper" style={{ width: '100%', height: '100%' }}>
@@ -270,12 +335,10 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
-                onConnectStart={onConnectStart}
-                onConnectEnd={onConnectEnd}
                 onNodeClick={onNodeClick}
-                onPaneClick={onPaneClick}
+                onEdgeClick={onEdgeClick}
                 nodeTypes={nodeTypes}
-                //onLoad={onLoad}
+                edgeTypes={edgeTypes}
                 onInit={onLoad}
                 fitView
                 attributionPosition="bottom-right"
@@ -289,7 +352,6 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
                 nodesDraggable={true}
                 nodesConnectable={true}
                 elementsSelectable={true}
-                selectNodesOnDrag={false}
             >
                 <Controls />
                 <Background
@@ -300,11 +362,11 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
                 />
                 <MiniMap
                     nodeStrokeColor={(node) => {
-                        if (node.selected) return '#3b82f6';
+                        if (node.selected) return '#f97316';
                         return '#555';
                     }}
                     nodeColor={(node) => {
-                        if (node.selected) return '#3b82f6';
+                        if (node.selected) return '#f97316';
                         return '#fff';
                     }}
                     nodeBorderRadius={3}
@@ -315,10 +377,3 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
 };
 
 export default FlowCanvas;
-
-
-
-
-
-
-

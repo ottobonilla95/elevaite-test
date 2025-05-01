@@ -20,7 +20,6 @@
     "next-auth": "5.0.0-beta.16",
     "react": "^18",
     "react-dom": "^18",
-    "react-flow-renderer": "^10.3.17",
     "react-toastify": "^11.0.5",
     "reactflow": "^11.11.4",
     "uuid": "^11.1.0"

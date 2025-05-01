@@ -1,4 +1,4 @@
-// AgentConfigForm.tsx - Modified to improve connections and dragging
+// AgentConfigForm.tsx - Updated with new sidebar design and tools
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
@@ -18,7 +18,11 @@ import {
     Settings,
     Save,
     Send,
-    Plus
+    Plus,
+    ChevronDown,
+    ChevronRight,
+    Zap,
+    Edit
 } from "lucide-react";
 import { AgentType, AGENT_STYLES, AGENT_TYPES, NodeData } from "./type";
 
@@ -41,6 +45,7 @@ interface Edge {
     animated?: boolean;
     style?: any;
     markerEnd?: any;
+    data?: any;
 }
 
 interface ChatMessage {
@@ -58,6 +63,7 @@ interface WorkflowConfig {
         type: AgentType;
         name: string;
         prompt?: string;
+        tools?: string[];
         position: {
             x: number;
             y: number;
@@ -68,6 +74,65 @@ interface WorkflowConfig {
         toUuid: string;
     }>;
 }
+
+// SidebarSection component
+const SidebarSection: React.FC<{
+    title: string;
+    isOpen: boolean;
+    onToggle: () => void;
+    children?: React.ReactNode;
+}> = ({ title, isOpen, onToggle, children }) => {
+    return (
+        <div className="sidebar-section mb-4">
+            <div
+                className="section-header flex items-center justify-between py-2 px-1 cursor-pointer"
+                onClick={onToggle}
+            >
+                <h2 className="text-sm font-medium text-gray-800">{title}</h2>
+                <div className="text-orange-500">
+                    {isOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                </div>
+            </div>
+
+            {isOpen && (
+                <div className="section-content mt-2">
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// SidebarItem component
+const SidebarItem: React.FC<{
+    icon: React.ReactNode;
+    label: string;
+    subLabel?: string;
+    onClick?: () => void;
+    draggable?: boolean;
+    onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void;
+}> = ({ icon, label, subLabel, onClick, draggable, onDragStart }) => {
+    return (
+        <div
+            className="sidebar-item cursor-grab p-2 mb-2 rounded-md hover:bg-gray-100 transition-colors"
+            onClick={onClick}
+            draggable={draggable}
+            onDragStart={onDragStart}
+        >
+            <div className="sidebar-item-content flex items-center">
+                <div className="item-icon mr-3">
+                    {icon}
+                </div>
+                <div className="item-details">
+                    <h3 className="text-sm font-medium">{label}</h3>
+                    {subLabel && (
+                        <p className="text-xs text-gray-500">{subLabel}</p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const AgentConfigForm = () => {
     // First, let's handle the client-side initialization properly
@@ -93,6 +158,24 @@ const AgentConfigForm = () => {
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [showConfigPanel, setShowConfigPanel] = useState(false);
+
+    // State for sidebar sections
+    const [sectionsState, setSectionsState] = useState({
+        components: true,
+        actions: false,
+        tools: false
+    });
+
+    // State for workflow tabs
+    const [activeTab, setActiveTab] = useState("actions");
+
+    // Toggle section visibility
+    const toggleSection = (section: keyof typeof sectionsState) => {
+        setSectionsState({
+            ...sectionsState,
+            [section]: !sectionsState[section]
+        });
+    };
 
     // Store flow instance when it's ready
     const onInit = (instance: ReactFlowInstance) => {
@@ -134,28 +217,53 @@ const AgentConfigForm = () => {
         }
     }, [selectedNode]);
 
-    // Handle dropping an agent onto the canvas - IMPROVED for proper positioning
+    // Handle dropping an agent onto the canvas - IMPROVED for proper positioning and tools
     const onDrop = useCallback(
         (event: React.DragEvent<HTMLDivElement>) => {
             event.preventDefault();
 
-            if (reactFlowWrapper.current && reactFlowInstanceRef.current) {
-                const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-                const agentDataJson = event.dataTransfer.getData("application/reactflow");
+            console.log("Drop event triggered");
 
-                if (agentDataJson) {
-                    try {
-                        const agentData = JSON.parse(agentDataJson) as any;
+            if (!reactFlowWrapper.current || !reactFlowInstanceRef.current) {
+                console.error("React Flow wrapper or instance not ready");
+                return;
+            }
 
-                        // Get drop position in react-flow coordinates
-                        const position = reactFlowInstanceRef.current.project({
-                            x: event.clientX - reactFlowBounds.left,
-                            y: event.clientY - reactFlowBounds.top
-                        });
+            const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+            const agentDataJson = event.dataTransfer.getData("application/reactflow");
 
-                        // Create a new node with a unique ID
-                        const nodeId = uuidv4();
-                        const newNode: Node = {
+            console.log("Drop data:", agentDataJson); // Debug logging
+
+            if (!agentDataJson) {
+                console.error("No data received during drop");
+                return;
+            }
+
+            try {
+                const agentData = JSON.parse(agentDataJson);
+                console.log("Parsed drop data:", agentData);
+
+                // Get drop position in react-flow coordinates
+                const position = reactFlowInstanceRef.current.project({
+                    x: event.clientX - reactFlowBounds.left,
+                    y: event.clientY - reactFlowBounds.top
+                });
+
+                // Create a new node with a unique ID
+                const nodeId = uuidv4();
+                const newNode = {
+                    id: nodeId,
+                    type: "agent",
+                    position,
+                    data: {
+                        id: nodeId,
+                        shortId: agentData.id,
+                        type: agentData.type,
+                        name: agentData.name,
+                        prompt: "", // Initialize with empty prompt
+                        tools: ["Tool 1", "Tool 2", "Tool 3"], // Default tools
+                        onDelete: handleDeleteNode,
+                        onConfigure: () => handleNodeSelect({
                             id: nodeId,
                             type: "agent",
                             position,
@@ -164,21 +272,24 @@ const AgentConfigForm = () => {
                                 shortId: agentData.id,
                                 type: agentData.type,
                                 name: agentData.name,
-                                prompt: "", // Initialize with empty prompt
-                                onDelete: handleDeleteNode,
-                                onConfigure: () => handleNodeSelect(newNode)
-                            },
-                        };
+                                prompt: "",
+                                tools: ["Tool 1", "Tool 2", "Tool 3"]
+                            }
+                        })
+                    },
+                };
 
-                        console.log("Creating new node:", newNode);
-                        setNodes(prevNodes => [...prevNodes, newNode]);
+                console.log("Creating new node:", newNode);
+                setNodes(prevNodes => [...prevNodes, newNode]);
 
-                        // Set the newly created node as selected
-                        handleNodeSelect(newNode);
-                    } catch (error) {
-                        console.error("Error creating node:", error);
-                    }
-                }
+                // Set the newly created node as selected after a small delay
+                // to ensure the node is properly rendered
+                setTimeout(() => {
+                    handleNodeSelect(newNode);
+                }, 50);
+
+            } catch (error) {
+                console.error("Error creating node:", error);
             }
         },
         [handleDeleteNode]
@@ -191,9 +302,64 @@ const AgentConfigForm = () => {
     }, []);
 
     // Handle drag start for agent types
-    const handleDragStart = (event: React.DragEvent<HTMLDivElement>, agent: any) => {
-        event.dataTransfer.setData("application/reactflow", JSON.stringify(agent));
+    const handleDragStart = useCallback((event, agent) => {
+        console.log("Drag started:", agent);
+
+        // Ensure the agent has all required properties
+        const dragData = {
+            id: agent.id || `agent-${Date.now()}`,
+            type: agent.type || 'custom',
+            name: agent.name || 'Custom Agent',
+            // Include any other properties needed for the node
+        };
+
+        // Set the data transfer
+        event.dataTransfer.setData("application/reactflow", JSON.stringify(dragData));
         event.dataTransfer.effectAllowed = "move";
+
+        // Add visual feedback for dragging
+        if (event.target.classList) {
+            event.target.classList.add('dragging');
+            setTimeout(() => {
+                event.target.classList.remove('dragging');
+            }, 100);
+        }
+    }, []);
+
+    // Get agent icon based on type
+    const getAgentIcon = (type: AgentType) => {
+        switch (type) {
+            case "router":
+                return <Router size={20} className="text-purple-600" />;
+            case "web_search":
+                return <Globe size={20} className="text-blue-600" />;
+            case "api":
+                return <Link2 size={20} className="text-green-600" />;
+            case "data":
+                return <Database size={20} className="text-yellow-600" />;
+            case "troubleshooting":
+                return <Wrench size={20} className="text-red-600" />;
+            default:
+                return <Router size={20} className="text-gray-600" />;
+        }
+    };
+
+    // Get agent icon container class based on type
+    const getAgentIconClass = (type: AgentType) => {
+        switch (type) {
+            case "router":
+                return "bg-purple-100";
+            case "web_search":
+                return "bg-blue-100";
+            case "api":
+                return "bg-green-100";
+            case "data":
+                return "bg-yellow-100";
+            case "troubleshooting":
+                return "bg-red-100";
+            default:
+                return "bg-gray-100";
+        }
     };
 
     // Handle node selection
@@ -219,7 +385,7 @@ const AgentConfigForm = () => {
     }, []);
 
     // Handle saving the prompt
-    const handleSavePrompt = useCallback((id: string, name: string, prompt: string) => {
+    const handleSavePrompt = useCallback((id: string, name: string, prompt: string, description: string) => {
         // Update the node data with the new name and prompt
         setNodes(prevNodes => prevNodes.map(node =>
             node.id === id
@@ -228,7 +394,8 @@ const AgentConfigForm = () => {
                     data: {
                         ...node.data,
                         name,
-                        prompt
+                        prompt,
+                        description
                     }
                 }
                 : node
@@ -242,7 +409,8 @@ const AgentConfigForm = () => {
                 data: {
                     ...prev.data,
                     name,
-                    prompt
+                    prompt,
+                    description
                 }
             } : null);
         }
@@ -353,6 +521,7 @@ const AgentConfigForm = () => {
                 type: node.data.type,
                 name: node.data.name,
                 prompt: node.data.prompt, // Include prompt in saved workflow
+                tools: node.data.tools, // Include tools in saved workflow
                 position: node.position
             })),
             connections: edges.map(edge => ({
@@ -381,14 +550,17 @@ const AgentConfigForm = () => {
     const getAgentDescription = (node: Node) => {
         const agentType = node.data.type;
         const agentDef = AGENT_TYPES.find(a => a.type === agentType);
-        return agentDef?.description || "";
+        return node.data.description || agentDef?.description || "";
     };
 
-    // Handle saving the agent configuration
+    // Handle saving the agent configuration with tools
     const handleSaveAgentConfig = (configData: any) => {
         if (!selectedNode) return;
 
         console.log("Saving agent configuration:", configData);
+
+        // If tools are provided in the configuration data, update them
+        const tools = configData.selectedTools || selectedNode.data.tools || [];
 
         // Update the node data with the new configuration
         setNodes(prevNodes => prevNodes.map(node =>
@@ -397,11 +569,24 @@ const AgentConfigForm = () => {
                     ...node,
                     data: {
                         ...node.data,
+                        tools, // Update tools from configuration
                         config: configData  // Store configuration in the node data
                     }
                 }
                 : node
         ));
+
+        // Update selectedNode if it's the node we just edited
+        if (selectedNode) {
+            setSelectedNode(prev => prev ? {
+                ...prev,
+                data: {
+                    ...prev.data,
+                    tools,
+                    config: configData
+                }
+            } : null);
+        }
 
         // Show confirmation and optionally close the panel
         alert(`Configuration saved for ${selectedNode.data.name}`);
@@ -411,8 +596,8 @@ const AgentConfigForm = () => {
     if (!mounted) {
         return (
             <div className="designer-content" style={{ position: 'relative' }}>
-                <div className="designer-sidebar">
-                    <div className="sidebar-header">
+                <div className="designer-sidebar bg-white border-r border-gray-200 w-64">
+                    <div className="sidebar-header p-4 border-b border-gray-200">
                         <h2 className="text-lg font-semibold mb-2">Workflow</h2>
                         <div className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50">
                             Loading...
@@ -421,7 +606,7 @@ const AgentConfigForm = () => {
                             ID: Loading...
                         </div>
                     </div>
-                    <div className="sidebar-items">
+                    <div className="p-4">
                         <div className="text-center py-4 text-gray-500">
                             Loading agents...
                         </div>
@@ -435,62 +620,166 @@ const AgentConfigForm = () => {
     return (
         <ReactFlowProvider>
             <div className="designer-content" ref={reactFlowWrapper} style={{ position: 'relative', overflowY: 'auto', height: 'calc(100vh - 60px)' }}>
-                {/* Sidebar for agents */}
+                {/* Sidebar for agents - New Design */}
                 {!isChatMode && (
-                    <div className="designer-sidebar" style={{ overflowY: 'auto', maxHeight: '100%', width: '250px' }}>
-                        <div className="sidebar-header">
-                            <h2 className="text-lg font-semibold mb-2">Workflow</h2>
-                            <input
-                                type="text"
-                                value={workflowName}
-                                onChange={(e) => setWorkflowName(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                placeholder="Workflow Name"
-                            />
-                            <div className="mt-2 text-xs text-gray-500">
-                                ID: {workflowIdRef.current.substring(0, 8)}
+                    <div className="designer-sidebar bg-white border-r border-gray-200 w-64 h-full overflow-y-auto">
+                        {/* Workflow Header */}
+                        <div className="sidebar-header p-4 border-b border-gray-200">
+                            <h2 className="text-lg font-semibold mb-1">{workflowName}</h2>
+                            <p className="text-sm text-gray-500">Analyze and process invoice documents</p>
+                        </div>
+
+                        {/* Navigation Tabs */}
+                        <div className="flex border-b border-gray-200">
+                            <div
+                                className={`flex-1 text-center py-2 font-medium text-sm cursor-pointer ${activeTab === "actions"
+                                    ? "text-orange-500 border-b-2 border-orange-500"
+                                    : "text-gray-500 hover:text-orange-500"
+                                    }`}
+                                onClick={() => setActiveTab("actions")}
+                            >
+                                Actions
+                            </div>
+                            <div
+                                className={`flex-1 text-center py-2 font-medium text-sm cursor-pointer ${activeTab === "workflows"
+                                    ? "text-orange-500 border-b-2 border-orange-500"
+                                    : "text-gray-500 hover:text-orange-500"
+                                    }`}
+                                onClick={() => setActiveTab("workflows")}
+                            >
+                                Workflows
                             </div>
                         </div>
 
-                        <h3 className="font-medium text-sm mb-3 px-3 pt-3">Available Agents</h3>
-                        <div className="sidebar-items">
-                            {AGENT_TYPES.map((agent) => (
-                                <div
-                                    key={agent.id}
-                                    className="sidebar-item"
-                                    draggable
-                                    onDragStart={(e) => handleDragStart(e, agent)}
+                        {/* Collapsible Sections */}
+                        {activeTab === "actions" && (
+                            <div className="p-4">
+                                {/* Components Section */}
+                                <SidebarSection
+                                    title="Components"
+                                    isOpen={sectionsState.components}
+                                    onToggle={() => toggleSection('components')}
                                 >
-                                    <div className="sidebar-item-content">
-                                        <div className={`item-icon ${AGENT_STYLES[agent.type].bgClass} ${AGENT_STYLES[agent.type].textClass}`}>
-                                            {/* Use appropriate icon based on agent type */}
-                                            {agent.type === "router" && <Router size={16} />}
-                                            {agent.type === "web_search" && <Globe size={16} />}
-                                            {agent.type === "api" && <Link2 size={16} />}
-                                            {agent.type === "data" && <Database size={16} />}
-                                            {agent.type === "troubleshooting" && <Wrench size={16} />}
-                                        </div>
-                                        <div className="item-details">
-                                            <h3>{agent.name}</h3>
-                                            <p>ID: {agent.id}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                    {AGENT_TYPES.filter(agent =>
+                                        ['router', 'web_search', 'api', 'data'].includes(agent.type)
+                                    ).map((agent) => (
+                                        <SidebarItem
+                                            key={agent.id}
+                                            icon={
+                                                <div className={`w-8 h-8 rounded-md ${getAgentIconClass(agent.type as AgentType)} flex items-center justify-center`}>
+                                                    {getAgentIcon(agent.type as AgentType)}
+                                                </div>
+                                            }
+                                            label={agent.name}
+                                            subLabel="Initiate workflows"
+                                            draggable={true}
+                                            onDragStart={(e) => handleDragStart(e, agent)}
+                                        />
+                                    ))}
+                                </SidebarSection>
 
-                        <div className="pt-4 border-t border-gray-200 mt-4 px-4 pb-4 space-y-2">
-                            <button
-                                onClick={handleSaveWorkflow}
-                                className="flex items-center justify-center w-full px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50"
-                                disabled={isLoading}
-                            >
-                                <Save size={16} className="mr-2" />
-                                Save Workflow
-                            </button>
+                                {/* Actions Section */}
+                                <SidebarSection
+                                    title="Actions"
+                                    isOpen={sectionsState.actions}
+                                    onToggle={() => toggleSection('actions')}
+                                >
+
+
+                                    {/* Notification Action */}
+                                    <SidebarItem
+                                        icon={
+                                            <div className="w-8 h-8 rounded-md bg-purple-100 flex items-center justify-center">
+                                                <MessageSquare size={20} className="text-purple-600" />
+                                            </div>
+                                        }
+                                        label="Notification"
+                                        subLabel="Initiate workflows"
+                                        draggable={true}
+                                        onDragStart={(e) => handleDragStart(e, {
+                                            id: 'notification-' + Date.now(),
+                                            type: 'notification',
+                                            name: 'Notification'
+                                        })}
+                                    />
+
+                                    {/* Conditional Action */}
+                                    <SidebarItem
+                                        icon={
+                                            <div className="w-8 h-8 rounded-md bg-green-100 flex items-center justify-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
+                                                    <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
+                                                </svg>
+                                            </div>
+                                        }
+                                        label="Conditional"
+                                        subLabel="Initiate workflows"
+                                        draggable={true}
+                                        onDragStart={(e) => handleDragStart(e, {
+                                            id: 'conditional-' + Date.now(),
+                                            type: 'conditional',
+                                            name: 'Conditional'
+                                        })}
+                                    />
+
+                                    {/* Delay Action */}
+                                    <SidebarItem
+                                        icon={
+                                            <div className="w-8 h-8 rounded-md bg-amber-100 flex items-center justify-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600">
+                                                    <circle cx="12" cy="12" r="10" />
+                                                    <polyline points="12 6 12 12 16 14" />
+                                                </svg>
+                                            </div>
+                                        }
+                                        label="Delay"
+                                        subLabel="Initiate workflows"
+                                        draggable={true}
+                                        onDragStart={(e) => handleDragStart(e, {
+                                            id: 'delay-' + Date.now(),
+                                            type: 'delay',
+                                            name: 'Delay'
+                                        })}
+                                    />
+                                </SidebarSection>
+
+                                {/* Tools Section */}
+                                <SidebarSection
+                                    title="Tools"
+                                    isOpen={sectionsState.tools}
+                                    onToggle={() => toggleSection('tools')}
+                                >
+                                    <SidebarItem
+                                        icon={
+                                            <div className="w-8 h-8 rounded-md bg-orange-100 flex items-center justify-center">
+                                                <Zap size={20} className="text-orange-500" />
+                                            </div>
+                                        }
+                                        label="API Connectors"
+                                        subLabel="Initiate workflows"
+                                        draggable={true}
+                                        onDragStart={(e) => handleDragStart(e, {
+                                            id: 'api-connector-' + Date.now(),
+                                            type: 'api_connector',
+                                            name: 'API Connector'
+                                        })}
+                                    />
+                                </SidebarSection>
+                            </div>
+                        )}
+
+                        {/* Workflows Content (Initially Hidden) */}
+                        {activeTab === "workflows" && (
+                            <div className="p-4">
+                                <p className="text-center text-gray-500 py-8">No saved workflows yet.</p>
+                            </div>
+                        )}
+
+                        {/* Deploy Workflow Button */}
+                        <div className="p-4 mt-auto border-t border-gray-200">
                             <button
                                 onClick={handleDeployWorkflow}
-                                className="flex items-center justify-center w-full px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+                                className="w-full px-4 py-2 bg-orange-500 text-white rounded-md text-sm font-medium hover:bg-orange-600 transition-colors"
                                 disabled={isLoading}
                             >
                                 {isLoading ? 'Deploying...' : 'Deploy Workflow'}
@@ -501,18 +790,27 @@ const AgentConfigForm = () => {
 
                 {/* Chat interface sidebar */}
                 {isChatMode && (
-                    <div className="designer-sidebar" style={{ overflowY: 'auto', maxHeight: '100%', width: '250px' }}>
-                        <div className="sidebar-header">
+                    <div className="designer-sidebar bg-white border-r border-gray-200 w-64 h-full overflow-y-auto">
+                        <div className="sidebar-header p-4 border-b border-gray-200">
                             <h2 className="text-lg font-semibold">{workflowName}</h2>
                             <div className="text-xs text-gray-500 mt-1">
                                 ID: {workflowIdRef.current.substring(0, 8)}
                             </div>
                         </div>
 
-                        <div className="sidebar-items">
+                        <div className="flex border-b border-gray-200">
+                            <div className="flex-1 text-center py-2 text-orange-500 border-b-2 border-orange-500 font-medium text-sm">
+                                Actions
+                            </div>
+                            <div className="flex-1 text-center py-2 text-gray-500 font-medium text-sm">
+                                Workflows
+                            </div>
+                        </div>
+
+                        <div className="p-4">
                             <button
                                 onClick={() => setIsChatMode(false)}
-                                className="flex items-center w-full px-3 py-2 bg-gray-100 rounded-md text-sm font-medium hover:bg-gray-200"
+                                className="flex items-center w-full px-3 py-2 bg-gray-100 rounded-md text-sm font-medium hover:bg-gray-200 mb-3"
                                 disabled={isLoading}
                             >
                                 <Settings size={16} className="mr-2" />
@@ -521,11 +819,21 @@ const AgentConfigForm = () => {
 
                             <button
                                 onClick={handleCreateNewWorkflow}
-                                className="flex items-center w-full px-3 py-2 mt-2 bg-blue-50 text-blue-600 rounded-md text-sm font-medium hover:bg-blue-100"
+                                className="flex items-center w-full px-3 py-2 bg-blue-50 text-blue-600 rounded-md text-sm font-medium hover:bg-blue-100"
                                 disabled={isLoading}
                             >
                                 <Plus size={16} className="mr-2" />
                                 New Workflow
+                            </button>
+                        </div>
+
+                        <div className="p-4 mt-auto border-t border-gray-200">
+                            <button
+                                onClick={() => setIsChatMode(false)}
+                                className="w-full px-4 py-2 bg-orange-500 text-white rounded-md text-sm font-medium hover:bg-orange-600 transition-colors"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? 'Loading...' : 'Return to Editor'}
                             </button>
                         </div>
                     </div>
@@ -570,7 +878,7 @@ const AgentConfigForm = () => {
                                 {chatMessages.length === 0 ? (
                                     <div className="h-full flex items-center justify-center">
                                         <div className="text-center">
-                                            <div className="bg-blue-100 text-blue-600 rounded-full p-4 inline-flex mb-4">
+                                            <div className="bg-orange-100 text-orange-500 rounded-full p-4 inline-flex mb-4">
                                                 <MessageSquare size={24} />
                                             </div>
                                             <h3 className="text-lg font-medium">Start a conversation</h3>
@@ -584,7 +892,7 @@ const AgentConfigForm = () => {
                                         {chatMessages.map((message) => (
                                             <div
                                                 key={message.id}
-                                                className={`message ${message.sender} ${message.sender === "user" ? "ml-auto bg-blue-500 text-white p-3 rounded-lg max-w-[75%]" : "bg-gray-100 p-3 rounded-lg max-w-[75%]"}`}
+                                                className={`message ${message.sender === "user" ? "ml-auto bg-orange-500 text-white" : "bg-gray-100"} p-3 rounded-lg max-w-[75%]`}
                                             >
                                                 {message.text}
                                             </div>
@@ -599,12 +907,12 @@ const AgentConfigForm = () => {
                                     onChange={(e) => setChatInput(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSendMessage()}
                                     placeholder="Type a message..."
-                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                                     disabled={isLoading}
                                 />
                                 <button
                                     onClick={handleSendMessage}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 disabled:bg-blue-400"
+                                    className="px-4 py-2 bg-orange-500 text-white rounded-r-md hover:bg-orange-600 disabled:bg-orange-400"
                                     disabled={isLoading}
                                 >
                                     {isLoading ? '...' : <Send size={18} />}
@@ -623,88 +931,14 @@ const AgentConfigForm = () => {
                             type: selectedNode.data.type,
                             name: selectedNode.data.name,
                             shortId: selectedNode.data.shortId,
-                            prompt: selectedNode.data.prompt
+                            prompt: selectedNode.data.prompt,
+                            description: selectedNode.data.description
                         } : null}
                         onClose={handleClosePromptModal}
                         onSave={handleSavePrompt}
                     />
                 )}
             </div>
-
-            {/* Add default CSS for sidebar items */}
-            <style jsx>{`
-                .designer-sidebar {
-                    background-color: white;
-                    border-right: 1px solid #e5e7eb;
-                    padding: 1rem;
-                }
-
-                .sidebar-header {
-                    padding-bottom: 1rem;
-                    border-bottom: 1px solid #e5e7eb;
-                    margin-bottom: 1rem;
-                }
-
-                .sidebar-items {
-                    padding: 0.5rem 0;
-                }
-
-                .sidebar-item {
-                    cursor: pointer;
-                    padding: 0.5rem;
-                    margin-bottom: 0.5rem;
-                    border-radius: 0.375rem;
-                    transition: background-color 0.2s;
-                }
-
-                .sidebar-item:hover {
-                    background-color: #f3f4f6;
-                }
-
-                .sidebar-item-content {
-                    display: flex;
-                    align-items: center;
-                }
-
-                .item-icon {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 2rem;
-                    height: 2rem;
-                    border-radius: 0.375rem;
-                    margin-right: 0.75rem;
-                }
-
-                .item-details h3 {
-                    font-size: 0.875rem;
-                    font-weight: 500;
-                    line-height: 1.25rem;
-                }
-
-                .item-details p {
-                    font-size: 0.75rem;
-                    color: #6b7280;
-                }
-
-                .chat-container {
-                    display: flex;
-                    flex-direction: column;
-                    height: 100%;
-                }
-
-                .message {
-                    word-break: break-word;
-                }
-
-                .message.user {
-                    align-self: flex-end;
-                }
-
-                .message.bot {
-                    align-self: flex-start;
-                }
-            `}</style>
         </ReactFlowProvider>
     );
 };

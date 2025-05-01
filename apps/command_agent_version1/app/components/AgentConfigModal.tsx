@@ -1,8 +1,8 @@
-// AgentConfigModal.tsx
+// AgentConfigModal.tsx - Updated with orange theme
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Save } from "lucide-react";
 import { AgentType } from "./type";
 
 interface ModalProps {
@@ -13,9 +13,10 @@ interface ModalProps {
         name: string;
         shortId?: string;
         prompt?: string;
+        description?: string;
     } | null;
     onClose: () => void;
-    onSave: (id: string, name: string, prompt: string) => void;
+    onSave: (id: string, name: string, prompt: string, description: string) => void;
 }
 
 const AgentConfigModal: React.FC<ModalProps> = ({
@@ -26,6 +27,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
 }) => {
     const [name, setName] = useState("");
     const [prompt, setPrompt] = useState("");
+    const [description, setDescription] = useState("");
     const [activeTab, setActiveTab] = useState("prompt");
     const maxLength = 1000;
 
@@ -34,13 +36,14 @@ const AgentConfigModal: React.FC<ModalProps> = ({
         if (nodeData) {
             setName(nodeData.name || "");
             setPrompt(nodeData.prompt || "");
+            setDescription(nodeData.description || "");
         }
     }, [nodeData]);
 
     if (!isOpen || !nodeData) return null;
 
     const handleSave = () => {
-        onSave(nodeData.id, name, prompt);
+        onSave(nodeData.id, name, prompt, description);
     };
 
     const currentLength = prompt.length;
@@ -50,20 +53,36 @@ const AgentConfigModal: React.FC<ModalProps> = ({
         e.stopPropagation();
     };
 
+    const placeholderText = (type: AgentType) => {
+        switch (type) {
+            case "router":
+                return "Define how this router should distribute queries to connected agents...";
+            case "data":
+                return "Define how this data extractor should process and extract information...";
+            case "web_search":
+                return "Define how this web search agent should query the internet and process results...";
+            case "api":
+                return "Define how this API agent should interact with external services...";
+            case "troubleshooting":
+                return "Define how this troubleshooting agent should identify and resolve issues...";
+            default:
+                return "Define how this agent should process input...";
+        }
+    };
+
     return (
         <div
-            className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+            className="fixed inset-0 bg-black bg-opacity-30 flex items-start justify-center z-50 pt-14"
             onClick={onClose}
         >
             <div
-                className="bg-white rounded-lg shadow-lg transform transition-transform duration-300 ease-in-out"
-                style={{ width: "650px", maxWidth: "95vw" }}
+                className="bg-white rounded-lg shadow-lg w-[950px] max-w-[95vw] max-h-[calc(100vh-120px)] flex flex-col overflow-hidden"
                 onClick={handleModalClick}
             >
                 {/* Header */}
                 <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
                     <h3 className="text-lg font-medium">
-                        Edit Prompt
+                        Edit {nodeData.type.charAt(0).toUpperCase() + nodeData.type.slice(1)} Agent
                     </h3>
                     <button
                         onClick={onClose}
@@ -78,7 +97,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                     <div className="flex">
                         <button
                             className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${activeTab === "prompt"
-                                ? "text-blue-600 border-b-2 border-blue-600"
+                                ? "text-orange-500 border-b-2 border-orange-500"
                                 : "text-gray-500 hover:text-gray-700"
                                 }`}
                             onClick={() => setActiveTab("prompt")}
@@ -87,18 +106,27 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                         </button>
                         <button
                             className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${activeTab === "parameters"
-                                ? "text-blue-600 border-b-2 border-blue-600"
+                                ? "text-orange-500 border-b-2 border-orange-500"
                                 : "text-gray-500 hover:text-gray-700"
                                 }`}
                             onClick={() => setActiveTab("parameters")}
                         >
                             Parameters
                         </button>
+                        <button
+                            className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${activeTab === "testing"
+                                ? "text-orange-500 border-b-2 border-orange-500"
+                                : "text-gray-500 hover:text-gray-700"
+                                }`}
+                            onClick={() => setActiveTab("testing")}
+                        >
+                            Testing
+                        </button>
                     </div>
                 </div>
 
                 {/* Body */}
-                <div className="p-4" style={{ maxHeight: "70vh", overflowY: "auto" }}>
+                <div className="p-4 overflow-y-auto flex-1">
                     {activeTab === "prompt" && (
                         <div className="space-y-4">
                             {/* Prompt Name and Parameters */}
@@ -109,7 +137,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                         type="text"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
                                     />
                                 </div>
                                 <div>
@@ -120,7 +148,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                             <input
                                                 type="number"
                                                 defaultValue={1000}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
                                             />
                                         </div>
                                         <div className="w-1/2">
@@ -131,7 +159,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                                 step={0.1}
                                                 min={0}
                                                 max={1}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
                                             />
                                         </div>
                                     </div>
@@ -143,7 +171,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Type</label>
                                     <select
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
                                         defaultValue={nodeData.type}
                                     >
                                         <option value="router">Router</option>
@@ -156,7 +184,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Dataset</label>
                                     <select
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
                                         defaultValue="arlo"
                                     >
                                         <option value="arlo">Arlo Knowledge Base</option>
@@ -173,14 +201,16 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                     <label className="block text-sm font-medium mb-1">Description</label>
                                     <input
                                         type="text"
-                                        placeholder="Extracts information from invoices"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        placeholder="Describe what this agent does"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Model</label>
                                     <select
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
                                         defaultValue="claude"
                                     >
                                         <option value="claude">Claude 3</option>
@@ -203,42 +233,18 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                 <textarea
                                     value={prompt}
                                     onChange={(e) => setPrompt(e.target.value)}
-                                    placeholder={`Define how this ${nodeData.type} should distribute queries to connected agents...`}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md h-40 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
+                                    placeholder={placeholderText(nodeData.type)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md h-40 focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
                                     maxLength={maxLength}
                                 />
-                            </div>
-
-                            {/* Testing Console */}
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Testing Console</label>
-                                <div className="border border-gray-300 rounded-md p-3 bg-gray-50">
-                                    <div className="border-b border-gray-200 pb-2 mb-2">
-                                        <div className="text-xs text-gray-500 mb-1">Input 1</div>
-                                        <input
-                                            type="text"
-                                            placeholder="Add test input..."
-                                            className="w-full px-2 py-1 bg-transparent border-0 focus:outline-none focus:ring-0 text-sm"
-                                        />
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <button className="text-blue-500 hover:text-blue-700 transition-colors text-xs flex items-center">
-                                            <Plus className="w-3.5 h-3.5 mr-1" />
-                                            Add Input
-                                        </button>
-                                        <button className="bg-blue-500 hover:bg-blue-600 transition-colors text-white px-3 py-1 rounded text-xs">
-                                            Run Test
-                                        </button>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     )}
 
                     {activeTab === "parameters" && (
                         <div className="space-y-4">
-                            <div className="bg-yellow-50 p-3 rounded-md text-yellow-800 text-sm mb-4">
-                                These are the parameters for the prompt. They control how the model processes the input.
+                            <div className="bg-orange-50 p-3 rounded-md text-orange-700 text-sm mb-4">
+                                These parameters control how the LLM processes inputs and generates responses.
                             </div>
 
                             <div>
@@ -256,6 +262,9 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                     <span>0.7</span>
                                     <span>1 - Creative</span>
                                 </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                    Controls randomness in the output. Lower values are more deterministic.
+                                </div>
                             </div>
 
                             <div>
@@ -263,10 +272,12 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                 <input
                                     type="number"
                                     defaultValue={1000}
+                                    min={1}
+                                    max={4096}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md transition-shadow"
                                 />
                                 <div className="text-xs text-gray-500 mt-1">
-                                    Maximum number of tokens in the response
+                                    Maximum number of tokens in the response. Higher values allow for longer outputs.
                                 </div>
                             </div>
 
@@ -281,7 +292,79 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                     className="w-full"
                                 />
                                 <div className="text-xs text-gray-500 mt-1">
-                                    Controls diversity via nucleus sampling
+                                    Controls diversity via nucleus sampling. Lower values make output more focused.
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Frequency Penalty</label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="2"
+                                    step="0.1"
+                                    defaultValue="0"
+                                    className="w-full"
+                                />
+                                <div className="text-xs text-gray-500 mt-1">
+                                    Reduces repetition by penalizing tokens that have already appeared. Higher values reduce repetition.
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Presence Penalty</label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="2"
+                                    step="0.1"
+                                    defaultValue="0"
+                                    className="w-full"
+                                />
+                                <div className="text-xs text-gray-500 mt-1">
+                                    Increases diversity by penalizing tokens that have appeared at all. Higher values encourage more diverse topics.
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === "testing" && (
+                        <div className="space-y-4">
+                            <div className="bg-blue-50 p-3 rounded-md text-blue-800 text-sm mb-4">
+                                Test your agent with sample inputs to see how it performs. Results will be shown below.
+                            </div>
+
+                            {/* Testing Console */}
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Testing Console</label>
+                                <div className="border border-gray-300 rounded-md p-3 bg-gray-50">
+                                    <div className="border-b border-gray-200 pb-2 mb-2">
+                                        <div className="text-xs text-gray-500 mb-1">Input 1</div>
+                                        <input
+                                            type="text"
+                                            placeholder="Add test input..."
+                                            className="w-full px-2 py-1 bg-transparent border-0 focus:outline-none focus:ring-0 text-sm"
+                                        />
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <button className="text-orange-500 hover:text-orange-700 transition-colors text-xs flex items-center">
+                                            <Plus className="w-3.5 h-3.5 mr-1" />
+                                            Add Input
+                                        </button>
+                                        <button className="bg-orange-500 hover:bg-orange-600 transition-colors text-white px-3 py-1 rounded text-xs">
+                                            Run Test
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Test Results */}
+                                <div className="mt-4">
+                                    <label className="block text-sm font-medium mb-1">Results</label>
+                                    <div className="border border-gray-300 rounded-md p-3 bg-white h-40 overflow-y-auto">
+                                        <div className="text-gray-400 text-sm italic">
+                                            Test results will appear here...
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -289,7 +372,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                 </div>
 
                 {/* Footer */}
-                <div className="px-4 py-3 border-t border-gray-200 flex justify-end space-x-2">
+                <div className="px-4 py-3 border-t border-gray-200 flex justify-end space-x-2 mt-auto">
                     <button
                         onClick={onClose}
                         className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors"
@@ -298,9 +381,10 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                     </button>
                     <button
                         onClick={handleSave}
-                        className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md text-sm transition-colors"
+                        className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md text-sm transition-colors flex items-center"
                     >
-                        Save
+                        <Save size={16} className="mr-2" />
+                        Save Changes
                     </button>
                 </div>
             </div>
