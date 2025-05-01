@@ -156,12 +156,13 @@ def query_retriever(query: str) -> str:
     url = "http://localhost:8001/query-chunks"
     params = {
         "query": query,
-        "top_k": 5
+        "top_k": 3
     }
 
     # Make the POST request
     response = requests.post(url, params=params)
     res = ""
+    sources = []
     for segment in response.json()["selected_segments"]:
         for i,chunk in enumerate(segment["chunks"]):
             # print(chunk['contextual_header'])
@@ -169,11 +170,40 @@ def query_retriever(query: str) -> str:
             # print("*"*50)
             res += f"Contextual Header: {chunk['contextual_header']}\n"
             res += f"Chunk {i}:"+chunk["chunk_text"]+"\n"
-            res += f"Filename: {chunk['filename']}, Page Range: {chunk['page_info']}\n"
+            res +=f"Filename: {chunk['filename']}, Page Range: {chunk['page_info']}\n"
             res += f"Matched Image Path: {chunk['matched_image_path']}\n"
             res += "\n\n"
-    print(len(res))
     return res
+
+@function_schema
+def query_retriever2(query: str) -> list:
+    """"
+    Use this tool to query the knowledge base. It will return the most relevant chunks of text from the database.
+    Questions can include part numbers, assembly names, descriptions and general queries.
+    """
+    url = "http://localhost:8001/query-chunks"
+    params = {
+        "query": query,
+        "top_k": 10
+    }
+
+    # Make the POST request
+    response = requests.post(url, params=params)
+    res = ""
+    sources = []
+    segments = response.json()["selected_segments"][:3]
+    print(len(segments))
+    for segment in segments:
+        for i,chunk in enumerate(segment["chunks"]):
+            # print(chunk['contextual_header'])
+            # print(chunk["chunk_text"])
+            # print("*"*50)
+            # res += f"Contextual Header: {chunk['contextual_header']}\n"
+            res += f"Chunk {i}:"+chunk["chunk_text"]+"\n"+"-"*50+"\n"
+            sources.append(f"Filename: {chunk['filename']}, Page Range: {chunk['page_info']}\n")
+            # res += f"Matched Image Path: {chunk['matched_image_path']}\n"
+            res += "\n\n"
+    return [res, sources]
 
 
 tool_store = {
@@ -188,6 +218,7 @@ tool_store = {
     "get_part_description": get_part_description,
     "get_part_number": get_part_number,
     "query_retriever": query_retriever,
+    "query_retriever2": query_retriever2,
 }
 
 tool_schemas = {
@@ -202,5 +233,6 @@ tool_schemas = {
     "get_part_description": get_part_description.openai_schema,
     "get_part_number": get_part_number.openai_schema,
     "query_retriever": query_retriever.openai_schema,
+    "query_retriever2": query_retriever2.openai_schema,
 }
 

@@ -121,6 +121,7 @@ def deploy(request: dict):
 
 @app.post("/run")
 def run(request: dict):
+    start_time = datetime.now()
     refs = []
     media = []
     query = request.get("query")
@@ -131,7 +132,7 @@ def run(request: dict):
         chat_history = []
     chat_history.pop(-1)
     answer = toshiba_agent.execute2(query=query, chat_history=chat_history)
-    print(answer)
+    # print(answer)
 
     try:
         content = json.loads(answer)["content"]
@@ -141,6 +142,7 @@ def run(request: dict):
                 refs.append("Page: "+str(i["Page number"])+" File: "+str(i["Filename"]))
     except:
         res = answer
+    print("Time taken by the backend: ",datetime.now()-start_time)
     return {"text": f"{res}", "refs": refs, "media": media}
 #  Table structure: table: header, columns, row values, each column must have same number of rows.
 # table: json format: {"header":"XYZ", column_labels: ["A", "B", "C"], "rows": [[1, 2, 3], [4, 5, 6], [7, 8, 9]]}

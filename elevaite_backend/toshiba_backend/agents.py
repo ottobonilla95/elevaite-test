@@ -81,7 +81,7 @@ class ToshibaAgent(Agent):
         Here are the routing options:
         {routing_options}
         """
-        messages=chat_history+[{"role": "system", "content": system_prompt}]+[{"role": "user", "content": query}]
+        messages=chat_history+[{"role": "user", "content": system_prompt}]+[{"role": "user", "content": query}]
 
         while tries < self.max_retries:
             print(tries)
@@ -133,22 +133,36 @@ class ToshibaAgent(Agent):
     def execute2(self, query: Any, chat_history: Any) -> Any:
         """
         Toshiba agent to answer any question related to Toshiba parts, assemblies, general information, etc.
+        Optimized for performance.
         """
         tries = 0
         start_time = datetime.now()
+
+        # Prepare system prompt with routing options
         routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = TOSHIBA_AGENT_PROMPT2 + f"""\n\n
         Here are the routing options:
         {routing_options}
         """
-        messages=chat_history+[{"role": "system", "content": system_prompt}]+[{"role": "user", "content": query}]
-        context = tool_store["query_retriever"](query)
-        messages+=[{"role": "user", "content": "Here is some context: "+context}]
 
+        # Initialize messages with chat history and system prompt
+        messages = chat_history + [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": query}
+        ]
+
+        # Make a single call to query_retriever2 and store both context and sources
+        retrieval_result = tool_store["query_retriever2"](query)
+        context = retrieval_result[0]
+        sources = retrieval_result[1]
+
+        # Add context to messages
+        messages.append({"role": "user", "content": "Here is some context that may help you answer the question: " + context})
+
+        # Main loop for retries
         while tries < self.max_retries:
-            print(tries)
-            # print("\n\nMessage: ",messages)
             try:
+                # Call the LLM
                 response = client.chat.completions.create(
                     model="gpt-4o",
                     messages=messages,
@@ -157,40 +171,37 @@ class ToshibaAgent(Agent):
                     temperature=0,
                     response_format={"type": "json_object"},
                 )
-                begin_chat_time = datetime.now()
-                # print("\n\nResponse: ",response)
-                if response.choices[0].finish_reason=="tool_calls":
-                    tool_call_time = datetime.now()
-                    print("Time taken by the agent to call the tool: ",tool_call_time-begin_chat_time)
-                    tool_calls = response.choices[0].message.tool_calls
-                    messages+=[{"role": "assistant", "tool_calls": tool_calls},]
-                    # print(tool_calls)
-                    for tool in tool_calls:
-                        print(tool.function.name)
-                        tool_id = tool.id
-                        print(tool.id)
-                        arguments = json.loads(tool.function.arguments)
-                        # arguments["query"] = 'for 6800, what is part number for a module'
-                        print(arguments)
-                        function_name = tool.function.name
-                        result = tool_store[function_name](**arguments)
-                        retrieve_time = datetime.now()
-                        print("Time taken by the agent to retrieve the data: ",retrieve_time - begin_chat_time)
-                        # print(result)
-                        messages+= [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
 
+                # Handle tool calls
+                if response.choices[0].finish_reason == "tool_calls":
+                    tool_calls = response.choices[0].message.tool_calls
+                    messages.append({"role": "assistant", "tool_calls": tool_calls})
+
+                    # Process all tool calls
+                    for tool in tool_calls:
+                        tool_id = tool.id
+                        arguments = json.loads(tool.function.arguments)
+                        function_name = tool.function.name
+
+                        # Execute the tool and get results
+                        result = tool_store["query_retriever2"](**arguments)[0]
+
+                        # Add tool response to messages
+                        messages.append({"role": "tool", "tool_call_id": tool_id, "content": str(result)})
                 else:
-                    print("Time taken by the agent: ",datetime.now()-start_time)
-                    # print(response.choices[0].message.content)
+                    # Return final response
                     return response.choices[0].message.content
-                # print(messages)
+
             except Exception as e:
-                print("Time taken by the agent: ", datetime.now() - start_time)
                 print(f"Error: {e}")
+
             tries += 1
-        print("Time taken by the agent: ", datetime.now() - start_time)
-        return json.dumps({"routing": "failed",
-                           "content": "Couldn't find the answer to your query. Please try again with a different query."})
+
+        # Return failure message if max retries reached
+        return json.dumps({
+            "routing": "failed",
+            "content": "Couldn't find the answer to your query. Please try again with a different query."
+        })
 
 @agent_schema
 class DataAgent(Agent):
