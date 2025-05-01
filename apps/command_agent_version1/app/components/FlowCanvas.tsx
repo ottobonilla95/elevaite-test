@@ -1,21 +1,31 @@
-// FlowCanvas.tsx - Position fix
+// FlowCanvas.tsx - Enhanced for better connection handling
 "use client";
 
-import React, { useCallback, useRef, useEffect, useState, useMemo } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import ReactFlow, {
     Controls,
     Background,
-    useNodesState,
-    useEdgesState,
+    MiniMap,
     addEdge,
     MarkerType,
     Node,
     Edge,
     Connection,
-    ReactFlowInstance,
-    applyNodeChanges
+    OnConnectStartParams,
+    NodeChange,
+    NodePositionChange,
+    NodeSelectionChange,
+    EdgeChange,
+    ConnectionLineType,
+    BackgroundVariant,
+    ReactFlowInstance
 } from "react-flow-renderer";
 import AgentNode from "./AgentNode";
+
+// Node types
+const nodeTypes = {
+    agent: AgentNode,
+};
 
 interface FlowCanvasProps {
     nodes: Node[];
@@ -24,245 +34,291 @@ interface FlowCanvasProps {
     setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
     onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
     onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
+    onNodeSelect: (node: Node | null) => void;
+    onInit?: (instance: ReactFlowInstance) => void;
 }
 
-// Define nodeTypes outside the component to prevent error
-const createNodeTypes = (updateNodeData) => ({
-    agent: (props) => <AgentNode {...props} updateNodeData={updateNodeData} />
-});
-
 const FlowCanvas: React.FC<FlowCanvasProps> = ({
-    nodes: externalNodes,
-    edges: externalEdges,
-    setNodes: setExternalNodes,
-    setEdges: setExternalEdges,
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
     onDrop,
-    onDragOver
+    onDragOver,
+    onNodeSelect,
+    onInit
 }) => {
-    // Track if component is mounted
-    const [mounted, setMounted] = useState(false);
+    // State for connection line tracking
+    const [connectionNodeId, setConnectionNodeId] = useState<string | null>(null);
+    const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
 
-    // Track if we're currently dragging to prevent sync issues
-    const isDraggingRef = useRef(false);
+    // Pass reactFlow instance to parent when ready
+    useEffect(() => {
+        if (reactFlowInstance && onInit) {
+            onInit(reactFlowInstance);
+        }
+    }, [reactFlowInstance, onInit]);
 
-    // Track if external nodes have changed
-    const externalNodesRef = useRef(externalNodes);
-
-    // ReactFlow instance
-    const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
-
-    // Internal ReactFlow state
-    const [nodes, setNodes, onNodesChange] = useNodesState<Node[]>([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
-
-    // Function to update node data - will be passed to AgentNode component
-    const updateNodeData = useCallback((nodeId: string, newData: { name?: string, prompt?: string }) => {
-        console.log("Updating node data:", nodeId, newData);
-
-        // Update the node in our internal state
-        setNodes(prevNodes =>
-            prevNodes.map(node =>
-                node.id === nodeId
-                    ? {
-                        ...node,
-                        data: {
-                            ...node.data,
-                            ...(newData.name && { name: newData.name }),
-                            ...(newData.prompt !== undefined && { prompt: newData.prompt })
-                        }
-                    }
-                    : node
-            )
-        );
-
-        // Also update external nodes state
-        setExternalNodes(prevNodes =>
-            prevNodes.map(node =>
-                node.id === nodeId
-                    ? {
-                        ...node,
-                        data: {
-                            ...node.data,
-                            ...(newData.name && { name: newData.name }),
-                            ...(newData.prompt !== undefined && { prompt: newData.prompt })
-                        }
-                    }
-                    : node
-            )
-        );
-    }, [setExternalNodes]);
-
-    // Memoize node types to prevent unnecessary re-renders
-    const nodeTypes = useMemo(() => createNodeTypes(updateNodeData), [updateNodeData]);
-
-    // Default edge options
-    const defaultEdgeOptions = useMemo(() => ({
-        type: 'default',
+    // Default edge options for better looking connections
+    const defaultEdgeOptions = {
         animated: true,
         style: { stroke: '#3b82f6', strokeWidth: 2 },
+        type: 'smoothstep', // Use smoothstep for cleaner connections
         markerEnd: {
             type: MarkerType.ArrowClosed,
             color: '#3b82f6',
+            width: 20,
+            height: 20,
         },
-    }), []);
+    };
 
-    // Initial setup after mount
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+    // Helper function for snap-to-grid
+    const snapToGrid = (position: { x: number; y: number }, gridSize: number = 15) => {
+        return {
+            x: Math.round(position.x / gridSize) * gridSize,
+            y: Math.round(position.y / gridSize) * gridSize,
+        };
+    };
 
-    // Update ref when external nodes change
-    useEffect(() => {
-        externalNodesRef.current = externalNodes;
-    }, [externalNodes]);
+    // Handle node changes with improved position tracking
+    const onNodesChange = useCallback(
+        (changes: NodeChange[]) => {
+            // Process position changes with improved handling
+            const positionChanges = changes.filter(change =>
+                change.type === 'position' && 'position' in change
+            ) as NodePositionChange[];
 
-    // Sync external nodes to internal state, but only when not dragging
-    useEffect(() => {
-        if (mounted && externalNodes && !isDraggingRef.current) {
-            console.log("Syncing external nodes to internal state:", externalNodes);
-            setNodes(externalNodes);
-        }
-    }, [externalNodes, mounted, setNodes]);
+            const selectChanges = changes.filter(change =>
+                change.type === 'select' && 'selected' in change
+            ) as NodeSelectionChange[];
 
-    // Sync external edges to internal state
-    useEffect(() => {
-        if (mounted && externalEdges) {
-            setEdges(externalEdges);
-        }
-    }, [externalEdges, mounted, setEdges]);
+            // Apply position changes with grid snapping
+            if (positionChanges.length > 0) {
+                setNodes(nds =>
+                    nds.map(node => {
+                        const posChange = positionChanges.find(
+                            c => c.id === node.id
+                        );
 
-    // Handle node changes (position, etc)
-    const handleNodesChange = useCallback((changes) => {
-        // Check if we're starting to drag
-        const dragStart = changes.some(change =>
-            change.type === 'position' && change.dragging === true
-        );
+                        if (posChange && posChange.position) {
+                            return {
+                                ...node,
+                                position: snapToGrid(posChange.position),
+                                style: {
+                                    ...node.style,
+                                    // Add subtle shadow for dragged nodes
+                                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
+                                }
+                            };
+                        }
+                        return node;
+                    })
+                );
+            }
 
-        // Check if we're ending a drag
-        const dragEnd = changes.some(change =>
-            change.type === 'position' && change.dragging === false && isDraggingRef.current
-        );
+            // Apply selection changes
+            if (selectChanges.length > 0) {
+                setNodes(nds =>
+                    nds.map(node => {
+                        const selectChange = selectChanges.find(
+                            c => c.id === node.id
+                        );
 
-        // Update dragging state
-        if (dragStart) {
-            isDraggingRef.current = true;
-        }
+                        if (selectChange) {
+                            return {
+                                ...node,
+                                selected: selectChange.selected,
+                                // Highlight selected nodes
+                                style: {
+                                    ...node.style,
+                                    boxShadow: selectChange.selected ? '0 0 10px #3b82f6' : undefined
+                                }
+                            };
+                        }
+                        return node;
+                    })
+                );
+            }
 
-        // Apply changes to the internal state
-        onNodesChange(changes);
+            // Handle other changes
+            const otherChanges = changes.filter(change =>
+                change.type !== 'position' && change.type !== 'select'
+            ) as EdgeChange[];
 
-        // If drag ended, update external state
-        if (dragEnd) {
-            requestAnimationFrame(() => {
-                isDraggingRef.current = false;
-                setExternalNodes(nodes);
-            });
-        }
-
-        // For non-position changes, also update external state
-        const hasNonPositionChanges = changes.some(change => change.type !== 'position');
-        if (hasNonPositionChanges && !isDraggingRef.current) {
-            setExternalNodes(nodes);
-        }
-    }, [nodes, onNodesChange, setExternalNodes]);
+            if (otherChanges.length > 0) {
+                // Let ReactFlow handle other types of changes
+                setNodes(nds => {
+                    const newNodes = [...nds];
+                    for (const change of otherChanges) {
+                        if (change.type === 'remove' && 'id' in change) {
+                            const index = newNodes.findIndex(n => n.id === change.id);
+                            if (index !== -1) {
+                                newNodes.splice(index, 1);
+                            }
+                        }
+                    }
+                    return newNodes;
+                });
+            }
+        },
+        [setNodes]
+    );
 
     // Handle edge changes
-    const handleEdgesChange = useCallback((changes) => {
-        // Apply changes to internal state
-        onEdgesChange(changes);
-
-        // Sync back to parent only when necessary
-        const hasEdgeRemoval = changes.some(change => change.type === 'remove');
-        if (hasEdgeRemoval) {
-            // Use requestAnimationFrame to batch updates
-            requestAnimationFrame(() => {
-                setExternalEdges(edges);
+    const onEdgesChange = useCallback(
+        (changes: EdgeChange[]) => {
+            setEdges((eds) => {
+                // Filter out removed edges
+                return eds.filter((edge) => {
+                    for (const change of changes) {
+                        if (change.type === 'remove' && 'id' in change && change.id === edge.id) {
+                            return false;
+                        }
+                    }
+                    return true;
+                });
             });
-        }
-    }, [edges, onEdgesChange, setExternalEdges]);
+        },
+        [setEdges]
+    );
 
-    // Handle connections between nodes
-    const handleConnect = useCallback(
-        (connection: Connection) => {
-            if (!connection.source || !connection.target) {
+    // Handle connecting nodes with better edge styling
+    const onConnect = useCallback(
+        (params: Connection) => {
+            // Check if connection already exists to prevent duplicates
+            const connectionExists = edges.some(
+                edge => edge.source === params.source && edge.target === params.target
+            );
+
+            if (connectionExists) {
+                console.log("Connection already exists");
                 return;
             }
 
+            // Create new connection with standard styling
             const newEdge = {
-                id: `e-${connection.source}-${connection.target}-${Date.now()}`,
-                source: connection.source,
-                target: connection.target,
-                ...defaultEdgeOptions
+                ...params,
+                id: `e-${params.source}-${params.target}-${Date.now()}`,
+                type: 'smoothstep', // Use smoothstep for cleaner connections
+                animated: true,
+                style: { stroke: '#3b82f6', strokeWidth: 2 },
+                markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    color: '#3b82f6',
+                    width: 20,
+                    height: 20,
+                }
             };
 
-            // Update internal state
-            const updatedEdges = addEdge(newEdge, edges);
-            setEdges(updatedEdges);
+            // Add the new edge
+            setEdges(eds => addEdge(newEdge, eds));
 
-            // Sync to parent
-            setExternalEdges(updatedEdges);
+            // After connection, select the target node
+            setTimeout(() => {
+                const targetNode = nodes.find(node => node.id === params.target);
+                if (targetNode && onNodeSelect) {
+                    onNodeSelect(targetNode);
+                }
+            }, 50);
         },
-        [defaultEdgeOptions, edges, setEdges, setExternalEdges]
+        [edges, nodes, setEdges, onNodeSelect]
     );
 
-    // When flow instance is ready
-    const onInit = useCallback((instance: ReactFlowInstance) => {
-        console.log("ReactFlow initialized");
-        reactFlowInstance.current = instance;
-
-        // Fit the view to make sure all nodes are visible
-        setTimeout(() => {
-            if (instance && instance.fitView) {
-                instance.fitView({ padding: 0.2 });
+    // Handle clicking on a node
+    const onNodeClick = useCallback(
+        (event: React.MouseEvent, node: Node) => {
+            event.stopPropagation(); // Prevent event bubbling
+            if (onNodeSelect) {
+                onNodeSelect(node);
             }
-        }, 200);
+        },
+        [onNodeSelect]
+    );
+
+    // Handle clicking on the background (don't deselect)
+    const onPaneClick = useCallback(() => {
+        // We do nothing here to prevent deselection
+        // The actual deselection will be handled by the close button
     }, []);
 
-    // Handle node drag stop specifically
-    const onNodeDragStop = useCallback((event, node) => {
-        // Update external nodes with the new position
-        setExternalNodes(current =>
-            current.map(n => n.id === node.id ? { ...n, position: node.position } : n)
-        );
-    }, [setExternalNodes]);
+    // Handle connection start
+    const onConnectStart = useCallback(
+        (event: React.MouseEvent, params: OnConnectStartParams) => {
+            setConnectionNodeId(params.nodeId || null);
+        },
+        []
+    );
 
-    // If not yet mounted, return a placeholder
-    if (!mounted) {
-        return <div className="w-full h-full bg-gray-50" />;
-    }
+    // Handle connection end
+    const onConnectEnd = useCallback(
+        (event: MouseEvent) => {
+            setConnectionNodeId(null);
+        },
+        []
+    );
+
+    // Handle flow initialization
+    const onLoad = (instance: ReactFlowInstance) => {
+        setReactFlowInstance(instance);
+    };
 
     return (
-        <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+        <div className="reactflow-wrapper" style={{ width: '100%', height: '100%' }}>
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
-                onNodesChange={handleNodesChange}
-                onEdgesChange={handleEdgesChange}
-                onConnect={handleConnect}
-                onInit={onInit}
-                onNodeDragStop={onNodeDragStop}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                onConnectStart={onConnectStart}
+                onConnectEnd={onConnectEnd}
+                onNodeClick={onNodeClick}
+                onPaneClick={onPaneClick}
                 nodeTypes={nodeTypes}
-                defaultEdgeOptions={defaultEdgeOptions}
-                connectionLineStyle={{ stroke: '#3b82f6', strokeWidth: 2, strokeDasharray: '5,5' }}
+                //onLoad={onLoad}
+                onInit={onLoad}
                 fitView
-                fitViewOptions={{ padding: 0.2 }}
-                minZoom={0.1}
-                maxZoom={1.5}
-                defaultZoom={0.8}
+                attributionPosition="bottom-right"
                 onDrop={onDrop}
                 onDragOver={onDragOver}
-                proOptions={{ hideAttribution: true }}
-                className="grid-pattern"
-                connectionMode="loose"
+                defaultEdgeOptions={defaultEdgeOptions}
+                connectionLineType={ConnectionLineType.SmoothStep}
+                connectionLineStyle={{ stroke: '#3b82f6', strokeWidth: 2 }}
+                snapToGrid={true}
+                snapGrid={[15, 15]}
                 nodesDraggable={true}
+                nodesConnectable={true}
                 elementsSelectable={true}
-                snapToGrid={false}
+                selectNodesOnDrag={false}
             >
-                <Background color="#888" gap={20} />
-                <Controls showInteractive={false} />
+                <Controls />
+                <Background
+                    color="#aaa"
+                    gap={16}
+                    variant={BackgroundVariant.Dots}
+                    size={1}
+                />
+                <MiniMap
+                    nodeStrokeColor={(node) => {
+                        if (node.selected) return '#3b82f6';
+                        return '#555';
+                    }}
+                    nodeColor={(node) => {
+                        if (node.selected) return '#3b82f6';
+                        return '#fff';
+                    }}
+                    nodeBorderRadius={3}
+                />
             </ReactFlow>
         </div>
     );
 };
 
 export default FlowCanvas;
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-// type.ts - Contains all type definitions needed for the agent workflow
+// types.ts - Contains all type definitions needed for the agent workflow
 
 export type AgentType = "router" | "web_search" | "api" | "data" | "troubleshooting";
 
@@ -7,6 +7,7 @@ export interface NodeData {
     shortId?: string;
     type: AgentType;
     name: string;
+    prompt?: string;
     onDelete: (id: string) => void;
     onConfigure: (id: string) => void;
 }

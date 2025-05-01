@@ -98,3 +98,84 @@ html, body, #__next {
 .react-flow__handle {
   z-index: 10;
 }
+/* Add these styles to your CSS file */
+
+.designer-content {
+  display: flex;
+  position: relative;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+}
+
+.designer-sidebar {
+  width: 250px;
+  border-right: 1px solid #e5e7eb;
+  background-color: white;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.sidebar-items {
+  padding: 0.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.sidebar-item {
+  margin-bottom: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  background-color: white;
+  cursor: move;
+  transition: all 0.2s;
+}
+
+.sidebar-item:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-item-content {
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+}
+
+.item-icon {
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  margin-right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-details h3 {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.item-details p {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.config-sidebar {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 320px;
+  height: 100%;
+  background: white;
+  border-left: 1px solid #e5e7eb;
+  overflow-y: auto;
+  z-index: 10;
+  padding: 1rem;
+}
