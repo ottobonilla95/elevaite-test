@@ -28,6 +28,8 @@
   "dependencies": {
     "fix": "^0.0.6",
     "next": "^14.2.10",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "sass": "^1.69.7"
   }
 }

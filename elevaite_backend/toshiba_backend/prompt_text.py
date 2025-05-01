@@ -61,7 +61,8 @@ Example: "part description 3AC01548000"
 query = transport conveyor part list
 <answer> = The part list for the transport conveyor is:
 <MARKDOWN TABLE>
-List all the parts in that assembly
+List all the parts in that assembly.
+Don't include <MARKDOWN TABLE> tags
 ---
 
 Instructions:
