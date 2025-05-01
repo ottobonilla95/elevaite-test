@@ -178,31 +178,30 @@ def query_retriever(query: str) -> str:
 @function_schema
 def query_retriever2(query: str) -> list:
     """"
-    Use this tool to query the knowledge base. It will return the most relevant chunks of text from the database.
-    Questions can include part numbers, assembly names, descriptions and general queries.
+    Use this tool to query the Toshiba knowledge base.
+    Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
     """
     url = "http://localhost:8001/query-chunks"
     params = {
         "query": query,
-        "top_k": 10
+        "top_k": 40
     }
 
     # Make the POST request
     response = requests.post(url, params=params)
-    res = ""
+    res = "CONTEXT FROM RETRIEVER: \n\n"
     sources = []
-    segments = response.json()["selected_segments"][:3]
-    print(len(segments))
-    for segment in segments:
-        for i,chunk in enumerate(segment["chunks"]):
-            # print(chunk['contextual_header'])
-            # print(chunk["chunk_text"])
-            # print("*"*50)
+    segments = response.json()["selected_segments"][:1]
+    for i,segment in enumerate(segments):
+        res += "*"*5+f"\n\nSegment {i}"+"\n"
+        print(segment["score"])
+        for j,chunk in enumerate(segment["chunks"]):
             # res += f"Contextual Header: {chunk['contextual_header']}\n"
-            res += f"Chunk {i}:"+chunk["chunk_text"]+"\n"+"-"*50+"\n"
-            sources.append(f"Filename: {chunk['filename']}, Page Range: {chunk['page_info']}\n")
-            # res += f"Matched Image Path: {chunk['matched_image_path']}\n"
+            res += f"Article {i}:"+chunk["chunk_text"]+"\n"+"-"*5+"\n"
+            res += f"File: {chunk['filename']}, Pages: {chunk['page_info']}\n"
+            sources.append(f"File: {chunk['filename']}, Pages: {chunk['page_info']}\n")
             res += "\n\n"
+    print(res)
     return [res, sources]
 
 

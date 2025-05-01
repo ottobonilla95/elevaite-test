@@ -2,23 +2,38 @@
 $profile-backdrop-user: #165390;
 $profile-backdrop-bot: #585679;
 
-
 .custom-table {
     width: 100%;
     border-collapse: collapse;
-  }
+    margin: 16px 0;
 
-  .custom-table th,
-  .custom-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-  }
+    th {
+      background-color: #2a2a2a;
+      color: #e0e0e0;
+      font-weight: bold;
+      padding: 8px 12px;
+      text-align: left;
+      border: 1px solid #444;
+    }
 
-  .custom-table th {
-    background-color: #f4f4f4;
-  }
+    td {
+      padding: 8px 12px;
+      border: 1px solid #444;
+      color: #e0e0e0;
+    }
 
+    tr:nth-child(odd) {
+      background-color: #222222;
+    }
+
+    tr:nth-child(even) {
+      background-color: #2a2a2a;
+    }
+
+    tr:hover {
+      background-color: #333333;
+    }
+  }
 
 
 

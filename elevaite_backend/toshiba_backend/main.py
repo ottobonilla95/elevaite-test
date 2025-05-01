@@ -132,7 +132,7 @@ def run(request: dict):
         chat_history = []
     chat_history.pop(-1)
     answer = toshiba_agent.execute2(query=query, chat_history=chat_history)
-    # print(answer)
+    print(answer)
 
     try:
         content = json.loads(answer)["content"]

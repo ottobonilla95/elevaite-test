@@ -139,32 +139,33 @@ class ToshibaAgent(Agent):
         start_time = datetime.now()
 
         # Prepare system prompt with routing options
-        routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
-        system_prompt = TOSHIBA_AGENT_PROMPT2 + f"""\n\n
-        Here are the routing options:
-        {routing_options}
-        """
+        # routing_options = '\n'.join([f"{k}: {v}" for k, v in self.routing_options.items()])
+        system_prompt = TOSHIBA_AGENT_PROMPT2
+        #                  + f"""\n\n
+        # Here are the routing options:
+        # {routing_options}
+        # """)
 
-        # Initialize messages with chat history and system prompt
-        messages = chat_history + [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": query}
-        ]
+
 
         # Make a single call to query_retriever2 and store both context and sources
         retrieval_result = tool_store["query_retriever2"](query)
         context = retrieval_result[0]
         sources = retrieval_result[1]
 
-        # Add context to messages
-        messages.append({"role": "user", "content": "Here is some context that may help you answer the question: " + context})
+        # Initialize messages with chat history and system prompt
+        messages = chat_history + [
+            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": context},
+            {"role": "user", "content": query}
+        ]
 
         # Main loop for retries
         while tries < self.max_retries:
             try:
                 # Call the LLM
                 response = client.chat.completions.create(
-                    model="gpt-4o",
+                    model="gpt-4.1-nano",
                     messages=messages,
                     tools=self.functions,
                     tool_choice="auto",
@@ -174,7 +175,7 @@ class ToshibaAgent(Agent):
 
                 # Handle tool calls
                 if response.choices[0].finish_reason == "tool_calls":
-                    tool_calls = response.choices[0].message.tool_calls
+                    tool_calls = response.choices[0].message.tool_calls[:1]
                     messages.append({"role": "assistant", "tool_calls": tool_calls})
 
                     # Process all tool calls
