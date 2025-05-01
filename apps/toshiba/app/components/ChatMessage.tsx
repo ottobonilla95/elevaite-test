@@ -2,7 +2,7 @@
 import {
   ChatbotIcons,
   ClickOutsideDetector,
-  CommonButton,
+  CommonButton
 } from "@repo/ui/components";
 import { getInitials } from "@repo/ui/helpers";
 import dayjs from "dayjs";
@@ -12,7 +12,9 @@ import { ChatContext } from "../ui/contexts/ChatContext";
 import "./ChatMessage.scss";
 import { ChatMessageFeedback } from "./ChatMessageFeedback";
 import { ChatMessageFiles } from "./ChatMessageFiles";
-import { marked } from "marked";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
 
 
 
@@ -23,21 +25,24 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
   const [isFilesOpen, setIsFilesOpen] = useState(false);
 
 
-
   function handleVote(vote: 1 | -1): void {
     const newVote = props.vote === vote ? 0 : vote;
     if (newVote === -1) setIsFeedbackOpen(true);
     chatContext.updateMessageVote(props.id, newVote);
   }
 
+
   function toggleFeedback(): void {
     setIsFeedbackOpen((current) => !current);
   }
+
 
   function toggleFiles(): void {
     setIsFilesOpen((current) => !current);
   }
 
+
+  console.log("props", props)
 
 
   return (
@@ -60,6 +65,7 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
         </div>
       </div>
 
+
       <div className="main-message-container">
         <div className="details-container">
           {props.isBot ? (
@@ -75,25 +81,42 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
           </span>
         </div>
 
-        <div className="message">
-          <div dangerouslySetInnerHTML={{ __html: marked(props.text) }} />
+
+        <div className="message" >
+          {/* <div dangerouslySetInnerHTML={{ __html: marked(props.text) }} /> */}
+          <ReactMarkdown
+            children={props.text}
+            remarkPlugins={[remarkGfm]}
+            components={{
+              table: ({ node, ...props }) => (
+                <table className="custom-table" {...props} />
+              ),
+              th: ({ node, ...props }) => <th {...props} />,
+              td: ({ node, ...props }) => <td {...props} />,
+            }}
+          />
+
+
         </div>
         {/*{!props.isBot ? null : (*/}
-          {/*<div className="media-container">*/}
-          {/*  <a href="https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s" target="_blank" rel="noopener noreferrer">*/}
-          {/*    <img src="https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s" alt="Example Image 1" />*/}
-          {/*  </a>*/}
-          {/*  <a href="https://picsum.photos/seed/picsum/200/300" target="_blank" rel="noopener noreferrer">*/}
-          {/*    <img src="https://picsum.photos/seed/picsum/200/300" alt="Example Image 2" />*/}
-          {/*  </a>*/}
-          {/*  <a rel="noopener noreferrer">*/}
-          {/*    <video width="150" controls>*/}
-          {/*      <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />*/}
-          {/*    </video>*/}
-          {/*  </a>*/}
+        {/*<div className="media-container">*/}
+        {/*  <a href="https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s" target="_blank" rel="noopener noreferrer">*/}
+        {/*    <img src="https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s" alt="Example Image 1" />*/}
+        {/*  </a>*/}
+        {/*  <a href="https://picsum.photos/seed/picsum/200/300" target="_blank" rel="noopener noreferrer">*/}
+        {/*    <img src="https://picsum.photos/seed/picsum/200/300" alt="Example Image 2" />*/}
+        {/*  </a>*/}
+        {/*  <a rel="noopener noreferrer">*/}
+        {/*    <video width="150" controls>*/}
+        {/*      <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />*/}
+        {/*    </video>*/}
+        {/*  </a>*/}
 
-          {/*</div>*/}
+
+        {/*</div>*/}
         {/*// )}*/}
+
+
 
 
         {!props.isBot ? null : (
@@ -119,6 +142,7 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
               </CommonButton>
             </div>
 
+
             <CommonButton
               className={isFeedbackOpen ? "active" : ""}
               onClick={toggleFeedback}
@@ -126,6 +150,7 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
               <ChatbotIcons.SVGFeedback />
               Provide Feedback
             </CommonButton>
+
 
             <div className="relevant-files-container">
               <CommonButton
@@ -159,6 +184,7 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
           </div>
         )}
 
+
         {!props.isBot ? null : (
           <div
             className={[
@@ -183,3 +209,9 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
     </div>
   );
 }
+
+
+
+
+
+
