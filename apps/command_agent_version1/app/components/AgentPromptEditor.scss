@@ -1,0 +1,210 @@
+// AgentPromptEditor.scss
+@import 'variables';
+
+.agent-prompt-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  
+  // Header
+  .editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid $gray-200;
+    
+    .editor-title {
+      font-size: 1.125rem;
+      font-weight: 500;
+      color: $gray-900;
+    }
+    
+    .close-button {
+      color: $gray-400;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: color $transition-default;
+      
+      &:hover {
+        color: $gray-600;
+      }
+    }
+  }
+  
+  // Content area
+  .editor-content {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    
+    .editor-form {
+      .form-group {
+        margin-bottom: 1rem;
+        
+        .form-label {
+          display: block;
+          font-size: 0.875rem;
+          font-weight: 500;
+          margin-bottom: 0.25rem;
+          color: $gray-700;
+        }
+        
+        .form-input, .form-select {
+          width: 100%;
+          padding: 0.5rem 0.75rem;
+          border: 1px solid $gray-300;
+          border-radius: $border-radius-md;
+          font-size: 0.875rem;
+          transition: border-color $transition-default, box-shadow $transition-default;
+          
+          &:focus {
+            outline: none;
+            border-color: $brand-secondary;
+            box-shadow: 0 0 0 1px rgba($brand-secondary, 0.2);
+          }
+          
+          &:disabled {
+            background-color: $gray-100;
+            cursor: not-allowed;
+          }
+        }
+        
+        .prompt-preview-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.25rem;
+          
+          .character-count {
+            font-size: 0.75rem;
+            color: $gray-500;
+          }
+        }
+        
+        .prompt-preview {
+          width: 100%;
+          padding: 0.75rem;
+          border: 1px solid $gray-300;
+          border-radius: $border-radius-md;
+          background-color: $gray-50;
+          min-height: 8rem;
+          max-height: 12rem;
+          overflow-y: auto;
+          font-size: 0.875rem;
+          line-height: $line-height-normal;
+        }
+      }
+      
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+      }
+      
+      .editor-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        
+        .full-editor-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.625rem;
+          background-color: $brand-secondary;
+          color: white;
+          border: none;
+          border-radius: $border-radius-md;
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background-color $transition-default;
+          
+          .button-icon {
+            width: 1rem;
+            height: 1rem;
+            margin-right: 0.5rem;
+          }
+          
+          &:hover {
+            background-color: darken($brand-secondary, 5%);
+          }
+        }
+        
+        .parameters-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.625rem;
+          background-color: $gray-100;
+          color: $gray-700;
+          border: none;
+          border-radius: $border-radius-md;
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background-color $transition-default;
+          
+          .button-icon {
+            width: 1rem;
+            height: 1rem;
+            margin-right: 0.5rem;
+          }
+          
+          &:hover {
+            background-color: $gray-200;
+          }
+        }
+      }
+    }
+  }
+  
+  // Footer
+  .editor-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-top: 1px solid $gray-200;
+    
+    .cancel-button {
+      padding: 0.5rem 1rem;
+      background-color: white;
+      border: 1px solid $gray-300;
+      border-radius: $border-radius-md;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: background-color $transition-default;
+      
+      &:hover {
+        background-color: $gray-50;
+      }
+    }
+    
+    .save-button {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      background-color: $brand-primary;
+      color: white;
+      border: none;
+      border-radius: $border-radius-md;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: background-color $transition-default;
+      
+      .button-icon {
+        width: 1rem;
+        height: 1rem;
+        margin-right: 0.5rem;
+      }
+      
+      &:hover {
+        background-color: darken($brand-primary, 5%);
+      }
+    }
+  }
+}

@@ -1,10 +1,11 @@
-// AgentNode.tsx - Improved to match Figma design
+// AgentNode.tsx
 "use client";
 
 import React, { memo } from "react";
 import { Handle, Position } from "react-flow-renderer";
 import { Router, Globe, Database, Link2, Wrench, Edit, X, Zap } from "lucide-react";
 import { AgentType, AGENT_STYLES } from "./type";
+import "./AgentNode.scss";
 
 interface NodeProps {
     id: string;
@@ -72,69 +73,59 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
 
     return (
         <div
-            className={`agent-node p-4 rounded-lg bg-white shadow-sm ${selected ? "ring-2 ring-blue-400" : "border border-gray-200"}`}
-            style={{ width: 280 }}
+            className={`agent-node ${selected ? "selected" : ""}`}
         >
             {/* Header with title and controls */}
-            <div className="flex justify-between items-start mb-2">
-                <div className="flex items-start">
-                    <div className="p-2 rounded-md bg-blue-100 mr-3">
+            <div className="agent-node-header">
+                <div className="agent-icon-container">
+                    <div className="agent-icon">
                         {getAgentIcon(type)}
                     </div>
-                    <div>
-                        <p className="font-medium text-gray-900">{name}</p>
-                        <p className="text-xs text-gray-500">{getSubtitle(type)}</p>
+                    <div className="agent-title">
+                        <p className="agent-name">{name}</p>
+                        <p className="agent-type">{getSubtitle(type)}</p>
                     </div>
                 </div>
-                <div className="flex space-x-1">
+                <div className="agent-controls">
                     <button
                         onClick={handleOpenConfig}
-                        className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                        className="control-button edit-button"
                     >
                         <Edit size={16} />
                     </button>
                     <button
                         onClick={handleDelete}
-                        className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                        className="control-button delete-button"
                     >
                         <X size={16} />
                     </button>
                 </div>
             </div>
 
-            {/* Badge section - exactly matching Figma design */}
-            <div className="flex flex-wrap gap-1 mb-3">
-                <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
-                    Hosted
-                </span>
-                <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
-                    ClaudeGPT-4
-                </span>
-                <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
-                    Arlo Knowledge Base
-                </span>
+            {/* Badge section */}
+            <div className="agent-badges">
+                <span className="badge">Hosted</span>
+                <span className="badge">ClaudeGPT-4</span>
+                <span className="badge">Arlo Knowledge Base</span>
             </div>
 
-            {/* Tools Section - with Edit button aligned to right */}
+            {/* Tools Section */}
             {(tools && tools.length > 0) && (
-                <div>
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-gray-700">Tools</span>
+                <div className="agent-tools">
+                    <div className="tools-header">
+                        <span className="tools-title">Tools</span>
                         <button
                             onClick={handleOpenConfig}
-                            className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                            className="edit-tools-button"
                         >
                             <Edit size={14} />
                         </button>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="tools-list">
                         {tools.map((tool, index) => (
-                            <span
-                                key={index}
-                                className="inline-flex items-center px-2 py-1 bg-orange-50 text-orange-500 text-xs rounded"
-                            >
+                            <span key={index} className="tool-badge">
                                 {getToolIcon(tool)}
-                                <span className="ml-1">{tool}</span>
+                                <span className="tool-name">{tool}</span>
                             </span>
                         ))}
                     </div>
@@ -145,13 +136,7 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
             <Handle
                 type="target"
                 position={Position.Top}
-                style={{
-                    background: "#3b82f6", // blue-500
-                    width: 8,
-                    height: 8,
-                    top: -4,
-                    border: "2px solid white"
-                }}
+                className="input-handle"
                 id={`${id}-target`}
             />
 
@@ -159,13 +144,7 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
             <Handle
                 type="source"
                 position={Position.Bottom}
-                style={{
-                    background: "#3b82f6", // blue-500
-                    width: 8,
-                    height: 8,
-                    bottom: -4,
-                    border: "2px solid white"
-                }}
+                className="output-handle"
                 id={`${id}-source`}
             />
         </div>

@@ -8,6 +8,9 @@ export interface NodeData {
     type: AgentType;
     name: string;
     prompt?: string;
+    description?: string;
+    tools?: string[];
+    config?: any;
     onDelete: (id: string) => void;
     onConfigure: (id: string) => void;
 }
@@ -33,6 +36,9 @@ export interface WorkflowConfig {
         uuid: string;
         type: AgentType;
         name: string;
+        prompt?: string;
+        description?: string;
+        tools?: string[];
         position: {
             x: number;
             y: number;

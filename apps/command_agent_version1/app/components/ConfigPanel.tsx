@@ -1,4 +1,4 @@
-// ConfigureAgent.tsx
+// ConfigPanel.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -8,11 +8,14 @@ import {
     Edit,
     Save,
     X,
-    Zap
+    Zap,
+    Database,
+    Link2
 } from "lucide-react";
 import { AgentType, AGENT_STYLES } from "./type";
+import "./ConfigPanel.scss";
 
-interface ConfigureAgentProps {
+interface ConfigPanelProps {
     agentName: string;
     agentType: AgentType;
     description: string;
@@ -21,7 +24,7 @@ interface ConfigureAgentProps {
     onClose?: () => void;
 }
 
-const ConfigureAgent: React.FC<ConfigureAgentProps> = ({
+const ConfigPanel: React.FC<ConfigPanelProps> = ({
     agentName,
     agentType,
     description,
@@ -29,6 +32,7 @@ const ConfigureAgent: React.FC<ConfigureAgentProps> = ({
     onSave,
     onClose
 }) => {
+    // State for collapsible sections
     const [parametersOpen, setParametersOpen] = useState(true);
     const [toolsOpen, setToolsOpen] = useState(true);
 
@@ -41,16 +45,16 @@ const ConfigureAgent: React.FC<ConfigureAgentProps> = ({
     // State for selected tools
     const [selectedTools, setSelectedTools] = useState<string[]>(["Document Parser"]);
 
-    // Tool options for the select box
-    const toolOptions = [
-        { value: "Document Parser", label: "Document Parser" },
-        { value: "Regex Extractor", label: "Regex Extractor" },
-        { value: "MCP Integration", label: "MCP Integration" },
-        { value: "Workflow Orchestrator", label: "Workflow Orchestrator" },
-        { value: "Real-time Analytics", label: "Real-time Analytics" },
-        { value: "Data Transformer", label: "Data Transformer" },
-        { value: "Semantic Search", label: "Semantic Search" },
-        { value: "Conversational Agent", label: "Conversational Agent" },
+    // Available tools options
+    const availableTools = [
+        "Document Parser",
+        "Regex Extractor",
+        "MCP Integration",
+        "Workflow Orchestrator",
+        "Real-time Analytics",
+        "Data Transformer",
+        "Semantic Search",
+        "Conversational Agent"
     ];
 
     // Function to handle tool selection
@@ -63,22 +67,20 @@ const ConfigureAgent: React.FC<ConfigureAgentProps> = ({
         }
     };
 
-    // Get the style class for the agent type
-    const getStyleClass = (type: AgentType) => {
-        const styles = AGENT_STYLES[type] || { bgClass: "bg-gray-100", textClass: "text-gray-600" };
-        return `${styles.bgClass} ${styles.textClass}`;
-    };
+    // Get tool icon based on name
+    const getToolIcon = (toolName: string) => {
+        const toolIcons: { [key: string]: React.ReactNode } = {
+            "Document Parser": <Database size={16} className="text-orange-500" />,
+            "Regex Extractor": <Zap size={16} className="text-orange-500" />,
+            "MCP Integration": <Link2 size={16} className="text-orange-500" />,
+            "Workflow Orchestrator": <Zap size={16} className="text-orange-500" />,
+            "Real-time Analytics": <Database size={16} className="text-orange-500" />,
+            "Data Transformer": <Link2 size={16} className="text-orange-500" />,
+            "Semantic Search": <Zap size={16} className="text-orange-500" />,
+            "Conversational Agent": <Database size={16} className="text-orange-500" />
+        };
 
-    // Get the agent type display name
-    const getAgentTypeDisplay = (type: AgentType) => {
-        switch (type) {
-            case "router": return "Router";
-            case "web_search": return "Web Search";
-            case "api": return "API Agent";
-            case "data": return "Data Extractor";
-            case "troubleshooting": return "Troubleshooting";
-            default: return type;
-        }
+        return toolIcons[toolName] || <Zap size={16} className="text-orange-500" />;
     };
 
     // Handle save button click
@@ -94,22 +96,33 @@ const ConfigureAgent: React.FC<ConfigureAgentProps> = ({
         }
     };
 
-    // Handle close button click
-    const handleClose = () => {
-        if (onClose) {
-            onClose();
+    // Get the agent type display name
+    const getAgentTypeDisplay = (type: AgentType) => {
+        switch (type) {
+            case "router": return "Router";
+            case "web_search": return "Web Search";
+            case "api": return "API";
+            case "data": return "Data Extractor";
+            case "troubleshooting": return "Troubleshooting";
+            default: return type;
         }
     };
 
+    // Get the style class for the agent type
+    const getStyleClass = (type: AgentType) => {
+        const styles = AGENT_STYLES[type] || { bgClass: "bg-gray-100", textClass: "text-gray-600" };
+        return `${styles.bgClass} ${styles.textClass}`;
+    };
+
     return (
-        <div className="configure-agent p-4">
+        <div className="config-panel">
             {/* Header with close button */}
-            <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-medium">{agentName}</h2>
+            <div className="config-panel-header">
+                <h2 className="config-panel-title">{agentName}</h2>
                 {onClose && (
                     <button
-                        onClick={handleClose}
-                        className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                        onClick={onClose}
+                        className="close-button"
                     >
                         <X size={18} />
                     </button>
@@ -117,39 +130,39 @@ const ConfigureAgent: React.FC<ConfigureAgentProps> = ({
             </div>
 
             {/* Agent Type Badge */}
-            <div className="flex items-center mb-3">
-                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStyleClass(agentType)}`}>
+            <div className="agent-type-container">
+                <span className={`agent-type-badge ${getStyleClass(agentType)}`}>
                     {getAgentTypeDisplay(agentType)}
                 </span>
-                <span className="bg-orange-50 text-orange-500 text-xs font-medium px-2.5 py-1 rounded-full ml-2">
+                <span className="agent-flavor-badge">
                     Task-Based Agent
                 </span>
             </div>
 
             {/* Agent Description */}
-            <p className="text-sm text-gray-700 mb-4">
-                {description || `Routes queries to appropriate agents`}
+            <p className="agent-description">
+                {description || `This ${getAgentTypeDisplay(agentType)} agent processes and routes queries.`}
             </p>
 
             {/* Parameters Section */}
-            <div className="border border-gray-200 rounded-lg mb-4 overflow-hidden">
+            <div className="panel-section">
                 <div
-                    className="flex items-center justify-between p-3 bg-gray-50 cursor-pointer"
+                    className="section-header"
                     onClick={() => setParametersOpen(!parametersOpen)}
                 >
-                    <h3 className="font-medium">Parameters</h3>
+                    <h3 className="section-title">Parameters</h3>
                     {parametersOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                 </div>
 
                 {parametersOpen && (
-                    <div className="p-3 bg-white">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs text-gray-500 mb-1">Model:</label>
+                    <div className="section-content">
+                        <div className="parameters-grid">
+                            <div className="parameter-item">
+                                <label className="parameter-label">Model:</label>
                                 <select
                                     value={model}
                                     onChange={(e) => setModel(e.target.value)}
-                                    className="w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm"
+                                    className="parameter-select"
                                 >
                                     <option value="GPT-4">GPT-4</option>
                                     <option value="GPT-3.5">GPT-3.5</option>
@@ -160,12 +173,12 @@ const ConfigureAgent: React.FC<ConfigureAgentProps> = ({
                                     <option value="Llama 3">Llama 3</option>
                                 </select>
                             </div>
-                            <div>
-                                <label className="block text-xs text-gray-500 mb-1">Charge Type:</label>
+                            <div className="parameter-item">
+                                <label className="parameter-label">Charge Type:</label>
                                 <select
                                     value={modelChargeType}
                                     onChange={(e) => setModelChargeType(e.target.value)}
-                                    className="w-full bg-orange-50 text-orange-500 border border-orange-200 rounded-md px-3 py-1.5 text-sm"
+                                    className="parameter-select payment-select"
                                 >
                                     <option value="Hosted">Hosted</option>
                                     <option value="Pay As You Go">Pay As You Go</option>
@@ -173,12 +186,12 @@ const ConfigureAgent: React.FC<ConfigureAgentProps> = ({
                                     <option value="Enterprise">Enterprise</option>
                                 </select>
                             </div>
-                            <div>
-                                <label className="block text-xs text-gray-500 mb-1">Dataset:</label>
+                            <div className="parameter-item">
+                                <label className="parameter-label">Dataset:</label>
                                 <select
                                     value={dataset}
                                     onChange={(e) => setDataset(e.target.value)}
-                                    className="w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm"
+                                    className="parameter-select"
                                 >
                                     <option value="Knowledge Base">Knowledge Base</option>
                                     <option value="Company Docs">Company Docs</option>
@@ -188,12 +201,12 @@ const ConfigureAgent: React.FC<ConfigureAgentProps> = ({
                                     <option value="None">None</option>
                                 </select>
                             </div>
-                            <div>
-                                <label className="block text-xs text-gray-500 mb-1">Output Format:</label>
+                            <div className="parameter-item">
+                                <label className="parameter-label">Output Format:</label>
                                 <select
                                     value={outputFormat}
                                     onChange={(e) => setOutputFormat(e.target.value)}
-                                    className="w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm"
+                                    className="parameter-select"
                                 >
                                     <option value="JSON">JSON</option>
                                     <option value="Text">Text</option>
@@ -208,9 +221,9 @@ const ConfigureAgent: React.FC<ConfigureAgentProps> = ({
                         {/* Edit Prompt Button */}
                         <button
                             onClick={onEditPrompt}
-                            className="mt-4 w-full flex items-center justify-center bg-orange-50 hover:bg-orange-100 text-orange-500 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                            className="edit-prompt-button"
                         >
-                            <Edit className="w-4 h-4 mr-2" />
+                            <Edit className="button-icon" />
                             Edit Prompt
                         </button>
                     </div>
@@ -218,48 +231,50 @@ const ConfigureAgent: React.FC<ConfigureAgentProps> = ({
             </div>
 
             {/* Tools Section */}
-            <div className="border border-gray-200 rounded-lg mb-4">
+            <div className="panel-section">
                 <div
-                    className="flex items-center justify-between p-3 bg-gray-50 cursor-pointer"
+                    className="section-header"
                     onClick={() => setToolsOpen(!toolsOpen)}
                 >
-                    <h3 className="font-medium">Tools</h3>
+                    <h3 className="section-title">Tools</h3>
                     {toolsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                 </div>
 
                 {toolsOpen && (
-                    <div className="p-3 bg-white">
-                        <p className="text-xs text-gray-500 mb-3">Select tools to add to your agent:</p>
+                    <div className="section-content">
+                        <p className="tools-description">Select tools to add to your agent:</p>
 
                         {/* Tool Selection Dropdown */}
-                        <div className="mb-4">
+                        <div className="tool-selector">
                             <select
-                                className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm"
+                                className="tool-select"
                                 onChange={(e) => handleToolSelect(e.target.value)}
                                 value=""
                             >
                                 <option value="" disabled>Select tools to add...</option>
-                                {toolOptions.map(option => (
-                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                {availableTools.map(tool => (
+                                    <option key={tool} value={tool}>{tool}</option>
                                 ))}
                             </select>
                         </div>
 
                         {/* Selected Tools */}
                         {selectedTools.length > 0 && (
-                            <div className="mb-4 p-3 border border-gray-200 rounded-md">
-                                <h4 className="text-sm font-medium mb-2">Selected Tools:</h4>
-                                <div className="flex flex-wrap gap-2">
+                            <div className="selected-tools-container">
+                                <h4 className="selected-tools-title">Selected Tools:</h4>
+                                <div className="selected-tools-list">
                                     {selectedTools.map(tool => (
                                         <div
                                             key={tool}
-                                            className="px-2 py-1 bg-orange-50 text-orange-500 text-xs rounded-md flex items-center cursor-move"
+                                            className="tool-badge"
                                         >
-                                            <Zap size={14} className="mr-1" />
-                                            <span>{tool}</span>
+                                            {getToolIcon(tool)}
+                                            <span className="tool-name">{tool}</span>
                                             <button
-                                                className="ml-1 text-orange-500 hover:text-orange-700"
-                                                onClick={() => setSelectedTools(selectedTools.filter(t => t !== tool))}
+                                                className="remove-tool-button"
+                                                onClick={() => setSelectedTools(
+                                                    selectedTools.filter(t => t !== tool)
+                                                )}
                                             >
                                                 ×
                                             </button>
@@ -276,9 +291,9 @@ const ConfigureAgent: React.FC<ConfigureAgentProps> = ({
             {onSave && (
                 <button
                     onClick={handleSave}
-                    className="w-full flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md text-sm font-medium"
+                    className="save-button"
                 >
-                    <Save className="w-4 h-4 mr-2" />
+                    <Save className="button-icon" />
                     Save Configuration
                 </button>
             )}
@@ -286,4 +301,4 @@ const ConfigureAgent: React.FC<ConfigureAgentProps> = ({
     );
 };
 
-export default ConfigureAgent;
+export default ConfigPanel;

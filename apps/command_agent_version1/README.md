@@ -38,112 +38,69 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/deploym
 
 A modern, interactive agent flow builder with TypeScript and Tailwind CSS that allows users to create, configure, and deploy agent workflows.
 
-## Key Features
+# Agent Workflow Designer
 
-- **Drag and Drop Interface**: Create agent flows by dragging agents from the sidebar onto the canvas
-- **Interactive Connections**: Connect agents with animated flow lines
-- **UUID Implementation**: All workflows and agents have UUIDs for reliable tracking
-- **Agent Configuration**: Configure specific options for each agent type
-- **Deploy Functionality**: Deploy workflows and test them in a chat interface
-- **Modern UI**: Clean, responsive design with Tailwind CSS
-- **TypeScript Support**: Full TypeScript integration for better code reliability
+A modular React application for designing and deploying agent-based workflows.
 
-## Components
+## Components Overview
 
-1. **AgentConfigForm**: Main component that orchestrates the workflow builder and chat interface
-2. **FlowCanvas**: Component that handles the React Flow canvas for the agent workflow
-3. **AgentNode**: Component that defines the visual representation of agent nodes
-4. **Flow Types**: Type definitions for nodes, edges, and workflows
+### Main Components
 
-## Agent Types
+- **AgentConfigForm**: The main controller component that orchestrates the entire application, managing state for designer mode and chat mode.
 
-- **Router Agent**: Entry point for all queries (ID: 1)
-- **Web Search Agent**: Searches the web for information (ID: 2)
-- **API Agent**: Connects to external APIs (ID: 3)
-- **Data Agent**: Processes and analyzes data (ID: 4)
-- **Troubleshooting Agent**: Helps solve technical problems (ID: 5)
+- **DesignerSidebar**: Left sidebar containing draggable agent components, actions, and tools. Also contains Save/Deploy buttons.
 
-## Workflow Structure
+- **DesignerCanvas**: Main canvas where agent nodes can be placed and connected to form workflows.
 
-Each workflow has:
-- A unique workflow ID (UUID)
-- A name
-- A collection of agents (each with its own UUID)
-- A set of connections between agents
+- **ConfigureAgent**: Right panel that appears when an agent is selected, allowing configuration of parameters and tools.
 
-## Data Flow
+- **AgentConfigModal**: Modal window for detailed agent configuration with tabs for Prompt, Parameters, and Testing.
 
-The system:
-1. Allows creating a workflow with a unique ID
-2. Enables adding agents to a canvas, each with a UUID
-3. Facilitates connections between agents
-4. Supports deploying the workflow to a chat interface
-5. Processes queries through the workflow
-6. Returns responses based on the agent flow
+- **ChatInterface**: Interface for interacting with deployed agent workflows in chat mode.
 
-## UUID Implementation
+- **ChatSidebar**: Left sidebar for chat mode, providing options to edit workflow or create new ones.
 
-The system uses UUIDs to ensure:
-- No ID collisions even with millions of workflows
-- Each component is uniquely identifiable
-- Workflows can be moved between environments
-- Complete path history can be recorded with UUID references
+### Agent-Related Components
 
-## Dependencies
+- **AgentNode**: Visual representation of an agent in the flow, displaying name, type, and tools.
 
-- React
-- React Flow
-- UUID
-- Lucide React (for icons)
-- Tailwind CSS
+- **AgentPromptEditor**: Simplified editor for modifying agent prompts and basic configuration.
 
-## File Structure
+- **CustomEdge**: Visual representation of connections between agents, with support for different action types.
 
-```
-/components
-  /AgentConfigForm.tsx  # Main workflow builder component
-  /FlowCanvas.tsx       # React Flow canvas component
-  /AgentNode.tsx        # Node component for agents
-/types
-  /flow.ts              # Type definitions for the flow system
-/styles
-  /flow.css             # Styling for flow components
-```
+## Features
+
+- Drag-and-drop interface for creating agent workflows
+- Configuration options for each agent (model, parameters, tools)
+- System message/prompt editing
+- Deployment of agent workflows
+- Chat interface for interacting with deployed workflows
+- Save/load functionality for workflows
+
+## State Management
+
+The application manages several key states:
+- Node configuration (type, parameters, tools, prompts)
+- Workflow structure (nodes and edges)
+- UI mode (designer or chat)
+- Selected node for configuration
+
+## Styling
+
+Each component has dedicated SCSS files for styling, with shared variables for consistency.
+
+## Backend Integration
+
+The components are designed to interact with backend services for:
+- Saving workflow configurations
+- Deploying workflows
+- Processing chat messages through the agent workflow
 
 ## Usage
 
-1. Drag agents from the sidebar to the canvas
-2. Connect agents by dragging from one handle to another
-3. Configure each agent's properties
-4. Name your workflow
-5. Save or deploy your workflow
-6. If deployed, use the chat interface to test your agent flow
-
-## JSON Workflow Format
-
-```json
-{
-  "workflowId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "workflowName": "My Agent Workflow",
-  "agents": [
-    {
-      "id": "1",
-      "uuid": "a1b2c3d4-...",
-      "type": "router",
-      "name": "Router Agent"
-    },
-    {
-      "id": "2",
-      "uuid": "e5f6g7h8-...",
-      "type": "web_search",
-      "name": "Web Search Agent"
-    }
-  ],
-  "connections": [
-    {
-      "fromUuid": "a1b2c3d4-...",
-      "toUuid": "e5f6g7h8-..."
-    }
-  ]
-}
-```
+1. Drag agents from the sidebar onto the canvas
+2. Connect agents to form a workflow
+3. Configure each agent as needed
+4. Save your workflow
+5. Deploy to start using it in chat mode
+6. Interact with your workflow through the chat interface

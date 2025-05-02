@@ -1,4 +1,4 @@
-// AgentConfigModal.tsx - Updated with orange theme
+// AgentConfigModal.tsx - Original style
 "use client";
 
 import React, { useState, useEffect } from "react";
