@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   description: "ElevAIte's Chatbot, ready to answer your questions!",
 };
 
-export default async function RootLayout({children,}: Readonly<{children: React.ReactNode;}>): Promise<JSX.Element> {
+export default async function RootLayout({ children, }: Readonly<{ children: React.ReactNode; }>): Promise<JSX.Element> {
   const session = await auth();
   const breadcrumbs: Record<string, { label: string; link: string }> = {
     home: {
@@ -26,7 +26,7 @@ export default async function RootLayout({children,}: Readonly<{children: React.
   return (
     <html lang="en">
       <body className={inter.className}>
-        
+
         <SessionProvider session={session}>
           <ColorContextProvider>
             <ChatContextProvider>
@@ -34,7 +34,7 @@ export default async function RootLayout({children,}: Readonly<{children: React.
               <AppLayout breadcrumbs={breadcrumbs}>
                 {children}
               </AppLayout>
-            
+
             </ChatContextProvider>
           </ColorContextProvider>
         </SessionProvider>

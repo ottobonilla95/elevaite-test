@@ -1,0 +1,24 @@
+@import url("https://fonts.googleapis.com/css?family=Inter&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sidebar-width: 81px;
+  --navbar-height: 80px;
+  font-family: Inter;
+}
+
+body {
+  --ev-colors-primary: #282828;
+  --ev-colors-secondary: #424242;
+  --ev-colors-tertiary: #4e332a;
+  --ev-colors-highlight: #e75f33;
+  --ev-colors-text: #FFFFFF;
+  --ev-colors-secondaryText: #808080;
+  --ev-colors-tertiaryText: #A3A3A3;
+  --ev-colors-borderColor: #FFFFFF1F;
+  --ev-colors-background: #161616;
+  --ev-colors-success: #D8FC77;
+  --ev-colors-danger: #DC143C;
+}
