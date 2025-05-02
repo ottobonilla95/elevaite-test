@@ -106,7 +106,7 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
             <div className="agent-badges">
                 <span className="badge">Hosted</span>
                 <span className="badge">ClaudeGPT-4</span>
-                <span className="badge">Arlo Knowledge Base</span>
+                <span className="badge">Knowledge Base</span>
             </div>
 
             {/* Tools Section */}

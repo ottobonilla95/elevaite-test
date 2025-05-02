@@ -85,7 +85,7 @@ const AgentPromptEditor: React.FC<AgentPromptEditorProps> = ({
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
                                 defaultValue="arlo"
                             >
-                                <option value="arlo">Arlo Knowledge Base</option>
+                                <option value="arlo">Knowledge Base</option>
                                 <option value="mcp">Multi-Cloud Platform</option>
                                 <option value="docs">API Documentation</option>
                                 <option value="none">None</option>
