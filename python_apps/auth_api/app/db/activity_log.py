@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging import logger
 from app.db.models import UserActivity
 
 
@@ -36,13 +37,25 @@ async def log_user_activity(
             details=details,
         )
 
-        # Add to session and commit
+    # Add to session and commit
+    try:
         await session.run_sync(lambda s: s.add(activity))
         await session.commit()
+        logger.debug(
+            f"Activity logged for user {user_id}: {action}",
+            extra={
+                "user_id": user_id,
+                "action": action,
+                "ip_address": ip_address,
+                "timestamp": activity.timestamp.isoformat(),
+            },
+        )
     except Exception as e:
-        print(f"Error logging user activity: {e}")
-        try:
-            await session.rollback()
-        except Exception as rollback_error:
-            print(f"Error during rollback in log_user_activity: {rollback_error}")
-        # Continue execution even if logging fails
+        logger.error(
+            f"Failed to log user activity for user {user_id}: {str(e)}",
+            extra={
+                "user_id": user_id,
+                "action": action,
+                "error": str(e),
+            },
+        )

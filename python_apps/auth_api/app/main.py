@@ -5,6 +5,7 @@
 # pylint: disable=unused-import
 from db_core.middleware import add_tenant_middleware
 from app.patches import starlette_patch, passlib_patch  # noqa: F401
+
 # pylint: enable=unused-import
 
 from contextlib import asynccontextmanager
@@ -17,9 +18,13 @@ from fastapi.security import HTTPBearer
 from db_core import TenantMiddleware
 
 from app.core.config import settings
+from app.core.logging import attach_logger_to_app, logger
 from app.core.multitenancy import multitenancy_settings
 from app.db.tenant_db import initialize_db
 from app.routers import auth
+
+# Configure the logger for FastAPI and Uvicorn
+attach_logger_to_app()
 
 security = HTTPBearer()
 
@@ -27,9 +32,15 @@ security = HTTPBearer()
 @asynccontextmanager
 async def lifespan(_app: FastAPI):  # pylint: disable=unused-argument
     """Initialize database on startup."""
-    # Initialize tenant schemas and tables
-    await initialize_db()
-    yield
+    logger.info("Starting Auth API application")
+    try:
+        # Initialize tenant schemas and tables
+        logger.info("Initializing database and tenant schemas")
+        await initialize_db()
+        logger.info("Database initialization completed successfully")
+        yield
+    finally:
+        logger.info("Shutting down Auth API application")
 
 
 app = FastAPI(
@@ -64,6 +75,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 @app.get("/api/health", tags=["health"])
 def health_check():
     """Health check endpoint."""
+    logger.debug("Health check endpoint called")
     return {"status": "healthy"}
 
 

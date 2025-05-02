@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select as async_select
 
 from app.core.config import settings
+from app.core.logging import logger
 from app.core.security import (
     get_password_hash,
     oauth2_scheme,
@@ -150,9 +151,14 @@ async def register_user(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Register a new user (public endpoint with rate limiting)."""
-    # The request parameter is required for rate limiting but not used in the function
-    user = await create_user(session, user_data)
-    return user
+    logger.info(f"Registration attempt for email: {user_data.email}")
+    try:
+        user = await create_user(session, user_data)
+        logger.info(f"User registered successfully: {user_data.email}")
+        return user
+    except Exception as e:
+        logger.error(f"User registration failed for {user_data.email}: {str(e)}")
+        raise
 
 
 @router.post(
@@ -168,7 +174,7 @@ async def admin_create_user(
 ):
     """Create a new user (admin only)."""
     # Log the admin action
-    print(
+    logger.info(
         f"Admin user {current_user.email} (ID: {current_user.id}) is creating a new user with email: {user_data.email}"
     )
 
@@ -192,10 +198,13 @@ async def admin_create_user(
             details=details,
         )
 
+        logger.info(
+            f"User {user_data.email} successfully created by admin {current_user.email}"
+        )
         return user
     except HTTPException as e:
         # Log failed attempt
-        print(
+        logger.error(
             f"Admin user {current_user.email} failed to create user with email: {user_data.email}. Error: {e.detail}"
         )
         raise
@@ -209,27 +218,31 @@ async def login(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Login with email and password."""
-    print(f"Login attempt for email: {login_data.email}")
+    # Log login attempt
+    logger.info(f"Login attempt for email: {login_data.email}")
 
     # Step 1: Check if user exists
     user_id_value = None
     try:
         from app.services.auth_orm import get_user_by_email
 
-        user_check = await get_user_by_email(session, login_data.email)
-
-        if user_check:
-            user_id_value = user_check.id
-    except Exception as e:
-        print(f"Error checking if user exists: {e}")
+    user_check = await get_user_by_email(session, login_data.email)
+    if not user_check:
+        logger.info(f"User not found during login attempt: {login_data.email}")
+    else:
+        logger.info(
+            f"User found during login: {user_check.email}, status: {user_check.status}, verified: {user_check.is_verified}"
+        )
 
     # Step 2: Check for test credentials
     is_test_account = False
     try:
         from app.core.password_utils import is_password_temporary
 
-        is_test_account, _ = is_password_temporary(
-            login_data.email, login_data.password
+    is_test_account, _ = is_password_temporary(login_data.email, login_data.password)
+    if is_test_account:
+        logger.info(
+            f"Test account detected for {login_data.email}, will trigger password reset"
         )
 
         if is_test_account and user_id_value:
@@ -263,83 +276,23 @@ async def login(
             session, login_data.email, login_data.password, login_data.totp_code
         )
 
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        if not user_id_value:
-            user_dict = getattr(user, "__dict__", {})
-            user_id_value = user_dict.get("id") or user.id
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Error during authentication: {e}")
+    if not user:
+        logger.warning(f"Authentication failed for: {login_data.email}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error during authentication",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Step 4: Create user session and tokens
-    access_token = None
-    refresh_token = None
-    try:
-        access_token, refresh_token = await create_user_session(
-            session, user_id_value, request
-        )
-    except Exception as e:
-        print(f"Error creating user session: {e}")
-        try:
-            await session.rollback()
-        except Exception:
-            pass
+    # Get the user ID as a plain integer
+    user_dict = dict(user.__dict__)
+    user_id_value = user_dict["id"]
+    access_token, refresh_token = await create_user_session(
+        session, user_id_value, request
+    )
 
-        from app.core.security import create_access_token, create_refresh_token
-        from db_core.middleware import get_current_tenant_id
+    logger.info(f"User {login_data.email} successfully authenticated")
 
-        tenant_id = get_current_tenant_id()
-        access_token = create_access_token(user_id_value, tenant_id=tenant_id)
-        refresh_token = create_refresh_token(user_id_value, tenant_id=tenant_id)
-
-    # Step 5: Check if password change is required
-    needs_password_change = False
-    try:
-        from sqlalchemy import text
-
-        sql = text("SELECT is_password_temporary FROM users WHERE id = :user_id")
-        result = await session.execute(sql, {"user_id": user_id_value})
-        db_is_password_temporary = result.scalar_one_or_none()
-
-        if password_change_required:
-            needs_password_change = True
-        elif db_is_password_temporary is False:
-            needs_password_change = False
-        else:
-            needs_password_change = db_is_password_temporary or is_test_account
-    except Exception as e:
-        print(f"Error checking if password change is required: {e}")
-        needs_password_change = password_change_required
-
-    # Step 6: Log activity
-    try:
-        await log_user_activity(
-            session,
-            user_id_value,
-            "login",
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
-        )
-        await session.commit()
-    except Exception as e:
-        print(f"Error logging login activity: {e}")
-        try:
-            await session.rollback()
-        except Exception:
-            pass
-
-    # Build and return response
     response = {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -347,8 +300,10 @@ async def login(
         "password_change_required": needs_password_change,
     }
 
-    if needs_password_change:
-        response["message"] = "Your password is temporary and must be changed."
+    # Add password_change_required flag to the response dictionary
+    if password_change_required or is_test_account:
+        response = {**response, "password_change_required": True}
+        logger.info(f"Password change required for user {login_data.email}")
 
     return response
 
@@ -1077,7 +1032,7 @@ async def admin_reset_password(
 ):
     """Reset a user's password (admin only)."""
     # Log the admin action
-    print(
+    logger.info(
         f"Admin user {current_user.email} (ID: {current_user.id}) is resetting password for {reset_data.email}"
     )
 
@@ -1089,7 +1044,7 @@ async def admin_reset_password(
 
     if not user:
         # Log failed attempt
-        print(
+        logger.warning(
             f"Admin user {current_user.email} attempted to reset password for non-existent user: {reset_data.email}"
         )
         raise HTTPException(
@@ -1247,6 +1202,10 @@ async def admin_reset_password(
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
         details=details,
+    )
+
+    logger.info(
+        f"Password reset successfully for user {reset_data.email} by admin {current_user.email}"
     )
 
     return {
