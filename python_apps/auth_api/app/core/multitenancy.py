@@ -3,7 +3,7 @@
 from db_core import MultitenancySettings
 
 # Default tenants to create on startup
-DEFAULT_TENANTS = ["default", "tenant1", "tenant2"]
+DEFAULT_TENANTS = ["default", "toshiba", "iopex"]
 
 # Multitenancy settings
 multitenancy_settings = MultitenancySettings(

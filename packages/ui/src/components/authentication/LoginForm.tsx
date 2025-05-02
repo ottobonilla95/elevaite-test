@@ -25,7 +25,7 @@ interface LoginFormProps {
     prevstate: string,
     formData: FormValues
   ) => Promise<"Invalid credentials." | "Something went wrong." | undefined>;
-  authenticateGoogle: () => Promise<
+  authenticateGoogle?: () => Promise<
     "Invalid credentials." | "Something went wrong." | undefined
   >;
 }
@@ -72,6 +72,9 @@ export function LogInForm({
   };
 
   async function handleGoogleClick(): Promise<void> {
+    if (!authenticateGoogle) {
+      return;
+    }
     await authenticateGoogle();
   }
 
@@ -107,9 +110,8 @@ export function LogInForm({
           </label>
           <div className="input-wrapper">
             <input
-              className={`ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-w-full ui-rounded-lg ${
-                errors.email ? "ui-border-red-500 ui-border" : ""
-              }`}
+              className={`ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-w-full ui-rounded-lg ${errors.email ? "ui-border-red-500 ui-border" : ""
+                }`}
               id="email"
               {...register("email")}
             />
@@ -126,9 +128,8 @@ export function LogInForm({
           </label>
           <div className="input-wrapper">
             <input
-              className={`ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-w-full ui-rounded-lg ${
-                errors.password ? "ui-border-red-500 ui-border" : ""
-              }`}
+              className={`ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-w-full ui-rounded-lg ${errors.password ? "ui-border-red-500 ui-border" : ""
+                }`}
               id="password"
               type="password"
               {...register("password")}
@@ -187,23 +188,23 @@ export function LogInForm({
           </div>
         </form>
       </div>
-      <div className="separator">
-        <div>or</div>
-      </div>
-      <button
-        className="ui-flex ui-flex-row ui-items-center ui-justify-center ui-gap-3 ui-py-3 ui-px-10 ui-bg-[#161616] ui-w-full ui-rounded-lg"
-        onClick={() => {
-          handleGoogleClick().catch((e: unknown) => {
-            // eslint-disable-next-line no-console -- Temporary until better logging
-            console.log(e);
-          });
-        }}
-        type="button"
-      >
-        <GoogleColorIcon />
-        Sign In With Google
-      </button>
-
+      {authenticateGoogle !== undefined ? (<>
+        <div className="separator">
+          <div>or</div>
+        </div><button
+          className="ui-flex ui-flex-row ui-items-center ui-justify-center ui-gap-3 ui-py-3 ui-px-10 ui-bg-[#161616] ui-w-full ui-rounded-lg"
+          onClick={() => {
+            handleGoogleClick().catch((e: unknown) => {
+              // eslint-disable-next-line no-console -- Temporary until better logging
+              console.log(e);
+            });
+          }}
+          type="button"
+        >
+          <GoogleColorIcon />
+          Sign In With Google
+        </button></>
+      ) : null}
       {/* Register Link */}
       <div className="ui-flex ui-justify-center ui-w-full ui-mt-6">
         <span className="ui-text-sm ui-text-gray-400">

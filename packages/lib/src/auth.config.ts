@@ -98,57 +98,54 @@ async function refreshGoogleToken(token: JWT): Promise<JWT> {
   };
 }
 
-async function refreshFusionAuthToken(token: JWT): Promise<JWT> {
-  const FUSIONAUTH_ISSUER = process.env.FUSIONAUTH_ISSUER;
-  if (!FUSIONAUTH_ISSUER) {
-    throw new Error("FUSIONAUTH_ISSUER is not defined in environment");
+async function refreshAuthApiToken(token: JWT): Promise<JWT> {
+  const AUTH_API_URL = process.env.AUTH_API_URL;
+  if (!AUTH_API_URL) {
+    throw new Error("AUTH_API_URL is not defined in environment");
   }
-  const FUSIONAUTH_TOKEN_ENDPOINT = `${FUSIONAUTH_ISSUER}/api/jwt/refresh`;
+  const AUTH_API_REFRESH_ENDPOINT = `${AUTH_API_URL}/api/auth/refresh`;
 
-  const FUSIONAUTH_CLIENT_ID = process.env.FUSIONAUTH_CLIENT_ID;
-  if (!FUSIONAUTH_CLIENT_ID) {
-    throw new Error("FUSIONAUTH_CLIENT_ID is not defined in environment");
+  // Get tenant ID from environment or use default
+  const TENANT_ID = process.env.AUTH_TENANT_ID ?? 'default';
+
+  if (!token.refresh_token) {
+    throw new Error("Missing refresh token. Cannot refresh access token.");
   }
 
-  const FUSIONAUTH_CLIENT_SECRET = process.env.FUSIONAUTH_CLIENT_SECRET;
-  if (!FUSIONAUTH_CLIENT_SECRET) {
-    throw new Error("FUSIONAUTH_CLIENT_SECRET is not defined in environment");
-  }
   const headers = new Headers();
   headers.append("Content-Type", "application/json");
+  headers.append("X-Tenant-ID", TENANT_ID);
 
-  const response = await fetch(FUSIONAUTH_TOKEN_ENDPOINT, {
+  const response = await fetch(AUTH_API_REFRESH_ENDPOINT, {
     headers,
     body: JSON.stringify({
-      refreshToken: token.refresh_token,
-      token: token.access_token,
+      refresh_token: token.refresh_token,
     }),
     method: "POST",
   });
 
-  interface FusionAuthTokenResponse {
-    token: string;
-    refreshToken: string;
+  interface AuthApiTokenResponse {
+    access_token: string;
+    refresh_token: string;
+    token_type: string;
   }
 
-  const tokensOrError = (await response.json()) as FusionAuthTokenResponse;
-
-  // eslint-disable-next-line no-console -- debugging
-  console.dir(tokensOrError, { depth: 100 });
+  const tokensOrError = await response.json() as AuthApiTokenResponse;
 
   if (!response.ok) {
     throw new TokenRefreshError(
       response.status,
-      "fusionauth",
-      `FusionAuth token refresh failed: ${response.statusText}`
+      "auth_api",
+      `Auth API token refresh failed: ${response.statusText}`
     );
   }
 
   return {
     ...token,
-    access_token: tokensOrError.token,
+    access_token: tokensOrError.access_token,
+    // Default token expiration to 1 hour (3600 seconds)
     expires_at: Math.floor(Date.now() / 1000 + 3600),
-    refresh_token: tokensOrError.refreshToken,
+    refresh_token: tokensOrError.refresh_token,
     provider: "credentials",
   };
 }
@@ -157,11 +154,11 @@ const _config = {
   callbacks: {
     async jwt({ account, token, user }): Promise<JWT> {
       if (account) {
-        if (!account.access_token && !account.refresh_token) {
+        if (!account.access_token && !account.refresh_token && !user.accessToken && !user.refreshToken) {
           throw new Error("Account doesn't contain tokens");
         }
-        if (Boolean(account.access_token) && account.access_token === token.access_token
-          && Boolean(account.refresh_token) && account.refresh_token === token.refresh_token
+        if (Boolean(account.access_token) && ((account.access_token === token.access_token) || (user.accessToken === token.access_token))
+          && Boolean(account.refresh_token) && ((account.refresh_token === token.refresh_token) || (user.refreshToken === token.refresh_token))
           && Boolean(account.provider) && account.provider === token.provider) {
           return token
         }
@@ -198,7 +195,7 @@ const _config = {
           case "google":
             return await refreshGoogleToken(token);
           case "credentials":
-            return await refreshFusionAuthToken(token);
+            return await refreshAuthApiToken(token);
           default:
             throw new Error("Unknown provider");
         }

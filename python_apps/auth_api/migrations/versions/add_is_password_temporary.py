@@ -6,7 +6,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "add_is_password_temporary"
-down_revision: Union[str, None] = None
+down_revision: Union[str, None] = "f650f484e244"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

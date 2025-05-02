@@ -3,6 +3,7 @@
 # Apply patches for third-party libraries
 # These patches are applied automatically when imported
 # pylint: disable=unused-import
+from db_core.middleware import add_tenant_middleware
 from app.patches import starlette_patch, passlib_patch  # noqa: F401
 # pylint: enable=unused-import
 
@@ -41,7 +42,8 @@ app = FastAPI(
 )
 
 # Add tenant middleware
-app.add_middleware(TenantMiddleware, settings=multitenancy_settings)
+# app.add_middleware(TenantMiddleware, settings=multitenancy_settings)
+add_tenant_middleware(app, settings=multitenancy_settings)
 
 # Add security middleware
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)

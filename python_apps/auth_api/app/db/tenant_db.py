@@ -24,7 +24,7 @@ multitenancy_settings.db_url = db_url
 async def initialize_db():
     """Initialize the database with tenant schemas."""
     # Initialize the database with tenant schemas
-    init_db(
+    db_info = init_db(
         settings=multitenancy_settings,
         db_url=multitenancy_settings.db_url,
         create_schemas=True,
@@ -32,6 +32,34 @@ async def initialize_db():
         tenant_ids=DEFAULT_TENANTS,
         is_async=True,
     )
+
+    # Get the engine from the returned info
+    engine = db_info["engine"]
+
+    # Create schemas for async connections
+    from sqlalchemy import text
+    from db_core.utils import async_tenant_schema_exists, async_create_tenant_schema, get_schema_name
+
+    for tenant_id in DEFAULT_TENANTS:
+        schema_name = get_schema_name(tenant_id, multitenancy_settings)
+
+        # Check if schema exists
+        schema_exists = await async_tenant_schema_exists(engine, schema_name)
+
+        if not schema_exists:
+            # Create the schema
+            success = await async_create_tenant_schema(engine, schema_name)
+            if not success:
+                raise RuntimeError(f"Failed to create schema {schema_name} for tenant {tenant_id}")
+
+            # Create tables in the schema
+            async with engine.begin() as conn:
+                await conn.execute(text(f'SET search_path TO "{schema_name}", public'))
+                await conn.run_sync(Base.metadata.create_all)
+
+            print(f"Created schema {schema_name} for tenant {tenant_id} with all tables")
+        else:
+            print(f"Schema {schema_name} for tenant {tenant_id} already exists")
 
 
 async def get_tenant_session(
@@ -50,3 +78,54 @@ def get_current_tenant():
         # Default to 'default' tenant if none is set
         return multitenancy_settings.default_tenant_id
     return tenant_id
+
+
+async def create_tenant_schema_if_not_exists(tenant_id: str) -> bool:
+    """
+    Create a tenant schema if it doesn't exist.
+
+    Args:
+        tenant_id: The tenant ID to create a schema for
+
+    Returns:
+        True if the schema was created or already exists, False otherwise
+    """
+    from sqlalchemy.ext.asyncio import create_async_engine
+    from sqlalchemy import text
+    from db_core.utils import async_tenant_schema_exists, async_create_tenant_schema, get_schema_name
+
+    # Create engine
+    db_url = multitenancy_settings.db_url
+    if not db_url:
+        raise ValueError("Database URL is not set in multitenancy settings")
+    engine = create_async_engine(db_url)
+
+    # Get schema name
+    schema_name = get_schema_name(tenant_id, multitenancy_settings)
+
+    try:
+        # Check if schema exists
+        schema_exists = await async_tenant_schema_exists(engine, schema_name)
+
+        if not schema_exists:
+            # Create the schema
+            success = await async_create_tenant_schema(engine, schema_name)
+            if not success:
+                print(f"Failed to create schema {schema_name} for tenant {tenant_id}")
+                return False
+
+            # Create tables in the schema
+            async with engine.begin() as conn:
+                await conn.execute(text(f'SET search_path TO "{schema_name}", public'))
+                await conn.run_sync(Base.metadata.create_all)
+
+            print(f"Created schema {schema_name} for tenant {tenant_id} with all tables")
+        else:
+            print(f"Schema {schema_name} for tenant {tenant_id} already exists")
+
+        return True
+    except Exception as e:
+        print(f"Error creating schema for tenant {tenant_id}: {e}")
+        return False
+    finally:
+        await engine.dispose()
