@@ -1,3 +1,5 @@
+
+##############################################################  VERSION 1 #############################################################
 # import os
 # import sys
 # import cohere
@@ -79,8 +81,98 @@
 #         model="rerank-english-v3.0"
 #     )
 #     return [chunks[result.index] for result in response.results]
+##############################################################  VERSION 1 #############################################################
+
+##############################################################  VERSION 2 #############################################################
+
+# import os
+# import sys
+# import cohere
+# import numpy as np
+# from dotenv import load_dotenv
+# from scipy.stats import beta
+# from typing import List, Dict, Tuple
+
+# load_dotenv()
+
+# base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# sys.path.append(base_path)
+
+# from retrieval_stage.retrieve_qdrant import retrieve_chunks_semantic, retrieve_by_payload, extract_part_numbers
+
+# cohere_client = cohere.Client(os.getenv("COHERE_API_KEY"))
 
 
+# def transform(x: float) -> float:
+#     """Transform scores using beta distribution CDF"""
+#     a, b = 0.4, 0.4
+#     return beta.cdf(x, a, b)
+
+
+# def rerank_text_chunks(query: str, chunk_texts: List[str], decay_rate: int = 30) -> Tuple[List[float], List[float]]:
+#     """Use Cohere reranker and apply beta CDF + exponential decay"""
+#     reranked_results = cohere_client.rerank(
+#         model="rerank-english-v3.0", query=query, documents=chunk_texts
+#     )
+#     results = reranked_results.results
+#     scores = [0.0] * len(chunk_texts)
+#     values = [0.0] * len(chunk_texts)
+
+#     for i, result in enumerate(results):
+#         idx = result.index
+#         transformed_score = transform(result.relevance_score)
+#         scores[idx] = transformed_score
+#         values[idx] = np.exp(-i / decay_rate) * transformed_score
+
+#     return scores, values
+
+
+# def rerank_separately_then_merge(query: str, top_k: int = 30) -> Tuple[List[Dict], List[float]]:
+#     """
+#     1. Rerank semantic chunks
+#     2. Rerank payload (exact match) chunks
+#     3. Merge both, return (chunks, values)
+#     """
+#     seen_ids = set()
+#     final_chunks: List[Dict] = []
+#     final_scores: List[float] = []
+
+#     # --- Semantic Retrieval ---
+#     semantic_chunks = retrieve_chunks_semantic(query, top_k=top_k)
+#     semantic_texts = [c["chunk_text"] for c in semantic_chunks]
+#     _, semantic_values = rerank_text_chunks(query, semantic_texts)
+
+#     for chunk, val in zip(semantic_chunks, semantic_values):
+#         if chunk["chunk_id"] not in seen_ids:
+#             seen_ids.add(chunk["chunk_id"])
+#             chunk["search_type"] = "semantic"
+#             final_chunks.append(chunk)
+#             final_scores.append(val)
+
+#     # --- Payload Retrieval ---
+#     part_numbers = extract_part_numbers(query)
+#     if part_numbers:
+#         payload_chunks = []
+#         for pn in part_numbers:
+#             payload_chunks.extend(retrieve_by_payload(pn, top_k=top_k))
+
+#         payload_chunks = [c for c in payload_chunks if c["chunk_id"] not in seen_ids]
+#         payload_texts = [c["chunk_text"] for c in payload_chunks]
+
+#         if payload_texts:
+#             _, payload_values = rerank_text_chunks(query, payload_texts)
+
+#             for chunk, val in zip(payload_chunks, payload_values):
+#                 seen_ids.add(chunk["chunk_id"])
+#                 chunk["search_type"] = "exact_match"
+#                 final_chunks.append(chunk)
+#                 final_scores.append(val + 0.05)
+
+#     return final_chunks, final_scores
+
+##############################################################  VERSION 2 #############################################################
+
+##############################################################  VERSION 3 #############################################################
 import os
 import sys
 import cohere
@@ -94,19 +186,19 @@ load_dotenv()
 base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(base_path)
 
-from retrieval_stage.retrieve_qdrant import retrieve_chunks_semantic, retrieve_by_payload, extract_part_numbers
+from retrieval_stage.retrieve_qdrant import retrieve_chunks_semantic, retrieve_by_payload, extract_part_numbers, retrieve_by_keywords, extract_keywords
+
 
 cohere_client = cohere.Client(os.getenv("COHERE_API_KEY"))
 
 
 def transform(x: float) -> float:
-    """Transform scores using beta distribution CDF"""
+    """Apply beta CDF transformation to a raw score."""
     a, b = 0.4, 0.4
     return beta.cdf(x, a, b)
 
-
 def rerank_text_chunks(query: str, chunk_texts: List[str], decay_rate: int = 30) -> Tuple[List[float], List[float]]:
-    """Use Cohere reranker and apply beta CDF + exponential decay"""
+    """Use Cohere reranker and apply beta CDF + exponential decay to similarity scores."""
     reranked_results = cohere_client.rerank(
         model="rerank-english-v3.0", query=query, documents=chunk_texts
     )
@@ -122,18 +214,28 @@ def rerank_text_chunks(query: str, chunk_texts: List[str], decay_rate: int = 30)
 
     return scores, values
 
+def dynamic_keyword_boost(query: str, final_chunks: List[Dict], final_scores: List[float], boost_amount: float = 0.15) -> List[float]:
+    query_keywords = extract_keywords(query)
+    boosted_scores = []
+    for chunk, score in zip(final_chunks, final_scores):
+        text = chunk.get("chunk_text", "").lower()
+        if any(keyword.lower() in text for keyword in query_keywords):
+            boosted_scores.append(score + boost_amount)
+        else:
+            boosted_scores.append(score)
+    return boosted_scores
 
 def rerank_separately_then_merge(query: str, top_k: int = 30) -> Tuple[List[Dict], List[float]]:
     """
-    1. Rerank semantic chunks
-    2. Rerank payload (exact match) chunks
-    3. Merge both, return (chunks, values)
+    1. Semantic retrieval + rerank
+    2. Exact match retrieval + rerank
+    3. sparse keyword retrieval + rerank
+    4. merge and normalize scores
     """
     seen_ids = set()
     final_chunks: List[Dict] = []
     final_scores: List[float] = []
 
-    # --- Semantic Retrieval ---
     semantic_chunks = retrieve_chunks_semantic(query, top_k=top_k)
     semantic_texts = [c["chunk_text"] for c in semantic_chunks]
     _, semantic_values = rerank_text_chunks(query, semantic_texts)
@@ -144,8 +246,8 @@ def rerank_separately_then_merge(query: str, top_k: int = 30) -> Tuple[List[Dict
             chunk["search_type"] = "semantic"
             final_chunks.append(chunk)
             final_scores.append(val)
-
-    # --- Payload Retrieval ---
+    
+    #2 ---
     part_numbers = extract_part_numbers(query)
     if part_numbers:
         payload_chunks = []
@@ -163,5 +265,24 @@ def rerank_separately_then_merge(query: str, top_k: int = 30) -> Tuple[List[Dict
                 chunk["search_type"] = "exact_match"
                 final_chunks.append(chunk)
                 final_scores.append(val + 0.05)
+
+    #3 ---
+    keywords = extract_keywords(query)
+    if keywords:
+        sparse_chunks = retrieve_by_keywords(keywords, top_k=30)
+        sparse_chunks = [c for c in sparse_chunks if c["chunk_id"] not in seen_ids]
+        sparse_texts = [c["chunk_text"] for c in sparse_chunks]
+
+        if sparse_texts:
+            _, sparse_values = rerank_text_chunks(query, sparse_texts)
+
+            for chunk, val in zip(sparse_chunks, sparse_values):
+                seen_ids.add(chunk["chunk_id"])
+                chunk["search_type"] = "sparse_keyword"
+                final_chunks.append(chunk)
+                final_scores.append(val + 0.02)
+
+    # finalboost
+    final_scores = dynamic_keyword_boost(query, final_chunks, final_scores, boost_amount=0.15)
 
     return final_chunks, final_scores
