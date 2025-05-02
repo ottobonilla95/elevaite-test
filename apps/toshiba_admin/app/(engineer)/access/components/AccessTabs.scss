@@ -1,0 +1,42 @@
+.access-tabs-container {
+    display: grid;
+    grid-template-rows: min-content 1fr;
+    grid-template-columns: 100%;
+    gap: 5px;
+    overflow: hidden;
+
+    & .tabs-container {
+        display: flex;
+        align-items: center;
+        margin: 0 10px;
+
+        & > button.tab-button {
+            padding: 20px;
+            border-bottom: 2px solid transparent;
+            border-radius: 0;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            white-space: nowrap;
+            color: var(--ev-colors-secondaryText);
+
+            &.active {
+                color: var(--ev-colors-highlight);
+                border-bottom-color: var(--ev-colors-highlight);
+            }
+        }
+    }
+
+    & .payload-container {
+        grid-area: 2 / 1;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 200ms ease-in-out;
+        overflow: hidden;
+
+        &.is-visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+    }
+}
