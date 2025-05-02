@@ -100,22 +100,23 @@ export const DarkTheme: ColorScheme = {
 // Light
 export const LightTheme: ColorScheme = {
   type: "light",
-  primary: "#FFFFFF",
-  secondary: "#F1F5F9",
+  primary: "#F8FAFC",
+  secondary: "F1F5F9",
   tertiary: "#E75F3333",
   highlight: "#e75f33",
-  text: "#0F172A",
-  secondaryText: "#c3c3c3",
-  tertiaryText: "#A3A3A3",
+  text: "#212124",
+  secondaryText: "#212124",
+  tertiaryText: "#212124",
   icon: "#64748B",
   hoverColor: "#f5f5f5",
-  borderColor: "#CBD5E1",
+  borderColor: "#E2E8ED",
   iconBorder: "#64748B",
-  background: "#F7F6F1",
+  background: "#FFFFFF",
   backgroundHighContrast: "#FFFFFF",
   success: "#D8FC77",
   danger: "#DC143C",
   tagBorder: "#71570D",
+
   // Light theme
   markdownHeading: "#000000",
   markdownParagraph: "#1b2027",
@@ -123,7 +124,8 @@ export const LightTheme: ColorScheme = {
   markdownTableBorder: "#EEEEEE",
   markdownTableHeaderBg: "#F5F5F5",
   markdownTableHeaderBorder: "#D9D9D9",
-  
+
+
   // UI colors -- Navigation UI is the same between the two themes.
   uiPrimary: DarkTheme.uiPrimary,
   uiSecondary: DarkTheme.uiSecondary,

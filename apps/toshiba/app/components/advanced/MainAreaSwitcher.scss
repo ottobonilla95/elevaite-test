@@ -21,6 +21,7 @@
             "contact co"
             "recents co";
         & .contact-details { min-height: auto; }
+        
     }
 
     //&.active-case {
@@ -72,6 +73,7 @@
     &.toshiba1 {
         grid-template-columns: 1fr;
         grid-template-rows: 1fr;
+        background-color: var(--ev-colors-primary); /* Add this to make main area match original sidebar color */
 
         // &.sidebar-collapsed{
         //     margin-left: 250px;

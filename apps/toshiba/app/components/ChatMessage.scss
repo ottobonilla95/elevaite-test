@@ -1,40 +1,39 @@
 
-$profile-backdrop-user: #165390;
-$profile-backdrop-bot: #585679;
+$profile-backdrop-user: #FF681F;
+$profile-backdrop-bot: #FFFFFF;
 
 .custom-table {
     width: 100%;
     border-collapse: collapse;
     margin: 16px 0;
-
+  
     th {
-      background-color: #2a2a2a;
-      color: #e0e0e0;
+      background-color: var(--ev-colors-markdownTableHeaderBg);
+      color: var(--ev-colors-text);
       font-weight: bold;
       padding: 8px 12px;
       text-align: left;
-      border: 1px solid #444;
+      border: 1px solid var(--ev-colors-markdownTableHeaderBorder);
     }
-
+  
     td {
       padding: 8px 12px;
-      border: 1px solid #444;
-      color: #e0e0e0;
+      border: 1px solid var(--ev-colors-markdownTableBorder);
+      color: var(--ev-colors-text);
     }
-
+  
     tr:nth-child(odd) {
-      background-color: #222222;
+      background-color: var(--ev-colors-markdownTableBg);
     }
-
+  
     tr:nth-child(even) {
-      background-color: #2a2a2a;
+      background-color: var(--ev-colors-primary);
     }
-
+  
     tr:hover {
-      background-color: #333333;
+      background-color: var(--ev-colors-secondary);
     }
   }
-
 
 
 
@@ -64,7 +63,10 @@ $profile-backdrop-bot: #585679;
             width: 30px;
             border-radius: 50%;
             background-color: $profile-backdrop-user;
-            &.bot { background-color: $profile-backdrop-bot; }
+            &.bot { 
+                background-color: #FFFFFF !important;
+                border: 2px solid #FF681F; /* This will help you see if the element is there */
+            }
         }
     }
 
