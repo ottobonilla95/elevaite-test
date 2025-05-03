@@ -1,4 +1,3 @@
-// AgentNode.tsx
 "use client";
 
 import React, { memo } from "react";
@@ -16,6 +15,7 @@ interface NodeProps {
         name: string;
         prompt?: string;
         tools?: string[];
+        config?: any; // Add config to display parameters
         onDelete: (id: string) => void;
         onConfigure: () => void;
     };
@@ -23,7 +23,7 @@ interface NodeProps {
 }
 
 const AgentNode = memo(({ id, data, selected }: NodeProps) => {
-    const { type, name, tools = [], onDelete, onConfigure } = data;
+    const { type, name, tools = [], config = {}, onDelete, onConfigure } = data;
     const styles = AGENT_STYLES[type] || { bgClass: "bg-gray-100", textClass: "text-gray-600" };
 
     // Get the appropriate icon based on agent type
@@ -49,7 +49,15 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
         const toolIcons: { [key: string]: React.ReactNode } = {
             "Tool 1": <Zap size={16} className="text-orange-500" />,
             "Tool 2": <Database size={16} className="text-orange-500" />,
-            "Tool 3": <Link2 size={16} className="text-orange-500" />
+            "Tool 3": <Link2 size={16} className="text-orange-500" />,
+            "Document Parser": <Database size={16} className="text-orange-500" />,
+            "Regex Extractor": <Zap size={16} className="text-orange-500" />,
+            "MCP Integration": <Link2 size={16} className="text-orange-500" />,
+            "Workflow Orchestrator": <Zap size={16} className="text-orange-500" />,
+            "Real-time Analytics": <Database size={16} className="text-orange-500" />,
+            "Data Transformer": <Link2 size={16} className="text-orange-500" />,
+            "Semantic Search": <Zap size={16} className="text-orange-500" />,
+            "Conversational Agent": <Database size={16} className="text-orange-500" />
         };
 
         return toolIcons[toolName] || <Zap size={16} className="text-orange-500" />;
@@ -69,6 +77,22 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
     const getSubtitle = (type: AgentType) => {
         if (type === "web_search") return "web search";
         return type.replace('_', ' ');
+    };
+
+    // Get model display name
+    const getModelName = () => {
+        const model = config.model || "Claude 3";
+        return model;
+    };
+
+    // Get charge type
+    const getChargeType = () => {
+        return config.modelChargeType || "Hosted";
+    };
+
+    // Get dataset name
+    const getDatasetName = () => {
+        return config.dataset || "Knowledge Base";
     };
 
     return (
@@ -104,9 +128,9 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
 
             {/* Badge section */}
             <div className="agent-badges">
-                <span className="badge">Hosted</span>
-                <span className="badge">ClaudeGPT-4</span>
-                <span className="badge">Knowledge Base</span>
+                <span className="badge">{getChargeType()}</span>
+                <span className="badge">{getModelName()}</span>
+                <span className="badge">{getDatasetName()}</span>
             </div>
 
             {/* Tools Section */}

@@ -13,6 +13,8 @@ export interface NodeData {
     config?: any;
     onDelete: (id: string) => void;
     onConfigure: (id: string) => void;
+    tags?: string[];
+
 }
 
 export interface AgentTypeDefinition {

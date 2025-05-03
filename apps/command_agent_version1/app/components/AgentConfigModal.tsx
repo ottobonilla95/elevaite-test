@@ -1,8 +1,7 @@
-// AgentConfigModal.tsx - Original style
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Plus, Save } from "lucide-react";
+import { X, Plus, Save, Check } from "lucide-react";
 import { AgentType } from "./type";
 
 interface ModalProps {
@@ -14,9 +13,10 @@ interface ModalProps {
         shortId?: string;
         prompt?: string;
         description?: string;
+        tags?: string[]; // Add tags array
     } | null;
     onClose: () => void;
-    onSave: (id: string, name: string, prompt: string, description: string) => void;
+    onSave: (id: string, name: string, prompt: string, description: string, tags: string[]) => void;
 }
 
 const AgentConfigModal: React.FC<ModalProps> = ({
@@ -28,8 +28,21 @@ const AgentConfigModal: React.FC<ModalProps> = ({
     const [name, setName] = useState("");
     const [prompt, setPrompt] = useState("");
     const [description, setDescription] = useState("");
+    const [tags, setTags] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState("prompt");
     const maxLength = 1000;
+
+    // Available tag options
+    const availableTags = [
+        { value: "router", label: "Router" },
+        { value: "data", label: "Data Extractor" },
+        { value: "web_search", label: "Web Search" },
+        { value: "api", label: "API" },
+        { value: "troubleshooting", label: "Troubleshooting" },
+        { value: "cx", label: "CX Application" },
+        { value: "command", label: "Command Agent" },
+        { value: "worker", label: "Worker Agent" }
+    ];
 
     // Reset state when node data changes
     useEffect(() => {
@@ -37,13 +50,24 @@ const AgentConfigModal: React.FC<ModalProps> = ({
             setName(nodeData.name || "");
             setPrompt(nodeData.prompt || "");
             setDescription(nodeData.description || "");
+            // Initialize tags with the node's type as default if no tags exist
+            setTags(nodeData.tags || [nodeData.type]);
         }
     }, [nodeData]);
 
     if (!isOpen || !nodeData) return null;
 
+    // Toggle a tag in the selected tags array
+    const toggleTag = (tagValue: string) => {
+        if (tags.includes(tagValue)) {
+            setTags(tags.filter(t => t !== tagValue));
+        } else {
+            setTags([...tags, tagValue]);
+        }
+    };
+
     const handleSave = () => {
-        onSave(nodeData.id, name, prompt, description);
+        onSave(nodeData.id, name, prompt, description, tags);
     };
 
     const currentLength = prompt.length;
@@ -166,20 +190,60 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                 </div>
                             </div>
 
-                            {/* Type and Dataset */}
+                            {/* Tags and Dataset */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Type</label>
-                                    <select
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
-                                        defaultValue={nodeData.type}
-                                    >
-                                        <option value="router">Router</option>
-                                        <option value="data">Data Extractor</option>
-                                        <option value="web_search">Web Search</option>
-                                        <option value="api">API</option>
-                                        <option value="troubleshooting">Troubleshooting</option>
-                                    </select>
+                                    <label className="block text-sm font-medium mb-1">Tags</label>
+                                    <div className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow bg-white">
+                                        <div className="flex flex-wrap mb-1">
+                                            {/* Selected tags */}
+                                            {tags.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 mb-1">
+                                                    {tags.map(tag => {
+                                                        const tagLabel = availableTags.find(t => t.value === tag)?.label || tag;
+                                                        return (
+                                                            <div key={tag} className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full flex items-center">
+                                                                {tagLabel}
+                                                                <button
+                                                                    className="ml-1 text-orange-600 hover:text-orange-800"
+                                                                    onClick={() => toggleTag(tag)}
+                                                                >
+                                                                    <X size={12} />
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Tag options */}
+                                        <div className="mt-2 border-t pt-2">
+                                            <div className="text-xs text-gray-500 mb-1">Select tags:</div>
+                                            <div className="grid grid-cols-2 gap-1">
+                                                {availableTags.map(tag => (
+                                                    <div
+                                                        key={tag.value}
+                                                        className={`
+                                                            cursor-pointer text-sm px-2 py-1 rounded 
+                                                            ${tags.includes(tag.value)
+                                                                ? 'bg-orange-100 text-orange-800'
+                                                                : 'hover:bg-gray-100 text-gray-700'
+                                                            }
+                                                        `}
+                                                        onClick={() => toggleTag(tag.value)}
+                                                    >
+                                                        <div className="flex items-center">
+                                                            {tags.includes(tag.value) && (
+                                                                <Check size={14} className="mr-1 text-orange-500" />
+                                                            )}
+                                                            <span>{tag.label}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Dataset</label>
@@ -331,7 +395,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                     {activeTab === "testing" && (
                         <div className="space-y-4">
                             <div className="bg-blue-50 p-3 rounded-md text-blue-800 text-sm mb-4">
-                                Test your agent with sample inputs to see how it performs. Results will be shown below.
+                                Test your prompt with sample inputs to see how it performs. Results will be shown below.
                             </div>
 
                             {/* Testing Console */}

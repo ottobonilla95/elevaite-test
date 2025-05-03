@@ -1,4 +1,3 @@
-// CustomEdge.tsx
 "use client";
 
 import React from "react";
@@ -33,8 +32,22 @@ const CustomEdge: React.FC<CustomEdgeProps> = ({
     const centerX = (sourceX + targetX) / 2;
     const centerY = (sourceY + targetY) / 2;
 
-    // Default to "Action" if not specified
-    const actionType = data?.actionType || "Action";
+    // Basic edge without a label - when no data or actionType is provided
+    if (!data || !data.actionType) {
+        return (
+            <path
+                id={id}
+                className="react-flow__edge-path"
+                d={edgePath}
+                strokeWidth={2}
+                markerEnd={markerEnd}
+                style={{ ...style }}
+            />
+        );
+    }
+
+    // Get action type from data
+    const actionType = data.actionType;
 
     // Set color based on action type
     let bgColor = "#4CAF50"; // Default green for "Action"
@@ -46,12 +59,13 @@ const CustomEdge: React.FC<CustomEdgeProps> = ({
         bgColor = "#FF5722"; // Deep Orange for "Delay"
     }
 
-    // Function to remove label (will be triggered by edge label click handler)
-    const removeLabel = (event: React.MouseEvent) => {
+    // Function to remove only the label but keep the connection
+    const removeLabelOnly = (event: React.MouseEvent) => {
         event.stopPropagation();
-        // Dispatch custom event to be caught by parent component
+
+        // Dispatch custom event to be caught by DesignerCanvas
         const customEvent = new CustomEvent('remove-edge-label', {
-            detail: { id }
+            detail: { id, removeConnectionOnly: false }
         });
         document.dispatchEvent(customEvent);
     };
@@ -66,32 +80,31 @@ const CustomEdge: React.FC<CustomEdgeProps> = ({
                 markerEnd={markerEnd}
                 style={{ ...style }}
             />
-            {data && (
-                <foreignObject
-                    width={110}
-                    height={28}
-                    x={centerX - 55}
-                    y={centerY - 14}
-                    className="edge-label-container"
-                    requiredExtensions="http://www.w3.org/1999/xhtml"
+            <foreignObject
+                width={110}
+                height={28}
+                x={centerX - 55}
+                y={centerY - 14}
+                className="edge-label-container"
+                requiredExtensions="http://www.w3.org/1999/xhtml"
+            >
+                <div
+                    className="edge-label"
+                    style={{ backgroundColor: bgColor }}
                 >
-                    <div
-                        className="edge-label"
-                        style={{ backgroundColor: bgColor }}
+                    <span className="edge-label-text">
+                        {actionType === "Action" ? "+ Action" : actionType}
+                    </span>
+                    <button
+                        onClick={removeLabelOnly}
+                        className="edge-label-button"
                     >
-                        <span className="edge-label-text">
-                            {actionType === "Action" ? "+ Action" : actionType}
-                        </span>
-                        <button
-                            onClick={removeLabel}
-                            className="edge-label-button"
-                        >
-                            <X size={12} />
-                        </button>
-                    </div>
-                </foreignObject>
-            )}
+                        <X size={12} />
+                    </button>
+                </div>
+            </foreignObject>
         </>
     );
 };
+
 export default CustomEdge;

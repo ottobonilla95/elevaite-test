@@ -39,7 +39,6 @@ interface Edge {
     markerEnd?: any;
     data?: any;
 }
-
 interface ChatMessage {
     id: number;
     text: string;
@@ -56,6 +55,7 @@ interface WorkflowConfig {
         name: string;
         prompt?: string;
         tools?: string[];
+        tags?: string[];
         position: {
             x: number;
             y: number;
@@ -163,6 +163,7 @@ const AgentConfigForm: React.FC = () => {
                         name: agentData.name,
                         prompt: "", // Initialize with empty prompt
                         tools: ["Tool 1", "Tool 2", "Tool 3"], // Default tools
+                        tags: [agentData.type], // Initialize tags with the type
                         onDelete: handleDeleteNode,
                         onConfigure: () => handleNodeSelect({
                             id: nodeId,
@@ -175,6 +176,7 @@ const AgentConfigForm: React.FC = () => {
                                 name: agentData.name,
                                 prompt: "",
                                 tools: ["Tool 1", "Tool 2", "Tool 3"],
+                                tags: [agentData.type],
                                 onDelete: handleDeleteNode,
                                 onConfigure: () => { } // This will be overwritten
                             }
@@ -246,8 +248,8 @@ const AgentConfigForm: React.FC = () => {
     }, []);
 
     // Handle saving the prompt
-    const handleSavePrompt = useCallback((id: string, name: string, prompt: string, description: string) => {
-        // Update the node data with the new name and prompt
+    const handleSavePrompt = useCallback((id: string, name: string, prompt: string, description: string, tags: string[] = []) => {
+        // Update the node data with the new name, prompt, description and tags
         setNodes(prevNodes => prevNodes.map(node =>
             node.id === id
                 ? {
@@ -256,7 +258,8 @@ const AgentConfigForm: React.FC = () => {
                         ...node.data,
                         name,
                         prompt,
-                        description
+                        description,
+                        tags
                     }
                 }
                 : node
@@ -271,7 +274,8 @@ const AgentConfigForm: React.FC = () => {
                     ...prev.data,
                     name,
                     prompt,
-                    description
+                    description,
+                    tags
                 }
             } : null);
         }
@@ -285,7 +289,7 @@ const AgentConfigForm: React.FC = () => {
         }
 
         // Check if there's a router agent
-        const routerNode = nodes.find(node => node.data.type === 'router');
+        const routerNode = nodes.find(node => node.data.tags?.includes('router') || node.data.type === 'router');
         if (!routerNode) {
             alert("Your workflow must include a Router Agent.");
             return;
@@ -318,53 +322,7 @@ const AgentConfigForm: React.FC = () => {
         }
     };
 
-    // Send chat message
-    const handleSendMessage = async () => {
-        if (!chatInput.trim()) return;
 
-        // Add user message to chat
-        const userMessage = {
-            id: Date.now(),
-            text: chatInput,
-            sender: "user" as const
-        };
-
-        setChatMessages(prevMessages => [...prevMessages, userMessage]);
-
-        // Save and clear input
-        const query = chatInput;
-        setChatInput("");
-
-        setIsLoading(true);
-
-        try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Add bot response
-            const botMessage = {
-                id: Date.now() + 1,
-                text: `I've processed your query: "${query}". Based on the workflow configuration, I've routed this to the appropriate agent and found some relevant information for you. Would you like me to elaborate on any specific aspect?`,
-                sender: "bot" as const
-            };
-
-            setChatMessages(prevMessages => [...prevMessages, botMessage]);
-        } catch (error) {
-            console.error("Error running workflow:", error);
-
-            // Add error message to chat
-            setChatMessages(prevMessages => [
-                ...prevMessages,
-                {
-                    id: Date.now() + 1,
-                    text: `Error: ${(error as Error).message || "Failed to process message"}`,
-                    sender: "bot" as const
-                }
-            ]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     // Save workflow
     const handleSaveWorkflow = () => {
@@ -383,6 +341,7 @@ const AgentConfigForm: React.FC = () => {
                 name: node.data.name,
                 prompt: node.data.prompt, // Include prompt in saved workflow
                 tools: node.data.tools, // Include tools in saved workflow
+                tags: node.data.tags, // Include tags in saved workflow
                 position: node.position
             })),
             connections: edges.map(edge => ({
@@ -510,7 +469,8 @@ const AgentConfigForm: React.FC = () => {
                                     name: selectedNode.data.name,
                                     shortId: selectedNode.data.shortId,
                                     prompt: selectedNode.data.prompt,
-                                    description: selectedNode.data.description
+                                    description: selectedNode.data.description,
+                                    tags: selectedNode.data.tags
                                 } : null}
                                 onClose={handleClosePromptModal}
                                 onSave={handleSavePrompt}
@@ -546,4 +506,3 @@ const AgentConfigForm: React.FC = () => {
 };
 
 export default AgentConfigForm;
-

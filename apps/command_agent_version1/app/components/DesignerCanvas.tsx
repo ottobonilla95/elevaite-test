@@ -1,4 +1,3 @@
-// DesignerCanvas.tsx
 "use client";
 
 import React, { useCallback, useState, useEffect } from "react";
@@ -64,16 +63,16 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
     // Add event listener for edge label removal
     useEffect(() => {
         const handleRemoveEdgeLabel = (event: CustomEvent) => {
-            const { id } = event.detail;
+            const { id, removeConnectionOnly = false } = event.detail;
 
-            // Remove the action type data but keep the edge
+            // Update the edges array - keep the connection but remove the data/label
             setEdges(prevEdges =>
                 prevEdges.map(edge => {
                     if (edge.id === id) {
-                        // Remove the action type by setting data to null
+                        // Keep the edge but remove the data that contains the label info
                         return {
                             ...edge,
-                            data: null
+                            data: null // This removes the label while keeping the connection
                         };
                     }
                     return edge;
