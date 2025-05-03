@@ -7,7 +7,7 @@ RUN apk update
 WORKDIR /app
 RUN npm install -g turbo
 COPY . .
-RUN turbo prune chatbot --docker
+RUN turbo prune command_agent_version1 --docker
 
 # Add lockfile and package.json's of isolated subworkspace
 FROM base AS installer
@@ -25,7 +25,7 @@ RUN npm ci
 # Build the project
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
-RUN npx --yes turbo run build --filter=command_agent...
+RUN npx --yes turbo run build --filter=command_agent_version1...
 
 FROM base AS runner
 WORKDIR /app
@@ -45,7 +45,7 @@ COPY --from=installer /app/apps/command_agent_version1/package.json .
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=installer --chown=nextjs:nodejs /app/apps/command_agent_version1/.next/standalone ./
 COPY --from=installer --chown=nextjs:nodejs /app/apps/command_agent_version1/.next/static ./apps/command_agent_version1/.next/static
-COPY --from=installer --chown=nextjs:nodejs /app/apps/command_agent_version1/public ./apps/command_agent_version1/public
+#COPY --from=installer --chown=nextjs:nodejs /app/apps/command_agent_version1/public ./apps/command_agent_version1/public
 
 USER nextjs
 
@@ -53,4 +53,4 @@ EXPOSE 3101
 
 ENV PORT 3101
 
-CMD node apps/command_agent/server.js
+CMD node apps/command_agent_version1/server.js

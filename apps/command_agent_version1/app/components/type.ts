@@ -17,6 +17,30 @@ export interface NodeData {
 
 }
 
+export interface NodeType {
+  source: string;
+  target: string;
+  type?: string;
+}
+
+export interface Connection {
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+}
+
+export interface NodeItem {
+  id: string;
+  type: string;
+  position: {
+    x: number;
+    y: number;
+  };
+  data: NodeData;
+}
+
+
 export interface AgentTypeDefinition {
     id: string;
     type: AgentType;
