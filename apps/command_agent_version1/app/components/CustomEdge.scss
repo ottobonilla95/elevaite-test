@@ -1,4 +1,5 @@
 // CustomEdge.scss
+@import 'variables';
 
 .edge-label-container {
     // This ensures the foreignObject doesn't capture pointer events except for its contents
@@ -46,14 +47,14 @@
   
   // Styling for the edge path
   .react-flow__edge-path {
-    stroke: #3b82f6;
+    stroke: $accent-primary; //#3b82f6;
     stroke-width: 2;
     fill: none;
   }
   
   // Styling for connection line
   .react-flow__connection-path {
-    stroke: #3b82f6;
+    stroke: $accent-primary; //#3b82f6;
     stroke-width: 2;
     stroke-dasharray: 5;
     fill: none;

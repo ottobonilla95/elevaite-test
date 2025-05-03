@@ -157,7 +157,7 @@ const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex border-b border-gray-200">
+            <div className="sidebar-header-tabs flex border-b border-gray-200">
                 <div
                     className={`flex-1 text-center py-2 font-medium text-sm cursor-pointer ${activeTab === "actions"
                         ? "text-orange-500 border-b-2 border-orange-500"
@@ -317,7 +317,7 @@ const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
             )}
 
             {/* Footer Buttons */}
-            <div className="p-4 mt-auto border-t border-gray-200 space-y-2">
+            <div className="designer-sidebar-controls-container p-4 mt-auto border-t border-gray-200 space-y-2">
                 {/* Save Workflow Button */}
                 <button
                     onClick={handleSaveWorkflow}

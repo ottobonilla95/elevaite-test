@@ -29,7 +29,7 @@ interface CommonMenuProps<Τ> {
 }
 
 export function CommonMenu<T>(props: CommonMenuProps<T>): JSX.Element {
-    const buttonRef = useRef<HTMLButtonElement|null>(null);
+    const buttonRef = useRef<HTMLButtonElement | null>(null);
     const [isOpen, setIsOpen] = useState(false);
 
     function toggleMenu(): void {
@@ -41,7 +41,7 @@ export function CommonMenu<T>(props: CommonMenuProps<T>): JSX.Element {
     }
 
     function handleClick(menuItem: CommonMenuItem<T>): void {
-        menuItem.onClick(props.item);
+        menuItem.onClick(props.item as T);
         closeMenu();
     }
 
@@ -54,7 +54,7 @@ export function CommonMenu<T>(props: CommonMenuProps<T>): JSX.Element {
                 onClick={toggleMenu}
                 title={props.tooltip}
             >
-                {props.menuIcon ? props.menuIcon : <ElevaiteIcons.SVGMenuDots/>}
+                {props.menuIcon ? props.menuIcon : <ElevaiteIcons.SVGMenuDots />}
             </CommonButton>
             <ClickOutsideDetector onOutsideClick={closeMenu} ignoredRefs={[buttonRef]}>
                 <div
@@ -68,7 +68,7 @@ export function CommonMenu<T>(props: CommonMenuProps<T>): JSX.Element {
                 >
                     <div className="common-menu-accordion">
                         <div className="common-menu-contents">
-                            {props.menu.map(menuItem => 
+                            {props.menu.map(menuItem =>
                                 <CommonButton
                                     key={menuItem.label}
                                     onClick={() => { handleClick(menuItem) }}

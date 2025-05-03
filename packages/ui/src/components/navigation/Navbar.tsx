@@ -49,7 +49,7 @@ export function NavBar(props: NavBarProps): JSX.Element {
     if (themesContext.themesList.length === 0) return;
     const themesList: CommonMenuItem<NavbarMenuItem>[] = themesContext.themesList.map(item => { return {
       label: item.label,
-      onClick: () => { handleThemeClick(item.id) }
+      onClick: (_: NavbarMenuItem) => { handleThemeClick(item.id) }
     }});
     themesList.push({ label: "Logout", onClick: () => { handleLogoutRequest(); } });
     setUserMenu(themesList);

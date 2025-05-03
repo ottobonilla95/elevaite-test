@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
-import { LightTheme, ColorScheme, DarkTheme } from "../themes";
+import { type ColorScheme, DarkTheme, LightTheme } from "../themes";
 
 
 
@@ -43,7 +43,7 @@ export interface ColorContextStructure extends ColorScheme {
 
 export const ColorContext = createContext<ColorContextStructure>({
   themesList: [],
-  changeTheme: () => {},
+  changeTheme: () => { /** */ },
 });
 
 

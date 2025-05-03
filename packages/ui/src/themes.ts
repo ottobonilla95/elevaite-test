@@ -125,16 +125,27 @@ export const LightTheme: ColorScheme = {
   markdownTableHeaderBg: "#F5F5F5",
   markdownTableHeaderBorder: "#D9D9D9",
 
-
+  // Obsolete - No idea why we would have a dark bar on a bright theme.
   // UI colors -- Navigation UI is the same between the two themes.
-  uiPrimary: DarkTheme.uiPrimary,
-  uiSecondary: DarkTheme.uiSecondary,
-  uiIcon: DarkTheme.uiIcon,
-  uiHover: DarkTheme.uiHover,
-  uiHighlight: DarkTheme.uiHighlight,
-  uiText: DarkTheme.uiText,
-  uiBackground: DarkTheme.uiBackground,
-  uiBorder: DarkTheme.uiBorder,
+  // uiPrimary: DarkTheme.uiPrimary,
+  // uiSecondary: DarkTheme.uiSecondary,
+  // uiIcon: DarkTheme.uiIcon,
+  // uiHover: DarkTheme.uiHover,
+  // uiHighlight: DarkTheme.uiHighlight,
+  // uiText: DarkTheme.uiText,
+  // uiBackground: DarkTheme.uiBackground,
+  // uiBorder: DarkTheme.uiBorder,
+
+  uiPrimary: "#FFFFFF",
+  uiSecondary: "#F1F5F9",
+  uiIcon: "#64748B",
+  uiHover: "#f5f5f5",
+  uiHighlight: "#e75f33",
+  uiText: "#0F172A",
+  uiTextSecondary: "#c3c3c3",
+  uiBackground: "#F7F6F1",
+  uiBorder: "#CBD5E1",
+
   // Special cases
   specialCardBorder: "transparent",
   specialCardBorderTop: "transparent",

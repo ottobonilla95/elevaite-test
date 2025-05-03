@@ -5,6 +5,10 @@
     height: 100%;
     position: relative;
     overflow: hidden;
+
+    .react-flow__attribution {
+      display: none;
+    }
     
     // ReactFlow container - force full size
     .react-flow,
@@ -37,7 +41,7 @@
       position: absolute;
       width: 10px !important;
       height: 10px !important;
-      background-color: #3b82f6 !important;
+      background-color: black !important; //#3b82f6 !important;
       border: 2px solid white !important;
       border-radius: 50%;
       z-index: 10;
