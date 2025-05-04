@@ -11,6 +11,7 @@ from data_classes import PromptObject
 from tools import web_search, add_numbers, get_customer_order, tool_schemas
 from prompts import web_agent_system_prompt, api_agent_system_prompt, data_agent_system_prompt
 
+
 @agent_schema
 class WebAgent(Agent):
     def execute(self, query: Any) -> Any:
@@ -26,14 +27,17 @@ class WebAgent(Agent):
         """
         tries = 0
         routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
-        system_prompt = self.system_prompt.prompt + f"""
+        system_prompt = (
+            self.system_prompt.prompt
+            + f"""
         Here are the routing options:
         {routing_options}
 
         Your response should be in the format:
         {{ "routing": "respond", "content": "The answer to the query."}}
         """
-        messages=[{"role": "system", "content": system_prompt},{"role": "user", "content": query}]
+        )
+        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": query}]
 
         while tries < self.max_retries:
             print(tries)
@@ -48,9 +52,11 @@ class WebAgent(Agent):
                     tool_choice="auto",
                 )
                 # print("\n\nResponse: ",response)
-                if response.choices[0].finish_reason=="tool_calls":
+                if response.choices[0].finish_reason == "tool_calls":
                     tool_calls = response.choices[0].message.tool_calls
-                    messages+=[{"role": "assistant", "tool_calls": tool_calls},]
+                    messages += [
+                        {"role": "assistant", "tool_calls": tool_calls},
+                    ]
                     for tool in tool_calls:
                         print(tool.function.name)
                         tool_id = tool.id
@@ -58,7 +64,7 @@ class WebAgent(Agent):
                         function_name = tool.function.name
                         result = tool_store[function_name](**arguments)
                         print(result)
-                        messages+= [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
+                        messages += [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
 
                 else:
                     return response.choices[0].message.content
@@ -67,6 +73,7 @@ class WebAgent(Agent):
                 print(f"Error: {e}")
                 return "Response could not be processed"
             tries += 1
+
 
 @agent_schema
 class DataAgent(Agent):
@@ -77,7 +84,9 @@ class DataAgent(Agent):
         """
         tries = 0
         routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
-        system_prompt = self.system_prompt.prompt + f"""
+        system_prompt = (
+            self.system_prompt.prompt
+            + f"""
         Here are the routing options:
         {routing_options}
 
@@ -85,7 +94,8 @@ class DataAgent(Agent):
         {{ "routing": "respond", "content": "The answer to the query."}}
 
         """
-        messages=[{"role": "system", "content": system_prompt},{"role": "user", "content": query}]
+        )
+        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": query}]
 
         while tries < self.max_retries:
             print(tries)
@@ -100,9 +110,11 @@ class DataAgent(Agent):
                     tool_choice="auto",
                 )
                 # print("\n\nResponse: ",response)
-                if response.choices[0].finish_reason=="tool_calls":
+                if response.choices[0].finish_reason == "tool_calls":
                     tool_calls = response.choices[0].message.tool_calls
-                    messages+=[{"role": "assistant", "tool_calls": tool_calls},]
+                    messages += [
+                        {"role": "assistant", "tool_calls": tool_calls},
+                    ]
                     for tool in tool_calls:
                         print(tool.function.name)
                         tool_id = tool.id
@@ -110,7 +122,7 @@ class DataAgent(Agent):
                         function_name = tool.function.name
                         result = tool_store[function_name](**arguments)
                         print(result)
-                        messages+= [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
+                        messages += [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
 
                 else:
                     return response.choices[0].message.content
@@ -131,7 +143,9 @@ class APIAgent(Agent):
         """
         tries = 0
         routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
-        system_prompt = self.system_prompt.prompt + f"""
+        system_prompt = (
+            self.system_prompt.prompt
+            + f"""
         Here are the routing options:
         {routing_options}
 
@@ -139,7 +153,8 @@ class APIAgent(Agent):
         {{ "routing": "respond", "content": "The answer to the query."}}
 
         """
-        messages=[{"role": "system", "content": system_prompt},{"role": "user", "content": query}]
+        )
+        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": query}]
 
         while tries < self.max_retries:
             print(tries)
@@ -154,9 +169,11 @@ class APIAgent(Agent):
                     tool_choice="auto",
                 )
                 # print("\n\nResponse: ",response)
-                if response.choices[0].finish_reason=="tool_calls":
+                if response.choices[0].finish_reason == "tool_calls":
                     tool_calls = response.choices[0].message.tool_calls
-                    messages+=[{"role": "assistant", "tool_calls": tool_calls},]
+                    messages += [
+                        {"role": "assistant", "tool_calls": tool_calls},
+                    ]
                     for tool in tool_calls:
                         print(tool.function.name)
                         tool_id = tool.id
@@ -164,7 +181,7 @@ class APIAgent(Agent):
                         function_name = tool.function.name
                         result = tool_store[function_name](**arguments)
                         print(result)
-                        messages+= [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
+                        messages += [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
 
                 else:
                     return response.choices[0].message.content
@@ -174,90 +191,90 @@ class APIAgent(Agent):
             tries += 1
 
 
-web_agent = WebAgent(name="WebSearchAgent",
-                agent_id=uuid.uuid4(),
-                system_prompt=web_agent_system_prompt,
-                persona="Helper",
-                functions=[web_search.openai_schema],
-                routing_options={"continue": "If you think you can't answer the query, you can continue to the next tool or do some reasoning.",
-                                 "respond": "If you think you have the answer, you can stop here.",
-                                 "give_up": "If you think you can't answer the query, you can give up and let the user know."
-                                 },
+web_agent = WebAgent(
+    name="WebSearchAgent",
+    agent_id=uuid.uuid4(),
+    system_prompt=web_agent_system_prompt,
+    persona="Helper",
+    functions=[web_search.openai_schema],
+    routing_options={
+        "continue": "If you think you can't answer the query, you can continue to the next tool or do some reasoning.",
+        "respond": "If you think you have the answer, you can stop here.",
+        "give_up": "If you think you can't answer the query, you can give up and let the user know.",
+    },
+    short_term_memory=True,
+    long_term_memory=False,
+    reasoning=False,
+    input_type=["text", "voice"],
+    output_type=["text", "voice"],
+    response_type="json",
+    max_retries=5,
+    timeout=None,
+    deployed=False,
+    status="active",
+    priority=None,
+    failure_strategies=["retry", "escalate"],
+    session_id=None,
+    last_active=datetime.now(),
+    collaboration_mode="single",
+)
 
-                short_term_memory=True,
-                long_term_memory=False,
-                reasoning=False,
-                input_type=["text", "voice"],
-                output_type=["text", "voice"],
-                response_type="json",
-                max_retries=5,
-                timeout=None,
-                deployed=False,
-                status="active",
-                priority=None,
-                failure_strategies=["retry", "escalate"],
-                session_id=None,
-                last_active=datetime.now(),
-                collaboration_mode="single",
-                )
-
-api_agent = APIAgent(agent_id=uuid.uuid4(),
-                  name="APIAgent",
-                  system_prompt=api_agent_system_prompt,
-                  persona="Helper",
-                  functions=[weather_forecast.openai_schema],
-                  routing_options={
-                      "continue": "If you think you can't answer the query, you can continue to the next tool or do some reasoning.",
-                      "respond": "If you think you have the answer, you can stop here.",
-                      "give_up": "If you think you can't answer the query, you can give up and let the user know."
-                      },
-
-                  short_term_memory=True,
-                  long_term_memory=False,
-                  reasoning=False,
-                  input_type=["text", "voice"],
-                  output_type=["text", "voice"],
-                  response_type="json",
-                  max_retries=5,
-                  timeout=None,
-                  deployed=False,
-                  status="active",
-                  priority=None,
-                  failure_strategies=["retry", "escalate"],
-                  session_id=None,
-                  last_active=datetime.now(),
-                  collaboration_mode="single",
-                    )
+api_agent = APIAgent(
+    agent_id=uuid.uuid4(),
+    name="APIAgent",
+    system_prompt=api_agent_system_prompt,
+    persona="Helper",
+    functions=[weather_forecast.openai_schema],
+    routing_options={
+        "continue": "If you think you can't answer the query, you can continue to the next tool or do some reasoning.",
+        "respond": "If you think you have the answer, you can stop here.",
+        "give_up": "If you think you can't answer the query, you can give up and let the user know.",
+    },
+    short_term_memory=True,
+    long_term_memory=False,
+    reasoning=False,
+    input_type=["text", "voice"],
+    output_type=["text", "voice"],
+    response_type="json",
+    max_retries=5,
+    timeout=None,
+    deployed=False,
+    status="active",
+    priority=None,
+    failure_strategies=["retry", "escalate"],
+    session_id=None,
+    last_active=datetime.now(),
+    collaboration_mode="single",
+)
 
 
-data_agent = DataAgent(agent_id=uuid.uuid4(),
-                  name="DataAgent",
-                  system_prompt=data_agent_system_prompt,
-                  persona="Helper",
-                  functions=[tool_schemas["get_customer_order"], tool_schemas["add_customer"],tool_schemas["get_customer_location"]],
-                  routing_options={
-                      "continue": "If you think you can't answer the query, you can continue to the next tool or do some reasoning.",
-                      "respond": "If you think you have the answer, you can stop here.",
-                      "give_up": "If you think you can't answer the query, you can give up and let the user know."
-                      },
-
-                  short_term_memory=True,
-                  long_term_memory=False,
-                  reasoning=False,
-                  input_type=["text", "voice"],
-                  output_type=["text", "voice"],
-                  response_type="json",
-                  max_retries=5,
-                  timeout=None,
-                  deployed=False,
-                  status="active",
-                  priority=None,
-                  failure_strategies=["retry", "escalate"],
-                  session_id=None,
-                  last_active=datetime.now(),
-                  collaboration_mode="single",
-                    )
-
+data_agent = DataAgent(
+    agent_id=uuid.uuid4(),
+    name="DataAgent",
+    system_prompt=data_agent_system_prompt,
+    persona="Helper",
+    functions=[tool_schemas["get_customer_order"], tool_schemas["add_customer"], tool_schemas["get_customer_location"]],
+    routing_options={
+        "continue": "If you think you can't answer the query, you can continue to the next tool or do some reasoning.",
+        "respond": "If you think you have the answer, you can stop here.",
+        "give_up": "If you think you can't answer the query, you can give up and let the user know.",
+    },
+    short_term_memory=True,
+    long_term_memory=False,
+    reasoning=False,
+    input_type=["text", "voice"],
+    output_type=["text", "voice"],
+    response_type="json",
+    max_retries=5,
+    timeout=None,
+    deployed=False,
+    status="active",
+    priority=None,
+    failure_strategies=["retry", "escalate"],
+    session_id=None,
+    last_active=datetime.now(),
+    collaboration_mode="single",
+)
 
 
 agent_store = {
@@ -267,7 +284,12 @@ agent_store = {
 }
 
 
-agent_schemas = {"WebAgent": web_agent.openai_schema, "DataAgent": data_agent.openai_schema, "APIAgent": api_agent.openai_schema}
+agent_schemas = {
+    "WebAgent": web_agent.openai_schema,
+    "DataAgent": data_agent.openai_schema,
+    "APIAgent": api_agent.openai_schema,
+}
+
 
 class CommandAgent(Agent):
     def execute(self, query: str) -> str:
@@ -294,7 +316,9 @@ class CommandAgent(Agent):
                 print("\n\nResponse: ", response)
                 if response.choices[0].finish_reason == "tool_calls":
                     tool_calls = response.choices[0].message.tool_calls
-                    messages += [{"role": "assistant", "tool_calls": tool_calls}, ]
+                    messages += [
+                        {"role": "assistant", "tool_calls": tool_calls},
+                    ]
                     for tool in tool_calls:
                         print("\n\nAgent Called: ", tool.function.name)
                         print(tool.function.arguments)
@@ -326,7 +350,9 @@ class CommandAgent(Agent):
 
         tries = 0
         routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
-        system_prompt = self.system_prompt.prompt + f"""
+        system_prompt = (
+            self.system_prompt.prompt
+            + f"""
         Here are the routing options:
         {routing_options}
 
@@ -334,9 +360,15 @@ class CommandAgent(Agent):
         {{ "routing": "respond", "content": "The answer to the query."}}
 
         """
+        )
         messages = [{"role": "system", "content": system_prompt}]
         messages += [{"role": "user", "content": f"Here is the chat history: {chat_history}"}]
-        messages += [{"role": "user", "content": "Read the context and chat history and then answer the query."+"\n\nHere is the query: "+query}]
+        messages += [
+            {
+                "role": "user",
+                "content": "Read the context and chat history and then answer the query." + "\n\nHere is the query: " + query,
+            }
+        ]
         while tries < self.max_retries:
             try:
                 response = client.chat.completions.create(
@@ -348,7 +380,9 @@ class CommandAgent(Agent):
                 print("\n\nResponse: ", response)
                 if response.choices[0].finish_reason == "tool_calls":
                     tool_calls = response.choices[0].message.tool_calls[:1]
-                    messages += [{"role": "assistant", "tool_calls": tool_calls}, ]
+                    messages += [
+                        {"role": "assistant", "tool_calls": tool_calls},
+                    ]
                     for tool in tool_calls:
                         yield f"Agent Called: {tool.function.name}\n"
                         tool_id = tool.id
@@ -357,15 +391,16 @@ class CommandAgent(Agent):
                         result = agent_store[function_name](**arguments)
                         print(result)
                         messages += [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
-                        yield json.loads(result).get("content", "Agent Responded")+"\n"
+                        yield json.loads(result).get("content", "Agent Responded") + "\n"
 
                 else:
                     yield f"Command Agent Responded\n"
-                    yield json.loads(response.choices[0].message.content).get("content", "Command Agent Could Not Respond")+"\n\n"  # Stream the final response
+                    yield (
+                        json.loads(response.choices[0].message.content).get("content", "Command Agent Could Not Respond")
+                        + "\n\n"
+                    )  # Stream the final response
                     return
 
             except Exception as e:
                 print(f"Error: {e}")
             tries += 1
-
-

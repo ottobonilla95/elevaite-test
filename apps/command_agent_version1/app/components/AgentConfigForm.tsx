@@ -367,8 +367,18 @@ const AgentConfigForm: React.FC = () => {
             return;
         }
 
-        // If we get here, just try to switch to chat mode directly
+        setIsLoading(true);
+
         try {
+            // Deploy the workflow - this is just a placeholder, replace with your actual API
+            console.log("Deploying workflow:", { nodes, edges });
+            const response = await WorkflowAPI.deployWorkflow(nodes, edges);
+            console.log("Workflow deployed:", response);
+
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Switch to chat mode
             setIsChatMode(true);
             setShowConfigPanel(false);
             setChatMessages([{
