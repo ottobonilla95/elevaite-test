@@ -178,33 +178,46 @@ def query_retriever(query: str) -> str:
 @function_schema
 def query_retriever2(query: str) -> list:
     """"
+    RETRIEVER TOOL
+
     Use this tool to query the Toshiba knowledge base.
     Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
-    For questions that have only part numbers, add "part description " to the query.
-    Example: "part description 3AC01548000"
+
+    EXAMPLES:
+    Example: "AC01548000"
+    Example: "4348"
+    Example: "What is TAL"
+    Example: "assembly name for part number 3AC01548000"
+    Example: "TAL parts list"
     """
     url = "http://localhost:8001/query-chunks"
     params = {
         "query": query,
-        "top_k": 40
+        "top_k": 60
     }
 
     # Make the POST request
     response = requests.post(url, params=params)
     res = "CONTEXT FROM RETRIEVER: \n\n"
     sources = []
-    segments = response.json()["selected_segments"][:3]
+    segments = response.json()["selected_segments"][:2]
     for i,segment in enumerate(segments):
-        res += "*"*5+f"\n\nSegment {i}"+"\n"
+        res += "*"*5+f"\n\nSegment {i}"+"\n"+"Contextual Header: "
+        contextual_header = segment["chunks"][0].get("contextual_header","")
+        skip_length = len(contextual_header) if contextual_header else 0
+        res += contextual_header if contextual_header else "No contextual header"+"\n"+"Context: "+"\n"
         # print(segment["score"])
+        print("Segment Done")
+        references = ""
         for j,chunk in enumerate(segment["chunks"]):
             # res += f"Contextual Header: {chunk['contextual_header']}\n"
-            res += f"Article {i}:"+chunk["chunk_text"]+"\n"+"-"*5+"\n"
-            res += f"File: {chunk['filename']}, Pages: {chunk['page_info']}\n"
+            res += chunk["chunk_text"][skip_length:]
+            references += f"File: {chunk['filename']}, Pages: {chunk['page_info']}\n"
             sources.append(f"File: {chunk['filename']}, Pages: {chunk['page_info']}\n")
-            res += "\n"
+            # res += "\n"
+        res += f"References: {references}"
     res += "\n\n"+"-"*5+"\n\n"
-    # print(res)
+    print(res)
     return [res, sources]
 
 
@@ -237,5 +250,3 @@ tool_schemas = {
     "query_retriever": query_retriever.openai_schema,
     "query_retriever2": query_retriever2.openai_schema,
 }
-
-print(tool_schemas["query_retriever2"])

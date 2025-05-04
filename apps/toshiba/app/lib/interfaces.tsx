@@ -75,6 +75,8 @@ export interface ChatMessageObject {
     feedbackfiles?: ChatMessageFileObject[];
     files?: ChatMessageFileObject[];
     media?: ChatMessageFileObject[];
+    isStreaming?: boolean;
+    agentStatus?: string;
 }
 
 export interface ChatMessageFileObject {

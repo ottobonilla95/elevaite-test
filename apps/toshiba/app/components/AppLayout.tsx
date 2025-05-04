@@ -20,7 +20,7 @@ export function AppLayout({children, breadcrumbs}: AppLayoutProps): JSX.Element 
 
     function getResults(term: string): { key: string; link: string; label: string }[] {
         //TODO: implement search results
-        if (term) console.log("Searching for:", term);
+        // if (term) console.log("Searching for:", term);
         // console.log("Missing layout parameter");
         return [];        
     }

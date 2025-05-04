@@ -2,21 +2,21 @@ from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Union
 import time
-import dotenv
-
-dotenv.load_dotenv("../.env")
+from dotenv import load_dotenv
 
 from retrieval_stage.retrieve_qdrant import multi_strategy_search as enhanced_hybrid_search
 from post_retrieval.cohere_reranker import rerank_separately_then_merge
 from post_retrieval.rse import get_best_segments
 
+load_dotenv(".env")
+
 class QueryRequest(BaseModel):
     query: str
-    top_k: int = 30
+    top_k: int = 60
     segment_max_length: int = 4
-    overall_max_length: int = 12
-    minimum_value: float = 0.49
-    irrelevant_chunk_penalty: float = 0.08
+    overall_max_length: int = 20
+    minimum_value: float = 0.4
+    irrelevant_chunk_penalty: float = 0.1
     segment_method: str = "greedy"
 
 app = FastAPI()

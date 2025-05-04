@@ -70,8 +70,8 @@ export function ChatbotInput(props: ChatbotInputProps): JSX.Element {
         setMessageWasSent(true);
     }
 
-    console.log("asdjnjsa", props)
-    console.log("text", text)
+    // console.log("asdjnjsa", props)
+    // console.log("text", text)
 
     useEffect(() => {
         if (props.text) {

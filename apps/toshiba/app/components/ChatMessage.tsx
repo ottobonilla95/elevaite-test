@@ -6,7 +6,7 @@ import {
 } from "@repo/ui/components";
 import { getInitials } from "@repo/ui/helpers";
 import dayjs from "dayjs";
-import { useRef, useState, useContext } from "react";
+import { useRef, useState, useContext, useEffect } from "react";
 import type { ChatMessageObject } from "../lib/interfaces";
 import { ChatContext } from "../ui/contexts/ChatContext";
 import "./ChatMessage.scss";
@@ -15,15 +15,25 @@ import { ChatMessageFiles } from "./ChatMessageFiles";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+// Add new interface for streaming status props
+interface ChatMessageProps extends ChatMessageObject {
+  isStreaming?: boolean;
+  agentStatus?: string;
+}
 
-
-
-export function ChatMessage(props: ChatMessageObject): JSX.Element {
+export function ChatMessage(props: ChatMessageProps): JSX.Element {
   const chatContext = useContext(ChatContext);
   const filesButtonRef = useRef<HTMLButtonElement | null>(null);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isFilesOpen, setIsFilesOpen] = useState(false);
+  const messageRef = useRef<HTMLDivElement>(null);
 
+  // Scroll to bottom of message when new content is streamed in
+  useEffect(() => {
+    if (props.isStreaming && messageRef.current) {
+      messageRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [props.text, props.isStreaming]);
 
   function handleVote(vote: 1 | -1): void {
     const newVote = props.vote === vote ? 0 : vote;
@@ -31,23 +41,21 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
     chatContext.updateMessageVote(props.id, newVote);
   }
 
-
   function toggleFeedback(): void {
     setIsFeedbackOpen((current) => !current);
   }
-
 
   function toggleFiles(): void {
     setIsFilesOpen((current) => !current);
   }
 
-
-  console.log("props", props)
-
-
   return (
     <div
-      className={["chat-message-container", props.isBot ? "bot" : undefined]
+      className={[
+        "chat-message-container",
+        props.isBot ? "bot" : undefined,
+        props.isStreaming ? "streaming" : undefined
+      ]
         .filter(Boolean)
         .join(" ")}
     >
@@ -65,15 +73,18 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
         </div>
       </div>
 
-
       <div className="main-message-container">
         <div className="details-container">
           {props.isBot ? (
-            <span>
+              <span>
               ELEV<span className="highlight">AI</span>TE
+                {props.isStreaming && (
+                    <span className="agent-status"> • {chatContext.agentStatus ? chatContext.agentStatus : "Thinking..."} </span>
+
+                )}
             </span>
           ) : (
-            <span>{props.userName}</span>
+              <span>{props.userName}</span>
           )}
           <div>•</div>
           <span className="date">
@@ -81,45 +92,29 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
           </span>
         </div>
 
-
-        <div className="message" >
-          {/* <div dangerouslySetInnerHTML={{ __html: marked(props.text) }} /> */}
-          <ReactMarkdown
-            children={props.text}
-            remarkPlugins={[remarkGfm]}
-            components={{
-              table: ({ node, ...props }) => (
-                <table className="custom-table" {...props} />
-              ),
-              th: ({ node, ...props }) => <th {...props} />,
-              td: ({ node, ...props }) => <td {...props} />,
-            }}
-          />
-
-
+        <div className="message" ref={messageRef}>
+          {props.text ? (
+            <ReactMarkdown
+              children={props.text}
+              remarkPlugins={[remarkGfm]}
+              components={{
+                table: ({ node, ...props }) => (
+                  <table className="custom-table" {...props} />
+                ),
+                th: ({ node, ...props }) => <th {...props} />,
+                td: ({ node, ...props }) => <td {...props} />,
+              }}
+            />
+          ) : props.isStreaming ? (
+            <div className="typing-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          ) : null}
         </div>
-        {/*{!props.isBot ? null : (*/}
-        {/*<div className="media-container">*/}
-        {/*  <a href="https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s" target="_blank" rel="noopener noreferrer">*/}
-        {/*    <img src="https://fastly.picsum.photos/id/13/2500/1667.jpg?hmac=SoX9UoHhN8HyklRA4A3vcCWJMVtiBXUg0W4ljWTor7s" alt="Example Image 1" />*/}
-        {/*  </a>*/}
-        {/*  <a href="https://picsum.photos/seed/picsum/200/300" target="_blank" rel="noopener noreferrer">*/}
-        {/*    <img src="https://picsum.photos/seed/picsum/200/300" alt="Example Image 2" />*/}
-        {/*  </a>*/}
-        {/*  <a rel="noopener noreferrer">*/}
-        {/*    <video width="150" controls>*/}
-        {/*      <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />*/}
-        {/*    </video>*/}
-        {/*  </a>*/}
 
-
-        {/*</div>*/}
-        {/*// )}*/}
-
-
-
-
-        {!props.isBot ? null : (
+        {!props.isBot || props.isStreaming ? null : (
           <div className="controls-container">
             <div className="voting-buttons">
               <CommonButton
@@ -142,7 +137,6 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
               </CommonButton>
             </div>
 
-
             <CommonButton
               className={isFeedbackOpen ? "active" : ""}
               onClick={toggleFeedback}
@@ -150,7 +144,6 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
               <ChatbotIcons.SVGFeedback />
               Provide Feedback
             </CommonButton>
-
 
             <div className="relevant-files-container">
               <CommonButton
@@ -184,8 +177,7 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
           </div>
         )}
 
-
-        {!props.isBot ? null : (
+        {!props.isBot || props.isStreaming ? null : (
           <div
             className={[
               "feedback-container",
@@ -209,9 +201,3 @@ export function ChatMessage(props: ChatMessageObject): JSX.Element {
     </div>
   );
 }
-
-
-
-
-
-

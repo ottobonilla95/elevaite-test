@@ -96,7 +96,7 @@ export function ProjectSidebar({ isExpanded, setIsExpanded }: { isExpanded: bool
     }
 
     function handleCreate(): void {
-        console.log("Create new chat");
+        // console.log("Create new chat");
         // Add a new session to the context
         chatContext.addNewSession();
         // Show the welcome screen
@@ -104,7 +104,7 @@ export function ProjectSidebar({ isExpanded, setIsExpanded }: { isExpanded: bool
     }
 
     function handleAdvancedSearch(): void {
-        console.log("Clicked advanced search");
+        // console.log("Clicked advanced search");
     }
 
     function handleProjectClick(id: string): void {
@@ -112,7 +112,7 @@ export function ProjectSidebar({ isExpanded, setIsExpanded }: { isExpanded: bool
     }
 
     function handleSessionClick(id: string): void {
-        console.log("Selected session:", id);
+        // console.log("Selected session:", id);
         setSelectedSession(id);
 
         // If it's one of our context sessions, select it and show chat UI
@@ -128,7 +128,7 @@ export function ProjectSidebar({ isExpanded, setIsExpanded }: { isExpanded: bool
         return text.length > 30 ? text.substring(0, 30) + "..." : text;
     }
 
-    console.log("chatContext", chatContext.sessions)
+    // console.log("chatContext", chatContext.sessions)
 
     return (
         <div className={[

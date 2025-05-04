@@ -20,8 +20,8 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
     const chatContext = useChat();
     const [activeWindow, setActiveWindow] = useState<React.ReactNode[]>([]);
 
-    console.log("activeWindow", activeWindow);
-    console.log("chatcontext", chatContext.activeWindowGrid);
+    // console.log("activeWindow", activeWindow);
+    // console.log("chatcontext", chatContext.activeWindowGrid);
 
     useEffect(() => {
         if (chatContext.activeWindowGrid === undefined) {
@@ -30,7 +30,7 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
             getActiveWindow(chatContext.activeWindowGrid);
         }
     }, [chatContext.activeWindowGrid]);
-    console.log("open", isSidebarCollapsed)
+    // console.log("open", isSidebarCollapsed)
     function getActiveWindow(type?: WindowGrid): void {
         switch (type) {
             case WindowGrid.closed:
