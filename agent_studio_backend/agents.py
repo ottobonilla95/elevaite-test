@@ -25,9 +25,10 @@ class WebAgent(Agent):
         query : what is the sum of 12 and 13, and web results for "latest news on Toshiba.
         """
         tries = 0
+        routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = self.system_prompt.prompt + f"""
         Here are the routing options:
-        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
+        {routing_options}
 
         Your response should be in the format:
         {{ "routing": "respond", "content": "The answer to the query."}}
@@ -74,9 +75,10 @@ class DataAgent(Agent):
         The data contains customer ID, Order numbers and location in each row.
         """
         tries = 0
+        routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = self.system_prompt.prompt + f"""
         Here are the routing options:
-        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
+        {routing_options}
 
         Your response should be in the format:
         {{ "routing": "respond", "content": "The answer to the query."}}
@@ -127,9 +129,10 @@ class APIAgent(Agent):
         1. Weather API - to answer any weather related queries for a city.
         """
         tries = 0
+        routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = self.system_prompt.prompt + f"""
         Here are the routing options:
-        {"\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])}
+        {routing_options}
 
         Your response should be in the format:
         {{ "routing": "respond", "content": "The answer to the query."}}
@@ -292,7 +295,8 @@ class CommandAgent(Agent):
                     tool_calls = response.choices[0].message.tool_calls
                     messages += [{"role": "assistant", "tool_calls": tool_calls}, ]
                     for tool in tool_calls:
-                        print("\n\nAgent Called: ", tool)
+                        print("\n\nAgent Called: ", tool.function.name)
+                        print(tool.function.arguments)
                         tool_id = tool.id
                         arguments = json.loads(tool.function.arguments)
                         function_name = tool.function.name
@@ -300,7 +304,10 @@ class CommandAgent(Agent):
                             result = agent_store[function_name](**arguments)
                         else:
                             result = tool_store[function_name](**arguments)
-                        print(result)
+                        # print(result)
+                        agent_response = json.loads(result)
+                        # if agent_response["routing"] == "respond":
+                        #     return agent_response["content"]
                         messages += [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
 
                 else:
@@ -310,5 +317,52 @@ class CommandAgent(Agent):
                 print(f"Error: {e}")
             tries += 1
 
+    def execute_stream(self, query: Any) -> Any:
+        """
+        Ask the agent anything related to arithmetic, customer orders numbers or web search and it will try to answer it.
+        You can ask it multiple questions at once. No need to ask one question at a time. You can ask it for multiple customer ids, multiple arithmetic questions, or multiple web search queries.
+        """
+
+        tries = 0
+        routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
+        system_prompt = self.system_prompt.prompt + f"""
+        Here are the routing options:
+        {routing_options}
+
+        Your response should be in the format:
+        {{ "routing": "respond", "content": "The answer to the query."}}
+
+        """
+        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": query}]
+        while tries < self.max_retries:
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=messages,
+                    tools=self.functions,
+                    stream=False,
+                )
+                print("\n\nResponse: ", response)
+                if response.choices[0].finish_reason == "tool_calls":
+                    tool_calls = response.choices[0].message.tool_calls[:1]
+                    messages += [{"role": "assistant", "tool_calls": tool_calls}, ]
+                    for tool in tool_calls:
+                        yield f"\n\nAgent Called: {tool.function.name}\n"
+                        tool_id = tool.id
+                        arguments = json.loads(tool.function.arguments)
+                        function_name = tool.function.name
+                        result = agent_store[function_name](**arguments)
+                        print(result)
+                        messages += [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
+                        yield json.loads(result).get("content", "Agent Responded")+"\n"
+
+                else:
+                    yield f"\n\nCommand Agent Responded\n"
+                    yield json.loads(response.choices[0].message.content).get("content", "Command Agent Could Not Respond")+"\n\n"  # Stream the final response
+                    return
+
+            except Exception as e:
+                print(f"Error: {e}")
+            tries += 1
 
 

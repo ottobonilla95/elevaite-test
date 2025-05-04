@@ -4,6 +4,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Send, MessageSquare } from "lucide-react";
 import "./ChatInterface.scss";
+import { WorkflowAPI } from "../api/workflowApi.ts";
 
 interface ChatMessage {
     id: number;
@@ -72,28 +73,54 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         setIsLoading(true);
 
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // const response = await WorkflowAPI.runWorkflow(workflowId, query);
+            // console.log("Workflow response:", response);
+            // const botMessage = {
+            //     id: Date.now() + 1,
+            //     text: response.response,
+            //     sender: "bot" as const
+            // };
+            // setChatMessages(prevMessages => [...prevMessages, botMessage]);
 
-            // Generate a bot response based on the query
-            let botResponse = "";
-
-            if (query.toLowerCase().includes("help")) {
-                botResponse = "I can help you with information about your workflow, answer questions, and process data through the agents you've configured.";
-            } else if (query.toLowerCase().includes("how")) {
-                botResponse = "This agent workflow is designed to route your questions to specialized agents that can search the web, access APIs, or analyze data based on your needs.";
-            } else {
-                botResponse = `I've processed your query: "${query}". Based on the workflow configuration, I've routed this to the appropriate agent and found some relevant information for you. Would you like me to elaborate further on any specific aspect?`;
+            const responseStream = await WorkflowAPI.runWorkflowStream(workflowId, query);
+            console.log("Workflow response stream:", responseStream);
+            if (!responseStream) {
+                console.error("No response stream received");
+                return;
             }
 
-            // Add bot response to chat
+            console.log("Workflow response stream started");
+
             const botMessage = {
                 id: Date.now() + 1,
-                text: botResponse,
-                sender: "bot" as const
+                text: "",
+                sender: "bot" as const,
             };
 
-            setChatMessages(prevMessages => [...prevMessages, botMessage]);
+            // Add an empty bot message to the chat
+            setChatMessages((prevMessages) => [...prevMessages, botMessage]);
+
+            // Read and process the streamed chunks
+            const decoder = new TextDecoder();
+            let done = false;
+
+            while (!done) {
+                const { value, done: streamDone } = await responseStream.read();
+                done = streamDone;
+                const chunk = decoder.decode(value);
+
+                setChatMessages((prevMessages) =>
+                    prevMessages.map((message) =>
+                        message.id === botMessage.id
+                            ? { ...message, text: message.text + chunk }
+                            : message
+                    )
+                );
+            }
+
+
+
+
         } catch (error) {
             console.error("Error running workflow:", error);
 

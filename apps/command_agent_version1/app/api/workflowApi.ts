@@ -60,5 +60,28 @@ export const WorkflowAPI = {
         }
 
         return response.json();
+    },
+
+    runWorkflowStream: async (routerId, query) => {
+        const payload = {
+            router_id: routerId,
+            query: query
+        };
+
+        console.log("Sending run payload:", payload);
+
+        const response = await fetch(`${API_BASE_URL}/run_stream`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to process query');
+        }
+
+        return response.body?.getReader();
     }
 };

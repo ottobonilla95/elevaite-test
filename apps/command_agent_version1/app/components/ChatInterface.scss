@@ -16,7 +16,8 @@
       padding: 1rem;
       display: flex;
       flex-direction: column;
-  
+    white-space: pre-wrap;
+
       // Empty state
       .empty-chat {
         display: flex;

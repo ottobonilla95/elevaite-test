@@ -17,8 +17,23 @@ export async function logOut(): Promise<void> {
 
 
 export async function fetchChatbotResponse(userId: string, messageText: string, sessionId: string, chatbotV: ChatbotV, chatbotGenAi: ChatBotGenAI): Promise<ChatMessageResponse> {
-  const url = new URL(`${BACKEND_URL ?? ""}${chatbotV}?query=${messageText}&uid=${userId}&sid=${sessionId}&collection=${chatbotGenAi}`);
-  const response = await fetch(url);
+  // const url = new URL(`${BACKEND_URL ?? ""}${chatbotV}?query=${messageText}&uid=${userId}&sid=${sessionId}&collection=${chatbotGenAi}`);
+  // Write a POST request to the backend
+  const url = new URL(`${BACKEND_URL ?? ""}run`);
+
+  const response = await fetch(url
+      , {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          "query": messageText,
+          "uid": userId,
+          "sid": sessionId,
+          "collection": chatbotGenAi,
+        }),
+      });
   if (!response.ok) throw new Error("Failed to fetch");
   const data: unknown = await response.json();
   if (isChatMessageResponse(data)) return data;
@@ -35,4 +50,6 @@ export async function fetchSessionSummary(userId: string, sessionId: string): Pr
   if (isSessionSummaryResponse(data)) return data;
   throw new Error("Invalid data type");
 }
+
+
 

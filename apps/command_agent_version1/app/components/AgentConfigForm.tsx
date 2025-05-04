@@ -17,6 +17,7 @@ import { AgentType, AGENT_TYPES, NodeData } from "./type";
 
 // Import styles
 import "./AgentConfigForm.scss";
+import {WorkflowAPI} from "../api/workflowApi.ts";
 
 // Define additional types needed
 interface Node {
@@ -300,6 +301,8 @@ const AgentConfigForm: React.FC = () => {
         try {
             // Deploy the workflow - this is just a placeholder, replace with your actual API
             console.log("Deploying workflow:", { nodes, edges });
+            const response = await WorkflowAPI.deployWorkflow(nodes, edges);
+            console.log("Workflow deployed:", response);
 
             // Simulate API call
             await new Promise(resolve => setTimeout(resolve, 1000));

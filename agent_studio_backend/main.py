@@ -90,6 +90,14 @@ def run(request: dict):
 
     return {"status": "ok", "response": f"{res}"}
 
+@app.post("/run_stream")
+def run(request: dict):
+    async def response_stream():
+        for chunk in COMMAND_AGENT.execute_stream(request["query"]):
+            yield chunk
+
+    return fastapi.responses.StreamingResponse(response_stream(), media_type="text/event-stream")
+
 if __name__ == "__main__":
     import uvicorn
 
