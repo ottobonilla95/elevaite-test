@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     ChevronDown,
     ChevronUp,
@@ -36,13 +36,80 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     const [toolsOpen, setToolsOpen] = useState(true);
 
     // State for editable fields
-    const [model, setModel] = useState("GPT-4");
-    const [modelChargeType, setModelChargeType] = useState("Hosted");
-    const [dataset, setDataset] = useState("Knowledge Base");
+    const [deploymentType, setDeploymentType] = useState("Elevaite");
+    const [modelProvider, setModelProvider] = useState("meta");
+    const [model, setModel] = useState("Llama-3.1-8B-Instruct");
     const [outputFormat, setOutputFormat] = useState("JSON");
 
     // State for selected tools
     const [selectedTools, setSelectedTools] = useState<string[]>(["Document Parser"]);
+
+    // Deployment type options
+    const deploymentTypes = [
+        "Elevaite",
+        "Enterprise",
+        "Cloud"
+    ];
+
+    // Get model providers based on deployment type
+    const getModelProviders = (deployType: string) => {
+        switch (deployType) {
+            case "Elevaite":
+                return ["meta", "openbmb"];
+            case "Enterprise":
+                return ["OpenAI", "Gemini", "Bedrock", "Azure"];
+            case "Cloud":
+                return ["OpenAI", "Gemini", "Bedrock", "Azure"];
+            default:
+                return ["meta"];
+        }
+    };
+
+    // Get models based on deployment type and model provider
+    const getModels = (deployType: string, provider: string) => {
+        if (deployType === "Elevaite") {
+            switch (provider) {
+                case "meta":
+                    return ["Llama-3.1-8B-Instruct"];
+                case "openbmb":
+                    return ["MiniCPM-V-2_6"];
+                default:
+                    return ["Llama-3.1-8B-Instruct"];
+            }
+        } else if (deployType === "Enterprise" || deployType === "Cloud") {
+            switch (provider) {
+                case "OpenAI":
+                    return ["GPT-4o", "GPT-4o mini", "GPT-3.5", "o3-mini"];
+                case "Gemini":
+                    return ["2.5 Pro", "2.5 Flash", "2.0 Flash"];
+                case "Bedrock":
+                    return ["Claude 3.5", "Claude 3.5 Sonnet", "Claude 3.5 Haiku", "Llama 3.1 8B Instruct"];
+                case "Azure":
+                    return ["GPT-4o", "GPT-4o mini", "GPT-3.5"];
+                default:
+                    return ["GPT-4o"];
+            }
+        }
+        return ["GPT-4o"];
+    };
+
+    // Current model providers based on selected deployment type
+    const modelProviders = getModelProviders(deploymentType);
+
+    // Current models based on selected deployment type and model provider
+    const models = getModels(deploymentType, modelProvider);
+
+    // Update model provider when deployment type changes
+    useEffect(() => {
+        const providers = getModelProviders(deploymentType);
+        setModelProvider(providers[0]);
+    }, [deploymentType]);
+
+    // Update model when model provider changes
+    useEffect(() => {
+        const availableModels = getModels(deploymentType, modelProvider);
+        setModel(availableModels[0]);
+    }, [modelProvider, deploymentType]);
 
     // Available tools options
     const availableTools = [
@@ -86,9 +153,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     const handleSave = () => {
         if (onSave) {
             onSave({
+                deploymentType,
+                modelProvider,
                 model,
-                modelChargeType,
-                dataset,
                 outputFormat,
                 selectedTools
             });
@@ -157,47 +224,39 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
                     <div className="section-content">
                         <div className="parameters-grid">
                             <div className="parameter-item">
+                                <label className="parameter-label">Deployment Type:</label>
+                                <select
+                                    value={deploymentType}
+                                    onChange={(e) => setDeploymentType(e.target.value)}
+                                    className="parameter-select"
+                                >
+                                    {deploymentTypes.map((type) => (
+                                        <option key={type} value={type}>{type}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="parameter-item">
+                                <label className="parameter-label">Model Provider:</label>
+                                <select
+                                    value={modelProvider}
+                                    onChange={(e) => setModelProvider(e.target.value)}
+                                    className="parameter-select payment-select"
+                                >
+                                    {modelProviders.map((provider) => (
+                                        <option key={provider} value={provider}>{provider}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="parameter-item">
                                 <label className="parameter-label">Model:</label>
                                 <select
                                     value={model}
                                     onChange={(e) => setModel(e.target.value)}
                                     className="parameter-select"
                                 >
-                                    <option value="GPT-4">GPT-4</option>
-                                    <option value="GPT-3.5">GPT-3.5</option>
-                                    <option value="Claude 3">Claude 3</option>
-                                    <option value="Claude 3.5">Claude 3.5</option>
-                                    <option value="Gemini Pro">Gemini Pro</option>
-                                    <option value="Mixtral">Mixtral</option>
-                                    <option value="Llama 3">Llama 3</option>
-                                </select>
-                            </div>
-                            <div className="parameter-item">
-                                <label className="parameter-label">Charge Type:</label>
-                                <select
-                                    value={modelChargeType}
-                                    onChange={(e) => setModelChargeType(e.target.value)}
-                                    className="parameter-select payment-select"
-                                >
-                                    <option value="Hosted">Hosted</option>
-                                    <option value="Pay As You Go">Pay As You Go</option>
-                                    <option value="Free Tier">Free Tier</option>
-                                    <option value="Enterprise">Enterprise</option>
-                                </select>
-                            </div>
-                            <div className="parameter-item">
-                                <label className="parameter-label">Dataset:</label>
-                                <select
-                                    value={dataset}
-                                    onChange={(e) => setDataset(e.target.value)}
-                                    className="parameter-select"
-                                >
-                                    <option value="Knowledge Base">Knowledge Base</option>
-                                    <option value="Company Docs">Company Docs</option>
-                                    <option value="Support FAQ">Support FAQ</option>
-                                    <option value="MCP">Multi-Cloud Platform</option>
-                                    <option value="API Documentation">API Documentation</option>
-                                    <option value="None">None</option>
+                                    {models.map((model) => (
+                                        <option key={model} value={model}>{model}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="parameter-item">
