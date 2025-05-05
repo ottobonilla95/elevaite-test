@@ -205,6 +205,7 @@ async def run(request: Request):
                     if isinstance(chunk, dict):
                         await update_status(user_id, chunk[user_id])
                         await asyncio.sleep(0.1)
+
                     yield f"{chunk if isinstance(chunk, str) else ''}"
 
             # Send a completion signal
@@ -239,4 +240,4 @@ if __name__ == "__main__":
         allow_headers=['Content-Type', 'Authorization'],
     )
 
-    uvicorn.run(app, host="localhost", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
