@@ -200,7 +200,7 @@ def query_retriever2(query: str) -> list:
     response = requests.post(url, params=params)
     res = "CONTEXT FROM RETRIEVER: \n\n"
     sources = []
-    segments = response.json()["selected_segments"][:2]
+    segments = response.json()["selected_segments"][:4]
     for i,segment in enumerate(segments):
         res += "*"*5+f"\n\nSegment {i}"+"\n"+"Contextual Header: "
         contextual_header = segment["chunks"][0].get("contextual_header","")

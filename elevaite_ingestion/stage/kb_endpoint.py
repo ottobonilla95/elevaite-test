@@ -14,8 +14,8 @@ class QueryRequest(BaseModel):
     query: str
     top_k: int = 60
     segment_max_length: int = 4
-    overall_max_length: int = 20
-    minimum_value: float = 0.4
+    overall_max_length: int = 16
+    minimum_value: float = 0.35
     irrelevant_chunk_penalty: float = 0.1
     segment_method: str = "greedy"
 
