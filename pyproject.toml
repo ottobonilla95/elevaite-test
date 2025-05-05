@@ -7,7 +7,11 @@ authors = [
 ]
 requires-python = "~=3.11"
 readme = "README.md"
-dependencies = []
+dependencies = [
+    "db-core",
+    "elevaitelib",
+    "rbac-lib",
+]
 
 
 [tool.uv.workspace]
@@ -22,3 +26,8 @@ exclude = [
   "python_apps/pipelines",
   "python_packages/email_middleware",
 ]
+
+[tool.uv.sources]
+elevaitelib = { workspace = true }
+rbac-lib = { workspace = true }
+db-core = { workspace = true }

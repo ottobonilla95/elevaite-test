@@ -27,6 +27,18 @@ interface RolesListProps {
   isVisible: boolean;
 }
 
+function formatPermissions(permissionCheck: keyof DisplayPermission): (role: RoleObject) => JSX.Element {
+  function inner(_role: RoleObject): JSX.Element {
+    const permissions = getDisplayPermissions(_role);
+    return permissions.length > 0 && permissions[0][permissionCheck] ? (
+      <div className="permission-field green">YES</div>
+    ) : (
+      <div className="permission-field red">NO</div>
+    );
+  }
+  return inner
+}
+
 export function RolesList(props: RolesListProps): JSX.Element {
   const rolesContext = useRoles();
   const [displayRoles, setDisplayRoles] = useState<RoleObject[]>([]);
@@ -46,53 +58,25 @@ export function RolesList(props: RolesListProps): JSX.Element {
       header: "Create",
       field: "permissions",
       specialHandling: specialHandlingListRowFields.PERMISSIONS,
-      formattingFunction: (role: RoleObject) => {
-        const permissions = getDisplayPermissions(role);
-        return permissions.length > 0 && permissions[0].canCreate ? (
-          <div className="permission-field green">YES</div>
-        ) : (
-          <div className="permission-field red">NO</div>
-        );
-      },
+      formattingFunction: formatPermissions("canCreate"),
     },
     {
       header: "Read",
       field: "permissions",
       specialHandling: specialHandlingListRowFields.PERMISSIONS,
-      formattingFunction: (role: RoleObject) => {
-        const permissions = getDisplayPermissions(role);
-        return permissions.length > 0 && permissions[0].canRead ? (
-          <div className="permission-field green">YES</div>
-        ) : (
-          <div className="permission-field red">NO</div>
-        );
-      },
+      formattingFunction: formatPermissions("canRead"),
     },
     {
       header: "Update",
       field: "permissions",
       specialHandling: specialHandlingListRowFields.PERMISSIONS,
-      formattingFunction: (role: RoleObject) => {
-        const permissions = getDisplayPermissions(role);
-        return permissions.length > 0 && permissions[0].canUpdate ? (
-          <div className="permission-field green">YES</div>
-        ) : (
-          <div className="permission-field red">NO</div>
-        );
-      },
+      formattingFunction: formatPermissions("canUpdate"),
     },
     {
       header: "Delete",
       field: "permissions",
       specialHandling: specialHandlingListRowFields.PERMISSIONS,
-      formattingFunction: (role: RoleObject) => {
-        const permissions = getDisplayPermissions(role);
-        return permissions.length > 0 && permissions[0].canDelete ? (
-          <div className="permission-field green">YES</div>
-        ) : (
-          <div className="permission-field red">NO</div>
-        );
-      },
+      formattingFunction: formatPermissions("canDelete"),
     },
   ];
 
@@ -280,7 +264,7 @@ export function RolesList(props: RolesListProps): JSX.Element {
             </h2>
             {selectedRole && renderRoleCard()}
             <p className="mt-4">This functionality is not fully implemented in this demo.</p>
-            <button 
+            <button
               className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               onClick={handleModalClose}
             >

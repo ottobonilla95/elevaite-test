@@ -175,55 +175,10 @@ export function UsersList(props: UsersListProps): JSX.Element {
     // This is a simplified version for the demo
     return users.map(user => ({
       ...user,
-      displayRoles: user.is_superadmin 
-        ? [{ roleLabel: "Admin" }] 
-        : user.roles?.map(role => ({ roleLabel: role.name })) || []
+      displayRoles: user.is_superadmin
+        ? [{ roleLabel: "Admin" }]
+        : user.roles?.map(role => ({ roleLabel: role.name })) ?? []
     }));
-  }
-
-  function renderUserRoles(user: ExtendedUserObject): JSX.Element {
-    if (user.is_superadmin) {
-      return <div className="role-tag admin">Admin</div>;
-    }
-    
-    return (
-      <>
-        {user.displayRoles?.map((role, index) => (
-          <div key={index} className="role-tag">
-            {role.roleLabel}
-            {role.roleParent ? ` (${role.roleParent})` : ""}
-          </div>
-        ))}
-      </>
-    );
-  }
-
-  // Custom row component to display roles properly
-  function UserRolesListRow(props: {
-    user: ExtendedUserObject;
-    structure: RowStructure<ExtendedUserObject>[];
-    menu?: CommonMenuItem<ExtendedUserObject>[];
-    menuToTop?: boolean;
-  }): JSX.Element {
-    const modifiedStructure = [...props.structure];
-    
-    // Replace the roles field with a custom rendering function
-    const rolesIndex = modifiedStructure.findIndex(item => item.field === "displayRoles");
-    if (rolesIndex >= 0) {
-      modifiedStructure[rolesIndex] = {
-        ...modifiedStructure[rolesIndex],
-        formattingFunction: (user: ExtendedUserObject) => renderUserRoles(user)
-      };
-    }
-
-    return (
-      <ListRow<ExtendedUserObject>
-        rowItem={props.user}
-        structure={modifiedStructure}
-        menu={props.menu}
-        menuToTop={props.menuToTop}
-      />
-    );
   }
 
   return (
@@ -272,13 +227,13 @@ export function UsersList(props: UsersListProps): JSX.Element {
         <CommonModal onClose={handleModalClose}>
           <div className="p-6">
             <h2 className="text-xl font-semibold mb-4">
-              {modalType === "create" ? "Add User" : 
-               modalType === "edit_names" ? "Edit User Names" :
-               modalType === "edit_roles" ? "Edit User Roles" :
-               modalType === "reset_password" ? "Reset User Password" : "User Action"}
+              {modalType === "create" ? "Add User" :
+                modalType === "edit_names" ? "Edit User Names" :
+                  modalType === "edit_roles" ? "Edit User Roles" :
+                    modalType === "reset_password" ? "Reset User Password" : "User Action"}
             </h2>
             <p>This functionality is not implemented in this demo.</p>
-            <button 
+            <button
               className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               onClick={handleModalClose}
             >
@@ -288,5 +243,51 @@ export function UsersList(props: UsersListProps): JSX.Element {
         </CommonModal>
       )}
     </div>
+  );
+}
+
+
+// Custom row component to display roles properly
+function UserRolesListRow(props: {
+  user: ExtendedUserObject;
+  structure: RowStructure<ExtendedUserObject>[];
+  menu?: CommonMenuItem<ExtendedUserObject>[];
+  menuToTop?: boolean;
+}): JSX.Element {
+  const modifiedStructure = [...props.structure];
+
+  // Replace the roles field with a custom rendering function
+  const rolesIndex = modifiedStructure.findIndex(item => item.field === "displayRoles");
+  if (rolesIndex >= 0) {
+    modifiedStructure[rolesIndex] = {
+      ...modifiedStructure[rolesIndex],
+      formattingFunction: (user: ExtendedUserObject) => renderUserRoles(user)
+    };
+  }
+
+  return (
+    <ListRow<ExtendedUserObject>
+      rowItem={props.user}
+      structure={modifiedStructure}
+      menu={props.menu}
+      menuToTop={props.menuToTop}
+    />
+  );
+}
+
+function renderUserRoles(user: ExtendedUserObject): JSX.Element {
+  if (user.is_superadmin) {
+    return <div className="role-tag admin">Admin</div>;
+  }
+
+  return (
+    <>
+      {user.displayRoles?.map((role, index) => (
+        <div key={index} className="role-tag">
+          {role.roleLabel}
+          {role.roleParent ? ` (${role.roleParent})` : ""}
+        </div>
+      ))}
+    </>
   );
 }

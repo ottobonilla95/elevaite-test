@@ -207,64 +207,65 @@ const _config = {
         return token;
       }
     },
+    // eslint-disable-next-line @typescript-eslint/require-await -- temp
     async session({ session, token, user }) {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- you never know
       session.user ? (session.user.id = token.sub ?? user.id) : null;
       Object.assign(session, { authToken: token.access_token });
       Object.assign(session, { error: token.error });
-      const authToken = token.access_token;
-      const RBAC_URL = process.env.RBAC_BACKEND_URL;
-      if (!RBAC_URL)
-        throw new Error("RBAC_BACKEND_URL does not exist in the env");
-      const registerURL = new URL(`${RBAC_URL}/auth/register`);
-      const registerHeaders = new Headers();
-      registerHeaders.append("Content-Type", "application/json");
-      if (!authToken) throw Error("authToken doesn't exist");
-      registerHeaders.append("Authorization", `Bearer ${authToken}`);
-      const body = JSON.stringify({
-        // org_id: ORG_ID,
-        firstname: "",
-        lastname: "",
-        // email,
-      });
-      const registerRes = await fetch(registerURL, {
-        body,
-        headers: registerHeaders,
-        method: "POST",
-      });
-      if (!registerRes.ok) {
-        // eslint-disable-next-line no-console -- Need this in case this breaks like that.
-        console.error(registerRes.statusText);
-        throw new Error("Something went wrong.", { cause: registerRes });
-      }
-      const dbUser: unknown = await registerRes.json();
-      if (isDBUser(dbUser)) {
-        const url = new URL(`${RBAC_URL}/users/${dbUser.id}/profile`);
-        const headers = new Headers();
-        headers.append("Content-Type", "application/json");
-        headers.append("Authorization", `Bearer ${authToken ? authToken : ""}`);
-        const response = await fetch(url, {
-          method: "GET",
-          headers,
-          cache: "no-store",
-        });
-        if (!response.ok) {
-          if (response.status === 422) {
-            const errorData: unknown = await response.json();
-            // eslint-disable-next-line no-console -- Need this in case this breaks like that.
-            console.dir(errorData, { depth: null });
-          }
-          throw new Error("Failed to fetch projects");
-        }
-        const fullUser: unknown = await response.json();
-        if (isUserObject(fullUser)) {
-          Object.assign(session.user, {
-            accountMemberships: fullUser.account_memberships,
-          });
-          Object.assign(session.user, { roles: fullUser.roles });
-          Object.assign(session.user, { rbacId: fullUser.id });
-        }
-      }
+      // const authToken = token.access_token;
+      // const RBAC_URL = process.env.RBAC_BACKEND_URL;
+      // if (!RBAC_URL)
+      //   throw new Error("RBAC_BACKEND_URL does not exist in the env");
+      // const registerURL = new URL(`${RBAC_URL}/auth/register`);
+      // const registerHeaders = new Headers();
+      // registerHeaders.append("Content-Type", "application/json");
+      // if (!authToken) throw Error("authToken doesn't exist");
+      // registerHeaders.append("Authorization", `Bearer ${authToken}`);
+      // const body = JSON.stringify({
+      //   // org_id: ORG_ID,
+      //   firstname: "",
+      //   lastname: "",
+      //   // email,
+      // });
+      // const registerRes = await fetch(registerURL, {
+      //   body,
+      //   headers: registerHeaders,
+      //   method: "POST",
+      // });
+      // if (!registerRes.ok) {
+      //   // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+      //   console.error(registerRes.statusText);
+      //   throw new Error("Something went wrong.", { cause: registerRes });
+      // }
+      // const dbUser: unknown = await registerRes.json();
+      // if (isDBUser(dbUser)) {
+      //   const url = new URL(`${RBAC_URL}/users/${dbUser.id}/profile`);
+      //   const headers = new Headers();
+      //   headers.append("Content-Type", "application/json");
+      //   headers.append("Authorization", `Bearer ${authToken ? authToken : ""}`);
+      //   const response = await fetch(url, {
+      //     method: "GET",
+      //     headers,
+      //     cache: "no-store",
+      //   });
+      //   if (!response.ok) {
+      //     if (response.status === 422) {
+      //       const errorData: unknown = await response.json();
+      //       // eslint-disable-next-line no-console -- Need this in case this breaks like that.
+      //       console.dir(errorData, { depth: null });
+      //     }
+      //     throw new Error("Failed to fetch projects");
+      //   }
+      //   const fullUser: unknown = await response.json();
+      //   if (isUserObject(fullUser)) {
+      //     Object.assign(session.user, {
+      //       accountMemberships: fullUser.account_memberships,
+      //     });
+      //     Object.assign(session.user, { roles: fullUser.roles });
+      //     Object.assign(session.user, { rbacId: fullUser.id });
+      //   }
+      // }
       return session;
     },
   },

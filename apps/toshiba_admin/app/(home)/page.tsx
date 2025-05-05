@@ -1,7 +1,7 @@
 import { ElevaiteIcons } from "@repo/ui/components";
 import Link from "next/link";
-import { auth } from "../auth";
-import { LogoutButton } from "./components/LogoutButton";
+import { auth } from "../../auth";
+import { LogoutButton } from "../components/LogoutButton";
 
 export default async function Home() {
   const session = await auth();

@@ -4,8 +4,8 @@
 @tailwind utilities;
 
 :root {
-  --sidebar-width: 81px;
-  --navbar-height: 80px;
+  --sidebar-width: 48px;
+  --navbar-height: 52px;
   font-family: Inter;
 }
 

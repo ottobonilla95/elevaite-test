@@ -4,6 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { Inter } from "next/font/google";
 import "./ui/globals.css";
 import "@repo/ui/styles.css";
+import { SessionProvider } from "next-auth/react";
 import { auth } from "../auth";
 import { AppLayout } from "./components/AppLayout";
 import "./globals.css";

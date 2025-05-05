@@ -4,6 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "db-core"
+version = "0.1.0"
 description = "A package for implementing multitenancy in FastAPI applications with SQLAlchemy and PostgreSQL"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -19,7 +20,7 @@ dependencies = [
     "psycopg2cffi>=2.9.0; platform_python_implementation == 'PyPy'",
     "asyncpg>=0.24.0",
 ]
-dynamic = ["version"]
+# dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = [
