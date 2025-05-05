@@ -68,12 +68,14 @@ body {
 
     .config-option {
       position: relative !important;
-
-      /* Ensure consistent height for all dropdown containers */
-      & > div {
-        min-height: 80px !important;
-      }
     }
+  }
+
+  /* Config container styles */
+  .config-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
   }
 
   /* Ensure dropdown containers don't create stacking context issues */

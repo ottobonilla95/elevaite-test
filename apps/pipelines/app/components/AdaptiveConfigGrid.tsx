@@ -9,10 +9,12 @@ export interface ConfigOption {
 
 interface AdaptiveConfigGridProps {
   options: ConfigOption[];
+  containerClassName?: string;
 }
 
 export function AdaptiveConfigGrid({
   options,
+  containerClassName = "",
 }: AdaptiveConfigGridProps): JSX.Element {
   const columns = React.useMemo(() => {
     const optionCount = options.length;
@@ -30,19 +32,44 @@ export function AdaptiveConfigGrid({
 
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const groupOptionsIntoColumns = () => {
+    const result: ConfigOption[][] = [];
+    const optionsPerColumn = Math.ceil(options.length / columns);
+
+    for (let i = 0; i < columns; i++) {
+      const startIndex = i * optionsPerColumn;
+      const endIndex = Math.min(startIndex + optionsPerColumn, options.length);
+      const columnOptions = options.slice(startIndex, endIndex);
+
+      if (columnOptions.length > 0) {
+        result.push(columnOptions);
+      }
+    }
+
+    return result;
+  };
+
+  const columnGroups = groupOptionsIntoColumns();
+
   return (
-    <div className="adaptive-config-container" ref={containerRef}>
+    <div
+      className={`adaptive-config-container ${containerClassName}`}
+      ref={containerRef}
+    >
       <div
         className="adaptive-config-grid"
         style={{
           gridTemplateColumns: columns > 1 ? `repeat(${columns}, 1fr)` : "1fr",
-          overflow: columns === 1 ? "auto" : "visible",
           transition: "none", // Disable transitions to prevent visual glitches
         }}
       >
-        {options.map((option) => (
-          <div key={option.id} className="config-option">
-            {option.children}
+        {columnGroups.map((columnOptions, columnIndex) => (
+          <div key={`column-${columnIndex}`} className="config-column">
+            {columnOptions.map((option) => (
+              <div key={option.id} className="config-option">
+                {option.children}
+              </div>
+            ))}
           </div>
         ))}
       </div>

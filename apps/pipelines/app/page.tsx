@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { pipelineSteps } from "./lib/pipelineData";
 import { ElevaiteIcons } from "../../../packages/ui/src/components/icons/elevaite";
 import { AdaptiveConfigGrid } from "./components/AdaptiveConfigGrid";
+import { ConfigField } from "./components/ConfigField";
 import "./page.scss";
 
 interface UploadingFile {
@@ -953,39 +954,14 @@ export default function Home(): JSX.Element {
             >
               {/* Configuration Options */}
               {selectedStep === "loading" && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "24px",
-                    width: "100%",
-                  }}
-                >
+                <div className="config-container">
                   <AdaptiveConfigGrid
+                    containerClassName="config-grid-container"
                     options={[
                       {
                         id: "data_source",
                         children: (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "10px",
-                              padding: "16px",
-                              backgroundColor: "rgba(0, 0, 0, 0.2)",
-                              borderRadius: "8px",
-                              border: "2px solid #3f3f41",
-                            }}
-                          >
-                            <label
-                              style={{
-                                fontSize: "14px",
-                                color: "#808080",
-                                fontWeight: 600,
-                              }}
-                            >
-                              Data Source
-                            </label>
+                          <ConfigField label="Data Source">
                             <CustomDropdown
                               options={[
                                 { value: "s3", label: "Amazon S3" },
@@ -997,32 +973,13 @@ export default function Home(): JSX.Element {
                                 console.log("Selected data source:", value);
                               }}
                             />
-                          </div>
+                          </ConfigField>
                         ),
                       },
                       {
                         id: "file_format",
                         children: (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "10px",
-                              padding: "16px",
-                              backgroundColor: "rgba(0, 0, 0, 0.2)",
-                              borderRadius: "8px",
-                              border: "2px solid #3f3f41",
-                            }}
-                          >
-                            <label
-                              style={{
-                                fontSize: "14px",
-                                color: "#808080",
-                                fontWeight: 600,
-                              }}
-                            >
-                              File Format
-                            </label>
+                          <ConfigField label="File Format">
                             <CustomDropdown
                               options={[
                                 { value: "pdf", label: "PDF" },
@@ -1036,7 +993,7 @@ export default function Home(): JSX.Element {
                                 console.log("Selected file format:", value);
                               }}
                             />
-                          </div>
+                          </ConfigField>
                         ),
                       },
                       ...(dataSource === "s3"
@@ -1044,26 +1001,7 @@ export default function Home(): JSX.Element {
                             {
                               id: "s3_bucket_name",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    S3 Bucket Name
-                                  </label>
+                                <ConfigField label="S3 Bucket Name">
                                   <input
                                     type="text"
                                     placeholder="Enter bucket name"
@@ -1078,32 +1016,13 @@ export default function Home(): JSX.Element {
                                       fontSize: "14px",
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                             {
                               id: "aws_region",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    AWS Region
-                                  </label>
+                                <ConfigField label="AWS Region">
                                   <input
                                     type="text"
                                     placeholder="e.g., us-east-1"
@@ -1118,7 +1037,7 @@ export default function Home(): JSX.Element {
                                       fontSize: "14px",
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                           ]
@@ -1128,26 +1047,7 @@ export default function Home(): JSX.Element {
                             {
                               id: "input_directory",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Input Directory
-                                  </label>
+                                <ConfigField label="Input Directory">
                                   <input
                                     type="text"
                                     placeholder="Enter input directory path"
@@ -1162,32 +1062,13 @@ export default function Home(): JSX.Element {
                                       fontSize: "14px",
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                             {
                               id: "output_directory",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Output Directory
-                                  </label>
+                                <ConfigField label="Output Directory">
                                   <input
                                     type="text"
                                     placeholder="Enter output directory path"
@@ -1202,7 +1083,7 @@ export default function Home(): JSX.Element {
                                       fontSize: "14px",
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                           ]
@@ -1213,39 +1094,14 @@ export default function Home(): JSX.Element {
               )}
 
               {selectedStep === "parsing" && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "24px",
-                    width: "100%",
-                  }}
-                >
+                <div className="config-container">
                   <AdaptiveConfigGrid
+                    containerClassName="config-grid-container"
                     options={[
                       {
                         id: "parsing_mode",
                         children: (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "10px",
-                              padding: "16px",
-                              backgroundColor: "rgba(0, 0, 0, 0.2)",
-                              borderRadius: "8px",
-                              border: "2px solid #3f3f41",
-                            }}
-                          >
-                            <label
-                              style={{
-                                fontSize: "14px",
-                                color: "#808080",
-                                fontWeight: 600,
-                              }}
-                            >
-                              Parsing Mode
-                            </label>
+                          <ConfigField label="Parsing Mode">
                             <CustomDropdown
                               options={[
                                 { value: "auto_parser", label: "Auto Parser" },
@@ -1260,32 +1116,13 @@ export default function Home(): JSX.Element {
                                 console.log("Selected parsing mode:", value);
                               }}
                             />
-                          </div>
+                          </ConfigField>
                         ),
                       },
                       {
                         id: "parser_type",
                         children: (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "10px",
-                              padding: "16px",
-                              backgroundColor: "rgba(0, 0, 0, 0.2)",
-                              borderRadius: "8px",
-                              border: "2px solid #3f3f41",
-                            }}
-                          >
-                            <label
-                              style={{
-                                fontSize: "14px",
-                                color: "#808080",
-                                fontWeight: 600,
-                              }}
-                            >
-                              Parser Type
-                            </label>
+                          <ConfigField label="Parser Type">
                             <CustomDropdown
                               options={[
                                 { value: "pdf", label: "PDF Parser" },
@@ -1299,7 +1136,7 @@ export default function Home(): JSX.Element {
                                 console.log("Selected parser type:", value);
                               }}
                             />
-                          </div>
+                          </ConfigField>
                         ),
                       },
                       ...(parsingMode === "custom_parser" && parserType
@@ -1307,26 +1144,7 @@ export default function Home(): JSX.Element {
                             {
                               id: "parser_tool",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Parser Tool
-                                  </label>
+                                <ConfigField label="Parser Tool">
                                   <CustomDropdown
                                     options={
                                       parserType === "pdf"
@@ -1364,7 +1182,7 @@ export default function Home(): JSX.Element {
                                       );
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                           ]
@@ -1374,26 +1192,7 @@ export default function Home(): JSX.Element {
                             {
                               id: "parser_tool_placeholder",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Parser Tool
-                                  </label>
+                                <ConfigField label="Parser Tool">
                                   <div
                                     style={{
                                       color: "#808080",
@@ -1402,7 +1201,7 @@ export default function Home(): JSX.Element {
                                   >
                                     Select a parser type first
                                   </div>
-                                </div>
+                                </ConfigField>
                               ),
                             },
                           ]
@@ -1412,26 +1211,7 @@ export default function Home(): JSX.Element {
                             {
                               id: "language",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Language
-                                  </label>
+                                <ConfigField label="Language">
                                   <CustomDropdown
                                     options={[
                                       { value: "en", label: "English" },
@@ -1443,7 +1223,7 @@ export default function Home(): JSX.Element {
                                       console.log("Selected language:", value)
                                     }
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                           ]
@@ -1454,39 +1234,14 @@ export default function Home(): JSX.Element {
               )}
 
               {selectedStep === "chunking" && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "24px",
-                    width: "100%",
-                  }}
-                >
+                <div className="config-container">
                   <AdaptiveConfigGrid
+                    containerClassName="config-grid-container"
                     options={[
                       {
                         id: "chunking_strategy",
                         children: (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "10px",
-                              padding: "16px",
-                              backgroundColor: "rgba(0, 0, 0, 0.2)",
-                              borderRadius: "8px",
-                              border: "2px solid #3f3f41",
-                            }}
-                          >
-                            <label
-                              style={{
-                                fontSize: "14px",
-                                color: "#808080",
-                                fontWeight: 600,
-                              }}
-                            >
-                              Chunking Strategy
-                            </label>
+                          <ConfigField label="Chunking Strategy">
                             <CustomDropdown
                               options={[
                                 {
@@ -1515,32 +1270,13 @@ export default function Home(): JSX.Element {
                                 );
                               }}
                             />
-                          </div>
+                          </ConfigField>
                         ),
                       },
                       {
                         id: "chunk_size",
                         children: (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "10px",
-                              padding: "16px",
-                              backgroundColor: "rgba(0, 0, 0, 0.2)",
-                              borderRadius: "8px",
-                              border: "2px solid #3f3f41",
-                            }}
-                          >
-                            <label
-                              style={{
-                                fontSize: "14px",
-                                color: "#808080",
-                                fontWeight: 600,
-                              }}
-                            >
-                              Chunk Size
-                            </label>
+                          <ConfigField label="Chunk Size">
                             <CustomNumberInput
                               min={100}
                               max={2000}
@@ -1551,32 +1287,13 @@ export default function Home(): JSX.Element {
                                 console.log("Selected chunk size:", value);
                               }}
                             />
-                          </div>
+                          </ConfigField>
                         ),
                       },
                       {
                         id: "chunk_overlap",
                         children: (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "10px",
-                              padding: "16px",
-                              backgroundColor: "rgba(0, 0, 0, 0.2)",
-                              borderRadius: "8px",
-                              border: "2px solid #3f3f41",
-                            }}
-                          >
-                            <label
-                              style={{
-                                fontSize: "14px",
-                                color: "#808080",
-                                fontWeight: 600,
-                              }}
-                            >
-                              Chunk Overlap
-                            </label>
+                          <ConfigField label="Chunk Overlap">
                             <CustomNumberInput
                               min={0}
                               max={500}
@@ -1587,7 +1304,7 @@ export default function Home(): JSX.Element {
                                 console.log("Selected chunk overlap:", value);
                               }}
                             />
-                          </div>
+                          </ConfigField>
                         ),
                       },
                       ...(chunkingStrategy === "semantic_chunking"
@@ -1595,26 +1312,7 @@ export default function Home(): JSX.Element {
                             {
                               id: "semantic_model",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Semantic Model
-                                  </label>
+                                <ConfigField label="Semantic Model">
                                   <CustomDropdown
                                     options={[
                                       {
@@ -1638,32 +1336,13 @@ export default function Home(): JSX.Element {
                                       )
                                     }
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                             {
                               id: "threshold_type",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Threshold Type
-                                  </label>
+                                <ConfigField label="Threshold Type">
                                   <CustomDropdown
                                     options={[
                                       {
@@ -1681,32 +1360,13 @@ export default function Home(): JSX.Element {
                                       );
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                             {
                               id: "threshold_amount",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Threshold Amount
-                                  </label>
+                                <ConfigField label="Threshold Amount">
                                   <CustomNumberInput
                                     defaultValue={thresholdAmount}
                                     min={1}
@@ -1720,7 +1380,7 @@ export default function Home(): JSX.Element {
                                       );
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                           ]
@@ -1730,26 +1390,7 @@ export default function Home(): JSX.Element {
                             {
                               id: "max_chunk_size",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Max Chunk Size
-                                  </label>
+                                <ConfigField label="Max Chunk Size">
                                   <CustomNumberInput
                                     defaultValue={maxChunkSize}
                                     min={100}
@@ -1763,7 +1404,7 @@ export default function Home(): JSX.Element {
                                       );
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                           ]
@@ -1774,39 +1415,14 @@ export default function Home(): JSX.Element {
               )}
 
               {selectedStep === "embedding" && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "24px",
-                    width: "100%",
-                  }}
-                >
+                <div className="config-container">
                   <AdaptiveConfigGrid
+                    containerClassName="config-grid-container"
                     options={[
                       {
                         id: "embedding_provider",
                         children: (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "10px",
-                              padding: "16px",
-                              backgroundColor: "rgba(0, 0, 0, 0.2)",
-                              borderRadius: "8px",
-                              border: "2px solid #3f3f41",
-                            }}
-                          >
-                            <label
-                              style={{
-                                fontSize: "14px",
-                                color: "#808080",
-                                fontWeight: 600,
-                              }}
-                            >
-                              Embedding Provider
-                            </label>
+                          <ConfigField label="Embedding Provider">
                             <CustomDropdown
                               options={[
                                 { value: "openai", label: "OpenAI" },
@@ -1829,32 +1445,13 @@ export default function Home(): JSX.Element {
                                 );
                               }}
                             />
-                          </div>
+                          </ConfigField>
                         ),
                       },
                       {
                         id: "embedding_model",
                         children: (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "10px",
-                              padding: "16px",
-                              backgroundColor: "rgba(0, 0, 0, 0.2)",
-                              borderRadius: "8px",
-                              border: "2px solid #3f3f41",
-                            }}
-                          >
-                            <label
-                              style={{
-                                fontSize: "14px",
-                                color: "#808080",
-                                fontWeight: 600,
-                              }}
-                            >
-                              Embedding Model
-                            </label>
+                          <ConfigField label="Embedding Model">
                             <CustomDropdown
                               options={
                                 embeddingProvider === "openai"
@@ -1920,7 +1517,7 @@ export default function Home(): JSX.Element {
                                 console.log("Selected embedding model:", value);
                               }}
                             />
-                          </div>
+                          </ConfigField>
                         ),
                       },
                       ...(embeddingProvider === "openai" ||
@@ -1929,26 +1526,7 @@ export default function Home(): JSX.Element {
                             {
                               id: "api_key",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    API Key
-                                  </label>
+                                <ConfigField label="API Key">
                                   <input
                                     type="password"
                                     placeholder="Enter API key"
@@ -1962,7 +1540,7 @@ export default function Home(): JSX.Element {
                                       width: "100%",
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                           ]
@@ -1972,26 +1550,7 @@ export default function Home(): JSX.Element {
                             {
                               id: "aws_region",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    AWS Region
-                                  </label>
+                                <ConfigField label="AWS Region">
                                   <input
                                     type="text"
                                     placeholder="e.g., us-east-1"
@@ -2006,7 +1565,7 @@ export default function Home(): JSX.Element {
                                       width: "100%",
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                           ]
@@ -2017,39 +1576,14 @@ export default function Home(): JSX.Element {
               )}
 
               {selectedStep === "vectorstore" && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "24px",
-                    width: "100%",
-                  }}
-                >
+                <div className="config-container">
                   <AdaptiveConfigGrid
+                    containerClassName="config-grid-container"
                     options={[
                       {
                         id: "vector_database",
                         children: (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "10px",
-                              padding: "16px",
-                              backgroundColor: "rgba(0, 0, 0, 0.2)",
-                              borderRadius: "8px",
-                              border: "2px solid #3f3f41",
-                            }}
-                          >
-                            <label
-                              style={{
-                                fontSize: "14px",
-                                color: "#808080",
-                                fontWeight: 600,
-                              }}
-                            >
-                              Vector Database
-                            </label>
+                          <ConfigField label="Vector Database">
                             <CustomDropdown
                               options={[
                                 { value: "pinecone", label: "Pinecone" },
@@ -2062,7 +1596,7 @@ export default function Home(): JSX.Element {
                                 console.log("Selected vector database:", value);
                               }}
                             />
-                          </div>
+                          </ConfigField>
                         ),
                       },
                       ...(vectorDb === "pinecone"
@@ -2070,26 +1604,7 @@ export default function Home(): JSX.Element {
                             {
                               id: "pinecone_api_key",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    API Key
-                                  </label>
+                                <ConfigField label="API Key">
                                   <input
                                     type="password"
                                     placeholder="Enter Pinecone API key"
@@ -2103,32 +1618,13 @@ export default function Home(): JSX.Element {
                                       width: "100%",
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                             {
                               id: "pinecone_cloud",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Cloud
-                                  </label>
+                                <ConfigField label="Cloud">
                                   <CustomDropdown
                                     options={[
                                       { value: "aws", label: "AWS" },
@@ -2140,32 +1636,13 @@ export default function Home(): JSX.Element {
                                       console.log("Selected cloud:", value)
                                     }
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                             {
                               id: "pinecone_region",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Region
-                                  </label>
+                                <ConfigField label="Region">
                                   <input
                                     type="text"
                                     placeholder="e.g., us-east-1"
@@ -2180,32 +1657,13 @@ export default function Home(): JSX.Element {
                                       width: "100%",
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                             {
                               id: "pinecone_index",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Index Name
-                                  </label>
+                                <ConfigField label="Index Name">
                                   <input
                                     type="text"
                                     placeholder="Enter index name"
@@ -2220,32 +1678,13 @@ export default function Home(): JSX.Element {
                                       width: "100%",
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                             {
                               id: "pinecone_dimension",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Dimension
-                                  </label>
+                                <ConfigField label="Dimension">
                                   <CustomNumberInput
                                     defaultValue={1536}
                                     min={1}
@@ -2255,7 +1694,7 @@ export default function Home(): JSX.Element {
                                       console.log("Dimension changed:", value)
                                     }
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                           ]
@@ -2265,26 +1704,7 @@ export default function Home(): JSX.Element {
                             {
                               id: "qdrant_host",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Host
-                                  </label>
+                                <ConfigField label="Host">
                                   <input
                                     type="text"
                                     placeholder="Enter host URL"
@@ -2299,32 +1719,13 @@ export default function Home(): JSX.Element {
                                       width: "100%",
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                             {
                               id: "qdrant_port",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Port
-                                  </label>
+                                <ConfigField label="Port">
                                   <CustomNumberInput
                                     defaultValue={5333}
                                     min={1}
@@ -2334,32 +1735,13 @@ export default function Home(): JSX.Element {
                                       console.log("Port changed:", value)
                                     }
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                             {
                               id: "qdrant_collection",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Collection Name
-                                  </label>
+                                <ConfigField label="Collection Name">
                                   <input
                                     type="text"
                                     placeholder="Enter collection name"
@@ -2374,7 +1756,7 @@ export default function Home(): JSX.Element {
                                       width: "100%",
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                           ]
@@ -2384,26 +1766,7 @@ export default function Home(): JSX.Element {
                             {
                               id: "chroma_db_path",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Database Path
-                                  </label>
+                                <ConfigField label="Database Path">
                                   <input
                                     type="text"
                                     placeholder="Enter database path"
@@ -2418,32 +1781,13 @@ export default function Home(): JSX.Element {
                                       width: "100%",
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                             {
                               id: "chroma_collection",
                               children: (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                    padding: "16px",
-                                    backgroundColor: "rgba(0, 0, 0, 0.2)",
-                                    borderRadius: "8px",
-                                    border: "2px solid #3f3f41",
-                                  }}
-                                >
-                                  <label
-                                    style={{
-                                      fontSize: "14px",
-                                      color: "#808080",
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    Collection Name
-                                  </label>
+                                <ConfigField label="Collection Name">
                                   <input
                                     type="text"
                                     placeholder="Enter collection name"
@@ -2458,7 +1802,7 @@ export default function Home(): JSX.Element {
                                       width: "100%",
                                     }}
                                   />
-                                </div>
+                                </ConfigField>
                               ),
                             },
                           ]
