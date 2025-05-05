@@ -97,3 +97,7 @@ async def health_check():
 async def query_chunks_api(query: str, top_k: int = Query(20)):
     request = QueryRequest(query=query, top_k=top_k)
     return await query_kb(request)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
