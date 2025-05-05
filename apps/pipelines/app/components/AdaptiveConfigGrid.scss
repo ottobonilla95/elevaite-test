@@ -13,6 +13,7 @@
     flex: 1;
     grid-auto-rows: 1fr;
     min-height: 0;
+    height: 100%;
 
     .config-column {
       display: flex;
@@ -23,13 +24,18 @@
       border: 2px solid #3f3f41;
       padding: 16px;
       height: 100%;
-      overflow-y: auto;
+      min-height: 100%;
+      overflow-y: hidden;
+      justify-content: flex-start;
+      align-items: stretch;
+      padding-top: 32px;
+      padding-bottom: 32px;
     }
 
     .config-option {
       width: 100%;
       position: relative;
-      margin-bottom: 10px;
+      margin-bottom: 24px;
 
       // Ensure all dropdown containers have consistent height
       & > div {
