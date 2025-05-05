@@ -258,8 +258,8 @@ class ToshibaAgent(Agent):
 
                 if hasattr(assistant_message, 'tool_calls') and assistant_message.tool_calls:
                     # session_status[user_id] = "Calling Tools..."
-                    await update_status(user_id, "Searching Knowledge Base...")
-                    yield session_status
+                    # await update_status(user_id, "Searching Knowledge Base...")
+                    # yield session_status
                     tool_calls = assistant_message.tool_calls[:1]
                     messages += [{"role": "assistant", "content": None, "tool_calls": tool_calls},]
                     print(f"Tool Calls: {tool_calls}")
@@ -270,6 +270,8 @@ class ToshibaAgent(Agent):
                         function_name = tool.function.name
                         try:
                             arguments = json.loads(tool.function.arguments)
+                            await update_status(user_id, "Searching: "+arguments.get("query", query))
+                            yield session_status
                             retriever_time = datetime.now()
 
                             if function_name in tool_store:

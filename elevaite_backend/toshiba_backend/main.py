@@ -96,73 +96,73 @@ async def get_current_status(uid: str, sid: str):
 
 
 # Your main streaming response endpoint
-@app.post("/run2")
-async def stream_response(request: Request):
-    """Endpoint that returns a streaming response for chatbot messages."""
-    # Parse the request body
-    data = await request.json()
-
-    # Extract request parameters
-    query = data.get("query", "")
-    user_id = data.get("uid", "")
-    session_id = data.get("sid", "")
-    message_history = data.get("messages", [])
-    collection = data.get("collection", "")
-    session_id = "sessionId_0"
-
-    # Create a streaming generator
-    async def generate_chatbot_response() -> AsyncGenerator[str, None]:
-        # This is where you would implement your actual chatbot logic
-        # For example, call an LLM API or process the query
-
-        # For demonstration purposes, simulating a streaming response
-        # In a real implementation, you would stream tokens from your LLM
-        response_parts = [
-            "I'm ",
-            "thinking ",
-            "about ",
-            "your ",
-            "question ",
-            "regarding ",
-            f"{query}. ",
-            "Here's ",
-            "what ",
-            "I ",
-            "found: ",
-            "The answer ",
-            "to your ",
-            "question ",
-            "is that ",
-            "streaming ",
-            "responses ",
-            "provide ",
-            "a much ",
-            "better ",
-            "user ",
-            "experience ",
-            "for ",
-            "chatbots!"
-        ]
-
-        for part in response_parts:
-            # Format each chunk as a Server-Sent Event
-            yield f"data: {part}\n\n"
-            print(session_status)
-            await update_status(user_id, part)
-            # Simulate processing time
-            await asyncio.sleep(1)
-
-    # Return the streaming response with appropriate headers
-    return StreamingResponse(
-        generate_chatbot_response(),
-        media_type="text/event-stream",
-        headers={
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"
-        },
-    )
+# @app.post("/run2")
+# async def stream_response(request: Request):
+#     """Endpoint that returns a streaming response for chatbot messages."""
+#     # Parse the request body
+#     data = await request.json()
+#
+#     # Extract request parameters
+#     query = data.get("query", "")
+#     user_id = data.get("uid", "")
+#     session_id = data.get("sid", "")
+#     message_history = data.get("messages", [])
+#     collection = data.get("collection", "")
+#     session_id = "sessionId_0"
+#
+#     # Create a streaming generator
+#     async def generate_chatbot_response() -> AsyncGenerator[str, None]:
+#         # This is where you would implement your actual chatbot logic
+#         # For example, call an LLM API or process the query
+#
+#         # For demonstration purposes, simulating a streaming response
+#         # In a real implementation, you would stream tokens from your LLM
+#         response_parts = [
+#             "I'm ",
+#             "thinking ",
+#             "about ",
+#             "your ",
+#             "question ",
+#             "regarding ",
+#             f"{query}. ",
+#             "Here's ",
+#             "what ",
+#             "I ",
+#             "found: ",
+#             "The answer ",
+#             "to your ",
+#             "question ",
+#             "is that ",
+#             "streaming ",
+#             "responses ",
+#             "provide ",
+#             "a much ",
+#             "better ",
+#             "user ",
+#             "experience ",
+#             "for ",
+#             "chatbots!"
+#         ]
+#
+#         for part in response_parts:
+#             # Format each chunk as a Server-Sent Event
+#             yield f"data: {part}\n\n"
+#             print(session_status)
+#             await update_status(user_id, part)
+#             # Simulate processing time
+#             await asyncio.sleep(1)
+#
+#     # Return the streaming response with appropriate headers
+#     return StreamingResponse(
+#         generate_chatbot_response(),
+#         media_type="text/event-stream",
+#         headers={
+#             "Content-Type": "text/event-stream",
+#             "Cache-Control": "no-cache",
+#             "Connection": "keep-alive",
+#             "X-Accel-Buffering": "no"
+#         },
+#     )
 
 
 @app.post("/run")
