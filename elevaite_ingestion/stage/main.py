@@ -3,12 +3,18 @@ from pydantic import BaseModel
 from typing import List, Dict, Optional, Union
 import time
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 from retrieval_stage.retrieve_qdrant import multi_strategy_search as enhanced_hybrid_search
 from post_retrieval.cohere_reranker import rerank_separately_then_merge
 from post_retrieval.rse import get_best_segments
 
 load_dotenv(".env")
+
+origins = [
+    "http://127.0.0.1:3002",
+    "*"
+    ]
 
 class QueryRequest(BaseModel):
     query: str
@@ -100,4 +106,12 @@ async def query_chunks_api(query: str, top_k: int = Query(20)):
 
 if __name__ == "__main__":
     import uvicorn
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allow_headers=['Content-Type', 'Authorization'],
+    )
     uvicorn.run(app, host="0.0.0.0", port=8001)
