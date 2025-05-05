@@ -190,7 +190,7 @@ def query_retriever2(query: str) -> list:
     Example: "assembly name for part number 3AC01548000"
     Example: "TAL parts list"
     """
-    url = "http://localhost:8001/query-chunks"
+    url = os.getenv("RETRIEVER_URL")+"/query-chunks"
     params = {
         "query": query,
         "top_k": 60

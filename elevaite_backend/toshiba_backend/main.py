@@ -11,7 +11,7 @@ import dotenv
 import os
 from shared_state import session_status, update_status, get_status
 
-dotenv.load_dotenv(".env.local")
+dotenv.load_dotenv(".env")
 
 CX_ID = os.getenv("CX_ID_PERSONAL")
 GOOGLE_API = os.getenv("GOOGLE_API_PERSONAL")

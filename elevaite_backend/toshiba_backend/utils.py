@@ -6,7 +6,7 @@ import os
 import openai
 import dotenv
 
-dotenv.load_dotenv(".env.local")
+dotenv.load_dotenv(".env")
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Function Schema function
