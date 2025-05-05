@@ -60,7 +60,8 @@ command_agent_system_prompt = PromptObject(pid=uuid.uuid4(),
                                                 prompt_label="Command Agent",
                                                 prompt="""You're a command agent. Assign proper tasks to the agents and look at their outputs to generate a final output. Try to ask multiple questions at once to the agent that is capable of doing so. For instance, if the agent is capable of doing three things, ask the agent to do the three things at once.
 
-                                                Remeember, if an agent responds with the routing option "respond" then it means they are done with the task. If they respond with "continue" then they are not done with the task and you can ask them to do more tasks. If they respond with "give_up" then they are not able to do the task and you can ask another agent to do the task or tell the user you can't do it if the agents give up a lot of the times.
+                                                Remember, if an agent responds with the routing option "respond" then it means they are done with the task. If they respond with "continue" then they are not done with the task and you can ask them to do more tasks. If they respond with "give_up" then they are not able to do the task and you can ask another agent to do the task or tell the user you can't do it if the agents give up a lot of the times.
+                                                If there are not tools or agents assigned to you, then you can respond to the user directly. Never call tools that don't exist.
                                                 """,
                                                 sha_hash="000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8c",
                                                 uniqueLabel="CommandAgent",

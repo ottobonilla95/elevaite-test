@@ -43,7 +43,7 @@ class WebAgent(Agent):
                     model="gpt-4o-mini",
                     messages=messages,
                     # functions=self.functions,
-                    tools=self.functions,
+                    tools=self.functions if self.functions else [],
                     # parallel_tool_calls=True,
                     tool_choice="auto",
                 )
@@ -65,6 +65,7 @@ class WebAgent(Agent):
 
             except Exception as e:
                 print(f"Error: {e}")
+                return "Response could not be processed"
             tries += 1
 
 @agent_schema
