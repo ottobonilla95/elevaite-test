@@ -1,3 +1,6 @@
+
+
+
 .access-header-container {
     max-height: 45px;
     height: 10vh;
@@ -11,12 +14,14 @@
         align-items: center;
         gap: 10px;
 
+
         & .title {
             color: var(--ev-colors-text);
             font-size: 20px;
             font-weight: 400;
             cursor: default;
         }
+
         
         & .refresh-button {
             &.loading {

@@ -18,6 +18,7 @@ import {
   type SortingObject,
 } from "../../../lib/interfaces";
 import "./AccountsList.scss";
+import { AddEditAccount } from "./Add Edit Modals/AddEditAccount";
 
 enum menuActions {
   EDIT = "Edit",
@@ -87,6 +88,7 @@ export function AccountsList(props: AccountsListProps): JSX.Element {
           searchedList.push(item);
           continue;
         }
+        // Add other checks here as desired.
       }
     }
 
@@ -222,18 +224,10 @@ export function AccountsList(props: AccountsListProps): JSX.Element {
 
       {!isModalOpen ? null : (
         <CommonModal onClose={handleModalClose}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {selectedAccount ? "Edit Account" : "Add Account"}
-            </h2>
-            <p>This functionality is not implemented in this demo.</p>
-            <button 
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              onClick={handleModalClose}
-            >
-              Close
-            </button>
-          </div>
+          <AddEditAccount
+            account={selectedAccount}
+            onClose={handleModalClose}
+          />
         </CommonModal>
       )}
     </div>

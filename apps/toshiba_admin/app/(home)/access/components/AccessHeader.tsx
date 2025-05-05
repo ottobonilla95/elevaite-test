@@ -4,6 +4,7 @@ import { useRoles } from "../../../lib/contexts/RolesContext";
 import { ACCESS_MANAGEMENT_TABS } from "../../../lib/interfaces";
 import "./AccessHeader.scss";
 
+
 interface AccessHeaderProps {
     onRefresh: () => void;
     selectedTab: ACCESS_MANAGEMENT_TABS;
@@ -15,6 +16,7 @@ export function AccessHeader(props: AccessHeaderProps): JSX.Element {
     function handleAccessRefresh(): void {
         props.onRefresh();
     }
+
 
     return (
         <div className="access-header-container">

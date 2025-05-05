@@ -7,6 +7,9 @@ import { ProjectsList } from "./ProjectsList";
 import { RolesList } from "./RolesList";
 import { UsersList } from "./UsersList";
 
+
+
+
 const AccessManagementTabsArray: {label: ACCESS_MANAGEMENT_TABS, isDisabled?: boolean}[] = [
     { label: ACCESS_MANAGEMENT_TABS.ACCOUNTS },
     { label: ACCESS_MANAGEMENT_TABS.PROJECTS },
@@ -14,18 +17,23 @@ const AccessManagementTabsArray: {label: ACCESS_MANAGEMENT_TABS, isDisabled?: bo
     { label: ACCESS_MANAGEMENT_TABS.ROLES },
 ];
 
+
 interface AccessTabsProps {
     selectedTab: ACCESS_MANAGEMENT_TABS;
     setSelectedTab: (tab: ACCESS_MANAGEMENT_TABS) => void;
 }
 
 export function AccessTabs({selectedTab, setSelectedTab}: AccessTabsProps): JSX.Element {
+
+
     function handleTabSelection(tab: ACCESS_MANAGEMENT_TABS): void {
         setSelectedTab(tab);
     }
 
+
     return (
         <div className="access-tabs-container">
+
             <div className="tabs-container">
                 {AccessManagementTabsArray.map((item: {label: ACCESS_MANAGEMENT_TABS, isDisabled?: boolean}) => 
                     <CommonButton
@@ -42,6 +50,7 @@ export function AccessTabs({selectedTab, setSelectedTab}: AccessTabsProps): JSX.
                 )}
             </div>
 
+
             <div className={["payload-container", selectedTab === ACCESS_MANAGEMENT_TABS.ACCOUNTS ? "is-visible": undefined].filter(Boolean).join(" ")}>
                 <AccountsList isVisible={selectedTab === ACCESS_MANAGEMENT_TABS.ACCOUNTS} />
             </div>
@@ -54,6 +63,7 @@ export function AccessTabs({selectedTab, setSelectedTab}: AccessTabsProps): JSX.
             <div className={["payload-container", selectedTab === ACCESS_MANAGEMENT_TABS.ROLES ? "is-visible": undefined].filter(Boolean).join(" ")}>
                 <RolesList isVisible={selectedTab === ACCESS_MANAGEMENT_TABS.ROLES} />
             </div>
+
         </div>
     );
 }

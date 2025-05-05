@@ -1,23 +1,23 @@
-"use client";
 import {
-  CommonModal,
-  ElevaiteIcons,
+  CommonButton,
   type CommonMenuItem,
+  ElevaiteIcons,
 } from "@repo/ui/components";
 import { useEffect, useState } from "react";
+import { useRoles } from "../../../lib/contexts/RolesContext";
+import { type RoleObject } from "../../../lib/interfaces";
+import {
+  type DisplayPermission,
+  getDisplayPermissions,
+} from "../../../lib/rbacHelpers";
+import "./RolesList.scss";
 import { ListHeader } from "../../../lib/components/ListHeader";
 import {
   ListRow,
   specialHandlingListRowFields,
   type RowStructure,
 } from "../../../lib/components/ListRow";
-import { useRoles } from "../../../lib/contexts/RolesContext";
-import { type RoleObject, type SortingObject } from "../../../lib/interfaces";
-import {
-  type DisplayPermission,
-  getDisplayPermissions,
-} from "../../../lib/rbacHelpers";
-import "./RolesList.scss";
+import { RoleCard } from "./smallParts/RoleCard";
 
 enum menuActions {
   EDIT = "Edit",
@@ -27,63 +27,63 @@ interface RolesListProps {
   isVisible: boolean;
 }
 
-function formatPermissions(permissionCheck: keyof DisplayPermission): (role: RoleObject) => JSX.Element {
-  function inner(_role: RoleObject): JSX.Element {
-    const permissions = getDisplayPermissions(_role);
-    return permissions.length > 0 && permissions[0][permissionCheck] ? (
-      <div className="permission-field green">YES</div>
-    ) : (
-      <div className="permission-field red">NO</div>
-    );
-  }
-  return inner
-}
-
 export function RolesList(props: RolesListProps): JSX.Element {
   const rolesContext = useRoles();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [searchRoleTerm, setSearchRoleTerm] = useState("");
+  const [searchPermissionTerm, setSearchPermissionTerm] = useState("");
   const [displayRoles, setDisplayRoles] = useState<RoleObject[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sorting, setSorting] = useState<SortingObject<RoleObject>>({
-    field: undefined,
-  });
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<RoleObject | undefined>();
-  const [selectedRolePermissions, setSelectedRolePermissions] = useState<
+  const [displayPermissions, setDisplayPermissions] = useState<
     DisplayPermission[]
   >([]);
 
-  const rolesListStructure: RowStructure<RoleObject>[] = [
-    { header: "Role Name", field: "name", isSortable: true },
+  const permissionsListStructure: RowStructure<DisplayPermission>[] = [
+    { header: "Entity", field: "entity" },
+    {
+      header: "Entity Type",
+      field: "type",
+      leftBorder: "header",
+      specialHandling: specialHandlingListRowFields.PERMISSIONS_LABEL,
+    },
     {
       header: "Create",
-      field: "permissions",
+      field: "canCreate",
+      leftBorder: "header",
+      capitalize: true,
+      align: "center",
       specialHandling: specialHandlingListRowFields.PERMISSIONS,
-      formattingFunction: formatPermissions("canCreate"),
     },
     {
       header: "Read",
-      field: "permissions",
+      field: "canRead",
+      leftBorder: "header",
+      capitalize: true,
+      align: "center",
       specialHandling: specialHandlingListRowFields.PERMISSIONS,
-      formattingFunction: formatPermissions("canRead"),
     },
     {
       header: "Update",
-      field: "permissions",
+      field: "canUpdate",
+      leftBorder: "header",
+      capitalize: true,
+      align: "center",
       specialHandling: specialHandlingListRowFields.PERMISSIONS,
-      formattingFunction: formatPermissions("canUpdate"),
     },
     {
       header: "Delete",
-      field: "permissions",
+      field: "canDelete",
+      leftBorder: "header",
+      capitalize: true,
+      align: "center",
       specialHandling: specialHandlingListRowFields.PERMISSIONS,
-      formattingFunction: formatPermissions("canDelete"),
     },
   ];
 
-  const rolesListMenu: CommonMenuItem<RoleObject>[] = [
+  const permissionsListMenu: CommonMenuItem<DisplayPermission>[] = [
     {
-      label: "Edit Role",
-      onClick: (item: RoleObject) => {
+      label: "Edit Permissions",
+      onClick: (item: DisplayPermission) => {
         handleMenuClick(item, menuActions.EDIT);
       },
     },
@@ -91,147 +91,195 @@ export function RolesList(props: RolesListProps): JSX.Element {
 
   useEffect(() => {
     arrangeDisplayRoles();
-  }, [rolesContext.roles, searchTerm, sorting]);
+  }, [rolesContext.roles, searchRoleTerm]);
+
+  useEffect(() => {
+    arrangeDisplayPermissions();
+  }, [selectedRole, searchPermissionTerm]);
 
   function arrangeDisplayRoles(): void {
+    const rolesClone = JSON.parse(
+      JSON.stringify(rolesContext.roles)
+    ) as RoleObject[];
+
     // Search
-    const searchedList: RoleObject[] = searchTerm ? [] : rolesContext.roles;
-    if (searchTerm) {
-      for (const item of rolesContext.roles) {
-        if (item.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+    const searchedList: RoleObject[] = searchRoleTerm ? [] : rolesClone;
+    if (searchRoleTerm) {
+      for (const item of rolesClone) {
+        if (item.name.toLowerCase().includes(searchRoleTerm.toLowerCase())) {
           searchedList.push(item);
           continue;
         }
-      }
-    }
-
-    // Sort
-    const sortedList: RoleObject[] = searchedList;
-    if (sorting.field) {
-      sortedList.sort((a, b) => {
-        if (
-          sorting.field &&
-          typeof a[sorting.field] === "string" &&
-          typeof b[sorting.field] === "string" &&
-          !Array.isArray(a[sorting.field]) &&
-          !Array.isArray(b[sorting.field])
-        )
-          return (a[sorting.field] as string).localeCompare(
-            b[sorting.field] as string
-          );
-        return 0;
-      });
-      if (sorting.isDesc) {
-        sortedList.reverse();
+        // Add other checks here as desired.
       }
     }
 
     // Set
-    setDisplayRoles(sortedList);
+    setDisplayRoles(searchedList);
+  }
+
+  function arrangeDisplayPermissions(): void {
+    if (!selectedRole) {
+      setDisplayPermissions([]);
+      return;
+    }
+    // Format
+    const allPermissions = getDisplayPermissions(selectedRole);
+
+    // Search
+    const searchedPermissions: DisplayPermission[] = searchPermissionTerm
+      ? []
+      : allPermissions;
+    if (searchPermissionTerm) {
+      for (const item of allPermissions) {
+        if (
+          item.entity.toLowerCase().includes(searchPermissionTerm.toLowerCase())
+        ) {
+          searchedPermissions.push(item);
+          continue;
+        }
+        if (
+          item.type.find((permission) =>
+            permission
+              .toLowerCase()
+              .includes(searchPermissionTerm.toLowerCase())
+          )
+        ) {
+          searchedPermissions.push(item);
+          continue;
+        }
+        // Add other checks here as desired.
+      }
+    }
+
+    // Set
+    setDisplayPermissions(searchedPermissions);
   }
 
   function handleAddRole(): void {
-    setIsModalOpen(true);
+    console.log("Adding Role");
   }
 
-  function handleEditRole(role: RoleObject): void {
-    setSelectedRole(role);
-    setSelectedRolePermissions(getDisplayPermissions(role));
-    setIsModalOpen(true);
-  }
-
-  function handleModalClose(): void {
-    setSelectedRole(undefined);
-    setSelectedRolePermissions([]);
-    setIsModalOpen(false);
-  }
-
-  function handleSearch(term: string): void {
+  function handleListSearch(term: string): void {
     if (!props.isVisible) return;
-    setSearchTerm(term);
+    setSearchRoleTerm(term);
   }
 
-  function handleSort(field: keyof RoleObject): void {
-    let sortingResult: SortingObject<RoleObject> = {};
-    if (sorting.field !== field) sortingResult = { field };
-    if (sorting.field === field) {
-      if (sorting.isDesc) sortingResult = { field: undefined };
-      else sortingResult = { field, isDesc: true };
-    }
-    setSorting(sortingResult);
+  function handlePermissionSearch(term: string): void {
+    if (!props.isVisible) return;
+    setSearchPermissionTerm(term);
   }
 
-  function handleMenuClick(role: RoleObject, action: menuActions): void {
+  function switchSidebar(): void {
+    setIsSidebarOpen((current) => !current);
+  }
+
+  function onRoleClick(role: RoleObject): void {
+    setSelectedRole((current) => (current?.id === role.id ? undefined : role));
+  }
+
+  function handleEditPermission(permission: DisplayPermission): void {
+    console.log("Editing permission", permission);
+  }
+
+  function handleMenuClick(
+    permission: DisplayPermission,
+    action: menuActions
+  ): void {
     switch (action) {
       case menuActions.EDIT:
-        handleEditRole(role);
+        handleEditPermission(permission);
         break;
       default:
         break;
     }
   }
 
-  function renderRoleCard(): JSX.Element {
-    return (
-      <div className="role-card">
-        <h3 className="text-lg font-semibold mb-4">Role Permissions</h3>
-        {selectedRolePermissions.map((permission, index) => (
-          <div key={index} className="permission-item mb-2">
-            <div className="font-medium">{permission.entity}</div>
-            <div className="flex gap-2 mt-1">
-              <span className={`permission-tag ${permission.canCreate ? 'green' : 'red'}`}>
-                Create: {permission.canCreate ? 'Yes' : 'No'}
-              </span>
-              <span className={`permission-tag ${permission.canRead ? 'green' : 'red'}`}>
-                Read: {permission.canRead ? 'Yes' : 'No'}
-              </span>
-              <span className={`permission-tag ${permission.canUpdate ? 'green' : 'red'}`}>
-                Update: {permission.canUpdate ? 'Yes' : 'No'}
-              </span>
-              <span className={`permission-tag ${permission.canDelete ? 'green' : 'red'}`}>
-                Delete: {permission.canDelete ? 'Yes' : 'No'}
-              </span>
-            </div>
-            {permission.type.length > 0 && (
-              <div className="ml-4 mt-1">
-                <div className="text-sm text-gray-500">Types:</div>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {permission.type.map((type, typeIndex) => (
-                    <span key={typeIndex} className="type-tag">
-                      {type}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   return (
     <div className="roles-list-container">
+      <div
+        className={["roles-sidebar", isSidebarOpen ? "open" : undefined]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        <ListHeader
+          label={
+            <div
+              className={[
+                "swinging-header-label icon-left",
+                isSidebarOpen ? "visible" : undefined,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <CommonButton
+                className="swinging-button"
+                onClick={switchSidebar}
+                noBackground
+              >
+                <ElevaiteIcons.SVGSideArrow />
+              </CommonButton>
+              <span>Roles List</span>
+            </div>
+          }
+          absoluteSearchPositioning
+          searchPlaceholder="Search Roles"
+          onSearch={handleListSearch}
+          isVisible={props.isVisible}
+        />
+
+        <div className="roles-sidebar-scroller">
+          {rolesContext.loading.roles ? (
+            <div className="empty">
+              <ElevaiteIcons.SVGSpinner />
+              Loading...
+            </div>
+          ) : displayRoles.length === 0 ? (
+            <div className="empty">No roles</div>
+          ) : (
+            displayRoles.map((role) => (
+              <RoleCard
+                key={role.id}
+                role={role}
+                selectedRoleId={selectedRole?.id}
+                handleClick={onRoleClick}
+              />
+            ))
+          )}
+        </div>
+      </div>
+
       <div className="roles-main-list">
         <ListHeader
-          label="Roles List"
+          label={
+            <div
+              className={[
+                "swinging-header-label",
+                !isSidebarOpen ? "visible" : undefined,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <CommonButton
+                className="swinging-button"
+                onClick={switchSidebar}
+                noBackground
+              >
+                <ElevaiteIcons.SVGSideArrow />
+              </CommonButton>
+              <span>Role Permissions</span>
+            </div>
+          }
           addLabel="Add Role"
           addIcon={<ElevaiteIcons.SVGCross />}
           addAction={handleAddRole}
-          onSearch={handleSearch}
-          searchPlaceholder="Search Roles"
+          onSearch={handlePermissionSearch}
+          searchPlaceholder="Search Role Permissions"
           isVisible={props.isVisible}
         />
 
         <div className="roles-list-table-container">
-          <ListRow<RoleObject>
-            isHeader
-            structure={rolesListStructure}
-            menu={rolesListMenu}
-            onSort={handleSort}
-            sorting={sorting}
-          />
-          {displayRoles.length === 0 && rolesContext.loading.roles ? (
+          {rolesContext.loading.roles ? (
             <div className="table-span empty">
               <ElevaiteIcons.SVGSpinner />
               <span>Loading...</span>
@@ -240,39 +288,36 @@ export function RolesList(props: RolesListProps): JSX.Element {
             <div className="table-span empty">
               There are no roles to display.
             </div>
+          ) : !selectedRole ? (
+            <div className="table-span empty">
+              Select a role on the sidebar to see its permissions
+            </div>
+          ) : displayPermissions.length === 0 ? (
+            // Replace this when you have a solution
+            <div className="table-span empty">No Permissions to display</div>
           ) : (
-            displayRoles.map((role, index) => (
-              <ListRow<RoleObject>
-                key={role.id}
-                rowItem={role}
-                structure={rolesListStructure}
-                menu={rolesListMenu}
-                menuToTop={
-                  displayRoles.length > 4 && index > displayRoles.length - 4
-                }
+            <>
+              <ListRow<DisplayPermission>
+                isHeader
+                structure={permissionsListStructure}
+                menu={permissionsListMenu}
               />
-            ))
+              {displayPermissions.map((permission, index) => (
+                <ListRow<DisplayPermission>
+                  key={permission.entity + permission.type.join("/")}
+                  rowItem={permission}
+                  structure={permissionsListStructure}
+                  menu={permissionsListMenu}
+                  menuToTop={
+                    displayPermissions.length > 4 &&
+                    index > displayPermissions.length - 4
+                  }
+                />
+              ))}
+            </>
           )}
         </div>
       </div>
-
-      {!isModalOpen ? null : (
-        <CommonModal onClose={handleModalClose}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {selectedRole ? `Edit Role: ${selectedRole.name}` : "Add Role"}
-            </h2>
-            {selectedRole && renderRoleCard()}
-            <p className="mt-4">This functionality is not fully implemented in this demo.</p>
-            <button
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              onClick={handleModalClose}
-            >
-              Close
-            </button>
-          </div>
-        </CommonModal>
-      )}
     </div>
   );
 }

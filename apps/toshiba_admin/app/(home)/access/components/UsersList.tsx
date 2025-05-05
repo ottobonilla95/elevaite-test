@@ -1,4 +1,3 @@
-"use client";
 import {
   CommonModal,
   ElevaiteIcons,
@@ -13,9 +12,20 @@ import {
 } from "../../../lib/components/ListRow";
 import { useRoles } from "../../../lib/contexts/RolesContext";
 import {
+  ACCESS_MANAGEMENT_TABS,
   type ExtendedUserObject,
   type SortingObject,
 } from "../../../lib/interfaces";
+import {
+  fetchCombinedUsers,
+  refreshUsersList,
+} from "../lib/services/authUserService";
+import { AddEditUser } from "./Add Edit Modals/AddEditUser";
+import { AddEditUserRoles } from "./Add Edit Modals/AddEditUserRoles";
+import { CreateUser } from "./Add Edit Modals/CreateUser";
+import { ResetUserPassword } from "./Add Edit Modals/ResetUserPassword";
+import { UserCreatedConfirmation } from "./Add Edit Modals/UserCreatedConfirmation";
+import { UserRolesListRow } from "./smallParts/UserRolesListRow";
 import "./UsersList.scss";
 
 enum menuActions {
@@ -36,51 +46,121 @@ export function UsersList(props: UsersListProps): JSX.Element {
   const [sorting, setSorting] = useState<SortingObject<ExtendedUserObject>>({
     field: undefined,
   });
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<string>("");
-  const [selectedUser, setSelectedUser] = useState<ExtendedUserObject | undefined>();
+  const [isNamesModalOpen, setIsNamesModalOpen] = useState(false);
+  const [isRolesModalOpen, setIsRolesModalOpen] = useState(false);
+  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] =
+    useState(false);
+  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
+  const [isUserCreatedModalOpen, setIsUserCreatedModalOpen] = useState(false);
+  const [createdUserEmail, setCreatedUserEmail] = useState("");
+  const [createdUserMessage, setCreatedUserMessage] = useState("");
+  const [selectedUser, setSelectedUser] = useState<
+    ExtendedUserObject | undefined
+  >();
 
   const usersListStructure: RowStructure<ExtendedUserObject>[] = [
     { header: "First Name", field: "firstname", isSortable: true },
     { header: "Last Name", field: "lastname", isSortable: true },
-    { header: "Email", field: "email", isSortable: true, specialHandling: specialHandlingListRowFields.EMAIL },
-    { header: "Roles", field: "displayRoles", isSortable: false },
+    {
+      header: "Email Address",
+      field: "email",
+      isSortable: true,
+      specialHandling: specialHandlingListRowFields.EMAIL,
+    },
+    {
+      header: "Roles",
+      field: "displayRoles",
+      isSortable: false,
+      specialHandling: specialHandlingListRowFields.ROLES,
+    },
   ];
 
   const usersListMenu: CommonMenuItem<ExtendedUserObject>[] = [
     {
-      label: "Edit Names",
+      label: "Edit User name",
       onClick: (item: ExtendedUserObject) => {
         handleMenuClick(item, menuActions.EDIT_NAMES);
       },
     },
     {
-      label: "Edit Roles",
+      label: "Edit User roles",
       onClick: (item: ExtendedUserObject) => {
         handleMenuClick(item, menuActions.EDIT_ROLES);
       },
     },
-    {
-      label: "Reset Password",
-      onClick: (item: ExtendedUserObject) => {
-        handleMenuClick(item, menuActions.RESET_PASSWORD);
-      },
-    },
+    // Only show reset password option to admins
+    ...(isCurrentUserAdmin
+      ? [
+          {
+            label: "Reset Password",
+            onClick: (item: ExtendedUserObject) => {
+              handleMenuClick(item, menuActions.RESET_PASSWORD);
+            },
+          },
+        ]
+      : []),
   ];
 
+  // State to store combined users (RBAC + Native Auth API)
+  const [combinedUsers, setCombinedUsers] = useState<ExtendedUserObject[]>([]);
+
+  // Fetch combined users when RBAC users change
   useEffect(() => {
-    // For demo purposes, set admin to true
-    setIsCurrentUserAdmin(true);
+    async function loadCombinedUsers(): Promise<void> {
+      const users = await fetchCombinedUsers(rolesContext.users);
+      setCombinedUsers(users);
+    }
+
+    void loadCombinedUsers();
+  }, [rolesContext.users]);
+
+  // Check if current user is an admin
+  useEffect(() => {
+    async function checkAdminStatus(): Promise<void> {
+      try {
+        // In development mode, always set to true for testing
+        if (process.env.NODE_ENV === "development") {
+          setIsCurrentUserAdmin(true);
+          return;
+        }
+
+        // In production, make an API call to check admin status
+        const backendUrl = process.env.NEXT_PUBLIC_NATIVEAUTH_URL;
+        const response = await fetch(`${backendUrl}/api/auth/me`, {
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          setIsCurrentUserAdmin(false);
+          return;
+        }
+
+        const userData = (await response.json()) as { is_superuser?: boolean };
+        const isAdmin = Boolean(userData.is_superuser);
+        setIsCurrentUserAdmin(isAdmin);
+      } catch (error) {
+        // If there's an error, assume the user is not an admin for security
+        setIsCurrentUserAdmin(false);
+      }
+    }
+
+    void checkAdminStatus();
+  }, []);
+
+  // Update display users when combined users, search term, or sorting changes
+  useEffect(() => {
     arrangeDisplayUsers();
-  }, [rolesContext.users, searchTerm, sorting]);
+  }, [combinedUsers, searchTerm, sorting]);
 
   function arrangeDisplayUsers(): void {
-    const extendedUsers = getUsersWithRoleDetails(rolesContext.users);
+    const usersClone = JSON.parse(
+      JSON.stringify(combinedUsers)
+    ) as ExtendedUserObject[];
 
     // Search
-    const searchedList: ExtendedUserObject[] = searchTerm ? [] : extendedUsers;
+    const searchedList: ExtendedUserObject[] = searchTerm ? [] : usersClone;
     if (searchTerm) {
-      for (const item of extendedUsers) {
+      for (const item of usersClone) {
         if (item.firstname?.toLowerCase().includes(searchTerm.toLowerCase())) {
           searchedList.push(item);
           continue;
@@ -122,13 +202,64 @@ export function UsersList(props: UsersListProps): JSX.Element {
   }
 
   function handleAddUser(): void {
-    setModalType("create");
-    setIsModalOpen(true);
+    setIsCreateUserModalOpen(true);
   }
 
-  function handleModalClose(): void {
+  function handleEditUser(user: ExtendedUserObject): void {
+    setSelectedUser(user);
+    setIsNamesModalOpen(true);
+  }
+
+  function handleEditUserRoles(user: ExtendedUserObject): void {
+    setSelectedUser(user);
+    setIsRolesModalOpen(true);
+    // eslint-disable-next-line no-console -- Needed
+    console.log("Editing user roles");
+  }
+
+  function handleResetPassword(user: ExtendedUserObject): void {
+    setSelectedUser(user);
+    setIsResetPasswordModalOpen(true);
+  }
+
+  function handleNameModalClose(): void {
     setSelectedUser(undefined);
-    setIsModalOpen(false);
+    setIsNamesModalOpen(false);
+  }
+
+  function handleRolesModalClose(): void {
+    setSelectedUser(undefined);
+    setIsRolesModalOpen(false);
+  }
+
+  function handleResetPasswordModalClose(): void {
+    setSelectedUser(undefined);
+    setIsResetPasswordModalOpen(false);
+  }
+
+  function handleCreateUserModalClose(): void {
+    setIsCreateUserModalOpen(false);
+  }
+
+  function handleUserCreatedModalClose(): void {
+    setIsUserCreatedModalOpen(false);
+  }
+
+  function handleUserCreated(email: string, message?: string): void {
+    setCreatedUserEmail(email);
+    if (message) {
+      setCreatedUserMessage(message);
+    } else {
+      setCreatedUserMessage("");
+    }
+    setIsCreateUserModalOpen(false);
+    setIsUserCreatedModalOpen(true);
+
+    // Refresh the users list to include the newly created user
+    void refreshUsersList();
+
+    // Trigger a refresh of the RBAC users as well
+    rolesContext.refresh(ACCESS_MANAGEMENT_TABS.USERS);
   }
 
   function handleSearch(term: string): void {
@@ -150,35 +281,19 @@ export function UsersList(props: UsersListProps): JSX.Element {
     user: ExtendedUserObject,
     action: menuActions
   ): void {
-    setSelectedUser(user);
     switch (action) {
       case menuActions.EDIT_NAMES:
-        setModalType("edit_names");
-        setIsModalOpen(true);
+        handleEditUser(user);
         break;
       case menuActions.EDIT_ROLES:
-        setModalType("edit_roles");
-        setIsModalOpen(true);
+        handleEditUserRoles(user);
         break;
       case menuActions.RESET_PASSWORD:
-        setModalType("reset_password");
-        setIsModalOpen(true);
+        handleResetPassword(user);
         break;
       default:
         break;
     }
-  }
-
-  function getUsersWithRoleDetails(
-    users: ExtendedUserObject[]
-  ): ExtendedUserObject[] {
-    // This is a simplified version for the demo
-    return users.map(user => ({
-      ...user,
-      displayRoles: user.is_superadmin
-        ? [{ roleLabel: "Admin" }]
-        : user.roles?.map(role => ({ roleLabel: role.name })) ?? []
-    }));
   }
 
   return (
@@ -223,71 +338,45 @@ export function UsersList(props: UsersListProps): JSX.Element {
         )}
       </div>
 
-      {!isModalOpen ? null : (
-        <CommonModal onClose={handleModalClose}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {modalType === "create" ? "Add User" :
-                modalType === "edit_names" ? "Edit User Names" :
-                  modalType === "edit_roles" ? "Edit User Roles" :
-                    modalType === "reset_password" ? "Reset User Password" : "User Action"}
-            </h2>
-            <p>This functionality is not implemented in this demo.</p>
-            <button
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              onClick={handleModalClose}
-            >
-              Close
-            </button>
-          </div>
+      {!isNamesModalOpen ? null : (
+        <CommonModal onClose={handleNameModalClose}>
+          <AddEditUser user={selectedUser} onClose={handleNameModalClose} />
+        </CommonModal>
+      )}
+      {!isRolesModalOpen || !selectedUser ? null : (
+        <CommonModal onClose={handleRolesModalClose}>
+          <AddEditUserRoles
+            user={selectedUser}
+            onClose={handleRolesModalClose}
+          />
+        </CommonModal>
+      )}
+      {!isCreateUserModalOpen ? null : (
+        <CommonModal onClose={handleCreateUserModalClose}>
+          <CreateUser
+            onClose={handleCreateUserModalClose}
+            onSuccess={handleUserCreated}
+          />
+        </CommonModal>
+      )}
+      {!isUserCreatedModalOpen ? null : (
+        <CommonModal onClose={handleUserCreatedModalClose}>
+          <UserCreatedConfirmation
+            email={createdUserEmail}
+            onClose={handleUserCreatedModalClose}
+            message={createdUserMessage}
+          />
+        </CommonModal>
+      )}
+      {!isResetPasswordModalOpen || !selectedUser ? null : (
+        <CommonModal onClose={handleResetPasswordModalClose}>
+          <ResetUserPassword
+            user={selectedUser}
+            onClose={handleResetPasswordModalClose}
+            onSuccess={handleUserCreated}
+          />
         </CommonModal>
       )}
     </div>
-  );
-}
-
-
-// Custom row component to display roles properly
-function UserRolesListRow(props: {
-  user: ExtendedUserObject;
-  structure: RowStructure<ExtendedUserObject>[];
-  menu?: CommonMenuItem<ExtendedUserObject>[];
-  menuToTop?: boolean;
-}): JSX.Element {
-  const modifiedStructure = [...props.structure];
-
-  // Replace the roles field with a custom rendering function
-  const rolesIndex = modifiedStructure.findIndex(item => item.field === "displayRoles");
-  if (rolesIndex >= 0) {
-    modifiedStructure[rolesIndex] = {
-      ...modifiedStructure[rolesIndex],
-      formattingFunction: (user: ExtendedUserObject) => renderUserRoles(user)
-    };
-  }
-
-  return (
-    <ListRow<ExtendedUserObject>
-      rowItem={props.user}
-      structure={modifiedStructure}
-      menu={props.menu}
-      menuToTop={props.menuToTop}
-    />
-  );
-}
-
-function renderUserRoles(user: ExtendedUserObject): JSX.Element {
-  if (user.is_superadmin) {
-    return <div className="role-tag admin">Admin</div>;
-  }
-
-  return (
-    <>
-      {user.displayRoles?.map((role, index) => (
-        <div key={index} className="role-tag">
-          {role.roleLabel}
-          {role.roleParent ? ` (${role.roleParent})` : ""}
-        </div>
-      ))}
-    </>
   );
 }

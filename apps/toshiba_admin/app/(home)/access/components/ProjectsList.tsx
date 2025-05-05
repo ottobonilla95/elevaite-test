@@ -1,4 +1,3 @@
-"use client";
 import {
   CommonModal,
   ElevaiteIcons,
@@ -17,6 +16,7 @@ import {
   type ProjectObject,
   type SortingObject,
 } from "../../../lib/interfaces";
+import { AddEditProject } from "./Add Edit Modals/AddEditProject";
 import "./ProjectsList.scss";
 
 enum menuActions {
@@ -68,7 +68,7 @@ export function ProjectsList(props: ProjectsListProps): JSX.Element {
   }, [rolesContext.projects, searchTerm, sorting]);
 
   function arrangeDisplayProjects(): void {
-    const expandedProjects = getProjectsWithExtendedDetails(
+    const expandedProjects = getProjectsWithProjectDetails(
       rolesContext.projects
     );
 
@@ -83,21 +83,15 @@ export function ProjectsList(props: ProjectsListProps): JSX.Element {
           continue;
         }
         if (
-          item.description?.toLowerCase().includes(searchTerm.toLowerCase())
-        ) {
-          searchedList.push(item);
-          continue;
-        }
-        if (
           item.accountName?.toLowerCase().includes(searchTerm.toLowerCase())
         ) {
           searchedList.push(item);
           continue;
         }
         if (
-          item.parentProjectName?.toLowerCase().includes(
-            searchTerm.toLowerCase()
-          )
+          item.parentProjectName
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase())
         ) {
           searchedList.push(item);
           continue;
@@ -106,6 +100,7 @@ export function ProjectsList(props: ProjectsListProps): JSX.Element {
           searchedList.push(item);
           continue;
         }
+        // Add other checks here as desired.
       }
     }
 
@@ -176,25 +171,34 @@ export function ProjectsList(props: ProjectsListProps): JSX.Element {
     }
   }
 
-  function getProjectsWithExtendedDetails(
+  function getProjectsWithProjectDetails(
     projects: ProjectObject[]
   ): ExtendedProjectObject[] {
-    // Add account name and parent project name
-    const formattedProjects = (
-      JSON.parse(JSON.stringify(projects)) as ExtendedProjectObject[]
-    ).map((project) => {
-      const account = rolesContext.accounts?.find(
-        (account) => account.id === project.account_id
-      );
-      const parentProject = rolesContext.projects.find(
-        (p) => p.id === project.parent_project_id
-      );
-      return {
-        ...project,
-        accountName: account?.name,
-        parentProjectName: parentProject?.name,
-      };
-    });
+    const formattedProjects = JSON.parse(
+      JSON.stringify(projects)
+    ) as ExtendedProjectObject[];
+
+    for (const project of formattedProjects) {
+      // Add account name
+      if (project.account_id) {
+        const foundAccount = rolesContext.accounts?.find(
+          (item) => item.id === project.account_id
+        );
+        if (foundAccount) {
+          project.accountName = foundAccount.name;
+        }
+      }
+      // Add Parent Project name
+      if (project.parent_project_id) {
+        const foundParentProject = rolesContext.projects.find(
+          (item) => item.id === project.parent_project_id
+        );
+        if (foundParentProject) {
+          project.parentProjectName = foundParentProject.name;
+        }
+      }
+    }
+
     return formattedProjects;
   }
 
@@ -244,18 +248,10 @@ export function ProjectsList(props: ProjectsListProps): JSX.Element {
 
       {!isModalOpen ? null : (
         <CommonModal onClose={handleModalClose}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {selectedProject ? "Edit Project" : "Add Project"}
-            </h2>
-            <p>This functionality is not implemented in this demo.</p>
-            <button 
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              onClick={handleModalClose}
-            >
-              Close
-            </button>
-          </div>
+          <AddEditProject
+            project={selectedProject}
+            onClose={handleModalClose}
+          />
         </CommonModal>
       )}
     </div>

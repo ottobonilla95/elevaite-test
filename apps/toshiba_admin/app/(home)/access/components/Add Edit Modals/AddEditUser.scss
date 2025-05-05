@@ -1,0 +1,121 @@
+.add-edit-user-container {
+  .api-error-message {
+    color: #e53e3e;
+    font-size: 14px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background-color: rgba(229, 62, 62, 0.1);
+    border-radius: 4px;
+    border-left: 3px solid #e53e3e;
+  }
+
+  .password-field-container {
+    position: relative;
+
+    /* Removed standalone regenerate button */
+
+    .common-input-container {
+      width: 100%;
+
+      input {
+        padding-right: 90px; /* Make room for the regenerate button */
+      }
+    }
+
+    .password-input-wrapper {
+      position: relative;
+      width: 100%;
+
+      input {
+        width: 100%;
+        padding: 10px;
+        padding-right: 90px; /* Make room for both buttons */
+        background-color: var(--ev-colors-background);
+        border: 1px solid var(--ev-colors-borderColor);
+        border-radius: 8px;
+
+        &:focus {
+          outline: 1px solid var(--ev-colors-highlight);
+        }
+      }
+
+      .password-controls {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .regenerate-password-btn {
+          background-color: transparent;
+          border: none;
+          color: var(--ev-colors-highlight, #3182ce);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+
+          &:hover {
+            color: var(--ev-colors-highlightDark, #2c5282);
+          }
+        }
+
+        .toggle-password-visibility {
+          background-color: transparent;
+          border: none;
+          color: var(--ev-colors-highlight, #3182ce);
+          cursor: pointer;
+          font-size: 12px;
+
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+    }
+  }
+}
+
+.user-created-confirmation {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 400px;
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+
+  .note {
+    font-size: 13px;
+    color: #718096;
+    font-style: italic;
+    background-color: rgba(113, 128, 150, 0.1);
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-top: -8px;
+  }
+
+  .button-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+
+    .go-back-button {
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+  }
+}
