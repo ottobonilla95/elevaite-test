@@ -1,8 +1,7 @@
-// ChatInterface.tsx
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, Bot, AlertCircle } from "lucide-react";
 import "./ChatInterface.scss";
 import { WorkflowAPI } from "../api/workflowApi.ts";
 
@@ -10,6 +9,7 @@ interface ChatMessage {
     id: number;
     text: string;
     sender: "user" | "bot";
+    error?: boolean;
 }
 
 interface ChatInterfaceProps {
@@ -28,7 +28,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
         {
             id: Date.now(),
-            text: "Workflow deployed successfully. You can now ask questions.",
+            text: `Workflow deployed successfully with ID: ${workflowId.substring(0, 8)}. You can now ask questions.`,
             sender: "bot"
         }
     ]);
@@ -73,14 +73,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         setIsLoading(true);
 
         try {
-            // const response = await WorkflowAPI.runWorkflow(workflowId, query);
-            // console.log("Workflow response:", response);
-            // const botMessage = {
-            //     id: Date.now() + 1,
-            //     text: response.response,
-            //     sender: "bot" as const
-            // };
-            // setChatMessages(prevMessages => [...prevMessages, botMessage]);
             const chatHistory = chatMessages.map((message) => ({
                 actor: message.sender,
                 content: message.text,
@@ -90,6 +82,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             console.log("Workflow response stream:", responseStream);
             if (!responseStream) {
                 console.error("No response stream received");
+                setChatMessages(prevMessages => [
+                    ...prevMessages,
+                    {
+                        id: Date.now() + 1,
+                        text: "Error: Failed to connect to the workflow",
+                        sender: "bot",
+                        error: true
+                    }
+                ]);
                 return;
             }
 
@@ -98,7 +99,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             const botMessage = {
                 id: Date.now() + 1,
                 text: "",
-                sender: "bot" as const,
+                sender: "bot" as const
             };
 
             // Add an empty bot message to the chat
@@ -122,9 +123,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 );
             }
 
-
-
-
         } catch (error) {
             console.error("Error running workflow:", error);
 
@@ -134,7 +132,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {
                     id: Date.now() + 1,
                     text: `Error: ${(error as Error).message || "Failed to process message"}`,
-                    sender: "bot" as const
+                    sender: "bot",
+                    error: true
                 }
             ]);
         } finally {
@@ -142,32 +141,44 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         }
     };
 
+    // Render user avatar
+    const renderUserAvatar = () => {
+        return (
+            <div className="message-avatar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" fill="currentColor" />
+                    <path d="M12 13C8.13401 13 5 16.134 5 20V21H19V20C19 16.134 15.866 13 12 13Z" fill="currentColor" />
+                </svg>
+            </div>
+        );
+    };
+
+    // Render bot avatar
+    const renderBotAvatar = (isError = false) => {
+        return (
+            <div className="message-avatar">
+                {isError ? <AlertCircle size={16} /> : <Bot size={16} />}
+            </div>
+        );
+    };
+
     return (
         <div className="chat-interface">
             <div className="chat-messages-container">
-                {chatMessages.length === 0 ? (
-                    <div className="empty-chat">
-                        <div className="empty-chat-icon">
-                            <MessageSquare size={24} />
-                        </div>
-                        <h3 className="empty-chat-title">Start a conversation</h3>
-                        <p className="empty-chat-description">
-                            Ask a question to begin using your deployed agent flow.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="chat-messages">
-                        {chatMessages.map((message) => (
-                            <div
-                                key={message.id}
-                                className={`chat-message ${message.sender === "user" ? "user-message" : "bot-message"}`}
-                            >
+                <div className="chat-messages">
+                    {chatMessages.map((message) => (
+                        <div
+                            key={message.id}
+                            className={`chat-message ${message.sender === "user" ? "user-message" : "bot-message"} ${message.error ? "error-message" : ""}`}
+                        >
+                            {message.sender === "user" ? renderUserAvatar() : renderBotAvatar(message.error)}
+                            <div className="message-bubble">
                                 {message.text}
                             </div>
-                        ))}
-                        <div ref={messagesEndRef} />
-                    </div>
-                )}
+                        </div>
+                    ))}
+                    <div ref={messagesEndRef} />
+                </div>
             </div>
             <div className="chat-input-container">
                 <input

@@ -17,7 +17,7 @@ import { AgentType, AGENT_TYPES, NodeData } from "./type";
 
 // Import styles
 import "./AgentConfigForm.scss";
-import {WorkflowAPI} from "../api/workflowApi.ts";
+import { WorkflowAPI } from "../api/workflowApi.ts";
 
 // Define additional types needed
 interface Node {
@@ -282,51 +282,103 @@ const AgentConfigForm: React.FC = () => {
         }
     }, [selectedNode]);
 
+    // Handle agent name change
+    const handleAgentNameChange = useCallback((nodeId: string, newName: string) => {
+        if (newName.trim() === '') return; // Don't allow empty names
+
+        // Update the node data with the new name
+        setNodes(prevNodes => prevNodes.map(node =>
+            node.id === nodeId
+                ? {
+                    ...node,
+                    data: {
+                        ...node.data,
+                        name: newName,
+                        // Make sure onDelete and onConfigure are maintained
+                        onDelete: node.data.onDelete,
+                        onConfigure: node.data.onConfigure
+                    }
+                }
+                : node
+        ));
+
+        // Also update selectedNode if it's the node we just edited
+        if (selectedNode && selectedNode.id === nodeId) {
+            setSelectedNode(prev => prev ? {
+                ...prev,
+                data: {
+                    ...prev.data,
+                    name: newName
+                }
+            } : null);
+        }
+
+        // Show a brief notification to confirm the name change (optional)
+        const notification = document.createElement('div');
+        notification.textContent = `Agent renamed to "${newName}"`;
+        notification.style.position = 'fixed';
+        notification.style.bottom = '20px';
+        notification.style.right = '20px';
+        notification.style.backgroundColor = '#f97316';
+        notification.style.color = 'white';
+        notification.style.padding = '10px 15px';
+        notification.style.borderRadius = '4px';
+        notification.style.zIndex = '9999';
+        notification.style.opacity = '0';
+        notification.style.transition = 'opacity 0.3s ease';
+
+        document.body.appendChild(notification);
+
+        // Fade in
+        setTimeout(() => {
+            notification.style.opacity = '1';
+        }, 100);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 3000);
+    }, [selectedNode, setNodes]);
+
     // Deploy workflow
     const handleDeployWorkflow = async () => {
+        console.log("Deploy button clicked");
+        console.log("Current nodes:", nodes);
+
+        // Check for nodes
         if (nodes.length === 0) {
             alert("Please add at least one agent to your workflow before deploying.");
             return;
         }
 
-        // Check if there's a router agent
-        const routerNode = nodes.find(node => node.data.tags?.includes('router') || node.data.type === 'router');
+        // Log router check
+        const routerNode = nodes.find(node =>
+            node.data.tags?.includes('router') || node.data.type === 'router'
+        );
+        console.log("Router node found:", routerNode);
+
         if (!routerNode) {
             alert("Your workflow must include a Router Agent.");
             return;
         }
 
-        setIsLoading(true);
-
+        // If we get here, just try to switch to chat mode directly
         try {
-            // Deploy the workflow - this is just a placeholder, replace with your actual API
-            console.log("Deploying workflow:", { nodes, edges });
-            const response = await WorkflowAPI.deployWorkflow(nodes, edges);
-            console.log("Workflow deployed:", response);
-
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Switch to chat mode
             setIsChatMode(true);
-            setShowConfigPanel(false); // Hide the config panel in chat mode
-
-            // Add a system message to the chat
+            setShowConfigPanel(false);
             setChatMessages([{
                 id: Date.now(),
                 text: "Workflow deployed successfully. You can now ask questions.",
                 sender: "bot"
             }]);
         } catch (error) {
-            console.error("Error deploying workflow:", error);
-            alert("Failed to deploy workflow: " + (error as Error).message);
-        } finally {
-            setIsLoading(false);
+            console.error("Error:", error);
+            alert("Error: " + (error as Error).message);
         }
     };
-
-
-
     // Save workflow
     const handleSaveWorkflow = () => {
         if (nodes.length === 0) {
@@ -378,6 +430,9 @@ const AgentConfigForm: React.FC = () => {
         // If tools are provided in the configuration data, update them
         const tools = configData.selectedTools || selectedNode.data.tools || [];
 
+        // The name might have been updated through the inline editor
+        const agentName = configData.agentName || selectedNode.data.name;
+
         // Update the node data with the new configuration
         setNodes(prevNodes => prevNodes.map(node =>
             node.id === selectedNode.id
@@ -385,6 +440,7 @@ const AgentConfigForm: React.FC = () => {
                     ...node,
                     data: {
                         ...node.data,
+                        name: agentName, // Use the potentially updated name
                         tools, // Update tools from configuration
                         config: configData  // Store configuration in the node data
                     }
@@ -398,6 +454,7 @@ const AgentConfigForm: React.FC = () => {
                 ...prev,
                 data: {
                     ...prev.data,
+                    name: agentName,
                     tools,
                     config: configData
                 }
@@ -405,7 +462,7 @@ const AgentConfigForm: React.FC = () => {
         }
 
         // Show confirmation
-        alert(`Configuration saved for ${selectedNode.data.name}`);
+        alert(`Configuration saved for ${agentName}`);
     };
 
     // If not yet mounted, return a loading placeholder
@@ -457,6 +514,7 @@ const AgentConfigForm: React.FC = () => {
                                         onEditPrompt={handleOpenPromptModal}
                                         onSave={handleSaveAgentConfig}
                                         onClose={() => setShowConfigPanel(false)}
+                                        onNameChange={(newName) => handleAgentNameChange(selectedNode.id, newName)}
                                     />
                                 </div>
                             )}

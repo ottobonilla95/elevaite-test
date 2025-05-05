@@ -258,3 +258,71 @@
       }
     }
   }
+
+  /* Add these styles to your ConfigPanel.scss file */
+
+/* Styles for the agent name display and edit functionality */
+.agent-name-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-name-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.edit-name-button:hover {
+  color: #f97316;
+  background-color: rgba(249, 115, 22, 0.1);
+}
+
+.agent-name-edit-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 85%;
+}
+
+.agent-name-input {
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 6px 10px;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.agent-name-input:focus {
+  border-color: #f97316;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
+}
+
+.save-name-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f97316;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 6px;
+  transition: all 0.2s ease;
+}
+
+.save-name-button:hover {
+  background-color: #ea580c;
+}

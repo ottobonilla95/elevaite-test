@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     ChevronDown,
     ChevronUp,
@@ -9,7 +9,8 @@ import {
     X,
     Zap,
     Database,
-    Link2
+    Link2,
+    Check
 } from "lucide-react";
 import { AgentType, AGENT_STYLES } from "./type";
 import "./ConfigPanel.scss";
@@ -21,6 +22,7 @@ interface ConfigPanelProps {
     onEditPrompt: () => void;
     onSave?: (configData: any) => void;
     onClose?: () => void;
+    onNameChange?: (newName: string) => void;
 }
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({
@@ -29,7 +31,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     description,
     onEditPrompt,
     onSave,
-    onClose
+    onClose,
+    onNameChange
 }) => {
     // State for collapsible sections
     const [parametersOpen, setParametersOpen] = useState(true);
@@ -43,6 +46,23 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
     // State for selected tools
     const [selectedTools, setSelectedTools] = useState<string[]>(["Document Parser"]);
+
+    // State for agent name editing
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editedName, setEditedName] = useState(agentName);
+    const nameInputRef = useRef<HTMLInputElement>(null);
+
+    // Effect to focus input when editing starts
+    useEffect(() => {
+        if (isEditingName && nameInputRef.current) {
+            nameInputRef.current.focus();
+        }
+    }, [isEditingName]);
+
+    // Update local state when agentName prop changes
+    useEffect(() => {
+        setEditedName(agentName);
+    }, [agentName]);
 
     // Deployment type options
     const deploymentTypes = [
@@ -149,10 +169,25 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
         return toolIcons[toolName] || <Zap size={16} className="text-orange-500" />;
     };
 
+    // Handle name editing
+    const startEditingName = () => {
+        setIsEditingName(true);
+    };
+
+    const saveEditedName = () => {
+        if (editedName.trim() === '') {
+            setEditedName(agentName); // Restore original name if empty
+        } else if (onNameChange && editedName !== agentName) {
+            onNameChange(editedName);
+        }
+        setIsEditingName(false);
+    };
+
     // Handle save button click
     const handleSave = () => {
         if (onSave) {
             onSave({
+                agentName: editedName, // Include the potentially updated name
                 deploymentType,
                 modelProvider,
                 model,
@@ -180,11 +215,50 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
         return `${styles.bgClass} ${styles.textClass}`;
     };
 
+    // Handle keydown event for name input
+    const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            saveEditedName();
+        } else if (e.key === 'Escape') {
+            setEditedName(agentName); // Restore original name
+            setIsEditingName(false);
+        }
+    };
+
     return (
         <div className="config-panel">
-            {/* Header with close button */}
+            {/* Header with close button and editable name */}
             <div className="config-panel-header">
-                <h2 className="config-panel-title">{agentName}</h2>
+                {isEditingName ? (
+                    <div className="agent-name-edit-container">
+                        <input
+                            ref={nameInputRef}
+                            type="text"
+                            value={editedName}
+                            onChange={(e) => setEditedName(e.target.value)}
+                            onBlur={saveEditedName}
+                            onKeyDown={handleNameKeyDown}
+                            className="agent-name-input"
+                            placeholder="Enter agent name"
+                        />
+                        <button
+                            onClick={saveEditedName}
+                            className="save-name-button"
+                        >
+                            <Check size={16} />
+                        </button>
+                    </div>
+                ) : (
+                    <div className="agent-name-display">
+                        <h2 className="config-panel-title">{editedName}</h2>
+                        <button
+                            onClick={startEditingName}
+                            className="edit-name-button"
+                        >
+                            <Edit size={16} />
+                        </button>
+                    </div>
+                )}
                 {onClose && (
                     <button
                         onClick={onClose}
