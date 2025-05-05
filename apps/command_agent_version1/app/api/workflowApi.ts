@@ -62,10 +62,11 @@ export const WorkflowAPI = {
         return response.json();
     },
 
-    runWorkflowStream: async (routerId, query) => {
+    runWorkflowStream: async (routerId, query, chatHistory) => {
         const payload = {
             router_id: routerId,
-            query: query
+            query: query,
+            chat_history: chatHistory
         };
 
         console.log("Sending run payload:", payload);

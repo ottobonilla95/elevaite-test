@@ -92,8 +92,16 @@ def run(request: dict):
 
 @app.post("/run_stream")
 def run(request: dict):
+    chat_history = request["chat_history"]
+    print("Chat History: ",chat_history)
+    print("*"*10)
+    gpt_chat_history = ""
+
+    for i in chat_history[:-1]:
+        gpt_chat_history += f"{i['actor']}: {i['content']}\n"
+
     async def response_stream():
-        for chunk in COMMAND_AGENT.execute_stream(request["query"]):
+        for chunk in COMMAND_AGENT.execute_stream(request["query"], gpt_chat_history):
             yield chunk
 
     return fastapi.responses.StreamingResponse(response_stream(), media_type="text/event-stream")

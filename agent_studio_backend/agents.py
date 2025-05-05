@@ -317,7 +317,7 @@ class CommandAgent(Agent):
                 print(f"Error: {e}")
             tries += 1
 
-    def execute_stream(self, query: Any) -> Any:
+    def execute_stream(self, query: Any, chat_history: Any) -> Any:
         """
         Ask the agent anything related to arithmetic, customer orders numbers or web search and it will try to answer it.
         You can ask it multiple questions at once. No need to ask one question at a time. You can ask it for multiple customer ids, multiple arithmetic questions, or multiple web search queries.
@@ -333,7 +333,9 @@ class CommandAgent(Agent):
         {{ "routing": "respond", "content": "The answer to the query."}}
 
         """
-        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": query}]
+        messages = [{"role": "system", "content": system_prompt}]
+        messages += [{"role": "user", "content": f"Here is the chat history: {chat_history}"}]
+        messages += [{"role": "user", "content": "Read the context and chat history and then answer the query."+"\n\nHere is the query: "+query}]
         while tries < self.max_retries:
             try:
                 response = client.chat.completions.create(
@@ -347,7 +349,7 @@ class CommandAgent(Agent):
                     tool_calls = response.choices[0].message.tool_calls[:1]
                     messages += [{"role": "assistant", "tool_calls": tool_calls}, ]
                     for tool in tool_calls:
-                        yield f"\n\nAgent Called: {tool.function.name}\n"
+                        yield f"Agent Called: {tool.function.name}\n"
                         tool_id = tool.id
                         arguments = json.loads(tool.function.arguments)
                         function_name = tool.function.name
@@ -357,7 +359,7 @@ class CommandAgent(Agent):
                         yield json.loads(result).get("content", "Agent Responded")+"\n"
 
                 else:
-                    yield f"\n\nCommand Agent Responded\n"
+                    yield f"Command Agent Responded\n"
                     yield json.loads(response.choices[0].message.content).get("content", "Command Agent Could Not Respond")+"\n\n"  # Stream the final response
                     return
 

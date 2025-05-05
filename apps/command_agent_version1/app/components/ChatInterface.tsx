@@ -81,8 +81,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             //     sender: "bot" as const
             // };
             // setChatMessages(prevMessages => [...prevMessages, botMessage]);
+            const chatHistory = chatMessages.map((message) => ({
+                actor: message.sender,
+                content: message.text,
+            }));
 
-            const responseStream = await WorkflowAPI.runWorkflowStream(workflowId, query);
+            const responseStream = await WorkflowAPI.runWorkflowStream(workflowId, query, chatHistory);
             console.log("Workflow response stream:", responseStream);
             if (!responseStream) {
                 console.error("No response stream received");
