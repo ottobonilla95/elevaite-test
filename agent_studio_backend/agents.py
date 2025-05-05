@@ -1,4 +1,4 @@
-from agent_studio_backend.tools import weather_forecast
+from tools import weather_forecast
 from data_classes import Agent
 from utils import agent_schema
 from typing import Any
