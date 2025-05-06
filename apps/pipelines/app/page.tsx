@@ -893,8 +893,6 @@ export default function Home(): JSX.Element {
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
-                height:
-                  "calc(100% - 3rem)" /* Expand to available space minus margins */,
               }}
             >
               {/* Header Section */}
@@ -1745,6 +1743,7 @@ export default function Home(): JSX.Element {
                 flexDirection: isMobile ? "column" : "row",
                 gap: "12px",
                 padding: "1.5rem",
+                paddingTop: "0",
                 marginTop: "auto",
               }}
             >
