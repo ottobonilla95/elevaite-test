@@ -18,7 +18,7 @@ export default async function RootLayout({children,}: Readonly<{children: React.
   const session = await auth();
   const breadcrumbs: Record<string, { label: string; link: string }> = {
     home: {
-      label: "Chatbot",
+      label: "Ask Toshiba",
       link: "/",
     },
   };

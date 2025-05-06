@@ -24,7 +24,7 @@ export function CoPilot(props: CoPilotProps): JSX.Element {
         <div className="co-pilot-container">
 
             <div className="co-pilot-header">
-                <span>{props.label ?? "CoPilot"}</span>
+                <span>{props.label ?? "Ask Toshiba"}</span>
                 {props.noUpload ? undefined : undefined
                     // <CommonButton
                     //     className="upload-button"

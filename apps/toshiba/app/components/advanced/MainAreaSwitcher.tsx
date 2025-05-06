@@ -80,7 +80,7 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
                 // This is the welcome screen / new chat screen
                 setActiveWindow([
                     <div key="toshiba1" className="toshiba1">
-                        <CoPilot noUpload label="What can I help with?">
+                        <CoPilot noUpload label="Ask Toshiba">
                             <CoPilotStart
                                 wide
                                 addedControls
