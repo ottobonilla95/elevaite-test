@@ -22,6 +22,39 @@ export async function authenticate(
   }
 }
 
-export async function logout(): Promise<void> {
-  await signOut();
+export async function authenticateGoogle(): Promise<
+  "Invalid credentials." | "Something went wrong." | undefined
+> {
+  try {
+    await signIn("google");
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case "CredentialsSignin":
+          return "Invalid credentials.";
+        default:
+          return "Something went wrong.";
+      }
+    }
+    throw error;
+  }
+}
+
+export async function logout(): Promise<
+  "Invalid credentials." | "Something went wrong." | undefined
+> {
+  try {
+    // auth()
+    await signOut({ redirectTo: "/login" });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case "CredentialsSignin":
+          return "Invalid credentials.";
+        default:
+          return "Something went wrong.";
+      }
+    }
+    throw error;
+  }
 }

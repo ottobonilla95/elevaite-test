@@ -1,20 +1,11 @@
-import { redirect } from "next/navigation";
-import type { JSX } from "react";
 import { AuthFluff, ElevaiteIcons } from "@repo/ui/components";
-import { auth } from "../../auth";
-import { authenticate } from "../lib/actions";
-import { CustomLoginForm } from "../components/CustomLoginForm";
+import type { JSX } from "react";
 import "./page.scss";
 import "./hide-register.css";
+import { authenticate, authenticateGoogle } from "../lib/actions";
+import { CustomLoginForm } from "../components/CustomLoginForm";
 
-export default async function LoginPage(): Promise<JSX.Element> {
-  const session = await auth();
-
-  // If the user is already logged in, redirect to the home page
-  if (session?.user) {
-    redirect("/");
-  }
-
+function Login(): JSX.Element {
   return (
     <div className="login-page-container">
       <div className="auth-fluff-container">
@@ -38,11 +29,12 @@ export default async function LoginPage(): Promise<JSX.Element> {
 
         <div className="center-block">
           <div className="title">
-            <span className="main">Sign in to Toshiba Admin</span>
+            <span className="main">Sign in to ElevAIte</span>
             <span>Enter your login details below.</span>
           </div>
           <CustomLoginForm
             authenticate={authenticate}
+            authenticateGoogle={authenticateGoogle}
           />
         </div>
 
@@ -61,3 +53,5 @@ export default async function LoginPage(): Promise<JSX.Element> {
     </div>
   );
 }
+
+export default Login;

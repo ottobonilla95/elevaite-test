@@ -8,10 +8,14 @@ interface CustomLoginFormProps {
     prevstate: string,
     formData: Record<"email" | "password", string>
   ) => Promise<"Invalid credentials." | "Something went wrong." | undefined>;
+  authenticateGoogle: () => Promise<
+    "Invalid credentials." | "Something went wrong." | undefined
+  >;
 }
 
 export function CustomLoginForm({
   authenticate,
+  authenticateGoogle,
 }: CustomLoginFormProps): JSX.Element {
   const [mounted, setMounted] = useState(false);
 
@@ -39,6 +43,7 @@ export function CustomLoginForm({
   return (
     <LogInForm
       authenticate={authenticate}
+      authenticateGoogle={authenticateGoogle}
     />
   );
 }

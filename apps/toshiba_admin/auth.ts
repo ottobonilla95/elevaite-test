@@ -2,6 +2,7 @@ import type { NextAuthConfig, User } from "next-auth";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
+import Google from "next-auth/providers/google";
 import { authConfig } from "./auth.config";
 import { AuthApiClient } from "./app/lib/authApiClient";
 
@@ -63,6 +64,17 @@ export const authOptions: NextAuthConfig = {
           }
         }
         return null;
+      },
+    }),
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code",
+        },
       },
     }),
   ],

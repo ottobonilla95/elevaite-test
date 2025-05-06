@@ -110,8 +110,6 @@ export function NavBar(props: NavBarProps): JSX.Element {
 
                 <div className="navbar-right">
 
-
-
                     <CommonButton
                         className={["help-button", isHelpActive ? "active" : undefined].filter(Boolean).join(" ")}
                         onClick={handleHelpClick}
