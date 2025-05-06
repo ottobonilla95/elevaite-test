@@ -3,31 +3,13 @@ name = "elevAIte"
 version = "0.0.0"
 description = "elevAIte monorepo setup using UV"
 authors = [
-  { name = "Panagiotis Vamvakas", email = "<57200277+vuxxs@users.noreply.github.com>" },
+  {name="Panagiotis Vamvakas", email="<57200277+vuxxs@users.noreply.github.com>"}
 ]
 requires-python = "~=3.11"
 readme = "README.md"
-dependencies = [
-    "db-core",
-    "elevaitelib",
-    "rbac-lib",
-]
+dependencies = []
 
 
 [tool.uv.workspace]
 members = ["python_apps/*", "python_packages/*"]
-exclude = [
-  "elevaite_backend/rbac-legacy",
-  "python_apps/arlo_backend",
-  "python_apps/exceltoppt",
-  "python_apps/sla_chatbot_backend",
-  "python_apps/flyte_worker",
-  "python_apps/media_backend",
-  "python_apps/pipelines",
-  "python_packages/email_middleware",
-]
-
-[tool.uv.sources]
-elevaitelib = { workspace = true }
-rbac-lib = { workspace = true }
-db-core = { workspace = true }
+exclude = ["elevaite_backend/*"]
