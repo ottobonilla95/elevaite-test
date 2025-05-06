@@ -28,14 +28,12 @@
       overflow-y: hidden;
       justify-content: flex-start;
       align-items: stretch;
-      padding-top: 32px;
-      padding-bottom: 32px;
     }
 
     .config-option {
       width: 100%;
       position: relative;
-      margin-bottom: 24px;
+      margin-bottom: 8px;
 
       // Ensure all dropdown containers have consistent height
       & > div {
@@ -62,5 +60,17 @@ body {
     > div[style*="display: flex"][style*="justify-content: space-between"] {
     height: 40px !important;
     box-sizing: border-box !important;
+  }
+
+  /* Ensure consistent height for all form elements */
+  .config-field-content {
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    .custom-number-input,
+    .custom-dropdown {
+      height: 40px !important;
+      box-sizing: border-box !important;
+    }
   }
 }

@@ -5,6 +5,7 @@ import { pipelineSteps } from "./lib/pipelineData";
 import { ElevaiteIcons } from "../../../packages/ui/src/components/icons/elevaite";
 import { AdaptiveConfigGrid } from "./components/AdaptiveConfigGrid";
 import { ConfigField } from "./components/ConfigField";
+import { CustomInput } from "./components/CustomInput";
 import "./page.scss";
 
 interface UploadingFile {
@@ -274,16 +275,17 @@ export default function Home(): JSX.Element {
           max={max}
           step={step}
           style={{
-            backgroundColor: "#212124", // Match dropdown background color
+            backgroundColor: "#212124",
             color: "white",
             border: "2px solid #3f3f41",
             padding: "10px",
-            paddingRight: "60px", // Make room for the buttons
+            paddingRight: "60px",
             borderRadius: "8px",
             fontSize: "14px",
             width: "100%",
-            appearance: "textfield", // Remove default arrows
-            boxSizing: "border-box", // Ensure padding is included in width
+            height: "40px",
+            appearance: "textfield",
+            boxSizing: "border-box",
           }}
         />
         <div
@@ -601,206 +603,220 @@ export default function Home(): JSX.Element {
         flexDirection: "column",
       }}
     >
-      <div className="pipeline-header-box">
-        <div className="header-content">
-          <h1>Document Processing Pipeline</h1>
+      {/* Border container for Document Processing Pipeline and steps */}
+      <div
+        style={{
+          margin: "0",
+          border: "1px solid #3f3f41",
+          borderRadius: "8px",
+          backgroundColor: "transparent",
+          padding: "0.5rem",
+        }}
+      >
+        {/* Document Processing Pipeline header */}
+        <div className="pipeline-header-box">
+          <div className="header-content">
+            <h1>Document Processing Pipeline</h1>
 
-          <div className="header-controls">
-            <div className="project-selector">
-              <span>Project:</span>
-              <div style={{ width: "150px" }}>
-                {/* Custom dropdown with orange arrow */}
-                <div
-                  style={{
-                    position: "relative",
-                    width: "100%",
-                  }}
-                >
+            <div className="header-controls">
+              <div className="project-selector">
+                <span>Project:</span>
+                <div style={{ width: "150px" }}>
+                  {/* Custom dropdown with orange arrow */}
                   <div
-                    onClick={() => {
-                      // Toggle dropdown
-                      const dropdown =
-                        document.getElementById("project-dropdown");
-                      if (dropdown) {
-                        dropdown.style.display =
-                          dropdown.style.display === "none" ? "block" : "none";
-                      }
-                    }}
                     style={{
-                      backgroundColor: "#3f3f41",
-                      color: "#e75f33",
-                      border: "none",
-                      padding: "6px 12px",
-                      borderRadius: "8px",
-                      fontSize: "14px",
+                      position: "relative",
                       width: "100%",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: "8px" /* Reduce space between text and arrow */,
-                      cursor: "pointer",
-                      transition: "background-color 0.2s ease",
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = "#4f4f51";
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = "#3f3f41";
-                    }}
-                  >
-                    <span style={{ color: "#e75f33" }}>Default Project</span>
-                    <svg
-                      fill="none"
-                      viewBox="0 0 16 16"
-                      width={16}
-                      height={16}
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="m4 6.5 4 4 4-4"
-                        stroke="#e75f33"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                      />
-                    </svg>
-                  </div>
-                  <div
-                    id="project-dropdown"
-                    style={{
-                      display: "none",
-                      position: "absolute",
-                      top: "calc(100% + 5px)",
-                      left: 0,
-                      width: "100%",
-                      backgroundColor: "#3f3f41",
-                      border: "none",
-                      borderRadius: "8px",
-                      zIndex: 10,
-                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-                      maxHeight: "200px",
-                      overflowY: "auto",
                     }}
                   >
                     <div
                       onClick={() => {
-                        document.getElementById(
-                          "project-dropdown"
-                        )!.style.display = "none";
+                        // Toggle dropdown
+                        const dropdown =
+                          document.getElementById("project-dropdown");
+                        if (dropdown) {
+                          dropdown.style.display =
+                            dropdown.style.display === "none"
+                              ? "block"
+                              : "none";
+                        }
                       }}
                       style={{
-                        padding: "6px 12px",
-                        cursor: "pointer",
-                        backgroundColor: "rgba(231, 95, 51, 0.1)",
+                        backgroundColor: "#3f3f41",
                         color: "#e75f33",
-                        transition:
-                          "background-color 0.2s ease, color 0.2s ease",
+                        border: "none",
+                        padding: "6px 12px",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        width: "100%",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: "8px" /* Reduce space between text and arrow */,
+                        cursor: "pointer",
+                        transition: "background-color 0.2s ease",
                       }}
                       onMouseOver={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                          "rgba(231, 95, 51, 0.2)";
+                        e.currentTarget.style.backgroundColor = "#4f4f51";
                       }}
                       onMouseOut={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                          "rgba(231, 95, 51, 0.1)";
+                        e.currentTarget.style.backgroundColor = "#3f3f41";
                       }}
                     >
-                      Default Project
+                      <span style={{ color: "#e75f33" }}>Default Project</span>
+                      <svg
+                        fill="none"
+                        viewBox="0 0 16 16"
+                        width={16}
+                        height={16}
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="m4 6.5 4 4 4-4"
+                          stroke="#e75f33"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                        />
+                      </svg>
                     </div>
                     <div
-                      onClick={() => {
-                        document.getElementById(
-                          "project-dropdown"
-                        )!.style.display = "none";
-                      }}
+                      id="project-dropdown"
                       style={{
-                        padding: "6px 12px",
-                        cursor: "pointer",
-                        backgroundColor: "transparent",
-                        color: "white",
-                        transition:
-                          "background-color 0.2s ease, color 0.2s ease",
-                      }}
-                      onMouseOver={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                          "rgba(255, 255, 255, 0.05)";
-                      }}
-                      onMouseOut={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
+                        display: "none",
+                        position: "absolute",
+                        top: "calc(100% + 5px)",
+                        left: 0,
+                        width: "100%",
+                        backgroundColor: "#3f3f41",
+                        border: "none",
+                        borderRadius: "8px",
+                        zIndex: 10,
+                        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                        maxHeight: "200px",
+                        overflowY: "auto",
                       }}
                     >
-                      Project 1
-                    </div>
-                    <div
-                      onClick={() => {
-                        document.getElementById(
-                          "project-dropdown"
-                        )!.style.display = "none";
-                      }}
-                      style={{
-                        padding: "6px 12px",
-                        cursor: "pointer",
-                        backgroundColor: "transparent",
-                        color: "white",
-                        transition:
-                          "background-color 0.2s ease, color 0.2s ease",
-                      }}
-                      onMouseOver={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                          "rgba(255, 255, 255, 0.05)";
-                      }}
-                      onMouseOut={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }}
-                    >
-                      Project 2
+                      <div
+                        onClick={() => {
+                          document.getElementById(
+                            "project-dropdown"
+                          )!.style.display = "none";
+                        }}
+                        style={{
+                          padding: "6px 12px",
+                          cursor: "pointer",
+                          backgroundColor: "rgba(231, 95, 51, 0.1)",
+                          color: "#e75f33",
+                          transition:
+                            "background-color 0.2s ease, color 0.2s ease",
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.backgroundColor =
+                            "rgba(231, 95, 51, 0.2)";
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.backgroundColor =
+                            "rgba(231, 95, 51, 0.1)";
+                        }}
+                      >
+                        Default Project
+                      </div>
+                      <div
+                        onClick={() => {
+                          document.getElementById(
+                            "project-dropdown"
+                          )!.style.display = "none";
+                        }}
+                        style={{
+                          padding: "6px 12px",
+                          cursor: "pointer",
+                          backgroundColor: "transparent",
+                          color: "white",
+                          transition:
+                            "background-color 0.2s ease, color 0.2s ease",
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.backgroundColor =
+                            "rgba(255, 255, 255, 0.05)";
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        Project 1
+                      </div>
+                      <div
+                        onClick={() => {
+                          document.getElementById(
+                            "project-dropdown"
+                          )!.style.display = "none";
+                        }}
+                        style={{
+                          padding: "6px 12px",
+                          cursor: "pointer",
+                          backgroundColor: "transparent",
+                          color: "white",
+                          transition:
+                            "background-color 0.2s ease, color 0.2s ease",
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.backgroundColor =
+                            "rgba(255, 255, 255, 0.05)";
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        Project 2
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="provider-display">
-              <span>Provider:</span>
-              <div
-                style={{
-                  backgroundColor: "#3f3f41",
-                  padding: "6px 12px",
-                  borderRadius: "8px",
-                  fontSize: "14px",
-                  color: "#ccc",
-                  fontWeight: "normal",
-                  border: "none",
-                }}
-              >
-                SageMaker
+              <div className="provider-display">
+                <span>Provider:</span>
+                <div
+                  style={{
+                    backgroundColor: "#3f3f41",
+                    padding: "6px 12px",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    color: "#ccc",
+                    fontWeight: "normal",
+                    border: "none",
+                  }}
+                >
+                  SageMaker
+                </div>
+                {/* TODO: Receive provider from backend */}
               </div>
-              {/* TODO: Receive provider from backend */}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Pipeline visualization */}
-      <div className="pipeline-visualization">
-        <div className="pipeline-steps-container">
-          {pipelineSteps.map((step, index) => (
-            <React.Fragment key={step.id}>
-              <div
-                className={`pipeline-step-box ${selectedStep === step.id ? "selected" : ""} ${pipelineSteps.findIndex((s) => s.id === selectedStep) >= pipelineSteps.findIndex((s) => s.id === step.id) ? "highlighted" : ""}`}
-                onClick={() => handleStepSelect(step.id)}
-                title={step.description}
-              >
-                <div className="icon-circle">{getStepIcon(step.id)}</div>
-                <div className="step-title">{step.title}</div>
-              </div>
-              {index < pipelineSteps.length - 1 && (
-                <div className="pipeline-connector">
-                  <div className="connector-line"></div>
+        {/* Pipeline visualization */}
+        <div className="pipeline-visualization">
+          <div className="pipeline-steps-container">
+            {pipelineSteps.map((step, index) => (
+              <React.Fragment key={step.id}>
+                <div
+                  className={`pipeline-step-box ${selectedStep === step.id ? "selected" : ""} ${pipelineSteps.findIndex((s) => s.id === selectedStep) >= pipelineSteps.findIndex((s) => s.id === step.id) ? "highlighted" : ""}`}
+                  onClick={() => handleStepSelect(step.id)}
+                  title={step.description}
+                >
+                  <div className="icon-circle">{getStepIcon(step.id)}</div>
+                  <div className="step-title">{step.title}</div>
                 </div>
-              )}
-            </React.Fragment>
-          ))}
+                {index < pipelineSteps.length - 1 && (
+                  <div className="pipeline-connector">
+                    <div className="connector-line"></div>
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -867,950 +883,859 @@ export default function Home(): JSX.Element {
               height: "88%",
             }}
           >
-            {/* Header Section */}
+            {/* Inner border container - wraps header and config fields */}
             <div
               style={{
+                margin: "1.5rem",
+                border: "1px solid #3f3f41",
+                borderRadius: "8px",
+                flex: 1,
                 display: "flex",
-                flexDirection: isMobile ? "column" : "row",
-                justifyContent: "space-between",
-                alignItems: isMobile ? "flex-start" : "center",
-                gap: isMobile ? "1rem" : "0",
-                padding: "1.5rem",
+                flexDirection: "column",
+                overflow: "hidden",
+                height:
+                  "calc(100% - 3rem)" /* Expand to available space minus margins */,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <h1
+              {/* Header Section */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: isMobile ? "column" : "row",
+                  justifyContent: "space-between",
+                  alignItems: isMobile ? "flex-start" : "center",
+                  gap: isMobile ? "1rem" : "0",
+                  padding: "1rem",
+                  borderBottom: "1px solid #3f3f41",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <h1
+                    style={{
+                      fontSize: "1.5rem",
+                      margin: 0,
+                      color: "white",
+                      fontWeight: "normal",
+                    }}
+                  >
+                    {pipelineSteps.find((s) => s.id === selectedStep)?.title}{" "}
+                    Configuration
+                  </h1>
+                  <div
+                    style={{
+                      marginLeft: "10px",
+                      width: "16px",
+                      height: "16px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#999",
+                      cursor: "pointer",
+                    }}
+                    title={
+                      pipelineSteps.find((s) => s.id === selectedStep)?.details
+                    }
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                    </svg>
+                  </div>
+                </div>
+                <button
                   style={{
-                    fontSize: "1.5rem",
-                    margin: 0,
-                    color: "white",
-                    fontWeight: "normal",
-                  }}
-                >
-                  {pipelineSteps.find((s) => s.id === selectedStep)?.title}{" "}
-                  Configuration
-                </h1>
-                <div
-                  style={{
-                    marginLeft: "10px",
-                    width: "16px",
-                    height: "16px",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    color: "#999",
+                    gap: "8px",
+                    backgroundColor: "#2a2a2d",
+                    color: "white",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: "4px",
                     cursor: "pointer",
+                    fontSize: "14px",
                   }}
-                  title={
-                    pipelineSteps.find((s) => s.id === selectedStep)?.details
-                  }
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
+                    width="16"
+                    height="16"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
                   </svg>
-                </div>
+                  Monitor
+                </button>
               </div>
-              <button
+
+              {/* Form Elements Section */}
+              <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  backgroundColor: "#2a2a2d",
-                  color: "white",
-                  border: "none",
-                  padding: "8px 16px",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "14px",
+                  flex: "1",
+                  padding: "1rem",
+                  overflowY: "auto",
+                  height: "100%",
                 }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
-                </svg>
-                Monitor
-              </button>
-            </div>
+                {/* Configuration Options */}
+                {selectedStep === "loading" && (
+                  <div className="config-container">
+                    <AdaptiveConfigGrid
+                      containerClassName="config-grid-container"
+                      options={[
+                        {
+                          id: "data_source",
+                          children: (
+                            <ConfigField label="Data Source">
+                              <CustomDropdown
+                                options={[
+                                  { value: "s3", label: "Amazon S3" },
+                                  { value: "local", label: "Local Storage" },
+                                ]}
+                                defaultValue={dataSource}
+                                onChange={(value) => {
+                                  setDataSource(value);
+                                  console.log("Selected data source:", value);
+                                }}
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "file_format",
+                          children: (
+                            <ConfigField label="File Format">
+                              <CustomDropdown
+                                options={[
+                                  { value: "pdf", label: "PDF" },
+                                  { value: "docx", label: "Word Document" },
+                                  { value: "xlsx", label: "Excel Spreadsheet" },
+                                  { value: "html", label: "HTML" },
+                                ]}
+                                defaultValue={fileFormat}
+                                onChange={(value) => {
+                                  setFileFormat(value);
+                                  console.log("Selected file format:", value);
+                                }}
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        ...(dataSource === "s3"
+                          ? [
+                              {
+                                id: "s3_bucket_name",
+                                children: (
+                                  <ConfigField label="S3 Bucket Name">
+                                    <CustomInput
+                                      type="text"
+                                      placeholder="Enter bucket name"
+                                      defaultValue="kb-check-pdf"
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                              {
+                                id: "aws_region",
+                                children: (
+                                  <ConfigField label="AWS Region">
+                                    <CustomInput
+                                      type="text"
+                                      placeholder="e.g., us-east-1"
+                                      defaultValue="us-east-2"
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                            ]
+                          : []),
+                        ...(dataSource === "local"
+                          ? [
+                              {
+                                id: "input_directory",
+                                children: (
+                                  <ConfigField label="Input Directory">
+                                    <CustomInput
+                                      type="text"
+                                      placeholder="Enter input directory path"
+                                      defaultValue="/elevaite_ingestion/INPUT"
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                              {
+                                id: "output_directory",
+                                children: (
+                                  <ConfigField label="Output Directory">
+                                    <CustomInput
+                                      type="text"
+                                      placeholder="Enter output directory path"
+                                      defaultValue="/elevaite_ingestion/OUTPUT"
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
+                  </div>
+                )}
 
-            {/* Form Elements Section */}
-            <div
-              style={{
-                flex: "1",
-                padding: "0 1.5rem 1.5rem",
-                overflowY: "auto",
-                height: "100%",
-              }}
-            >
-              {/* Configuration Options */}
-              {selectedStep === "loading" && (
-                <div className="config-container">
-                  <AdaptiveConfigGrid
-                    containerClassName="config-grid-container"
-                    options={[
-                      {
-                        id: "data_source",
-                        children: (
-                          <ConfigField label="Data Source">
-                            <CustomDropdown
-                              options={[
-                                { value: "s3", label: "Amazon S3" },
-                                { value: "local", label: "Local Storage" },
-                              ]}
-                              defaultValue={dataSource}
-                              onChange={(value) => {
-                                setDataSource(value);
-                                console.log("Selected data source:", value);
-                              }}
-                            />
-                          </ConfigField>
-                        ),
-                      },
-                      {
-                        id: "file_format",
-                        children: (
-                          <ConfigField label="File Format">
-                            <CustomDropdown
-                              options={[
-                                { value: "pdf", label: "PDF" },
-                                { value: "docx", label: "Word Document" },
-                                { value: "xlsx", label: "Excel Spreadsheet" },
-                                { value: "html", label: "HTML" },
-                              ]}
-                              defaultValue={fileFormat}
-                              onChange={(value) => {
-                                setFileFormat(value);
-                                console.log("Selected file format:", value);
-                              }}
-                            />
-                          </ConfigField>
-                        ),
-                      },
-                      ...(dataSource === "s3"
-                        ? [
-                            {
-                              id: "s3_bucket_name",
-                              children: (
-                                <ConfigField label="S3 Bucket Name">
-                                  <input
-                                    type="text"
-                                    placeholder="Enter bucket name"
-                                    defaultValue="kb-check-pdf"
-                                    style={{
-                                      width: "100%",
-                                      padding: "10px",
-                                      backgroundColor: "#212124",
-                                      border: "2px solid #3f3f41",
-                                      borderRadius: "8px",
-                                      color: "white",
-                                      fontSize: "14px",
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                            {
-                              id: "aws_region",
-                              children: (
-                                <ConfigField label="AWS Region">
-                                  <input
-                                    type="text"
-                                    placeholder="e.g., us-east-1"
-                                    defaultValue="us-east-2"
-                                    style={{
-                                      width: "100%",
-                                      padding: "10px",
-                                      backgroundColor: "#212124",
-                                      border: "2px solid #3f3f41",
-                                      borderRadius: "8px",
-                                      color: "white",
-                                      fontSize: "14px",
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                          ]
-                        : []),
-                      ...(dataSource === "local"
-                        ? [
-                            {
-                              id: "input_directory",
-                              children: (
-                                <ConfigField label="Input Directory">
-                                  <input
-                                    type="text"
-                                    placeholder="Enter input directory path"
-                                    defaultValue="/elevaite_ingestion/INPUT"
-                                    style={{
-                                      width: "100%",
-                                      padding: "10px",
-                                      backgroundColor: "#212124",
-                                      border: "2px solid #3f3f41",
-                                      borderRadius: "8px",
-                                      color: "white",
-                                      fontSize: "14px",
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                            {
-                              id: "output_directory",
-                              children: (
-                                <ConfigField label="Output Directory">
-                                  <input
-                                    type="text"
-                                    placeholder="Enter output directory path"
-                                    defaultValue="/elevaite_ingestion/OUTPUT"
-                                    style={{
-                                      width: "100%",
-                                      padding: "10px",
-                                      backgroundColor: "#212124",
-                                      border: "2px solid #3f3f41",
-                                      borderRadius: "8px",
-                                      color: "white",
-                                      fontSize: "14px",
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                          ]
-                        : []),
-                    ]}
-                  />
-                </div>
-              )}
+                {selectedStep === "parsing" && (
+                  <div className="config-container">
+                    <AdaptiveConfigGrid
+                      containerClassName="config-grid-container"
+                      options={[
+                        {
+                          id: "parsing_mode",
+                          children: (
+                            <ConfigField label="Parsing Mode">
+                              <CustomDropdown
+                                options={[
+                                  {
+                                    value: "auto_parser",
+                                    label: "Auto Parser",
+                                  },
+                                  {
+                                    value: "custom_parser",
+                                    label: "Custom Parser",
+                                  },
+                                ]}
+                                defaultValue={parsingMode}
+                                onChange={(value) => {
+                                  setParsingMode(value);
+                                  console.log("Selected parsing mode:", value);
+                                }}
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "parser_type",
+                          children: (
+                            <ConfigField label="Parser Type">
+                              <CustomDropdown
+                                options={[
+                                  { value: "pdf", label: "PDF Parser" },
+                                  { value: "docx", label: "DOCX Parser" },
+                                  { value: "xlsx", label: "XLSX Parser" },
+                                  { value: "html", label: "HTML Parser" },
+                                ]}
+                                defaultValue={parserType || "pdf"}
+                                onChange={(value) => {
+                                  setParserType(value);
+                                  console.log("Selected parser type:", value);
+                                }}
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        ...(parsingMode === "custom_parser" && parserType
+                          ? [
+                              {
+                                id: "parser_tool",
+                                children: (
+                                  <ConfigField label="Parser Tool">
+                                    <CustomDropdown
+                                      options={
+                                        parserType === "pdf"
+                                          ? [{ value: "none", label: "None" }]
+                                          : parserType === "docx" ||
+                                              parserType === "xlsx" ||
+                                              parserType === "html"
+                                            ? [
+                                                {
+                                                  value: "markitdown",
+                                                  label: "Markitdown",
+                                                },
+                                                {
+                                                  value: "docling",
+                                                  label: "Docling",
+                                                },
+                                                {
+                                                  value: "llamaparse",
+                                                  label: "LlamaParse",
+                                                },
+                                              ]
+                                            : [{ value: "none", label: "None" }]
+                                      }
+                                      defaultValue={
+                                        parserTool ||
+                                        (parserType === "pdf"
+                                          ? "none"
+                                          : "markitdown")
+                                      }
+                                      onChange={(value) => {
+                                        setParserTool(value);
+                                        console.log(
+                                          "Selected parser tool:",
+                                          value
+                                        );
+                                      }}
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                            ]
+                          : []),
+                        ...(parsingMode === "custom_parser" && !parserType
+                          ? [
+                              {
+                                id: "parser_tool_placeholder",
+                                children: (
+                                  <ConfigField label="Parser Tool">
+                                    <div
+                                      style={{
+                                        color: "#808080",
+                                        fontSize: "14px",
+                                      }}
+                                    >
+                                      Select a parser type first
+                                    </div>
+                                  </ConfigField>
+                                ),
+                              },
+                            ]
+                          : []),
+                        ...(parsingMode === "auto_parser"
+                          ? [
+                              {
+                                id: "language",
+                                children: (
+                                  <ConfigField label="Language">
+                                    <CustomDropdown
+                                      options={[
+                                        { value: "en", label: "English" },
+                                        { value: "es", label: "Spanish" },
+                                        { value: "fr", label: "French" },
+                                      ]}
+                                      defaultValue="en"
+                                      onChange={(value) =>
+                                        console.log("Selected language:", value)
+                                      }
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
+                  </div>
+                )}
 
-              {selectedStep === "parsing" && (
-                <div className="config-container">
-                  <AdaptiveConfigGrid
-                    containerClassName="config-grid-container"
-                    options={[
-                      {
-                        id: "parsing_mode",
-                        children: (
-                          <ConfigField label="Parsing Mode">
-                            <CustomDropdown
-                              options={[
-                                { value: "auto_parser", label: "Auto Parser" },
-                                {
-                                  value: "custom_parser",
-                                  label: "Custom Parser",
-                                },
-                              ]}
-                              defaultValue={parsingMode}
-                              onChange={(value) => {
-                                setParsingMode(value);
-                                console.log("Selected parsing mode:", value);
-                              }}
-                            />
-                          </ConfigField>
-                        ),
-                      },
-                      {
-                        id: "parser_type",
-                        children: (
-                          <ConfigField label="Parser Type">
-                            <CustomDropdown
-                              options={[
-                                { value: "pdf", label: "PDF Parser" },
-                                { value: "docx", label: "DOCX Parser" },
-                                { value: "xlsx", label: "XLSX Parser" },
-                                { value: "html", label: "HTML Parser" },
-                              ]}
-                              defaultValue={parserType || "pdf"}
-                              onChange={(value) => {
-                                setParserType(value);
-                                console.log("Selected parser type:", value);
-                              }}
-                            />
-                          </ConfigField>
-                        ),
-                      },
-                      ...(parsingMode === "custom_parser" && parserType
-                        ? [
-                            {
-                              id: "parser_tool",
-                              children: (
-                                <ConfigField label="Parser Tool">
-                                  <CustomDropdown
-                                    options={
-                                      parserType === "pdf"
-                                        ? [{ value: "none", label: "None" }]
-                                        : parserType === "docx" ||
-                                            parserType === "xlsx" ||
-                                            parserType === "html"
+                {selectedStep === "chunking" && (
+                  <div className="config-container">
+                    <AdaptiveConfigGrid
+                      containerClassName="config-grid-container"
+                      options={[
+                        {
+                          id: "chunking_strategy",
+                          children: (
+                            <ConfigField label="Chunking Strategy">
+                              <CustomDropdown
+                                options={[
+                                  {
+                                    value: "semantic_chunking",
+                                    label: "Semantic Chunking",
+                                  },
+                                  {
+                                    value: "mdstructure",
+                                    label: "Markdown Structure",
+                                  },
+                                  {
+                                    value: "recursive_chunking",
+                                    label: "Recursive Chunking",
+                                  },
+                                  {
+                                    value: "sentence_chunking",
+                                    label: "Sentence Chunking",
+                                  },
+                                ]}
+                                defaultValue={chunkingStrategy}
+                                onChange={(value) => {
+                                  setChunkingStrategy(value);
+                                  console.log(
+                                    "Selected chunking strategy:",
+                                    value
+                                  );
+                                }}
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "chunk_size",
+                          children: (
+                            <ConfigField label="Chunk Size">
+                              <CustomNumberInput
+                                min={100}
+                                max={2000}
+                                step={50}
+                                defaultValue={chunkSize}
+                                onChange={(value) => {
+                                  setChunkSize(value);
+                                  console.log("Selected chunk size:", value);
+                                }}
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "chunk_overlap",
+                          children: (
+                            <ConfigField label="Chunk Overlap">
+                              <CustomNumberInput
+                                min={0}
+                                max={500}
+                                step={10}
+                                defaultValue={chunkOverlap}
+                                onChange={(value) => {
+                                  setChunkOverlap(value);
+                                  console.log("Selected chunk overlap:", value);
+                                }}
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        ...(chunkingStrategy === "semantic_chunking"
+                          ? [
+                              {
+                                id: "semantic_model",
+                                children: (
+                                  <ConfigField label="Semantic Model">
+                                    <CustomDropdown
+                                      options={[
+                                        {
+                                          value: "openai",
+                                          label: "OpenAI",
+                                        },
+                                        {
+                                          value: "cohere",
+                                          label: "Cohere",
+                                        },
+                                        {
+                                          value: "huggingface",
+                                          label: "HuggingFace",
+                                        },
+                                      ]}
+                                      defaultValue="openai"
+                                      onChange={(value) =>
+                                        console.log(
+                                          "Selected semantic model:",
+                                          value
+                                        )
+                                      }
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                              {
+                                id: "threshold_type",
+                                children: (
+                                  <ConfigField label="Threshold Type">
+                                    <CustomDropdown
+                                      options={[
+                                        {
+                                          value: "percentile",
+                                          label: "Percentile",
+                                        },
+                                        { value: "fixed", label: "Fixed" },
+                                      ]}
+                                      defaultValue={thresholdType}
+                                      onChange={(value) => {
+                                        setThresholdType(value);
+                                        console.log(
+                                          "Threshold type changed:",
+                                          value
+                                        );
+                                      }}
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                              {
+                                id: "threshold_amount",
+                                children: (
+                                  <ConfigField label="Threshold Amount">
+                                    <CustomNumberInput
+                                      defaultValue={thresholdAmount}
+                                      min={1}
+                                      max={100}
+                                      step={1}
+                                      onChange={(value) => {
+                                        setThresholdAmount(value);
+                                        console.log(
+                                          "Threshold amount changed:",
+                                          value
+                                        );
+                                      }}
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                            ]
+                          : []),
+                        ...(chunkingStrategy === "sentence_chunking"
+                          ? [
+                              {
+                                id: "max_chunk_size",
+                                children: (
+                                  <ConfigField label="Max Chunk Size">
+                                    <CustomNumberInput
+                                      defaultValue={maxChunkSize}
+                                      min={100}
+                                      max={5000}
+                                      step={100}
+                                      onChange={(value) => {
+                                        setMaxChunkSize(value);
+                                        console.log(
+                                          "Max chunk size changed:",
+                                          value
+                                        );
+                                      }}
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
+                  </div>
+                )}
+
+                {selectedStep === "embedding" && (
+                  <div className="config-container">
+                    <AdaptiveConfigGrid
+                      containerClassName="config-grid-container"
+                      options={[
+                        {
+                          id: "embedding_provider",
+                          children: (
+                            <ConfigField label="Embedding Provider">
+                              <CustomDropdown
+                                options={[
+                                  { value: "openai", label: "OpenAI" },
+                                  { value: "cohere", label: "Cohere" },
+                                  {
+                                    value: "local",
+                                    label: "Local (Sentence Transformers)",
+                                  },
+                                  {
+                                    value: "amazon_bedrock",
+                                    label: "Amazon Bedrock",
+                                  },
+                                ]}
+                                defaultValue={embeddingProvider}
+                                onChange={(value) => {
+                                  setEmbeddingProvider(value);
+                                  console.log(
+                                    "Selected embedding provider:",
+                                    value
+                                  );
+                                }}
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "embedding_model",
+                          children: (
+                            <ConfigField label="Embedding Model">
+                              <CustomDropdown
+                                options={
+                                  embeddingProvider === "openai"
+                                    ? [
+                                        {
+                                          value: "text-embedding-ada-002",
+                                          label:
+                                            "text-embedding-ada-002 (1536 dim)",
+                                        },
+                                        {
+                                          value: "text-embedding-3-small",
+                                          label:
+                                            "text-embedding-3-small (1536 dim)",
+                                        },
+                                        {
+                                          value: "text-embedding-3-large",
+                                          label:
+                                            "text-embedding-3-large (3072 dim)",
+                                        },
+                                      ]
+                                    : embeddingProvider === "cohere"
+                                      ? [
+                                          {
+                                            value: "embed-english-light-v3.0",
+                                            label:
+                                              "embed-english-light-v3.0 (1024 dim)",
+                                          },
+                                          {
+                                            value: "embed-english-v3.0",
+                                            label:
+                                              "embed-english-v3.0 (1024 dim)",
+                                          },
+                                          {
+                                            value: "embed-multilingual-v3.0",
+                                            label:
+                                              "embed-multilingual-v3.0 (1024 dim)",
+                                          },
+                                        ]
+                                      : embeddingProvider === "local"
+                                        ? [
+                                            {
+                                              value: "all-MiniLM-L6-v2",
+                                              label:
+                                                "all-MiniLM-L6-v2 (384 dim)",
+                                            },
+                                            {
+                                              value: "all-mpnet-base-v2",
+                                              label:
+                                                "all-mpnet-base-v2 (768 dim)",
+                                            },
+                                          ]
+                                        : embeddingProvider === "amazon_bedrock"
                                           ? [
                                               {
-                                                value: "markitdown",
-                                                label: "Markitdown",
-                                              },
-                                              {
-                                                value: "docling",
-                                                label: "Docling",
-                                              },
-                                              {
-                                                value: "llamaparse",
-                                                label: "LlamaParse",
+                                                value: "titan-embed-text-v1",
+                                                label: "Titan Embed Text v1",
                                               },
                                             ]
                                           : [{ value: "none", label: "None" }]
-                                    }
-                                    defaultValue={
-                                      parserTool ||
-                                      (parserType === "pdf"
-                                        ? "none"
-                                        : "markitdown")
-                                    }
-                                    onChange={(value) => {
-                                      setParserTool(value);
-                                      console.log(
-                                        "Selected parser tool:",
-                                        value
-                                      );
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                          ]
-                        : []),
-                      ...(parsingMode === "custom_parser" && !parserType
-                        ? [
-                            {
-                              id: "parser_tool_placeholder",
-                              children: (
-                                <ConfigField label="Parser Tool">
-                                  <div
-                                    style={{
-                                      color: "#808080",
-                                      fontSize: "14px",
-                                    }}
-                                  >
-                                    Select a parser type first
-                                  </div>
-                                </ConfigField>
-                              ),
-                            },
-                          ]
-                        : []),
-                      ...(parsingMode === "auto_parser"
-                        ? [
-                            {
-                              id: "language",
-                              children: (
-                                <ConfigField label="Language">
-                                  <CustomDropdown
-                                    options={[
-                                      { value: "en", label: "English" },
-                                      { value: "es", label: "Spanish" },
-                                      { value: "fr", label: "French" },
-                                    ]}
-                                    defaultValue="en"
-                                    onChange={(value) =>
-                                      console.log("Selected language:", value)
-                                    }
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                          ]
-                        : []),
-                    ]}
-                  />
-                </div>
-              )}
+                                }
+                                defaultValue={embeddingModel}
+                                onChange={(value) => {
+                                  setEmbeddingModel(value);
+                                  console.log(
+                                    "Selected embedding model:",
+                                    value
+                                  );
+                                }}
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        ...(embeddingProvider === "openai" ||
+                        embeddingProvider === "cohere"
+                          ? [
+                              {
+                                id: "api_key",
+                                children: (
+                                  <ConfigField label="API Key">
+                                    <CustomInput
+                                      type="password"
+                                      placeholder="Enter API key"
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                            ]
+                          : []),
+                        ...(embeddingProvider === "amazon_bedrock"
+                          ? [
+                              {
+                                id: "aws_region",
+                                children: (
+                                  <ConfigField label="AWS Region">
+                                    <CustomInput
+                                      type="text"
+                                      placeholder="e.g., us-east-1"
+                                      defaultValue="us-east-2"
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
+                  </div>
+                )}
 
-              {selectedStep === "chunking" && (
-                <div className="config-container">
-                  <AdaptiveConfigGrid
-                    containerClassName="config-grid-container"
-                    options={[
-                      {
-                        id: "chunking_strategy",
-                        children: (
-                          <ConfigField label="Chunking Strategy">
-                            <CustomDropdown
-                              options={[
-                                {
-                                  value: "semantic_chunking",
-                                  label: "Semantic Chunking",
-                                },
-                                {
-                                  value: "mdstructure",
-                                  label: "Markdown Structure",
-                                },
-                                {
-                                  value: "recursive_chunking",
-                                  label: "Recursive Chunking",
-                                },
-                                {
-                                  value: "sentence_chunking",
-                                  label: "Sentence Chunking",
-                                },
-                              ]}
-                              defaultValue={chunkingStrategy}
-                              onChange={(value) => {
-                                setChunkingStrategy(value);
-                                console.log(
-                                  "Selected chunking strategy:",
-                                  value
-                                );
-                              }}
-                            />
-                          </ConfigField>
-                        ),
-                      },
-                      {
-                        id: "chunk_size",
-                        children: (
-                          <ConfigField label="Chunk Size">
-                            <CustomNumberInput
-                              min={100}
-                              max={2000}
-                              step={50}
-                              defaultValue={chunkSize}
-                              onChange={(value) => {
-                                setChunkSize(value);
-                                console.log("Selected chunk size:", value);
-                              }}
-                            />
-                          </ConfigField>
-                        ),
-                      },
-                      {
-                        id: "chunk_overlap",
-                        children: (
-                          <ConfigField label="Chunk Overlap">
-                            <CustomNumberInput
-                              min={0}
-                              max={500}
-                              step={10}
-                              defaultValue={chunkOverlap}
-                              onChange={(value) => {
-                                setChunkOverlap(value);
-                                console.log("Selected chunk overlap:", value);
-                              }}
-                            />
-                          </ConfigField>
-                        ),
-                      },
-                      ...(chunkingStrategy === "semantic_chunking"
-                        ? [
-                            {
-                              id: "semantic_model",
-                              children: (
-                                <ConfigField label="Semantic Model">
-                                  <CustomDropdown
-                                    options={[
-                                      {
-                                        value: "openai",
-                                        label: "OpenAI",
-                                      },
-                                      {
-                                        value: "cohere",
-                                        label: "Cohere",
-                                      },
-                                      {
-                                        value: "huggingface",
-                                        label: "HuggingFace",
-                                      },
-                                    ]}
-                                    defaultValue="openai"
-                                    onChange={(value) =>
-                                      console.log(
-                                        "Selected semantic model:",
-                                        value
-                                      )
-                                    }
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                            {
-                              id: "threshold_type",
-                              children: (
-                                <ConfigField label="Threshold Type">
-                                  <CustomDropdown
-                                    options={[
-                                      {
-                                        value: "percentile",
-                                        label: "Percentile",
-                                      },
-                                      { value: "fixed", label: "Fixed" },
-                                    ]}
-                                    defaultValue={thresholdType}
-                                    onChange={(value) => {
-                                      setThresholdType(value);
-                                      console.log(
-                                        "Threshold type changed:",
-                                        value
-                                      );
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                            {
-                              id: "threshold_amount",
-                              children: (
-                                <ConfigField label="Threshold Amount">
-                                  <CustomNumberInput
-                                    defaultValue={thresholdAmount}
-                                    min={1}
-                                    max={100}
-                                    step={1}
-                                    onChange={(value) => {
-                                      setThresholdAmount(value);
-                                      console.log(
-                                        "Threshold amount changed:",
-                                        value
-                                      );
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                          ]
-                        : []),
-                      ...(chunkingStrategy === "sentence_chunking"
-                        ? [
-                            {
-                              id: "max_chunk_size",
-                              children: (
-                                <ConfigField label="Max Chunk Size">
-                                  <CustomNumberInput
-                                    defaultValue={maxChunkSize}
-                                    min={100}
-                                    max={5000}
-                                    step={100}
-                                    onChange={(value) => {
-                                      setMaxChunkSize(value);
-                                      console.log(
-                                        "Max chunk size changed:",
-                                        value
-                                      );
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                          ]
-                        : []),
-                    ]}
-                  />
-                </div>
-              )}
-
-              {selectedStep === "embedding" && (
-                <div className="config-container">
-                  <AdaptiveConfigGrid
-                    containerClassName="config-grid-container"
-                    options={[
-                      {
-                        id: "embedding_provider",
-                        children: (
-                          <ConfigField label="Embedding Provider">
-                            <CustomDropdown
-                              options={[
-                                { value: "openai", label: "OpenAI" },
-                                { value: "cohere", label: "Cohere" },
-                                {
-                                  value: "local",
-                                  label: "Local (Sentence Transformers)",
-                                },
-                                {
-                                  value: "amazon_bedrock",
-                                  label: "Amazon Bedrock",
-                                },
-                              ]}
-                              defaultValue={embeddingProvider}
-                              onChange={(value) => {
-                                setEmbeddingProvider(value);
-                                console.log(
-                                  "Selected embedding provider:",
-                                  value
-                                );
-                              }}
-                            />
-                          </ConfigField>
-                        ),
-                      },
-                      {
-                        id: "embedding_model",
-                        children: (
-                          <ConfigField label="Embedding Model">
-                            <CustomDropdown
-                              options={
-                                embeddingProvider === "openai"
-                                  ? [
-                                      {
-                                        value: "text-embedding-ada-002",
-                                        label:
-                                          "text-embedding-ada-002 (1536 dim)",
-                                      },
-                                      {
-                                        value: "text-embedding-3-small",
-                                        label:
-                                          "text-embedding-3-small (1536 dim)",
-                                      },
-                                      {
-                                        value: "text-embedding-3-large",
-                                        label:
-                                          "text-embedding-3-large (3072 dim)",
-                                      },
-                                    ]
-                                  : embeddingProvider === "cohere"
-                                    ? [
-                                        {
-                                          value: "embed-english-light-v3.0",
-                                          label:
-                                            "embed-english-light-v3.0 (1024 dim)",
-                                        },
-                                        {
-                                          value: "embed-english-v3.0",
-                                          label:
-                                            "embed-english-v3.0 (1024 dim)",
-                                        },
-                                        {
-                                          value: "embed-multilingual-v3.0",
-                                          label:
-                                            "embed-multilingual-v3.0 (1024 dim)",
-                                        },
-                                      ]
-                                    : embeddingProvider === "local"
-                                      ? [
-                                          {
-                                            value: "all-MiniLM-L6-v2",
-                                            label: "all-MiniLM-L6-v2 (384 dim)",
-                                          },
-                                          {
-                                            value: "all-mpnet-base-v2",
-                                            label:
-                                              "all-mpnet-base-v2 (768 dim)",
-                                          },
-                                        ]
-                                      : embeddingProvider === "amazon_bedrock"
-                                        ? [
-                                            {
-                                              value: "titan-embed-text-v1",
-                                              label: "Titan Embed Text v1",
-                                            },
-                                          ]
-                                        : [{ value: "none", label: "None" }]
-                              }
-                              defaultValue={embeddingModel}
-                              onChange={(value) => {
-                                setEmbeddingModel(value);
-                                console.log("Selected embedding model:", value);
-                              }}
-                            />
-                          </ConfigField>
-                        ),
-                      },
-                      ...(embeddingProvider === "openai" ||
-                      embeddingProvider === "cohere"
-                        ? [
-                            {
-                              id: "api_key",
-                              children: (
-                                <ConfigField label="API Key">
-                                  <input
-                                    type="password"
-                                    placeholder="Enter API key"
-                                    style={{
-                                      backgroundColor: "#212124",
-                                      color: "white",
-                                      border: "2px solid #3f3f41",
-                                      padding: "10px",
-                                      borderRadius: "8px",
-                                      fontSize: "14px",
-                                      width: "100%",
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                          ]
-                        : []),
-                      ...(embeddingProvider === "amazon_bedrock"
-                        ? [
-                            {
-                              id: "aws_region",
-                              children: (
-                                <ConfigField label="AWS Region">
-                                  <input
-                                    type="text"
-                                    placeholder="e.g., us-east-1"
-                                    defaultValue="us-east-2"
-                                    style={{
-                                      backgroundColor: "#212124",
-                                      color: "white",
-                                      border: "2px solid #3f3f41",
-                                      padding: "10px",
-                                      borderRadius: "8px",
-                                      fontSize: "14px",
-                                      width: "100%",
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                          ]
-                        : []),
-                    ]}
-                  />
-                </div>
-              )}
-
-              {selectedStep === "vectorstore" && (
-                <div className="config-container">
-                  <AdaptiveConfigGrid
-                    containerClassName="config-grid-container"
-                    options={[
-                      {
-                        id: "vector_database",
-                        children: (
-                          <ConfigField label="Vector Database">
-                            <CustomDropdown
-                              options={[
-                                { value: "pinecone", label: "Pinecone" },
-                                { value: "qdrant", label: "Qdrant" },
-                                { value: "chroma", label: "Chroma" },
-                              ]}
-                              defaultValue={vectorDb}
-                              onChange={(value) => {
-                                setVectorDb(value);
-                                console.log("Selected vector database:", value);
-                              }}
-                            />
-                          </ConfigField>
-                        ),
-                      },
-                      ...(vectorDb === "pinecone"
-                        ? [
-                            {
-                              id: "pinecone_api_key",
-                              children: (
-                                <ConfigField label="API Key">
-                                  <input
-                                    type="password"
-                                    placeholder="Enter Pinecone API key"
-                                    style={{
-                                      backgroundColor: "#212124",
-                                      color: "white",
-                                      border: "2px solid #3f3f41",
-                                      padding: "10px",
-                                      borderRadius: "8px",
-                                      fontSize: "14px",
-                                      width: "100%",
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                            {
-                              id: "pinecone_cloud",
-                              children: (
-                                <ConfigField label="Cloud">
-                                  <CustomDropdown
-                                    options={[
-                                      { value: "aws", label: "AWS" },
-                                      { value: "gcp", label: "GCP" },
-                                      { value: "azure", label: "Azure" },
-                                    ]}
-                                    defaultValue="aws"
-                                    onChange={(value) =>
-                                      console.log("Selected cloud:", value)
-                                    }
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                            {
-                              id: "pinecone_region",
-                              children: (
-                                <ConfigField label="Region">
-                                  <input
-                                    type="text"
-                                    placeholder="e.g., us-east-1"
-                                    defaultValue="us-east-1"
-                                    style={{
-                                      backgroundColor: "#212124",
-                                      color: "white",
-                                      border: "2px solid #3f3f41",
-                                      padding: "10px",
-                                      borderRadius: "8px",
-                                      fontSize: "14px",
-                                      width: "100%",
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                            {
-                              id: "pinecone_index",
-                              children: (
-                                <ConfigField label="Index Name">
-                                  <input
-                                    type="text"
-                                    placeholder="Enter index name"
-                                    defaultValue="kb-final10"
-                                    style={{
-                                      backgroundColor: "#212124",
-                                      color: "white",
-                                      border: "2px solid #3f3f41",
-                                      padding: "10px",
-                                      borderRadius: "8px",
-                                      fontSize: "14px",
-                                      width: "100%",
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                            {
-                              id: "pinecone_dimension",
-                              children: (
-                                <ConfigField label="Dimension">
-                                  <CustomNumberInput
-                                    defaultValue={1536}
-                                    min={1}
-                                    max={4096}
-                                    step={1}
-                                    onChange={(value) =>
-                                      console.log("Dimension changed:", value)
-                                    }
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                          ]
-                        : []),
-                      ...(vectorDb === "qdrant"
-                        ? [
-                            {
-                              id: "qdrant_host",
-                              children: (
-                                <ConfigField label="Host">
-                                  <input
-                                    type="text"
-                                    placeholder="Enter host URL"
-                                    defaultValue="http://localhost"
-                                    style={{
-                                      backgroundColor: "#212124",
-                                      color: "white",
-                                      border: "2px solid #3f3f41",
-                                      padding: "10px",
-                                      borderRadius: "8px",
-                                      fontSize: "14px",
-                                      width: "100%",
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                            {
-                              id: "qdrant_port",
-                              children: (
-                                <ConfigField label="Port">
-                                  <CustomNumberInput
-                                    defaultValue={5333}
-                                    min={1}
-                                    max={65535}
-                                    step={1}
-                                    onChange={(value) =>
-                                      console.log("Port changed:", value)
-                                    }
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                            {
-                              id: "qdrant_collection",
-                              children: (
-                                <ConfigField label="Collection Name">
-                                  <input
-                                    type="text"
-                                    placeholder="Enter collection name"
-                                    defaultValue="toshiba_pdf_7"
-                                    style={{
-                                      backgroundColor: "#212124",
-                                      color: "white",
-                                      border: "2px solid #3f3f41",
-                                      padding: "10px",
-                                      borderRadius: "8px",
-                                      fontSize: "14px",
-                                      width: "100%",
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                          ]
-                        : []),
-                      ...(vectorDb === "chroma"
-                        ? [
-                            {
-                              id: "chroma_db_path",
-                              children: (
-                                <ConfigField label="Database Path">
-                                  <input
-                                    type="text"
-                                    placeholder="Enter database path"
-                                    defaultValue="data/chroma_db"
-                                    style={{
-                                      backgroundColor: "#212124",
-                                      color: "white",
-                                      border: "2px solid #3f3f41",
-                                      padding: "10px",
-                                      borderRadius: "8px",
-                                      fontSize: "14px",
-                                      width: "100%",
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                            {
-                              id: "chroma_collection",
-                              children: (
-                                <ConfigField label="Collection Name">
-                                  <input
-                                    type="text"
-                                    placeholder="Enter collection name"
-                                    defaultValue="kb-chroma"
-                                    style={{
-                                      backgroundColor: "#212124",
-                                      color: "white",
-                                      border: "2px solid #3f3f41",
-                                      padding: "10px",
-                                      borderRadius: "8px",
-                                      fontSize: "14px",
-                                      width: "100%",
-                                    }}
-                                  />
-                                </ConfigField>
-                              ),
-                            },
-                          ]
-                        : []),
-                    ]}
-                  />
-                </div>
-              )}
+                {selectedStep === "vectorstore" && (
+                  <div className="config-container">
+                    <AdaptiveConfigGrid
+                      containerClassName="config-grid-container"
+                      options={[
+                        {
+                          id: "vector_database",
+                          children: (
+                            <ConfigField label="Vector Database">
+                              <CustomDropdown
+                                options={[
+                                  { value: "pinecone", label: "Pinecone" },
+                                  { value: "qdrant", label: "Qdrant" },
+                                  { value: "chroma", label: "Chroma" },
+                                ]}
+                                defaultValue={vectorDb}
+                                onChange={(value) => {
+                                  setVectorDb(value);
+                                  console.log(
+                                    "Selected vector database:",
+                                    value
+                                  );
+                                }}
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        ...(vectorDb === "pinecone"
+                          ? [
+                              {
+                                id: "pinecone_api_key",
+                                children: (
+                                  <ConfigField label="API Key">
+                                    <CustomInput
+                                      type="password"
+                                      placeholder="Enter Pinecone API key"
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                              {
+                                id: "pinecone_cloud",
+                                children: (
+                                  <ConfigField label="Cloud">
+                                    <CustomDropdown
+                                      options={[
+                                        { value: "aws", label: "AWS" },
+                                        { value: "gcp", label: "GCP" },
+                                        { value: "azure", label: "Azure" },
+                                      ]}
+                                      defaultValue="aws"
+                                      onChange={(value) =>
+                                        console.log("Selected cloud:", value)
+                                      }
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                              {
+                                id: "pinecone_region",
+                                children: (
+                                  <ConfigField label="Region">
+                                    <CustomInput
+                                      type="text"
+                                      placeholder="e.g., us-east-1"
+                                      defaultValue="us-east-1"
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                              {
+                                id: "pinecone_index",
+                                children: (
+                                  <ConfigField label="Index Name">
+                                    <CustomInput
+                                      type="text"
+                                      placeholder="Enter index name"
+                                      defaultValue="kb-final10"
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                              {
+                                id: "pinecone_dimension",
+                                children: (
+                                  <ConfigField label="Dimension">
+                                    <CustomNumberInput
+                                      defaultValue={1536}
+                                      min={1}
+                                      max={4096}
+                                      step={1}
+                                      onChange={(value) =>
+                                        console.log("Dimension changed:", value)
+                                      }
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                            ]
+                          : []),
+                        ...(vectorDb === "qdrant"
+                          ? [
+                              {
+                                id: "qdrant_host",
+                                children: (
+                                  <ConfigField label="Host">
+                                    <CustomInput
+                                      type="text"
+                                      placeholder="Enter host URL"
+                                      defaultValue="http://localhost"
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                              {
+                                id: "qdrant_port",
+                                children: (
+                                  <ConfigField label="Port">
+                                    <CustomNumberInput
+                                      defaultValue={5333}
+                                      min={1}
+                                      max={65535}
+                                      step={1}
+                                      onChange={(value) =>
+                                        console.log("Port changed:", value)
+                                      }
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                              {
+                                id: "qdrant_collection",
+                                children: (
+                                  <ConfigField label="Collection Name">
+                                    <CustomInput
+                                      type="text"
+                                      placeholder="Enter collection name"
+                                      defaultValue="toshiba_pdf_7"
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                            ]
+                          : []),
+                        ...(vectorDb === "chroma"
+                          ? [
+                              {
+                                id: "chroma_db_path",
+                                children: (
+                                  <ConfigField label="Database Path">
+                                    <CustomInput
+                                      type="text"
+                                      placeholder="Enter database path"
+                                      defaultValue="data/chroma_db"
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                              {
+                                id: "chroma_collection",
+                                children: (
+                                  <ConfigField label="Collection Name">
+                                    <CustomInput
+                                      type="text"
+                                      placeholder="Enter collection name"
+                                      defaultValue="kb-chroma"
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Action Buttons Section */}
@@ -1904,6 +1829,8 @@ export default function Home(): JSX.Element {
                   alignItems: isMobile ? "flex-start" : "center",
                   gap: isMobile ? "1rem" : "0",
                   padding: "1.5rem",
+                  borderBottom: "1px solid #3f3f41",
+                  marginBottom: "1rem",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center" }}>
@@ -1925,16 +1852,23 @@ export default function Home(): JSX.Element {
                 style={{
                   flex: "1",
                   padding: "0 1.5rem 1.5rem",
-                  overflowY: "auto",
                   height: "100%",
                   display: "flex",
                   flexDirection: "column",
-                  justifyContent: "space-between",
+                  overflow: "hidden",
+                  minWidth: 0,
+                  maxWidth: "100%",
+                  width: "100%",
+                  boxSizing: "border-box",
                 }}
               >
                 {/* Top Section with Upload Box */}
                 <div
-                  style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    minHeight: 0,
+                  }}
                 >
                   {/* Dashed Border Upload Box */}
                   <div
@@ -1948,7 +1882,8 @@ export default function Home(): JSX.Element {
                       justifyContent: "center",
                       marginBottom: "1.5rem",
                       cursor: "pointer",
-                      flex: 1,
+                      minHeight: "100px",
+                      height: "auto",
                     }}
                     onClick={handleFileSelect}
                   >
@@ -1998,8 +1933,15 @@ export default function Home(): JSX.Element {
                   </div>
                 </div>
 
-                {/* Uploaded Files List - Now at the bottom */}
-                <div style={{ marginTop: "1rem" }}>
+                <div
+                  style={{
+                    marginTop: "1rem",
+                    flex: 1,
+                    overflow: "visible",
+                    width: "100%",
+                    maxWidth: "100%",
+                  }}
+                >
                   {/* Status message if files are still uploading */}
                   {hasUploadingFiles() && (
                     <div
@@ -2016,6 +1958,9 @@ export default function Home(): JSX.Element {
                         alignItems: "center",
                         gap: "8px",
                         transition: "all 0.2s ease",
+                        width: "100%",
+                        boxSizing: "border-box",
+                        whiteSpace: "normal",
                       }}
                     >
                       <svg
@@ -2055,6 +2000,9 @@ export default function Home(): JSX.Element {
                           borderRadius: "8px",
                           marginBottom: "0.75rem",
                           border: "2px solid #3f3f41",
+                          width: "100%",
+                          boxSizing: "border-box",
+                          minWidth: 0,
                         }}
                       >
                         <div
@@ -2062,6 +2010,9 @@ export default function Home(): JSX.Element {
                             display: "flex",
                             alignItems: "center",
                             marginRight: "12px",
+                            overflow: "hidden",
+                            flex: "0 1 auto",
+                            minWidth: 0,
                           }}
                         >
                           <svg
@@ -2075,10 +2026,24 @@ export default function Home(): JSX.Element {
                             <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
                           </svg>
                           <div
-                            style={{ display: "flex", alignItems: "center" }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              maxWidth: "calc(100% - 24px)",
+                            }}
                           >
                             <span
-                              style={{ color: "white", fontSize: "0.9rem" }}
+                              style={{
+                                color: "white",
+                                fontSize: "0.9rem",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                maxWidth: "200px",
+                              }}
                             >
                               {file.name}
                             </span>
@@ -2109,6 +2074,8 @@ export default function Home(): JSX.Element {
                               flex: 1,
                               display: "flex",
                               alignItems: "center",
+                              minWidth: 0,
+                              overflow: "hidden",
                             }}
                           >
                             <div
@@ -2186,170 +2153,6 @@ export default function Home(): JSX.Element {
           )}
         </div>
       )}
-
-      {/* Commented out original content for now
-      <div className="pipeline-content">
-        <div className="pipeline-steps">
-          {pipelineSteps.map((step, index) => (
-            <div
-              key={step.id}
-              className={`pipeline-step ${selectedStep === step.id ? "selected" : ""}`}
-              onClick={() => handleStepSelect(step.id)}
-            >
-              <div className="step-number">{index + 1}</div>
-              <div className="step-content">
-                <h2>{step.title}</h2>
-                <p>{step.description}</p>
-                {selectedStep === step.id && (
-                  <div className="step-details">
-                    <p>{step.details}</p>
-
-                    <div className="step-actions">
-                      <button
-                        className="learn-more-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/${step.id}`);
-                        }}
-                      >
-                        Learn More
-                      </button>
-
-                      {executionMode === "configure" && (
-                        <button
-                          className="configure-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/${step.id}/configure`);
-                          }}
-                        >
-                          Configure
-                        </button>
-                      )}
-
-                      {executionMode === "execute" && (
-                        <button
-                          className="execute-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Execute the step
-                            alert(
-                              `Executing ${step.title} step with ${selectedProvider} provider`
-                            );
-                          }}
-                        >
-                          Execute
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="pipeline-right-panel">
-          <div className="pipeline-flow">
-            <h3>Pipeline Flow</h3>
-            <div className="flow-diagram">
-              {pipelineSteps.map((step, index) => (
-                <React.Fragment key={step.id}>
-                  <div className="flow-step">
-                    <div
-                      className={`flow-node ${selectedStep === step.id ? "selected" : ""}`}
-                      onClick={() => handleStepSelect(step.id)}
-                    >
-                      {index + 1}
-                    </div>
-                    <div className="flow-title">{step.title}</div>
-                  </div>
-                  {index < pipelineSteps.length - 1 && (
-                    <div className="flow-arrow">→</div>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
-
-          <div className="execution-panel">
-            <h3>
-              {executionMode === "configure"
-                ? "Configuration"
-                : executionMode === "execute"
-                  ? "Execution"
-                  : "Monitoring"}
-            </h3>
-            {selectedStep ? (
-              <div className="panel-content">
-                <h4>
-                  {pipelineSteps.find((s) => s.id === selectedStep)?.title}
-                </h4>
-                {executionMode === "configure" && (
-                  <div className="configuration-options">
-                    <p>
-                      Configure options for{" "}
-                      {pipelineSteps.find((s) => s.id === selectedStep)?.title}
-                    </p>
-                    <button
-                      onClick={() => router.push(`/${selectedStep}/configure`)}
-                      className="view-config-btn"
-                    >
-                      View Configuration Options
-                    </button>
-                  </div>
-                )}
-
-                {executionMode === "execute" && (
-                  <div className="execution-options">
-                    <p>
-                      Execute{" "}
-                      {pipelineSteps.find((s) => s.id === selectedStep)?.title}{" "}
-                      with {selectedProvider}
-                    </p>
-                    <button
-                      onClick={() =>
-                        alert(
-                          `Executing ${pipelineSteps.find((s) => s.id === selectedStep)?.title} step with ${selectedProvider} provider`
-                        )
-                      }
-                      className="execute-step-btn"
-                    >
-                      Execute Step
-                    </button>
-                  </div>
-                )}
-
-                {executionMode === "monitor" && (
-                  <div className="monitoring-options">
-                    <p>
-                      Monitor{" "}
-                      {pipelineSteps.find((s) => s.id === selectedStep)?.title}{" "}
-                      executions
-                    </p>
-                    <div className="execution-list">
-                      <p>No recent executions found.</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="panel-content empty">
-                <p>
-                  Select a pipeline step to{" "}
-                  {executionMode === "configure"
-                    ? "configure"
-                    : executionMode === "execute"
-                      ? "execute"
-                      : "monitor"}
-                  .
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      */}
     </div>
   );
 }
