@@ -40,7 +40,7 @@ export function getApplications(
           id: "supportBot",
           miscLabel: "Version 2.0",
           subtitle: "By Toshiba",
-          openInNewTab: true,
+          openInNewTab: false,
         },
       ],
     },

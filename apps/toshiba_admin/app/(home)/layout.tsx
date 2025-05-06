@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { ElevaiteIcons, type SidebarIconObject } from "@repo/ui/components";
+import { ColorContextProvider } from "@repo/ui/contexts";
 import { RolesContextProvider } from "../lib/contexts/RolesContext";
 import AppLayout from "../ui/AppLayout";
-import { ColorContextProvider } from "@repo/ui/contexts";
+import { SessionProvider } from "next-auth/react";
 
 export const metadata: Metadata = {
   title: "Toshiba Admin Access Management",
@@ -56,7 +57,6 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
 const sidebarIcons: SidebarIconObject[] = [
   { icon: <ElevaiteIcons.SVGAccess />, link: "/access", description: "Access Management" },
   { icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" },
-  { icon: <ElevaiteIcons.SVGSettings />, link: "https://playground-dev.iopex.ai", description: "Config" },
 ];
 
 export default function PageLayout({
@@ -64,11 +64,15 @@ export default function PageLayout({
 }: {
   children: React.ReactNode;
 }): JSX.Element {
-  return <RolesContextProvider>
-    <ColorContextProvider>
-      <AppLayout breadcrumbLabels={breadcrumbLabels} sidebarIcons={sidebarIcons}>
-        {children}
-      </AppLayout>
-    </ColorContextProvider>
-  </RolesContextProvider>;
+  return (
+    <SessionProvider>
+      <RolesContextProvider>
+        <ColorContextProvider>
+          <AppLayout breadcrumbLabels={breadcrumbLabels} sidebarIcons={sidebarIcons}>
+            {children}
+          </AppLayout>
+        </ColorContextProvider>
+      </RolesContextProvider>
+    </SessionProvider>
+  );
 }

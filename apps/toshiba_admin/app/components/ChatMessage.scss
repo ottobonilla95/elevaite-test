@@ -1,0 +1,270 @@
+
+$profile-backdrop-user: #FF681F;
+$profile-backdrop-bot: #FFFFFF;
+
+/* Add these styles to your ChatMessage.scss file */
+
+/* Agent status styles */
+.agent-status {
+  color: #6b7280;
+  font-size: 0.85em;
+  font-style: italic;
+  margin-left: 5px;
+}
+
+/* Streaming message styling */
+.chat-message-container.streaming {
+  .message {
+    min-height: 20px;
+  }
+}
+
+/* Typing indicator animation */
+.typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+
+  span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 4px;
+    background-color: #6b7280;
+    border-radius: 50%;
+
+    animation: typing-animation 1s infinite ease-in-out;
+
+    &:nth-child(1) {
+      animation-delay: 0s;
+    }
+
+    &:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    &:nth-child(3) {
+      animation-delay: 0.4s;
+      margin-right: 0;
+    }
+  }
+}
+
+@keyframes typing-animation {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+}
+
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+  
+    th {
+      background-color: var(--ev-colors-markdownTableHeaderBg);
+      color: var(--ev-colors-text);
+      font-weight: bold;
+      padding: 8px 12px;
+      text-align: left;
+      border: 1px solid var(--ev-colors-markdownTableHeaderBorder);
+    }
+  
+    td {
+      padding: 8px 12px;
+      border: 1px solid var(--ev-colors-markdownTableBorder);
+      color: var(--ev-colors-text);
+    }
+  
+    tr:nth-child(odd) {
+      background-color: var(--ev-colors-markdownTableBg);
+    }
+  
+    tr:nth-child(even) {
+      background-color: var(--ev-colors-primary);
+    }
+  
+    tr:hover {
+      background-color: var(--ev-colors-secondary);
+    }
+  }
+
+
+
+.chat-message-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 8px;
+
+    color: var(--ev-colors-text);
+    font-size: 14px;
+    font-weight: 400;
+
+    &.bot {
+        background-color: var(--ev-colors-primary);
+    }
+
+
+    & .profile-image-container {
+
+        & .profile-image-backdrop {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 30px;
+            width: 30px;
+            border-radius: 50%;
+            background-color: $profile-backdrop-user;
+            &.bot { 
+                background-color: #FFFFFF !important;
+                border: 2px solid #FF681F; /* This will help you see if the element is there */
+            }
+        }
+    }
+
+
+    & .main-message-container {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+
+        
+        & .message {
+            & ol {
+                list-style: decimal;
+                & ul {
+                    margin-left: 1em;
+                }
+            }
+            & ul {
+                list-style: disc;
+            }
+        }
+
+        & .media-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+
+            & img, & video {
+                width: 150px;
+                height: 150px;
+                border-radius: 8px;
+                cursor: pointer;
+            }
+        }
+
+        & .details-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 600;
+
+            & .highlight { color: var(--ev-colors-highlight); }
+
+            & .date {
+                font-size: 12px;
+                font-weight: 500;
+                color: var(--ev-colors-secondaryText);
+            }
+        }
+
+
+        & .controls-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+
+            & button {
+                height: 40px;
+                min-width: 60px;
+                justify-content: center;
+                gap: 15px;
+                padding: 0 20px;
+                font-weight: 600;
+                background-color: var(--ev-colors-primary);
+                border: 1px solid var(--ev-colors-borderColor);
+                color: var(--ev-colors-secondaryText);
+
+                &.active {
+                    background-color: var(--ev-colors-secondary);
+                    color: var(--ev-colors-text); 
+                    & > svg { color: var(--ev-colors-highlight); }
+                }
+            }
+
+            & .voting-buttons {
+                display: flex;
+                align-items: center;
+
+                & > button {
+                    &:first-child { border-radius: 8px 0 0 8px; }
+                    &:last-child { border-radius: 0 8px 8px 0; }
+                }
+            }
+
+
+            & .relevant-files-container {
+                position: relative;
+
+                & .files-dropdown-container {
+                    position: absolute;
+                    bottom: 0;
+                    left: 100%;
+                    z-index: 50;
+                    min-width: 100%;
+                    width: max-content;
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    grid-template-rows: 0fr;
+                    transition: grid-template-rows 150ms ease-in-out;
+
+                    &.open {
+                        grid-template-rows: 1fr;
+                        & .files-dropdown-accordion {
+                            padding: 5px;
+                            margin: -5px;
+                        }
+                    }
+
+                    & .files-dropdown-accordion {
+                        overflow: hidden;
+                    }
+                }
+            }
+        }
+
+
+        & .feedback-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 150ms ease-in-out;                    
+
+            &.open {
+                grid-template-rows: 1fr;
+            }
+
+            & .feedback-accordion {
+                overflow: hidden;
+            }
+        }
+
+
+    }
+}

@@ -1,0 +1,45 @@
+
+
+.co-pilot-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    background-color: var(--ev-colors-background);
+    border: 1px solid var(--ev-colors-borderColor);
+    border-radius: 8px;
+
+
+    & .co-pilot-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 20px;
+        border-bottom: 1px solid var(--ev-colors-borderColor);
+
+        & > span {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--ev-colors-secondaryText);
+        }
+
+        & .upload-button {
+            padding: 10px 20px;
+            background-color: var(--ev-colors-highlight);
+            font-size: 12px;
+            font-weight: 600;
+            gap: 10px;
+        }
+    }
+
+
+    & .co-pilot-main {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        min-height: 0;
+    }
+
+
+}
