@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { MainAreaSwitcher } from "./components/advanced/MainAreaSwitcher";
-import { ProjectSidebar } from "./components/advanced/ProjectSidebar";
+import { MainAreaSwitcher } from "../components/advanced/MainAreaSwitcher";
+import { ProjectSidebar } from "../components/advanced/ProjectSidebar";
 import "./page.scss";
 
 

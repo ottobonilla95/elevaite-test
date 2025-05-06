@@ -3,7 +3,7 @@ import { NavBar } from "@repo/ui/components";
 import { useSession } from "next-auth/react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { logOut } from "../lib/actions";
+import { logout } from "../lib/actions";
 import "./AppLayout.scss";
 
 
@@ -13,7 +13,7 @@ interface AppLayoutProps {
     breadcrumbs: Record<string, { label: string; link: string }>;
 }
 
-export function AppLayout({children, breadcrumbs}: AppLayoutProps): JSX.Element {
+export function AppLayout({ children, breadcrumbs }: AppLayoutProps): JSX.Element {
     const [results, setResults] = useState<{ key: string; link: string; label: string }[]>(getResults(""));
     const { data: session } = useSession();
 
@@ -22,7 +22,7 @@ export function AppLayout({children, breadcrumbs}: AppLayoutProps): JSX.Element 
         //TODO: implement search results
         // if (term) console.log("Searching for:", term);
         // console.log("Missing layout parameter");
-        return [];        
+        return [];
     }
 
     function handleSearchInput(term: string): void {
@@ -35,7 +35,7 @@ export function AppLayout({children, breadcrumbs}: AppLayoutProps): JSX.Element 
             <NavBar
                 breadcrumbLabels={breadcrumbs}
                 handleSearchInput={handleSearchInput}
-                logOut={logOut}
+                logOut={logout}
                 searchResults={results}
                 user={{ image: session?.user?.image ?? "" }}
             />

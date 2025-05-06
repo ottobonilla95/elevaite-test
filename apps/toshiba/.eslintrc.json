@@ -1,4 +1,0 @@
-{
-  "extends": ["@repo/eslint-config/next.js"],
-  "ignorePatterns": ["*"]
-}

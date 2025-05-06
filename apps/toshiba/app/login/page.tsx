@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import type { JSX } from "react";
 import { AuthFluff, ElevaiteIcons } from "@repo/ui/components";
 import { auth } from "../../auth";
-import { authenticate } from "../lib/actions";
+import { authenticate } from "../lib/actions.ts";
 import { CustomLoginForm } from "../components/CustomLoginForm";
 import "./page.scss";
 import "./hide-register.css";

@@ -1,7 +1,7 @@
 "use client";
 import { useSession } from "next-auth/react";
 import { createContext, useContext, useEffect, useState } from "react";
-import { fetchChatbotResponse, fetchSessionSummary } from "../../lib/actions";
+import { fetchSessionSummary } from "../../lib/actions";
 import type {
   ChatBotGenAI,
   ChatMessageObject,
@@ -41,28 +41,28 @@ export interface ChatContextStructure {
   updateMessageFeedback: (messageId: string, passedFeedback: string) => void;
   getSessionSummary: () => void;
   removeExpectedDisplayFromSelectedSessionSummary: () => void;
-  activeWindowGrid: WindowGrid|undefined;
+  activeWindowGrid: WindowGrid | undefined;
   setActiveWindowGrid: (grid?: WindowGrid) => void;
   agentStatus: string;
 }
 
 export const ChatContext = createContext<ChatContextStructure>({
   sessions: [],
-  addNewSession: () => {/**/},
-  deleteSessionById: () => {/**/},
-  clearAllSessions: () => {/**/},
+  addNewSession: () => {/**/ },
+  deleteSessionById: () => {/**/ },
+  clearAllSessions: () => {/**/ },
   selectedSession: undefined,
-  setSelectedSession: () => {/**/},
-  setSelectedGenAIBot: () => {/**/},
+  setSelectedSession: () => {/**/ },
+  setSelectedGenAIBot: () => {/**/ },
   isChatLoading: false,
   chatLoadingMessage: "",
-  addNewUserMessageToCurrentSession: () => {/**/},
-  updateMessageVote: () => {/**/},
-  updateMessageFeedback: () => {/**/},
-  getSessionSummary: () => {/**/},
-  removeExpectedDisplayFromSelectedSessionSummary: () => {/**/},
+  addNewUserMessageToCurrentSession: () => {/**/ },
+  updateMessageVote: () => {/**/ },
+  updateMessageFeedback: () => {/**/ },
+  getSessionSummary: () => {/**/ },
+  removeExpectedDisplayFromSelectedSessionSummary: () => {/**/ },
   activeWindowGrid: undefined,
-  setActiveWindowGrid: () => {/**/},
+  setActiveWindowGrid: () => {/**/ },
   agentStatus: "Initializing...",
 });
 
@@ -81,7 +81,7 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
   const [selectedChatbotV, setSelectedChatbotV] = useState<ChatbotV>(defaultChatbotV);
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
   const [chatLoadingMessage, setChatLoadingMessage] = useState<string>("");
-  const [activeWindowGrid, setActiveWindowGrid] = useState<WindowGrid|undefined>();
+  const [activeWindowGrid, setActiveWindowGrid] = useState<WindowGrid | undefined>();
   const [agentStatus, setAgentStatus] = useState("Starting...");
 
 
@@ -282,107 +282,107 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
   // }
 
   async function getServerChatbotResponse(
-  messageText: string,
-  passedSession: SessionObject
-): Promise<void> {
-  // const userId = session.data?.user?.id;
-  // For testing purposes, we are using a hardcoded userId
-  const userId = "testUserId"; // Replace with actual user ID logic
-  if (!userId) return;
-  await handleServerChatbotResponse(userId, messageText, passedSession);
-}
-
-function handleAgentStatusChange(event: MessageEvent): void {
-  if (event.data && typeof event.data === "string") {
-    setChatLoadingMessage(getLoadingMessageFromAgentStatus(event.data));
+    messageText: string,
+    passedSession: SessionObject
+  ): Promise<void> {
+    // const userId = session.data?.user?.id;
+    // For testing purposes, we are using a hardcoded userId
+    const userId = "testUserId"; // Replace with actual user ID logic
+    if (!userId) return;
+    await handleServerChatbotResponse(userId, messageText, passedSession);
   }
 
-}
-
-async function handleServerChatbotResponse(
-  userId: string,
-  messageText: string,
-  passedSession: SessionObject
-): Promise<void> {
-  setIsChatLoading(true);
-  console.log("Starting to fetch chatbot response");
-
-  // 1. Create a placeholder for the bot message that will be updated as chunks arrive
-  const placeholderBotMessage: ChatMessageObject = {
-    id: `bot-message-${Date.now()}`,
-    isBot: true,
-    date: new Date().toISOString(),
-    text: "",
-    userName: "ElevAIte",
-    isStreaming: true,
-    // Add any other required fields for your ChatMessageObject type
-  };
-
-  // 2. Add the placeholder message to the session
-  const sessionWithPlaceholder = {
-    ...passedSession,
-    messages: [...passedSession.messages, placeholderBotMessage]
-  };
-  setSelectedSession(sessionWithPlaceholder); // Assuming you have a state setter for current session
-
-  // 3. Set up status event source as before
-  const agentEvent = new EventSource(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL ?? ""}currentStatus?uid=${userId}&sid=${passedSession.id}`
-  );
-  // agentEvent.onmessage = handleAgentStatusChange;
-  agentEvent.onmessage = (event) => {
+  function handleAgentStatusChange(event: MessageEvent): void {
     if (event.data && typeof event.data === "string") {
-      const newStatus = event.data;
-      setAgentStatus(newStatus);
-      // const updatedSession = {
-      //   ...sessionWithPlaceholder,
-      //   messages: sessionWithPlaceholder.messages.map(msg =>
-      //     msg.id === placeholderBotMessage.id
-      //       ? { ...msg, text: newStatus }
-      //       : msg
-      //   ),
-      // };
-      // setSelectedSession(updatedSession);
-    }
-  };
-
-  try {
-    // 4. Fetch using streaming approach
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL ?? ""}run`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: messageText,
-        uid: userId,
-        sid: passedSession.id,
-        messages: passedSession.messages.slice(-6), // Keeping your context window
-        collection: selectedGenAIBot,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Server responded with status: ${response.status}`);
+      setChatLoadingMessage(getLoadingMessageFromAgentStatus(event.data));
     }
 
-    // 5. Process the streaming response
-    if (response.body) {
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulatedText = "";
+  }
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
+  async function handleServerChatbotResponse(
+    userId: string,
+    messageText: string,
+    passedSession: SessionObject
+  ): Promise<void> {
+    setIsChatLoading(true);
+    console.log("Starting to fetch chatbot response");
 
-        // Decode the chunk
-        const chunk = decoder.decode(value, { stream: true });
+    // 1. Create a placeholder for the bot message that will be updated as chunks arrive
+    const placeholderBotMessage: ChatMessageObject = {
+      id: `bot-message-${Date.now()}`,
+      isBot: true,
+      date: new Date().toISOString(),
+      text: "",
+      userName: "ElevAIte",
+      isStreaming: true,
+      // Add any other required fields for your ChatMessageObject type
+    };
 
-        // Parse SSE format - looking for "data:" prefix
-        const lines = chunk;
-        for (const line of lines) {
-          // if (line.startsWith('data: ')) {
+    // 2. Add the placeholder message to the session
+    const sessionWithPlaceholder = {
+      ...passedSession,
+      messages: [...passedSession.messages, placeholderBotMessage]
+    };
+    setSelectedSession(sessionWithPlaceholder); // Assuming you have a state setter for current session
+
+    // 3. Set up status event source as before
+    const agentEvent = new EventSource(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL ?? ""}currentStatus?uid=${userId}&sid=${passedSession.id}`
+    );
+    // agentEvent.onmessage = handleAgentStatusChange;
+    agentEvent.onmessage = (event) => {
+      if (event.data && typeof event.data === "string") {
+        const newStatus = event.data;
+        setAgentStatus(newStatus);
+        // const updatedSession = {
+        //   ...sessionWithPlaceholder,
+        //   messages: sessionWithPlaceholder.messages.map(msg =>
+        //     msg.id === placeholderBotMessage.id
+        //       ? { ...msg, text: newStatus }
+        //       : msg
+        //   ),
+        // };
+        // setSelectedSession(updatedSession);
+      }
+    };
+
+    try {
+      // 4. Fetch using streaming approach
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL ?? ""}run`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: messageText,
+          uid: userId,
+          sid: passedSession.id,
+          messages: passedSession.messages.slice(-6), // Keeping your context window
+          collection: selectedGenAIBot,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+
+      // 5. Process the streaming response
+      if (response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulatedText = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          // Decode the chunk
+          const chunk = decoder.decode(value, { stream: true });
+
+          // Parse SSE format - looking for "data:" prefix
+          const lines = chunk;
+          for (const line of lines) {
+            // if (line.startsWith('data: ')) {
             const eventData = line
             if (eventData) {
               // Update accumulated text
@@ -404,63 +404,63 @@ async function handleServerChatbotResponse(
               updateSessionInList(updatedSession);
             }
           }
-        // }
+          // }
+        }
+
+        // 6. After streaming is complete, finalize the message
+        const finalMessage: ChatMessageObject = {
+          ...placeholderBotMessage,
+          text: accumulatedText,
+          isStreaming: false // Mark as no longer streaming
+        };
+
+        // Update the session with the complete message
+        const finalSession = {
+          ...sessionWithPlaceholder,
+          messages: sessionWithPlaceholder.messages.map(msg =>
+            msg.id === placeholderBotMessage.id ? finalMessage : msg
+          )
+        };
+
+        updateSessionListWithNewMessage(finalMessage, passedSession);
+        setSelectedSession(finalSession);
+        updateSessionInList(finalSession);
       }
+    } catch (error) {
+      console.error("Error in chatbot response:", error);
 
-      // 6. After streaming is complete, finalize the message
-      const finalMessage: ChatMessageObject = {
-        ...placeholderBotMessage,
-        text: accumulatedText,
-        isStreaming: false // Mark as no longer streaming
+      // Remove the placeholder message on error or show an error state
+      const sessionWithoutPlaceholder = {
+        ...passedSession,
+        messages: passedSession.messages.filter(msg => msg.id !== placeholderBotMessage.id)
       };
+      setSelectedSession(sessionWithoutPlaceholder);
 
-      // Update the session with the complete message
-      const finalSession = {
-                ...sessionWithPlaceholder,
-                messages: sessionWithPlaceholder.messages.map(msg =>
-                  msg.id === placeholderBotMessage.id ? finalMessage : msg
-                )
-              };
-
-      updateSessionListWithNewMessage(finalMessage, passedSession);
-      setSelectedSession(finalSession);
-      updateSessionInList(finalSession);
+      // Optionally add an error message
+      const errorMessage: ChatMessageObject = {
+        id: `error-${Date.now()}`,
+        isBot: true,
+        text: "Sorry, there was an error processing your request.",
+        userName: "ElevAIte",
+        date: new Date().toISOString(),
+      };
+      updateSessionListWithNewMessage(errorMessage, passedSession);
+    } finally {
+      setIsChatLoading(false);
+      agentEvent.close();
     }
-  } catch (error) {
-    console.error("Error in chatbot response:", error);
-
-    // Remove the placeholder message on error or show an error state
-    const sessionWithoutPlaceholder = {
-      ...passedSession,
-      messages: passedSession.messages.filter(msg => msg.id !== placeholderBotMessage.id)
-    };
-    setSelectedSession(sessionWithoutPlaceholder);
-
-    // Optionally add an error message
-    const errorMessage: ChatMessageObject = {
-      id: `error-${Date.now()}`,
-      isBot: true,
-      text: "Sorry, there was an error processing your request.",
-      userName: "ElevAIte",
-      date: new Date().toISOString(),
-    };
-    updateSessionListWithNewMessage(errorMessage, passedSession);
-  } finally {
-    setIsChatLoading(false);
-    agentEvent.close();
   }
-}
 
-// Helper function to update a session in your session list
-// Implement this based on your state management approach
-function updateSessionInList(updatedSession: SessionObject): void {
-  // Example implementation:
-  setSessions(prevSessions =>
-    prevSessions.map(session =>
-      session.id === updatedSession.id ? updatedSession : session
-    )
-  );
-}
+  // Helper function to update a session in your session list
+  // Implement this based on your state management approach
+  function updateSessionInList(updatedSession: SessionObject): void {
+    // Example implementation:
+    setSessions(prevSessions =>
+      prevSessions.map(session =>
+        session.id === updatedSession.id ? updatedSession : session
+      )
+    );
+  }
 
   function getSessionSummary(): void {
     const userId = session.data?.user?.id;
@@ -469,7 +469,7 @@ function updateSessionInList(updatedSession: SessionObject): void {
     if (
       selectedSession.summary?.sessionMessageLengthOnLastUpdate &&
       selectedSession.summary.sessionMessageLengthOnLastUpdate ===
-        selectedSession.messages.length
+      selectedSession.messages.length
     ) {
       updateCurrentSessionWithSummary(
         selectedSession.summary,
