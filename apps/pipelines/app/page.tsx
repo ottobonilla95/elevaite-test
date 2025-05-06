@@ -7,6 +7,9 @@ import { AdaptiveConfigGrid } from "./components/AdaptiveConfigGrid";
 import { ConfigField } from "./components/ConfigField";
 import { CustomInput } from "./components/CustomInput";
 import "./page.scss";
+import "./components/CustomNumberInput.scss";
+import "./components/CustomDropdown.scss";
+import "./components/UploadComponent.scss";
 
 interface UploadingFile {
   id: string;
@@ -18,7 +21,6 @@ interface UploadingFile {
 
 export default function Home(): JSX.Element {
   const [selectedStep, setSelectedStep] = useState<string | null>("loading");
-  const [isMobile, setIsMobile] = useState(false);
   const [isWarningFlashing, setIsWarningFlashing] = useState(false);
 
   // Loading step state
@@ -71,10 +73,6 @@ export default function Home(): JSX.Element {
   const selectedProvider = "SageMaker"; // eslint-disable-line no-unused-vars
 
   useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
     // Function to close all dropdowns on resize
     const closeAllDropdowns = () => {
       // Close the project dropdown
@@ -92,21 +90,12 @@ export default function Home(): JSX.Element {
       document.dispatchEvent(clickEvent);
     };
 
-    // Combined handler for resize events
-    const handleResize = () => {
-      checkIfMobile();
-      closeAllDropdowns();
-    };
-
-    // Initial check
-    checkIfMobile();
-
     // Add event listener for window resize
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", closeAllDropdowns);
 
     // Cleanup
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", closeAllDropdowns);
     };
   }, []);
 
@@ -258,14 +247,7 @@ export default function Home(): JSX.Element {
     };
 
     return (
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
+      <div className="custom-number-input">
         <input
           ref={inputRef}
           type="number"
@@ -274,47 +256,10 @@ export default function Home(): JSX.Element {
           min={min}
           max={max}
           step={step}
-          style={{
-            backgroundColor: "#212124",
-            color: "white",
-            border: "2px solid #3f3f41",
-            padding: "10px",
-            paddingRight: "60px",
-            borderRadius: "8px",
-            fontSize: "14px",
-            width: "100%",
-            height: "40px",
-            appearance: "textfield",
-            boxSizing: "border-box",
-          }}
         />
-        <div
-          id="number-input-arrows"
-          style={{
-            position: "absolute",
-            right: "10px",
-            top: "50%",
-            transform: "translateY(-50%)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "0px",
-            zIndex: 5, // Higher z-index to ensure visibility
-            pointerEvents: "auto", // Ensure clicks are registered
-          }}
-        >
+        <div className="number-input-arrows">
           <button
             onClick={increment}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "transparent",
-              border: "none",
-              cursor: "pointer",
-              padding: "2px",
-              color: "white",
-              transition: "color 0.2s ease",
-            }}
             onMouseOver={(e) => {
               e.currentTarget.style.color = "#e75f33";
             }}
@@ -328,17 +273,6 @@ export default function Home(): JSX.Element {
           </button>
           <button
             onClick={decrement}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "transparent",
-              border: "none",
-              cursor: "pointer",
-              padding: "2px",
-              color: "white",
-              transition: "color 0.2s ease",
-            }}
             onMouseOver={(e) => {
               e.currentTarget.style.color = "#e75f33";
             }}
@@ -415,31 +349,11 @@ export default function Home(): JSX.Element {
     };
 
     return (
-      <div
-        ref={dropdownRef}
-        style={{
-          position: "relative",
-          width: "100%",
-        }}
-      >
+      <div ref={dropdownRef} className="custom-dropdown">
         {/* Dropdown Button */}
         <div
+          className="dropdown-button"
           onClick={() => setIsOpen(!isOpen)}
-          style={{
-            backgroundColor: "#212124",
-            color: "white",
-            border: "2px solid #3f3f41",
-            padding: "10px",
-            borderRadius: "8px",
-            fontSize: "14px",
-            width: "100%",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            cursor: "pointer",
-            height: "40px",
-            boxSizing: "border-box",
-          }}
           onMouseOver={(e) => {
             e.currentTarget.style.borderColor = "#5f5f61";
           }}
@@ -447,17 +361,14 @@ export default function Home(): JSX.Element {
             e.currentTarget.style.borderColor = "#3f3f41";
           }}
         >
-          <span style={{ color: "white" }}>{selectedLabel || " "}</span>
+          <span>{selectedLabel || " "}</span>
           <svg
+            className={`dropdown-arrow ${isOpen ? "open" : ""}`}
             fill="none"
             viewBox="0 0 16 16"
             width={16}
             height={16}
             xmlns="http://www.w3.org/2000/svg"
-            style={{
-              transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.2s ease",
-            }}
           >
             <path
               d="m4 6.5 4 4 4-4"
@@ -474,38 +385,17 @@ export default function Home(): JSX.Element {
           <div
             className="dropdown-menu"
             style={{
-              position: "fixed",
               top:
                 (dropdownRef.current?.getBoundingClientRect().bottom || 0) + 5,
               left: dropdownRef.current?.getBoundingClientRect().left || 0,
               width: dropdownRef.current?.offsetWidth || 0,
-              backgroundColor: "#212124",
-              border: "2px solid #3f3f41",
-              borderRadius: "8px",
-              zIndex: 9999, // Very high z-index to ensure it's above everything
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-              maxHeight: "200px",
-              overflowY: "auto",
             }}
           >
             {options.map((option) => (
               <div
                 key={option.value}
+                className={`dropdown-option ${selectedValue === option.value ? "selected" : ""}`}
                 onClick={() => handleOptionClick(option.value)}
-                style={{
-                  padding: "10px",
-                  cursor: "pointer",
-                  backgroundColor:
-                    selectedValue === option.value
-                      ? "rgba(231, 95, 51, 0.1)"
-                      : "transparent",
-                  color: selectedValue === option.value ? "#e75f33" : "white",
-                  transition: "background-color 0.2s ease, color 0.2s ease",
-                  height: "40px",
-                  boxSizing: "border-box",
-                  display: "flex",
-                  alignItems: "center",
-                }}
                 onMouseOver={(e) => {
                   e.currentTarget.style.backgroundColor =
                     selectedValue === option.value
@@ -591,28 +481,9 @@ export default function Home(): JSX.Element {
   };
 
   return (
-    <div
-      className="pipeline-page"
-      style={{
-        backgroundColor: "#000",
-        background: "#000",
-        height: "100vh",
-        maxHeight: "100vh",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+    <div className="pipeline-page">
       {/* Border container for Document Processing Pipeline and steps */}
-      <div
-        style={{
-          margin: "0",
-          border: "1px solid #3f3f41",
-          borderRadius: "8px",
-          backgroundColor: "transparent",
-          padding: "0.5rem",
-        }}
-      >
+      <div className="border-container">
         {/* Document Processing Pipeline header */}
         <div className="pipeline-header-box">
           <div className="header-content">
@@ -623,13 +494,9 @@ export default function Home(): JSX.Element {
                 <span>Project:</span>
                 <div style={{ width: "150px" }}>
                   {/* Custom dropdown with orange arrow */}
-                  <div
-                    style={{
-                      position: "relative",
-                      width: "100%",
-                    }}
-                  >
+                  <div className="project-dropdown">
                     <div
+                      className="project-dropdown-button"
                       onClick={() => {
                         // Toggle dropdown
                         const dropdown =
@@ -641,21 +508,6 @@ export default function Home(): JSX.Element {
                               : "none";
                         }
                       }}
-                      style={{
-                        backgroundColor: "#3f3f41",
-                        color: "#e75f33",
-                        border: "none",
-                        padding: "6px 12px",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        width: "100%",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: "8px" /* Reduce space between text and arrow */,
-                        cursor: "pointer",
-                        transition: "background-color 0.2s ease",
-                      }}
                       onMouseOver={(e) => {
                         e.currentTarget.style.backgroundColor = "#4f4f51";
                       }}
@@ -663,7 +515,7 @@ export default function Home(): JSX.Element {
                         e.currentTarget.style.backgroundColor = "#3f3f41";
                       }}
                     >
-                      <span style={{ color: "#e75f33" }}>Default Project</span>
+                      <span>Default Project</span>
                       <svg
                         fill="none"
                         viewBox="0 0 16 16"
@@ -682,34 +534,14 @@ export default function Home(): JSX.Element {
                     </div>
                     <div
                       id="project-dropdown"
-                      style={{
-                        display: "none",
-                        position: "absolute",
-                        top: "calc(100% + 5px)",
-                        left: 0,
-                        width: "100%",
-                        backgroundColor: "#3f3f41",
-                        border: "none",
-                        borderRadius: "8px",
-                        zIndex: 10,
-                        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-                        maxHeight: "200px",
-                        overflowY: "auto",
-                      }}
+                      className="project-dropdown-menu"
                     >
                       <div
+                        className="project-dropdown-option selected"
                         onClick={() => {
                           document.getElementById(
                             "project-dropdown"
                           )!.style.display = "none";
-                        }}
-                        style={{
-                          padding: "6px 12px",
-                          cursor: "pointer",
-                          backgroundColor: "rgba(231, 95, 51, 0.1)",
-                          color: "#e75f33",
-                          transition:
-                            "background-color 0.2s ease, color 0.2s ease",
                         }}
                         onMouseOver={(e) => {
                           e.currentTarget.style.backgroundColor =
@@ -723,18 +555,11 @@ export default function Home(): JSX.Element {
                         Default Project
                       </div>
                       <div
+                        className="project-dropdown-option"
                         onClick={() => {
                           document.getElementById(
                             "project-dropdown"
                           )!.style.display = "none";
-                        }}
-                        style={{
-                          padding: "6px 12px",
-                          cursor: "pointer",
-                          backgroundColor: "transparent",
-                          color: "white",
-                          transition:
-                            "background-color 0.2s ease, color 0.2s ease",
                         }}
                         onMouseOver={(e) => {
                           e.currentTarget.style.backgroundColor =
@@ -747,18 +572,11 @@ export default function Home(): JSX.Element {
                         Project 1
                       </div>
                       <div
+                        className="project-dropdown-option"
                         onClick={() => {
                           document.getElementById(
                             "project-dropdown"
                           )!.style.display = "none";
-                        }}
-                        style={{
-                          padding: "6px 12px",
-                          cursor: "pointer",
-                          backgroundColor: "transparent",
-                          color: "white",
-                          transition:
-                            "background-color 0.2s ease, color 0.2s ease",
                         }}
                         onMouseOver={(e) => {
                           e.currentTarget.style.backgroundColor =
@@ -777,19 +595,7 @@ export default function Home(): JSX.Element {
 
               <div className="provider-display">
                 <span>Provider:</span>
-                <div
-                  style={{
-                    backgroundColor: "#3f3f41",
-                    padding: "6px 12px",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    color: "#ccc",
-                    fontWeight: "normal",
-                    border: "none",
-                  }}
-                >
-                  SageMaker
-                </div>
+                <div className="provider-display">SageMaker</div>
                 {/* TODO: Receive provider from backend */}
               </div>
             </div>
@@ -820,116 +626,24 @@ export default function Home(): JSX.Element {
         </div>
       </div>
 
-      {/* Original Step details panel
-      {selectedStep && (
-        <div className="step-details-panel">
-          <h2>
-            {pipelineSteps.find((s) => s.id === selectedStep)?.title}
-            <span className="step-provider">{selectedProvider}</span>
-          </h2>
-          <p>{pipelineSteps.find((s) => s.id === selectedStep)?.details}</p>
-
-          <div className="step-features">
-            <h3>Key Features</h3>
-            <ul>
-              {pipelineSteps
-                .find((s) => s.id === selectedStep)
-                ?.features.map((feature, index) => (
-                  <li key={index}>{feature}</li>
-                ))}
-            </ul>
-          </div>
-
-          <div className="step-actions">
-            <button
-              className="learn-more-btn"
-              onClick={() => router.push(`/${selectedStep}`)}
-            >
-              Learn More
-            </button>
-            <button
-              className="configure-btn"
-              onClick={() => router.push(`/${selectedStep}/configure`)}
-            >
-              Configure
-            </button>
-          </div>
-        </div>
-      )}
-      */}
-
       {/* Configuration and Upload Files Boxes */}
       {selectedStep && (
-        <div
-          style={{
-            width: "100%",
-            margin: "0.5rem auto 0",
-            display: "flex",
-            justifyContent: "space-between",
-            flex: 1,
-            overflow: "hidden",
-            gap: "16px",
-          }}
-        >
+        <div className="config-upload-container">
           {/* Configuration Box */}
           <div
-            style={{
-              width: selectedStep === "loading" ? "calc(50% - 8px)" : "100%",
-              backgroundColor: "#212124",
-              border: "2px solid #3f3f41",
-              borderRadius: "12px",
-              display: "flex",
-              flexDirection: "column",
-              height: "88%",
-            }}
+            className={`config-box ${selectedStep === "loading" ? "with-upload" : ""}`}
           >
             {/* Inner border container - wraps header and config fields */}
-            <div
-              style={{
-                margin: "1.5rem",
-                border: "1px solid #3f3f41",
-                borderRadius: "8px",
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-              }}
-            >
+            <div className="inner-border-container">
               {/* Header Section */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: isMobile ? "column" : "row",
-                  justifyContent: "space-between",
-                  alignItems: isMobile ? "flex-start" : "center",
-                  gap: isMobile ? "1rem" : "0",
-                  padding: "1rem",
-                  borderBottom: "1px solid #3f3f41",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <h1
-                    style={{
-                      fontSize: "1.5rem",
-                      margin: 0,
-                      color: "white",
-                      fontWeight: "normal",
-                    }}
-                  >
+              <div className="config-header">
+                <div className="header-title">
+                  <h1>
                     {pipelineSteps.find((s) => s.id === selectedStep)?.title}{" "}
                     Configuration
                   </h1>
                   <div
-                    style={{
-                      marginLeft: "10px",
-                      width: "16px",
-                      height: "16px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#999",
-                      cursor: "pointer",
-                    }}
+                    className="info-icon"
                     title={
                       pipelineSteps.find((s) => s.id === selectedStep)?.details
                     }
@@ -945,20 +659,7 @@ export default function Home(): JSX.Element {
                     </svg>
                   </div>
                 </div>
-                <button
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    backgroundColor: "#2a2a2d",
-                    color: "white",
-                    border: "none",
-                    padding: "8px 16px",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                  }}
-                >
+                <button className="monitor-button">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="16"
@@ -973,14 +674,7 @@ export default function Home(): JSX.Element {
               </div>
 
               {/* Form Elements Section */}
-              <div
-                style={{
-                  flex: "1",
-                  padding: "1rem",
-                  overflowY: "auto",
-                  height: "100%",
-                }}
-              >
+              <div className="config-content">
                 {/* Configuration Options */}
                 {selectedStep === "loading" && (
                   <div className="config-container">
@@ -1737,33 +1431,8 @@ export default function Home(): JSX.Element {
             </div>
 
             {/* Action Buttons Section */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: isMobile ? "column" : "row",
-                gap: "12px",
-                padding: "1.5rem",
-                paddingTop: "0",
-                marginTop: "auto",
-              }}
-            >
-              <button
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: isMobile ? "center" : "flex-start",
-                  gap: "8px",
-                  backgroundColor: "#e75f33",
-                  color: "white",
-                  border: "none",
-                  padding: "10px 20px",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  width: isMobile ? "100%" : "auto",
-                }}
-              >
+            <div className="config-actions">
+              <button className="run-button">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -1775,23 +1444,7 @@ export default function Home(): JSX.Element {
                 </svg>
                 Run Pipeline
               </button>
-              <button
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: isMobile ? "center" : "flex-start",
-                  gap: "8px",
-                  backgroundColor: "#444",
-                  color: "white",
-                  border: "none",
-                  padding: "10px 20px",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  width: isMobile ? "100%" : "auto",
-                }}
-              >
+              <button className="save-button">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -1808,139 +1461,49 @@ export default function Home(): JSX.Element {
 
           {/* Upload Files Box - Only shown for Loading step */}
           {selectedStep === "loading" && (
-            <div
-              style={{
-                width: "calc(50% - 8px)",
-                backgroundColor: "#212124",
-                border: "2px solid #3f3f41",
-                borderRadius: "12px",
-                display: "flex",
-                flexDirection: "column",
-                height: "88%",
-              }}
-            >
-              {/* Header Section */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: isMobile ? "column" : "row",
-                  justifyContent: "space-between",
-                  alignItems: isMobile ? "flex-start" : "center",
-                  gap: isMobile ? "1rem" : "0",
-                  padding: "1.5rem",
-                  borderBottom: "1px solid #3f3f41",
-                  marginBottom: "1rem",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <h1
-                    style={{
-                      fontSize: "1.5rem",
-                      margin: 0,
-                      color: "white",
-                      fontWeight: "normal",
-                    }}
-                  >
-                    Upload Files
-                  </h1>
-                </div>
+            <div className="upload-component">
+              {/* Header */}
+              <div className="upload-header">
+                <h1>Upload Files</h1>
               </div>
 
               {/* Upload Area */}
-              <div
-                style={{
-                  flex: "1",
-                  padding: "0 1.5rem 1.5rem",
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  overflow: "hidden",
-                  minWidth: 0,
-                  maxWidth: "100%",
-                  width: "100%",
-                  boxSizing: "border-box",
-                }}
-              >
-                {/* Top Section with Upload Box */}
+              <div className="upload-area">
+                {/* Dropzone */}
                 <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    minHeight: 0,
+                  className="upload-dropzone"
+                  onClick={handleFileSelect}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.borderColor = "#5f5f61";
+                    e.currentTarget.style.backgroundColor =
+                      "rgba(255, 255, 255, 0.03)";
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.borderColor = "#3f3f41";
+                    e.currentTarget.style.backgroundColor = "transparent";
                   }}
                 >
-                  {/* Dashed Border Upload Box */}
-                  <div
-                    style={{
-                      border: "2px dashed rgba(255, 255, 255, 0.2)",
-                      borderRadius: "8px",
-                      padding: "2rem",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginBottom: "1.5rem",
-                      cursor: "pointer",
-                      minHeight: "100px",
-                      height: "auto",
-                    }}
-                    onClick={handleFileSelect}
+                  <svg
+                    className="upload-icon"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="48"
-                      height="48"
-                      viewBox="0 0 24 24"
-                      fill="rgba(255, 255, 255, 0.5)"
-                      style={{ marginBottom: "1rem" }}
-                    >
-                      <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
-                    </svg>
-                    <p style={{ color: "white", marginBottom: "0.5rem" }}>
-                      Drag and drop your files here
-                    </p>
-                    <p
-                      style={{
-                        color: "rgba(255, 255, 255, 0.5)",
-                        fontSize: "0.9rem",
-                      }}
-                    >
-                      or click to browse
-                    </p>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      style={{ display: "none" }}
-                      onChange={handleFileChange}
-                    />
-                    <button
-                      onClick={handleFileSelect}
-                      style={{
-                        backgroundColor: "#444",
-                        color: "white",
-                        border: "none",
-                        padding: "8px 16px",
-                        borderRadius: "4px",
-                        marginTop: "1rem",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                      }}
-                    >
-                      Select Files
-                    </button>
-                  </div>
+                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
+                  </svg>
+                  <h3>Drag & Drop Files Here</h3>
+                  <p>or click to browse your files</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden-input"
+                    onChange={handleFileChange}
+                  />
                 </div>
 
-                <div
-                  style={{
-                    marginTop: "1rem",
-                    flex: 1,
-                    overflow: "visible",
-                    width: "100%",
-                    maxWidth: "100%",
-                  }}
-                >
+                {/* File List */}
+                <div className="file-list">
                   {/* Status message if files are still uploading */}
                   {hasUploadingFiles() && (
                     <div
@@ -1989,31 +1552,8 @@ export default function Home(): JSX.Element {
                     </div>
                   ) : (
                     uploadingFiles.map((file) => (
-                      <div
-                        key={file.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          padding: "0.75rem",
-                          backgroundColor: "rgba(0, 0, 0, 0.2)",
-                          borderRadius: "8px",
-                          marginBottom: "0.75rem",
-                          border: "2px solid #3f3f41",
-                          width: "100%",
-                          boxSizing: "border-box",
-                          minWidth: 0,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            marginRight: "12px",
-                            overflow: "hidden",
-                            flex: "0 1 auto",
-                            minWidth: 0,
-                          }}
-                        >
+                      <div key={file.id} className="file-item">
+                        <div className="file-info">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="24"
@@ -2024,130 +1564,54 @@ export default function Home(): JSX.Element {
                           >
                             <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
                           </svg>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              maxWidth: "calc(100% - 24px)",
-                            }}
-                          >
-                            <span
-                              style={{
-                                color: "white",
-                                fontSize: "0.9rem",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                                maxWidth: "200px",
-                              }}
-                            >
-                              {file.name}
-                            </span>
-                            <span
-                              style={{
-                                color: "rgba(255, 255, 255, 0.5)",
-                                fontSize: "0.8rem",
-                                margin: "0 4px",
-                              }}
-                            >
-                              •
-                            </span>
-                            <span
-                              style={{
-                                color: "rgba(255, 255, 255, 0.5)",
-                                fontSize: "0.8rem",
-                              }}
-                            >
-                              {file.size}
-                            </span>
-                          </div>
+                          <span className="file-name">{file.name}</span>
+                          <span className="file-size">{file.size}</span>
                         </div>
-
-                        {/* Progress bar - only shown for files that aren't completed */}
-                        {!file.completed && (
-                          <div
-                            style={{
-                              flex: 1,
-                              display: "flex",
-                              alignItems: "center",
-                              minWidth: 0,
-                              overflow: "hidden",
-                            }}
-                          >
-                            <div
-                              style={{
-                                flex: 1,
-                                height: "6px",
-                                backgroundColor: "#eef1f3",
-                                borderRadius: "5px",
-                                position: "relative",
-                                overflow: "hidden",
-                                margin: "0 12px",
-                              }}
-                            >
+                        <div className="file-actions">
+                          {!file.completed ? (
+                            <>
+                              <div className="progress-container">
+                                <div
+                                  className="progress-bar"
+                                  style={{ width: `${file.progress}%` }}
+                                />
+                              </div>
                               <div
                                 style={{
-                                  position: "absolute",
-                                  left: 0,
-                                  top: 0,
-                                  height: "100%",
-                                  width: `${file.progress}%`,
-                                  backgroundColor: "#30c292",
-                                  borderRadius: "2px",
+                                  minWidth: "45px",
+                                  textAlign: "right",
+                                  fontSize: "14px",
+                                  fontWeight: "500",
+                                  color:
+                                    file.progress === 100 ? "#30c292" : "#ccc",
                                 }}
-                              ></div>
-                            </div>
-                            <div
-                              style={{
-                                minWidth: "45px",
-                                textAlign: "right",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                color:
-                                  file.progress === 100 ? "#30c292" : "#ccc",
-                              }}
-                            >
-                              {Math.round(file.progress)}%
-                            </div>
-                          </div>
-                        )}
-
-                        {/* If completed, add a spacer instead of progress bar */}
-                        {file.completed && <div style={{ flex: 1 }}></div>}
-
-                        <button
-                          onClick={() => handleDeleteFile(file.id)}
-                          style={{
-                            backgroundColor: "transparent",
-                            border: "none",
-                            color: "#e74c3c",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            padding: "4px",
-                          }}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
+                              >
+                                {Math.round(file.progress)}%
+                              </div>
+                            </>
+                          ) : (
+                            <div style={{ flex: 1 }}></div>
+                          )}
+                          <button
+                            className="delete-button"
+                            onClick={() => handleDeleteFile(file.id)}
                           >
-                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                          </svg>
-                        </button>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     ))
                   )}
                 </div>
               </div>
-
-              {/* Removed Action Buttons Section */}
             </div>
           )}
         </div>

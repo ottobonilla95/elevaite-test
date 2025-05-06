@@ -1,0 +1,131 @@
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+
+  .dropdown-button {
+    background-color: #212124;
+    color: white;
+    border: 2px solid #3f3f41;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    height: 40px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+      border-color: #5f5f61;
+    }
+
+    .dropdown-arrow {
+      transform: rotate(0deg);
+      transition: transform 0.2s ease;
+
+      &.open {
+        transform: rotate(180deg);
+      }
+    }
+  }
+
+  .dropdown-menu {
+    position: fixed;
+    background-color: #212124;
+    border: 2px solid #3f3f41;
+    border-radius: 8px;
+    z-index: 9999;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    max-height: 200px;
+    overflow-y: auto;
+    width: 100%;
+
+    .dropdown-option {
+      padding: 10px;
+      cursor: pointer;
+      height: 40px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      transition: background-color 0.2s ease, color 0.2s ease;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+
+      &.selected {
+        background-color: rgba(231, 95, 51, 0.1);
+        color: #e75f33;
+
+        &:hover {
+          background-color: rgba(231, 95, 51, 0.2);
+        }
+      }
+    }
+  }
+}
+
+// Project dropdown specific styles
+.project-dropdown {
+  .project-dropdown-button {
+    background-color: #3f3f41;
+    color: #e75f33;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: #4f4f51;
+    }
+  }
+
+  .project-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    width: 100%;
+    background-color: #3f3f41;
+    border: none;
+    border-radius: 8px;
+    z-index: 10;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    max-height: 200px;
+    overflow-y: auto;
+
+    .project-dropdown-option {
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: background-color 0.2s ease, color 0.2s ease;
+
+      &.selected {
+        background-color: rgba(231, 95, 51, 0.1);
+        color: #e75f33;
+
+        &:hover {
+          background-color: rgba(231, 95, 51, 0.2);
+        }
+      }
+
+      &:not(.selected) {
+        background-color: transparent;
+        color: white;
+
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.05);
+        }
+      }
+    }
+  }
+}
