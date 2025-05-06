@@ -25,6 +25,9 @@ multitenancy_settings.db_url = db_url
 async def initialize_db():
     """Initialize the database with tenant schemas."""
     logger.info(f"Initializing database with tenants: {DEFAULT_TENANTS}")
+
+    db_info = {}
+
     try:
         # Initialize the database with tenant schemas
         db_info = init_db(
