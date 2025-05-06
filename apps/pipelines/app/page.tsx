@@ -1507,23 +1507,7 @@ export default function Home(): JSX.Element {
                   {/* Status message if files are still uploading */}
                   {hasUploadingFiles() && (
                     <div
-                      className={isWarningFlashing ? "warning-flash" : ""}
-                      style={{
-                        color: "#e75f33",
-                        fontSize: "14px",
-                        marginBottom: "12px",
-                        padding: "8px 12px",
-                        backgroundColor: "rgba(231, 95, 51, 0.1)",
-                        borderRadius: "6px",
-                        border: "1px solid rgba(231, 95, 51, 0.3)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        transition: "all 0.2s ease",
-                        width: "100%",
-                        boxSizing: "border-box",
-                        whiteSpace: "normal",
-                      }}
+                      className={`warning-message ${isWarningFlashing ? "warning-flash" : ""}`}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"

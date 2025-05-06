@@ -1,3 +1,15 @@
+@keyframes warning-flash {
+  0% {
+    background-color: rgba(231, 95, 51, 0.1);
+  }
+  50% {
+    background-color: rgba(231, 95, 51, 0.3);
+  }
+  100% {
+    background-color: rgba(231, 95, 51, 0.1);
+  }
+}
+
 .upload-component {
   width: calc(50% - 8px);
   background-color: #212124;
@@ -87,8 +99,30 @@
       flex-direction: column;
       gap: 0.75rem;
 
-      .warning-flash {
-        animation: warning-flash 0.5s ease-in-out 3;
+      .warning-message {
+        color: #e75f33;
+        font-size: 14px;
+        margin-bottom: 12px;
+        padding: 8px 12px;
+        background-color: rgba(231, 95, 51, 0.1);
+        border-radius: 6px;
+        border: 1px solid rgba(231, 95, 51, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        width: 100%;
+        box-sizing: border-box;
+        white-space: normal;
+        overflow: visible; /* Ensure content doesn't get clipped */
+
+        svg {
+          flex-shrink: 0; /* Prevent SVG from shrinking */
+        }
+
+        &.warning-flash {
+          animation: warning-flash 0.5s ease-in-out 3;
+        }
       }
 
       .file-item {
