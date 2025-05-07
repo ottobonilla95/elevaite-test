@@ -8,7 +8,7 @@ import { AuthApiClient } from "./app/lib/authApiClient";
 const authApiUrl = process.env.AUTH_API_URL;
 if (!authApiUrl) throw new Error("AUTH_API_URL does not exist in the env");
 
-const tenantId = process.env.AUTH_TENANT_ID ?? 'default';
+const tenantId = process.env.AUTH_TENANT_ID ?? "default";
 
 // Create an instance of the Auth API client with the tenant ID
 const authApiClient = new AuthApiClient(authApiUrl, tenantId);
@@ -42,10 +42,25 @@ export const authOptions: NextAuthConfig = {
           try {
             // Call the Auth API to login
             const tokenResponse = await authApiClient.login(email, password);
-            console.log("Token response:", tokenResponse);
+
+            // Debug logging
+            console.log("Auth - Token response:", tokenResponse);
+            console.log(
+              "Auth - password_change_required:",
+              tokenResponse.password_change_required
+            );
 
             // Get user details using the access token
-            const userDetails = await authApiClient.getCurrentUser(tokenResponse.access_token);
+            const userDetails = await authApiClient.getCurrentUser(
+              tokenResponse.access_token
+            );
+
+            console.log("Auth - User details:", userDetails);
+
+            // Check if password change is required
+            // This is set by the auth-api when the user has a temporary password
+            const needsPasswordReset =
+              tokenResponse.password_change_required === true;
 
             return {
               id: userDetails.id.toString(),
@@ -53,6 +68,7 @@ export const authOptions: NextAuthConfig = {
               name: userDetails.full_name ?? email,
               accessToken: tokenResponse.access_token,
               refreshToken: tokenResponse.refresh_token,
+              needsPasswordReset,
             } satisfies User;
           } catch (error) {
             console.error("Authentication error:", error);

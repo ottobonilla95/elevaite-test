@@ -1,6 +1,6 @@
 "use server";
 import { AuthError } from "next-auth";
-import { signIn, signOut } from "../../auth";
+import { signIn, signOut, auth } from "../../auth";
 import {
   type ChatMessageResponse,
   type ChatBotGenAI,
@@ -81,17 +81,52 @@ export async function fetchSessionSummary(
   throw new Error("Invalid data type");
 }
 
-export async function resetPassword(_newPassword: string): Promise<void> {
+export async function resetPassword(newPassword: string): Promise<void> {
   try {
-    // In a real implementation, this would call an API to reset the password
-    // For now, we'll just simulate success
+    // Get the auth token from the session
+    const session = await auth();
+    if (!session?.user?.accessToken) {
+      throw new Error("No access token found in session");
+    }
 
-    // Simulate a delay for the API call
-    await new Promise<void>((resolve) => {
-      setTimeout(() => {
-        resolve();
-      }, 1000);
+    const authApiUrl = process.env.AUTH_API_URL;
+    if (!authApiUrl) {
+      throw new Error("AUTH_API_URL not found in environment variables");
+    }
+
+    const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+
+    // Debug logging
+    console.log("Resetting password for user:", session.user.email);
+    console.log("Using auth API URL:", authApiUrl);
+
+    // Call the auth-api to change the password
+    const response = await fetch(`${authApiUrl}/api/auth/change-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.user.accessToken}`,
+        "X-Tenant-ID": tenantId,
+      },
+      body: JSON.stringify({
+        new_password: newPassword,
+      }),
     });
+
+    // Debug logging
+    console.log("Password reset response status:", response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Password reset error:", errorData);
+      throw new Error(errorData.detail || "Failed to reset password");
+    }
+
+    const responseData = await response.json();
+    console.log("Password reset successful:", responseData);
+
+    // The auth-api will invalidate all sessions for this user,
+    // so the user will need to log in again with their new password
   } catch (error) {
     // eslint-disable-next-line no-console -- Needed for error reporting
     console.error("Error resetting password:", error);
