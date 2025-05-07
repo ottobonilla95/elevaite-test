@@ -1,8 +1,17 @@
 "use server";
 import { AuthError } from "next-auth";
 import { signIn, signOut } from "../../auth";
-import { type ChatMessageResponse, type ChatBotGenAI, type ChatbotV, type ChatMessageObject, type SessionSummaryObject } from "./interfaces";
-import { isChatMessageResponse, isSessionSummaryResponse } from "./discriminators";
+import {
+  type ChatMessageResponse,
+  type ChatBotGenAI,
+  type ChatbotV,
+  type ChatMessageObject,
+  type SessionSummaryObject,
+} from "./interfaces";
+import {
+  isChatMessageResponse,
+  isSessionSummaryResponse,
+} from "./discriminators";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -30,8 +39,14 @@ export async function logout(): Promise<void> {
   await signOut();
 }
 
-
-export async function fetchChatbotResponse(userId: string, messageText: string, sessionId: string, messageHistory: ChatMessageObject[], chatbotV: ChatbotV, chatbotGenAi: ChatBotGenAI): Promise<ChatMessageResponse> {
+export async function fetchChatbotResponse(
+  userId: string,
+  messageText: string,
+  sessionId: string,
+  messageHistory: ChatMessageObject[],
+  chatbotV: ChatbotV,
+  chatbotGenAi: ChatBotGenAI
+): Promise<ChatMessageResponse> {
   const url = `${BACKEND_URL ?? ""}run`;
   const response = await fetch(url, {
     method: "POST",
@@ -52,11 +67,34 @@ export async function fetchChatbotResponse(userId: string, messageText: string, 
   throw new Error("Invalid data type");
 }
 
-export async function fetchSessionSummary(userId: string, sessionId: string): Promise<SessionSummaryObject> {
-  const url = new URL(`${BACKEND_URL ?? ""}summarization?uid=${userId}&sid=${sessionId}`);
+export async function fetchSessionSummary(
+  userId: string,
+  sessionId: string
+): Promise<SessionSummaryObject> {
+  const url = new URL(
+    `${BACKEND_URL ?? ""}summarization?uid=${userId}&sid=${sessionId}`
+  );
   const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to fetch");
   const data: unknown = await response.json();
   if (isSessionSummaryResponse(data)) return data;
   throw new Error("Invalid data type");
+}
+
+export async function resetPassword(_newPassword: string): Promise<void> {
+  try {
+    // In a real implementation, this would call an API to reset the password
+    // For now, we'll just simulate success
+
+    // Simulate a delay for the API call
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        resolve();
+      }, 1000);
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console -- Needed for error reporting
+    console.error("Error resetting password:", error);
+    throw new Error("Failed to reset password");
+  }
 }
