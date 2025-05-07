@@ -44,7 +44,8 @@ export async function fetchChatbotResponse(
   messageText: string,
   sessionId: string,
   messageHistory: ChatMessageObject[],
-  chatbotV: ChatbotV,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Kept for API compatibility
+  _chatbotV: ChatbotV,
   chatbotGenAi: ChatBotGenAI
 ): Promise<ChatMessageResponse> {
   const url = `${BACKEND_URL ?? ""}run`;
@@ -81,31 +82,54 @@ export async function fetchSessionSummary(
   throw new Error("Invalid data type");
 }
 
-export async function resetPassword(newPassword: string): Promise<void> {
+// Server action for resetting password
+export async function resetPassword(
+  newPassword: string
+): Promise<{ success: boolean; message: string }> {
+  console.log(
+    "Server Action - resetPassword called with password length:",
+    newPassword.length
+  );
+
   try {
     // Get the auth token from the session
     const session = await auth();
-    if (!session?.user?.accessToken) {
-      throw new Error("No access token found in session");
+    console.log("Server Action - Session:", session?.user?.email);
+    console.log(
+      "Server Action - Full session:",
+      JSON.stringify(session, null, 2)
+    );
+
+    // The token is stored in session.authToken, not in session.user.accessToken
+    if (!session?.authToken) {
+      console.error("Server Action - No auth token found in session");
+      throw new Error("No auth token found in session");
     }
 
     const authApiUrl = process.env.AUTH_API_URL;
     if (!authApiUrl) {
+      console.error(
+        "Server Action - AUTH_API_URL not found in environment variables"
+      );
       throw new Error("AUTH_API_URL not found in environment variables");
     }
 
     const tenantId = process.env.AUTH_TENANT_ID ?? "default";
 
-    // Debug logging
-    console.log("Resetting password for user:", session.user.email);
-    console.log("Using auth API URL:", authApiUrl);
+    // // Debug logging
+    // console.log(
+    //   "Server Action - Resetting password for user:",
+    //   session.user?.email ?? "unknown"
+    // );
+    // console.log("Server Action - Using auth API URL:", authApiUrl);
+    // console.log("Server Action - Using tenant ID:", tenantId);
 
     // Call the auth-api to change the password
     const response = await fetch(`${authApiUrl}/api/auth/change-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.user.accessToken}`,
+        Authorization: `Bearer ${session.authToken}`,
         "X-Tenant-ID": tenantId,
       },
       body: JSON.stringify({
@@ -114,22 +138,35 @@ export async function resetPassword(newPassword: string): Promise<void> {
     });
 
     // Debug logging
-    console.log("Password reset response status:", response.status);
+    console.log(
+      "Server Action - Password reset response status:",
+      response.status
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Password reset error:", errorData);
-      throw new Error(errorData.detail || "Failed to reset password");
+      // console.error("Server Action - Password reset error:", errorData);
+      return {
+        success: false,
+        message: errorData.detail || "Failed to reset password",
+      };
     }
 
     const responseData = await response.json();
-    console.log("Password reset successful:", responseData);
+    // console.log("Server Action - Password reset successful:", responseData);
 
     // The auth-api will invalidate all sessions for this user,
     // so the user will need to log in again with their new password
+    return {
+      success: true,
+      message: "Password successfully changed",
+    };
   } catch (error) {
-    // eslint-disable-next-line no-console -- Needed for error reporting
-    console.error("Error resetting password:", error);
-    throw new Error("Failed to reset password");
+    // console.error("Server Action - Error resetting password:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to reset password",
+    };
   }
 }

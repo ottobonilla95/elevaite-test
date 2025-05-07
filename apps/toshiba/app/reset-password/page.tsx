@@ -123,18 +123,36 @@ export default function ResetPassword(): JSX.Element {
 
     try {
       /* eslint-disable-next-line no-console -- Debug logging */
-      console.log("Reset Password Page - Calling resetPassword function");
+      console.log(
+        "Reset Password Page - Calling resetPassword function with password length:",
+        newPassword.length
+      );
 
-      await resetPassword(newPassword);
+      // Call the server action to reset the password
+      const result = await resetPassword(newPassword);
 
       /* eslint-disable-next-line no-console -- Debug logging */
-      console.log("Reset Password Page - Password reset successful");
+      console.log("Reset Password Page - Password reset result:", result);
 
-      setIsSuccess(true);
+      if (result.success) {
+        /* eslint-disable-next-line no-console -- Debug logging */
+        console.log("Reset Password Page - Password reset successful");
+        setIsSuccess(true);
+      } else {
+        /* eslint-disable-next-line no-console -- Debug logging */
+        console.error(
+          "Reset Password Page - Password reset failed:",
+          result.message
+        );
+        // Ensure we have a string error message
+        setError("Failed to reset password. Please try again.");
+      }
     } catch (err) {
       /* eslint-disable-next-line no-console -- Debug logging */
-      console.error("Reset Password Page - Password reset failed:", err);
-
+      console.error(
+        "Reset Password Page - Password reset failed with exception:",
+        err
+      );
       setError("Failed to reset password. Please try again.");
     } finally {
       setIsSubmitting(false);
