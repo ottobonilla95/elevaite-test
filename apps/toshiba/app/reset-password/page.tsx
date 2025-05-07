@@ -241,7 +241,13 @@ export default function ResetPassword(): JSX.Element {
                 </p>
               </div>
 
-              <div className="form-fields">
+              <form
+                className="form-fields"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void handleResetPassword();
+                }}
+              >
                 <div className="form-field">
                   <label htmlFor="newPassword">New Password</label>
                   <input
@@ -250,6 +256,13 @@ export default function ResetPassword(): JSX.Element {
                     value={newPassword}
                     onChange={(e) => {
                       setNewPassword(e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        // Move focus to confirm password field
+                        document.getElementById("confirmPassword")?.focus();
+                        e.preventDefault();
+                      }
                     }}
                     required
                   />
@@ -272,13 +285,12 @@ export default function ResetPassword(): JSX.Element {
 
                 <button
                   className="reset-button"
-                  onClick={handleResetPassword}
                   disabled={isSubmitting}
-                  type="button"
+                  type="submit"
                 >
                   {isSubmitting ? "Resetting..." : "Reset Password"}
                 </button>
-              </div>
+              </form>
             </div>
           )}
         </div>
