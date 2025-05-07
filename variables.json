@@ -42,5 +42,8 @@
   "media": {
     "NEXT_PUBLIC_BACKEND_URL": "http://localhost:9005/",
     "NEXT_PUBLIC_MEDIA_BACKEND_URL": "http://127.0.0.1:8000/"
+  },
+  "pipelines": {
+    "NEXT_PUBLIC_BACKEND_URL": "http://localhost:9005/"
   }
 }

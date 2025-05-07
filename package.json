@@ -31,5 +31,10 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "sass": "^1.69.7"
+  },
+  "resolutions": {
+    "@repo/sass-config": "file:packages/config-sass",
+    "@repo/typescript-config": "file:packages/config-typescript",
+    "@repo/eslint-config": "file:packages/config-eslint"
   }
 }

@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\pipeline\\Dockerfile\" -t pipeline:latest \".\""
+    "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\pipelines\\Dockerfile\" -t pipelines:latest \".\""
   },
   "dependencies": {
     "@repo/lib": "*",

@@ -29,7 +29,7 @@ services:
     environment:
       <<: *common-env-variables
       APP_NAME: auth
-      ELEVAITE_HOMEPAGE: ${https://elevaite-apps.iopex.ai/}
+      ELEVAITE_HOMEPAGE: ${ELEVAITE_HOMEPAGE}
       RBAC_BACKEND_URL: ${RBAC_BACKEND_URL}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
       ORG_ID: ${ORG_ID}
@@ -92,3 +92,12 @@ services:
       APP_NAME: media
       NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
       NEXT_PUBLIC_MEDIA_BACKEND_URL: ${NEXT_PUBLIC_MEDIA_BACKEND_URL}
+
+  pipelines:
+    build:
+      context: .
+      dockerfile: ./apps/pipelines/Dockerfile
+    environment:
+      <<: *common-env-variables
+      APP_NAME: pipelines
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
