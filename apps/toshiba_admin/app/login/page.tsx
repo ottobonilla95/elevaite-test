@@ -1,11 +1,20 @@
-import { AuthFluff, ElevaiteIcons } from "@repo/ui/components";
+import { redirect } from "next/navigation";
 import type { JSX } from "react";
-import "./page.scss";
-import "./hide-register.css";
+import { AuthFluff, ElevaiteIcons } from "@repo/ui/components";
+import { auth } from "../../auth";
 import { authenticate, authenticateGoogle } from "../lib/actions";
 import { CustomLoginForm } from "../components/CustomLoginForm";
+import "./page.scss";
+import "./hide-register.css";
 
-function Login(): JSX.Element {
+export default async function LoginPage(): Promise<JSX.Element> {
+  const session = await auth();
+
+  // If the user is already logged in, redirect to the home page
+  if (session?.user) {
+    redirect("/");
+  }
+
   return (
     <div className="login-page-container">
       <div className="auth-fluff-container">
@@ -13,7 +22,7 @@ function Login(): JSX.Element {
         <div className="center-block">
           <div className="center-header">
             <ElevaiteIcons.SVGNavbarLogo />
-            <span>Elevate your business by AI.</span>
+            <span>Toshiba Admin - Powered by AI.</span>
           </div>
           <div className="auth-fluff-content">
             <AuthFluff mode={1} />
@@ -29,7 +38,7 @@ function Login(): JSX.Element {
 
         <div className="center-block">
           <div className="title">
-            <span className="main">Sign in to ElevAIte</span>
+            <span className="main">Sign in to Toshiba Admin</span>
             <span>Enter your login details below.</span>
           </div>
           <CustomLoginForm
@@ -43,15 +52,13 @@ function Login(): JSX.Element {
           <span>•</span>
           <a
             target="_blank"
-            href="https://www.iopex.com/"
+            href="https://www.toshiba.com/"
             rel="noopener noreferrer"
           >
-            iOPEX Technologies
+            Toshiba Corporation
           </a>
         </div>
       </div>
     </div>
   );
 }
-
-export default Login;

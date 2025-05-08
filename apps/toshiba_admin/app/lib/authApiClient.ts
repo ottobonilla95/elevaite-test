@@ -12,6 +12,7 @@ export interface TokenResponse {
   access_token: string;
   refresh_token: string;
   token_type: string;
+  password_change_required?: boolean;
 }
 
 export interface UserResponse {
@@ -40,7 +41,7 @@ export class AuthApiClient {
   private baseUrl: string;
   private tenantId: string;
 
-  constructor(baseUrl: string, tenantId: string = 'default') {
+  constructor(baseUrl: string, tenantId: string = "default") {
     this.baseUrl = baseUrl;
     this.tenantId = tenantId;
   }
@@ -55,10 +56,12 @@ export class AuthApiClient {
   /**
    * Get the default headers for all requests
    */
-  private getHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
+  private getHeaders(
+    additionalHeaders: Record<string, string> = {}
+  ): Record<string, string> {
     return {
-      'Content-Type': 'application/json',
-      'X-Tenant-ID': this.tenantId,
+      "Content-Type": "application/json",
+      "X-Tenant-ID": this.tenantId,
       ...additionalHeaders,
     };
   }
@@ -68,14 +71,14 @@ export class AuthApiClient {
    */
   async login(email: string, password: string): Promise<TokenResponse> {
     const response = await fetch(`${this.baseUrl}/api/auth/login`, {
-      method: 'POST',
+      method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify({ email, password }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.detail || 'Login failed');
+      throw new Error(errorData.detail || "Login failed");
     }
 
     return response.json();
@@ -86,15 +89,15 @@ export class AuthApiClient {
    */
   async getCurrentUser(accessToken: string): Promise<UserDetailResponse> {
     const response = await fetch(`${this.baseUrl}/api/auth/me`, {
-      method: 'GET',
+      method: "GET",
       headers: this.getHeaders({
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.detail || 'Failed to get user information');
+      throw new Error(errorData.detail || "Failed to get user information");
     }
 
     return response.json();
@@ -105,14 +108,14 @@ export class AuthApiClient {
    */
   async refreshToken(refreshToken: string): Promise<TokenResponse> {
     const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
-      method: 'POST',
+      method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.detail || 'Failed to refresh token');
+      throw new Error(errorData.detail || "Failed to refresh token");
     }
 
     return response.json();
@@ -121,20 +124,24 @@ export class AuthApiClient {
   /**
    * Register a new user
    */
-  async register(email: string, password: string, fullName?: string): Promise<UserResponse> {
+  async register(
+    email: string,
+    password: string,
+    fullName?: string
+  ): Promise<UserResponse> {
     const response = await fetch(`${this.baseUrl}/api/auth/register`, {
-      method: 'POST',
+      method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify({
         email,
         password,
-        full_name: fullName
+        full_name: fullName,
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.detail || 'Registration failed');
+      throw new Error(errorData.detail || "Registration failed");
     }
 
     return response.json();
