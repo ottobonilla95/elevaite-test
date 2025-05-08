@@ -1,6 +1,6 @@
 "use server";
 import { AuthError } from "next-auth";
-import { signIn, signOut } from "../../auth";
+import { signIn, signOut, auth } from "../../auth";
 
 export async function authenticate(
   _prevState: string | undefined,
@@ -47,23 +47,8 @@ export async function authenticateGoogle(): Promise<
   }
 }
 
-export async function logout(): Promise<
-  "Invalid credentials." | "Something went wrong." | undefined
-> {
-  try {
-    // auth()
-    await signOut({ redirectTo: "/login" });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case "CredentialsSignin":
-          return "Invalid credentials.";
-        default:
-          return "Something went wrong.";
-      }
-    }
-    throw error;
-  }
+export async function logout(): Promise<void> {
+  await signOut();
 }
 
 // Server action for resetting password
@@ -90,7 +75,7 @@ export async function resetPassword(
       throw new Error("No auth token found in session");
     }
 
-    const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+    const authApiUrl = process.env.AUTH_API_URL;
     if (!authApiUrl) {
       console.error(
         "Server Action - AUTH_API_URL not found in environment variables"
@@ -99,6 +84,14 @@ export async function resetPassword(
     }
 
     const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+
+    // Debug logging
+    console.log(
+      "Server Action - Resetting password for user:",
+      session.user?.email ?? "unknown"
+    );
+    console.log("Server Action - Using auth API URL:", authApiUrl);
+    console.log("Server Action - Using tenant ID:", tenantId);
 
     // Call the auth-api to change the password
     const response = await fetch(`${authApiUrl}/api/auth/change-password`, {
@@ -121,6 +114,7 @@ export async function resetPassword(
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error("Server Action - Password reset error:", errorData);
       return {
         success: false,
         message: errorData.detail || "Failed to reset password",
@@ -128,6 +122,7 @@ export async function resetPassword(
     }
 
     const responseData = await response.json();
+    console.log("Server Action - Password reset successful:", responseData);
 
     // The auth-api will invalidate all sessions for this user,
     // so the user will need to log in again with their new password
@@ -136,6 +131,7 @@ export async function resetPassword(
       message: "Password successfully changed",
     };
   } catch (error) {
+    console.error("Server Action - Error resetting password:", error);
     return {
       success: false,
       message:

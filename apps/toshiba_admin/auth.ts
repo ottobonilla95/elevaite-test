@@ -6,7 +6,9 @@ import Google from "next-auth/providers/google";
 import { authConfig } from "./auth.config";
 import { AuthApiClient } from "./app/lib/authApiClient";
 
-const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+// Try both environment variable names
+const authApiUrl =
+  process.env.AUTH_API_URL ?? process.env.NEXT_PUBLIC_AUTH_API_URL;
 if (!authApiUrl) {
   console.log(process.env);
   throw new Error("AUTH_API_URL does not exist in the env");
