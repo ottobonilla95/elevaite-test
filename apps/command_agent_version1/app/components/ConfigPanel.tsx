@@ -202,7 +202,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
         switch (type) {
             case "router": return "Router";
             case "web_search": return "Web Search";
-            case "api": return "API";
+            case "Weather Search Agent": return "API";
             case "data": return "Data Extractor";
             case "troubleshooting": return "Troubleshooting";
             default: return type;

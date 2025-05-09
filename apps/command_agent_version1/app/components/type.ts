@@ -1,6 +1,6 @@
 // types.ts - Contains all type definitions needed for the agent workflow
 
-export type AgentType = "router" | "web_search" | "api" | "data" | "troubleshooting";
+export type AgentType = "router" | "web_search" | "Weather Search Agent" | "data" | "troubleshooting";
 
 export interface NodeData {
     id: string;
@@ -18,26 +18,26 @@ export interface NodeData {
 }
 
 export interface NodeType {
-  source: string;
-  target: string;
-  type?: string;
+    source: string;
+    target: string;
+    type?: string;
 }
 
 export interface Connection {
-  source: string;
-  target: string;
-  sourceHandle?: string;
-  targetHandle?: string;
+    source: string;
+    target: string;
+    sourceHandle?: string;
+    targetHandle?: string;
 }
 
 export interface NodeItem {
-  id: string;
-  type: string;
-  position: {
-    x: number;
-    y: number;
-  };
-  data: NodeData;
+    id: string;
+    type: string;
+    position: {
+        x: number;
+        y: number;
+    };
+    data: NodeData;
 }
 
 
@@ -80,7 +80,7 @@ export interface WorkflowConfig {
 export const AGENT_STYLES: Record<AgentType, { bgClass: string; textClass: string }> = {
     router: { bgClass: "bg-blue-100", textClass: "text-blue-600" },
     web_search: { bgClass: "bg-emerald-100", textClass: "text-emerald-600" },
-    api: { bgClass: "bg-amber-100", textClass: "text-amber-600" },
+    "Weather Search Agent": { bgClass: "bg-amber-100", textClass: "text-amber-600" },
     data: { bgClass: "bg-purple-100", textClass: "text-purple-600" },
     troubleshooting: { bgClass: "bg-red-100", textClass: "text-red-600" }
 };
@@ -101,8 +101,8 @@ export const AGENT_TYPES: AgentTypeDefinition[] = [
     },
     {
         id: "api-1",
-        type: "api",
-        name: "API Agent",
+        type: "Weather Search Agent",
+        name: "Weather Serach Agent",
         description: "Connects to external APIs"
     },
     {

@@ -74,7 +74,7 @@ const ConfigureAgent: React.FC<ConfigureAgentProps> = ({
         switch (type) {
             case "router": return "Router";
             case "web_search": return "Web Search";
-            case "api": return "API Agent";
+            case "Weather Search Agent": return "Web Search Agent";
             case "data": return "Data Extractor";
             case "troubleshooting": return "Troubleshooting";
             default: return type;
