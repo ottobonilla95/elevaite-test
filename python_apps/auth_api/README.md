@@ -39,6 +39,7 @@ A secure FastAPI-based authentication service with modern security features.
 
 1. Clone the repository
 2. Install dependencies:
+
    ```
    uv venv
    uv pip install -e .
@@ -46,6 +47,7 @@ A secure FastAPI-based authentication service with modern security features.
 
 3. Set up environment variables (create a `.env` file or set them directly)
 4. Run database migrations:
+
    ```
    alembic upgrade head
    ```
@@ -71,15 +73,19 @@ A secure FastAPI-based authentication service with modern security features.
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| SECRET_KEY | JWT signing key | Random value |
-| DATABASE_URI | PostgreSQL connection URI | postgresql+asyncpg://postgres:postgres@localhost:5432/auth |
-| DEBUG | Debug mode | False |
-| CORS_ORIGINS | CORS allowed origins | [] |
-| ALLOWED_HOSTS | Allowed hosts for TrustedHost middleware | ["localhost", "127.0.0.1"] |
-| ACCESS_TOKEN_EXPIRE_MINUTES | Access token expiration time | 30 |
-| REFRESH_TOKEN_EXPIRE_DAYS | Refresh token expiration time | 7 |
+| Variable                    | Description                              | Default                                                    |
+| --------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
+| SECRET_KEY                  | JWT signing key                          | Random value                                               |
+| DATABASE_URI                | PostgreSQL connection URI                | postgresql+asyncpg://postgres:postgres@localhost:5433/auth |
+| DEBUG                       | Debug mode                               | False                                                      |
+| CORS_ORIGINS                | CORS allowed origins                     | []                                                         |
+| ALLOWED_HOSTS               | Allowed hosts for TrustedHost middleware | ["localhost", "127.0.0.1"]                                 |
+| ACCESS_TOKEN_EXPIRE_MINUTES | Access token expiration time             | 30                                                         |
+| REFRESH_TOKEN_EXPIRE_DAYS   | Refresh token expiration time            | 7                                                          |
+| FRONTEND_URL                | Frontend URL for links in emails         | None                                                       |
+| SMTP_PASSWORD               | SendGrid API key                         | ""                                                         |
+| EMAILS_FROM_EMAIL           | Sender email address                     | "noreply@iopex.com"                                        |
+| EMAILS_FROM_NAME            | Sender name                              | "ElevAIte"                                                 |
 
 ## Docker
 

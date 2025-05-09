@@ -1,8 +1,7 @@
 import logging
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from typing import Optional
+import requests
+from typing import Optional, Dict, List, Any, Union
+import json
 
 from app.core.config import settings
 
@@ -18,7 +17,7 @@ async def send_email(
     sender_name: Optional[str] = None,
 ) -> bool:
     """
-    Send an email using configured SMTP settings.
+    Send an email using SendGrid API.
 
     Args:
         recipient: Email address of the recipient
@@ -35,34 +34,47 @@ async def send_email(
     sender_email = sender or settings.EMAILS_FROM_EMAIL
     from_name = sender_name or settings.EMAILS_FROM_NAME
 
-    # Create message
-    message = MIMEMultipart("alternative")
-    message["Subject"] = subject
-    message["From"] = f"{from_name} <{sender_email}>"
-    message["To"] = recipient
+    # Get API key from settings
+    api_key = settings.SMTP_PASSWORD
+    if not api_key.startswith("SG."):
+        logger.error("Invalid SendGrid API key format")
+        return False
 
-    # Add text body
-    message.attach(MIMEText(text_body, "plain"))
+    # SendGrid API endpoint
+    url = "https://api.sendgrid.com/v3/mail/send"
 
-    # Add HTML body if provided
+    # Prepare headers
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+
+    # Prepare email content
+    email_data = {
+        "personalizations": [{"to": [{"email": recipient}], "subject": subject}],
+        "from": {"email": sender_email, "name": from_name},
+        "content": [{"type": "text/plain", "value": text_body}],
+    }
+
+    # Add HTML content if provided
     if html_body:
-        message.attach(MIMEText(html_body, "html"))
+        email_data["content"].append({"type": "text/html", "value": html_body})
 
     try:
-        # Connect to SMTP server
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-            if settings.SMTP_TLS:
-                server.starttls()
+        # Send the request to SendGrid API
+        response = requests.post(url, headers=headers, json=email_data)
 
-            # Login if credentials are provided
-            if settings.SMTP_USER and settings.SMTP_PASSWORD:
-                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-
-            # Send email
-            server.sendmail(sender_email, recipient, message.as_string())
-
+        # Check if the request was successful (status code 202)
+        if response.status_code == 202:
             logger.info(f"Email sent to {recipient}: {subject}")
             return True
+        else:
+            error_msg = f"Failed to send email. Status code: {response.status_code}"
+            try:
+                error_details = response.json()
+                error_msg += f", Response: {json.dumps(error_details)}"
+            except:
+                error_msg += f", Response: {response.text}"
+
+            logger.error(error_msg)
+            return False
     except Exception as e:
         logger.error(f"Failed to send email to {recipient}: {str(e)}")
         return False

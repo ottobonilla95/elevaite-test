@@ -1,5 +1,3 @@
-"""Application configuration."""
-
 import os
 import secrets
 from typing import List, Union
@@ -65,14 +63,11 @@ class Settings(BaseSettings):
             raise ValueError("FRONTEND_URL environment variable is not set")
         return _frontend_env
 
-    # Email settings for password resets, etc.
-    SMTP_TLS: bool = True
-    SMTP_PORT: int = 587
-    SMTP_HOST: str = ""
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
-    EMAILS_FROM_EMAIL: str = "noreply@example.com"
-    EMAILS_FROM_NAME: str = "Auth API"
+    # Email settings for SendGrid API
+    SMTP_USER: str = "apikey"
+    SMTP_PASSWORD: str = os.environ.get("SMTP_PASSWORD", "")
+    EMAILS_FROM_EMAIL: str = os.environ.get("EMAILS_FROM_EMAIL", "noreply@iopex.com")
+    EMAILS_FROM_NAME: str = os.environ.get("EMAILS_FROM_NAME", "ElevAIte")
 
     @field_validator("CORS_ORIGINS")
     @classmethod

@@ -20,15 +20,16 @@ dependencies = [
     "asyncpg>=0.27.0",
     "databases>=0.5.3",
     "httpx>=0.23.0",
-    "argon2-cffi>=21.3.0",  # Preferred over bcrypt for password hashing
-    "pydantic-settings",  # For settings management
-    "pyotp>=2.8.0",  # For 2FA
-    "qrcode>=7.3.1",  # For 2FA QR code generation
+    "argon2-cffi>=21.3.0", # Preferred over bcrypt for password hashing
+    "pydantic-settings", # For settings management
+    "pyotp>=2.8.0", # For 2FA
+    "qrcode>=7.3.1", # For 2FA QR code generation
     "slowapi>=0.1.7",
     "aiosmtplib>=2.0.0",
     "email-validator>=2.0.0",
     "db-core",
     "PyJWT>=2.6.0",
+    "sendgrid>=6.12.0",
 ]
 
 [project.optional-dependencies]
