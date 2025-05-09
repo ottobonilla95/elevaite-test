@@ -124,7 +124,7 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
     }
 
     // Use environment variable for backend URL with fallback
-    const backendUrl = process.env.NEXT_PUBLIC_NATIVEAUTH_URL;
+    const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
 
     // Call the API to check if the user is an admin
     const response = await fetch(`${backendUrl}/api/auth/me`, {

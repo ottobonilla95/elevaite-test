@@ -61,10 +61,10 @@ export async function createUser(
       };
     }
 
-    const backendUrl = process.env.AUTH_API_URL;
+    const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
 
     // Add tenant ID header for multi-tenancy
-    const tenantId = process.env.AUTH_TENANT_ID || "default";
+    const tenantId = process.env.AUTH_TENANT_ID ?? "default";
 
     // Use the admin endpoint with authentication
     const headers: Record<string, string> = {

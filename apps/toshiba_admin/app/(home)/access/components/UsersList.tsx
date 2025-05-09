@@ -125,7 +125,7 @@ export function UsersList(props: UsersListProps): JSX.Element {
         }
 
         // In production, make an API call to check admin status
-        const backendUrl = process.env.NEXT_PUBLIC_NATIVEAUTH_URL;
+        const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
         const response = await fetch(`${backendUrl}/api/auth/me`, {
           credentials: "include",
         });
