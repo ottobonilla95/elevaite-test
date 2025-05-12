@@ -52,14 +52,15 @@ async def authenticate_user(
     """
     print(f"Authenticating user: {email}")
 
-    # Check for test credentials that should trigger password reset flow
+    # Check for test credentials or temporary passwords that should trigger password reset flow
     from app.core.password_utils import is_password_temporary
 
-    is_test_account, _ = is_password_temporary(email, password)
-    if is_test_account:
+    is_temp_password, message = is_password_temporary(email, password)
+    if is_temp_password:
         # Find the user by email
         user = await get_user_by_email(session, email)
         if user:
+            print(f"Temporary password detected for user {email}: {message}")
             return user, True
 
     user = await get_user_by_email(session, email)

@@ -30,8 +30,6 @@ export const authOptions: NextAuthConfig = {
   providers: [
     Credentials({
       async authorize(credentials) {
-        if (!credentials) return null;
-
         const parsedCredentials = z
           .object({ email: z.string().email(), password: z.string().min(6) })
           .safeParse(credentials);
@@ -72,6 +70,19 @@ export const authOptions: NextAuthConfig = {
             } satisfies User;
           } catch (error) {
             console.error("Authentication error:", error);
+
+            // Provide more detailed error message for connection issues
+            if (error instanceof Error) {
+              if (
+                error.message.includes("ECONNREFUSED") ||
+                error.message.includes("timed out")
+              ) {
+                console.error(
+                  "Connection to auth API failed. Please ensure the auth API is running and accessible."
+                );
+              }
+            }
+
             return null;
           }
         }

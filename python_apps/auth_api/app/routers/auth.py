@@ -177,7 +177,12 @@ async def login(
 
     # Add password_change_required flag to the response dictionary
     if password_change_required or is_test_account:
-        response = {**response, "password_change_required": True}
+        print(f"Password change required for user: {login_data.email}")
+        response = {
+            **response,
+            "password_change_required": True,
+            "message": "Your password is temporary and must be changed.",
+        }
 
     return response
 

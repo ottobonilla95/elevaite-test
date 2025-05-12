@@ -75,6 +75,19 @@ export const authOptions: NextAuthConfig = {
             } satisfies User;
           } catch (error) {
             console.error("Authentication error:", error);
+
+            // Provide more detailed error message for connection issues
+            if (error instanceof Error) {
+              if (
+                error.message.includes("ECONNREFUSED") ||
+                error.message.includes("timed out")
+              ) {
+                console.error(
+                  "Connection to auth API failed. Please ensure the auth API is running and accessible."
+                );
+              }
+            }
+
             return null;
           }
         }

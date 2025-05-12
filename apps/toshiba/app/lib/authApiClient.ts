@@ -41,8 +41,9 @@ export class AuthApiClient {
   private baseUrl: string;
   private tenantId: string;
 
-  constructor(baseUrl: string, tenantId: string = "default") {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl: string, tenantId = "default") {
+    // Use IPv4 explicitly to avoid IPv6 connection issues
+    this.baseUrl = baseUrl.replace("localhost", "127.0.0.1");
     this.tenantId = tenantId;
   }
 
@@ -70,37 +71,86 @@ export class AuthApiClient {
    * Login with email and password
    */
   async login(email: string, password: string): Promise<TokenResponse> {
-    const response = await fetch(`${this.baseUrl}/api/auth/login`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify({ email, password }),
-    });
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 5000); // 5 second timeout
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || "Login failed");
+    try {
+      const response = await fetch(`${this.baseUrl}/api/auth/login`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({ email, password }),
+        signal: controller.signal,
+      });
+
+      // Clear the timeout
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = (await response.json()) as { detail?: string };
+        throw new Error(errorData.detail ?? "Login failed");
+      }
+
+      return (await response.json()) as TokenResponse;
+    } catch (error) {
+      // Clear the timeout
+      clearTimeout(timeoutId);
+
+      // Check if the request was aborted due to timeout
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error(
+          `Request timed out. Could not connect to auth API at ${this.baseUrl}`
+        );
+      }
+
+      // Re-throw the original error
+      throw error;
     }
-
-    return response.json();
   }
 
   /**
    * Get current user information
    */
   async getCurrentUser(accessToken: string): Promise<UserDetailResponse> {
-    const response = await fetch(`${this.baseUrl}/api/auth/me`, {
-      method: "GET",
-      headers: this.getHeaders({
-        Authorization: `Bearer ${accessToken}`,
-      }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 5000); // 5 second timeout
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || "Failed to get user information");
+    try {
+      const response = await fetch(`${this.baseUrl}/api/auth/me`, {
+        method: "GET",
+        headers: this.getHeaders({
+          Authorization: `Bearer ${accessToken}`,
+        }),
+        signal: controller.signal,
+      });
+
+      // Clear the timeout
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = (await response.json()) as { detail?: string };
+        throw new Error(errorData.detail ?? "Failed to get user information");
+      }
+
+      return (await response.json()) as UserDetailResponse;
+    } catch (error) {
+      // Clear the timeout
+      clearTimeout(timeoutId);
+
+      // Check if the request was aborted due to timeout
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error(
+          `Request timed out. Could not connect to auth API at ${this.baseUrl}`
+        );
+      }
+
+      // Re-throw the original error
+      throw error;
     }
-
-    return response.json();
   }
 
   /**
@@ -114,11 +164,11 @@ export class AuthApiClient {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || "Failed to refresh token");
+      const errorData = (await response.json()) as { detail?: string };
+      throw new Error(errorData.detail ?? "Failed to refresh token");
     }
 
-    return response.json();
+    return (await response.json()) as TokenResponse;
   }
 
   /**
@@ -140,10 +190,10 @@ export class AuthApiClient {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || "Registration failed");
+      const errorData = (await response.json()) as { detail?: string };
+      throw new Error(errorData.detail ?? "Registration failed");
     }
 
-    return response.json();
+    return (await response.json()) as UserResponse;
   }
 }

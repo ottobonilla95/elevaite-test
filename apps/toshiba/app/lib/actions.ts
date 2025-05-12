@@ -44,8 +44,7 @@ export async function fetchChatbotResponse(
   messageText: string,
   sessionId: string,
   messageHistory: ChatMessageObject[],
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Kept for API compatibility
-  _chatbotV: ChatbotV,
+  chatbotV: ChatbotV,
   chatbotGenAi: ChatBotGenAI
 ): Promise<ChatMessageResponse> {
   const url = `${BACKEND_URL ?? ""}run`;
@@ -100,9 +99,21 @@ export async function resetPassword(
       JSON.stringify(session, null, 2)
     );
 
-    // The token is stored in session.authToken, not in session.user.accessToken
-    if (!session?.authToken) {
+    // Check for access token in different possible locations
+    const accessToken =
+      session?.authToken ??
+      session?.user?.accessToken ??
+      (session as { accessToken?: string })?.accessToken;
+
+    if (!accessToken) {
       console.error("Server Action - No auth token found in session");
+      console.error(
+        "Server Action - Session keys:",
+        Object.keys(session ?? {})
+      );
+      if (session?.user) {
+        console.error("Server Action - User keys:", Object.keys(session.user));
+      }
       throw new Error("No auth token found in session");
     }
 
@@ -129,7 +140,7 @@ export async function resetPassword(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.authToken}`,
+        Authorization: `Bearer ${accessToken}`,
         "X-Tenant-ID": tenantId,
       },
       body: JSON.stringify({
@@ -144,15 +155,22 @@ export async function resetPassword(
     );
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData: unknown = await response.json();
       // console.error("Server Action - Password reset error:", errorData);
       return {
         success: false,
-        message: errorData.detail || "Failed to reset password",
+        message:
+          typeof errorData === "object" &&
+          errorData !== null &&
+          "detail" in errorData
+            ? typeof errorData === "object" && "detail" in errorData
+              ? String(errorData.detail)
+              : "Unknown error"
+            : "Failed to reset password",
       };
     }
 
-    const responseData = await response.json();
+    // const responseData = await response.json();
     // console.log("Server Action - Password reset successful:", responseData);
 
     // The auth-api will invalidate all sessions for this user,

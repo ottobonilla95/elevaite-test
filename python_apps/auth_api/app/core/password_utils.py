@@ -40,16 +40,27 @@ def generate_secure_password(length: int = 16) -> str:
 def is_password_temporary(email: str, password: str) -> Tuple[bool, str]:
     """
     Check if the provided credentials are for a test account that should trigger password reset.
+    Also used to check if a password is temporary based on specific patterns.
 
     Args:
         email: User's email
         password: User's password
 
     Returns:
-        Tuple[bool, str]: (is_test_account, message)
+        Tuple[bool, str]: (is_temporary, message)
     """
     # Check for test credentials that should trigger password reset flow
     if email == "panagiotis.v@iopex.com" and password == "password123":
         return True, "Test account detected. Redirecting to password reset flow."
+
+    # This is a heuristic to detect temporary passwords from the forgot-password flow
+    if (
+        len(password) >= 16
+        and any(c.islower() for c in password)
+        and any(c.isupper() for c in password)
+        and any(c.isdigit() for c in password)
+        and any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password)
+    ):
+        return True, "Temporary password detected. Redirecting to password reset flow."
 
     return False, ""
