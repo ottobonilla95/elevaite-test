@@ -9,8 +9,11 @@ export async function middleware(request: NextRequest) {
   console.log("Middleware - Current path:", request.nextUrl.pathname);
   console.log("Middleware - Session:", session?.user);
 
-  // Allow access to login page without a session
-  if (request.nextUrl.pathname === "/login") {
+  // Allow access to login and forgot-password pages without a session
+  if (
+    request.nextUrl.pathname === "/login" ||
+    request.nextUrl.pathname === "/forgot-password"
+  ) {
     return NextResponse.next();
   }
 
@@ -37,7 +40,9 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Include all paths except static assets, API routes, and the reset-password page
-  // The reset-password page will handle its own logic for redirecting if needed
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|reset-password).*)"],
+  // Include all paths except static assets, API routes, forgot-password, and reset-password pages
+  // These pages will handle their own logic for redirecting if needed
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|reset-password|forgot-password).*)",
+  ],
 };

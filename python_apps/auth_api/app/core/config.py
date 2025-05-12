@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     SMTP_HOST: str = os.environ.get("SMTP_HOST", "outbound.mailhop.org")
     SMTP_USER: str = os.environ.get("SMTP_USER", "elevaite")
     SMTP_PASSWORD: str = os.environ.get("SMTP_PASSWORD", "")
-    EMAILS_FROM_EMAIL: str = os.environ.get("EMAILS_FROM_EMAIL", "noreply@iopex.com")
+    EMAILS_FROM_EMAIL: str = os.environ.get("EMAILS_FROM_EMAIL", "noreply@iopex.ai")
     EMAILS_FROM_NAME: str = os.environ.get("EMAILS_FROM_NAME", "ElevAIte")
 
     @field_validator("CORS_ORIGINS")

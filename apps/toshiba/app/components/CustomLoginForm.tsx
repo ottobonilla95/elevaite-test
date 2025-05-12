@@ -36,9 +36,5 @@ export function CustomLoginForm({
     return <div className="ui-h-[400px]" />;
   }
 
-  return (
-    <LogInForm
-      authenticate={authenticate}
-    />
-  );
+  return <LogInForm authenticate={authenticate} />;
 }
