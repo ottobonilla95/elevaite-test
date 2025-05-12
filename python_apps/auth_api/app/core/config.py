@@ -63,8 +63,13 @@ class Settings(BaseSettings):
             raise ValueError("FRONTEND_URL environment variable is not set")
         return _frontend_env
 
-    # Email settings for SendGrid API
-    SMTP_USER: str = "apikey"
+    # Email settings for SMTP
+    SMTP_TLS: bool = os.environ.get("SMTP_TLS", "True").lower() in ("true", "1", "t")
+    SMTP_PORT: int = int(
+        os.environ.get("SMTP_PORT", "587")
+    )  # Default to port 587 (TLS)
+    SMTP_HOST: str = os.environ.get("SMTP_HOST", "outbound.mailhop.org")
+    SMTP_USER: str = os.environ.get("SMTP_USER", "elevaite")
     SMTP_PASSWORD: str = os.environ.get("SMTP_PASSWORD", "")
     EMAILS_FROM_EMAIL: str = os.environ.get("EMAILS_FROM_EMAIL", "noreply@iopex.com")
     EMAILS_FROM_NAME: str = os.environ.get("EMAILS_FROM_NAME", "ElevAIte")

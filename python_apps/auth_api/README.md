@@ -83,7 +83,11 @@ A secure FastAPI-based authentication service with modern security features.
 | ACCESS_TOKEN_EXPIRE_MINUTES | Access token expiration time             | 30                                                         |
 | REFRESH_TOKEN_EXPIRE_DAYS   | Refresh token expiration time            | 7                                                          |
 | FRONTEND_URL                | Frontend URL for links in emails         | None                                                       |
-| SMTP_PASSWORD               | SendGrid API key                         | ""                                                         |
+| SMTP_TLS                    | Whether to use TLS for SMTP              | True                                                       |
+| SMTP_PORT                   | SMTP port                                | 587                                                        |
+| SMTP_HOST                   | SMTP server hostname                     | "outbound.mailhop.org"                                     |
+| SMTP_USER                   | SMTP username                            | "elevaite"                                                 |
+| SMTP_PASSWORD               | SMTP password                            | ""                                                         |
 | EMAILS_FROM_EMAIL           | Sender email address                     | "noreply@iopex.com"                                        |
 | EMAILS_FROM_NAME            | Sender name                              | "ElevAIte"                                                 |
 
