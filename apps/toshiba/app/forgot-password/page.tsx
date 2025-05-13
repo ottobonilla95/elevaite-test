@@ -16,7 +16,7 @@ function ForgotPassword(): JSX.Element {
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
 
-    if (!email || !email.includes("@")) {
+    if (!email.includes("@")) {
       setMessage({
         type: "error",
         text: "Please enter a valid email address.",
@@ -43,16 +43,19 @@ function ForgotPassword(): JSX.Element {
         });
         setEmail("");
       } else {
-        const data = await response.json();
+        const data = (await response.json()) as { message?: string };
         setMessage({
           type: "error",
-          text: data.message || "Something went wrong. Please try again later.",
+          text: data.message ?? "Something went wrong. Please try again later.",
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       setMessage({
         type: "error",
-        text: "An unexpected error occurred. Please try again later.",
+        text:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred. Please try again later.",
       });
     } finally {
       setIsSubmitting(false);
@@ -93,7 +96,7 @@ function ForgotPassword(): JSX.Element {
           </div>
 
           <div className="forgot-password-form ui-w-full ui-max-w-xl">
-            {message && (
+            {message ? (
               <div
                 className={`ui-w-full ui-p-4 ui-mb-4 ui-rounded-lg ${
                   message.type === "success"
@@ -103,7 +106,7 @@ function ForgotPassword(): JSX.Element {
               >
                 {message.text}
               </div>
-            )}
+            ) : null}
 
             <form
               className="ui-flex ui-flex-col ui-items-start ui-gap-3 ui-font-inter ui-w-full"
@@ -116,7 +119,9 @@ function ForgotPassword(): JSX.Element {
                   placeholder="Email Address"
                   className="ui-w-full ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-rounded-lg ui-border-none ui-outline-none"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                  }}
                   required
                 />
               </div>
