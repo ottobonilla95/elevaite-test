@@ -45,6 +45,9 @@ export class AuthApiClient {
     // Use IPv4 explicitly to avoid IPv6 connection issues
     this.baseUrl = baseUrl.replace("localhost", "127.0.0.1");
     this.tenantId = tenantId;
+    console.log(
+      `AuthApiClient initialized with baseUrl: ${this.baseUrl} and tenantId: ${this.tenantId}`
+    );
   }
 
   /**
@@ -95,30 +98,11 @@ export class AuthApiClient {
 
       return (await response.json()) as TokenResponse;
     } catch (error) {
-      // Clear the timeout
-      clearTimeout(timeoutId);
-
-      // Check if the request was aborted due to timeout
-      if (error instanceof Error && error.name === "AbortError") {
-        throw new Error(
-          `Request timed out. Could not connect to auth API at ${this.baseUrl}`
-        );
-      }
-
-      // Re-throw the original error
-      throw error;
-    }
-  }
-
+      // Clear the timeo
   /**
-   * Get current user information
+   * Check if the user's password is temporary
+   * This is a direct check against the database state
    */
-  async getCurrentUser(accessToken: string): Promise<UserDetailResponse> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 5000); // 5 second timeout
-
     try {
       const response = await fetch(`${this.baseUrl}/api/auth/me`, {
         method: "GET",
@@ -195,5 +179,34 @@ export class AuthApiClient {
     }
 
     return (await response.json()) as UserResponse;
+  }
+
+  async checkPasswordTemporary(accessToken: string): Promise<boolean> {
+    console.log(
+      `Checking password temporary status with token: ${accessToken.substring(0, 10)}...`
+    );
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/auth/password-status`, {
+        method: "GET",
+        headers: this.getHeaders({
+          Authorization: `Bearer ${accessToken}`,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`Failed to check password status: ${response.status}`);
+        // Default to false if we can't check
+        return false;
+      }
+
+      const data = (await response.json()) as { is_temporary: boolean };
+      console.log(`Password temporary status: ${data.is_temporary}`);
+      return data.is_temporary;
+    } catch (error) {
+      console.error(`Error checking password status: ${error}`);
+      // Default to false if we can't check
+      return false;
+    }
   }
 }

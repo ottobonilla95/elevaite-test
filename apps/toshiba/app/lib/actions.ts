@@ -82,9 +82,11 @@ export async function fetchSessionSummary(
 }
 
 // Server action for resetting password
-export async function resetPassword(
-  newPassword: string
-): Promise<{ success: boolean; message: string }> {
+export async function resetPassword(newPassword: string): Promise<{
+  success: boolean;
+  message: string;
+  needsPasswordReset?: boolean;
+}> {
   console.log(
     "Server Action - resetPassword called with password length:",
     newPassword.length
@@ -127,16 +129,18 @@ export async function resetPassword(
 
     const tenantId = process.env.AUTH_TENANT_ID ?? "default";
 
-    // // Debug logging
-    // console.log(
-    //   "Server Action - Resetting password for user:",
-    //   session.user?.email ?? "unknown"
-    // );
-    // console.log("Server Action - Using auth API URL:", authApiUrl);
-    // console.log("Server Action - Using tenant ID:", tenantId);
+    console.log(
+      "Server Action - Resetting password for user:",
+      session.user?.email ?? "unknown"
+    );
+    console.log("Server Action - Using auth API URL:", authApiUrl);
+    console.log("Server Action - Using tenant ID:", tenantId);
+
+    // Explicitly use IPv4 address instead of localhost to avoid IPv6 issues
+    const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
 
     // Call the auth-api to change the password
-    const response = await fetch(`${authApiUrl}/api/auth/change-password`, {
+    const response = await fetch(`${apiUrl}/api/auth/change-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -156,7 +160,7 @@ export async function resetPassword(
 
     if (!response.ok) {
       const errorData: unknown = await response.json();
-      // console.error("Server Action - Password reset error:", errorData);
+      console.error("Server Action - Password reset error:", errorData);
       return {
         success: false,
         message:
@@ -170,17 +174,19 @@ export async function resetPassword(
       };
     }
 
-    // const responseData = await response.json();
-    // console.log("Server Action - Password reset successful:", responseData);
+    const responseData = await response.json();
+    console.log("Server Action - Password reset successful:", responseData);
 
     // The auth-api will invalidate all sessions for this user,
     // so the user will need to log in again with their new password
+    // Also explicitly return that the user no longer needs to reset their password
     return {
       success: true,
       message: "Password successfully changed",
+      needsPasswordReset: false, // Explicitly set to false after successful password reset
     };
   } catch (error) {
-    // console.error("Server Action - Error resetting password:", error);
+    console.error("Server Action - Error resetting password:", error);
     return {
       success: false,
       message:

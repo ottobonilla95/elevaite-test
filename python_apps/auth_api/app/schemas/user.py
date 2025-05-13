@@ -118,6 +118,7 @@ class UserDetail(UserResponse):
 
     status: str
     last_login: Optional[datetime] = None
+    is_password_temporary: bool
 
 
 class Token(BaseModel):

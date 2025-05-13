@@ -51,39 +51,12 @@ export default function ResetPassword(): JSX.Element {
         setEmail(session.user.email);
       }
 
-      // Check if user needs to reset password
-      console.log(
-        "Reset Password Page - needsPasswordReset in user:",
-        "needsPasswordReset" in session.user
-      );
-      if ("needsPasswordReset" in session.user) {
-        console.log(
-          "Reset Password Page - needsPasswordReset value:",
-          session.user.needsPasswordReset
-        );
-      }
+      console.log("Reset Password Page - User needs to reset password");
 
-      const needsReset =
-        "needsPasswordReset" in session.user &&
-        session.user.needsPasswordReset === true;
-
-      console.log(
-        "Reset Password Page - User needs to reset password:",
-        needsReset
-      );
-
-      // If they don't need to reset, redirect to home
-      if (!needsReset) {
-        console.log(
-          "Reset Password Page - User doesn't need to reset password, redirecting to home"
-        );
-        // Use window.location.href instead of router.push to avoid Next.js client-side routing
-        // This will cause a full page reload and avoid any potential refresh loops
-        window.location.href = "/";
-      } else {
-        console.log(
-          "Reset Password Page - User needs to reset password, staying on page"
-        );
+      // Set email from session
+      if (session.user.email) {
+        console.log("Reset Password Page - Setting email:", session.user.email);
+        setEmail(session.user.email);
       }
     }
   }, [status, session, router]);

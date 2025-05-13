@@ -52,12 +52,19 @@ export async function logout(): Promise<void> {
 }
 
 // Server action for resetting password
-export async function resetPassword(
-  newPassword: string
-): Promise<{ success: boolean; message: string }> {
+export async function resetPassword(newPassword: string): Promise<{
+  success: boolean;
+  message: string;
+  needsPasswordReset?: boolean;
+}> {
   try {
     // Get the auth token from the session
     const session = await auth();
+    console.log("Server Action - Session:", session?.user?.email);
+    console.log(
+      "Server Action - Full session:",
+      JSON.stringify(session, null, 2)
+    );
 
     // Check for access token in different possible locations
     const accessToken =
@@ -66,18 +73,39 @@ export async function resetPassword(
       (session as { accessToken?: string }).accessToken;
 
     if (!accessToken) {
+      console.error("Server Action - No auth token found in session");
+      console.error(
+        "Server Action - Session keys:",
+        Object.keys(session ?? {})
+      );
+      if (session?.user) {
+        console.error("Server Action - User keys:", Object.keys(session.user));
+      }
       throw new Error("No auth token found in session");
     }
 
     const authApiUrl = process.env.AUTH_API_URL;
     if (!authApiUrl) {
+      console.error(
+        "Server Action - AUTH_API_URL not found in environment variables"
+      );
       throw new Error("AUTH_API_URL not found in environment variables");
     }
 
     const tenantId = process.env.AUTH_TENANT_ID ?? "default";
 
+    console.log(
+      "Server Action - Resetting password for user:",
+      session.user?.email ?? "unknown"
+    );
+    console.log("Server Action - Using auth API URL:", authApiUrl);
+    console.log("Server Action - Using tenant ID:", tenantId);
+
+    // Explicitly use IPv4 address instead of localhost to avoid IPv6 issues
+    const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
+
     // Call the auth-api to change the password
-    const response = await fetch(`${authApiUrl}/api/auth/change-password`, {
+    const response = await fetch(`${apiUrl}/api/auth/change-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -89,23 +117,34 @@ export async function resetPassword(
       }),
     });
 
+    // Debug logging
+    console.log(
+      "Server Action - Password reset response status:",
+      response.status
+    );
+
     if (!response.ok) {
       const errorData = (await response.json()) as { detail?: string };
+      console.error("Server Action - Password reset error:", errorData);
       return {
         success: false,
         message: errorData.detail ?? "Failed to reset password",
       };
     }
 
-    const _responseData = (await response.json()) as Record<string, unknown>;
+    const responseData = (await response.json()) as Record<string, unknown>;
+    console.log("Server Action - Password reset successful:", responseData);
 
     // The auth-api will invalidate all sessions for this user,
     // so the user will need to log in again with their new password
+    // Also explicitly return that the user no longer needs to reset their password
     return {
       success: true,
       message: "Password successfully changed",
+      needsPasswordReset: false, // Explicitly set to false after successful password reset
     };
   } catch (error) {
+    console.error("Server Action - Error resetting password:", error);
     return {
       success: false,
       message:
