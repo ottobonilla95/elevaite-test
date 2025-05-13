@@ -8,8 +8,6 @@ from dotenv import load_dotenv
 
 
 class Settings(BaseSettings):
-    """Application settings."""
-
     load_dotenv()
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"
@@ -71,8 +69,8 @@ class Settings(BaseSettings):
     SMTP_HOST: str = os.environ.get("SMTP_HOST", "outbound.mailhop.org")
     SMTP_USER: str = os.environ.get("SMTP_USER", "elevaite")
     SMTP_PASSWORD: str = os.environ.get("SMTP_PASSWORD", "")
-    EMAILS_FROM_EMAIL: str = os.environ.get("EMAILS_FROM_EMAIL", "noreply@iopex.ai")
-    EMAILS_FROM_NAME: str = os.environ.get("EMAILS_FROM_NAME", "ElevAIte")
+    EMAILS_FROM_EMAIL: str = os.environ.get("EMAILS_FROM_EMAIL", "")
+    EMAILS_FROM_NAME: str = os.environ.get("EMAILS_FROM_NAME", "")
 
     @field_validator("CORS_ORIGINS")
     @classmethod

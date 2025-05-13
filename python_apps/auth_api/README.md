@@ -89,7 +89,7 @@ A secure FastAPI-based authentication service with modern security features.
 | SMTP_USER                   | SMTP username                            | "elevaite"                                                 |
 | SMTP_PASSWORD               | SMTP password                            | ""                                                         |
 | EMAILS_FROM_EMAIL           | Sender email address                     | "noreply@iopex.com"                                        |
-| EMAILS_FROM_NAME            | Sender name                              | "ElevAIte"                                                 |
+| EMAILS_FROM_NAME            | Sender name                              | "iOPEX AI"                                                 |
 
 ## Docker
 
