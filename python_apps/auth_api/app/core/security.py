@@ -30,7 +30,9 @@ password_hasher = PasswordHasher(
 )
 
 # Fallback for legacy password hashing (if needed)
-pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated="auto", argon2__rounds=3)
+pwd_context = CryptContext(
+    schemes=["argon2", "bcrypt"], deprecated="auto", argon2__rounds=3
+)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -52,13 +54,17 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(
-    subject: Union[str, Any], tenant_id: Optional[str] = None, expires_delta: Optional[timedelta] = None
+    subject: Union[str, Any],
+    tenant_id: Optional[str] = None,
+    expires_delta: Optional[timedelta] = None,
 ) -> str:
     """Create a JWT access token."""
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        )
 
     to_encode = {"exp": expire, "sub": str(subject), "type": "access"}
 
@@ -66,27 +72,37 @@ def create_access_token(
     if tenant_id:
         to_encode["tenant_id"] = tenant_id
 
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
     return encoded_jwt
 
 
-def create_refresh_token(subject: Union[str, Any], tenant_id: Optional[str] = None) -> str:
+def create_refresh_token(
+    subject: Union[str, Any], tenant_id: Optional[str] = None
+) -> str:
     """Create a JWT refresh token."""
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(timezone.utc) + timedelta(
+        days=settings.REFRESH_TOKEN_EXPIRE_DAYS
+    )
     to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
 
     # Add tenant_id to the token if provided
     if tenant_id:
         to_encode["tenant_id"] = tenant_id
 
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
     return encoded_jwt
 
 
 def verify_token(token: str, token_type: str) -> Dict[str, Any]:
     """Verify a JWT token."""
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         if payload.get("type") != token_type:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -102,11 +118,14 @@ def verify_token(token: str, token_type: str) -> Dict[str, Any]:
         )
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_async_session)):
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    session: AsyncSession = Depends(get_async_session),
+):
     """Get the current user from the token."""
     from db_core.middleware import get_current_tenant_id
     from app.db.models import User
-    from sqlalchemy import select
+    from sqlalchemy import select, text
 
     # Verify the token
     payload = verify_token(token, "access")
@@ -123,25 +142,87 @@ async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSe
     current_tenant_id = get_current_tenant_id()
 
     if token_tenant_id != current_tenant_id:
-        print(f"Token tenant mismatch: token={token_tenant_id}, current={current_tenant_id}")
+        print(
+            f"Token tenant mismatch: token={token_tenant_id}, current={current_tenant_id}"
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token is not valid for this tenant",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Get the user from the database
-    result = await session.execute(select(User).where(User.id == int(user_id)))
-    user = result.scalars().first()
-
-    if user is None:
+    # Check if session is None
+    if session is None:
+        print(f"WARNING: Session is None in get_current_user for user ID {user_id}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database session unavailable",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return user
+    try:
+        # Get the user from the database
+        result = await session.execute(select(User).where(User.id == int(user_id)))
+        user = result.scalars().first()
+
+        if user is None:
+            # Try a direct SQL query as a fallback
+            try:
+                sql = text(
+                    """
+                    SELECT id, email, full_name, is_password_temporary, is_superuser, status
+                    FROM users
+                    WHERE id = :user_id
+                """
+                )
+                direct_result = await session.execute(sql, {"user_id": int(user_id)})
+                row = direct_result.fetchone()
+
+                if row:
+                    # Create a minimal User object with the essential fields
+                    user = User(
+                        id=row.id,
+                        email=row.email,
+                        full_name=row.full_name,
+                        is_password_temporary=row.is_password_temporary,
+                        is_superuser=row.is_superuser,
+                        status=row.status,
+                    )
+                    print(
+                        f"Retrieved user with direct SQL: {user.email} (ID: {user.id})"
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="User not found",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+            except Exception as direct_error:
+                print(
+                    f"Error with direct SQL fallback in get_current_user: {direct_error}"
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="User not found",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+        # Add debug logging for the is_password_temporary flag
+        print(
+            f"get_current_user: User {user.email} (ID: {user.id}) has is_password_temporary={user.is_password_temporary}"
+        )
+
+        return user
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        print(f"Error in get_current_user: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error retrieving user information",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 def generate_totp_secret() -> str:

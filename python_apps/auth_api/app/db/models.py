@@ -71,6 +71,14 @@ class User(Base, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
 
+    # Temporary password for password reset flow
+    temporary_hashed_password: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True
+    )
+    temporary_password_expiry: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # Email verification
     verification_token: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), default=uuid.uuid4, nullable=True
