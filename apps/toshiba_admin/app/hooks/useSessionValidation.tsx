@@ -1,0 +1,173 @@
+"use client";
+
+import { useEffect, useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
+
+// Define a global variable to store the timeout ID
+declare global {
+  interface Window {
+    sessionValidationTimeout?: NodeJS.Timeout;
+    sessionValidationIntervalId?: NodeJS.Timeout;
+    lastSessionValidation?: number;
+  }
+}
+
+/**
+ * Hook to validate the session on user interactions
+ */
+export function useSessionValidation() {
+  const router = useRouter();
+  const [isValidating, setIsValidating] = useState(false);
+
+  const checkSession = useCallback(async () => {
+    // Prevent multiple simultaneous validations
+    if (isValidating) return;
+
+    // Don't validate too frequently (at most once per minute)
+    const now = Date.now();
+    if (
+      window.lastSessionValidation &&
+      now - window.lastSessionValidation < 60000
+    ) {
+      return;
+    }
+
+    // Skip validation if we're on authentication-related pages
+    // This is critical for the reset-password page to work properly
+    if (
+      window.location.pathname === "/login" ||
+      window.location.pathname === "/reset-password" ||
+      window.location.pathname.includes("/reset-password") ||
+      window.location.pathname === "/forgot-password" ||
+      window.location.pathname.includes("/forgot-password")
+    ) {
+      console.log(
+        "Skipping session validation on auth page:",
+        window.location.pathname
+      );
+      return;
+    }
+
+    // Also skip validation if we're in the process of resetting a password
+    // This is determined by checking if we're on a page with a reset token
+    if (window.location.search.includes("token=")) {
+      console.log(
+        "Skipping session validation on page with reset token:",
+        window.location.pathname + window.location.search
+      );
+      return;
+    }
+
+    setIsValidating(true);
+    window.lastSessionValidation = now;
+
+    try {
+      console.log("Validating session...");
+
+      // Get the session data from localStorage if available
+      // This is where next-auth stores the session data including the refresh token
+      let refreshToken = "";
+      try {
+        const sessionData = localStorage.getItem("next-auth.session-token");
+        if (sessionData) {
+          // Try to extract refresh token from session data if it's stored there
+          refreshToken = sessionData;
+        }
+      } catch (error) {
+        console.error("Error accessing localStorage:", error);
+      }
+
+      // Call the server action to validate the session
+      const response = await fetch("/api/auth/validate-session", {
+        headers: {
+          "X-Refresh-Token": refreshToken || "",
+        },
+      });
+
+      if (!response.ok) {
+        console.error(
+          "Session validation failed with status:",
+          response.status
+        );
+
+        // Only log out if we get a 401 Unauthorized
+        if (response.status === 401) {
+          console.log("Unauthorized response, logging out");
+          await signOut({ callbackUrl: "/login" });
+        }
+        return;
+      }
+
+      const data = await response.json();
+      console.log("Session validation response:", data);
+
+      if (!data.valid) {
+        console.log("Session is invalid, reason:", data.reason);
+
+        // Only log out for certain reasons
+        if (
+          data.reason === "session_invalidated" ||
+          data.reason === "user_not_found"
+        ) {
+          console.log("Session invalidated or user not found, logging out");
+          await signOut({ callbackUrl: "/login" });
+        }
+      } else {
+        console.log("Session is valid");
+      }
+    } catch (error) {
+      console.error("Error validating session:", error);
+    } finally {
+      setIsValidating(false);
+    }
+  }, [router, isValidating]);
+
+  // Validate session on user interaction
+  useEffect(() => {
+    // Add event listeners for user interactions
+    const handleUserInteraction = () => {
+      // Debounce to prevent too many calls
+      if (window.sessionValidationTimeout) {
+        clearTimeout(window.sessionValidationTimeout);
+      }
+
+      window.sessionValidationTimeout = setTimeout(() => {
+        checkSession();
+      }, 1000); // 1 second debounce
+    };
+
+    // Add event listeners
+    document.addEventListener("click", handleUserInteraction);
+    document.addEventListener("keydown", handleUserInteraction);
+
+    // Set up periodic validation (every minute), but delay the first check
+    // to avoid immediate validation after login
+    const initialDelay = setTimeout(() => {
+      // Set up the interval after the initial delay
+      const intervalId = setInterval(() => {
+        checkSession();
+      }, 60000); // Check every minute
+
+      // Store the interval ID so we can clear it on cleanup
+      window.sessionValidationIntervalId = intervalId;
+    }, 30000); // 30 second initial delay
+
+    return () => {
+      // Clean up
+      document.removeEventListener("click", handleUserInteraction);
+      document.removeEventListener("keydown", handleUserInteraction);
+      clearTimeout(initialDelay);
+
+      if (window.sessionValidationIntervalId) {
+        clearInterval(window.sessionValidationIntervalId);
+      }
+
+      if (window.sessionValidationTimeout) {
+        clearTimeout(window.sessionValidationTimeout);
+      }
+    };
+  }, [checkSession]);
+
+  return { checkSession };
+}

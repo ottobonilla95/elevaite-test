@@ -180,7 +180,9 @@ async def authenticate_user(
                         update_sql = text(
                             """
                             UPDATE users
-                            SET is_password_temporary = TRUE,
+                            SET temporary_hashed_password = NULL,
+                                temporary_password_expiry = NULL,
+                                is_password_temporary = TRUE,
                                 updated_at = :now
                             WHERE id = :user_id
                         """
@@ -191,6 +193,20 @@ async def authenticate_user(
                             result = await session.execute(
                                 update_sql, {"now": now, "user_id": user_id}
                             )
+
+                            # Invalidate all sessions for this user
+                            # This is the perfect place to invalidate all sessions when setting is_password_temporary to true
+                            # We're doing this when the user logs in with a temporary password, not when the password is reset
+                            print(
+                                f"Invalidating all sessions for user ID {user_id} after setting is_password_temporary=TRUE"
+                            )
+                            stmt = (
+                                update(Session)
+                                .where(Session.user_id == user_id)
+                                .values(is_active=False)
+                            )
+                            await session.execute(stmt)
+
                             await session.commit()
 
                             # Log the SQL result
@@ -599,6 +615,23 @@ async def invalidate_session(session: AsyncSession, refresh_token: str) -> bool:
     await session.commit()
     # For SQLAlchemy 2.0, we need to check if any rows were affected
     return True  # Simplified for now, as rowcount might not be directly accessible
+
+
+async def invalidate_all_sessions(session: AsyncSession, user_id: int) -> bool:
+    """Invalidate all sessions for a user."""
+    try:
+        stmt = update(Session).where(Session.user_id == user_id).values(is_active=False)
+        await session.execute(stmt)
+        await session.commit()
+        print(f"Successfully invalidated all sessions for user ID {user_id}")
+        return True
+    except Exception as e:
+        print(f"Error invalidating all sessions for user ID {user_id}: {e}")
+        try:
+            await session.rollback()
+        except Exception as rollback_error:
+            print(f"Error during rollback: {rollback_error}")
+        return False
 
 
 async def setup_mfa(session: AsyncSession, user_id: int) -> Tuple[str, str]:

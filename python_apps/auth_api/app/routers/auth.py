@@ -45,6 +45,7 @@ from app.services.auth_orm import (
     create_user,
     create_user_session,
     invalidate_session,
+    invalidate_all_sessions,
     setup_mfa,
     verify_refresh_token,
 )
@@ -239,6 +240,13 @@ async def login(
             )
             now = datetime.now(timezone.utc)
             await session.execute(update_sql, {"now": now, "user_id": user_id_value})
+
+            # Invalidate all sessions for this user when setting is_password_temporary to true
+            print(
+                f"Invalidating all sessions for user ID {user_id_value} after setting is_password_temporary=TRUE for test account"
+            )
+            await invalidate_all_sessions(session, user_id_value)
+
             await session.commit()
     except Exception as e:
         print(f"Error handling test account: {e}")
@@ -542,6 +550,8 @@ async def forgot_password(
     new_password = generate_secure_password()
 
     # Set temporary password with 48-hour expiry
+    # Note: We're NOT setting is_password_temporary here
+    # It will be set to true only when the user logs in with this temporary password
     expiry_time = datetime.now(timezone.utc) + timedelta(hours=48)
     stmt = (
         update(User)
@@ -553,10 +563,6 @@ async def forgot_password(
             password_reset_expires=None,
         )
     )
-    await session.execute(stmt)
-
-    # Invalidate all sessions
-    stmt = update(Session).where(Session.user_id == user.id).values(is_active=False)
     await session.execute(stmt)
 
     await session.commit()
@@ -1288,6 +1294,87 @@ async def revoke_session(
     await log_user_activity(session, user_id, "session_revoked")
 
     return {"message": "Session successfully revoked"}
+
+
+@router.post("/validate-session")
+async def validate_session(
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Validate a user session."""
+    try:
+        # Verify token
+        payload = verify_token(token, "access")
+        user_id = int(payload["sub"])
+
+        # Get user from database
+        from sqlalchemy.future import select as async_select
+        from app.db.models import UserStatus
+
+        result = await session.execute(async_select(User).where(User.id == user_id))
+        user = result.scalars().first()
+
+        if not user:
+            print(f"User not found for ID: {user_id}")
+            return {"valid": False, "reason": "user_not_found"}
+
+        # Check if user is active
+        if user.status != UserStatus.ACTIVE.value:
+            print(f"User is not active: {user.email}, status: {user.status}")
+            return {"valid": False, "reason": "user_inactive"}
+
+        # Get the refresh token from the header
+        refresh_token = request.headers.get("X-Refresh-Token")
+
+        # Always check if there are any active sessions for this user
+        # This is important to catch cases where all sessions were invalidated
+        result = await session.execute(
+            async_select(Session).where(
+                and_(
+                    Session.user_id == user_id,
+                    Session.is_active.is_(True),
+                    Session.expires_at > datetime.now(timezone.utc),
+                )
+            )
+        )
+        active_sessions = result.scalars().all()
+
+        if not active_sessions:
+            print(f"No active sessions found for user: {user.email}")
+            return {"valid": False, "reason": "session_invalidated"}
+
+        # If a specific refresh token was provided, check if it's valid
+        if refresh_token:
+            result = await session.execute(
+                async_select(Session).where(
+                    and_(
+                        Session.refresh_token == refresh_token,
+                        Session.user_id == user_id,
+                        Session.is_active.is_(True),
+                        Session.expires_at > datetime.now(timezone.utc),
+                    )
+                )
+            )
+            user_session = result.scalars().first()
+
+            if not user_session:
+                print(
+                    f"Session with provided refresh token is not valid for user: {user.email}"
+                )
+                return {"valid": False, "reason": "session_invalidated"}
+
+        # Session is valid
+        print(f"Session is valid for user: {user.email}")
+        return {
+            "valid": True,
+            "user_id": user.id,
+            "email": user.email,
+            "is_password_temporary": user.is_password_temporary,
+        }
+    except Exception as e:
+        print(f"Error validating session: {e}")
+        return {"valid": False, "reason": "server_error"}
 
 
 @router.get("/users")
