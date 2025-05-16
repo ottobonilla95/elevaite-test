@@ -549,9 +549,6 @@ async def forgot_password(
 
     new_password = generate_secure_password()
 
-    # Set temporary password with 48-hour expiry
-    # Note: We're NOT setting is_password_temporary here
-    # It will be set to true only when the user logs in with this temporary password
     expiry_time = datetime.now(timezone.utc) + timedelta(hours=48)
     stmt = (
         update(User)
