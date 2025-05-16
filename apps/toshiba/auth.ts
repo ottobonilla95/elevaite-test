@@ -5,8 +5,13 @@ import { z } from "zod";
 import { authConfig } from "./auth.config";
 import { AuthApiClient } from "./app/lib/authApiClient";
 
-const authApiUrl = process.env.AUTH_API_URL;
-if (!authApiUrl) throw new Error("AUTH_API_URL does not exist in the env");
+// Try both environment variable names
+const authApiUrl =
+  process.env.AUTH_API_URL ?? process.env.NEXT_PUBLIC_AUTH_API_URL;
+if (!authApiUrl) {
+  console.log(process.env);
+  throw new Error("AUTH_API_URL does not exist in the env");
+}
 
 const tenantId = process.env.AUTH_TENANT_ID ?? "default";
 
@@ -30,6 +35,8 @@ export const authOptions: NextAuthConfig = {
   providers: [
     Credentials({
       async authorize(credentials) {
+        if (!credentials) return null;
+
         const parsedCredentials = z
           .object({ email: z.string().email(), password: z.string().min(6) })
           .safeParse(credentials);
@@ -42,7 +49,7 @@ export const authOptions: NextAuthConfig = {
             const tokenResponse = await authApiClient.login(email, password);
 
             // Debug logging
-            console.log("Auth - Token response:", tokenResponse);
+            console.log("Token response:", tokenResponse);
             console.log(
               "Auth - password_change_required:",
               tokenResponse.password_change_required
