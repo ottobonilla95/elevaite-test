@@ -1,6 +1,7 @@
 import logging
 import smtplib
 import ssl
+import html
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional, Dict, List, Any, Union
@@ -223,13 +224,16 @@ async def send_welcome_email_with_temp_password(
     The iOPEX Team
     """
 
+    # Escape the password for HTML to prevent rendering issues
+    escaped_password = html.escape(temp_password)
+
     html_body = f"""
     <html>
     <body>
         <h2>Welcome to elevAIte!</h2>
         <p>Hello {name},</p>
         <p>Your account has been created successfully.</p>
-        <p>Here is your temporary password: <strong>{temp_password}</strong></p>
+        <p>Here is your temporary password: <strong><code>{escaped_password}</code></strong></p>
         <p>Please <a href="{login_url}">log in</a> with this temporary password. You will be prompted to change your password after your first login.</p>
         <p>Best regards,<br>The iOPEX Team</p>
     </body>
@@ -272,6 +276,9 @@ async def send_password_reset_email_with_new_password(
     The iOPEX Team
     """
 
+    # Escape the password for HTML to prevent rendering issues
+    escaped_password = html.escape(new_password)
+
     html_body = f"""
     <html>
     <body>
@@ -279,7 +286,7 @@ async def send_password_reset_email_with_new_password(
         <p>Hello {name},</p>
         <p>Your password has been reset as requested. Here is your new temporary password:</p>
         <p style="background-color: #f5f5f5; padding: 10px; font-family: monospace; font-size: 16px; border: 1px solid #ddd; border-radius: 4px;">
-            {new_password}
+            <code>{escaped_password}</code>
         </p>
         <p>Please <a href="{login_url}">log in</a> with this temporary password. You will be prompted to change your password after your first login.</p>
         <p>If you did not request a password reset, please contact support immediately.</p>
