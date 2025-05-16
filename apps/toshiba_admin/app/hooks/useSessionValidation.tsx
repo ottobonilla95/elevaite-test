@@ -20,9 +20,9 @@ export function useSessionValidation() {
   const router = useRouter();
   const [isValidating, setIsValidating] = useState(false);
 
-  const checkSession = useCallback(async () => {
+  const checkSession = useCallback(async (): Promise<boolean> => {
     // Prevent multiple simultaneous validations
-    if (isValidating) return;
+    if (isValidating) return true; // Assume valid if already validating
 
     // Don't validate too frequently (at most once per minute)
     const now = Date.now();
@@ -30,7 +30,7 @@ export function useSessionValidation() {
       window.lastSessionValidation &&
       now - window.lastSessionValidation < 60000
     ) {
-      return;
+      return true; // Assume valid if validated recently
     }
 
     // Skip validation if we're on authentication-related pages
@@ -46,7 +46,7 @@ export function useSessionValidation() {
         "Skipping session validation on auth page:",
         window.location.pathname
       );
-      return;
+      return true; // Assume valid on auth pages
     }
 
     // Also skip validation if we're in the process of resetting a password
@@ -56,7 +56,7 @@ export function useSessionValidation() {
         "Skipping session validation on page with reset token:",
         window.location.pathname + window.location.search
       );
-      return;
+      return true; // Assume valid on reset token pages
     }
 
     setIsValidating(true);
@@ -95,11 +95,15 @@ export function useSessionValidation() {
         if (response.status === 401) {
           console.log("Unauthorized response, logging out");
           await signOut({ callbackUrl: "/login" });
+          return false;
         }
-        return;
+        return true; // For other errors, assume valid to prevent excessive logouts
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as {
+        valid: boolean;
+        reason?: string;
+      };
       console.log("Session validation response:", data);
 
       if (!data.valid) {
@@ -112,12 +116,16 @@ export function useSessionValidation() {
         ) {
           console.log("Session invalidated or user not found, logging out");
           await signOut({ callbackUrl: "/login" });
+          return false;
         }
-      } else {
-        console.log("Session is valid");
+        return true; // For other reasons, assume valid
       }
+
+      console.log("Session is valid");
+      return true;
     } catch (error) {
       console.error("Error validating session:", error);
+      return true; // Assume valid on error to prevent excessive logouts
     } finally {
       setIsValidating(false);
     }
@@ -126,14 +134,14 @@ export function useSessionValidation() {
   // Validate session on user interaction
   useEffect(() => {
     // Add event listeners for user interactions
-    const handleUserInteraction = () => {
+    const handleUserInteraction = (): void => {
       // Debounce to prevent too many calls
       if (window.sessionValidationTimeout) {
         clearTimeout(window.sessionValidationTimeout);
       }
 
       window.sessionValidationTimeout = setTimeout(() => {
-        checkSession();
+        void checkSession(); // void operator to explicitly ignore the Promise
       }, 1000); // 1 second debounce
     };
 
@@ -146,7 +154,7 @@ export function useSessionValidation() {
     const initialDelay = setTimeout(() => {
       // Set up the interval after the initial delay
       const intervalId = setInterval(() => {
-        checkSession();
+        void checkSession(); // void operator to explicitly ignore the Promise
       }, 60000); // Check every minute
 
       // Store the interval ID so we can clear it on cleanup
