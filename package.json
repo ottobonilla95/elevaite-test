@@ -4,7 +4,7 @@
   "scripts": {
     "superfrontploy": "node superfrontploy.mjs",
     "build": "turbo build",
-    "dev": "turbo dev",
+    "dev": "turbo dev --concurrency=14",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
     "clean": "turbo clean",
