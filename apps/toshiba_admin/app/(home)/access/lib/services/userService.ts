@@ -18,6 +18,11 @@ interface ApiErrorResponse {
   error?: string;
 }
 
+interface AuthSession {
+  authToken?: string;
+  [key: string]: unknown;
+}
+
 /**
  * Creates a new user by combining first and last name into full_name
  * and sending a request to the auth API
@@ -30,10 +35,8 @@ export async function createUser(
   try {
     const { firstName, lastName, email, password, isOneTimePassword } = params;
 
-    // Combine first and last name into full_name as required by the API
     const fullName = `${firstName} ${lastName}`.trim();
 
-    // Check if the current user is an admin
     const isAdmin = await isCurrentUserAdmin();
 
     if (!isAdmin && process.env.NODE_ENV !== "development") {
@@ -44,15 +47,11 @@ export async function createUser(
       };
     }
 
-    // Get the auth token from the session
     const session = await auth();
-    // Debug: Log the session object to see what's in it
-    console.log("Session object:", JSON.stringify(session, null, 2));
 
-    // Access the token from the session object directly (not from user)
-    // In the stockConfig callbacks, the token is stored as session.authToken
-    const authToken = (session as any)?.authToken;
-    console.log("Auth token:", authToken);
+    const authToken = session
+      ? (session as unknown as AuthSession).authToken
+      : undefined;
 
     if (!authToken && process.env.NODE_ENV !== "development") {
       return {
@@ -61,7 +60,15 @@ export async function createUser(
       };
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+    const backendUrl =
+      process.env.AUTH_API_URL ?? process.env.NEXT_PUBLIC_AUTH_API_URL;
+
+    if (!backendUrl) {
+      return {
+        success: false,
+        message: "Server configuration error. Please contact an administrator.",
+      };
+    }
 
     // Add tenant ID header for multi-tenancy
     const tenantId = process.env.AUTH_TENANT_ID ?? "default";
@@ -95,15 +102,21 @@ export async function createUser(
 
       try {
         const errorData = (await response.json()) as ApiErrorResponse;
+
         errorMessage =
           errorData.detail ??
           errorData.message ??
           errorData.error ??
           "Failed to create user. Please try again.";
-      } catch {
+      } catch (parseError) {
         if (response.status === 404) {
           errorMessage =
             "API endpoint not found. Please check the server is running.";
+        } else if (response.status === 401) {
+          errorMessage = "Unauthorized. Please log in again.";
+        } else if (response.status === 403) {
+          errorMessage =
+            "Forbidden. You don't have permission to create users.";
         }
       }
 
@@ -114,25 +127,27 @@ export async function createUser(
     }
 
     // User created successfully, now send a password reset email
+
+    const resetHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Tenant-ID": tenantId,
+    };
+
+    // Add authorization header if token exists for the reset request
+    if (authToken) {
+      resetHeaders.Authorization = `Bearer ${authToken}`;
+    }
+
     const resetResponse = await fetch(
       `${backendUrl}/api/auth/forgot-password`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Tenant-ID": tenantId,
-        },
+        headers: resetHeaders,
         body: JSON.stringify({ email }),
       }
     );
 
     if (!resetResponse.ok) {
-      try {
-        await resetResponse.json();
-      } catch {
-        // Ignore parsing errors
-      }
-
       return {
         success: true,
         message:
@@ -149,10 +164,22 @@ export async function createUser(
       message: "User created successfully and invitation email sent.",
     };
   } catch (error) {
-    console.error("Error creating user:", error);
+    // Provide more detailed error message if possible
+    let errorMessage = "An unexpected error occurred. Please try again later.";
+
+    if (error instanceof Error) {
+      if (error.message.includes("fetch")) {
+        errorMessage =
+          "Network error. Please check your connection and try again.";
+      } else if (error.message.includes("timeout")) {
+        errorMessage =
+          "Request timed out. The server may be busy or unavailable.";
+      }
+    }
+
     return {
       success: false,
-      message: "An unexpected error occurred. Please try again later.",
+      message: errorMessage,
     };
   }
 }

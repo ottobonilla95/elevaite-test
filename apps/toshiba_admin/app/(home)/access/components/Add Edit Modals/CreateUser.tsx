@@ -121,8 +121,11 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
     setIsSubmitting(true);
     setApiError("");
 
+    // Log the form data for debugging
+
     try {
       // Call the API to create a user
+
       const result = await createUser({
         firstName: userFirstName,
         lastName: userLastName || "", // Make last name optional
@@ -133,14 +136,16 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
 
       if (result.success) {
         // User created successfully
+
         props.onSuccess(userEmail, result.message);
       } else {
         // Error creating user
+
         setApiError(result.message);
       }
     } catch (error) {
       // eslint-disable-next-line no-console -- Needed
-      console.error("Error creating user:", error);
+      console.error("Exception while creating user:", error);
       setApiError("An unexpected error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
