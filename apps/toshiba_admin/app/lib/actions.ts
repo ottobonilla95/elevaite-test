@@ -8,6 +8,7 @@ export async function authenticate(
 ): Promise<
   | "Invalid credentials."
   | "Email not verified."
+  | "Admin access required."
   | "Something went wrong."
   | undefined
 > {
@@ -25,15 +26,24 @@ export async function authenticate(
           return "Invalid credentials.";
         default:
           // Check if this is an email verification error
-          if (error.message?.includes("email_not_verified")) {
+          if (error.message.includes("email_not_verified")) {
             return "Email not verified.";
+          }
+          // Check if this is an admin access required error
+          if (error.message.includes("admin_access_required")) {
+            return "Admin access required.";
           }
           return "Something went wrong.";
       }
     }
     // Check for custom errors
-    if (error instanceof Error && error.message === "email_not_verified") {
-      return "Email not verified.";
+    if (error instanceof Error) {
+      if (error.message === "email_not_verified") {
+        return "Email not verified.";
+      }
+      if (error.message === "admin_access_required") {
+        return "Admin access required.";
+      }
     }
     throw error;
   }
@@ -42,6 +52,7 @@ export async function authenticate(
 export async function authenticateGoogle(): Promise<
   | "Invalid credentials."
   | "Email not verified."
+  | "Admin access required."
   | "Something went wrong."
   | undefined
 > {
@@ -57,15 +68,24 @@ export async function authenticateGoogle(): Promise<
           return "Invalid credentials.";
         default:
           // Check if this is an email verification error
-          if (error.message?.includes("email_not_verified")) {
+          if (error.message.includes("email_not_verified")) {
             return "Email not verified.";
+          }
+          // Check if this is an admin access required error
+          if (error.message.includes("admin_access_required")) {
+            return "Admin access required.";
           }
           return "Something went wrong.";
       }
     }
     // Check for custom errors
-    if (error instanceof Error && error.message === "email_not_verified") {
-      return "Email not verified.";
+    if (error instanceof Error) {
+      if (error.message === "email_not_verified") {
+        return "Email not verified.";
+      }
+      if (error.message === "admin_access_required") {
+        return "Admin access required.";
+      }
     }
     throw error;
   }
@@ -84,11 +104,6 @@ export async function resetPassword(newPassword: string): Promise<{
   try {
     // Get the auth token from the session
     const session = await auth();
-    console.log("Server Action - Session:", session?.user?.email);
-    console.log(
-      "Server Action - Full session:",
-      JSON.stringify(session, null, 2)
-    );
 
     // Check for access token in different possible locations
     const accessToken =
@@ -97,33 +112,15 @@ export async function resetPassword(newPassword: string): Promise<{
       (session as { accessToken?: string }).accessToken;
 
     if (!accessToken) {
-      console.error("Server Action - No auth token found in session");
-      console.error(
-        "Server Action - Session keys:",
-        Object.keys(session ?? {})
-      );
-      if (session?.user) {
-        console.error("Server Action - User keys:", Object.keys(session.user));
-      }
       throw new Error("No auth token found in session");
     }
 
     const authApiUrl = process.env.AUTH_API_URL;
     if (!authApiUrl) {
-      console.error(
-        "Server Action - AUTH_API_URL not found in environment variables"
-      );
       throw new Error("AUTH_API_URL not found in environment variables");
     }
 
     const tenantId = process.env.AUTH_TENANT_ID ?? "default";
-
-    console.log(
-      "Server Action - Resetting password for user:",
-      session.user?.email ?? "unknown"
-    );
-    console.log("Server Action - Using auth API URL:", authApiUrl);
-    console.log("Server Action - Using tenant ID:", tenantId);
 
     // Explicitly use IPv4 address instead of localhost to avoid IPv6 issues
     const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
@@ -142,22 +139,15 @@ export async function resetPassword(newPassword: string): Promise<{
     });
 
     // Debug logging
-    console.log(
-      "Server Action - Password reset response status:",
-      response.status
-    );
 
     if (!response.ok) {
       const errorData = (await response.json()) as { detail?: string };
-      console.error("Server Action - Password reset error:", errorData);
+
       return {
         success: false,
         message: errorData.detail ?? "Failed to reset password",
       };
     }
-
-    const responseData = (await response.json()) as Record<string, unknown>;
-    console.log("Server Action - Password reset successful:", responseData);
 
     // The auth-api will invalidate all sessions for this user,
     // so the user will need to log in again with their new password
@@ -168,7 +158,6 @@ export async function resetPassword(newPassword: string): Promise<{
       needsPasswordReset: false, // Explicitly set to false after successful password reset
     };
   } catch (error) {
-    console.error("Server Action - Error resetting password:", error);
     return {
       success: false,
       message:

@@ -23,6 +23,30 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // Check if the user is an admin by calling the API
+  try {
+    const baseUrl = request.nextUrl.origin;
+    const adminCheckResponse = await fetch(
+      `${baseUrl}/api/auth/check-admin-status`,
+      {
+        headers: {
+          Cookie: request.headers.get("cookie") ?? "",
+        },
+      }
+    );
+
+    if (adminCheckResponse.ok) {
+      const adminData = await adminCheckResponse.json();
+
+      // If the user is not an admin, redirect to a forbidden page
+      if (!adminData.is_admin) {
+        return NextResponse.redirect(new URL("/api/auth/signout", request.url));
+      }
+    }
+  } catch (error) {
+    // Fail silently
+  }
+
   try {
     const baseUrl = request.nextUrl.origin;
     const checkResponse = await fetch(

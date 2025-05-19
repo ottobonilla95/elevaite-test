@@ -10,12 +10,14 @@ interface CustomLoginFormProps {
   ) => Promise<
     | "Invalid credentials."
     | "Email not verified."
+    | "Admin access required."
     | "Something went wrong."
     | undefined
   >;
   authenticateGoogle: () => Promise<
     | "Invalid credentials."
     | "Email not verified."
+    | "Admin access required."
     | "Something went wrong."
     | undefined
   >;
@@ -48,10 +50,42 @@ export function CustomLoginForm({
     return <div className="ui-h-[400px]" />;
   }
 
+  // Create wrapper functions to handle the admin access required error
+  const handleAuthenticate = async (
+    prevstate: string,
+    formData: { email: string; password: string; rememberMe: boolean }
+  ) => {
+    // Convert formData to the expected format
+    const credentials = {
+      email: formData.email,
+      password: formData.password,
+    };
+
+    const result = await authenticate(prevstate, credentials);
+
+    // If the error is "Admin access required", display a custom error message
+    if (result === "Admin access required.") {
+      return "Something went wrong.";
+    }
+
+    return result;
+  };
+
+  const handleGoogleAuthenticate = async () => {
+    const result = await authenticateGoogle();
+
+    // If the error is "Admin access required", display a custom error message
+    if (result === "Admin access required.") {
+      return "Something went wrong.";
+    }
+
+    return result;
+  };
+
   return (
     <LogInForm
-      authenticate={authenticate}
-      authenticateGoogle={authenticateGoogle}
+      authenticate={handleAuthenticate}
+      authenticateGoogle={handleGoogleAuthenticate}
     />
   );
 }
