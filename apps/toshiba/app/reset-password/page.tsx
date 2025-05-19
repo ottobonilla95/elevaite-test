@@ -73,8 +73,8 @@ export default function ResetPassword(): JSX.Element {
     }
 
     // Password validation
-    if (newPassword.length < 12) {
-      setError("Password must be at least 12 characters");
+    if (newPassword.length < 9) {
+      setError("Password must be at least 9 characters");
       return;
     }
 
@@ -208,7 +208,7 @@ export default function ResetPassword(): JSX.Element {
                 </p>
                 <p>
                   Please choose a strong password that you haven&apos;t used
-                  before. Your password must be at least 12 characters long and
+                  before. Your password must be at least 9 characters long and
                   include uppercase letters, lowercase letters, numbers, and
                   special characters.
                 </p>

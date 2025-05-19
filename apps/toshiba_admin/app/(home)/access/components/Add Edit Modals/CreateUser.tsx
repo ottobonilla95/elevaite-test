@@ -83,8 +83,8 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
       return;
     }
 
-    if (typeof userPassword === "string" && userPassword.length < 12) {
-      setPasswordError("Password must be at least 12 characters");
+    if (typeof userPassword === "string" && userPassword.length < 9) {
+      setPasswordError("Password must be at least 9 characters");
       return;
     }
 
@@ -205,7 +205,7 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
               </span>
               <div
                 className="info"
-                title="Must be at least 12 characters with uppercase, lowercase, numbers, and special characters"
+                title="Must be at least 9 characters with uppercase, lowercase, numbers, and special characters"
               >
                 <ElevaiteIcons.SVGInfo />
               </div>
