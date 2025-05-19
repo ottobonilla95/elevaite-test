@@ -7,7 +7,12 @@ interface CustomLoginFormProps {
   authenticate: (
     prevstate: string,
     formData: Record<"email" | "password", string>
-  ) => Promise<"Invalid credentials." | "Something went wrong." | undefined>;
+  ) => Promise<
+    | "Invalid credentials."
+    | "Email not verified."
+    | "Something went wrong."
+    | undefined
+  >;
 }
 
 export function CustomLoginForm({

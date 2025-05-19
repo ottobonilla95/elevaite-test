@@ -1,7 +1,3 @@
-/**
- * Client for the Auth API
- */
-
 export interface LoginRequest {
   email: string;
   password: string;
@@ -45,8 +41,6 @@ export class AuthApiClient {
     // Use IPv4 explicitly to avoid IPv6 connection issues
     this.baseUrl = baseUrl.replace("localhost", "127.0.0.1");
     this.tenantId = tenantId;
-
-    console.log(`AuthApiClient initialized with baseUrl: ${this.baseUrl}`);
   }
 
   /**
@@ -73,8 +67,6 @@ export class AuthApiClient {
    * Login with email and password
    */
   async login(email: string, password: string): Promise<TokenResponse> {
-    console.log(`Attempting to login to ${this.baseUrl}/api/auth/login`);
-
     // Create AbortController for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -93,6 +85,14 @@ export class AuthApiClient {
 
       if (!response.ok) {
         const errorData = (await response.json()) as { detail?: string };
+
+        if (
+          response.status === 403 &&
+          errorData.detail === "email_not_verified"
+        ) {
+          throw new Error("email_not_verified");
+        }
+
         throw new Error(errorData.detail ?? "Login failed");
       }
 
@@ -116,8 +116,6 @@ export class AuthApiClient {
    * Get current user information
    */
   async getCurrentUser(accessToken: string): Promise<UserDetailResponse> {
-    console.log(`Fetching user info from ${this.baseUrl}/api/auth/me`);
-
     // Create AbortController for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {

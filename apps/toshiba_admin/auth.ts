@@ -76,8 +76,14 @@ export const authOptions: NextAuthConfig = {
           } catch (error) {
             console.error("Authentication error:", error);
 
-            // Provide more detailed error message for connection issues
+            // Provide more detailed error message for specific errors
             if (error instanceof Error) {
+              // Check for email verification error
+              if (error.message === "email_not_verified") {
+                throw new Error("email_not_verified");
+              }
+
+              // Check for connection issues
               if (
                 error.message.includes("ECONNREFUSED") ||
                 error.message.includes("timed out")

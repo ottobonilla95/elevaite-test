@@ -5,7 +5,12 @@ import { signIn, signOut, auth } from "../../auth";
 export async function authenticate(
   _prevState: string | undefined,
   formData: Record<"email" | "password", string>
-): Promise<"Invalid credentials." | "Something went wrong." | undefined> {
+): Promise<
+  | "Invalid credentials."
+  | "Email not verified."
+  | "Something went wrong."
+  | undefined
+> {
   try {
     await signIn("credentials", {
       ...formData,
@@ -19,15 +24,26 @@ export async function authenticate(
         case "CredentialsSignin":
           return "Invalid credentials.";
         default:
+          // Check if this is an email verification error
+          if (error.message?.includes("email_not_verified")) {
+            return "Email not verified.";
+          }
           return "Something went wrong.";
       }
+    }
+    // Check for custom errors
+    if (error instanceof Error && error.message === "email_not_verified") {
+      return "Email not verified.";
     }
     throw error;
   }
 }
 
 export async function authenticateGoogle(): Promise<
-  "Invalid credentials." | "Something went wrong." | undefined
+  | "Invalid credentials."
+  | "Email not verified."
+  | "Something went wrong."
+  | undefined
 > {
   try {
     await signIn("google", {
@@ -40,8 +56,16 @@ export async function authenticateGoogle(): Promise<
         case "CredentialsSignin":
           return "Invalid credentials.";
         default:
+          // Check if this is an email verification error
+          if (error.message?.includes("email_not_verified")) {
+            return "Email not verified.";
+          }
           return "Something went wrong.";
       }
+    }
+    // Check for custom errors
+    if (error instanceof Error && error.message === "email_not_verified") {
+      return "Email not verified.";
     }
     throw error;
   }

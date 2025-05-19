@@ -276,23 +276,93 @@ async def login(
             session, login_data.email, login_data.password, login_data.totp_code
         )
 
-    if not user:
-        logger.warning(f"Authentication failed for: {login_data.email}")
+        if not user:
+            logger.warning(f"Authentication failed for: {login_data.email}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        if not user_id_value:
+            user_dict = getattr(user, "__dict__", {})
+            user_id_value = user_dict.get("id") or user.id
+    except HTTPException as http_exc:
+        if (
+            http_exc.status_code == status.HTTP_403_FORBIDDEN
+            and http_exc.detail == "email_not_verified"
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="email_not_verified",
+                headers={"X-Error-Type": "email_not_verified"},
+            )
+        raise
+    except Exception as e:
+        print(f"Error during authentication: {e}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error during authentication",
         )
 
-    # Get the user ID as a plain integer
-    user_dict = dict(user.__dict__)
-    user_id_value = user_dict["id"]
-    access_token, refresh_token = await create_user_session(
-        session, user_id_value, request
-    )
+    # Step 4: Create user session and tokens
+    access_token = None
+    refresh_token = None
+    try:
+        access_token, refresh_token = await create_user_session(
+            session, user_id_value, request
+        )
+    except Exception as e:
+        print(f"Error creating user session: {e}")
+        try:
+            await session.rollback()
+        except Exception:
+            pass
 
-    logger.info(f"User {login_data.email} successfully authenticated")
+        from app.core.security import create_access_token, create_refresh_token
+        from db_core.middleware import get_current_tenant_id
 
+        tenant_id = get_current_tenant_id()
+        access_token = create_access_token(user_id_value, tenant_id=tenant_id)
+        refresh_token = create_refresh_token(user_id_value, tenant_id=tenant_id)
+
+    # Step 5: Check if password change is required
+    needs_password_change = False
+    try:
+        from sqlalchemy import text
+
+        sql = text("SELECT is_password_temporary FROM users WHERE id = :user_id")
+        result = await session.execute(sql, {"user_id": user_id_value})
+        db_is_password_temporary = result.scalar_one_or_none()
+
+        if password_change_required:
+            needs_password_change = True
+        elif db_is_password_temporary is False:
+            needs_password_change = False
+        else:
+            needs_password_change = db_is_password_temporary or is_test_account
+    except Exception as e:
+        print(f"Error checking if password change is required: {e}")
+        needs_password_change = password_change_required
+
+    # Step 6: Log activity
+    try:
+        await log_user_activity(
+            session,
+            user_id_value,
+            "login",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+        await session.commit()
+    except Exception as e:
+        print(f"Error logging login activity: {e}")
+        try:
+            await session.rollback()
+        except Exception:
+            pass
+
+    # Build and return response
     response = {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -431,6 +501,7 @@ async def logout(
 @router.post("/verify-email")
 async def verify_email(
     verification_data: EmailVerificationRequest,
+    request: Request,
     session: AsyncSession = Depends(get_async_session),
 ):
     """Verify user email with token."""
@@ -456,27 +527,72 @@ async def verify_email(
     await session.commit()
 
     # Log activity
-    # Get the user ID safely - CRITICAL: Don't access user attributes that might trigger a database query
     try:
-        # First try to get the ID directly from the user.__dict__ to avoid triggering a database query
-        user_dict = getattr(user, "__dict__", {})
-        if "id" in user_dict:
-            user_id_value = user_dict["id"]
-        # Only if that fails, try to access the id attribute directly
-        elif hasattr(user, "id"):
-            user_id_value = user.id
-        else:
-            # If that also fails, log what we know and raise an error
-            print(f"User object type: {type(user)}")
-            # Don't try to print the full user object as that might trigger a database query
-            raise ValueError(f"Could not find ID in user object")
-
-        await log_user_activity(session, user_id_value, "email_verified")
+        await log_user_activity(
+            session,
+            user.id,
+            "email_verified",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
     except Exception as e:
         print(f"Error logging email verification activity: {e}")
         # Continue even if we couldn't log the activity
 
     return {"message": "Email successfully verified"}
+
+
+class ResendVerificationRequest(BaseModel):
+    """Request to resend verification email."""
+
+    email: str
+
+
+@router.post("/resend-verification")
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def resend_verification_email(
+    request: Request,
+    data: ResendVerificationRequest,
+    session: AsyncSession = Depends(get_async_session),
+):
+    result = await session.execute(async_select(User).where(User.email == data.email))
+    user = result.scalars().first()
+
+    if not user:
+        return {
+            "message": "If your email exists in our system, a verification email will be sent."
+        }
+
+    if user.is_verified:
+        return {"message": "Your email is already verified. You can log in now."}
+
+    if not user.verification_token:
+        import uuid as uuid_module
+
+        user.verification_token = uuid_module.uuid4()
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+    from app.services.email_service import send_verification_email
+
+    name = user.full_name.split()[0] if user.full_name else ""
+    await send_verification_email(user.email, name, str(user.verification_token))
+
+    try:
+        await log_user_activity(
+            session,
+            user.id,
+            "verification_email_sent",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+    except Exception as e:
+        print(f"Error logging verification email activity: {e}")
+
+    return {
+        "message": "If your email exists in our system, a verification email will be sent."
+    }
 
 
 @router.post("/forgot-password")

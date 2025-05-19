@@ -2,10 +2,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
-import { GoogleColorIcon } from "../icons/GoogleColor";
 import "./LoginForm.scss";
-import { SVGProps, useEffect } from "react";
+import { type SVGProps, useEffect } from "react";
 import Link from "next/link";
+import { GoogleColorIcon } from "../icons/GoogleColor";
 import { CommonCheckbox } from "../common/CommonCheckbox";
 
 const formSchema = z
@@ -24,9 +24,17 @@ interface LoginFormProps {
   authenticate: (
     prevstate: string,
     formData: FormValues
-  ) => Promise<"Invalid credentials." | "Something went wrong." | undefined>;
+  ) => Promise<
+    | "Invalid credentials."
+    | "Email not verified."
+    | "Something went wrong."
+    | undefined
+  >;
   authenticateGoogle?: () => Promise<
-    "Invalid credentials." | "Something went wrong." | undefined
+    | "Invalid credentials."
+    | "Email not verified."
+    | "Something went wrong."
+    | undefined
   >;
 }
 
@@ -59,6 +67,13 @@ export function LogInForm({
 
     const res = await authenticate("", data);
     if (res) {
+      // Check if this is an email verification error
+      if (res === "Email not verified.") {
+        // Redirect to the email verification error page
+        window.location.href = `/email-verification-error?email=${encodeURIComponent(data.email)}`;
+        return;
+      }
+
       setError("root.credentials", { message: res });
       resetField("password");
     } else {
@@ -110,8 +125,9 @@ export function LogInForm({
           </label>
           <div className="input-wrapper">
             <input
-              className={`ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-w-full ui-rounded-lg ${errors.email ? "ui-border-red-500 ui-border" : ""
-                }`}
+              className={`ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-w-full ui-rounded-lg ${
+                errors.email ? "ui-border-red-500 ui-border" : ""
+              }`}
               id="email"
               {...register("email")}
             />
@@ -128,8 +144,9 @@ export function LogInForm({
           </label>
           <div className="input-wrapper">
             <input
-              className={`ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-w-full ui-rounded-lg ${errors.password ? "ui-border-red-500 ui-border" : ""
-                }`}
+              className={`ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-w-full ui-rounded-lg ${
+                errors.password ? "ui-border-red-500 ui-border" : ""
+              }`}
               id="password"
               type="password"
               {...register("password")}
@@ -188,22 +205,25 @@ export function LogInForm({
           </div>
         </form>
       </div>
-      {authenticateGoogle !== undefined ? (<>
-        <div className="separator">
-          <div>or</div>
-        </div><button
-          className="ui-flex ui-flex-row ui-items-center ui-justify-center ui-gap-3 ui-py-3 ui-px-10 ui-bg-[#161616] ui-w-full ui-rounded-lg"
-          onClick={() => {
-            handleGoogleClick().catch((e: unknown) => {
-              // eslint-disable-next-line no-console -- Temporary until better logging
-              console.log(e);
-            });
-          }}
-          type="button"
-        >
-          <GoogleColorIcon />
-          Sign In With Google
-        </button></>
+      {authenticateGoogle !== undefined ? (
+        <>
+          <div className="separator">
+            <div>or</div>
+          </div>
+          <button
+            className="ui-flex ui-flex-row ui-items-center ui-justify-center ui-gap-3 ui-py-3 ui-px-10 ui-bg-[#161616] ui-w-full ui-rounded-lg"
+            onClick={() => {
+              handleGoogleClick().catch((e: unknown) => {
+                // eslint-disable-next-line no-console -- Temporary until better logging
+                console.log(e);
+              });
+            }}
+            type="button"
+          >
+            <GoogleColorIcon />
+            Sign In With Google
+          </button>
+        </>
       ) : null}
       {/* Register Link */}
       <div className="ui-flex ui-justify-center ui-w-full ui-mt-6">

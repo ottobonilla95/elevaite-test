@@ -382,6 +382,15 @@ async def authenticate_user(
             print(f"Account is not active for user: {email}, status: {user.status}")
             return None, False
 
+        # Check if email is verified
+        print(f"Checking email verification status: {user.is_verified}")
+        if not user.is_verified:
+            print(f"Email not verified for user: {email}")
+            raise HTTPException(
+                status_code=http_status.HTTP_403_FORBIDDEN,
+                detail="email_not_verified",
+            )
+
         # Check MFA if enabled
         if user.mfa_enabled and not totp_code:
             raise HTTPException(
