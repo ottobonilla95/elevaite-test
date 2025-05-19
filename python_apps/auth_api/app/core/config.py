@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     SECURITY_KEY: str = secrets.token_urlsafe(32)
 
     # Password security
-    PASSWORD_MIN_LENGTH: int = 12
+    PASSWORD_MIN_LENGTH: int = 9
     PASSWORD_RESET_TOKEN_EXPIRE_HOURS: int = 24
 
     # Rate limiting

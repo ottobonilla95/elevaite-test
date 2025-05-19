@@ -18,15 +18,15 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """User creation schema."""
 
-    password: str = Field(..., min_length=12)
+    password: str = Field(..., min_length=9)
     is_one_time_password: bool = Field(default=False)
 
     @field_validator("password")
     @classmethod
     def password_strength(cls, v: str) -> str:
         """Validate password strength."""
-        if len(v) < 12:
-            raise ValueError("Password must be at least 12 characters")
+        if len(v) < 9:
+            raise ValueError("Password must be at least 9 characters")
 
         # Check for at least one lowercase, one uppercase, one digit, and one special char
         if not re.search(r"[a-z]", v):
@@ -45,15 +45,15 @@ class AdminPasswordReset(BaseModel):
     """Admin password reset schema."""
 
     email: EmailStr
-    new_password: str = Field(..., min_length=12)
+    new_password: str = Field(..., min_length=9)
     is_one_time_password: bool = Field(default=True)
 
     @field_validator("new_password")
     @classmethod
     def password_strength(cls, v: str) -> str:
         """Validate password strength."""
-        if len(v) < 12:
-            raise ValueError("Password must be at least 12 characters")
+        if len(v) < 9:
+            raise ValueError("Password must be at least 9 characters")
 
         # Check for at least one lowercase, one uppercase, one digit, and one special char
         if not re.search(r"[a-z]", v):
@@ -79,14 +79,14 @@ class PasswordUpdate(BaseModel):
     """Password update schema."""
 
     current_password: str
-    new_password: str = Field(..., min_length=12)
+    new_password: str = Field(..., min_length=9)
 
     @field_validator("new_password")
     @classmethod
     def password_strength(cls, v: str) -> str:
         """Validate password strength."""
-        if len(v) < 12:
-            raise ValueError("Password must be at least 12 characters")
+        if len(v) < 9:
+            raise ValueError("Password must be at least 9 characters")
 
         # Check for at least one lowercase, one uppercase, one digit, and one special char
         if not re.search(r"[a-z]", v):
@@ -165,14 +165,14 @@ class PasswordResetConfirm(BaseModel):
     """Password reset confirmation schema."""
 
     token: str
-    new_password: str = Field(..., min_length=12)
+    new_password: str = Field(..., min_length=9)
 
     @field_validator("new_password")
     @classmethod
     def password_strength(cls, v: str) -> str:
         """Validate password strength."""
-        if len(v) < 12:
-            raise ValueError("Password must be at least 12 characters")
+        if len(v) < 9:
+            raise ValueError("Password must be at least 9 characters")
 
         # Check for at least one lowercase, one uppercase, one digit, and one special char
         if not re.search(r"[a-z]", v):
