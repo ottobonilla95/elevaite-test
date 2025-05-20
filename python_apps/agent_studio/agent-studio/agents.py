@@ -1,10 +1,17 @@
 import json
+import os
+import sys
 import uuid
-from data_classes import Agent
-from utils import agent_schema
 from typing import Any, List, cast
-from utils import client
 from datetime import datetime
+
+# Add the current directory to the Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+
+from data_classes import Agent
+from utils import agent_schema, client
 from prompts import (
     web_agent_system_prompt,
     api_agent_system_prompt,
@@ -18,9 +25,9 @@ from openai.types.chat.chat_completion_message_tool_call_param import (
     ChatCompletionMessageToolCallParam,
 )
 
-from .tools import tool_store
-from .tools import weather_forecast
-from .tools import web_search, tool_schemas
+from tools import tool_store
+from tools import weather_forecast
+from tools import web_search, tool_schemas
 
 
 @agent_schema

@@ -1,11 +1,21 @@
 import os
+import sys
 import uuid
 import dotenv
 import fastapi
 from datetime import datetime
+from starlette.middleware.cors import CORSMiddleware
+
+# Add the current directory to the Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+
+# Use local imports
 from agents import CommandAgent, agent_schemas
 from prompts import command_agent_system_prompt
-from starlette.middleware.cors import CORSMiddleware
+from db.database import Base, engine
+from db.init_db import init_db
 
 dotenv.load_dotenv(".env.local")
 
@@ -22,7 +32,20 @@ fronted_agents = {
 COMMAND_AGENT = None
 
 origins = ["http://127.0.0.1:3002", "*"]
-app = fastapi.FastAPI(title="Agent Studio Backend", version="0.1.0")
+
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(app_instance: fastapi.FastAPI):
+    Base.metadata.create_all(bind=engine)
+    init_db()
+    yield
+
+    pass
+
+
+app = fastapi.FastAPI(title="Agent Studio Backend", version="0.1.0", lifespan=lifespan)
 
 
 @app.get("/")

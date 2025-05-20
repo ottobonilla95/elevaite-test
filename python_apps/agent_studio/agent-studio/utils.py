@@ -1,14 +1,30 @@
 import os
+import sys
 import dotenv
 import openai
 import inspect
 import functools
 from typing import Any, Callable, Dict, List, Protocol, Union, cast, get_type_hints
 
+# Add the current directory to the Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+
 from data_classes import Agent
 
+# Load environment variables
 dotenv.load_dotenv(".env.local")
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+dotenv.load_dotenv(".env")
+
+# Create OpenAI client with a dummy API key if not available
+# This allows imports to work even without a valid API key
+api_key = os.getenv("OPENAI_API_KEY", "dummy_key_for_import_testing")
+try:
+    client = openai.OpenAI(api_key=api_key)
+except Exception as e:
+    print(f"Warning: Could not initialize OpenAI client: {e}")
+    client = None
 
 
 class OpenAISchemaFunction(Protocol):
