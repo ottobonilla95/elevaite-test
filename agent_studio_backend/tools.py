@@ -2,8 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import markdownify
 from utils import function_schema
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional
 import dotenv
 import os
 from utils import client
@@ -27,8 +26,6 @@ EXAMPLE_DATA = [
 ]
 
 
-
-
 @function_schema
 def add_numbers(a: int, b: int) -> str:
     """
@@ -36,32 +33,38 @@ def add_numbers(a: int, b: int) -> str:
     """
     return f"The sum of {a} and {b} is {a + b}"
 
+
 @function_schema
 def get_customer_order(customer_id: int) -> str:
-    """"
+    """ "
     Returns the order number for a given customer ID."""
     if customer_id in [i["customer_id"] for i in EXAMPLE_DATA]:
         order_number = [i["order_number"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id][0]
         return f"The order number for customer ID {customer_id} is {order_number}"
+    return f"No order found for customer ID {customer_id}"
+
 
 @function_schema
 def get_customer_location(customer_id: int) -> str:
-    """"
+    """ "
     Returns the location for a given customer ID."""
     if customer_id in [i["customer_id"] for i in EXAMPLE_DATA]:
         location = [i["location"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id][0]
         return f"The location for customer ID {customer_id} is {location}"
+    return f"No location found for customer ID {customer_id}"
+
 
 @function_schema
 def add_customer(customer_id: int, order_number: int, location: str) -> str:
-    """"
+    """ "
     Adds a new customer to the database."""
     EXAMPLE_DATA.append({"customer_id": customer_id, "order_number": order_number, "location": location})
     return f"Customer ID {customer_id} added successfully."
 
+
 @function_schema
 def weather_forecast(location: str) -> str:
-    """"
+    """ "
     Returns the weather forecast for a given location. Only give one city at a time.
     """
     url = f"http://api.weatherstack.com/current?access_key={WEATHER_API_KEY}&query={location}"
@@ -73,14 +76,15 @@ def weather_forecast(location: str) -> str:
         data = response.json()
         return str(data)
 
+
 @function_schema
 def url_to_markdown(url):
     try:
-        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
+        response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
         response.raise_for_status()
 
-        soup = BeautifulSoup(response.text, 'html.parser')
-        content = soup.find('body')
+        soup = BeautifulSoup(response.text, "html.parser")
+        content = soup.find("body")
 
         if content:
             markdown_content = markdownify.markdownify(str(content), heading_style="ATX")
@@ -91,12 +95,13 @@ def url_to_markdown(url):
     except requests.RequestException as e:
         return f"Error fetching URL: {e}"
 
+
 @function_schema
-def web_search(query: str,num: Optional[int]=2) -> str:
+def web_search(query: str, num: Optional[int] = 2) -> str:
     """
     You can use this tool to get any information from the web. Just type in your query and get the results.
     """
-    num=1
+    num = 1
     # try:
     url = f"https://www.googleapis.com/customsearch/v1?q={query}&key={GOOGLE_API}&cx={CX_ID}&num={num}"
     response = requests.get(url)
@@ -108,9 +113,12 @@ def web_search(query: str,num: Optional[int]=2) -> str:
     prompt = f"Use the following text to answer the given: {query} \n\n ---BEGIN WEB TEXT --- {text} ---BEGIN WEB TEXT --- "
     response = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{"role": "system", "content": f"You're a web search agent."},{"role": "user", "content": prompt}],
+        messages=[{"role": "system", "content": "You're a web search agent."}, {"role": "user", "content": prompt}],
     )
-    return response.choices[0].message.content
+    if response.choices[0].message.content is not None:
+        return response.choices[0].message.content
+    return ""
+
 
 tool_store = {
     "add_numbers": add_numbers,

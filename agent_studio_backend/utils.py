@@ -1,19 +1,28 @@
 import inspect
-from typing import Any, Dict, List, Union, get_type_hints
+from typing import Any, Callable, Dict, List, Protocol, Union, cast, get_type_hints
 import functools
-from typing import Any, Callable
 import os
 import openai
 import dotenv
 
+from data_classes import Agent
+
 dotenv.load_dotenv(".env.local")
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+
+class OpenAISchemaFunction(Protocol):
+    openai_schema: Dict[str, Any]
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
+
+
 # Function Schema function
-def function_schema(func):
+def function_schema(func: Callable[..., Any]) -> OpenAISchemaFunction:
     """
     Decorator that generates an OpenAI function schema and attaches it to the function.
     """
+
     def python_function_to_openai_schema(func) -> Dict[str, Any]:
         """Converts a function into an OpenAI JSON schema."""
         signature = inspect.signature(func)
@@ -21,15 +30,11 @@ def function_schema(func):
 
         schema = {
             "type": "function",
-            "function":{
-            "name": func.__name__,
-            "description": func.__doc__ or f"Function {func.__name__}",
-            "parameters": {
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
-        }
+            "function": {
+                "name": func.__name__,
+                "description": func.__doc__ or f"Function {func.__name__}",
+                "parameters": {"type": "object", "properties": {}, "required": []},
+            },
         }
 
         for param_name, param in signature.parameters.items():
@@ -39,7 +44,7 @@ def function_schema(func):
             # schema["parameters"]["properties"][param_name] = {
             schema["function"]["parameters"]["properties"][param_name] = {
                 "type": openai_type,
-                "description": f"{param_name} parameter"
+                "description": f"{param_name} parameter",
             }
 
             # Add to required list only if it's not Optional and has no default value
@@ -49,7 +54,7 @@ def function_schema(func):
 
         return schema
 
-    def python_type_to_openai_type(py_type) -> (str, bool):
+    def python_type_to_openai_type(py_type) -> tuple[str, bool]:
         """Maps Python types to OpenAI JSON schema types, supporting Optional and List."""
         from typing import get_origin, get_args
 
@@ -76,17 +81,28 @@ def function_schema(func):
 
         return mapping.get(py_type, "string"), False  # Default to string
 
-    # Attach schema as a function attribute
-    func.openai_schema = python_function_to_openai_schema(func)
-    return func
+    # Cast the function to a type that allows attribute assignment
+    decorated_func = cast(OpenAISchemaFunction, func)
+    # Now assign the schema
+    decorated_func.openai_schema = python_function_to_openai_schema(func)
+    # Return the original function type
+    return decorated_func
+
+
+class AgentWithSchema(Agent):
+    openai_schema: Dict[str, Any]
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
+
 
 # Agent Schema function
-def agent_schema(cls):
+def agent_schema(cls: type[Agent]) -> AgentWithSchema:
     """
     Decorator that generates an OpenAI function schema for an agent and attaches it to the class.
     The tool name will be the agent class name, not the 'execute' function.
     """
-    def python_function_to_openai_schema(agent_cls) -> Dict[str, Any]:
+
+    def python_function_to_openai_schema(agent_cls: type[Agent]) -> Dict[str, Any]:
         """Converts an agent class into an OpenAI JSON schema based on its `execute` method."""
         execute_method = getattr(agent_cls, "execute", None)
         if execute_method is None:
@@ -100,12 +116,8 @@ def agent_schema(cls):
             "function": {
                 "name": agent_cls.__name__,  # Tool name = Class name
                 "description": execute_method.__doc__ or f"Agent {agent_cls.__name__} execution function",
-                "parameters": {
-                    "type": "object",
-                    "properties": {},
-                    "required": []
-                }
-            }
+                "parameters": {"type": "object", "properties": {}, "required": []},
+            },
         }
 
         for param_name, param in signature.parameters.items():
@@ -117,7 +129,7 @@ def agent_schema(cls):
 
             schema["function"]["parameters"]["properties"][param_name] = {
                 "type": openai_type,
-                "description": f"{param_name} parameter"
+                "description": f"{param_name} parameter",
             }
 
             if not is_optional and param.default is inspect.Parameter.empty:
@@ -125,7 +137,7 @@ def agent_schema(cls):
 
         return schema
 
-    def python_type_to_openai_type(py_type) -> (str, bool):
+    def python_type_to_openai_type(py_type) -> tuple[str, bool]:
         """Maps Python types to OpenAI JSON schema types, handling Optional and List types."""
         from typing import get_origin, get_args
 
@@ -149,13 +161,18 @@ def agent_schema(cls):
 
         return mapping.get(py_type, "string"), False  # Default to string
 
-    # Attach schema as a class attribute
-    cls.openai_schema = python_function_to_openai_schema(cls)
-    return cls
+    # Cast the function to a type that allows attribute assignment
+    decorated_cls = cast(AgentWithSchema, cls)
+    # Now assign the schema
+    decorated_cls.openai_schema = python_function_to_openai_schema(cls)
+    # Return the original function type
+    return decorated_cls
+
 
 # Log Decorator
 def log_decorator(func: Callable) -> Callable:
     """Decorator to log the input and output of a function."""
+
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs) -> Any:
         self.logs["input"].append(kwargs)
@@ -166,4 +183,5 @@ def log_decorator(func: Callable) -> Callable:
         except Exception as e:
             self.logs["output"].append(f"Error: {e}")
             raise
+
     return wrapper

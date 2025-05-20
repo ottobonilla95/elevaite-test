@@ -5,7 +5,6 @@ import uuid
 from datetime import datetime
 from agents import CommandAgent, agent_schemas
 from prompts import command_agent_system_prompt
-from tools import tool_schemas
 from starlette.middleware.cors import CORSMiddleware
 
 dotenv.load_dotenv(".env.local")
@@ -75,20 +74,21 @@ def deploy(request: dict):
             collaboration_mode="single",
         )
 
-        return {"status": f"response: ok"}
+        return {"status": "response: ok"}
     except Exception as e:
         return {"status": f"Error: {e}"}
 
 
 @app.post("/run")
 def run(request: dict):
-    res = COMMAND_AGENT.execute(request["query"])
+    if COMMAND_AGENT is not None:
+        res = COMMAND_AGENT.execute(query=request["query"])
 
-    return {"status": "ok", "response": f"{res}"}
+        return {"status": "ok", "response": f"{res}"}
 
 
 @app.post("/run_stream")
-def run(request: dict):
+def run_stream(request: dict):
     chat_history = request["chat_history"]
     print("Chat History: ", chat_history)
     print("*" * 10)
@@ -98,8 +98,10 @@ def run(request: dict):
         gpt_chat_history += f"{i['actor']}: {i['content']}\n"
 
     async def response_stream():
-        for chunk in COMMAND_AGENT.execute_stream(request["query"], gpt_chat_history):
-            yield chunk
+        if COMMAND_AGENT is not None:
+            for chunk in COMMAND_AGENT.execute_stream(request["query"], gpt_chat_history):
+                yield chunk
+            return
 
     return fastapi.responses.StreamingResponse(response_stream(), media_type="text/event-stream")
 

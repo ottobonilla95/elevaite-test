@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, List, Any
+from pydantic import BaseModel
+from typing import Optional, Dict, Any
 from utils import log_decorator
 from tools import web_search
+
 
 class Component(BaseModel):
     name: str
@@ -15,6 +16,7 @@ class Component(BaseModel):
     def execute(self, **kwargs) -> Any:
         """Execution script for each component."""
         raise NotImplementedError("Component execution logic should be implemented in subclasses.")
+
 
 class WebSearchComponent(Component):
     search_engine: Optional[str] = "google"

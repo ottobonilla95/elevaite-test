@@ -1,35 +1,42 @@
-import datetime
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any, Literal
 import uuid
 import pydantic
+from pydantic import BaseModel
+from datetime import datetime
+from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
+
 
 class PromptReadListRequest(pydantic.BaseModel):
     app_name: str
     prompt_label: str
 
+
 class PromptReadDeployedRequest(pydantic.BaseModel):
     app_name: str
     prompt_label: str
+
 
 class PromptReadRequest(pydantic.BaseModel):
     app_name: str
     pid: uuid.UUID
 
+
 class PromptObjectRequest(pydantic.BaseModel):
     """
-        pid: randomUUID(),
-        app_name: appName,
-        vendor: selectedVendor,
-        model_name: selectedModelName,
-        prompt_label: selectedPromptLabel,
-        prompt: selectedPrompt,
-        hash: hash,
-        temperature: temperature,
-        max_tokens: maxTokens,
-        version: version,
-        is_deployed: false,
-        deployed_time: new Date().toISOString(),
+    pid: randomUUID(),
+    app_name: appName,
+    vendor: selectedVendor,
+    model_name: selectedModelName,
+    prompt_label: selectedPromptLabel,
+    prompt: selectedPrompt,
+    hash: hash,
+    temperature: temperature,
+    max_tokens: maxTokens,
+    version: version,
+    is_deployed: false,
+    deployed_time: new Date().toISOString(),
     """
+
     pid: uuid.UUID
     is_system_prompt: Optional[bool]
     app_name: str
@@ -45,13 +52,15 @@ class PromptObjectRequest(pydantic.BaseModel):
     is_deployed: Optional[bool]
     hyper_parameters: Optional[Dict[str, str]]
     variables: Optional[List[str]]
-    deployed_time: Optional[datetime.datetime]
+    deployed_time: Optional[datetime]
+
 
 class PromptDeployRequest(pydantic.BaseModel):
     """
-        pid: randomUUID(),
-        app_name: appName,
+    pid: randomUUID(),
+    app_name: appName,
     """
+
     pid: uuid.UUID
     app_name: str
 
@@ -61,24 +70,18 @@ class PromptObject(pydantic.BaseModel):
     prompt_label: str
     prompt: str
     sha_hash: str
-    uniqueLabel:str
-    appName:str
-    version:str
-    createdTime:datetime.datetime
-    deployedTime:Optional[datetime.datetime]
-    last_deployed:Optional[datetime.datetime]
+    uniqueLabel: str
+    appName: str
+    version: str
+    createdTime: datetime
+    deployedTime: Optional[datetime]
+    last_deployed: Optional[datetime]
     modelProvider: str
     modelName: str
-    isDeployed:bool
+    isDeployed: bool
     tags: Optional[List[str]]
     hyper_parameters: Optional[Dict[str, str]]
     variables: Optional[Dict[str, str]]
-
-from typing import List, Dict, Any, Optional, Literal
-from pydantic import BaseModel
-from datetime import datetime
-import uuid
-
 
 
 class Agent(BaseModel):
@@ -87,7 +90,7 @@ class Agent(BaseModel):
     parent_agent: Optional[uuid.UUID] = None
     system_prompt: PromptObject
     persona: Optional[str]
-    functions: List[Dict[str, Any]]
+    functions: List[ChatCompletionToolParam]
     routing_options: Dict[str, str]
     short_term_memory: bool = False
     long_term_memory: bool = False
@@ -121,5 +124,3 @@ class Agent(BaseModel):
     def execute(self, **kwargs) -> Any:
         """Execution script for each component."""
         raise NotImplementedError("Component execution logic should be implemented in subclasses.")
-
-
