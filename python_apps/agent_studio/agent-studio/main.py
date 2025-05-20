@@ -16,6 +16,7 @@ from agents import CommandAgent, agent_schemas
 from prompts import command_agent_system_prompt
 from db.database import Base, engine
 from db.init_db import init_db
+from api import prompt_router, agent_router
 
 dotenv.load_dotenv(".env.local")
 
@@ -46,6 +47,9 @@ async def lifespan(app_instance: fastapi.FastAPI):
 
 
 app = fastapi.FastAPI(title="Agent Studio Backend", version="0.1.0", lifespan=lifespan)
+
+app.include_router(prompt_router)
+app.include_router(agent_router)
 
 
 @app.get("/")
