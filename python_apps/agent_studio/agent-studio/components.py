@@ -1,7 +1,8 @@
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from utils import log_decorator
-from tools import web_search
+
+from .tools import web_search
 
 
 class Component(BaseModel):
@@ -15,7 +16,9 @@ class Component(BaseModel):
     @log_decorator
     def execute(self, **kwargs) -> Any:
         """Execution script for each component."""
-        raise NotImplementedError("Component execution logic should be implemented in subclasses.")
+        raise NotImplementedError(
+            "Component execution logic should be implemented in subclasses."
+        )
 
 
 class WebSearchComponent(Component):

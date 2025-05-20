@@ -1,17 +1,26 @@
-from tools import weather_forecast
+import json
+import uuid
 from data_classes import Agent
 from utils import agent_schema
 from typing import Any, List, cast
-import json
-from tools import tool_store
 from utils import client
 from datetime import datetime
-import uuid
-from tools import web_search, tool_schemas
-from prompts import web_agent_system_prompt, api_agent_system_prompt, data_agent_system_prompt
+from prompts import (
+    web_agent_system_prompt,
+    api_agent_system_prompt,
+    data_agent_system_prompt,
+)
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
-from openai.types.chat.chat_completion_assistant_message_param import ChatCompletionAssistantMessageParam
-from openai.types.chat.chat_completion_message_tool_call_param import ChatCompletionMessageToolCallParam
+from openai.types.chat.chat_completion_assistant_message_param import (
+    ChatCompletionAssistantMessageParam,
+)
+from openai.types.chat.chat_completion_message_tool_call_param import (
+    ChatCompletionMessageToolCallParam,
+)
+
+from .tools import tool_store
+from .tools import weather_forecast
+from .tools import web_search, tool_schemas
 
 
 @agent_schema
@@ -40,7 +49,10 @@ class WebAgent(Agent):
         {{ "routing": "respond", "content": "The answer to the query."}}
         """
         )
-        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": query}]
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": query},
+        ]
 
         while tries < self.max_retries:
             print(tries)
@@ -67,7 +79,13 @@ class WebAgent(Agent):
                         function_name = tool.function.name
                         result = tool_store[function_name](**arguments)
                         print(result)
-                        messages += [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
+                        messages += [
+                            {
+                                "role": "tool",
+                                "tool_call_id": tool_id,
+                                "content": str(result),
+                            }
+                        ]
 
                 else:
                     return response.choices[0].message.content
@@ -99,9 +117,10 @@ class DataAgent(Agent):
 
         """
         )
-        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": query}]
-        )
-        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": query}]
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": query},
+        ]
 
         while tries < self.max_retries:
             print(tries)
@@ -128,7 +147,13 @@ class DataAgent(Agent):
                         function_name = tool.function.name
                         result = tool_store[function_name](**arguments)
                         print(result)
-                        messages += [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
+                        messages += [
+                            {
+                                "role": "tool",
+                                "tool_call_id": tool_id,
+                                "content": str(result),
+                            }
+                        ]
 
                 else:
                     return response.choices[0].message.content
@@ -161,7 +186,10 @@ class APIAgent(Agent):
 
         """
         )
-        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": query}]
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": query},
+        ]
 
         while tries < self.max_retries:
             print(tries)
@@ -188,7 +216,13 @@ class APIAgent(Agent):
                         function_name = tool.function.name
                         result = tool_store[function_name](**arguments)
                         print(result)
-                        messages += [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
+                        messages += [
+                            {
+                                "role": "tool",
+                                "tool_call_id": tool_id,
+                                "content": str(result),
+                            }
+                        ]
 
                 else:
                     return response.choices[0].message.content
@@ -260,7 +294,11 @@ data_agent = DataAgent(
     name="DataAgent",
     system_prompt=data_agent_system_prompt,
     persona="Helper",
-    functions=[tool_schemas["get_customer_order"], tool_schemas["add_customer"], tool_schemas["get_customer_location"]],
+    functions=[
+        tool_schemas["get_customer_order"],
+        tool_schemas["add_customer"],
+        tool_schemas["get_customer_location"],
+    ],
     routing_options={
         "continue": "If you think you can't answer the query, you can continue to the next tool or do some reasoning.",
         "respond": "If you think you have the answer, you can stop here.",
@@ -346,7 +384,13 @@ class CommandAgent(Agent):
                         agent_response = json.loads(result)  # noqa: F841
                         # if agent_response["routing"] == "respond":
                         #     return agent_response["content"]
-                        messages.append({"role": "tool", "tool_call_id": tool_id, "content": str(result)})
+                        messages.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": tool_id,
+                                "content": str(result),
+                            }
+                        )
 
                 else:
                     if response.choices[0].message.content is None:
@@ -397,7 +441,10 @@ class CommandAgent(Agent):
                 if response.choices[0].finish_reason == "tool_calls" and response.choices[0].message.tool_calls is not None:
                     tool_calls = response.choices[0].message.tool_calls[:1]
                     messages.append(
-                        {"role": "assistant", "tool_calls": cast(List[ChatCompletionMessageToolCallParam], tool_calls)},
+                        {
+                            "role": "assistant",
+                            "tool_calls": cast(List[ChatCompletionMessageToolCallParam], tool_calls),
+                        },
                     )
                     for tool in tool_calls:
                         yield f"Agent Called: {tool.function.name}\n"
@@ -406,7 +453,13 @@ class CommandAgent(Agent):
                         function_name = tool.function.name
                         result = agent_store[function_name](**arguments)
                         print(result)
-                        messages.append({"role": "tool", "tool_call_id": tool_id, "content": str(result)})
+                        messages.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": tool_id,
+                                "content": str(result),
+                            }
+                        )
                         yield json.loads(result).get("content", "Agent Responded") + "\n"
 
                 else:

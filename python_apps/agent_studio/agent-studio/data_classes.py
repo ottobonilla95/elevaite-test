@@ -1,6 +1,6 @@
-from typing import Optional, Dict, List, Any, Literal
 import uuid
 import pydantic
+from typing import Optional, Dict, List, Any, Literal
 from pydantic import BaseModel
 from datetime import datetime
 from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
@@ -100,7 +100,9 @@ class Agent(BaseModel):
     # Make input output type a list of types
     input_type: Optional[List[Literal["text", "voice", "image"]]] = ["text", "voice"]
     output_type: Optional[List[Literal["text", "voice", "image"]]] = ["text", "voice"]
-    response_type: Optional[Literal["json", "yaml", "markdown", "HTML", "None"]] = "json"
+    response_type: Optional[Literal["json", "yaml", "markdown", "HTML", "None"]] = (
+        "json"
+    )
     # agent_type: Optional[Literal["agent", "workflow"]] = "agent"
 
     # Execution parameters
@@ -118,9 +120,13 @@ class Agent(BaseModel):
     last_active: Optional[datetime] = None
     # logging_level: Optional[Literal["debug", "info", "warning", "error"]] = "info"  # Debug level
 
-    collaboration_mode: Optional[Literal["single", "team", "parallel", "sequential"]] = "single"  # Multi-agent behavior
+    collaboration_mode: Optional[
+        Literal["single", "team", "parallel", "sequential"]
+    ] = "single"  # Multi-agent behavior
 
     # Add a function to import the right prompt for the agent.
     def execute(self, **kwargs) -> Any:
         """Execution script for each component."""
-        raise NotImplementedError("Component execution logic should be implemented in subclasses.")
+        raise NotImplementedError(
+            "Component execution logic should be implemented in subclasses."
+        )

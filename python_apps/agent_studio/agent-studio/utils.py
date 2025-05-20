@@ -1,9 +1,9 @@
-import inspect
-from typing import Any, Callable, Dict, List, Protocol, Union, cast, get_type_hints
-import functools
 import os
-import openai
 import dotenv
+import openai
+import inspect
+import functools
+from typing import Any, Callable, Dict, List, Protocol, Union, cast, get_type_hints
 
 from data_classes import Agent
 
@@ -115,7 +115,8 @@ def agent_schema(cls: type[Agent]) -> AgentWithSchema:
             "type": "function",
             "function": {
                 "name": agent_cls.__name__,  # Tool name = Class name
-                "description": execute_method.__doc__ or f"Agent {agent_cls.__name__} execution function",
+                "description": execute_method.__doc__
+                or f"Agent {agent_cls.__name__} execution function",
                 "parameters": {"type": "object", "properties": {}, "required": []},
             },
         }

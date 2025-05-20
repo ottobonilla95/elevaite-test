@@ -1,8 +1,0 @@
-openai
-fastapi
-uvicorn
-pydantic
-python-dotenv
-requests
-bs4
-markdownify

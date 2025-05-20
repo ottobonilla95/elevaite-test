@@ -1,7 +1,7 @@
-import dotenv
 import os
-import fastapi
 import uuid
+import dotenv
+import fastapi
 from datetime import datetime
 from agents import CommandAgent, agent_schemas
 from prompts import command_agent_system_prompt
@@ -12,7 +12,12 @@ dotenv.load_dotenv(".env.local")
 CX_ID = os.getenv("CX_ID_PERSONAL")
 GOOGLE_API = os.getenv("GOOGLE_API_PERSONAL")
 
-fronted_agents = {"w": "WebAgent", "d": "DataAgent", "a": "APIAgent", "r": "CommandAgent"}
+fronted_agents = {
+    "w": "WebAgent",
+    "d": "DataAgent",
+    "a": "APIAgent",
+    "r": "CommandAgent",
+}
 
 COMMAND_AGENT = None
 
@@ -99,11 +104,15 @@ def run_stream(request: dict):
 
     async def response_stream():
         if COMMAND_AGENT is not None:
-            for chunk in COMMAND_AGENT.execute_stream(request["query"], gpt_chat_history):
+            for chunk in COMMAND_AGENT.execute_stream(
+                request["query"], gpt_chat_history
+            ):
                 yield chunk
             return
 
-    return fastapi.responses.StreamingResponse(response_stream(), media_type="text/event-stream")
+    return fastapi.responses.StreamingResponse(
+        response_stream(), media_type="text/event-stream"
+    )
 
 
 if __name__ == "__main__":

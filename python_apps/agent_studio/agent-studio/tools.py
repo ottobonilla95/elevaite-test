@@ -1,10 +1,10 @@
+import os
+import dotenv
 import requests
-from bs4 import BeautifulSoup
 import markdownify
+from bs4 import BeautifulSoup
 from utils import function_schema
 from typing import Optional
-import dotenv
-import os
 from utils import client
 
 dotenv.load_dotenv(".env.local")
@@ -39,7 +39,9 @@ def get_customer_order(customer_id: int) -> str:
     """ "
     Returns the order number for a given customer ID."""
     if customer_id in [i["customer_id"] for i in EXAMPLE_DATA]:
-        order_number = [i["order_number"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id][0]
+        order_number = [
+            i["order_number"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id
+        ][0]
         return f"The order number for customer ID {customer_id} is {order_number}"
     return f"No order found for customer ID {customer_id}"
 
@@ -49,7 +51,9 @@ def get_customer_location(customer_id: int) -> str:
     """ "
     Returns the location for a given customer ID."""
     if customer_id in [i["customer_id"] for i in EXAMPLE_DATA]:
-        location = [i["location"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id][0]
+        location = [
+            i["location"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id
+        ][0]
         return f"The location for customer ID {customer_id} is {location}"
     return f"No location found for customer ID {customer_id}"
 
@@ -58,7 +62,9 @@ def get_customer_location(customer_id: int) -> str:
 def add_customer(customer_id: int, order_number: int, location: str) -> str:
     """ "
     Adds a new customer to the database."""
-    EXAMPLE_DATA.append({"customer_id": customer_id, "order_number": order_number, "location": location})
+    EXAMPLE_DATA.append(
+        {"customer_id": customer_id, "order_number": order_number, "location": location}
+    )
     return f"Customer ID {customer_id} added successfully."
 
 
@@ -87,7 +93,9 @@ def url_to_markdown(url):
         content = soup.find("body")
 
         if content:
-            markdown_content = markdownify.markdownify(str(content), heading_style="ATX")
+            markdown_content = markdownify.markdownify(
+                str(content), heading_style="ATX"
+            )
             return markdown_content[:20000]
         else:
             return "No content found in the webpage body."
@@ -113,7 +121,10 @@ def web_search(query: str, num: Optional[int] = 2) -> str:
     prompt = f"Use the following text to answer the given: {query} \n\n ---BEGIN WEB TEXT --- {text} ---BEGIN WEB TEXT --- "
     response = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{"role": "system", "content": "You're a web search agent."}, {"role": "user", "content": prompt}],
+        messages=[
+            {"role": "system", "content": "You're a web search agent."},
+            {"role": "user", "content": prompt},
+        ],
     )
     if response.choices[0].message.content is not None:
         return response.choices[0].message.content
