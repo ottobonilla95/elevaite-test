@@ -74,6 +74,8 @@ class AgentBase(BaseModel):
     priority: Optional[int] = None
     failure_strategies: Optional[List[str]] = None
     collaboration_mode: Literal["single", "team", "parallel", "sequential"] = "single"
+    available_for_deployment: bool = True
+    deployment_code: Optional[str] = None
 
 
 class AgentCreate(AgentBase):
@@ -102,6 +104,8 @@ class AgentUpdate(BaseModel):
     collaboration_mode: Optional[
         Literal["single", "team", "parallel", "sequential"]
     ] = None
+    available_for_deployment: Optional[bool] = None
+    deployment_code: Optional[str] = None
 
 
 class AgentInDB(AgentBase):

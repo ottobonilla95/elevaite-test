@@ -4,14 +4,16 @@ import dotenv
 import fastapi
 from datetime import datetime
 from starlette.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 
 # Use local imports
 from agents import agent_schemas
 from agents.command_agent import CommandAgent
 from prompts import command_agent_system_prompt
-from db.database import Base, engine
+from db.database import Base, engine, get_db
 from db.init_db import init_db
 from api import prompt_router, agent_router
+from db import crud
 
 from contextlib import asynccontextmanager
 
@@ -24,15 +26,6 @@ dotenv.load_dotenv(".env.local")
 
 CX_ID = os.getenv("CX_ID_PERSONAL")
 GOOGLE_API = os.getenv("GOOGLE_API_PERSONAL")
-
-fronted_agents = {
-    "w": "WebAgent",
-    "d": "DataAgent",
-    "a": "APIAgent",
-    "r": "CommandAgent",
-    "h": "HelloWorldAgent",
-    "c": "ConsolePrinterAgent",
-}
 
 COMMAND_AGENT = None
 
@@ -64,30 +57,68 @@ def health_check():
     return {"status": "ok"}
 
 
+@app.get("/deployment/codes")
+def get_deployment_codes(db: Session = fastapi.Depends(get_db)):
+    """
+    Get a mapping of deployment codes to agent names.
+    This endpoint is used by the frontend to display available agents.
+    """
+    available_agents = crud.get_available_agents(db)
+
+    code_map = {}
+    for agent in available_agents:
+        deployment_code = getattr(agent, "deployment_code", None)
+        if deployment_code is not None and str(deployment_code).strip() != "":
+            code_map[str(deployment_code)] = str(agent.name)
+
+    return code_map
+
+
 @app.post("/deploy")
-def deploy(request: dict):
+def deploy(request: dict, db: Session = fastapi.Depends(get_db)):
     global COMMAND_AGENT
     print(request)
     try:
         agents = []
         for i in request["agents"]:
-            print(i[0])
-            agents.append(fronted_agents[i[0]])
+            code = i[0]
+            db_agent = crud.get_agent_by_deployment_code(db, code)
+            if db_agent is None:
+                return {
+                    "status": f"Error: Agent with deployment code '{code}' not found"
+                }
+            agents.append(str(db_agent.name))
+
         connections = []
         for i in request["connections"]:
-            print(i)
             connection = i.split("->")
-            print(fronted_agents[connection[0]] == "CommandAgent")
-            if fronted_agents[connection[0]] == "CommandAgent":
-                print("Connection: ", connection[-1])
-                connections.append(agent_schemas[fronted_agents[connection[-1]]])
+            source_code = connection[0]
+            target_name = connection[-1]
+
+            source_agent = crud.get_agent_by_deployment_code(db, source_code)
+            if source_agent is None:
+                return {
+                    "status": f"Error: Agent with deployment code '{source_code}' not found"
+                }
+            source_name = str(source_agent.name)
+
+            if source_name == "CommandAgent":
+                if target_name in agent_schemas:
+                    connections.append(agent_schemas[target_name])
+                else:
+                    target_agent = crud.get_agent_by_name(db, target_name)
+                    if (
+                        target_agent is not None
+                        and str(target_agent.name) in agent_schemas
+                    ):
+                        connections.append(agent_schemas[str(target_agent.name)])
+
         COMMAND_AGENT = CommandAgent(
             name="WebCommandAgent",
             agent_id=uuid.uuid4(),
             system_prompt=command_agent_system_prompt,
             persona="Command Agent",
             functions=connections,
-            #    functions=[tool_schemas["add_numbers"]],
             routing_options={
                 "continue": "If you think you can't answer the query, you can continue to the next tool or do some reasoning.",
                 "respond": "If you think you have the answer, you can stop here.",

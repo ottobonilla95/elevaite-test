@@ -183,6 +183,18 @@ def get_agents(
     return query.offset(skip).limit(limit).all()
 
 
+def get_available_agents(db: Session) -> List[models.Agent]:
+    return (
+        db.query(models.Agent)
+        .filter(models.Agent.available_for_deployment == True)
+        .all()
+    )
+
+
+def get_agent_by_deployment_code(db: Session, code: str) -> Optional[models.Agent]:
+    return db.query(models.Agent).filter(models.Agent.deployment_code == code).first()
+
+
 def update_agent(
     db: Session, agent_id: uuid.UUID, agent_update: schemas.AgentUpdate
 ) -> Optional[models.Agent]:
