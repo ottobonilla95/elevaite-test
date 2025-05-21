@@ -39,6 +39,6 @@ class Agent(BaseModel):
     collaboration_mode: Optional[Literal["single", "team", "parallel", "sequential"]] = "single"  # Multi-agent behavior
 
     # Add a function to import the right prompt for the agent.
-    def execute(self, **kwargs) -> Any:
+    def execute(self, *args, **kwargs) -> Any:
         """Execution script for each component."""
         raise NotImplementedError("Component execution logic should be implemented in subclasses.")

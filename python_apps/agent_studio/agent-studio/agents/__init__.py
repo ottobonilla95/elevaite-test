@@ -5,6 +5,7 @@ from prompts import (
     web_agent_system_prompt,
     api_agent_system_prompt,
     data_agent_system_prompt,
+    console_printer_agent_system_prompt,
 )
 
 from tools import weather_forecast
@@ -12,6 +13,7 @@ from tools import web_search, tool_schemas
 from .data_agent import DataAgent
 from .api_agent import APIAgent
 from .web_agent import WebAgent
+from .console_printer_agent import ConsolePrinterAgent
 
 
 web_agent = WebAgent(
@@ -103,11 +105,40 @@ data_agent = DataAgent(
     collaboration_mode="single",
 )
 
+console_printer_agent = ConsolePrinterAgent(
+    agent_id=uuid.uuid4(),
+    name="ConsolePrinterAgent",
+    system_prompt=console_printer_agent_system_prompt,
+    persona="Helper",
+    functions=[tool_schemas["print_to_console"]],
+    routing_options={
+        "continue": "If you think you can't answer the query, you can continue to the next tool or do some reasoning.",
+        "respond": "If you think you have the answer, you can stop here.",
+        "give_up": "If you think you can't answer the query, you can give up and let the user know.",
+    },
+    short_term_memory=True,
+    long_term_memory=False,
+    reasoning=False,
+    input_type=["text", "voice"],
+    output_type=["text", "voice"],
+    response_type="json",
+    max_retries=5,
+    timeout=None,
+    deployed=False,
+    status="active",
+    priority=None,
+    failure_strategies=["retry", "escalate"],
+    session_id=None,
+    last_active=datetime.now(),
+    collaboration_mode="single",
+)
+
 
 agent_store = {
     "WebAgent": web_agent.execute,
     "DataAgent": data_agent.execute,
     "APIAgent": api_agent.execute,
+    "ConsolePrinterAgent": console_printer_agent.execute,
 }
 
 
@@ -115,4 +146,5 @@ agent_schemas = {
     "WebAgent": web_agent.openai_schema,
     "DataAgent": data_agent.openai_schema,
     "APIAgent": api_agent.openai_schema,
+    "ConsolePrinterAgent": console_printer_agent.openai_schema,
 }

@@ -1,7 +1,9 @@
 import json
-from typing import Any, List, cast
+from typing import Any, Dict, List, Literal, cast
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat.chat_completion_tool_message_param import ChatCompletionToolMessageParam
+
+from pydantic import BaseModel
 
 from .agent_base import Agent
 from utils import agent_schema, client
@@ -9,13 +11,17 @@ from utils import agent_schema, client
 from tools import tool_store
 
 
+class ConsolePrinterAgentInput(BaseModel):
+    query: str
+
+
 @agent_schema
-class DataAgent(Agent):
-    def execute(self, query: str, **kwargs: Any) -> Any:
+class ConsolePrinterAgent(Agent):
+    def execute(self, query: str, **kwargs: ConsolePrinterAgentInput) -> Any:
         """
-        Ask the agent anything related to the database. It can fetch data from the database, or update the database. It can also do some reasoning based on the data in the database.
-        The data contains customer ID, Order numbers and location in each row.
+        This agent prints the input to the console.
         """
+        # query = kwargs["query"]
         tries = 0
         routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = (
@@ -33,20 +39,14 @@ class DataAgent(Agent):
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": query},
         ]
-
         while tries < self.max_retries:
-            print(tries)
-            # print("\n\nMessage: ",messages)
             try:
                 response = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=messages,
-                    # functions=self.functions,
                     tools=self.functions,
-                    # parallel_tool_calls=True,
-                    tool_choice="auto",
+                    stream=False,
                 )
-                # print("\n\nResponse: ",response)
                 if response.choices[0].finish_reason == "tool_calls" and response.choices[0].message.tool_calls is not None:
                     tool_calls = response.choices[0].message.tool_calls
                     messages.append(

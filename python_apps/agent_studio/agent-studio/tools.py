@@ -39,9 +39,7 @@ def get_customer_order(customer_id: int) -> str:
     """ "
     Returns the order number for a given customer ID."""
     if customer_id in [i["customer_id"] for i in EXAMPLE_DATA]:
-        order_number = [
-            i["order_number"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id
-        ][0]
+        order_number = [i["order_number"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id][0]
         return f"The order number for customer ID {customer_id} is {order_number}"
     return f"No order found for customer ID {customer_id}"
 
@@ -51,9 +49,7 @@ def get_customer_location(customer_id: int) -> str:
     """ "
     Returns the location for a given customer ID."""
     if customer_id in [i["customer_id"] for i in EXAMPLE_DATA]:
-        location = [
-            i["location"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id
-        ][0]
+        location = [i["location"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id][0]
         return f"The location for customer ID {customer_id} is {location}"
     return f"No location found for customer ID {customer_id}"
 
@@ -62,9 +58,7 @@ def get_customer_location(customer_id: int) -> str:
 def add_customer(customer_id: int, order_number: int, location: str) -> str:
     """ "
     Adds a new customer to the database."""
-    EXAMPLE_DATA.append(
-        {"customer_id": customer_id, "order_number": order_number, "location": location}
-    )
+    EXAMPLE_DATA.append({"customer_id": customer_id, "order_number": order_number, "location": location})
     return f"Customer ID {customer_id} added successfully."
 
 
@@ -93,9 +87,7 @@ def url_to_markdown(url):
         content = soup.find("body")
 
         if content:
-            markdown_content = markdownify.markdownify(
-                str(content), heading_style="ATX"
-            )
+            markdown_content = markdownify.markdownify(str(content), heading_style="ATX")
             return markdown_content[:20000]
         else:
             return "No content found in the webpage body."
@@ -131,6 +123,15 @@ def web_search(query: str, num: Optional[int] = 2) -> str:
     return ""
 
 
+@function_schema
+def print_to_console(text: str) -> str:
+    """ "
+    Prints the given text to the console.
+    """
+    print(text)
+    return f"Printed {text} to the console."
+
+
 tool_store = {
     "add_numbers": add_numbers,
     "weather_forecast": weather_forecast,
@@ -139,6 +140,7 @@ tool_store = {
     "get_customer_order": get_customer_order,
     "get_customer_location": get_customer_location,
     "add_customer": add_customer,
+    "print_to_console": print_to_console,
 }
 
 tool_schemas = {
@@ -149,4 +151,5 @@ tool_schemas = {
     "get_customer_order": get_customer_order.openai_schema,
     "get_customer_location": get_customer_location.openai_schema,
     "add_customer": add_customer.openai_schema,
+    "print_to_console": print_to_console.openai_schema,
 }

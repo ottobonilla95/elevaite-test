@@ -84,3 +84,22 @@ command_agent_system_prompt = PromptObject(
     hyper_parameters={"temperature": "0.7"},
     variables={"search_engine": "google"},
 )
+
+console_printer_agent_system_prompt = PromptObject(
+    pid=uuid.uuid4(),
+    prompt_label="Console Printer",
+    prompt="You're a helpful assistant that prints the input to the console.",
+    sha_hash="000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8c",
+    uniqueLabel="ConsolePrinter",
+    appName="iopex",
+    version="1.0",
+    createdTime=datetime.now(),
+    deployedTime=None,
+    last_deployed=None,
+    modelProvider="OpenAI",
+    modelName="GPT-4o-mini",
+    isDeployed=False,
+    tags=["search", "web"],
+    hyper_parameters={"temperature": "0.7"},
+    variables={"search_engine": "google"},
+)

@@ -1,5 +1,7 @@
 import json
-from typing import Any
+from typing import Any, List, cast
+from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
+from openai.types.chat.chat_completion_tool_message_param import ChatCompletionToolMessageParam
 
 from .agent_base import Agent
 from utils import agent_schema, client
@@ -9,7 +11,7 @@ from tools import tool_store
 
 @agent_schema
 class WebAgent(Agent):
-    def execute(self, **kwargs: Any) -> Any:
+    def execute(self, query: str, **kwargs: Any) -> Any:
         """
         Ask the agent anything related to arithmetic, customer orders numbers or web search and it will try to answer it.
         You can ask it multiple questions at once. No need to ask one question at a time. You can ask it for multiple customer ids, multiple arithmetic questions, or multiple web search queries.
@@ -22,7 +24,6 @@ class WebAgent(Agent):
         """
         tries = 0
         routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
-        query = kwargs["query"]
         system_prompt = (
             self.system_prompt.prompt
             + f"""
@@ -33,7 +34,7 @@ class WebAgent(Agent):
         {{ "routing": "respond", "content": "The answer to the query."}}
         """
         )
-        messages = [
+        messages: List[ChatCompletionMessageParam] = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": query},
         ]
@@ -53,9 +54,12 @@ class WebAgent(Agent):
                 # print("\n\nResponse: ",response)
                 if response.choices[0].finish_reason == "tool_calls" and response.choices[0].message.tool_calls is not None:
                     tool_calls = response.choices[0].message.tool_calls
-                    messages += [
-                        {"role": "assistant", "tool_calls": tool_calls},
-                    ]
+                    messages.append(
+                        cast(
+                            ChatCompletionMessageParam,
+                            {"role": "assistant", "tool_calls": cast(List[ChatCompletionToolMessageParam], tool_calls)},
+                        )
+                    )
                     for tool in tool_calls:
                         print(tool.function.name)
                         tool_id = tool.id
@@ -63,13 +67,16 @@ class WebAgent(Agent):
                         function_name = tool.function.name
                         result = tool_store[function_name](**arguments)
                         print(result)
-                        messages += [
-                            {
-                                "role": "tool",
-                                "tool_call_id": tool_id,
-                                "content": str(result),
-                            }
-                        ]
+                        messages.append(
+                            cast(
+                                ChatCompletionMessageParam,
+                                {
+                                    "role": "tool",
+                                    "tool_call_id": tool_id,
+                                    "content": str(result),
+                                },
+                            )
+                        )
 
                 else:
                     return response.choices[0].message.content

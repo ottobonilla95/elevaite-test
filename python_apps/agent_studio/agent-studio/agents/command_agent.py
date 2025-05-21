@@ -15,13 +15,12 @@ from . import agent_store
 
 
 class CommandAgent(Agent):
-    def execute(self, **kwargs: Any) -> str:
+    def execute(self, query: str, **kwargs: Any) -> str:
         """
         This agent can call any agent, tool, or component. It can also call a router agent to call multiple agents.
         """
         tries = 0
         system_prompt = self.system_prompt.prompt
-        query = kwargs["query"]
 
         messages: List[ChatCompletionMessageParam] = [
             {"role": "system", "content": system_prompt},

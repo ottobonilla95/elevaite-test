@@ -30,6 +30,7 @@ fronted_agents = {
     "d": "DataAgent",
     "a": "APIAgent",
     "r": "CommandAgent",
+    "c": "ConsolePrinterAgent",
 }
 
 COMMAND_AGENT = None
@@ -75,7 +76,9 @@ def deploy(request: dict):
         for i in request["connections"]:
             print(i)
             connection = i.split("->")
+            print(fronted_agents[connection[0]] == "CommandAgent")
             if fronted_agents[connection[0]] == "CommandAgent":
+                print("Connection: ", connection[-1])
                 connections.append(agent_schemas[fronted_agents[connection[-1]]])
         COMMAND_AGENT = CommandAgent(
             name="WebCommandAgent",
@@ -108,6 +111,7 @@ def deploy(request: dict):
 
         return {"status": "response: ok"}
     except Exception as e:
+        print(e)
         return {"status": f"Error: {e}"}
 
 
