@@ -19,7 +19,7 @@ class PromptBase(BaseModel):
 
 
 class PromptCreate(PromptBase):
-    sha_hash: str
+    sha_hash: Optional[str] = None
 
 
 class PromptUpdate(BaseModel):
@@ -99,7 +99,9 @@ class AgentUpdate(BaseModel):
     status: Optional[Literal["active", "paused", "terminated"]] = None
     priority: Optional[int] = None
     failure_strategies: Optional[List[str]] = None
-    collaboration_mode: Optional[Literal["single", "team", "parallel", "sequential"]] = None
+    collaboration_mode: Optional[
+        Literal["single", "team", "parallel", "sequential"]
+    ] = None
 
 
 class AgentInDB(AgentBase):

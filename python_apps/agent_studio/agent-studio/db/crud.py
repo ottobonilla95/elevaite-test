@@ -1,4 +1,5 @@
 import uuid
+import hashlib
 from datetime import datetime
 from typing import List, Optional
 
@@ -7,12 +8,20 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 
 
-# Prompt CRUD operations
 def create_prompt(db: Session, prompt: schemas.PromptCreate) -> models.Prompt:
+    # Generate a hash if one isn't provided
+    sha_hash = prompt.sha_hash
+    if sha_hash is None:
+        # Create a hash based on the prompt content, label, and timestamp
+        content_to_hash = (
+            f"{prompt.prompt}{prompt.prompt_label}{datetime.now().isoformat()}"
+        )
+        sha_hash = hashlib.sha256(content_to_hash.encode()).hexdigest()[:40]
+
     db_prompt = models.Prompt(
         prompt_label=prompt.prompt_label,
         prompt=prompt.prompt,
-        sha_hash=prompt.sha_hash,
+        sha_hash=sha_hash,
         unique_label=prompt.unique_label,
         app_name=prompt.app_name,
         version=prompt.version,
