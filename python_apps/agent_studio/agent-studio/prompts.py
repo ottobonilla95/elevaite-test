@@ -85,6 +85,26 @@ command_agent_system_prompt = PromptObject(
     variables={"search_engine": "google"},
 )
 
+
+hello_world_agent_system_prompt = PromptObject(
+    pid=uuid.uuid4(),
+    prompt_label="Hello World Agent Prompt",
+    prompt="You're a simple Hello World agent. Your only job is to greet users and respond with a friendly hello world message.",
+    sha_hash="000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8c",
+    uniqueLabel="HelloWorldAgentDemo",
+    appName="agent_studio",
+    version="1.0",
+    createdTime=datetime.now(),
+    deployedTime=None,
+    last_deployed=None,
+    modelProvider="OpenAI",
+    modelName="GPT-4o-mini",
+    isDeployed=False,
+    tags=["hello", "demo"],
+    hyper_parameters={"temperature": "0.7"},
+    variables={},
+)
+
 console_printer_agent_system_prompt = PromptObject(
     pid=uuid.uuid4(),
     prompt_label="Console Printer",
