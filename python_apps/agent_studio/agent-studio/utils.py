@@ -1,17 +1,18 @@
 import os
-import sys
+
+# import sys
 import dotenv
 import openai
 import inspect
 import functools
 from typing import Any, Callable, Dict, List, Protocol, Union, cast, get_type_hints
+from agents.agent_base import Agent
 
 # Add the current directory to the Python path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
+# current_dir = os.path.dirname(os.path.abspath(__file__))
+# if current_dir not in sys.path:
+#     sys.path.append(current_dir)
 
-from data_classes import Agent
 
 # Load environment variables
 dotenv.load_dotenv(".env.local")
@@ -131,8 +132,7 @@ def agent_schema(cls: type[Agent]) -> AgentWithSchema:
             "type": "function",
             "function": {
                 "name": agent_cls.__name__,  # Tool name = Class name
-                "description": execute_method.__doc__
-                or f"Agent {agent_cls.__name__} execution function",
+                "description": execute_method.__doc__ or f"Agent {agent_cls.__name__} execution function",
                 "parameters": {"type": "object", "properties": {}, "required": []},
             },
         }

@@ -11,8 +11,8 @@ class PromptBase(BaseModel):
     unique_label: str
     app_name: str
     version: str
-    model_provider: str
-    model_name: str
+    ai_model_provider: str
+    ai_model_name: str
     tags: Optional[List[str]] = None
     hyper_parameters: Optional[Dict[str, str]] = None
     variables: Optional[Dict[str, str]] = None
@@ -28,8 +28,8 @@ class PromptUpdate(BaseModel):
     unique_label: Optional[str] = None
     app_name: Optional[str] = None
     version: Optional[str] = None
-    model_provider: Optional[str] = None
-    model_name: Optional[str] = None
+    ai_model_provider: Optional[str] = None
+    ai_model_name: Optional[str] = None
     is_deployed: Optional[bool] = None
     tags: Optional[List[str]] = None
     hyper_parameters: Optional[Dict[str, str]] = None
@@ -37,7 +37,6 @@ class PromptUpdate(BaseModel):
 
 
 class PromptInDB(PromptBase):
-
     id: int
     pid: uuid.UUID
     sha_hash: str
@@ -47,7 +46,7 @@ class PromptInDB(PromptBase):
     last_deployed: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class PromptResponse(PromptInDB):
@@ -100,9 +99,7 @@ class AgentUpdate(BaseModel):
     status: Optional[Literal["active", "paused", "terminated"]] = None
     priority: Optional[int] = None
     failure_strategies: Optional[List[str]] = None
-    collaboration_mode: Optional[
-        Literal["single", "team", "parallel", "sequential"]
-    ] = None
+    collaboration_mode: Optional[Literal["single", "team", "parallel", "sequential"]] = None
 
 
 class AgentInDB(AgentBase):
@@ -112,7 +109,7 @@ class AgentInDB(AgentBase):
     last_active: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class AgentResponse(AgentInDB):
@@ -138,7 +135,7 @@ class PromptVersionInDB(PromptVersionBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class PromptVersionResponse(PromptVersionInDB):
@@ -163,7 +160,7 @@ class PromptDeploymentInDB(PromptDeploymentBase):
     is_active: bool
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class PromptDeploymentResponse(PromptDeploymentInDB):

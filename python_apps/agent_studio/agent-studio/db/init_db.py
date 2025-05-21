@@ -56,9 +56,7 @@ def init_db():
             )
 
             if existing:
-                print(
-                    f"Prompt {prompt_obj.prompt_label} v{prompt_obj.version} already exists."
-                )
+                print(f"Prompt {prompt_obj.prompt_label} v{prompt_obj.version} already exists.")
                 continue
 
             try:
@@ -69,8 +67,8 @@ def init_db():
                     unique_label=prompt_obj.uniqueLabel,
                     app_name=prompt_obj.appName,
                     version=prompt_obj.version,
-                    model_provider=prompt_obj.modelProvider,
-                    model_name=prompt_obj.modelName,
+                    ai_model_provider=prompt_obj.modelProvider,
+                    ai_model_name=prompt_obj.modelName,
                     tags=prompt_obj.tags,
                     hyper_parameters=prompt_obj.hyper_parameters,
                     variables=prompt_obj.variables,

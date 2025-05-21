@@ -1,22 +1,24 @@
 import os
-import sys
 import uuid
 import dotenv
 import fastapi
 from datetime import datetime
 from starlette.middleware.cors import CORSMiddleware
 
-# Add the current directory to the Python path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
-
 # Use local imports
-from agents import CommandAgent, agent_schemas
+from agents import agent_schemas
+from agents.command_agent import CommandAgent
 from prompts import command_agent_system_prompt
 from db.database import Base, engine
 from db.init_db import init_db
 from api import prompt_router, agent_router
+
+from contextlib import asynccontextmanager
+
+# # Add the current directory to the Python path
+# current_dir = os.path.dirname(os.path.abspath(__file__))
+# if current_dir not in sys.path:
+#     sys.path.append(current_dir)
 
 dotenv.load_dotenv(".env.local")
 
@@ -33,8 +35,6 @@ fronted_agents = {
 COMMAND_AGENT = None
 
 origins = ["http://127.0.0.1:3002", "*"]
-
-from contextlib import asynccontextmanager
 
 
 @asynccontextmanager
@@ -131,15 +131,11 @@ def run_stream(request: dict):
 
     async def response_stream():
         if COMMAND_AGENT is not None:
-            for chunk in COMMAND_AGENT.execute_stream(
-                request["query"], gpt_chat_history
-            ):
+            for chunk in COMMAND_AGENT.execute_stream(request["query"], gpt_chat_history):
                 yield chunk
             return
 
-    return fastapi.responses.StreamingResponse(
-        response_stream(), media_type="text/event-stream"
-    )
+    return fastapi.responses.StreamingResponse(response_stream(), media_type="text/event-stream")
 
 
 if __name__ == "__main__":

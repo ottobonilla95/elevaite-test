@@ -16,8 +16,8 @@ def create_prompt(db: Session, prompt: schemas.PromptCreate) -> models.Prompt:
         unique_label=prompt.unique_label,
         app_name=prompt.app_name,
         version=prompt.version,
-        model_provider=prompt.model_provider,
-        model_name=prompt.model_name,
+        model_provider=prompt.ai_model_provider,
+        model_name=prompt.ai_model_name,
         tags=prompt.tags,
         hyper_parameters=prompt.hyper_parameters,
         variables=prompt.variables,
@@ -34,9 +34,7 @@ def get_prompt(db: Session, prompt_id: uuid.UUID) -> Optional[models.Prompt]:
     return db.query(models.Prompt).filter(models.Prompt.pid == prompt_id).first()
 
 
-def get_prompt_by_app_and_label(
-    db: Session, app_name: str, prompt_label: str
-) -> List[models.Prompt]:
+def get_prompt_by_app_and_label(db: Session, app_name: str, prompt_label: str) -> List[models.Prompt]:
     return (
         db.query(models.Prompt)
         .filter(
@@ -47,9 +45,7 @@ def get_prompt_by_app_and_label(
     )
 
 
-def get_deployed_prompt(
-    db: Session, app_name: str, prompt_label: str
-) -> Optional[models.Prompt]:
+def get_deployed_prompt(db: Session, app_name: str, prompt_label: str) -> Optional[models.Prompt]:
     return (
         db.query(models.Prompt)
         .filter(
@@ -61,18 +57,14 @@ def get_deployed_prompt(
     )
 
 
-def get_prompts(
-    db: Session, skip: int = 0, limit: int = 100, app_name: Optional[str] = None
-) -> List[models.Prompt]:
+def get_prompts(db: Session, skip: int = 0, limit: int = 100, app_name: Optional[str] = None) -> List[models.Prompt]:
     query = db.query(models.Prompt)
     if app_name:
         query = query.filter(models.Prompt.app_name == app_name)
     return query.offset(skip).limit(limit).all()
 
 
-def update_prompt(
-    db: Session, prompt_id: uuid.UUID, prompt_update: schemas.PromptUpdate
-) -> Optional[models.Prompt]:
+def update_prompt(db: Session, prompt_id: uuid.UUID, prompt_update: schemas.PromptUpdate) -> Optional[models.Prompt]:
     db_prompt = get_prompt(db, prompt_id)
     if not db_prompt:
         return None
@@ -86,9 +78,7 @@ def update_prompt(
     return db_prompt
 
 
-def deploy_prompt(
-    db: Session, prompt_id: uuid.UUID, app_name: str, environment: str = "production"
-) -> Optional[models.Prompt]:
+def deploy_prompt(db: Session, prompt_id: uuid.UUID, app_name: str, environment: str = "production") -> Optional[models.Prompt]:
     db_prompt = get_prompt(db, prompt_id)
     if db_prompt is None or str(db_prompt.app_name) != app_name:
         return None
@@ -165,18 +155,14 @@ def get_agent_by_name(db: Session, name: str) -> Optional[models.Agent]:
     return db.query(models.Agent).filter(models.Agent.name == name).first()
 
 
-def get_agents(
-    db: Session, skip: int = 0, limit: int = 100, deployed: Optional[bool] = None
-) -> List[models.Agent]:
+def get_agents(db: Session, skip: int = 0, limit: int = 100, deployed: Optional[bool] = None) -> List[models.Agent]:
     query = db.query(models.Agent)
     if deployed is not None:
         query = query.filter(models.Agent.deployed == deployed)
     return query.offset(skip).limit(limit).all()
 
 
-def update_agent(
-    db: Session, agent_id: uuid.UUID, agent_update: schemas.AgentUpdate
-) -> Optional[models.Agent]:
+def update_agent(db: Session, agent_id: uuid.UUID, agent_update: schemas.AgentUpdate) -> Optional[models.Agent]:
     db_agent = get_agent(db, agent_id)
     if not db_agent:
         return None

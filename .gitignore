@@ -46,6 +46,7 @@ __pycache__/
 **/storybook-static/
 out
 .idea
+*.code-workspace
 
 #ignore the db files that popped up in the server somehow
 elevaite_db/*
