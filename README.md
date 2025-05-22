@@ -24,7 +24,7 @@ The `packages` directory contains the internal packages to be used in the applic
 
 ### Python Setup
 
-Python programs and packages are (mostly) co-located in the `elevaite_backend` directory
+Python apps and packages are located in the `python_apps` and `python_packages` directories respectively.
 
 ## Branch Strategy
 
