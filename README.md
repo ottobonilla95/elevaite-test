@@ -26,6 +26,28 @@ The `packages` directory contains the internal packages to be used in the applic
 
 Python apps and packages are located in the `python_apps` and `python_packages` directories respectively.
 
+#### Installing Python Dependencies
+
+To install all Python dependencies for the backend, you can use the provided installation script:
+
+```bash
+# Install all dependencies (including development/testing dependencies)
+./install_backend_deps.sh
+
+# Install only production dependencies (skip development/testing dependencies)
+./install_backend_deps.sh --skip-dev
+```
+
+or install them manually using [uv](https://docs.astral.sh/uv/):
+
+```bash
+# Install all dependencies (including development/testing dependencies)
+uv sync --all-extras --all-packages
+
+# Install only production dependencies (skip development/testing dependencies)
+uv sync --all-packages
+```
+
 ## Branch Strategy
 
 **This repository follows a modified Git Flow branch strategy.**
