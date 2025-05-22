@@ -7,6 +7,7 @@ import inspect
 import functools
 from typing import Any, Callable, Dict, List, Protocol, Union, cast, get_type_hints
 from agents.agent_base import Agent
+import pika
 
 # Add the current directory to the Python path
 # current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -202,3 +203,35 @@ def log_decorator(func: Callable) -> Callable:
             raise
 
     return wrapper
+
+
+def get_rmq_connection() -> pika.BlockingConnection:
+    dotenv.load_dotenv()
+    RABBITMQ_USER = os.getenv("RABBITMQ_USER")
+    if RABBITMQ_USER is None:
+        raise Exception("RABBITMQ_USER is null")
+    RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
+    if RABBITMQ_PASSWORD is None:
+        raise Exception("RABBITMQ_PASSWORD is null")
+    RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
+    if RABBITMQ_HOST is None:
+        raise Exception("RABBITMQ_HOST is null")
+    RABBITMQ_VHOST = os.getenv("RABBITMQ_VHOST")
+    if RABBITMQ_VHOST is None:
+        raise Exception("RABBITMQ_VHOST is null")
+    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
+    try:
+        conn = pika.BlockingConnection(
+            pika.ConnectionParameters(
+                host=RABBITMQ_HOST,
+                port=5672,
+                heartbeat=600,
+                blocked_connection_timeout=300,
+                credentials=credentials,
+                virtual_host=RABBITMQ_VHOST,
+            )
+        )
+        return conn
+    except Exception as e:
+        print(e)
+        raise e

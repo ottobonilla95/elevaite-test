@@ -42,3 +42,6 @@ class Agent(BaseModel):
     def execute(self, *args, **kwargs) -> Any:
         """Execution script for each component."""
         raise NotImplementedError("Component execution logic should be implemented in subclasses.")
+
+    class Config:
+        arbitrary_types_allowed = True
