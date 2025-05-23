@@ -37,13 +37,15 @@
 
 /* Sidebar styles */
 .designer-sidebar {
-  width: 16rem;
-  border-right: 1px solid #e5e7eb;
+  width: 320px;
+  border: 1px solid #E2E8ED;
   display: flex;
   flex-direction: column;
   background-color: white;
   overflow-y: auto; /* Added to make sidebar scrollable */
   max-height: 100%; /* Ensure sidebar doesn't overflow */
+  border-radius: 16px;
+  padding: 8px;
 }
 
 .sidebar-header {
@@ -62,13 +64,17 @@
 }
 
 .sidebar-item {
-  padding: 0.625rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  margin-bottom: 0.625rem;
+  padding: 8px;
+  border: 1px solid #E2E8ED;
+  border-radius: 12px;
+  margin-bottom: 12px;
   background-color: white;
   cursor: grab;
   transition: transform 0.2s, box-shadow 0.2s;
+
+  &:last-child:not(:first-child) {
+	margin-bottom: 0;
+  }
 
   &:hover {
     transform: translateX(0.25rem);
@@ -79,6 +85,12 @@
 .sidebar-item-content {
   display: flex;
   align-items: center;
+
+  .item-details {
+	h3 + p {
+		margin-top: 4px;
+	}
+  }
 }
 
 .item-icon {
@@ -242,14 +254,14 @@
   margin-bottom: 0.75rem;
   padding: 0.75rem;
   border-radius: 8px;
-  
+
   &.user {
     background-color: $accent-primary !important; //#3b82f6;
     color: white;
     align-self: flex-end;
     margin-left: auto;
   }
-  
+
   &.bot {
     background-color: #f3f4f6;
     color: #111827;
@@ -264,7 +276,7 @@
   position: sticky; /* Keep input at bottom when scrolling */
   bottom: 0;
   background-color: white;
-  
+
   input {
     flex: 1;
     padding: 0.75rem;
@@ -282,7 +294,7 @@
   align-items: center;
   justify-content: center;
   z-index: 50;
-  
+
   .modal-content {
     background-color: white;
     border-radius: 8px;
@@ -297,19 +309,19 @@
   &-router {
     background-color: rgba(59, 130, 246, 0.1);
   }
-  
+
   &-web_search {
     background-color: rgba(16, 185, 129, 0.1);
   }
-  
+
   &-api {
     background-color: rgba(245, 158, 11, 0.1);
   }
-  
+
   &-data {
     background-color: rgba(139, 92, 246, 0.1);
   }
-  
+
   &-troubleshooting {
     background-color: rgba(239, 68, 68, 0.1);
   }
@@ -320,19 +332,19 @@
   &-router {
     color: #3b82f6;
   }
-  
+
   &-web_search {
     color: #10b981;
   }
-  
+
   &-api {
     color: #f59e0b;
   }
-  
+
   &-data {
     color: #8b5cf6;
   }
-  
+
   &-troubleshooting {
     color: #ef4444;
   }
@@ -399,7 +411,6 @@ html, body, #__next {
 /* Add these to ensure parent containers don't restrict scrolling */
 main {
   height: 100vh !important;
-  width: 100vw !important;
   overflow-y: auto !important;
   padding-top: 0; /* Adjust if needed for your navbar */
 }

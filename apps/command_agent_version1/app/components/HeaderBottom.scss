@@ -1,0 +1,37 @@
+
+.header-bottom {
+	padding: 9px 16px;
+	border-bottom: 1px solid #E2E8ED;
+	display: grid;
+	align-items: center;
+	grid-template-columns: 1fr auto 1fr;
+	background: white;
+	height: 59px;
+
+	.actions {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		background: #F8FAFC;
+		padding: 3px 12px;
+		border-radius: 50px;
+
+		button {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 32px;
+			height: 32px;
+			border: 1px solid #E2E8ED;
+			border-radius: 50%;
+		}
+
+		.active,
+		&:hover {
+			path {
+				stroke: var(--orange);
+				fill: var(--orange);
+			}
+		}
+	}
+}

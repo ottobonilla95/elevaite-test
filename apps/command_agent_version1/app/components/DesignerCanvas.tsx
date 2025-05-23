@@ -274,12 +274,12 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
                 elementsSelectable={true}
             >
                 <Controls />
-                <Background
+               {/*  <Background
                     color="#aaa"
                     gap={16}
                     variant={BackgroundVariant.Dots}
                     size={1}
-                />
+                /> */}
                 <MiniMap
                     nodeStrokeColor={(node) => {
                         if (node.selected) return '#f97316';

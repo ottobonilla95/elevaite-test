@@ -1,0 +1,7 @@
+.accordion {
+	border: 1px solid #E2E8ED;
+
+	&:has(.accordion-content) .accordion-title {
+		border-bottom: 1px solid #E2E8ED;
+	}
+}

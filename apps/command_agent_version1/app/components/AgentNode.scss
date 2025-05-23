@@ -8,23 +8,23 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     border: 1px solid #e5e7eb;
     width: 280px;
-    
+
     &.selected {
       box-shadow: 0 0 0 2px $accent-primary; //#3b82f6;
     }
-  
+
     // Header with title and controls
     .agent-node-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: 0.5rem;
-  
+
       .agent-icon-container {
         display: flex;
         align-items: center;
         gap: 0.5rem;
-  
+
         .agent-icon {
           height: 40px;
           width: 40px;
@@ -35,29 +35,29 @@
           align-items: center;
           justify-content: center;
 
-          & > svg {            
+          & > svg {
             color: $accent-primary;
           }
         }
-  
+
         .agent-title {
           .agent-name {
             font-weight: 500;
             color: #111827; // gray-900
             margin-bottom: 0.125rem;
           }
-  
+
           .agent-type {
             font-size: 0.75rem;
             color: #6b7280; // gray-500
           }
         }
       }
-  
+
       .agent-controls {
         display: flex;
         gap: 0.25rem;
-  
+
         .control-button {
           padding: 0.25rem;
           border-radius: 0.25rem;
@@ -66,56 +66,56 @@
           border: none;
           cursor: pointer;
           transition: color 0.2s;
-  
+
           &:hover {
             color: #4b5563; // gray-600
           }
-  
+
           &.edit-button:hover {
             color: #3b82f6; // blue-500
           }
-  
+
           &.delete-button:hover {
             color: #ef4444; // red-500
           }
         }
       }
     }
-  
+
     // Badge section
     .agent-badges {
       display: flex;
       flex-wrap: wrap;
       gap: 0.25rem;
       margin-bottom: 0.75rem;
-  
+
       .badge {
         display: inline-block;
-        padding: 0.125rem 0.5rem;
+        padding: 4px 8px;
         font-size: 0.75rem;
         font-weight: 500;
-        border-radius: 0.25rem;
-        background-color: #f3f4f6; // gray-100
-        color: #4b5563; // gray-600
+        border-radius: 6px;
+        background-color: #6C82711F; // gray-100
+        color: #6C8271; // gray-600
       }
     }
-  
+
     // Tools section
     .agent-tools {
       margin-top: 0.75rem;
-  
+
       .tools-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 0.5rem;
-  
+
         .tools-title {
           font-size: 0.875rem;
           font-weight: 500;
           color: #374151; // gray-700
         }
-  
+
         .edit-tools-button {
           padding: 0.25rem;
           border-radius: 0.25rem;
@@ -124,34 +124,35 @@
           border: none;
           cursor: pointer;
           transition: color 0.2s;
-  
+
           &:hover {
             color: #4b5563; // gray-600
           }
         }
       }
-  
+
       .tools-list {
         display: flex;
         flex-wrap: wrap;
         gap: 0.5rem;
-  
+
         .tool-badge {
           display: inline-flex;
           align-items: center;
           padding: 0.25rem 0.5rem;
           font-size: 0.75rem;
-          border-radius: 0.25rem;
-          background-color: #fff7ed; // orange-50
-          color: #f97316; // orange-500
-  
+		  font-weight: 500;;
+          border-radius: 6px;
+          background-color: #FF681F1F; // orange-50
+          color: var(--orange); // orange-500
+
           .tool-name {
             margin-left: 0.25rem;
           }
         }
       }
     }
-  
+
     // ReactFlow handles
     .input-handle, .output-handle {
       background: #3b82f6; // blue-500
@@ -159,11 +160,11 @@
       height: 8px;
       border: 2px solid white;
     }
-  
+
     .input-handle {
       top: -4px;
     }
-  
+
     .output-handle {
       bottom: -4px;
     }
