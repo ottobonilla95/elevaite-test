@@ -4,23 +4,27 @@ import threading
 from typing import Any, Callable, Dict, List, Literal, Optional, cast
 import uuid
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
-from openai.types.chat.chat_completion_tool_message_param import ChatCompletionToolMessageParam
+from openai.types.chat.chat_completion_tool_message_param import (
+    ChatCompletionToolMessageParam,
+)
 from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
 
-import pika
-import pika.adapters.blocking_connection
-import pika.channel
-import pika.spec
+# RabbitMQ imports - commented out for Redis-only implementation
+# import pika
+# import pika.adapters.blocking_connection
+# import pika.channel
+# import pika.spec
 from pydantic import BaseModel
 
 from .agent_base import Agent
-from utils import agent_schema, client, get_rmq_connection
+from utils import agent_schema, client
 from data_classes import PromptObject
 
 from tools import tool_store
 
 
-EXCHANGE_NAME = "agents_exchange"
+# RabbitMQ exchange name - commented out for Redis-only implementation
+# EXCHANGE_NAME = "agents_exchange"
 
 
 class ConsolePrinterAgentInput(BaseModel):
@@ -29,64 +33,68 @@ class ConsolePrinterAgentInput(BaseModel):
 
 @agent_schema
 class ConsolePrinterAgent(Agent):
-    connection: pika.BlockingConnection = None
-    channel: pika.adapters.blocking_connection.BlockingChannel = None
-    callback_queue: str = ""
-    response: Optional[str] = None
-    corr_id: Optional[str] = None
+    # RabbitMQ-related attributes - commented out for Redis-only implementation
+    # connection: pika.BlockingConnection = None
+    # channel: pika.adapters.blocking_connection.BlockingChannel = None
+    # callback_queue: str = ""
+    # response: Optional[str] = None
+    # corr_id: Optional[str] = None
 
-    def bind_and_consume(self, routing_key: str, func: Callable[[Any], str | None]):
-        t = threading.Thread(target=self._bind_and_consume, args=(routing_key, func))
-        t.start()
-
-    def _bind_and_consume(self, routing_key: str, func: Callable[[Any], str | None]):
-        channel = get_rmq_connection().channel()
-
-        channel.exchange_declare(exchange=EXCHANGE_NAME, exchange_type="topic")
-        _res = channel.queue_declare(queue="", exclusive=True)
-        queue_name = _res.method.queue
-        channel.queue_bind(exchange=EXCHANGE_NAME, queue=queue_name, routing_key=routing_key)
-
-        def on_request(
-            ch,
-            method: pika.spec.Basic.Deliver,
-            props: pika.spec.BasicProperties,
-            body,
-        ):
-            _data = json.loads(body)
-            print(func.__name__)
-            # print("  [o] Received: ")
-            # print(body)
-            response = func(_data)
-            # print("  [o] Responding: ")
-            # print(response)
-
-            ch.basic_publish(
-                exchange="",
-                routing_key=props.reply_to,
-                properties=pika.BasicProperties(correlation_id=props.correlation_id),
-                body=response,
-            )
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-
-        channel.basic_consume(queue=queue_name, on_message_callback=on_request)
-        channel.start_consuming()
-
-    def _on_response(self, ch, method, props, body):
-        if self.corr_id == props.correlation_id:
-            self.response = body
-
-    def _publish_request(self, body: str | bytes, routing_key: str):
-        self.corr_id = str(uuid.uuid4())
-        self.channel.basic_publish(
-            exchange=EXCHANGE_NAME,
-            routing_key=routing_key,
-            properties=pika.BasicProperties(
-                reply_to=self.callback_queue,
-                correlation_id=self.corr_id,
-            ),
-            body=body,
-        )
+    # RabbitMQ-related methods - commented out for Redis-only implementation
+    # def bind_and_consume(self, routing_key: str, func: Callable[[Any], str | None]):
+    #     t = threading.Thread(target=self._bind_and_consume, args=(routing_key, func))
+    #     t.start()
+    #
+    # def _bind_and_consume(self, routing_key: str, func: Callable[[Any], str | None]):
+    #     channel = get_rmq_connection().channel()
+    #
+    #     channel.exchange_declare(exchange=EXCHANGE_NAME, exchange_type="topic")
+    #     _res = channel.queue_declare(queue="", exclusive=True)
+    #     queue_name = _res.method.queue
+    #     channel.queue_bind(
+    #         exchange=EXCHANGE_NAME, queue=queue_name, routing_key=routing_key
+    #     )
+    #
+    #     def on_request(
+    #         ch,
+    #         method: pika.spec.Basic.Deliver,
+    #         props: pika.spec.BasicProperties,
+    #         body,
+    #     ):
+    #         _data = json.loads(body)
+    #         print(func.__name__)
+    #         # print("  [o] Received: ")
+    #         # print(body)
+    #         response = func(_data)
+    #         # print("  [o] Responding: ")
+    #         # print(response)
+    #
+    #         ch.basic_publish(
+    #             exchange="",
+    #             routing_key=props.reply_to,
+    #             properties=pika.BasicProperties(correlation_id=props.correlation_id),
+    #             body=response,
+    #         )
+    #         ch.basic_ack(delivery_tag=method.delivery_tag)
+    #
+    #     channel.basic_consume(queue=queue_name, on_message_callback=on_request)
+    #     channel.start_consuming()
+    #
+    # def _on_response(self, ch, method, props, body):
+    #     if self.corr_id == props.correlation_id:
+    #         self.response = body
+    #
+    # def _publish_request(self, body: str | bytes, routing_key: str):
+    #     self.corr_id = str(uuid.uuid4())
+    #     self.channel.basic_publish(
+    #         exchange=EXCHANGE_NAME,
+    #         routing_key=routing_key,
+    #         properties=pika.BasicProperties(
+    #             reply_to=self.callback_queue,
+    #             correlation_id=self.corr_id,
+    #         ),
+    #         body=body,
+    #     )
 
     def __init__(
         self,
@@ -102,9 +110,17 @@ class ConsolePrinterAgent(Agent):
         short_term_memory: bool = False,
         long_term_memory: bool = False,
         reasoning: bool = False,
-        input_type: Optional[List[Literal["text", "voice", "image"]]] = ["text", "voice"],
-        output_type: Optional[List[Literal["text", "voice", "image"]]] = ["text", "voice"],
-        response_type: Optional[Literal["json", "yaml", "markdown", "HTML", "None"]] = "json",
+        input_type: Optional[List[Literal["text", "voice", "image"]]] = [
+            "text",
+            "voice",
+        ],
+        output_type: Optional[List[Literal["text", "voice", "image"]]] = [
+            "text",
+            "voice",
+        ],
+        response_type: Optional[
+            Literal["json", "yaml", "markdown", "HTML", "None"]
+        ] = "json",
         # Execution parameters
         max_retries: int = 3,
         timeout: Optional[int] = None,
@@ -115,7 +131,9 @@ class ConsolePrinterAgent(Agent):
         session_id: Optional[str] = None,
         last_active: Optional[datetime] = None,
         # logging_level: Optional[Literal["debug", "info", "warning", "error"]] = "info"  # Debug level
-        collaboration_mode: Optional[Literal["single", "team", "parallel", "sequential"]] = "single",  # Multi-agent behavior
+        collaboration_mode: Optional[
+            Literal["single", "team", "parallel", "sequential"]
+        ] = "single",  # Multi-agent behavior
     ):
         super().__init__(
             agent_id=agent_id,
@@ -141,22 +159,26 @@ class ConsolePrinterAgent(Agent):
             timeout=timeout,
             priority=priority,
         )
-        self.connection = get_rmq_connection()
+        # RabbitMQ initialization - commented out for Redis-only implementation
+        # self.connection = get_rmq_connection()
+        #
+        # self.channel = self.connection.channel()
+        #
+        # result = self.channel.queue_declare(queue="", exclusive=True)
+        # self.callback_queue = result.method.queue
+        #
+        # self.channel.basic_consume(
+        #     queue=self.callback_queue,
+        #     on_message_callback=self._on_response,
+        #     auto_ack=True,
+        # )
+        #
+        # self.response = None
+        # self.corr_id = None
+        # self.bind_and_consume("console_printer_agent", self._execute)
 
-        self.channel = self.connection.channel()
-
-        result = self.channel.queue_declare(queue="", exclusive=True)
-        self.callback_queue = result.method.queue
-
-        self.channel.basic_consume(
-            queue=self.callback_queue,
-            on_message_callback=self._on_response,
-            auto_ack=True,
-        )
-
-        self.response = None
-        self.corr_id = None
-        self.bind_and_consume("console_printer_agent", self._execute)
+        # Initialize Redis communication
+        self.initialize_redis_communication()
 
     def _execute(self, payload: Any):
         """
@@ -164,7 +186,9 @@ class ConsolePrinterAgent(Agent):
         """
         query = payload["query"]
         tries = 0
-        routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
+        routing_options = "\n".join(
+            [f"{k}: {v}" for k, v in self.routing_options.items()]
+        )
         system_prompt = (
             self.system_prompt.prompt
             + f"""
@@ -188,12 +212,20 @@ class ConsolePrinterAgent(Agent):
                     tools=self.functions,
                     stream=False,
                 )
-                if response.choices[0].finish_reason == "tool_calls" and response.choices[0].message.tool_calls is not None:
+                if (
+                    response.choices[0].finish_reason == "tool_calls"
+                    and response.choices[0].message.tool_calls is not None
+                ):
                     tool_calls = response.choices[0].message.tool_calls
                     messages.append(
                         cast(
                             ChatCompletionMessageParam,
-                            {"role": "assistant", "tool_calls": cast(List[ChatCompletionToolMessageParam], tool_calls)},
+                            {
+                                "role": "assistant",
+                                "tool_calls": cast(
+                                    List[ChatCompletionToolMessageParam], tool_calls
+                                ),
+                            },
                         )
                     )
                     for tool in tool_calls:
@@ -221,12 +253,23 @@ class ConsolePrinterAgent(Agent):
                 print(f"Error: {e}")
             tries += 1
 
-    def execute(self, query: str, **kwargs: ConsolePrinterAgentInput) -> Any:
+    def execute(self, **kwargs: Any) -> Any:
         """
         This agent prints the input to the console.
+        Uses Redis for communication.
         """
-        self.response = None
-        self._publish_request(json.dumps({"query": query}), "console_printer_agent")
-        while self.response is None:
-            self.connection.process_data_events(time_limit=0)
-        return str(self.response, "utf-8")
+        query = kwargs.get("query", "")
+        # Use request-reply pattern for synchronous communication
+        if self.stream_name is None:
+            return "Error: No stream name configured for this agent"
+
+        response = self.request_reply(
+            self.stream_name,
+            {"type": "query", "query": query, "priority": kwargs.get("priority", 0)},
+            timeout=self.timeout or 10,
+        )
+
+        if response:
+            return response.get("result", "No result returned")
+        else:
+            return "Timeout or error occurred while waiting for response"
