@@ -83,5 +83,14 @@ export enum ChatMessageFileTypes {
 
 
 
+// Prompts
+
+export interface UploadFileResponse {
+  success: boolean;
+  message?: string;
+  [key: string]: unknown;
+}
+
+
 
 

@@ -1,7 +1,9 @@
 import React from 'react';
 import Image from 'next/image';
+import { usePrompt } from '../ui/contexts/PromptContext';
 
 const PromptRightSidebarTestingConsole = () => {
+	const promptsContext = usePrompt();
 	const [activeClass, setIsActiveClass] = React.useState('');
 
 	const handleHalfExpanded = () => {
@@ -20,12 +22,16 @@ const PromptRightSidebarTestingConsole = () => {
 		}
 	}
 
+	function handleFileUpload() {
+		promptsContext.goToNextPage();
+	}
+
 	return (
 		<div className={`bottom testing-console ${activeClass} w-full rounded-b-xl ${activeClass ? 'overflow-y-auto' : 'overflow-hidden'}`}>
 			<div className="p-4 flex items-center justify-between">
 				<div className="font-medium">Testing Console</div>
 				<div className="flex gap-4 items-center">
-					<button>
+					<button onClick={handleFileUpload}>
 						<svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 							<g opacity="0.8">
 								<path d="M14.4018 7.26622L8.39138 13.2766C7.02454 14.6435 4.80847 14.6435 3.44163 13.2766C2.0748 11.9098 2.0748 9.69372 3.44163 8.32688L9.45204 2.31647C10.3633 1.40525 11.8406 1.40525 12.7519 2.31647C13.6631 3.2277 13.6631 4.70508 12.7519 5.61631L6.97716 11.391C6.52155 11.8466 5.78286 11.8466 5.32725 11.391C4.87164 10.9354 4.87164 10.1967 5.32725 9.74109L10.3948 4.6735" stroke="#212124" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
