@@ -36,6 +36,8 @@ async def log_user_activity(
             timestamp=datetime.now(timezone.utc),
             details=details,
         )
+    except Exception as e:
+        print(f"Error creating UserActivity instance: {e}")
 
     # Add to session and commit
     try:

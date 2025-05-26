@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir uv
 
 WORKDIR /elevaite
 COPY ./python_packages/db-core ./python_packages/db-core
-COPY ./python_packages/elevaite-logger ./python_packages/elevaite-logger
+COPY ./python_packages/fastapi-logger ./python_packages/fastapi-logger
 COPY ./python_apps/auth_api ./python_apps/auth_api
 COPY ./pyproject.toml ./
 
