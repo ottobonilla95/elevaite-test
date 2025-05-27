@@ -12,7 +12,7 @@ from agents.command_agent import CommandAgent
 from prompts import command_agent_system_prompt
 from db.database import Base, engine, get_db
 from db.init_db import init_db
-from api import prompt_router, agent_router
+from api import prompt_router, agent_router, demo_router
 from db import crud
 
 from contextlib import asynccontextmanager
@@ -45,6 +45,7 @@ app = fastapi.FastAPI(title="Agent Studio Backend", version="0.1.0", lifespan=li
 
 app.include_router(prompt_router)
 app.include_router(agent_router)
+app.include_router(demo_router)
 
 
 @app.get("/")
