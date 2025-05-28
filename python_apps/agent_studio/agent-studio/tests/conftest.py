@@ -1,11 +1,18 @@
 import os
 import pytest
+import logging
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 
 from db.database import Base, get_db
 from main import app
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+
+logging.getLogger("redis").setLevel(logging.WARNING)
 
 
 @pytest.fixture(scope="session")
@@ -89,3 +96,106 @@ def sample_agent_data():
         "deployment_code": "t",
         "available_for_deployment": True,
     }
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "unit: mark test as a unit test")
+    config.addinivalue_line("markers", "integration: mark test as an integration test")
+    config.addinivalue_line("markers", "redis: mark test as requiring Redis")
+    config.addinivalue_line("markers", "slow: mark test as slow running")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_redis_test_environment():
+    test_env_vars = {
+        "REDIS_HOST": os.getenv("TEST_REDIS_HOST", "localhost"),
+        "REDIS_PORT": os.getenv("TEST_REDIS_PORT", "6379"),
+        "REDIS_DB": os.getenv("TEST_REDIS_DB", "1"),
+        "REDIS_USERNAME": os.getenv("TEST_REDIS_USERNAME", ""),
+        "REDIS_PASSWORD": os.getenv("TEST_REDIS_PASSWORD", ""),
+        "REDIS_MAX_CONNECTIONS": "5",
+        "REDIS_CONNECTION_TIMEOUT": "2",
+        "REDIS_SOCKET_TIMEOUT": "2",
+    }
+
+    original_values = {}
+    for key, value in test_env_vars.items():
+        original_values[key] = os.getenv(key)
+        os.environ[key] = value
+
+    yield
+
+    for key, original_value in original_values.items():
+        if original_value is not None:
+            os.environ[key] = original_value
+        elif key in os.environ:
+            del os.environ[key]
+
+
+@pytest.fixture
+def redis_test_config():
+    from redis_config import RedisConfig
+
+    return RedisConfig(
+        host=os.getenv("TEST_REDIS_HOST", "localhost"),
+        port=int(os.getenv("TEST_REDIS_PORT", "6379")),
+        db=int(os.getenv("TEST_REDIS_DB", "1")),
+        username=os.getenv("TEST_REDIS_USERNAME") or None,
+        password=os.getenv("TEST_REDIS_PASSWORD") or None,
+        max_connections=5,
+        connection_timeout=2,
+        socket_timeout=2,
+    )
+
+
+@pytest.fixture
+def clean_redis_state():
+    from redis_utils import RedisManager
+
+    manager = RedisManager()
+
+    if manager.is_connected:
+        redis_client = manager.redis
+        try:
+            test_keys = list(redis_client.keys("test_stream_*"))  # type: ignore
+            reply_keys = list(redis_client.keys("reply:*"))  # type: ignore
+            test_keys.extend(reply_keys)
+
+            if test_keys:
+                redis_client.delete(*test_keys)
+        except Exception:
+            pass
+
+    yield
+
+    # Clean up after test
+    if manager.is_connected:
+        redis_client = manager.redis
+        try:
+            test_keys = list(redis_client.keys("test_stream_*"))  # type: ignore
+            reply_keys = list(redis_client.keys("reply:*"))  # type: ignore
+            test_keys.extend(reply_keys)
+
+            if test_keys:
+                redis_client.delete(*test_keys)
+        except Exception:
+            pass
+
+
+def pytest_runtest_setup(item):
+    if item.get_closest_marker("redis"):
+        from redis_utils import RedisManager
+
+        manager = RedisManager()
+        if not manager.is_connected:
+            pytest.skip("Redis is not available")
+
+
+def pytest_runtest_teardown(item):
+    if item.get_closest_marker("redis"):
+        try:
+            from redis_utils import redis_manager
+
+            redis_manager.stop_all_consumers()
+        except Exception:
+            pass
