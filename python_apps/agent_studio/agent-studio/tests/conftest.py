@@ -17,18 +17,22 @@ logging.getLogger("redis").setLevel(logging.WARNING)
 
 @pytest.fixture(scope="session")
 def test_db_url() -> str:
-    return "sqlite:///./test_agent_studio.db"
+    return os.getenv(
+        "TEST_DATABASE_URL",
+        "postgresql://elevaite:elevaite@localhost:5433/agent_studio",
+    )
 
 
 @pytest.fixture(scope="session")
 def test_engine(test_db_url):
-    engine = create_engine(test_db_url, connect_args={"check_same_thread": False})
-    Base.metadata.create_all(bind=engine)
-    yield engine
+    engine = create_engine(test_db_url)
+
     try:
-        os.remove("./test_agent_studio.db")
-    except FileNotFoundError:
+        Base.metadata.create_all(bind=engine)
+    except Exception:
         pass
+
+    yield engine
 
 
 @pytest.fixture(scope="function")
@@ -39,8 +43,16 @@ def test_db_session(test_engine):
     session = TestingSessionLocal()
     yield session
     session.close()
-    for table in reversed(Base.metadata.sorted_tables):
-        test_engine.execute(table.delete())
+
+    with test_engine.connect() as connection:
+        trans = connection.begin()
+        try:
+            for table in reversed(Base.metadata.sorted_tables):
+                connection.execute(table.delete())
+            trans.commit()
+        except Exception:
+            trans.rollback()
+            raise
 
 
 @pytest.fixture(scope="function")
