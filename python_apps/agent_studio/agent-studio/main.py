@@ -7,15 +7,23 @@ from starlette.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 # Use local imports
-from agents import agent_schemas
+from agents import get_agent_schemas
 from agents.command_agent import CommandAgent
 from prompts import command_agent_system_prompt
 from db.database import Base, engine, get_db
 from db.init_db import init_db
 from api import prompt_router, agent_router, demo_router
+
+# Temporarily comment out workflow router to test
+# from api import workflow_router
 from db import crud
+# Temporarily comment out workflow service to test
+# from services.workflow_service import workflow_service
 
 from contextlib import asynccontextmanager
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 # # Add the current directory to the Python path
 # current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -46,6 +54,8 @@ app = fastapi.FastAPI(title="Agent Studio Backend", version="0.1.0", lifespan=li
 app.include_router(prompt_router)
 app.include_router(agent_router)
 app.include_router(demo_router)
+# Temporarily comment out workflow router to test
+# app.include_router(workflow_router)
 
 
 @app.get("/")
@@ -75,8 +85,20 @@ def get_deployment_codes(db: Session = fastapi.Depends(get_db)):
     return code_map
 
 
+# Temporarily disable deploy endpoint to test API startup
+# @app.post("/deploy")
+# def deploy(request: dict, db: Session = fastapi.Depends(get_db)):
+#     """
+#     Modern workflow deployment endpoint - temporarily disabled
+#     """
+#     return {"status": "error", "message": "Deploy endpoint temporarily disabled"}
+
+
 @app.post("/deploy")
-def deploy(request: dict, db: Session = fastapi.Depends(get_db)):
+def deploy_legacy(request: dict, db: Session = fastapi.Depends(get_db)):
+    """
+    Legacy deploy endpoint for testing
+    """
     global COMMAND_AGENT
     print(request)
     try:
@@ -85,10 +107,11 @@ def deploy(request: dict, db: Session = fastapi.Depends(get_db)):
             code = i[0]
             db_agent = crud.get_agent_by_deployment_code(db, code)
             if db_agent is None:
-                return {
-                    "status": f"Error: Agent with deployment code '{code}' not found"
-                }
+                return {"status": f"Error: Agent with deployment code '{code}' not found"}
             agents.append(str(db_agent.name))
+
+        # Get agent schemas lazily to avoid Redis connection at import time
+        agent_schemas = get_agent_schemas()
 
         connections = []
         for i in request["connections"]:
@@ -98,9 +121,7 @@ def deploy(request: dict, db: Session = fastapi.Depends(get_db)):
 
             source_agent = crud.get_agent_by_deployment_code(db, source_code)
             if source_agent is None:
-                return {
-                    "status": f"Error: Agent with deployment code '{source_code}' not found"
-                }
+                return {"status": f"Error: Agent with deployment code '{source_code}' not found"}
             source_name = str(source_agent.name)
 
             if source_name == "CommandAgent":
@@ -108,10 +129,7 @@ def deploy(request: dict, db: Session = fastapi.Depends(get_db)):
                     connections.append(agent_schemas[target_name])
                 else:
                     target_agent = crud.get_agent_by_name(db, target_name)
-                    if (
-                        target_agent is not None
-                        and str(target_agent.name) in agent_schemas
-                    ):
+                    if target_agent is not None and str(target_agent.name) in agent_schemas:
                         connections.append(agent_schemas[str(target_agent.name)])
 
         COMMAND_AGENT = CommandAgent(
@@ -168,15 +186,11 @@ def run_stream(request: dict):
 
     async def response_stream():
         if COMMAND_AGENT is not None:
-            for chunk in COMMAND_AGENT.execute_stream(
-                request["query"], gpt_chat_history
-            ):
+            for chunk in COMMAND_AGENT.execute_stream(request["query"], gpt_chat_history):
                 yield chunk
             return
 
-    return fastapi.responses.StreamingResponse(
-        response_stream(), media_type="text/event-stream"
-    )
+    return fastapi.responses.StreamingResponse(response_stream(), media_type="text/event-stream")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
-import { isChatMessageResponse, isSessionSummaryResponse, isAgentResponseArray } from "./discriminators";
-import type { ChatBotGenAI, ChatMessageResponse, ChatbotV, SessionSummaryObject, AgentResponse } from "./interfaces";
+import { isChatMessageResponse, isSessionSummaryResponse, isAgentResponseArray, isWorkflowDeployResponse, isWorkflowExecutionResponse } from "./discriminators";
+import type { ChatBotGenAI, ChatMessageResponse, ChatbotV, SessionSummaryObject, AgentResponse, WorkflowDeployRequest, WorkflowDeployResponse, WorkflowExecutionRequest, WorkflowExecutionResponse } from "./interfaces";
 
 
 
@@ -67,6 +67,58 @@ export async function fetchAllAgents(skip: number = 0, limit: number = 100, depl
   const data: unknown = await response.json();
   if (isAgentResponseArray(data)) return data;
   throw new Error("Invalid data type - expected array of agents");
+}
+
+export async function fetchAvailableAgents(): Promise<AgentResponse[]> {
+  const url = new URL(`${BACKEND_URL ?? ""}api/agents/deployment/available`);
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Failed to fetch available agents");
+
+  const data: unknown = await response.json();
+  if (isAgentResponseArray(data)) return data;
+  throw new Error("Invalid data type - expected array of agents");
+}
+
+export async function deployWorkflow(workflowRequest: WorkflowDeployRequest): Promise<WorkflowDeployResponse> {
+  const url = new URL(`${BACKEND_URL ?? ""}deploy`);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(workflowRequest),
+  });
+
+  if (!response.ok) throw new Error("Failed to deploy workflow");
+
+  const data: unknown = await response.json();
+  if (isWorkflowDeployResponse(data)) return data;
+  throw new Error("Invalid data type - expected workflow deploy response");
+}
+
+export async function executeWorkflow(executionRequest: WorkflowExecutionRequest): Promise<WorkflowExecutionResponse> {
+  const url = new URL(`${BACKEND_URL ?? ""}run`);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: executionRequest.query,
+      uid: executionRequest.uid,
+      sid: executionRequest.sid,
+      collection: executionRequest.collection,
+    }),
+  });
+
+  if (!response.ok) throw new Error("Failed to execute workflow");
+
+  const data: unknown = await response.json();
+  if (isWorkflowExecutionResponse(data)) return data;
+  throw new Error("Invalid data type - expected workflow execution response");
 }
 
 

@@ -1,4 +1,4 @@
-import type { ChatMessageResponse, SessionSummaryObject, AgentResponse } from "./interfaces";
+import type { ChatMessageResponse, SessionSummaryObject, AgentResponse, WorkflowDeployResponse, WorkflowExecutionResponse } from "./interfaces";
 
 
 
@@ -20,6 +20,14 @@ export function isAgentResponse(data: unknown): data is AgentResponse {
 
 export function isAgentResponseArray(data: unknown): data is AgentResponse[] {
     return Array.isArray(data) && data.every(item => isAgentResponseObject(item));
+}
+
+export function isWorkflowDeployResponse(data: unknown): data is WorkflowDeployResponse {
+    return isWorkflowDeployResponseObject(data);
+}
+
+export function isWorkflowExecutionResponse(data: unknown): data is WorkflowExecutionResponse {
+    return isWorkflowExecutionResponseObject(data);
 }
 
 
@@ -68,5 +76,28 @@ function isAgentResponseObject(item: unknown): item is AgentResponse {
             ["router", "web_search", "data", "troubleshooting", "api", "weather"].includes(item.agent_type as string)) &&
         // description is optional, so we only check if it exists
         (!("description" in item) || item.description === null || typeof item.description === "string");
+}
+
+function isWorkflowDeployResponseObject(item: unknown): item is WorkflowDeployResponse {
+    return isObject(item) &&
+        "status" in item &&
+        "message" in item &&
+        typeof item.status === "string" &&
+        typeof item.message === "string" &&
+        ["success", "error"].includes(item.status) &&
+        // Optional fields
+        (!("workflow_id" in item) || typeof item.workflow_id === "string") &&
+        (!("deployment_id" in item) || typeof item.deployment_id === "string") &&
+        (!("deployment_name" in item) || typeof item.deployment_name === "string");
+}
+
+function isWorkflowExecutionResponseObject(item: unknown): item is WorkflowExecutionResponse {
+    return isObject(item) &&
+        "status" in item &&
+        typeof item.status === "string" &&
+        ["ok", "error"].includes(item.status) &&
+        // Optional fields
+        (!("response" in item) || typeof item.response === "string") &&
+        (!("message" in item) || typeof item.message === "string");
 }
 

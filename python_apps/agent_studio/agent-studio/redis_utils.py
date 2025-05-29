@@ -22,7 +22,6 @@ class RedisManagerError(Exception):
 
 
 class RedisManager:
-
     _instance: Optional["RedisManager"] = None
     _lock = threading.Lock()
 
@@ -55,9 +54,7 @@ class RedisManager:
             self._redis = get_redis_client("agent_manager")
             self._test_connection()
             self._connection_healthy = True
-            logger.info(
-                f"Connected to Redis at {self._config.host}:{self._config.port}"
-            )
+            logger.info(f"Connected to Redis at {self._config.host}:{self._config.port}")
         except Exception as e:
             logger.error(f"Failed to initialize Redis connection: {e}")
             self._connection_healthy = False
@@ -80,9 +77,7 @@ class RedisManager:
     def _ensure_connection(self) -> redis.Redis:
         current_time = time.time()
 
-        if (
-            current_time - self._last_connection_check
-        ) > self._config.health_check_interval:
+        if (current_time - self._last_connection_check) > self._config.health_check_interval:
             try:
                 self._test_connection()
             except RedisManagerError:
@@ -132,17 +127,13 @@ class RedisManager:
                 return True
 
         except RedisManagerError as e:
-            logger.error(
-                f"Redis connection error while creating stream {stream_name}: {e}"
-            )
+            logger.error(f"Redis connection error while creating stream {stream_name}: {e}")
             return False
         except Exception as e:
             logger.error(f"Error creating stream {stream_name}: {e}")
             return False
 
-    def create_consumer_group(
-        self, stream_name: str, group_name: Optional[str] = None
-    ) -> bool:
+    def create_consumer_group(self, stream_name: str, group_name: Optional[str] = None) -> bool:
         if not stream_name or not stream_name.strip():
             logger.error("Stream name cannot be empty")
             return False
@@ -164,19 +155,13 @@ class RedisManager:
                         id="0",
                         mkstream=True,
                     )
-                    logger.info(
-                        f"Created consumer group '{group_name}' for stream '{stream_name}'"
-                    )
+                    logger.info(f"Created consumer group '{group_name}' for stream '{stream_name}'")
 
                 except Exception as e:
                     if "BUSYGROUP" in str(e):
-                        logger.debug(
-                            f"Consumer group '{group_name}' already exists for stream '{stream_name}'"
-                        )
+                        logger.debug(f"Consumer group '{group_name}' already exists for stream '{stream_name}'")
                     else:
-                        logger.error(
-                            f"Error creating consumer group '{group_name}': {e}"
-                        )
+                        logger.error(f"Error creating consumer group '{group_name}': {e}")
                         return False
 
                 return True
@@ -185,9 +170,7 @@ class RedisManager:
             logger.error(f"Redis connection error while creating consumer group: {e}")
             return False
         except Exception as e:
-            logger.error(
-                f"Error creating consumer group {group_name} for stream {stream_name}: {e}"
-            )
+            logger.error(f"Error creating consumer group {group_name} for stream {stream_name}: {e}")
             return False
 
     def publish_message(
@@ -224,9 +207,7 @@ class RedisManager:
                     "data": json.dumps(message, default=str),
                 }
 
-                redis_message = {
-                    k: str(v) if v is not None else "" for k, v in full_message.items()
-                }
+                redis_message = {k: str(v) if v is not None else "" for k, v in full_message.items()}
 
                 result = redis_client.xadd(
                     stream_name,
@@ -238,9 +219,7 @@ class RedisManager:
                 return str(result) if result else None
 
         except RedisManagerError as e:
-            logger.error(
-                f"Redis connection error while publishing to {stream_name}: {e}"
-            )
+            logger.error(f"Redis connection error while publishing to {stream_name}: {e}")
             return None
         except (TypeError, ValueError) as e:
             logger.error(f"Error serializing message data: {e}")
@@ -295,10 +274,7 @@ class RedisManager:
 
             thread_key = f"{stream_name}:{group_name}:{consumer_name}"
 
-            if (
-                thread_key in self._consumer_threads
-                and self._consumer_threads[thread_key].is_alive()
-            ):
+            if thread_key in self._consumer_threads and self._consumer_threads[thread_key].is_alive():
                 logger.warning(f"Consumer {thread_key} is already running")
                 return True
 
@@ -340,9 +316,7 @@ class RedisManager:
         count: int,
         stop_event: threading.Event,
     ) -> None:
-        logger.info(
-            f"Starting consumer loop for {stream_name}:{group_name}:{consumer_name}"
-        )
+        logger.info(f"Starting consumer loop for {stream_name}:{group_name}:{consumer_name}")
 
         consecutive_errors = 0
         max_consecutive_errors = 5
@@ -374,14 +348,10 @@ class RedisManager:
                     continue
                 except Exception as e:
                     consecutive_errors += 1
-                    logger.warning(
-                        f"Error reading from stream (attempt {consecutive_errors}): {e}"
-                    )
+                    logger.warning(f"Error reading from stream (attempt {consecutive_errors}): {e}")
 
                     if consecutive_errors >= max_consecutive_errors:
-                        logger.error(
-                            f"Too many consecutive errors ({consecutive_errors}), stopping consumer"
-                        )
+                        logger.error(f"Too many consecutive errors ({consecutive_errors}), stopping consumer")
                         break
 
                     time.sleep(min(consecutive_errors * 0.5, 5))  # Exponential backoff
@@ -403,9 +373,7 @@ class RedisManager:
 
                                     if "data" in message:
                                         try:
-                                            message["data"] = json.loads(
-                                                message["data"]
-                                            )
+                                            message["data"] = json.loads(message["data"])
                                         except json.JSONDecodeError as e:
                                             logger.warning(
                                                 f"Could not parse message data as JSON: {message['data']}, error: {e}"
@@ -419,18 +387,14 @@ class RedisManager:
                                             self.publish_message(
                                                 reply_to,
                                                 result,
-                                                correlation_id=message.get(
-                                                    "correlation_id", ""
-                                                ),
+                                                correlation_id=message.get("correlation_id", ""),
                                             )
 
                                     redis_client.xack(stream, group_name, message_id)  # type: ignore
                                     logger.debug(f"Processed message {message_id}")
 
                                 except Exception as e:
-                                    logger.error(
-                                        f"Error processing message {message_id}: {e}"
-                                    )
+                                    logger.error(f"Error processing message {message_id}: {e}")
 
                 try:
                     self._claim_pending_messages(
@@ -444,21 +408,15 @@ class RedisManager:
 
             except Exception as e:
                 consecutive_errors += 1
-                logger.error(
-                    f"Unexpected error in consumer loop (attempt {consecutive_errors}): {e}"
-                )
+                logger.error(f"Unexpected error in consumer loop (attempt {consecutive_errors}): {e}")
 
                 if consecutive_errors >= max_consecutive_errors:
-                    logger.error(
-                        f"Too many consecutive errors ({consecutive_errors}), stopping consumer"
-                    )
+                    logger.error(f"Too many consecutive errors ({consecutive_errors}), stopping consumer")
                     break
 
                 time.sleep(min(consecutive_errors, 5))
 
-        logger.info(
-            f"Consumer loop stopped for {stream_name}:{group_name}:{consumer_name}"
-        )
+        logger.info(f"Consumer loop stopped for {stream_name}:{group_name}:{consumer_name}")
 
     def _claim_pending_messages(
         self,
@@ -472,28 +430,13 @@ class RedisManager:
 
             pending = redis_client.xpending(stream_name, group_name)
 
-            if (
-                pending
-                and isinstance(pending, list)
-                and len(pending) > 0
-                and pending[0] > 0
-            ):
-                pending_messages = redis_client.xpending_range(
-                    stream_name, group_name, min="-", max="+", count=10
-                )
+            if pending and isinstance(pending, list) and len(pending) > 0 and pending[0] > 0:
+                pending_messages = redis_client.xpending_range(stream_name, group_name, min="-", max="+", count=10)
 
-                if (
-                    pending_messages
-                    and isinstance(pending_messages, list)
-                    and len(pending_messages) > 0
-                ):
+                if pending_messages and isinstance(pending_messages, list) and len(pending_messages) > 0:
                     message_ids = []
                     for msg in pending_messages:
-                        if (
-                            isinstance(msg, list)
-                            and len(msg) >= 3
-                            and msg[2] >= min_idle_time
-                        ):
+                        if isinstance(msg, list) and len(msg) >= 3 and msg[2] >= min_idle_time:
                             message_ids.append(msg[0])
 
                     if message_ids:
@@ -507,18 +450,12 @@ class RedisManager:
                         if claimed:
                             try:
                                 claimed_count = len(claimed)  # type: ignore
-                                logger.debug(
-                                    f"Claimed {claimed_count} pending messages for {consumer_name}"
-                                )
+                                logger.debug(f"Claimed {claimed_count} pending messages for {consumer_name}")
                             except (TypeError, AttributeError):
-                                logger.debug(
-                                    f"Claimed pending messages for {consumer_name}"
-                                )
+                                logger.debug(f"Claimed pending messages for {consumer_name}")
 
         except RedisManagerError as e:
-            logger.warning(
-                f"Redis connection error while claiming pending messages: {e}"
-            )
+            logger.warning(f"Redis connection error while claiming pending messages: {e}")
         except Exception as e:
             if "NOGROUP" not in str(e) and "no such key" not in str(e).lower():
                 logger.warning(f"Error claiming pending messages: {e}")
@@ -590,9 +527,7 @@ class RedisManager:
             if thread.is_alive():
                 thread.join(timeout=5)
                 if thread.is_alive():
-                    logger.warning(
-                        f"Consumer thread {thread_key} did not stop gracefully"
-                    )
+                    logger.warning(f"Consumer thread {thread_key} did not stop gracefully")
 
         self._consumer_threads.clear()
         self._consumer_stop_events.clear()
@@ -645,9 +580,7 @@ class RedisManager:
                     if msg.get("correlation_id") == correlation_id:
                         response = msg.get("data")
                         response_event.set()
-                        logger.debug(
-                            f"Received reply for correlation_id: {correlation_id}"
-                        )
+                        logger.debug(f"Received reply for correlation_id: {correlation_id}")
                 except Exception as e:
                     logger.error(f"Error in reply handler: {e}")
                 return None
@@ -671,9 +604,7 @@ class RedisManager:
                 logger.error("Failed to publish request message")
                 return None
 
-            logger.debug(
-                f"Sent request {correlation_id} to {request_stream}, waiting for reply..."
-            )
+            logger.debug(f"Sent request {correlation_id} to {request_stream}, waiting for reply...")
 
             # Wait for response
             if response_event.wait(timeout):
@@ -719,4 +650,26 @@ class RedisManager:
         self.stop_all_consumers()
 
 
-redis_manager = RedisManager()
+# Lazy initialization to avoid Redis connection at import time
+_redis_manager_instance = None
+
+
+def get_redis_manager_instance():
+    global _redis_manager_instance
+    if _redis_manager_instance is None:
+        _redis_manager_instance = RedisManager()
+    return _redis_manager_instance
+
+
+# For backward compatibility - lazy initialization
+def get_redis_manager():
+    return get_redis_manager_instance()
+
+
+# Create a property-like access for backward compatibility
+class _RedisManagerProxy:
+    def __getattr__(self, name):
+        return getattr(get_redis_manager_instance(), name)
+
+
+redis_manager = _RedisManagerProxy()

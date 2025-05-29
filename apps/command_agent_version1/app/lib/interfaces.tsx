@@ -99,9 +99,11 @@ export interface PromptResponse {
     last_deployed?: string | null;
 }
 
+export type AgentType = "router" | "web_search" | "data" | "troubleshooting" | "api" | "weather";
+
 export interface AgentResponse {
     name: string;
-    agent_type?: "router" | "web_search" | "data" | "troubleshooting" | "api" | "weather" | null;
+    agent_type?: AgentType | null;
     description?: string | null;
     parent_agent_id?: string | null;
     system_prompt_id: string;
@@ -128,6 +130,51 @@ export interface AgentResponse {
     session_id?: string | null;
     last_active?: string | null;
     system_prompt: PromptResponse;
+}
+
+// Workflow-related interfaces
+export interface WorkflowPosition {
+    x: number;
+    y: number;
+}
+
+export interface WorkflowAgentData {
+    agent_id: string;
+    position?: WorkflowPosition;
+}
+
+export interface WorkflowConnectionData {
+    source_agent_id: string;
+    target_agent_id: string;
+    connection_type?: "default" | "conditional" | "parallel";
+}
+
+export interface WorkflowDeployRequest {
+    workflow_name?: string;
+    description?: string;
+    agents: WorkflowAgentData[];
+    connections: WorkflowConnectionData[];
+}
+
+export interface WorkflowDeployResponse {
+    status: "success" | "error";
+    message: string;
+    workflow_id?: string;
+    deployment_id?: string;
+    deployment_name?: string;
+}
+
+export interface WorkflowExecutionRequest {
+    query: string;
+    uid?: string;
+    sid?: string;
+    collection?: string;
+}
+
+export interface WorkflowExecutionResponse {
+    status: "ok" | "error";
+    response?: string;
+    message?: string;
 }
 
 

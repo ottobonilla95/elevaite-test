@@ -5,7 +5,12 @@ from pydantic import BaseModel, Field
 from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
 from data_classes import PromptObject
 
-from redis_utils import redis_manager
+
+# Lazy import to avoid Redis connection at import time
+def get_redis_manager():
+    from redis_utils import redis_manager
+
+    return redis_manager
 
 
 class Agent(BaseModel):
@@ -50,6 +55,8 @@ class Agent(BaseModel):
 
     def initialize_redis_communication(self):
         try:
+            redis_manager = get_redis_manager()
+
             if not self.stream_name:
                 self.stream_name = f"agent:{self.name.lower()}"
 
@@ -72,6 +79,7 @@ class Agent(BaseModel):
 
     def register_message_handler(self, handler: Callable[[Dict[str, Any]], Optional[Dict[str, Any]]]):
         try:
+            redis_manager = get_redis_manager()
             if self.stream_name is not None and redis_manager.is_connected:
                 redis_manager.consume_messages(
                     self.stream_name,
@@ -103,6 +111,7 @@ class Agent(BaseModel):
 
     def send_message(self, target_stream: str, message: Dict[str, Any], priority: int = 0) -> Optional[str]:
         try:
+            redis_manager = get_redis_manager()
             if redis_manager.is_connected:
                 return redis_manager.publish_message(target_stream, message, priority=priority)
             else:
@@ -114,6 +123,7 @@ class Agent(BaseModel):
 
     def request_reply(self, target_stream: str, message: Dict[str, Any], timeout: int = 5) -> Optional[Dict[str, Any]]:
         try:
+            redis_manager = get_redis_manager()
             if redis_manager.is_connected:
                 return redis_manager.request_reply(
                     target_stream,
