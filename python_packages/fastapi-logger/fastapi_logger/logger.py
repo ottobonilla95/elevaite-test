@@ -89,3 +89,18 @@ class ElevaiteLogger(BaseLogger):
         Will log: "Variable snapshot: result = {actual_value}"
         """
         return self.trace_manager.snapshot(variable_name, value)
+
+    def debug(self, message: str, *args, **kwargs):
+        return self.logger.debug(message, *args, **kwargs)
+
+    def info(self, message: str, *args, **kwargs):
+        return self.logger.info(message, *args, **kwargs)
+
+    def warning(self, message: str, *args, **kwargs):
+        return self.logger.warning(message, *args, **kwargs)
+
+    def error(self, message: str, *args, **kwargs):
+        return self.logger.error(message, *args, **kwargs)
+
+    def critical(self, message: str, *args, **kwargs):
+        return self.logger.critical(message, *args, **kwargs)
