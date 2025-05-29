@@ -49,7 +49,13 @@ class Agent(BaseModel):
     consumer_name: Optional[str] = None
     message_handlers: Dict[str, Callable] = Field(default_factory=dict)
 
-    def execute(self, **kwargs) -> Any:
+    def execute(
+        self,
+        query: str,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        **kwargs,
+    ) -> Any:
         """Execution script for each component."""
         raise NotImplementedError("Component execution logic should be implemented in subclasses.")
 

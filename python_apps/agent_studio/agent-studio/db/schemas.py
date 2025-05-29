@@ -357,3 +357,249 @@ class PromptReadRequest(BaseModel):
 class PromptReadListRequest(BaseModel):
     app_name: str
     prompt_label: str
+
+
+# Analytics Schemas
+class AgentExecutionMetricsBase(BaseModel):
+    agent_id: uuid.UUID
+    agent_name: str
+    query: Optional[str] = None
+    session_id: Optional[str] = None
+    user_id: Optional[str] = None
+    correlation_id: Optional[str] = None
+
+
+class AgentExecutionMetricsCreate(AgentExecutionMetricsBase):
+    execution_id: Optional[uuid.UUID] = None
+    start_time: Optional[datetime] = None
+
+
+class AgentExecutionMetricsUpdate(BaseModel):
+    end_time: Optional[datetime] = None
+    duration_ms: Optional[int] = None
+    status: Optional[str] = None
+    response: Optional[str] = None
+    error_message: Optional[str] = None
+    tools_called: Optional[List[Dict[str, Any]]] = None
+    tool_count: Optional[int] = None
+    retry_count: Optional[int] = None
+    tokens_used: Optional[int] = None
+    api_calls_count: Optional[int] = None
+
+
+class AgentExecutionMetricsInDB(AgentExecutionMetricsBase):
+    id: int
+    execution_id: uuid.UUID
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    duration_ms: Optional[int] = None
+    status: str
+    response: Optional[str] = None
+    error_message: Optional[str] = None
+    tools_called: Optional[List[Dict[str, Any]]] = None
+    tool_count: int
+    retry_count: int
+    max_retries: int
+    tokens_used: Optional[int] = None
+    api_calls_count: int
+
+    class Config:
+        from_attributes = True
+
+
+class AgentExecutionMetricsResponse(AgentExecutionMetricsInDB):
+    pass
+
+
+class ToolUsageMetricsBase(BaseModel):
+    tool_name: str
+    execution_id: uuid.UUID
+    input_data: Optional[Dict[str, Any]] = None
+    external_api_called: Optional[str] = None
+
+
+class ToolUsageMetricsCreate(ToolUsageMetricsBase):
+    usage_id: Optional[uuid.UUID] = None
+    start_time: Optional[datetime] = None
+
+
+class ToolUsageMetricsUpdate(BaseModel):
+    end_time: Optional[datetime] = None
+    duration_ms: Optional[int] = None
+    status: Optional[str] = None
+    output_data: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
+    api_response_time_ms: Optional[int] = None
+    api_status_code: Optional[int] = None
+
+
+class ToolUsageMetricsInDB(ToolUsageMetricsBase):
+    id: int
+    usage_id: uuid.UUID
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    duration_ms: Optional[int] = None
+    status: str
+    output_data: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
+    api_response_time_ms: Optional[int] = None
+    api_status_code: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ToolUsageMetricsResponse(ToolUsageMetricsInDB):
+    pass
+
+
+class WorkflowMetricsBase(BaseModel):
+    workflow_type: str
+    agents_involved: Optional[List[str]] = None
+    session_id: Optional[str] = None
+    user_id: Optional[str] = None
+
+
+class WorkflowMetricsCreate(WorkflowMetricsBase):
+    workflow_id: Optional[uuid.UUID] = None
+    start_time: Optional[datetime] = None
+
+
+class WorkflowMetricsUpdate(BaseModel):
+    end_time: Optional[datetime] = None
+    duration_ms: Optional[int] = None
+    status: Optional[str] = None
+    agent_count: Optional[int] = None
+    total_tool_calls: Optional[int] = None
+    total_api_calls: Optional[int] = None
+    total_tokens_used: Optional[int] = None
+    user_satisfaction_score: Optional[float] = None
+    task_completion_rate: Optional[float] = None
+
+
+class WorkflowMetricsInDB(WorkflowMetricsBase):
+    id: int
+    workflow_id: uuid.UUID
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    duration_ms: Optional[int] = None
+    status: str
+    agent_count: int
+    total_tool_calls: int
+    total_api_calls: int
+    total_tokens_used: Optional[int] = None
+    user_satisfaction_score: Optional[float] = None
+    task_completion_rate: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
+
+class WorkflowMetricsResponse(WorkflowMetricsInDB):
+    pass
+
+
+class SessionMetricsBase(BaseModel):
+    session_id: str
+    user_id: Optional[str] = None
+    user_agent: Optional[str] = None
+    ip_address: Optional[str] = None
+
+
+class SessionMetricsCreate(SessionMetricsBase):
+    start_time: Optional[datetime] = None
+
+
+class SessionMetricsUpdate(BaseModel):
+    end_time: Optional[datetime] = None
+    duration_ms: Optional[int] = None
+    total_queries: Optional[int] = None
+    successful_queries: Optional[int] = None
+    failed_queries: Optional[int] = None
+    agents_used: Optional[List[str]] = None
+    unique_agents_count: Optional[int] = None
+    average_response_time_ms: Optional[float] = None
+    total_tokens_used: Optional[int] = None
+    is_active: Optional[bool] = None
+
+
+class SessionMetricsInDB(SessionMetricsBase):
+    id: int
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    duration_ms: Optional[int] = None
+    total_queries: int
+    successful_queries: int
+    failed_queries: int
+    agents_used: Optional[List[str]] = None
+    unique_agents_count: int
+    average_response_time_ms: Optional[float] = None
+    total_tokens_used: Optional[int] = None
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+class SessionMetricsResponse(SessionMetricsInDB):
+    pass
+
+
+# Analytics Response Schemas
+class AgentUsageStats(BaseModel):
+    agent_name: str
+    total_executions: int
+    successful_executions: int
+    failed_executions: int
+    average_duration_ms: Optional[float] = None
+    total_tool_calls: int
+    success_rate: float
+    last_used: Optional[datetime] = None
+
+
+class ToolUsageStats(BaseModel):
+    tool_name: str
+    total_calls: int
+    successful_calls: int
+    failed_calls: int
+    average_duration_ms: Optional[float] = None
+    success_rate: float
+    most_used_by_agent: Optional[str] = None
+
+
+class WorkflowPerformanceStats(BaseModel):
+    workflow_type: str
+    total_workflows: int
+    successful_workflows: int
+    failed_workflows: int
+    average_duration_ms: Optional[float] = None
+    average_agent_count: float
+    success_rate: float
+
+
+class ErrorSummary(BaseModel):
+    error_type: str
+    count: int
+    percentage: float
+    most_affected_agent: Optional[str] = None
+    most_affected_tool: Optional[str] = None
+
+
+class SessionActivityStats(BaseModel):
+    total_sessions: int
+    active_sessions: int
+    average_session_duration_ms: Optional[float] = None
+    average_queries_per_session: float
+    total_queries: int
+    successful_queries: int
+    failed_queries: int
+    query_success_rate: float
+
+
+class AnalyticsSummary(BaseModel):
+    time_period: str
+    agent_stats: List[AgentUsageStats]
+    tool_stats: List[ToolUsageStats]
+    workflow_stats: List[WorkflowPerformanceStats]
+    error_summary: List[ErrorSummary]
+    session_stats: SessionActivityStats

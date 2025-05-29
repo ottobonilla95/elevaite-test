@@ -4,19 +4,21 @@ import dotenv
 import fastapi
 from datetime import datetime
 from starlette.middleware.cors import CORSMiddleware
+from fastapi import Depends
 from sqlalchemy.orm import Session
 
-# Use local imports
+from services.analytics_service import analytics_service
 from agents import get_agent_schemas
 from agents.command_agent import CommandAgent
 from prompts import command_agent_system_prompt
 from db.database import Base, engine, get_db
 from db.init_db import init_db
-from api import prompt_router, agent_router, demo_router
+from api import prompt_router, agent_router, demo_router, analytics_router
 
 # Temporarily comment out workflow router to test
 # from api import workflow_router
 from db import crud
+
 # Temporarily comment out workflow service to test
 # from services.workflow_service import workflow_service
 
@@ -24,11 +26,6 @@ from contextlib import asynccontextmanager
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
-
-# # Add the current directory to the Python path
-# current_dir = os.path.dirname(os.path.abspath(__file__))
-# if current_dir not in sys.path:
-#     sys.path.append(current_dir)
 
 dotenv.load_dotenv(".env.local")
 
@@ -41,7 +38,7 @@ origins = ["http://127.0.0.1:3002", "*"]
 
 
 @asynccontextmanager
-async def lifespan(app_instance: fastapi.FastAPI):
+async def lifespan(app_instance: fastapi.FastAPI):  # noqa: ARG001
     Base.metadata.create_all(bind=engine)
     init_db()
     yield
@@ -54,6 +51,7 @@ app = fastapi.FastAPI(title="Agent Studio Backend", version="0.1.0", lifespan=li
 app.include_router(prompt_router)
 app.include_router(agent_router)
 app.include_router(demo_router)
+app.include_router(analytics_router)
 # Temporarily comment out workflow router to test
 # app.include_router(workflow_router)
 
@@ -107,7 +105,9 @@ def deploy_legacy(request: dict, db: Session = fastapi.Depends(get_db)):
             code = i[0]
             db_agent = crud.get_agent_by_deployment_code(db, code)
             if db_agent is None:
-                return {"status": f"Error: Agent with deployment code '{code}' not found"}
+                return {
+                    "status": f"Error: Agent with deployment code '{code}' not found"
+                }
             agents.append(str(db_agent.name))
 
         # Get agent schemas lazily to avoid Redis connection at import time
@@ -121,7 +121,9 @@ def deploy_legacy(request: dict, db: Session = fastapi.Depends(get_db)):
 
             source_agent = crud.get_agent_by_deployment_code(db, source_code)
             if source_agent is None:
-                return {"status": f"Error: Agent with deployment code '{source_code}' not found"}
+                return {
+                    "status": f"Error: Agent with deployment code '{source_code}' not found"
+                }
             source_name = str(source_agent.name)
 
             if source_name == "CommandAgent":
@@ -129,7 +131,10 @@ def deploy_legacy(request: dict, db: Session = fastapi.Depends(get_db)):
                     connections.append(agent_schemas[target_name])
                 else:
                     target_agent = crud.get_agent_by_name(db, target_name)
-                    if target_agent is not None and str(target_agent.name) in agent_schemas:
+                    if (
+                        target_agent is not None
+                        and str(target_agent.name) in agent_schemas
+                    ):
                         connections.append(agent_schemas[str(target_agent.name)])
 
         COMMAND_AGENT = CommandAgent(
@@ -167,11 +172,23 @@ def deploy_legacy(request: dict, db: Session = fastapi.Depends(get_db)):
 
 
 @app.post("/run")
-def run(request: dict):
+def run(request: dict, db: Session = Depends(get_db)):
     if COMMAND_AGENT is not None:
-        res = COMMAND_AGENT.execute(query=request["query"])
+        session_id = request.get("session_id")
+        user_id = request.get("user_id")
 
-        return {"status": "ok", "response": f"{res}"}
+        if not session_id:
+            session_id = str(uuid.uuid4())
+
+        analytics_service.create_or_update_session(
+            session_id=session_id, user_id=user_id, db=db
+        )
+
+        res = COMMAND_AGENT.execute(
+            query=request["query"], session_id=session_id, user_id=user_id
+        )
+
+        return {"status": "ok", "response": f"{res}", "session_id": session_id}
 
 
 @app.post("/run_stream")
@@ -186,11 +203,15 @@ def run_stream(request: dict):
 
     async def response_stream():
         if COMMAND_AGENT is not None:
-            for chunk in COMMAND_AGENT.execute_stream(request["query"], gpt_chat_history):
+            for chunk in COMMAND_AGENT.execute_stream(
+                request["query"], gpt_chat_history
+            ):
                 yield chunk
             return
 
-    return fastapi.responses.StreamingResponse(response_stream(), media_type="text/event-stream")
+    return fastapi.responses.StreamingResponse(
+        response_stream(), media_type="text/event-stream"
+    )
 
 
 if __name__ == "__main__":
