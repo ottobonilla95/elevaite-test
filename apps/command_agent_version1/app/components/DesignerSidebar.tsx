@@ -1,7 +1,7 @@
 // DesignerSidebar.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     ChevronDown,
     ChevronRight,
@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { AgentType, AGENT_TYPES } from "./type";
 import "./DesignerSidebar.scss";
+import { AgentResponse } from "../lib/interfaces";
+import { fetchAllAgents } from "../lib/actions";
 
 // SidebarSection component for collapsible sections
 const SidebarSection: React.FC<{
@@ -114,6 +116,23 @@ const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
         actions: false,
         tools: false
     });
+
+    const [agents, setAgents] = useState<AgentResponse[]>([]);
+
+    useEffect(() => {
+        const fetchAgents = async () => {
+            try {
+                const agents = await fetchAllAgents();
+                setAgents(agents);
+                console.log("Got agents");
+                console.log(agents);
+            } catch (error) {
+                console.error("Error fetching agents:", error);
+            }
+        };
+
+        fetchAgents();
+    }, []);
 
     // Toggle section visibility
     const toggleSection = (section: keyof typeof sectionsState) => {
@@ -223,14 +242,14 @@ const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
                         isOpen={sectionsState.components}
                         onToggle={() => toggleSection('components')}
                     >
-                        {AGENT_TYPES.filter(agent =>
-                            ['router', 'web_search', 'api', 'data'].includes(agent.type)
+                        {agents.filter(agent =>
+                            ['router', 'web_search', 'api', 'data'].includes(agent.agent_type)
                         ).map((agent) => (
                             <SidebarItem
                                 key={agent.id}
                                 icon={
-                                    <div className={`w-8 h-8 rounded-md ${getAgentIconClass(agent.type as AgentType)} flex items-center justify-center`}>
-                                        {getAgentIcon(agent.type as AgentType)}
+                                    <div className={`w-8 h-8 rounded-md ${getAgentIconClass(agent.agent_type as AgentType)} flex items-center justify-center`}>
+                                        {getAgentIcon(agent.agent_type as AgentType)}
                                     </div>
                                 }
                                 label={agent.name}

@@ -1,6 +1,6 @@
 // types.ts - Contains all type definitions needed for the agent workflow
 
-export type AgentType = "router" | "web_search" | "Weather Search Agent" | "data" | "troubleshooting";
+export type AgentType = "router" | "web_search" | "Weather Search Agent" | "data" | "troubleshooting" | "api";
 
 export interface NodeData {
     id: string;
@@ -82,7 +82,8 @@ export const AGENT_STYLES: Record<AgentType, { bgClass: string; textClass: strin
     web_search: { bgClass: "bg-emerald-100", textClass: "text-emerald-600" },
     "Weather Search Agent": { bgClass: "bg-amber-100", textClass: "text-amber-600" },
     data: { bgClass: "bg-purple-100", textClass: "text-purple-600" },
-    troubleshooting: { bgClass: "bg-red-100", textClass: "text-red-600" }
+    troubleshooting: { bgClass: "bg-red-100", textClass: "text-red-600" },
+    api: { bgClass: "bg-red-100", textClass: "text-red-600" }
 };
 
 // Available agent types

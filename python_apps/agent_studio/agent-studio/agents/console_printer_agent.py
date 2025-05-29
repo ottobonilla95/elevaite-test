@@ -118,9 +118,7 @@ class ConsolePrinterAgent(Agent):
             "text",
             "voice",
         ],
-        response_type: Optional[
-            Literal["json", "yaml", "markdown", "HTML", "None"]
-        ] = "json",
+        response_type: Optional[Literal["json", "yaml", "markdown", "HTML", "None"]] = "json",
         # Execution parameters
         max_retries: int = 3,
         timeout: Optional[int] = None,
@@ -131,9 +129,7 @@ class ConsolePrinterAgent(Agent):
         session_id: Optional[str] = None,
         last_active: Optional[datetime] = None,
         # logging_level: Optional[Literal["debug", "info", "warning", "error"]] = "info"  # Debug level
-        collaboration_mode: Optional[
-            Literal["single", "team", "parallel", "sequential"]
-        ] = "single",  # Multi-agent behavior
+        collaboration_mode: Optional[Literal["single", "team", "parallel", "sequential"]] = "single",  # Multi-agent behavior
     ):
         super().__init__(
             agent_id=agent_id,
@@ -186,9 +182,7 @@ class ConsolePrinterAgent(Agent):
         """
         query = payload["query"]
         tries = 0
-        routing_options = "\n".join(
-            [f"{k}: {v}" for k, v in self.routing_options.items()]
-        )
+        routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = (
             self.system_prompt.prompt
             + f"""
@@ -212,19 +206,14 @@ class ConsolePrinterAgent(Agent):
                     tools=self.functions,
                     stream=False,
                 )
-                if (
-                    response.choices[0].finish_reason == "tool_calls"
-                    and response.choices[0].message.tool_calls is not None
-                ):
+                if response.choices[0].finish_reason == "tool_calls" and response.choices[0].message.tool_calls is not None:
                     tool_calls = response.choices[0].message.tool_calls
                     messages.append(
                         cast(
                             ChatCompletionMessageParam,
                             {
                                 "role": "assistant",
-                                "tool_calls": cast(
-                                    List[ChatCompletionToolMessageParam], tool_calls
-                                ),
+                                "tool_calls": cast(List[ChatCompletionToolMessageParam], tool_calls),
                             },
                         )
                     )
