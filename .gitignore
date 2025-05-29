@@ -59,3 +59,4 @@ htmlcov
 **/tests/.env
 airflow_venv
 elevaite_backend/fastapi-logger/fastapi_logger.egg-info
+elevaite_backend/fastapi-logger/elevaite_logger.egg-info
