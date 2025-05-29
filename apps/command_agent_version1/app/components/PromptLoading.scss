@@ -1,0 +1,45 @@
+.prompt-loading {
+	border-radius: 50%;
+	position: relative;
+	margin: 0 auto;
+
+	&.no-offset {
+		&::before,
+		&::after {
+			top: 0;
+			left: 0;
+		}
+	}
+
+	&::before,
+	&::after {
+		content: "";
+		position: absolute;
+		top: -10px;
+		left: -10px;
+		width: 100%;
+		height: 100%;
+		border-radius: 50%;
+		border: 5px solid transparent;
+		border-top-color: var(--orange);
+	}
+
+	&::before {
+		z-index: 100;
+  		animation: spin 1s infinite;
+	}
+
+	&::after {
+		border: 5px solid #ccc;
+	}
+}
+
+@keyframes spin{
+  0%{
+    transform: rotate(0deg);
+  }
+
+  100%{
+    transform: rotate(360deg);
+  }
+}

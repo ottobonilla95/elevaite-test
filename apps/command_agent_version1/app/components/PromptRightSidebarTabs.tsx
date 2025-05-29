@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { usePrompt } from "../ui/contexts/PromptContext";
 
 const PromptRightSidebarTabs = () => {
+	const promptContext = usePrompt();
 	const [activeTab, setActiveTab] = useState("tab1");
 
 	return (
@@ -14,26 +16,32 @@ const PromptRightSidebarTabs = () => {
 						Generated Prompt
 					</button>
 				</div>
-				<div className="tab-panels flex flex-1 text-sm p-4 mt-1 w-full rounded-xl">
+				<div className="tab-panels flex flex-1 text-sm p-4 mt-1 w-full rounded-xl overflow-auto">
 					{activeTab === "tab1" && (
-						<div className="tab-panel flex flex-col">
+						<div className="tab-panel flex flex-col flex-grow">
 							<div className="tab-content">
-								Platea amet vulputate augue aenean vel. Sed lorem phasellus consectetur feugiat. Lobortis hac viverra mollis quis amet lacus pulvinar vitae. Sodales vitae vestibulum quis nascetur pellentesque.
+								<pre className="whitespace-pre-wrap break-words mb-4 text-sm font-sans">
+									{promptContext.output?.response}
+								</pre>
 							</div>
 
-							<div className="details pt-4 mt-auto">
+							{/* <div className="details pt-4 mt-auto">
 								<select className="select w-full" name="" id="">
 									<option value="details">Details</option>
 									<option value="option2">Option 2</option>
 									<option value="option3">Option 3</option>
 									<option value="option4">Option 4</option>
 								</select>
-							</div>
+							</div> */}
 						</div>
 					)}
 					{activeTab === "tab2" && (
-						<div className="tab-panel">
-							Another Content here
+						<div className="tab-panel flex-col flex-grow">
+							<div className="tab-content">
+								<pre className="whitespace-pre-wrap break-words mb-4 text-sm font-sans">
+									{promptContext.output?.prompt}
+								</pre>
+							</div>
 						</div>
 					)}
 				</div>

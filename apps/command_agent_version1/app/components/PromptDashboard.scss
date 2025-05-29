@@ -74,7 +74,7 @@
 			}
 
 			&.full-expanded {
-				height: 100%;
+				height: calc(100% - 53px);
 				border-top: none;
 			}
 		}
@@ -112,6 +112,18 @@
 	}
 }
 
-.tab-link-panels {
+.file-upload-modal .loading-bar-container:before {
+	top: -5px;
+	bottom: -1px;
+}
 
+.Toastify__toast {
+	color: rgba(255, 255, 255, 0.72);
+	background: #FF681F;
+	width: 600px;
+	padding: 20px;
+
+	svg {
+		opacity: 0.72;
+	}
 }

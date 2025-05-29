@@ -85,12 +85,43 @@ export enum ChatMessageFileTypes {
 
 // Prompts
 
-export interface UploadFileResponse {
-  success: boolean;
-  message?: string;
-  [key: string]: unknown;
+
+export enum PromptInputTypes {
+    UserInstructions = "userInstructions",
+    TableHeader = "tableHeader",
+    LineItems = "lineItems",
+    ExpectedOutput = "expectedOutput",
 }
 
+
+export interface UploadFileResponseObject {
+  image: string;
+  doc_type: string;
+  num_pages: number;
+  prompt: string;
+}
+
+export interface PageChangeResponseObject {
+  image: string;
+  prompt: string;
+}
+
+export interface regenerateResponseObject {
+    prompt: string;
+    response: string;
+}
+
+export type RunResponseObject = string[];
+
+export type DeployResponse = "Done";
+
+
+export interface PromptInputItem {
+    id: string;
+    type: PromptInputTypes;
+    label?: string;
+    prompt: string;
+}
 
 
 
