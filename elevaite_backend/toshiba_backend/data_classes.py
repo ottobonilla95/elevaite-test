@@ -1,7 +1,9 @@
-import datetime
-from typing import Optional, Dict, List
-import uuid
+# import datetime
 import pydantic
+from typing import List, Dict, Any, Optional, Literal
+from pydantic import BaseModel, Field
+import uuid
+from datetime import datetime
 
 class PromptReadListRequest(pydantic.BaseModel):
     app_name: str
@@ -45,7 +47,7 @@ class PromptObjectRequest(pydantic.BaseModel):
     is_deployed: Optional[bool]
     hyper_parameters: Optional[Dict[str, str]]
     variables: Optional[List[str]]
-    deployed_time: Optional[datetime.datetime]
+    deployed_time: Optional[datetime]
 
 class PromptDeployRequest(pydantic.BaseModel):
     """
@@ -55,7 +57,6 @@ class PromptDeployRequest(pydantic.BaseModel):
     pid: uuid.UUID
     app_name: str
 
-
 class PromptObject(pydantic.BaseModel):
     pid: uuid.UUID
     prompt_label: str
@@ -64,22 +65,15 @@ class PromptObject(pydantic.BaseModel):
     uniqueLabel:str
     appName:str
     version:str
-    createdTime:datetime.datetime
-    deployedTime:Optional[datetime.datetime]
-    last_deployed:Optional[datetime.datetime]
+    createdTime:datetime
+    deployedTime:Optional[datetime]
+    last_deployed:Optional[datetime]
     modelProvider: str
     modelName: str
     isDeployed:bool
     tags: Optional[List[str]]
     hyper_parameters: Optional[Dict[str, str]]
     variables: Optional[Dict[str, str]]
-
-from typing import List, Dict, Any, Optional, Literal
-from pydantic import BaseModel
-from datetime import datetime
-import uuid
-
-
 
 class Agent(BaseModel):
     name: str
@@ -93,11 +87,9 @@ class Agent(BaseModel):
     long_term_memory: bool = False
     reasoning: bool = False
     streaming: bool = False
-    # input_type: Optional[Literal["text", "voice", "image"]] = "text"
-    # output_type: Optional[Literal["text", "voice", "image"]] = "text"
+    input_type: Optional[Literal["text", "voice", "image"]] = "text"
+    output_type: Optional[Literal["text", "voice", "image"]] = "text"
     # Make input output type a list of types
-    input_type: Optional[List[Literal["text", "voice", "image"]]] = ["text", "voice"]
-    output_type: Optional[List[Literal["text", "voice", "image"]]] = ["text", "voice"]
     response_type: Optional[Literal["json", "yaml", "markdown", "HTML", "None"]] = "json"
     # agent_type: Optional[Literal["agent", "workflow"]] = "agent"
 
@@ -123,5 +115,59 @@ class Agent(BaseModel):
     def execute(self, **kwargs) -> Any:
         """Execution script for each component."""
         raise NotImplementedError("Component execution logic should be implemented in subclasses.")
+
+
+
+class ChatRequest(BaseModel):
+    qid: uuid.UUID = Field(default_factory=uuid.UUID)
+    session_id: uuid.UUID = Field(default_factory=uuid.UUID)
+    user_id: str
+    request: Optional[str]
+    request_timestamp: Optional[datetime]
+    response: Optional[str]
+    response_timestamp: Optional[datetime]
+    vote: int = 0
+    vote_timestamp: Optional[datetime] = Field(default_factory=lambda: datetime.now())  # timezone-naive
+    feedback: str = ""
+    feedback_timestamp: Optional[datetime] = Field(default_factory=lambda: datetime.now())  # timezone-naive
+    agent_flow_id: uuid.UUID = Field(default_factory=uuid.UUID)
+    created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
+    updated_at: datetime = Field(default_factory=lambda: datetime.now())
+
+
+class AgentFlow(BaseModel):
+    agent_flow_id: uuid.UUID = Field(default_factory=uuid.UUID)
+    session_id: uuid.UUID = Field(default_factory=uuid.UUID)
+    qid: uuid.UUID = Field(default_factory=uuid.UUID)
+    user_id: str
+    request: str
+    response: str
+    tries: int = 0
+    chat_history: Optional[str] = None
+    tool_calls: Optional[str] = None
+    created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
+    updated_at: datetime = Field(default_factory=lambda: datetime.now())
+
+class MessageObject(BaseModel):
+    id: uuid.UUID = Field(default_factory=uuid.UUID)
+    userName: str
+    isBot: bool
+    text: str
+    date: datetime = Field(default_factory=lambda: datetime.now())
+    vote: Optional[int] = 0
+    feedback:Optional[str] = ""
+    feedbackfiles: Optional[List[str]] = None
+    files: Optional[List[str]] = None
+    media: Optional[List[str]] = None
+    isStreaming: bool = False
+    agentStatus: Optional[str] = None
+    sources: Optional[List[str]] = None
+
+class SessionObject(BaseModel):
+    id: uuid.UUID = Field(default_factory=uuid.UUID)
+    label: str
+    messages: List[MessageObject]
+    creationDate: datetime = Field(default_factory=lambda: datetime.now())
+    summary: Optional[str] = None
 
 

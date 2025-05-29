@@ -86,9 +86,9 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
                                 addedControls
                                 inputPlaceholder="Write a message..."
                                 inlinePrompts={[
-                                    "Part Number lookUp",
+                                    "Customer Query",
+                                    "Part Number Lookup",
                                     "Diagnostic Code Lookup",
-                                    "Troubleshooting"
                                 ]}
                             />
                         </CoPilot>

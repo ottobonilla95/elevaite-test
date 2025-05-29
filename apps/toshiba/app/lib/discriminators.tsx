@@ -1,4 +1,4 @@
-import type { ChatMessageResponse, SessionSummaryObject } from "./interfaces";
+import type {ChatMessageResponse, SessionObject, SessionSummaryObject} from "./interfaces";
 
 
 
@@ -12,6 +12,14 @@ export function isChatMessageResponse(data: unknown): data is ChatMessageRespons
 
 export function isSessionSummaryResponse(data: unknown): data is SessionSummaryObject {
     return isSessionSummaryObject(data);
+}
+
+export function isPastSessionsResponse(data: unknown): data is SessionObject[] {
+    if (!Array.isArray(data)) return false;
+    for (const item of data) {
+        if (!isSessionObject(item)) return false;
+    }
+    return true;
 }
 
 
@@ -40,3 +48,10 @@ function isSessionSummaryObject(item: unknown): item is SessionSummaryObject {
         "solution" in item;
 }
 
+function isSessionObject(item: unknown): item is SessionObject {
+    return isObject(item) &&
+        "id" in item &&
+        "label" in item &&
+        "messages" in item &&
+        "creationDate" in item;
+}

@@ -254,14 +254,15 @@ $profile-backdrop-bot: #FFFFFF;
             display: grid;
             grid-template-columns: 1fr;
             grid-template-rows: 0fr;
-            transition: grid-template-rows 150ms ease-in-out;                    
+            transition: grid-template-rows 150ms ease-in-out;
+
 
             &.open {
                 grid-template-rows: 1fr;
             }
 
             & .feedback-accordion {
-                overflow: hidden;
+                overflow: auto;
             }
         }
 

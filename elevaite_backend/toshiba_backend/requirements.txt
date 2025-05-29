@@ -13,3 +13,6 @@ scipy
 cohere
 pandas
 scipy
+sqlalchemy
+asyncpg
+aiohttp

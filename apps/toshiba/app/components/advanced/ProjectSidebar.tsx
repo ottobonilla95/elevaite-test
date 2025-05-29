@@ -185,7 +185,7 @@ export function ProjectSidebar({ isExpanded, setIsExpanded }: { isExpanded: bool
                 <div className="chat-sessions-container">
                     <div className="sessions-list">
                         {chatContext.sessions.length === 0 ? (
-                            <div className="empty-sessions">No chats</div>
+                            <div className="empty-sessions">{chatContext.recentChatsMessage}</div>
                         ) : (
                             <>
                                 <div style={{ fontWeight: 600, fontSize: '12px' }} >Recent Chats</div>

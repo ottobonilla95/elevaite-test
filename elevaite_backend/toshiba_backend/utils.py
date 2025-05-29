@@ -5,7 +5,7 @@ from typing import Any, Callable
 import os
 import openai
 import dotenv
-
+import re
 dotenv.load_dotenv(".env")
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -177,3 +177,20 @@ def convert_messages_to_chat_history(messages: List[Dict[str, str]]) -> List[Dic
         content = message.get("text", "")
         chat_history.append({"role": role, "content": content})
     return chat_history
+
+def source_extraction(sources):
+    return
+#     source_dict = {}
+#     for source in sources:
+#         filename, pages = source.split(", Pages: ")
+#         filename = filename.replace("File: ", "")
+#         filename = filename.replace(".pdf", "")
+#         # Find all number is the pages using regex
+#         pages = re.findall(r"\d+", pages)
+#         for page in pages:
+#             if filename in source_dict:
+#                 source_dict[filename].append(page)
+#             else:
+#                 source_dict[filename] = [page]
+#
+#     return list(source_links)

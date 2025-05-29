@@ -1,0 +1,80 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8); 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--ev-colors-secondary); /* Darker background */
+  padding: 20px;
+  border-radius: 12px; 
+  position: relative;
+  max-width: 80vw;
+  width: fit-content; 
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); 
+  transition: transform 0.3s ease; 
+}
+
+.modal-content img,
+.modal-content video {
+  width: 100%; /* Make media responsive */
+  border-radius: 8px; 
+  max-height: calc(90vh - 100px); 
+  object-fit: contain; 
+}
+
+.slider-info {
+  margin: 15px 0;
+  text-align: center;
+  font-family: Arial, sans-serif; 
+  color: var(--ev-colors-text); /* Using text color */
+}
+
+.slider-controls {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0;
+}
+
+.slider-buttons {
+  // background: var(--ev-colors-tertiary); /* Tertiary color for buttons */
+  padding: 10px 15px;
+  border-radius: 5px;
+  border-color: --ev-colors-borderColor;
+  cursor: pointer;
+  transition: background 0.3s; 
+  font-size: 18px;
+  &:hover:not(:disabled) {
+    background: var(--ev-colors-highlight); /* Highlight on hover */
+    color: var(--ev-colors-background); /* Contrast text color */
+  }
+}
+
+button:disabled {
+  background: #555; /* Darker background for disabled */
+  color: #999; /* Lighter text for disabled buttons */
+  cursor: not-allowed;
+}
+
+.close-button {
+  position: absolute;
+  padding: 20px 15px;
+  top: 10px;
+  right: 10px;
+  background: transparent; /* Transparent background */
+  border: none; /* No border */
+  font-size: 18px; /* Slightly larger font */
+  cursor: pointer;
+  color: var(--ev-colors-text); /* Text color for close button */
+
+  &:hover {
+    opacity: 0.7; /* Slight opacity change on hover */
+  }
+}

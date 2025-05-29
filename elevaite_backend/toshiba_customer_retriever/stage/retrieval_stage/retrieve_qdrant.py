@@ -5,7 +5,6 @@ import time
 from typing import List, Dict, Optional
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
-import nltk
 
 path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.append(path)
@@ -14,6 +13,7 @@ import os
 from typing import List
 from dotenv import load_dotenv
 import openai
+import nltk
 
 STOPWORDS = set(nltk.corpus.stopwords.words('english'))
 
@@ -44,13 +44,13 @@ def get_embedding(text: str) -> List[float]:
 # qdrant_port = qdrant_config.get("port")
 # collection_name = qdrant_config.get("collection_name")
 
-qdrant_url = "http://3.101.65.253"
-qdrant_port = 5333
-collection_name = "toshiba_demo_4"
-
 # qdrant_url = "http://3.101.65.253"
 # qdrant_port = 5333
-# collection_name = "toshiba_walgreen"
+# collection_name = "toshiba_demo_4"
+
+qdrant_url = "http://3.101.65.253"
+qdrant_port = 5333
+collection_name = "toshiba_walgreen"
 
 client = QdrantClient(url=qdrant_url, port=qdrant_port, timeout=300.0, check_compatibility=False)
 
@@ -150,7 +150,7 @@ def retrieve_by_keywords(keywords: List[str], top_k: int = 20) -> List[Dict]:
     keyword_conditions = [
         models.FieldCondition(
             key="chunk_text",
-            match=models.MatchText(text=kw),
+            match=models.MatchText(text=kw)
         ) for kw in keywords
     ]
     filters = models.Filter(should=keyword_conditions)

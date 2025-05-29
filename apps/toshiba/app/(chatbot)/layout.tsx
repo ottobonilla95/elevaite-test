@@ -1,6 +1,7 @@
 import { ColorContextProvider } from "@repo/ui/contexts";
 import { ChatContextProvider } from "../ui/contexts/ChatContext";
 import { AppLayout } from "../components/AppLayout";
+import { auth } from "../../auth";
 
 // eslint-disable-next-line @typescript-eslint/require-await -- pretty sure this has to be async
 export default async function RootLayout({ children, }: Readonly<{ children: React.ReactNode; }>): Promise<JSX.Element> {
@@ -11,9 +12,12 @@ export default async function RootLayout({ children, }: Readonly<{ children: Rea
         },
     };
 
+    const session = await auth();
+
+
     return (
         <ColorContextProvider>
-            <ChatContextProvider>
+            <ChatContextProvider session={session}>
                 <AppLayout breadcrumbs={breadcrumbs}>
                     {children}
                 </AppLayout>

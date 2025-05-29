@@ -2,6 +2,29 @@
 
 .chat-message-feedback-container {
 
+    & .feedback-tag-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+
+        & > button {
+            padding: 6px 12px;
+            border-radius: 4px;
+            background-color: var(--ev-colors-secondary);
+            font-size: 14px;
+            transition: background-color 0.2s ease;
+
+            &:hover {
+                background-color: var(--ev-colors-primary);
+            }
+
+            &.active {
+                background-color: var(--ev-colors-highlight);
+                color: white;
+            }
+        }
+    }
 
     & .feedback-files-container {
         display: grid;

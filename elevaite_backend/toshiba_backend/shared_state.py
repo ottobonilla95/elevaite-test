@@ -1,5 +1,9 @@
 import asyncio
-
+from database_connection import DatabaseConnection
+from dotenv import load_dotenv
+load_dotenv()
+# Initialize database connection
+database_connection = DatabaseConnection()
 session_status = {}
 
 async def update_status(user_if: str, status: str):

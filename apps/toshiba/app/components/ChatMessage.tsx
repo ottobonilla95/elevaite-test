@@ -12,6 +12,8 @@ import { ChatContext } from "../ui/contexts/ChatContext";
 import "./ChatMessage.scss";
 import { ChatMessageFeedback } from "./ChatMessageFeedback";
 import { ChatMessageFiles } from "./ChatMessageFiles";
+import { SourcePill } from "./SourcePill";
+import { InlineSourceMessage } from "./InlineSourceMessage";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -94,17 +96,23 @@ export function ChatMessage(props: ChatMessageProps): JSX.Element {
 
         <div className="message" ref={messageRef}>
           {props.text ? (
-            <ReactMarkdown
-              children={props.text}
-              remarkPlugins={[remarkGfm]}
-              components={{
-                table: ({ node, ...props }) => (
-                  <table className="custom-table" {...props} />
-                ),
-                th: ({ node, ...props }) => <th {...props} />,
-                td: ({ node, ...props }) => <td {...props} />,
-              }}
-            />
+            <>
+              {props.sources && props.sources.length > 0 ? (
+                <InlineSourceMessage text={props.text} sources={props.sources} />
+              ) : (
+                <ReactMarkdown
+                  children={props.text}
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    table: ({ node, ...props }) => (
+                      <table className="custom-table" {...props} />
+                    ),
+                    th: ({ node, ...props }) => <th {...props} />,
+                    td: ({ node, ...props }) => <td {...props} />,
+                  }}
+                />
+              )}
+            </>
           ) : props.isStreaming ? (
             <div className="typing-indicator">
               <span></span>
@@ -145,35 +153,35 @@ export function ChatMessage(props: ChatMessageProps): JSX.Element {
               Provide Feedback
             </CommonButton>
 
-            <div className="relevant-files-container">
-              <CommonButton
-                passedRef={filesButtonRef}
-                className={isFilesOpen ? "active" : ""}
-                onClick={toggleFiles}
-              >
-                <ChatbotIcons.SVGDocument />
-                Sources
-              </CommonButton>
-              <ClickOutsideDetector
-                onOutsideClick={() => {
-                  setIsFilesOpen(false);
-                }}
-                ignoredRefs={[filesButtonRef]}
-              >
-                <div
-                  className={[
-                    "files-dropdown-container",
-                    isFilesOpen ? "open" : undefined,
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  <div className="files-dropdown-accordion">
-                    <ChatMessageFiles files={props.files} />
-                  </div>
-                </div>
-              </ClickOutsideDetector>
-            </div>
+            {/*<div className="relevant-files-container">*/}
+            {/*  <CommonButton*/}
+            {/*    passedRef={filesButtonRef}*/}
+            {/*    className={isFilesOpen ? "active" : ""}*/}
+            {/*    onClick={toggleFiles}*/}
+            {/*  >*/}
+            {/*    <ChatbotIcons.SVGDocument />*/}
+            {/*    Sources*/}
+            {/*  </CommonButton>*/}
+            {/*  <ClickOutsideDetector*/}
+            {/*    onOutsideClick={() => {*/}
+            {/*      setIsFilesOpen(false);*/}
+            {/*    }}*/}
+            {/*    ignoredRefs={[filesButtonRef]}*/}
+            {/*  >*/}
+            {/*    <div*/}
+            {/*      className={[*/}
+            {/*        "files-dropdown-container",*/}
+            {/*        isFilesOpen ? "open" : undefined,*/}
+            {/*      ]*/}
+            {/*        .filter(Boolean)*/}
+            {/*        .join(" ")}*/}
+            {/*    >*/}
+            {/*      <div className="files-dropdown-accordion">*/}
+            {/*        <ChatMessageFiles files={props.files} />*/}
+            {/*      </div>*/}
+            {/*    </div>*/}
+            {/*  </ClickOutsideDetector>*/}
+            {/*</div>*/}
           </div>
         )}
 

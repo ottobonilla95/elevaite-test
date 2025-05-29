@@ -27,6 +27,7 @@ export const authConfig = {
       console.log("Auth Config - Session callback - User:", user);
 
       // First call the stock session callback
+      // @ts-ignore
       const stockSession = await stockConfig.callbacks.session({
         session,
         token,
@@ -65,6 +66,7 @@ export const authConfig = {
       console.log("Auth Config - JWT callback - Account:", account);
 
       // First call the stock JWT callback
+      // @ts-ignore
       const stockToken = await stockConfig.callbacks.jwt({
         token,
         user,
@@ -75,6 +77,7 @@ export const authConfig = {
 
       // Then add our custom properties from the user
       if (user?.needsPasswordReset !== undefined) {
+        // @ts-ignore
         stockToken.needsPasswordReset = user.needsPasswordReset;
         console.log(
           "Auth Config - JWT callback - Added needsPasswordReset:",

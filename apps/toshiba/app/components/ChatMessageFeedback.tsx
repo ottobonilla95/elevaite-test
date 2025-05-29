@@ -17,6 +17,7 @@ export function ChatMessageFeedback(props: ChatMessageFeedbackProps): JSX.Elemen
     const chatContext = useContext(ChatContext);
     const [feedbackText, setFeedbackText] = useState(props.feedback ?? "");
     const [files, setFiles] = useState<ChatMessageFileObject[]>([]);
+    const [addedTags, setAddedTags] = useState<string[]>([]);
 
     function handleSubmit(): void {
         chatContext.updateMessageFeedback(props.id, feedbackText);
@@ -41,6 +42,48 @@ export function ChatMessageFeedback(props: ChatMessageFeedbackProps): JSX.Elemen
         setFiles((current) => current.filter((item) => item.id !== id));
     }
 
+    function handleTagClick(tag: string): void {
+        // Check if the tag is already added
+        if (addedTags.includes(tag)) {
+            // Remove the tag from the addedTags array
+            const updatedTags = addedTags.filter(t => t !== tag);
+
+            // Extract the actual content without any tags
+            let contentText = feedbackText;
+            const allTags = addedTags.map(t => `[${t}]`);
+
+            allTags.forEach(tagStr => {
+                contentText = contentText.replace(tagStr, "").trim();
+            });
+
+            // Rebuild the text with the remaining tags
+            const remainingTagsText = updatedTags.map(t => `[${t}]`).join(" ");
+            const newText = contentText ? `${remainingTagsText} ${contentText}`.trim() : remainingTagsText;
+
+            setFeedbackText(newText);
+            setAddedTags(updatedTags);
+        } else {
+            // Add the tag to the text and the addedTags array
+            const tagText = `[${tag}]`;
+
+            // Extract any existing tags from the beginning of the text
+            let remainingText = feedbackText;
+            const existingTags = addedTags.map(t => `[${t}]`);
+
+            // Remove existing tags from the text to get the actual content
+            existingTags.forEach(tagStr => {
+                remainingText = remainingText.replace(tagStr, "").trim();
+            });
+
+            // Create new text with all tags at the beginning
+            const newTags = [...addedTags, tag].map(t => `[${t}]`).join(" ");
+            const newText = remainingText ? `${newTags} ${remainingText}` : newTags;
+
+            setFeedbackText(newText);
+            setAddedTags([...addedTags, tag]);
+        }
+    }
+
     return (
         <div className="chat-message-feedback-container">
             <div
@@ -57,6 +100,26 @@ export function ChatMessageFeedback(props: ChatMessageFeedbackProps): JSX.Elemen
                 </div>
             </div>
 
+            <div className="feedback-tag-buttons">
+                <CommonButton
+                    onClick={() => handleTagClick("Incorrect Answer")}
+                    className={addedTags.includes("Incorrect Answer") ? "active" : ""}
+                >
+                    Incorrect Answer
+                </CommonButton>
+                <CommonButton
+                    onClick={() => handleTagClick("Wrong Source")}
+                    className={addedTags.includes("Wrong Source") ? "active" : ""}
+                >
+                    Wrong Source
+                </CommonButton>
+                <CommonButton
+                    onClick={() => handleTagClick("Incorrect Steps")}
+                    className={addedTags.includes("Incorrect Steps") ? "active" : ""}
+                >
+                    Incorrect Steps
+                </CommonButton>
+            </div>
             <SimpleInput
                 wrapperClassName={["feedback-input-field", files.length > 0 ? "open" : undefined]
                     .filter(Boolean)
@@ -64,6 +127,15 @@ export function ChatMessageFeedback(props: ChatMessageFeedbackProps): JSX.Elemen
                 value={feedbackText}
                 onChange={(string) => {
                     setFeedbackText(string);
+
+                    // Check which tags are still present in the text
+                    const possibleTags = ["Incorrect Answer", "Wrong Source", "Incorrect Steps"];
+                    const presentTags = possibleTags.filter(tag => string.includes(`[${tag}]`));
+
+                    // Update the addedTags state if it's different
+                    if (JSON.stringify(presentTags.sort()) !== JSON.stringify(addedTags.sort())) {
+                        setAddedTags(presentTags);
+                    }
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder="Add your feedback."

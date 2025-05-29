@@ -1,7 +1,7 @@
 
 // Enums, Interfaces, Types, and initializer objects
 ////////////////////////////////////////////////////
-
+import { v4 as uuidv4 } from "uuid";
 
 export const SESSION_ID_PREFIX = "sessionId_";
 export const USER_MESSAGE_ID_PREFIX = "userMessageId_";
@@ -52,9 +52,10 @@ export interface SessionSummaryObject {
 }
 
 export const defaultSession: SessionObject = {
-    id: `${SESSION_ID_PREFIX}0`,
+    id: uuidv4().toString(),
     label: "Session 1",
-    messages: [],
+    messages: [
+    ],
     creationDate: new Date().toISOString(),
 }
 
@@ -77,6 +78,15 @@ export interface ChatMessageObject {
     media?: ChatMessageFileObject[];
     isStreaming?: boolean;
     agentStatus?: string;
+    sources?: SourceReference[];
+}
+
+export interface SourceReference {
+    filename: string;
+    pages: string;
+    url?: string;
+    awsLink?: string;
+    fullMatchText?: string; // The full text that matched the pattern
 }
 
 export interface ChatMessageFileObject {
