@@ -50,11 +50,7 @@ class Prompt(Base):
     agents = relationship("Agent", back_populates="system_prompt")
 
     # Constraints
-    __table_args__ = (
-        UniqueConstraint(
-            "app_name", "prompt_label", "version", name="uix_prompt_app_label_version"
-        ),
-    )
+    __table_args__ = (UniqueConstraint("app_name", "prompt_label", "version", name="uix_prompt_app_label_version"),)
 
 
 class Agent(Base):
@@ -62,18 +58,14 @@ class Agent(Base):
 
     # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
-    agent_id = Column(
-        UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4
-    )
+    agent_id = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
 
     # Basic agent information
     name = Column(String, nullable=False)
-    parent_agent_id = Column(
-        UUID(as_uuid=True), ForeignKey("agents.agent_id"), nullable=True
-    )
-    system_prompt_id = Column(
-        UUID(as_uuid=True), ForeignKey("prompts.pid"), nullable=False
-    )
+    agent_type = Column(String, nullable=True)  # router, web_search, data, troubleshooting, api, etc.
+    description = Column(String, nullable=True)  # Description of what the agent does
+    parent_agent_id = Column(UUID(as_uuid=True), ForeignKey("agents.agent_id"), nullable=True)
+    system_prompt_id = Column(UUID(as_uuid=True), ForeignKey("prompts.pid"), nullable=False)
     persona = Column(String, nullable=True)
 
     # Agent capabilities
@@ -97,9 +89,7 @@ class Agent(Base):
 
     # Deployment configuration
     available_for_deployment = Column(Boolean, default=True)
-    deployment_code = Column(
-        String, nullable=True
-    )  # Short code for deployment (e.g., "w", "h")
+    deployment_code = Column(String, nullable=True)  # Short code for deployment (e.g., "w", "h")
 
     # Failure handling
     failure_strategies = Column(JSONB, nullable=True)
@@ -120,9 +110,7 @@ class Agent(Base):
     )
 
     # Constraints
-    __table_args__ = (
-        UniqueConstraint("name", "system_prompt_id", name="uix_agent_name_prompt"),
-    )
+    __table_args__ = (UniqueConstraint("name", "system_prompt_id", name="uix_agent_name_prompt"),)
 
 
 class PromptVersion(Base):
@@ -146,9 +134,7 @@ class PromptVersion(Base):
     prompt = relationship("Prompt")
 
     # Constraints
-    __table_args__ = (
-        UniqueConstraint("prompt_id", "version_number", name="uix_prompt_version"),
-    )
+    __table_args__ = (UniqueConstraint("prompt_id", "version_number", name="uix_prompt_version"),)
 
 
 class PromptDeployment(Base):
@@ -171,6 +157,4 @@ class PromptDeployment(Base):
     prompt = relationship("Prompt")
 
     # Constraints
-    __table_args__ = (
-        UniqueConstraint("prompt_id", "environment", name="uix_prompt_environment"),
-    )
+    __table_args__ = (UniqueConstraint("prompt_id", "environment", name="uix_prompt_environment"),)

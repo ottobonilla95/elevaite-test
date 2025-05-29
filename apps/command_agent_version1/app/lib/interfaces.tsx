@@ -78,6 +78,58 @@ export enum ChatMessageFileTypes {
     DOC = "document",
 }
 
+// Agent-related interfaces
+export interface PromptResponse {
+    prompt_label: string;
+    prompt: string;
+    unique_label: string;
+    app_name: string;
+    version: string;
+    ai_model_provider: string;
+    ai_model_name: string;
+    tags?: string[] | null;
+    hyper_parameters?: Record<string, string> | null;
+    variables?: Record<string, string> | null;
+    id: number;
+    pid: string;
+    sha_hash: string;
+    is_deployed: boolean;
+    created_time: string;
+    deployed_time?: string | null;
+    last_deployed?: string | null;
+}
+
+export interface AgentResponse {
+    name: string;
+    agent_type?: "router" | "web_search" | "data" | "troubleshooting" | "api" | "weather" | null;
+    description?: string | null;
+    parent_agent_id?: string | null;
+    system_prompt_id: string;
+    persona?: string | null;
+    functions: object[];
+    routing_options: Record<string, string>;
+    short_term_memory: boolean;
+    long_term_memory: boolean;
+    reasoning: boolean;
+    input_type: ("text" | "voice" | "image")[];
+    output_type: ("text" | "voice" | "image")[];
+    response_type: "json" | "yaml" | "markdown" | "HTML" | "None";
+    max_retries: number;
+    timeout?: number | null;
+    deployed: boolean;
+    status: "active" | "paused" | "terminated";
+    priority?: number | null;
+    failure_strategies?: string[] | null;
+    collaboration_mode: "single" | "team" | "parallel" | "sequential";
+    available_for_deployment: boolean;
+    deployment_code?: string | null;
+    id: number;
+    agent_id: string;
+    session_id?: string | null;
+    last_active?: string | null;
+    system_prompt: PromptResponse;
+}
+
 
 
 

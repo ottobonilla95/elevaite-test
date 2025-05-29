@@ -56,6 +56,8 @@ class PromptResponse(PromptInDB):
 # Base schemas for Agent
 class AgentBase(BaseModel):
     name: str
+    agent_type: Optional[Literal["router", "web_search", "data", "troubleshooting", "api", "weather"]] = None
+    description: Optional[str] = None
     parent_agent_id: Optional[uuid.UUID] = None
     system_prompt_id: uuid.UUID
     persona: Optional[str] = None
@@ -84,6 +86,8 @@ class AgentCreate(AgentBase):
 
 class AgentUpdate(BaseModel):
     name: Optional[str] = None
+    agent_type: Optional[Literal["router", "web_search", "data", "troubleshooting", "api", "weather"]] = None
+    description: Optional[str] = None
     parent_agent_id: Optional[uuid.UUID] = None
     system_prompt_id: Optional[uuid.UUID] = None
     persona: Optional[str] = None
@@ -101,9 +105,7 @@ class AgentUpdate(BaseModel):
     status: Optional[Literal["active", "paused", "terminated"]] = None
     priority: Optional[int] = None
     failure_strategies: Optional[List[str]] = None
-    collaboration_mode: Optional[
-        Literal["single", "team", "parallel", "sequential"]
-    ] = None
+    collaboration_mode: Optional[Literal["single", "team", "parallel", "sequential"]] = None
     available_for_deployment: Optional[bool] = None
     deployment_code: Optional[str] = None
 

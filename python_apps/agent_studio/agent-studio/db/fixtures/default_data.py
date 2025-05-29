@@ -19,6 +19,8 @@ class DefaultPrompt:
 @dataclass
 class DefaultAgent:
     name: str
+    agent_type: Optional[Literal["router", "web_search", "data", "troubleshooting", "api", "weather"]]
+    description: Optional[str]
     prompt_label: str
     persona: str
     functions: List[Dict[str, Any]]
@@ -114,6 +116,8 @@ DEFAULT_PROMPTS: List[DefaultPrompt] = [
 DEFAULT_AGENTS: List[DefaultAgent] = [
     DefaultAgent(
         name="WebAgent",
+        agent_type="web_search",
+        description="Searches the web for information and provides relevant results",
         prompt_label="WebAgentPrompt",
         persona="Helper",
         functions=[],
@@ -138,6 +142,8 @@ DEFAULT_AGENTS: List[DefaultAgent] = [
     ),
     DefaultAgent(
         name="DataAgent",
+        agent_type="data",
+        description="Processes and analyzes data from various sources",
         prompt_label="DataAgentPrompt",
         persona="Helper",
         functions=[],
@@ -162,6 +168,8 @@ DEFAULT_AGENTS: List[DefaultAgent] = [
     ),
     DefaultAgent(
         name="APIAgent",
+        agent_type="api",
+        description="Connects to external APIs and services to retrieve data",
         prompt_label="APIAgentPrompt",
         persona="Helper",
         functions=[],
@@ -186,6 +194,8 @@ DEFAULT_AGENTS: List[DefaultAgent] = [
     ),
     DefaultAgent(
         name="CommandAgent",
+        agent_type="router",
+        description="Coordinates and routes requests to appropriate agents",
         prompt_label="CommandAgentPrompt",
         persona="Coordinator",
         functions=[],
@@ -210,6 +220,8 @@ DEFAULT_AGENTS: List[DefaultAgent] = [
     ),
     DefaultAgent(
         name="HelloWorldAgent",
+        agent_type=None,  # This is a demo agent, no specific type
+        description="A simple demo agent that greets users with hello world messages",
         prompt_label="HelloWorldAgentPrompt",
         persona="Greeter",
         functions=[],

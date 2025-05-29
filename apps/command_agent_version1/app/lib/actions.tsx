@@ -1,7 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
-import { isChatMessageResponse, isSessionSummaryResponse } from "./discriminators";
-import type { ChatBotGenAI, ChatMessageResponse, ChatbotV, SessionSummaryObject } from "./interfaces";
+import { isChatMessageResponse, isSessionSummaryResponse, isAgentResponseArray } from "./discriminators";
+import type { ChatBotGenAI, ChatMessageResponse, ChatbotV, SessionSummaryObject, AgentResponse } from "./interfaces";
 
 
 
@@ -49,6 +49,24 @@ export async function fetchSessionSummary(userId: string, sessionId: string): Pr
   const data: unknown = await response.json();
   if (isSessionSummaryResponse(data)) return data;
   throw new Error("Invalid data type");
+}
+
+export async function fetchAllAgents(skip: number = 0, limit: number = 100, deployed?: boolean): Promise<AgentResponse[]> {
+  const url = new URL(`${BACKEND_URL ?? ""}api/agents/`);
+
+  // Add query parameters
+  url.searchParams.append("skip", skip.toString());
+  url.searchParams.append("limit", limit.toString());
+  if (deployed !== undefined) {
+    url.searchParams.append("deployed", deployed.toString());
+  }
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Failed to fetch agents");
+
+  const data: unknown = await response.json();
+  if (isAgentResponseArray(data)) return data;
+  throw new Error("Invalid data type - expected array of agents");
 }
 
 
