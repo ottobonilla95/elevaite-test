@@ -14,9 +14,7 @@ from prompts import command_agent_system_prompt
 from db.database import Base, engine, get_db
 from db.init_db import init_db
 from api import prompt_router, agent_router, demo_router, analytics_router
-
-# Temporarily comment out workflow router to test
-# from api import workflow_router
+from api.workflow_endpoints import router as workflow_router
 from db import crud
 
 # Temporarily comment out workflow service to test
@@ -34,7 +32,15 @@ GOOGLE_API = os.getenv("GOOGLE_API_PERSONAL")
 
 COMMAND_AGENT = None
 
-origins = ["http://127.0.0.1:3002", "*"]
+origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
+    "*",  # Allow all origins for development
+]
 
 
 @asynccontextmanager
@@ -48,12 +54,20 @@ async def lifespan(app_instance: fastapi.FastAPI):  # noqa: ARG001
 
 app = fastapi.FastAPI(title="Agent Studio Backend", version="0.1.0", lifespan=lifespan)
 
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+)
+
 app.include_router(prompt_router)
 app.include_router(agent_router)
 app.include_router(demo_router)
 app.include_router(analytics_router)
-# Temporarily comment out workflow router to test
-# app.include_router(workflow_router)
+app.include_router(workflow_router)
 
 
 @app.get("/")
@@ -105,9 +119,7 @@ def deploy_legacy(request: dict, db: Session = fastapi.Depends(get_db)):
             code = i[0]
             db_agent = crud.get_agent_by_deployment_code(db, code)
             if db_agent is None:
-                return {
-                    "status": f"Error: Agent with deployment code '{code}' not found"
-                }
+                return {"status": f"Error: Agent with deployment code '{code}' not found"}
             agents.append(str(db_agent.name))
 
         # Get agent schemas lazily to avoid Redis connection at import time
@@ -121,9 +133,7 @@ def deploy_legacy(request: dict, db: Session = fastapi.Depends(get_db)):
 
             source_agent = crud.get_agent_by_deployment_code(db, source_code)
             if source_agent is None:
-                return {
-                    "status": f"Error: Agent with deployment code '{source_code}' not found"
-                }
+                return {"status": f"Error: Agent with deployment code '{source_code}' not found"}
             source_name = str(source_agent.name)
 
             if source_name == "CommandAgent":
@@ -131,10 +141,7 @@ def deploy_legacy(request: dict, db: Session = fastapi.Depends(get_db)):
                     connections.append(agent_schemas[target_name])
                 else:
                     target_agent = crud.get_agent_by_name(db, target_name)
-                    if (
-                        target_agent is not None
-                        and str(target_agent.name) in agent_schemas
-                    ):
+                    if target_agent is not None and str(target_agent.name) in agent_schemas:
                         connections.append(agent_schemas[str(target_agent.name)])
 
         COMMAND_AGENT = CommandAgent(
@@ -180,13 +187,9 @@ def run(request: dict, db: Session = Depends(get_db)):
         if not session_id:
             session_id = str(uuid.uuid4())
 
-        analytics_service.create_or_update_session(
-            session_id=session_id, user_id=user_id, db=db
-        )
+        analytics_service.create_or_update_session(session_id=session_id, user_id=user_id, db=db)
 
-        res = COMMAND_AGENT.execute(
-            query=request["query"], session_id=session_id, user_id=user_id
-        )
+        res = COMMAND_AGENT.execute(query=request["query"], session_id=session_id, user_id=user_id)
 
         return {"status": "ok", "response": f"{res}", "session_id": session_id}
 
@@ -203,15 +206,11 @@ def run_stream(request: dict):
 
     async def response_stream():
         if COMMAND_AGENT is not None:
-            for chunk in COMMAND_AGENT.execute_stream(
-                request["query"], gpt_chat_history
-            ):
+            for chunk in COMMAND_AGENT.execute_stream(request["query"], gpt_chat_history):
                 yield chunk
             return
 
-    return fastapi.responses.StreamingResponse(
-        response_stream(), media_type="text/event-stream"
-    )
+    return fastapi.responses.StreamingResponse(response_stream(), media_type="text/event-stream")
 
 
 if __name__ == "__main__":

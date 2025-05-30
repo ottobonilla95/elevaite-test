@@ -19,7 +19,7 @@ class DefaultPrompt:
 @dataclass
 class DefaultAgent:
     name: str
-    agent_type: Optional[Literal["router", "web_search", "data", "troubleshooting", "api", "weather"]]
+    agent_type: Optional[Literal["router", "web_search", "data", "troubleshooting", "api", "weather", "toshiba"]]
     description: Optional[str]
     prompt_label: str
     persona: str
@@ -46,6 +46,7 @@ AGENT_CODES = {
     "APIAgent": "a",
     "CommandAgent": "r",
     "HelloWorldAgent": "h",
+    "ToshibaAgent": "t",
 }
 
 
@@ -109,6 +110,38 @@ DEFAULT_PROMPTS: List[DefaultPrompt] = [
         tags=["hello", "demo"],
         hyper_parameters={"temperature": "0.7"},
         variables={"greeting": "Hello, World!"},
+    ),
+    DefaultPrompt(
+        prompt_label="Toshiba Agent Prompt",
+        prompt="""You are a specialized Toshiba agent designed to answer questions related to Toshiba parts, assemblies, and general information.
+
+Your primary responsibilities include:
+- Providing accurate information about Toshiba elevator parts and components
+- Helping users find specific part numbers and specifications
+- Assisting with assembly information and technical details
+- Offering guidance on Toshiba product compatibility and usage
+
+When responding:
+- Use the available tools to search for relevant information
+- Provide detailed and accurate responses based on the retrieved data
+- If you cannot find specific information, clearly state this and suggest alternative approaches
+- Always maintain a helpful and professional tone
+
+Your response should be in JSON format with the following structure:
+{
+    "routing": "continue" | "respond" | "give_up",
+    "content": "Your detailed response here"
+}
+
+Use "continue" if you need more information, "respond" when you have a complete answer, and "give_up" if you cannot help with the query.""",
+        unique_label="ToshibaAgentPrompt",
+        app_name="agent_studio",
+        version="1.0",
+        ai_model_provider="OpenAI",
+        ai_model_name="GPT-4o",
+        tags=["toshiba", "parts", "elevator", "technical"],
+        hyper_parameters={"temperature": "0.6"},
+        variables={"domain": "toshiba_parts"},
     ),
 ]
 
@@ -240,6 +273,32 @@ DEFAULT_AGENTS: List[DefaultAgent] = [
         status="active",
         priority=None,
         failure_strategies=["retry"],
+        collaboration_mode="single",
+    ),
+    DefaultAgent(
+        name="ToshibaAgent",
+        agent_type="toshiba",
+        description="Specialized agent for Toshiba parts, assemblies, and technical information",
+        prompt_label="ToshibaAgentPrompt",
+        persona="Toshiba Expert",
+        functions=[],  # Functions will be populated during registration
+        routing_options={
+            "ask": "If you think you need to ask more information or context from the user to answer the question.",
+            "continue": "If you think you have the answer, you can stop here.",
+            "give_up": "If you think you can't answer the query, you can give up and let the user know.",
+        },
+        short_term_memory=True,
+        long_term_memory=False,
+        reasoning=False,
+        input_type=["text", "voice"],
+        output_type=["text", "voice"],
+        response_type="json",
+        max_retries=3,
+        timeout=None,
+        deployed=False,
+        status="active",
+        priority=None,
+        failure_strategies=["retry", "escalate"],
         collaboration_mode="single",
     ),
 ]

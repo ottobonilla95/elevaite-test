@@ -1,5 +1,7 @@
 import uuid
-from typing import Dict, List, Optional, Any
+import asyncio
+import json
+from typing import Dict, List, Optional, Any, AsyncGenerator
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -160,16 +162,11 @@ class WorkflowService:
 
         deployment = crud.create_workflow_deployment(db, deployment_data)
 
-        # Build CommandAgent
-        command_agent = self._build_command_agent_from_workflow(db, workflow)
+        # Determine deployment strategy based on workflow configuration
+        deployment_info = self._create_workflow_deployment(db, workflow, deployment)
 
         # Store in active deployments
-        self.active_deployments[deployment_name] = {
-            "command_agent": command_agent,
-            "deployment": deployment,
-            "workflow": workflow,
-            "deployed_at": datetime.now(),
-        }
+        self.active_deployments[deployment_name] = deployment_info
 
         return deployment
 
@@ -192,17 +189,24 @@ class WorkflowService:
             raise ValueError(f"No active deployment found with name '{deployment_name}'")
 
         deployment_info = self.active_deployments[deployment_name]
-        command_agent = deployment_info["command_agent"]
         deployment = deployment_info["deployment"]
 
         try:
-            # Execute the workflow
-            if chat_history:
-                # Use streaming execution if chat history is provided
-                result = command_agent.execute_stream(query, chat_history)
+            # Execute based on deployment type
+            if deployment_info.get("is_single_agent", False):
+                # Single-agent execution
+                agent = deployment_info["agent"]
+                if hasattr(agent, "execute"):
+                    result = agent.execute(query, chat_history)
+                else:
+                    raise ValueError(f"Agent {deployment_info['agent_type']} does not have execute method")
             else:
-                # Use regular execution
-                result = command_agent.execute(query=query)
+                # Multi-agent execution via CommandAgent
+                command_agent = deployment_info["command_agent"]
+                if chat_history:
+                    result = command_agent.execute_stream(query, chat_history)
+                else:
+                    result = command_agent.execute(query=query)
 
             # Update deployment statistics
             deployment_update = schemas.WorkflowDeploymentUpdate()
@@ -220,6 +224,112 @@ class WorkflowService:
             deployment_update = schemas.WorkflowDeploymentUpdate(last_error=str(e))
             crud.update_workflow_deployment(db, deployment.deployment_id, deployment_update)
             raise
+
+    async def execute_workflow_async(
+        self, db: Session, deployment_name: str, query: str, chat_history: Optional[List[Dict[str, str]]] = None
+    ) -> AsyncGenerator[str, None]:
+        """
+        Execute a deployed workflow asynchronously with streaming responses
+
+        Args:
+            db: Database session
+            deployment_name: Name of deployment to execute
+            query: Query to execute
+            chat_history: Optional chat history
+
+        Yields:
+            Streaming response chunks
+        """
+        if deployment_name not in self.active_deployments:
+            yield json.dumps({"error": f"No active deployment found with name '{deployment_name}'"})
+            return
+
+        deployment_info = self.active_deployments[deployment_name]
+        deployment = deployment_info["deployment"]
+
+        try:
+            # Send initial status
+            yield (
+                json.dumps(
+                    {
+                        "status": "started",
+                        "deployment_name": deployment_name,
+                        "workflow_id": str(deployment.workflow_id),
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
+                + "\n"
+            )
+
+            # Execute based on deployment type
+            if deployment_info.get("is_single_agent", False):
+                # Single-agent async execution
+                agent = deployment_info["agent"]
+                if hasattr(agent, "execute_async"):
+                    # Use async streaming execution
+                    async for chunk in agent.execute_async(query, chat_history):
+                        if chunk:
+                            yield json.dumps({"type": "content", "data": chunk, "timestamp": datetime.now().isoformat()}) + "\n"
+                            await asyncio.sleep(0.01)
+                elif hasattr(agent, "execute"):
+                    # Fall back to sync execution
+                    result = agent.execute(query, chat_history)
+                    yield json.dumps({"type": "content", "data": result, "timestamp": datetime.now().isoformat()}) + "\n"
+                else:
+                    raise ValueError(f"Agent {deployment_info['agent_type']} does not have execute method")
+            else:
+                # Multi-agent execution via CommandAgent
+                command_agent = deployment_info["command_agent"]
+                if chat_history:
+                    # Use streaming execution with chat history
+                    for chunk in command_agent.execute_stream(query, chat_history):
+                        if chunk:
+                            # Wrap each chunk in a structured format
+                            yield json.dumps({"type": "content", "data": chunk, "timestamp": datetime.now().isoformat()}) + "\n"
+                            # Small delay to prevent overwhelming the client
+                            await asyncio.sleep(0.01)
+                else:
+                    # For non-streaming execution, we'll simulate streaming by chunking the response
+                    result = command_agent.execute(query=query)
+
+                    # Send the result as a single chunk
+                    yield json.dumps({"type": "content", "data": result, "timestamp": datetime.now().isoformat()}) + "\n"
+
+            # Send completion status
+            yield (
+                json.dumps(
+                    {
+                        "status": "completed",
+                        "deployment_name": deployment_name,
+                        "workflow_id": str(deployment.workflow_id),
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
+                + "\n"
+            )
+
+            # Update deployment statistics
+            deployment_update = schemas.WorkflowDeploymentUpdate()
+            crud.update_workflow_deployment(db, deployment.deployment_id, deployment_update)
+
+        except Exception as e:
+            # Send error status
+            yield (
+                json.dumps(
+                    {
+                        "status": "error",
+                        "error": str(e),
+                        "deployment_name": deployment_name,
+                        "workflow_id": str(deployment.workflow_id),
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
+                + "\n"
+            )
+
+            # Update error statistics
+            deployment_update = schemas.WorkflowDeploymentUpdate(last_error=str(e))
+            crud.update_workflow_deployment(db, deployment.deployment_id, deployment_update)
 
     def stop_deployment(self, db: Session, deployment_name: str) -> bool:
         """
@@ -305,6 +415,68 @@ class WorkflowService:
         )
 
         return command_agent
+
+    def _create_workflow_deployment(self, db: Session, workflow, deployment) -> Dict[str, Any]:
+        """
+        Create deployment based on workflow type (single-agent vs multi-agent)
+        """
+        agents = workflow.configuration.get("agents", [])
+
+        if len(agents) == 1:
+            # Single-agent workflow - deploy agent directly
+            agent_config = agents[0]
+            agent_type = agent_config.get("agent_type", "CommandAgent")
+
+            if agent_type == "ToshibaAgent":
+                # Create ToshibaAgent directly
+                agent = self._build_toshiba_agent(db, workflow, agent_config)
+                return {
+                    "agent": agent,
+                    "agent_type": "ToshibaAgent",
+                    "deployment": deployment,
+                    "workflow": workflow,
+                    "deployed_at": datetime.now(),
+                    "is_single_agent": True,
+                }
+            else:
+                # Create other single agents directly
+                agent = self._build_single_agent(db, workflow, agent_config)
+                return {
+                    "agent": agent,
+                    "agent_type": agent_type,
+                    "deployment": deployment,
+                    "workflow": workflow,
+                    "deployed_at": datetime.now(),
+                    "is_single_agent": True,
+                }
+        else:
+            # Multi-agent workflow - use CommandAgent
+            command_agent = self._build_command_agent_from_workflow(db, workflow)
+            return {
+                "command_agent": command_agent,
+                "agent_type": "CommandAgent",
+                "deployment": deployment,
+                "workflow": workflow,
+                "deployed_at": datetime.now(),
+                "is_single_agent": False,
+            }
+
+    def _build_toshiba_agent(self, db: Session, workflow, agent_config):
+        """Build ToshibaAgent from configuration"""
+        from agents.toshiba_agent import create_toshiba_agent
+        from prompts import toshiba_agent_system_prompt
+        from tools import tool_schemas
+
+        # Get ToshibaAgent-specific configuration
+        functions = [tool_schemas.get("query_retriever2")] if "query_retriever2" in tool_schemas else []
+
+        return create_toshiba_agent(system_prompt=toshiba_agent_system_prompt, functions=functions)
+
+    def _build_single_agent(self, db: Session, workflow, agent_config):
+        """Build a single agent from configuration"""
+        # This can be extended for other single-agent types
+        # For now, fall back to CommandAgent
+        return self._build_command_agent_from_workflow(db, workflow)
 
 
 # Global workflow service instance

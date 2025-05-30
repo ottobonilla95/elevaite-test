@@ -20,6 +20,7 @@ import { AgentType, AGENT_TYPES } from "./type";
 import "./DesignerSidebar.scss";
 import { AgentResponse } from "../lib/interfaces";
 import { fetchAllAgents } from "../lib/actions";
+import WorkflowsTab from "./WorkflowsTab";
 
 // SidebarSection component for collapsible sections
 const SidebarSection: React.FC<{
@@ -98,6 +99,9 @@ interface DesignerSidebarProps {
     isLoading: boolean;
     activeTab: string;
     setActiveTab: (tab: string) => void;
+    // New props for WorkflowsTab
+    onCreateNewWorkflow?: () => void;
+    onLoadWorkflow?: (workflow: any) => void;
 }
 
 const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
@@ -108,7 +112,9 @@ const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
     handleSaveWorkflow, // Added save workflow function
     isLoading,
     activeTab,
-    setActiveTab
+    setActiveTab,
+    onCreateNewWorkflow,
+    onLoadWorkflow
 }) => {
     // State for section visibility
     const [sectionsState, setSectionsState] = useState({
@@ -243,7 +249,7 @@ const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
                         onToggle={() => toggleSection('components')}
                     >
                         {agents.filter(agent =>
-                            ['router', 'web_search', 'api', 'data'].includes(agent.agent_type)
+                            agent.agent_type && ['router', 'web_search', 'api', 'data', 'toshiba'].includes(agent.agent_type)
                         ).map((agent) => (
                             <SidebarItem
                                 key={agent.id}
@@ -369,11 +375,12 @@ const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
                 </div>
             )}
 
-            {/* Workflows Content (Initially Hidden) */}
-            {activeTab === "workflows" && (
-                <div className="p-4">
-                    <p className="text-center text-gray-500 py-8">No saved workflows yet.</p>
-                </div>
+            {/* Workflows Content */}
+            {activeTab === "workflows" && onCreateNewWorkflow && onLoadWorkflow && (
+                <WorkflowsTab
+                    onCreateNewWorkflow={onCreateNewWorkflow}
+                    onLoadWorkflow={onLoadWorkflow}
+                />
             )}
 
             {/* Footer Buttons */}

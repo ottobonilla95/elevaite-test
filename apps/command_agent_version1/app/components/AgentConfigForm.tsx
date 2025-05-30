@@ -391,34 +391,61 @@ const AgentConfigForm: React.FC = () => {
             alert("Error: " + (error as Error).message);
         }
     };
-    // Save workflow
-    const handleSaveWorkflow = () => {
+    // Save workflow using modern API
+    const handleSaveWorkflow = async () => {
         if (nodes.length === 0) {
             alert("Please add at least one agent to your workflow before saving.");
             return;
         }
 
-        const workflow: WorkflowConfig = {
-            workflowId: workflowIdRef.current,
-            workflowName,
-            agents: nodes.map(node => ({
-                id: node.data.shortId || "",
-                uuid: node.id,
-                type: node.data.type,
-                name: node.data.name,
-                prompt: node.data.prompt, // Include prompt in saved workflow
-                tools: node.data.tools, // Include tools in saved workflow
-                tags: node.data.tags, // Include tags in saved workflow
-                position: node.position
-            })),
-            connections: edges.map(edge => ({
-                fromUuid: edge.source,
-                toUuid: edge.target
-            }))
-        };
+        try {
+            setIsLoading(true);
 
-        console.log("Saving workflow:", workflow);
-        alert(`Workflow "${workflowName}" saved with ID: ${workflowIdRef.current.substring(0, 8)}`);
+            // Import the deployWorkflow function
+            const { deployWorkflow } = await import("../lib/actions");
+
+            // Convert current nodes and edges to the modern workflow format
+            const agents = nodes.map(node => ({
+                agent_id: node.data.shortId || node.id,
+                position: {
+                    x: node.position.x,
+                    y: node.position.y
+                }
+            }));
+
+            const connections = edges.map(edge => ({
+                source_agent_id: edge.source,
+                target_agent_id: edge.target,
+                connection_type: "default" as const
+            }));
+
+            const workflowRequest = {
+                workflow_name: workflowName,
+                description: `Workflow with ${nodes.length} agents and ${edges.length} connections`,
+                agents,
+                connections
+            };
+
+            console.log("Saving workflow with modern API:", workflowRequest);
+
+            const result = await deployWorkflow(workflowRequest);
+
+            if (result.status === "success") {
+                // Update the workflow ID if we got one back
+                if (result.workflow_id) {
+                    workflowIdRef.current = result.workflow_id;
+                }
+
+                alert(`Workflow "${workflowName}" saved successfully!`);
+            } else {
+                alert(`Error saving workflow: ${result.message}`);
+            }
+        } catch (error) {
+            console.error("Error saving workflow:", error);
+            alert("Error saving workflow. Please try again.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     // Create a new workflow
@@ -431,6 +458,80 @@ const AgentConfigForm: React.FC = () => {
         setChatMessages([]);
         setSelectedNode(null);
         setShowConfigPanel(false);
+    };
+
+    // Load a workflow from saved workflows
+    const handleLoadWorkflow = (workflowDetails: any) => {
+        try {
+            // Set workflow metadata
+            workflowIdRef.current = workflowDetails.workflow_id;
+            setWorkflowName(workflowDetails.name);
+
+            // Convert workflow agents to nodes
+            const loadedNodes: Node[] = [];
+            console.log("Workflow agents:", workflowDetails.workflow_agents);
+            if (workflowDetails.workflow_agents) {
+                workflowDetails.workflow_agents.forEach((workflowAgent: any) => {
+                    const agent = workflowAgent.agent;
+                    const nodeId = workflowAgent.node_id || workflowAgent.agent_id;
+
+                    const newNode: Node = {
+                        id: nodeId,
+                        type: "agent",
+                        position: {
+                            x: workflowAgent.position_x || 100,
+                            y: workflowAgent.position_y || 100
+                        },
+                        data: {
+                            id: nodeId,
+                            shortId: agent.deployment_code || agent.agent_id,
+                            type: agent.agent_type || 'custom',
+                            name: agent.name,
+                            prompt: agent.system_prompt?.prompt || "",
+                            tools: ["Tool 1", "Tool 2", "Tool 3"], // Default tools
+                            tags: [agent.agent_type || 'custom'],
+                            onDelete: handleDeleteNode,
+                            onConfigure: () => handleNodeSelect(newNode)
+                        }
+                    };
+
+                    loadedNodes.push(newNode);
+                });
+            }
+
+            // Convert workflow connections to edges
+            const loadedEdges: Edge[] = [];
+            if (workflowDetails.workflow_connections) {
+                workflowDetails.workflow_connections.forEach((connection: any, index: number) => {
+                    const newEdge: Edge = {
+                        id: `edge-${index}`,
+                        source: `node-${connection.source_agent_id}`,
+                        target: `node-${connection.target_agent_id}`,
+                        type: "default",
+                        animated: true
+                    };
+
+                    loadedEdges.push(newEdge);
+                });
+            }
+
+            // Update state
+            setNodes(loadedNodes);
+            setEdges(loadedEdges);
+            setIsChatMode(false);
+            setChatMessages([]);
+            setSelectedNode(null);
+            setShowConfigPanel(false);
+
+            console.log(`Loaded workflow: ${workflowDetails.name}`, {
+                nodes: loadedNodes,
+                edges: loadedEdges
+            });
+
+        } catch (error) {
+            console.error('Error loading workflow:', error);
+            alert('Error loading workflow. Please try again.');
+        }
     };
 
     // Handle saving the agent configuration with tools
@@ -507,6 +608,8 @@ const AgentConfigForm: React.FC = () => {
                                 isLoading={isLoading}
                                 activeTab={activeTab}
                                 setActiveTab={setActiveTab}
+                                onCreateNewWorkflow={handleCreateNewWorkflow}
+                                onLoadWorkflow={handleLoadWorkflow}
                             />
 
                             {/* Main Canvas */}

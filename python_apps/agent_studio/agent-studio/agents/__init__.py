@@ -7,6 +7,7 @@ from prompts import (
     data_agent_system_prompt,
     hello_world_agent_system_prompt,
     console_printer_agent_system_prompt,
+    toshiba_agent_system_prompt,
 )
 
 from tools import weather_forecast
@@ -16,6 +17,7 @@ from .api_agent import APIAgent
 from .web_agent import WebAgent
 from .hello_world_agent import HelloWorldAgent
 from .console_printer_agent import ConsolePrinterAgent
+from .toshiba_agent import create_toshiba_agent
 
 
 # Lazy initialization functions for all agents
@@ -170,6 +172,15 @@ def get_console_printer_agent():
     )
 
 
+def get_toshiba_agent():
+    """Create ToshibaAgent with proper configuration"""
+    # Note: Functions will be populated during database registration
+    return create_toshiba_agent(
+        system_prompt=toshiba_agent_system_prompt,
+        functions=[],  # Will be populated with tool_schemas during registration
+    )
+
+
 def get_agent_store():
     """Lazy initialization of agent store to avoid Redis connection at import time"""
     web_agent = get_web_agent()
@@ -177,6 +188,7 @@ def get_agent_store():
     api_agent = get_api_agent()
     hello_world_agent = get_hello_world_agent()
     console_printer_agent = get_console_printer_agent()
+    toshiba_agent = get_toshiba_agent()
 
     return {
         "WebAgent": web_agent.execute,
@@ -184,6 +196,7 @@ def get_agent_store():
         "APIAgent": api_agent.execute,
         "HelloWorldAgent": hello_world_agent.execute,
         "ConsolePrinterAgent": console_printer_agent.execute,
+        "ToshibaAgent": toshiba_agent.execute,
     }
 
 
@@ -194,6 +207,7 @@ def get_agent_schemas():
     api_agent = get_api_agent()
     hello_world_agent = get_hello_world_agent()
     console_printer_agent = get_console_printer_agent()
+    toshiba_agent = get_toshiba_agent()
 
     return {
         "WebAgent": web_agent.openai_schema,
@@ -201,6 +215,7 @@ def get_agent_schemas():
         "APIAgent": api_agent.openai_schema,
         "HelloWorldAgent": hello_world_agent.openai_schema,
         "ConsolePrinterAgent": console_printer_agent.openai_schema,
+        "ToshibaAgent": toshiba_agent.openai_schema,
     }
 
 

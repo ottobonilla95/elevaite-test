@@ -80,6 +80,17 @@ export async function fetchAvailableAgents(): Promise<AgentResponse[]> {
   throw new Error("Invalid data type - expected array of agents");
 }
 
+export async function getWorkflows(): Promise<WorkflowDeployResponse[]> {
+  const url = new URL(`${BACKEND_URL ?? ""}api/workflows/`);
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Failed to fetch workflows");
+
+  const data: unknown = await response.json();
+  if (Array.isArray(data)) return data;
+  throw new Error("Invalid data type - expected array of workflows");
+}
+
 export async function deployWorkflow(workflowRequest: WorkflowDeployRequest): Promise<WorkflowDeployResponse> {
   const url = new URL(`${BACKEND_URL ?? ""}deploy`);
 
@@ -119,6 +130,34 @@ export async function executeWorkflow(executionRequest: WorkflowExecutionRequest
   const data: unknown = await response.json();
   if (isWorkflowExecutionResponse(data)) return data;
   throw new Error("Invalid data type - expected workflow execution response");
+}
+
+// Additional workflow management functions
+export async function getWorkflowDetails(workflowId: string): Promise<any> {
+  try {
+    const response = await fetch(`${BACKEND_URL}api/workflows/${workflowId}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching workflow details:', error);
+    throw error;
+  }
+}
+
+export async function deleteWorkflow(workflowId: string): Promise<void> {
+  try {
+    const response = await fetch(`${BACKEND_URL}api/workflows/${workflowId}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error deleting workflow:', error);
+    throw error;
+  }
 }
 
 

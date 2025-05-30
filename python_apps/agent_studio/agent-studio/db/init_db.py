@@ -16,6 +16,7 @@ from prompts import (
     api_agent_system_prompt,
     data_agent_system_prompt,
     command_agent_system_prompt,
+    toshiba_agent_system_prompt,
 )
 
 
@@ -42,6 +43,7 @@ def init_db():
             api_agent_system_prompt,
             data_agent_system_prompt,
             command_agent_system_prompt,
+            toshiba_agent_system_prompt,
         ]
 
         for prompt_obj in prompts:

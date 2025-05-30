@@ -56,7 +56,7 @@ class PromptResponse(PromptInDB):
 # Base schemas for Agent
 class AgentBase(BaseModel):
     name: str
-    agent_type: Optional[Literal["router", "web_search", "data", "troubleshooting", "api", "weather"]] = None
+    agent_type: Optional[Literal["router", "web_search", "data", "troubleshooting", "api", "weather", "toshiba"]] = None
     description: Optional[str] = None
     parent_agent_id: Optional[uuid.UUID] = None
     system_prompt_id: uuid.UUID
@@ -86,7 +86,7 @@ class AgentCreate(AgentBase):
 
 class AgentUpdate(BaseModel):
     name: Optional[str] = None
-    agent_type: Optional[Literal["router", "web_search", "data", "troubleshooting", "api", "weather"]] = None
+    agent_type: Optional[Literal["router", "web_search", "data", "troubleshooting", "api", "weather", "toshiba"]] = None
     description: Optional[str] = None
     parent_agent_id: Optional[uuid.UUID] = None
     system_prompt_id: Optional[uuid.UUID] = None
@@ -300,6 +300,15 @@ class WorkflowDeploymentCreate(WorkflowDeploymentBase):
     pass
 
 
+class WorkflowDeploymentRequest(BaseModel):
+    """Schema for deployment requests (without workflow_id which comes from URL)"""
+
+    environment: str = "production"
+    deployment_name: str
+    deployed_by: Optional[str] = None
+    runtime_config: Optional[Dict[str, Any]] = None
+
+
 class WorkflowDeploymentUpdate(BaseModel):
     status: Optional[Literal["active", "inactive", "failed"]] = None
     runtime_config: Optional[Dict[str, Any]] = None
@@ -334,12 +343,29 @@ class WorkflowExecutionRequest(BaseModel):
     runtime_overrides: Optional[Dict[str, Any]] = None
 
 
+class WorkflowStreamExecutionRequest(BaseModel):
+    deployment_name: str
+    query: str
+    chat_history: Optional[List[Dict[str, str]]] = None
+    runtime_overrides: Optional[Dict[str, Any]] = None
+
+
 class WorkflowExecutionResponse(BaseModel):
     status: str
     response: Optional[str] = None
     execution_id: Optional[str] = None
     workflow_id: uuid.UUID
     deployment_id: Optional[uuid.UUID] = None
+
+
+class WorkflowStreamChunk(BaseModel):
+    type: str  # "content", "status", "error"
+    data: Optional[str] = None
+    status: Optional[str] = None
+    error: Optional[str] = None
+    deployment_name: Optional[str] = None
+    workflow_id: Optional[str] = None
+    timestamp: str
 
 
 # Request schemas

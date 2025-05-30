@@ -73,7 +73,7 @@ function isAgentResponseObject(item: unknown): item is AgentResponse {
         typeof item.agent_id === "string" &&
         // agent_type is optional, so we only check if it exists
         (!("agent_type" in item) || item.agent_type === null ||
-            ["router", "web_search", "data", "troubleshooting", "api", "weather"].includes(item.agent_type as string)) &&
+            ["router", "web_search", "data", "troubleshooting", "api", "weather", "toshiba"].includes(item.agent_type as string)) &&
         // description is optional, so we only check if it exists
         (!("description" in item) || item.description === null || typeof item.description === "string");
 }
