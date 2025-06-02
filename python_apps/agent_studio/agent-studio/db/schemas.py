@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Literal, Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class PromptBase(BaseModel):
@@ -37,6 +37,8 @@ class PromptUpdate(BaseModel):
 
 
 class PromptInDB(PromptBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     pid: uuid.UUID
     sha_hash: str
@@ -44,9 +46,6 @@ class PromptInDB(PromptBase):
     created_time: datetime
     deployed_time: Optional[datetime] = None
     last_deployed: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 class PromptResponse(PromptInDB):
@@ -56,7 +55,17 @@ class PromptResponse(PromptInDB):
 # Base schemas for Agent
 class AgentBase(BaseModel):
     name: str
-    agent_type: Optional[Literal["router", "web_search", "data", "troubleshooting", "api", "weather", "toshiba"]] = None
+    agent_type: Optional[
+        Literal[
+            "router",
+            "web_search",
+            "data",
+            "troubleshooting",
+            "api",
+            "weather",
+            "toshiba",
+        ]
+    ] = None
     description: Optional[str] = None
     parent_agent_id: Optional[uuid.UUID] = None
     system_prompt_id: uuid.UUID
@@ -86,7 +95,17 @@ class AgentCreate(AgentBase):
 
 class AgentUpdate(BaseModel):
     name: Optional[str] = None
-    agent_type: Optional[Literal["router", "web_search", "data", "troubleshooting", "api", "weather", "toshiba"]] = None
+    agent_type: Optional[
+        Literal[
+            "router",
+            "web_search",
+            "data",
+            "troubleshooting",
+            "api",
+            "weather",
+            "toshiba",
+        ]
+    ] = None
     description: Optional[str] = None
     parent_agent_id: Optional[uuid.UUID] = None
     system_prompt_id: Optional[uuid.UUID] = None
@@ -105,19 +124,20 @@ class AgentUpdate(BaseModel):
     status: Optional[Literal["active", "paused", "terminated"]] = None
     priority: Optional[int] = None
     failure_strategies: Optional[List[str]] = None
-    collaboration_mode: Optional[Literal["single", "team", "parallel", "sequential"]] = None
+    collaboration_mode: Optional[
+        Literal["single", "team", "parallel", "sequential"]
+    ] = None
     available_for_deployment: Optional[bool] = None
     deployment_code: Optional[str] = None
 
 
 class AgentInDB(AgentBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     agent_id: uuid.UUID
     session_id: Optional[str] = None
     last_active: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 class AgentResponse(AgentInDB):
@@ -139,11 +159,10 @@ class PromptVersionCreate(PromptVersionBase):
 
 
 class PromptVersionInDB(PromptVersionBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class PromptVersionResponse(PromptVersionInDB):
@@ -163,12 +182,11 @@ class PromptDeploymentCreate(PromptDeploymentBase):
 
 
 class PromptDeploymentInDB(PromptDeploymentBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     deployed_at: datetime
     is_active: bool
-
-    class Config:
-        from_attributes = True
 
 
 class PromptDeploymentResponse(PromptDeploymentInDB):
@@ -200,15 +218,14 @@ class WorkflowUpdate(BaseModel):
 
 
 class WorkflowInDB(WorkflowBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     workflow_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
     is_deployed: bool
     deployed_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 class WorkflowResponse(WorkflowInDB):
@@ -239,11 +256,10 @@ class WorkflowAgentUpdate(BaseModel):
 
 
 class WorkflowAgentInDB(WorkflowAgentBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     added_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class WorkflowAgentResponse(WorkflowAgentInDB):
@@ -275,11 +291,10 @@ class WorkflowConnectionUpdate(BaseModel):
 
 
 class WorkflowConnectionInDB(WorkflowConnectionBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class WorkflowConnectionResponse(WorkflowConnectionInDB):
@@ -326,8 +341,7 @@ class WorkflowDeploymentInDB(WorkflowDeploymentBase):
     error_count: int = 0
     last_error: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class WorkflowDeploymentResponse(WorkflowDeploymentInDB):
@@ -354,16 +368,6 @@ class WorkflowExecutionResponse(BaseModel):
     status: str
     response: Optional[str] = None
     execution_id: Optional[str] = None
-    workflow_id: uuid.UUID
-    deployment_id: Optional[uuid.UUID] = None
-
-
-class WorkflowStreamChunk(BaseModel):
-    type: str  # "content", "status", "error"
-    data: Optional[str] = None
-    status: Optional[str] = None
-    error: Optional[str] = None
-    deployment_name: Optional[str] = None
     workflow_id: Optional[str] = None
     timestamp: str
 
@@ -429,8 +433,7 @@ class AgentExecutionMetricsInDB(AgentExecutionMetricsBase):
     tokens_used: Optional[int] = None
     api_calls_count: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AgentExecutionMetricsResponse(AgentExecutionMetricsInDB):
@@ -471,8 +474,7 @@ class ToolUsageMetricsInDB(ToolUsageMetricsBase):
     api_response_time_ms: Optional[int] = None
     api_status_code: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ToolUsageMetricsResponse(ToolUsageMetricsInDB):
@@ -517,8 +519,7 @@ class WorkflowMetricsInDB(WorkflowMetricsBase):
     user_satisfaction_score: Optional[float] = None
     task_completion_rate: Optional[float] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class WorkflowMetricsResponse(WorkflowMetricsInDB):
@@ -563,8 +564,7 @@ class SessionMetricsInDB(SessionMetricsBase):
     total_tokens_used: Optional[int] = None
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SessionMetricsResponse(SessionMetricsInDB):
