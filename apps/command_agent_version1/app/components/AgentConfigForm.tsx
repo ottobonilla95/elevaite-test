@@ -439,57 +439,45 @@ const AgentConfigForm: React.FC = () => {
         try {
             setIsLoading(true);
 
-            // Import the createWorkflow function
-            const { createWorkflow } = await import("../lib/actions");
+            // Import the deployWorkflow function
+            const { deployWorkflow } = await import("../lib/actions");
 
             // Convert current nodes and edges to the modern workflow format
-            const agentsConfig = nodes.map((node) => ({
-                agent_type: node.data.type,
+            const agents = nodes.map((node) => ({
                 agent_id: node.data.shortId || node.id,
                 position: {
                     x: node.position.x,
                     y: node.position.y,
                 },
-                config: {
-                    name: node.data.name,
-                    prompt: node.data.prompt,
-                    description: node.data.description,
-                    tags: node.data.tags,
-                },
             }));
 
-            const connectionsConfig = edges.map((edge) => ({
+            const connections = edges.map((edge) => ({
                 source_agent_id: edge.source,
                 target_agent_id: edge.target,
-                connection_type: "default",
-                priority: 0,
+                connection_type: "default" as const,
             }));
 
             const workflowRequest = {
-                name: workflowName,
+                workflow_name: workflowName,
                 description: `Workflow with ${nodes.length} agents and ${edges.length} connections`,
-                version: "1.0.0",
-                configuration: {
-                    agents: agentsConfig,
-                    connections: connectionsConfig,
-                },
-                created_by: "user", // TODO: We might want to get this from auth context
-                is_active: true,
-                tags: ["frontend-created"],
+                agents,
+                connections,
             };
 
-            console.log("Creating workflow with modern API:", workflowRequest);
+            console.log("Saving workflow with modern API:", workflowRequest);
 
-            const result = await createWorkflow(workflowRequest);
+            const result = await deployWorkflow(workflowRequest);
 
-            // Update the workflow ID if we got one back
-            if (result.workflow_id) {
-                workflowIdRef.current = result.workflow_id;
+            if (result.status === "success") {
+                // Update the workflow ID if we got one back
+                if (result.workflow_id) {
+                    workflowIdRef.current = result.workflow_id;
+                }
+
+                alert(`Workflow "${workflowName}" saved successfully!`);
+            } else {
+                alert(`Error saving workflow: ${result.message}`);
             }
-
-            alert(
-                `Workflow "${workflowName}" saved successfully! ID: ${result.workflow_id}`
-            );
         } catch (error) {
             console.error("Error saving workflow:", error);
             alert("Error saving workflow. Please try again.");
