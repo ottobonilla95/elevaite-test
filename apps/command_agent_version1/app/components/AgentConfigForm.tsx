@@ -88,6 +88,7 @@ const AgentConfigForm: React.FC = () => {
 
     // State for UI
     const [workflowName, setWorkflowName] = useState("My Agent Workflow");
+    const [deploymentName, setDeploymentName] = useState("");
     const [isChatMode, setIsChatMode] = useState(false);
     const [chatInput, setChatInput] = useState("");
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -391,42 +392,87 @@ const AgentConfigForm: React.FC = () => {
             return;
         }
 
-        // Log router check
+        console.log("All nodes in workflow:", nodes);
+        nodes.forEach((node, index) => {
+            console.log(`Node ${index}:`, {
+                id: node.id,
+                type: node.data.type,
+                tags: node.data.tags,
+                name: node.data.name,
+            });
+        });
+
         const routerNode = nodes.find(
             (node) =>
                 node.data.tags?.includes("router") || node.data.type === "router"
         );
         console.log("Router node found:", routerNode);
 
+        const routerByTags = nodes.find((node) =>
+            node.data.tags?.includes("router")
+        );
+        const routerByType = nodes.find((node) => node.data.type === "router");
+        console.log("Router by tags:", routerByTags);
+        console.log("Router by type:", routerByType);
+
         if (!routerNode) {
             alert("Your workflow must include a Router Agent.");
             return;
         }
 
-        setIsLoading(true);
-
         try {
-            // Deploy the workflow - this is just a placeholder, replace with your actual API
-            console.log("Deploying workflow:", { nodes, edges });
-            const response = await WorkflowAPI.deployWorkflow(nodes, edges);
-            console.log("Workflow deployed:", response);
+            setIsLoading(true);
 
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // First, ensure the workflow is saved
+            if (!workflowIdRef.current) {
+                await handleSaveWorkflow();
+            }
 
-            // Switch to chat mode
+            // Import the deployWorkflowModern function
+            const { deployWorkflowModern } = await import("../lib/actions");
+
+            // Create deployment request
+            const deploymentRequest = {
+                deployment_name: `${workflowName.replace(/\s+/g, "-").toLowerCase()}-${Date.now()}`,
+                environment: "development",
+                deployed_by: "user", // TODO: Get from auth context
+                runtime_config: {
+                    timeout: 300,
+                    max_retries: 3,
+                },
+            };
+
+            console.log(
+                "Deploying workflow:",
+                workflowIdRef.current,
+                deploymentRequest
+            );
+
+            const deployResult = await deployWorkflowModern(
+                workflowIdRef.current!,
+                deploymentRequest
+            );
+
+            console.log("Deployment result:", deployResult);
+
+            // Store the deployment name for chat execution
+            setDeploymentName(deploymentRequest.deployment_name);
+
+            // Switch to chat mode on successful deployment
             setIsChatMode(true);
             setShowConfigPanel(false);
             setChatMessages([
                 {
                     id: Date.now(),
-                    text: "Workflow deployed successfully. You can now ask questions.",
+                    text: `Workflow deployed successfully! Deployment: ${deploymentRequest.deployment_name}. You can now ask questions.`,
                     sender: "bot",
                 },
             ]);
         } catch (error) {
-            console.error("Error:", error);
-            alert("Error: " + (error as Error).message);
+            console.error("Error deploying workflow:", error);
+            alert("Error deploying workflow: " + (error as Error).message);
+        } finally {
+            setIsLoading(false);
         }
     };
     // Save workflow using modern API
@@ -439,45 +485,57 @@ const AgentConfigForm: React.FC = () => {
         try {
             setIsLoading(true);
 
-            // Import the deployWorkflow function
-            const { deployWorkflow } = await import("../lib/actions");
+            // Import the createWorkflow function
+            const { createWorkflow } = await import("../lib/actions");
 
             // Convert current nodes and edges to the modern workflow format
-            const agents = nodes.map((node) => ({
+            const agentsConfig = nodes.map((node) => ({
+                agent_type: node.data.type,
                 agent_id: node.data.shortId || node.id,
                 position: {
                     x: node.position.x,
                     y: node.position.y,
                 },
+                config: {
+                    name: node.data.name,
+                    prompt: node.data.prompt,
+                    description: node.data.description,
+                    tags: node.data.tags,
+                },
             }));
 
-            const connections = edges.map((edge) => ({
+            const connectionsConfig = edges.map((edge) => ({
                 source_agent_id: edge.source,
                 target_agent_id: edge.target,
-                connection_type: "default" as const,
+                connection_type: "default",
+                priority: 0,
             }));
 
             const workflowRequest = {
-                workflow_name: workflowName,
+                name: workflowName,
                 description: `Workflow with ${nodes.length} agents and ${edges.length} connections`,
-                agents,
-                connections,
+                version: "1.0.0",
+                configuration: {
+                    agents: agentsConfig,
+                    connections: connectionsConfig,
+                },
+                created_by: "user", // TODO: We might want to get this from auth context
+                is_active: true,
+                tags: ["frontend-created"],
             };
 
-            console.log("Saving workflow with modern API:", workflowRequest);
+            console.log("Creating workflow with modern API:", workflowRequest);
 
-            const result = await deployWorkflow(workflowRequest);
+            const result = await createWorkflow(workflowRequest);
 
-            if (result.status === "success") {
-                // Update the workflow ID if we got one back
-                if (result.workflow_id) {
-                    workflowIdRef.current = result.workflow_id;
-                }
-
-                alert(`Workflow "${workflowName}" saved successfully!`);
-            } else {
-                alert(`Error saving workflow: ${result.message}`);
+            // Update the workflow ID if we got one back
+            if (result.workflow_id) {
+                workflowIdRef.current = result.workflow_id;
             }
+
+            alert(
+                `Workflow "${workflowName}" saved successfully! ID: ${result.workflow_id}`
+            );
         } catch (error) {
             console.error("Error saving workflow:", error);
             alert("Error saving workflow. Please try again.");
@@ -496,6 +554,30 @@ const AgentConfigForm: React.FC = () => {
         setChatMessages([]);
         setSelectedNode(null);
         setShowConfigPanel(false);
+    };
+
+    const handleAddTestRouterAgent = () => {
+        const nodeId = uuidv4();
+        const newNode: Node = {
+            id: nodeId,
+            type: "agent",
+            position: { x: 100, y: 100 },
+            data: {
+                id: nodeId,
+                shortId: "router-test",
+                type: "router" as AgentType,
+                name: "Test Router Agent",
+                prompt:
+                    "You are a router agent that directs queries to the right specialist.",
+                tools: ["Tool 1", "Tool 2", "Tool 3"],
+                tags: ["router"],
+                onDelete: handleDeleteNode,
+                onConfigure: () => handleNodeSelect(newNode),
+            },
+        };
+
+        setNodes((prevNodes) => [...prevNodes, newNode]);
+        console.log("Added test router agent:", newNode);
     };
 
     // Load a workflow from saved workflows
@@ -659,6 +741,31 @@ const AgentConfigForm: React.FC = () => {
 
                             {/* Main Canvas */}
                             <div className="designer-content">
+                                {/* Test Button for Adding Router Agent */}
+                                <div
+                                    style={{
+                                        position: "absolute",
+                                        top: "10px",
+                                        right: "10px",
+                                        zIndex: 1000,
+                                    }}
+                                >
+                                    <button
+                                        onClick={handleAddTestRouterAgent}
+                                        style={{
+                                            padding: "8px 16px",
+                                            backgroundColor: "#f97316",
+                                            color: "white",
+                                            border: "none",
+                                            borderRadius: "4px",
+                                            cursor: "pointer",
+                                            fontSize: "12px",
+                                        }}
+                                    >
+                                        Add Test Router Agent
+                                    </button>
+                                </div>
+
                                 <DesignerCanvas
                                     nodes={nodes}
                                     edges={edges}
@@ -725,14 +832,14 @@ const AgentConfigForm: React.FC = () => {
                                     onCreateNewWorkflow={handleCreateNewWorkflow}
                                     workflowName={workflowName}
                                     workflowId={workflowIdRef.current}
+                                    deploymentName={deploymentName}
                                 />
                             </div>
                         </>
                     )}
                 </div>
             </ReactFlowProvider>
-        </>
-    );
+            );
 };
 
-export default AgentConfigForm;
+            export default AgentConfigForm;
