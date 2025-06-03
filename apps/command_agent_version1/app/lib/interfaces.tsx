@@ -1,12 +1,9 @@
-
 // Enums, Interfaces, Types, and initializer objects
 ////////////////////////////////////////////////////
-
 
 export const SESSION_ID_PREFIX = "sessionId_";
 export const USER_MESSAGE_ID_PREFIX = "userMessageId_";
 export const CHATBOT_MESSAGE_ID_PREFIX = "chatbotMessageId_";
-
 
 export enum ChatbotV {
   InWarranty = "in-warranty",
@@ -24,7 +21,6 @@ export enum ChatBotGenAI {
   BGPInsights = "bgpinsights",
 }
 export const defaultGenAIBotOption = ChatBotGenAI.CiscoClo;
-
 
 export interface SessionObject {
   id: string;
@@ -99,7 +95,13 @@ export interface PromptResponse {
   last_deployed?: string | null;
 }
 
-export type AgentType = "router" | "web_search" | "data" | "troubleshooting" | "api" | "weather";
+export type AgentType =
+  | "router"
+  | "web_search"
+  | "data"
+  | "troubleshooting"
+  | "api"
+  | "weather";
 
 export interface AgentResponse {
   name: string;
