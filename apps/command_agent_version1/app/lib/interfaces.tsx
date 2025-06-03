@@ -101,7 +101,8 @@ export type AgentType =
   | "data"
   | "troubleshooting"
   | "api"
-  | "weather";
+  | "weather"
+  | "toshiba";
 
 export interface AgentResponse {
   name: string;
