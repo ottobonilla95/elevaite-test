@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { ReactFlowProvider, ReactFlowInstance } from "reactflow";
+import { ReactFlowProvider, ReactFlowInstance } from "react-flow-renderer";
 
 // Import components
 import DesignerSidebar from "./DesignerSidebar";
