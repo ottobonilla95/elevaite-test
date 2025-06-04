@@ -295,6 +295,19 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   async function actionFileUpload(useYolo: boolean, file: File, isImage = false): Promise<UploadFileResponseObject | null> {
     setLoadingState(LoadingKeys.Uploading, true);
 
+    if (output?.response) {
+      setOutput(null);
+      setOutputVersions([]);
+      setJsonOutput('');
+      setPromptInputs(
+        defaultPromptInputs.map(input => ({
+          ...input,
+          prompt: "",
+          //id: crypto.randomUUID().toString(),
+        }))
+      );
+    }
+
     try {
       const result = await uploadFile(sessionId, useYolo, file, isImage);
       if (result) setOutput(null);
