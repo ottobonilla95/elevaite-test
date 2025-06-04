@@ -55,12 +55,9 @@ def configure_tracer(
 
 
 # Default tracer provider for when developers don't configure their own
+# Use a minimal configuration to avoid interfering with the application
 default_tracer_provider = TracerProvider()
-trace.set_tracer_provider(default_tracer_provider)
 default_tracer = trace.get_tracer(__name__)
 
-default_span_processor = BatchSpanProcessor(ConsoleSpanExporter())
-trace.get_tracer_provider().add_span_processor(default_span_processor)  # type: ignore
-
-# Configure logging instrumentation
-LoggingInstrumentor().instrument(set_logging_format=True)
+# Only set up OpenTelemetry if explicitly requested
+# Don't automatically instrument logging or set up exporters
