@@ -38,6 +38,10 @@
 	&-right {
 		.btn-wrapper {
 			border-bottom: 1px solid #E2E8ED;
+
+			.btn:disabled > *:not(.center) {
+				opacity: 0;
+			}
 		}
 
 		.card {
@@ -45,15 +49,20 @@
 			border: 1px solid #E2E8ED;
 		}
 
+		.top-wrapper {
+			height: calc(100% - 58px);
+			@include scrollbar();
+		}
+
 		.middle {
 			background: #F8FAFC;
 			border-top: 1px solid #E2E8ED;
-			border-bottom: 1px solid #E2E8ED;
 		}
 
 		.tab-panels {
 			background: #F8FAFC;
 			border-top: 1px solid #E2E8ED;
+			@include scrollbar();
 		}
 
 		.details {
@@ -68,6 +77,7 @@
 			border-top: 1px solid #E2E8ED;
 			height: 58px;
 			transition: height 0.3s;
+			@include scrollbar();
 
 			&.half-expanded {
 				height: 50%;
@@ -125,5 +135,28 @@
 
 	svg {
 		opacity: 0.72;
+	}
+}
+
+.dropdown-wrapper {
+	.dropdown {
+		top: 20px;
+		right: 0;
+		border-radius: 8px 0 8px 8px;
+		border: 1px solid #DDE4EE;
+		background: white;
+		box-shadow: 0px 8px 8px -4px #1018280A, 0px 20px 24px -4px #1018280A;
+
+
+		button {
+			padding: 8px 14px;
+			white-space: nowrap;
+			transition: background 0.2s;
+
+			&:hover,
+			&.active {
+				background: rgba(108, 130, 113, 0.1215686275);
+			}
+		}
 	}
 }

@@ -30,6 +30,28 @@ function PromptFileUploadModal() {
 			promptsContext.setInvoiceImage(data.image as string);
 			promptsContext.setInvoiceNumPages(data.num_pages as number);
 			promptsContext.setShowFileUploadModal(false);
+			promptsContext.setPromptInputs(
+				promptsContext.defaultPromptInputs.map(input => {
+					console.log(input)
+					if (input.type == 'tableHeader') {
+						return {
+							...input,
+							prompt: data.table_header,
+							//id: crypto.randomUUID().toString(),
+						}
+					} else if (input.type == 'lineItems') {
+						return {
+							...input,
+							prompt: data.line_items,
+							//id: crypto.randomUUID().toString(),
+						}
+					}
+					else {
+						return input;
+					}
+				})
+			);
+
 			promptsContext.setCurrentPage(1);
 			toast.success(
 				PromptToast,

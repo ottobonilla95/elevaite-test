@@ -1,4 +1,4 @@
-import { CommonSelect, SimpleInput } from "@repo/ui/components";
+import { CommonSelect, SimpleInput, SimpleTextarea } from "@repo/ui/components";
 import { PromptInputItem, PromptInputTypes } from "../lib/interfaces";
 import "./PromptInput.scss";
 import { useState } from "react";
@@ -7,7 +7,7 @@ import { usePrompt } from "../ui/contexts/PromptContext";
 
 const promptInputTypeLabels: Record<PromptInputTypes, string> = {
     [PromptInputTypes.UserInstructions]: "User Instructions",
-    [PromptInputTypes.TableHeader]: "Table Header",
+    [PromptInputTypes.TableHeader]: "Line Item Header",
     [PromptInputTypes.LineItems]: "Line Items",
     [PromptInputTypes.ExpectedOutput]: "Expected Output",
 };
@@ -60,13 +60,14 @@ export function PromptInput(props: PromptInputProps): JSX.Element {
                     </button>
                 </div>
             </div>
-            <SimpleInput
+			<SimpleTextarea wrapperClassName="prompt-input" value={props.prompt} onChange={handleTextChange} placeholder="Enter prompt text..." useCommonStyling></SimpleTextarea>
+            {/* <SimpleInput
                 wrapperClassName="prompt-input"
                 value={text}
                 onChange={handleTextChange}
                 placeholder="Enter prompt text..."
                 useCommonStyling
-            />
+            /> */}
         </div>
     );
 }

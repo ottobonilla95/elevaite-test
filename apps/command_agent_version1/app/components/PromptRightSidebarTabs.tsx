@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { usePrompt } from "../ui/contexts/PromptContext";
+import { LoadingKeys, usePrompt } from "../ui/contexts/PromptContext";
+import PromptLoading from "./PromptLoading";
 
 const PromptRightSidebarTabs = () => {
 	const promptContext = usePrompt();
 	const [activeTab, setActiveTab] = useState("tab1");
+	const [showVersionsDropdown, setShowVersionsDropdown] = useState(false);
+	const [activeItem, setActiveItem] = useState('');
 
 	return (
 		<div className="card flex flex-1 bg-white rounded-xl">
@@ -16,12 +19,25 @@ const PromptRightSidebarTabs = () => {
 						Generated Prompt
 					</button>
 				</div>
-				<div className="tab-panels flex flex-1 text-sm p-4 mt-1 w-full rounded-xl overflow-auto">
+				<div className="tab-panels flex flex-1 text-sm mt-1 w-full rounded-xl overflow-auto">
 					{activeTab === "tab1" && (
 						<div className="tab-panel flex flex-col flex-grow">
-							<div className="tab-content">
+							<div className="tab-content p-4">
+								{promptContext.output && (
+									<div className="flex items-center gap-2 mb-4">
+										<label className="flex items-center gap-2" htmlFor="json">
+											<input id="json" type="checkbox" onChange={promptContext.turnToJSON} />
+											JSON
+										</label>
+										{promptContext.loading[LoadingKeys.ConvertingToJSON] && (
+											<PromptLoading className="no-offset m-0" width={20} height={20} />
+										)}
+									</div>
+								)}
+
 								<pre className="whitespace-pre-wrap break-words mb-4 text-sm font-sans">
-									{promptContext.output?.response}
+									{promptContext.jsonOutput}
+									{!promptContext.jsonOutput && promptContext.output?.response}
 								</pre>
 							</div>
 
@@ -37,8 +53,40 @@ const PromptRightSidebarTabs = () => {
 					)}
 					{activeTab === "tab2" && (
 						<div className="tab-panel flex-col flex-grow">
-							<div className="tab-content">
-								<pre className="whitespace-pre-wrap break-words mb-4 text-sm font-sans">
+							<div className="tab-content p-4">
+
+								{promptContext.outputVersions.length > 0 && promptContext.outputVersions && (
+									<div className="flex justify-end">
+										<div className="dropdown-wrapper relative">
+											<button onClick={() => setShowVersionsDropdown(!showVersionsDropdown)}>
+												<svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+													<g clip-path="url(#clip0_1492_7596)">
+														<path d="M8.59991 4.1999V8.3999L11.3999 9.7999M15.5999 8.3999C15.5999 12.2659 12.4659 15.3999 8.59991 15.3999C4.73392 15.3999 1.59991 12.2659 1.59991 8.3999C1.59991 4.53391 4.73392 1.3999 8.59991 1.3999C12.4659 1.3999 15.5999 4.53391 15.5999 8.3999Z" stroke="#6C8271" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+													</g>
+													<defs>
+														<clipPath id="clip0_1492_7596">
+															<rect width="16.8" height="16.8" fill="white" transform="translate(0.200012)"/>
+														</clipPath>
+													</defs>
+												</svg>
+											</button>
+											{showVersionsDropdown && (
+												<div className="dropdown absolute">
+													{promptContext.outputVersions.map((version) => (
+														<button className={activeItem == version.id ? "active" : ""} key={version.id} onClick={() => {
+															setActiveItem(String(version.id));
+															setShowVersionsDropdown(false);
+															promptContext.setJsonOutput('');
+															promptContext.setOutput(version);
+														}}>{version.id}</button>
+													))}
+												</div>
+											)}
+										</div>
+									</div>
+								)}
+
+								<pre className="whitespace-pre-wrap break-words text-sm font-sans">
 									{promptContext.output?.prompt}
 								</pre>
 							</div>

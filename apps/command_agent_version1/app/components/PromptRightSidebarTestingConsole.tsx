@@ -71,17 +71,7 @@ const PromptRightSidebarTestingConsole = () => {
 				</div>
 			</div>
 			<div className="tab-links-wrapper">
-				<div className="tab-links px-4 flex gap-2">
-					<button className="active py-3 px-4 font-medium text-sm">Input 1</button>
-					<button className="py-3 px-4 font-medium text-sm flex items-center gap-2">
-						<svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<g opacity="0.56">
-								<path d="M7.99992 3.83325V13.1666M3.33325 8.49992H12.6666" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-							</g>
-						</svg>
-						Add Input
-					</button>
-				</div>
+
 				<div className="tab-link-panels overflow-y-auto">
 					<div className="tab-link-panel">
 						<div className="flex items-center justify-between p-4" style={{borderBottom: "1px solid #E2E8ED"}}>
@@ -100,13 +90,13 @@ const PromptRightSidebarTestingConsole = () => {
 							</div>
 						</div>
 						<div className="p-4">
-							<div className="flex justify-between items-center">
+							<div className="flex items-center">
 								<div className="font-medium text-sm" style={{color: '#97A3B6'}}>Preview</div>
-								<button onClick={() => promptsContext.setTestingConsoleActiveClass('')}>
+								{/* <button onClick={() => promptsContext.setTestingConsoleActiveClass('')}>
 									<svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
 										<path d="M15.5 5.5L5.5 15.5M5.5 5.5L15.5 15.5" stroke="#97A3B6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 									</svg>
-								</button>
+								</button> */}
 							</div>
 							<div className="my-4">
 								{/* <Image className="m-auto" src="/invoice.jpg" alt="preview" width={375} height={553}/> */}

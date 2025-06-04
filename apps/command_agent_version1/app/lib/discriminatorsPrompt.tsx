@@ -48,7 +48,10 @@ function isUploadFileResponseObject(item: unknown): item is UploadFileResponseOb
     "image" in item &&
     "doc_type" in item &&
     "num_pages" in item &&
-    "prompt" in item;
+    "prompt" in item &&
+	'table_header' in item &&
+	'line_items' in item &&
+	'result' in item;
 }
 
 function isPageResponseObject(item: unknown): item is PageChangeResponseObject {

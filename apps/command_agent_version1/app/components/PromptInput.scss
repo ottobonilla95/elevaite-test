@@ -4,9 +4,33 @@
 
 .prompt-input-container {
     border-radius: 12px;
-    background-color: #fff;
+    //background-color: #fff;
     margin-bottom: 1rem;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	border: 1px solid #E2E8ED;
+	--ev-colors-background: white;
+	--ev-colors-primary: white;
+
+	.simple-textarea-container.common-style {
+		padding: 5px;
+
+		textarea {
+			font-size: 14px;
+			color: #212124;
+			border: 1px solid #E2E8ED;
+			height: 120px;
+
+			&::placeholder {
+				color: #212124;
+				opacity: 1;
+			}
+		}
+	}
+
+	.common-button.no-background:hover:not(:disabled) {
+		background: white;
+		filter: brightness(1);
+	}
 
     & .prompt-input-header {
         display: flex;
@@ -14,9 +38,13 @@
         align-items: center;
         padding-left: 0.5rem;
         gap: 0.5rem;
+		background: white;
+		border-bottom: 1px solid #E2E8ED;
+		border-radius: 12px 12px 0 0;
 
         & .prompt-select {
-            background-color: var(--ev-colors-primary);
+			background: white;
+            //background-color: var(--ev-colors-primary);
         }
 
         & .prompt-input-toggle {
@@ -69,7 +97,7 @@
 
 
     & .prompt-input {
-        &.simple-input-container > input {            
+        &.simple-input-container > input {
             background-color: var(--ev-colors-primary);
         }
     }

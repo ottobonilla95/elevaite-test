@@ -1,11 +1,12 @@
 import { useState } from "react";
+import { usePrompt } from "../ui/contexts/PromptContext";
 
 const PromptLeftSidebar = () => {
+	const promptContext = usePrompt();
   	const [activeTab, setActiveTab] = useState("tab1");
-	const [sidebarOpen, setSidebarOpen] = useState(true);
 
 	return (
-		<div className={`prompt-col prompt-left p-2 flex flex-col rounded-2xl bg-white overflow-y-auto${!sidebarOpen ? ' shrinked' : ''}`}>
+		<div className={`prompt-col prompt-left p-2 flex-col rounded-2xl bg-white overflow-y-auto${promptContext.isRightColExpanded? ' hidden' : ' flex'}`}>
 			<div className="tabs-wrapper flex items-center justify-between">
 				<div className="tabs flex m-1 p-1 text-xs text-gray-500 font-medium rounded-lg whitespace-nowrap">
 					<button className={`tab rounded-sm px-4 py-1 flex-1${ 'tab1' == activeTab ? ' tab-active text-orange-500 bg-white' : '' }`} onClick={() => setActiveTab("tab1")}>
@@ -15,22 +16,6 @@ const PromptLeftSidebar = () => {
 						Version History
 					</button>
 				</div>
-
-				<button type="button" onClick={() => setSidebarOpen(!sidebarOpen)}>
-					{
-					sidebarOpen
-					?
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<g opacity="0.8">
-							<path d="M18 17L13 12L18 7M11 17L6 12L11 7" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-						</g>
-					</svg>
-					:
-					<svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M1 11L6 6L1 1M8 11L13 6L8 1" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-					</svg>
-					}
-				</button>
 			</div>
 			<div className="tab-panels px-4 rounded-lg mt-2 flex-1">
 				{activeTab === "tab1" && (

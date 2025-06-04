@@ -11,6 +11,25 @@
 		}
 	}
 
+	&.m-0 {
+		margin: 0;
+	}
+
+	&.center {
+		position: absolute;
+
+		&::before,
+		&::after {
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+		}
+
+		&::before {
+  			animation-name: spin-center;
+		}
+	}
+
 	&::before,
 	&::after {
 		content: "";
@@ -41,5 +60,15 @@
 
   100%{
     transform: rotate(360deg);
+  }
+}
+
+@keyframes spin-center{
+  0%{
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  100%{
+    transform: translate(-50%, -50%) rotate(360deg);
   }
 }

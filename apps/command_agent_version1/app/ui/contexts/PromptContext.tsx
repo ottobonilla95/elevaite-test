@@ -1,5 +1,5 @@
 "use client";
-import { createContext, SetStateAction, useContext, useEffect, useState } from "react";
+import { ChangeEvent, createContext, SetStateAction, useContext, useEffect, useState } from "react";
 import { deploy, nextPage, previousPage, reRun, run, uploadFile } from "../../lib/actionsPrompt";
 import { PageChangeResponseObject, PromptInputItem, PromptInputTypes, regenerateResponseObject, type UploadFileResponseObject } from "../../lib/interfaces";
 import { toast } from "react-toastify";
@@ -13,6 +13,7 @@ export enum LoadingKeys {
   Running = "running",
   Deploying = "deploying",
   Resetting = "resetting",
+  ConvertingToJSON = 'converting to json',
 }
 
 
@@ -36,6 +37,7 @@ export interface PromptContextStructure {
   run: () => Promise<void>;
   deploy: () => Promise<void>;
   output: regenerateResponseObject|null;
+  setOutput: (response: regenerateResponseObject|null) => void
   loading: Record<string, boolean>;
   fileUpload: (useYolo: boolean, file: File, isImage?: boolean) => Promise<UploadFileResponseObject | null>;
   showFileUploadModal: boolean,
@@ -50,9 +52,19 @@ export interface PromptContextStructure {
   setTestingConsoleActiveClass: (activeClass: String) => void;
   // Add any additional properties or methods needed for the prompt context
   promptInputs: PromptInputItem[];
+  setPromptInputs: (promptInputs: PromptInputItem[]) => void;
   addPromptInput: () => void;
   updatePromptInput: (id: string, changes: Partial<PromptInputItem>) => void;
   removePromptInput: (id: string) => void;
+  isRightColExpanded: boolean,
+  setIsRightColExpanded: (isExpanded: boolean) => void,
+  outputVersions: regenerateResponseObject[];
+  setOutputVersions: React.Dispatch<React.SetStateAction<regenerateResponseObject[]>>;
+  handleReset: () => void,
+  turnToJSON: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  jsonOutput: String,
+  setJsonOutput: (output: string) => void,
+  defaultPromptInputs: PromptInputItem[]
 }
 
 export const PromptContext = createContext<PromptContextStructure>({
@@ -63,6 +75,7 @@ export const PromptContext = createContext<PromptContextStructure>({
   run: async () => undefined,
   deploy: async () => undefined,
   output: null,
+  setOutput: () => undefined,
   loading: {},
   fileUpload: async () => null,
   showFileUploadModal: false,
@@ -76,9 +89,19 @@ export const PromptContext = createContext<PromptContextStructure>({
   testingConsoleActiveClass: '',
   setTestingConsoleActiveClass: () => undefined,
   promptInputs: [],
+  setPromptInputs: () => undefined,
   addPromptInput: () => undefined,
   updatePromptInput: () => undefined,
   removePromptInput: () => undefined,
+  isRightColExpanded: false,
+  setIsRightColExpanded: () => undefined,
+  outputVersions: [],
+  setOutputVersions: () => undefined,
+  handleReset: () => undefined,
+  turnToJSON: async () => {},
+  jsonOutput: '',
+  setJsonOutput: () => undefined,
+  defaultPromptInputs: []
 });
 
 
@@ -99,7 +122,9 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   const [testingConsoleActiveClass, setTestingConsoleActiveClass] = useState<String>('');
   const [promptInputs, setPromptInputs] = useState<PromptInputItem[]>(defaultPromptInputs);
   const [output, setOutput] = useState<regenerateResponseObject|null>(null);
-  
+  const [isRightColExpanded, setIsRightColExpanded] = useState<boolean>(false);
+  const [outputVersions, setOutputVersions] = useState<regenerateResponseObject[]>([]);
+  const [jsonOutput, setJsonOutput] = useState('');
 
   useEffect(() => {
     setSessionId(`sid-${crypto.randomUUID().toString()}`);
@@ -170,12 +195,45 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   }
 
 
+  function handleReset() {
+	setLoadingState(LoadingKeys.Resetting, true);
+	setTimeout(function() {
+		setInvoiceNumPages(null);
+		setFile(null);
+		setInvoiceImage(null);
+		setOutput(null);
+		setOutputVersions([]);
+		setJsonOutput('');
+		setPromptInputs(
+			defaultPromptInputs.map(input => ({
+				...input,
+				prompt: "",
+				//id: crypto.randomUUID().toString(),
+			}))
+		);
+		setLoadingState(LoadingKeys.Resetting, false);
+	}, 500);
+  }
 
 
   // Server Actions
 
   async function actionFileUpload(useYolo: boolean, file: File, isImage = false): Promise<UploadFileResponseObject | null> {
     setLoadingState(LoadingKeys.Uploading, true);
+
+	if ( output?.response  ) {
+		setOutput(null);
+		setOutputVersions([]);
+		setJsonOutput('');
+		setPromptInputs(
+			defaultPromptInputs.map(input => ({
+				...input,
+				prompt: "",
+				//id: crypto.randomUUID().toString(),
+			}))
+		);
+	}
+
     try {
       const result = await uploadFile(sessionId, useYolo, file, isImage);
       if (result) setOutput(null);
@@ -228,6 +286,15 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
       const result = await reRun(sessionId, getPromptInputsOptions());
       console.log("RE Run result", result);
       setOutput(result);
+	  setOutputVersions((prev) => [
+		...prev,
+		{
+			id: `genprompt_${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`,
+			//active: false,
+			...result
+		}
+	]);
+
     } catch (error) {
       console.error("Run action failed:", error);
     } finally {
@@ -238,7 +305,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   async function actionDeploy(originalText?: string, extractionPrompt?: string): Promise<void> {
     setLoadingState(LoadingKeys.Deploying, true);
     try {
-      await deploy(sessionId, originalText ?? "", extractionPrompt ?? "");      
+      await deploy(sessionId, originalText ?? "", extractionPrompt ?? "");
       toast.success(
         <div className="prompt-toast rounded-md font-bold text-sm flex items-center justify-between w-full">
           Data deployed successfully.
@@ -252,7 +319,55 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     }
   }
 
-
+  /* **Output:**
+	<|dict|>{
+		'Period of Account': '01/08/24 - 31/08/24',
+		'Previous Balance': '0.0000 €',
+		'Fixed Charges': '48,2200 €',
+		'Additional Charges': '8,7243 €',
+		'Discounts': '-21,8400 €',
+		'Total of Current Account (without VAT)': '35,1043 €',
+		'End of Mobile Subscription Fee': '3,5104 €',
+		'Total VAT': '9,2675 €',
+		'Total of Current Account (with VAT)': '47,8822 €',
+		'Amount to be Paid (with VAT)': '47.88 €'
+	}<|end_dict|> */
+  async function turnToJSON(e: ChangeEvent<HTMLInputElement>) {
+	if(e.target.checked) {
+		setLoadingState(LoadingKeys.ConvertingToJSON, true);
+		try {
+			const response = await fetch(`${process.env.NEXT_PUBLIC_OPENROUTER_BASE_ENDPOINT}`, {
+				method: "POST",
+				headers: {
+				"Authorization": `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`,
+				"Content-Type": "application/json"
+				},
+				body: JSON.stringify({
+				"model": `${process.env.NEXT_PUBLIC_OPENROUTER_AI_MODEL}`,
+				'response_format': {
+					'type': 'json_object'
+				},
+				"messages": [
+					{
+					"role": "user",
+					"content": `turn this to json
+						${output?.response}
+					`
+					}
+				]
+			})
+		});
+		const data = await response.json();
+		setJsonOutput(data?.choices[0]?.message?.content);
+		} catch(error) {
+			console.error("Error turning the output to JSON:", error);
+		}finally {
+			setLoadingState(LoadingKeys.ConvertingToJSON, false);
+		}
+	} else {
+		setJsonOutput('');
+	}
+}
 
 
 
@@ -260,12 +375,13 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     <PromptContext.Provider
       value={{
         currentPage,
-		    setCurrentPage,
+		setCurrentPage,
         goToNextPage,
         goToPrevPage,
         run: actionRun,
         deploy: actionDeploy,
         output,
+		setOutput,
         loading,
         fileUpload: actionFileUpload,
         showFileUploadModal, // Placeholder for file upload modal state
@@ -279,9 +395,19 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
         testingConsoleActiveClass,
         setTestingConsoleActiveClass,
         promptInputs,
+		setPromptInputs,
         addPromptInput,
         updatePromptInput,
         removePromptInput,
+		isRightColExpanded,
+		setIsRightColExpanded,
+		outputVersions,
+		setOutputVersions,
+		handleReset,
+		turnToJSON,
+		jsonOutput,
+		setJsonOutput,
+		defaultPromptInputs
       }}
     >
       {props.children}
