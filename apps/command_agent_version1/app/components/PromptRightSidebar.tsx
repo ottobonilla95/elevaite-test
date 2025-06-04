@@ -129,7 +129,7 @@ function PromptRightSidebar() {
 								<button onClick={handleAddPromptInput}>
 									<svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 										<g opacity="0.8">
-											<path d="M8.49992 3.33337V12.6667M3.83325 8.00004H13.1666" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+											<path d="M8.49992 3.33337V12.6667M3.83325 8.00004H13.1666" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
 										</g>
 									</svg>
 								</button>
@@ -138,7 +138,7 @@ function PromptRightSidebar() {
 						</div>
 						<div className="middle flex-1 p-4">
 							<div className="accordions">
-								{promptContext.promptInputs.map(item => <PromptInput key={item.id} {...item} /> )}
+								{promptContext.promptInputs.map(item => <PromptInput key={item.id} {...item} />)}
 							</div>
 						</div>
 					</div>

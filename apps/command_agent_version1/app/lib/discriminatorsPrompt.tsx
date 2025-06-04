@@ -9,7 +9,7 @@ export function isUploadFileResponse(data: unknown): data is UploadFileResponseO
 }
 
 export function isProcessCurrentPageResponse(data: unknown): data is ProcessCurrentPageResponseObject {
-	return isProcessCurrentPageResponseObject(data);
+  return isProcessCurrentPageResponseObject(data);
 }
 
 export function isPageChangeResponse(data: unknown): data is PageChangeResponseObject {
@@ -42,24 +42,24 @@ export function isDeployResponse(data: unknown): data is DeployResponse {
 
 
 function isObject(item: unknown): item is object {
-    return Boolean(item) && item !== null && typeof item === "object";
+  return Boolean(item) && item !== null && typeof item === "object";
 }
 
 
 
 function isUploadFileResponseObject(item: unknown): item is UploadFileResponseObject {
-    return isObject(item) &&
+  return isObject(item) &&
     "image" in item &&
     "doc_type" in item &&
     "num_pages" in item &&
     "prompt" in item &&
-	'table_header' in item &&
-	'line_items' in item &&
-	'result' in item;
+    'table_header' in item &&
+    'line_items' in item &&
+    'result' in item;
 }
 
 function isProcessCurrentPageResponseObject(item: unknown): item is ProcessCurrentPageResponseObject {
-	return isObject(item) &&
+  return isObject(item) &&
     "document_headers" in item &&
     "line_item_headers" in item &&
     "result" in item &&
@@ -67,13 +67,13 @@ function isProcessCurrentPageResponseObject(item: unknown): item is ProcessCurre
 }
 
 function isPageResponseObject(item: unknown): item is PageChangeResponseObject {
-    return isObject(item) &&
+  return isObject(item) &&
     "image" in item &&
     "prompt" in item;
 }
 
 function isReRunResponseObject(item: unknown): item is regenerateResponseObject {
-    return isObject(item) &&
+  return isObject(item) &&
     "result" in item &&
     "prompt" in item;
 }

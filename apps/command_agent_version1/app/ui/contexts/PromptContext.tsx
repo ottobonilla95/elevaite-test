@@ -37,8 +37,8 @@ export interface PromptContextStructure {
   goToPrevPage: (useYolo: boolean) => Promise<PageChangeResponseObject | null>;
   run: () => Promise<void>;
   deploy: () => Promise<void>;
-  output: regenerateResponseObject|null;
-  setOutput: (response: regenerateResponseObject|null) => void
+  output: regenerateResponseObject | null;
+  setOutput: (response: regenerateResponseObject | null) => void
   loading: Record<string, boolean>;
   fileUpload: (useYolo: boolean, file: File, isImage?: boolean) => Promise<UploadFileResponseObject | null>;
   processCurrentPage: () => Promise<ProcessCurrentPageResponseObject | null>;
@@ -109,7 +109,7 @@ export const PromptContext = createContext<PromptContextStructure>({
   outputVersions: [],
   setOutputVersions: () => undefined,
   handleReset: () => undefined,
-  turnToJSON: async () => {},
+  turnToJSON: async () => { },
   jsonOutput: '',
   setJsonOutput: () => undefined,
   defaultPromptInputs: [],
@@ -132,7 +132,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   const [file, setFile] = useState<File | null>(null);
   const [testingConsoleActiveClass, setTestingConsoleActiveClass] = useState<String>('');
   const [promptInputs, setPromptInputs] = useState<PromptInputItem[]>(defaultPromptInputs);
-  const [output, setOutput] = useState<regenerateResponseObject|null>(null);
+  const [output, setOutput] = useState<regenerateResponseObject | null>(null);
   const [isRightColExpanded, setIsRightColExpanded] = useState<boolean>(true);
   const [isRightColPromptInputsColExpanded, setIsRightColPromptInputsColExpanded] = useState<boolean>(false);
   const [isRightColOutputColExpanded, setIsRightColOutputColExpanded] = useState<boolean>(false);
@@ -148,7 +148,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
       id: crypto.randomUUID().toString(),
       type: PromptInputTypes.DocumentHeader,
       prompt: "",
-	  values: []
+      values: []
     }
     setPromptInputs(current => {
       return [newPromptInput, ...current];
@@ -167,16 +167,16 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
 
 
   function getPromptInputsOptions(): {
-	documentHeader?: string,
+    documentHeader?: string,
     lineItemHeader?: string;
     userFeedback?: string;
     lineItems?: string;
     expectedOutput?: string;
-  }|undefined {
+  } | undefined {
     if (!promptInputs || promptInputs.length === 0) return;
 
     const options: {
-	  documentHeader?: string,
+      documentHeader?: string,
       lineItemHeader?: string;
       userFeedback?: string;
       lineItems?: string;
@@ -186,14 +186,14 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     for (var input of promptInputs) {
       switch (input.type) {
         case PromptInputTypes.DocumentHeader:
-        const joinedDocumentHeaderValues = Array.isArray(input.values) ? input.values.join(",") : input.values;
-  		options.documentHeader = options.documentHeader ? options.documentHeader + "," + joinedDocumentHeaderValues : joinedDocumentHeaderValues;
-		  break;
+          const joinedDocumentHeaderValues = Array.isArray(input.values) ? input.values.join(",") : input.values;
+          options.documentHeader = options.documentHeader ? options.documentHeader + "," + joinedDocumentHeaderValues : joinedDocumentHeaderValues;
+          break;
         case PromptInputTypes.LineItemHeader:
-		  const joinedLineItemHeaderValues = Array.isArray(input.values) ? input.values.join(",") : input.values;
+          const joinedLineItemHeaderValues = Array.isArray(input.values) ? input.values.join(",") : input.values;
           options.lineItemHeader = options.lineItemHeader ? options.lineItemHeader + "," + joinedLineItemHeaderValues : joinedLineItemHeaderValues;
           break;
-		case PromptInputTypes.UserFeedback:
+        case PromptInputTypes.UserFeedback:
           options.userFeedback = options.userFeedback ? options.userFeedback + "\n" + input.prompt : input.prompt;
           break;
         case PromptInputTypes.LineItems:
@@ -216,23 +216,23 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
 
 
   function handleReset() {
-	setLoadingState(LoadingKeys.Resetting, true);
-	setTimeout(function() {
-		setInvoiceNumPages(null);
-		setFile(null);
-		setInvoiceImage(null);
-		setOutput(null);
-		setOutputVersions([]);
-		setJsonOutput('');
-		setPromptInputs(
-			defaultPromptInputs.map(input => ({
-				...input,
-				prompt: "",
-				//id: crypto.randomUUID().toString(),
-			}))
-		);
-		setLoadingState(LoadingKeys.Resetting, false);
-	}, 500);
+    setLoadingState(LoadingKeys.Resetting, true);
+    setTimeout(function () {
+      setInvoiceNumPages(null);
+      setFile(null);
+      setInvoiceImage(null);
+      setOutput(null);
+      setOutputVersions([]);
+      setJsonOutput('');
+      setPromptInputs(
+        defaultPromptInputs.map(input => ({
+          ...input,
+          prompt: "",
+          //id: crypto.randomUUID().toString(),
+        }))
+      );
+      setLoadingState(LoadingKeys.Resetting, false);
+    }, 500);
   }
 
 
@@ -240,6 +240,19 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
 
   async function actionFileUpload(useYolo: boolean, file: File, isImage = false): Promise<UploadFileResponseObject | null> {
     setLoadingState(LoadingKeys.Uploading, true);
+
+    if (output?.response) {
+      setOutput(null);
+      setOutputVersions([]);
+      setJsonOutput('');
+      setPromptInputs(
+        defaultPromptInputs.map(input => ({
+          ...input,
+          prompt: "",
+          //id: crypto.randomUUID().toString(),
+        }))
+      );
+    }
 
     try {
       const result = await uploadFile(sessionId, useYolo, file, isImage);
@@ -255,22 +268,22 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   }
 
   async function actionProcessCurrentPage(): Promise<ProcessCurrentPageResponseObject | null> {
-	//setLoadingState(LoadingKeys.Uploading, true);
+    //setLoadingState(LoadingKeys.Uploading, true);
 
-	if ( output?.result  ) {
-		setOutput(null);
-		setOutputVersions([]);
-		setJsonOutput('');
-		setPromptInputs(
-			defaultPromptInputs.map(input => ({
-				...input,
-				prompt: "",
-				values: []
-			}))
-		);
-	}
+    if (output?.result) {
+      setOutput(null);
+      setOutputVersions([]);
+      setJsonOutput('');
+      setPromptInputs(
+        defaultPromptInputs.map(input => ({
+          ...input,
+          prompt: "",
+          values: []
+        }))
+      );
+    }
 
-	try {
+    try {
       const result = await processCurrentPage(sessionId);
       if (result) setOutput(null);
       return result;
@@ -287,7 +300,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     setLoadingState(LoadingKeys.ChangingPage, true);
     try {
       const result = await nextPage(sessionId, useYolo);
-	    setCurrentPage((current) => (current === null ? 1 : current + 1));
+      setCurrentPage((current) => (current === null ? 1 : current + 1));
       return result;
     } catch (error) {
       // eslint-disable-next-line no-console -- placeholder for error logging
@@ -302,9 +315,9 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     setLoadingState(LoadingKeys.ChangingPage, true);
     try {
       const result = await previousPage(sessionId, useYolo);
-	    setCurrentPage((current) => {
-      if (current === null || current <= 1) return 1;
-      	return current - 1;
+      setCurrentPage((current) => {
+        if (current === null || current <= 1) return 1;
+        return current - 1;
       });
       return result;
     } catch (error) {
@@ -318,19 +331,19 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
 
   async function actionRun(): Promise<void> {
     setLoadingState(LoadingKeys.Running, true);
-	console.log(getPromptInputsOptions())
+    console.log(getPromptInputsOptions())
     try {
       const result = await reRun(sessionId, getPromptInputsOptions());
       console.log("RE Run result", result);
       setOutput(result);
-	  setOutputVersions((prev) => [
-		...prev,
-		{
-			id: `genprompt_${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`,
-			//active: false,
-			...result
-		}
-	]);
+      setOutputVersions((prev) => [
+        ...prev,
+        {
+          id: `genprompt_${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`,
+          //active: false,
+          ...result
+        }
+      ]);
 
     } catch (error) {
       console.error("Run action failed:", error);
@@ -352,59 +365,59 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     } catch (error) {
       console.error("Deploy action failed:", error);
     } finally {
-    setLoadingState(LoadingKeys.Deploying, false);
+      setLoadingState(LoadingKeys.Deploying, false);
     }
   }
 
   /* **Output:**
-	<|dict|>{
-		'Period of Account': '01/08/24 - 31/08/24',
-		'Previous Balance': '0.0000 €',
-		'Fixed Charges': '48,2200 €',
-		'Additional Charges': '8,7243 €',
-		'Discounts': '-21,8400 €',
-		'Total of Current Account (without VAT)': '35,1043 €',
-		'End of Mobile Subscription Fee': '3,5104 €',
-		'Total VAT': '9,2675 €',
-		'Total of Current Account (with VAT)': '47,8822 €',
-		'Amount to be Paid (with VAT)': '47.88 €'
-	}<|end_dict|> */
+  <|dict|>{
+    'Period of Account': '01/08/24 - 31/08/24',
+    'Previous Balance': '0.0000 €',
+    'Fixed Charges': '48,2200 €',
+    'Additional Charges': '8,7243 €',
+    'Discounts': '-21,8400 €',
+    'Total of Current Account (without VAT)': '35,1043 €',
+    'End of Mobile Subscription Fee': '3,5104 €',
+    'Total VAT': '9,2675 €',
+    'Total of Current Account (with VAT)': '47,8822 €',
+    'Amount to be Paid (with VAT)': '47.88 €'
+  }<|end_dict|> */
   async function turnToJSON(e: ChangeEvent<HTMLInputElement>) {
-	if(e.target.checked) {
-		setLoadingState(LoadingKeys.ConvertingToJSON, true);
-		try {
-			const response = await fetch(`${process.env.NEXT_PUBLIC_OPENROUTER_BASE_ENDPOINT}`, {
-				method: "POST",
-				headers: {
-				"Authorization": `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`,
-				"Content-Type": "application/json"
-				},
-				body: JSON.stringify({
-				"model": `${process.env.NEXT_PUBLIC_OPENROUTER_AI_MODEL}`,
-				'response_format': {
-					'type': 'json_object'
-				},
-				"messages": [
-					{
-					"role": "user",
-					"content": `turn this to json
+    if (e.target.checked) {
+      setLoadingState(LoadingKeys.ConvertingToJSON, true);
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_OPENROUTER_BASE_ENDPOINT}`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            "model": `${process.env.NEXT_PUBLIC_OPENROUTER_AI_MODEL}`,
+            'response_format': {
+              'type': 'json_object'
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": `turn this to json
 						${output?.result}
 					`
-					}
-				]
-			})
-		});
-		const data = await response.json();
-		setJsonOutput(data?.choices[0]?.message?.content);
-		} catch(error) {
-			console.error("Error turning the output to JSON:", error);
-		}finally {
-			setLoadingState(LoadingKeys.ConvertingToJSON, false);
-		}
-	} else {
-		setJsonOutput('');
-	}
-}
+              }
+            ]
+          })
+        });
+        const data = await response.json();
+        setJsonOutput(data?.choices[0]?.message?.content);
+      } catch (error) {
+        console.error("Error turning the output to JSON:", error);
+      } finally {
+        setLoadingState(LoadingKeys.ConvertingToJSON, false);
+      }
+    } else {
+      setJsonOutput('');
+    }
+  }
 
 
 
@@ -412,16 +425,16 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     <PromptContext.Provider
       value={{
         currentPage,
-		setCurrentPage,
+        setCurrentPage,
         goToNextPage,
         goToPrevPage,
         run: actionRun,
         deploy: actionDeploy,
         output,
-		setOutput,
+        setOutput,
         loading,
         fileUpload: actionFileUpload,
-		processCurrentPage: actionProcessCurrentPage,
+        processCurrentPage: actionProcessCurrentPage,
         showFileUploadModal, // Placeholder for file upload modal state
         setShowFileUploadModal,
         invoiceImage,
@@ -433,23 +446,23 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
         testingConsoleActiveClass,
         setTestingConsoleActiveClass,
         promptInputs,
-		setPromptInputs,
+        setPromptInputs,
         addPromptInput,
         updatePromptInput,
         removePromptInput,
-		isRightColExpanded,
-		setIsRightColExpanded,
-		isRightColPromptInputsColExpanded,
-		setIsRightColPromptInputsColExpanded,
-		isRightColOutputColExpanded,
-		setIsRightColOutputColExpanded,
-		outputVersions,
-		setOutputVersions,
-		handleReset,
-		turnToJSON,
-		jsonOutput,
-		setJsonOutput,
-		defaultPromptInputs,
+        isRightColExpanded,
+        setIsRightColExpanded,
+        isRightColPromptInputsColExpanded,
+        setIsRightColPromptInputsColExpanded,
+        isRightColOutputColExpanded,
+        setIsRightColOutputColExpanded,
+        outputVersions,
+        setOutputVersions,
+        handleReset,
+        turnToJSON,
+        jsonOutput,
+        setJsonOutput,
+        defaultPromptInputs,
       }}
     >
       {props.children}
