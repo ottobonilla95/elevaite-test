@@ -154,7 +154,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   const [testingConsoleActiveClass, setTestingConsoleActiveClass] = useState<String>('');
   const [promptInputs, setPromptInputs] = useState<PromptInputItem[]>(defaultPromptInputs);
   const [output, setOutput] = useState<regenerateResponseObject | null>(null);
-  const [isRightColExpanded, setIsRightColExpanded] = useState<boolean>(!isEngineerPage);
+  const [isRightColExpanded, setIsRightColExpanded] = useState<boolean>(true);
   const [isRightColPromptInputsColExpanded, setIsRightColPromptInputsColExpanded] = useState<boolean>(false);
   const [isRightColOutputColExpanded, setIsRightColOutputColExpanded] = useState<boolean>(false);
   const [outputVersions, setOutputVersions] = useState<regenerateResponseObject[]>([]);
@@ -293,6 +293,19 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
 
   async function actionFileUpload(useYolo: boolean, file: File, isImage = false): Promise<UploadFileResponseObject | null> {
     setLoadingState(LoadingKeys.Uploading, true);
+
+    if (output?.response) {
+      setOutput(null);
+      setOutputVersions([]);
+      setJsonOutput('');
+      setPromptInputs(
+        defaultPromptInputs.map(input => ({
+          ...input,
+          prompt: "",
+          //id: crypto.randomUUID().toString(),
+        }))
+      );
+    }
 
     try {
       const result = await uploadFile(sessionId, useYolo, file, isImage);
