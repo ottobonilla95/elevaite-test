@@ -154,7 +154,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   const [testingConsoleActiveClass, setTestingConsoleActiveClass] = useState<String>('');
   const [promptInputs, setPromptInputs] = useState<PromptInputItem[]>(defaultPromptInputs);
   const [output, setOutput] = useState<regenerateResponseObject | null>(null);
-  const [isRightColExpanded, setIsRightColExpanded] = useState<boolean>(!isEngineerPage);
+  const [isRightColExpanded, setIsRightColExpanded] = useState<boolean>(true);
   const [isRightColPromptInputsColExpanded, setIsRightColPromptInputsColExpanded] = useState<boolean>(false);
   const [isRightColOutputColExpanded, setIsRightColOutputColExpanded] = useState<boolean>(false);
   const [outputVersions, setOutputVersions] = useState<regenerateResponseObject[]>([]);
@@ -166,17 +166,17 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   }, []);
 
   function addPromptInputVariableEngineer() {
-	const newVariable: PromptInputVariableEngineerItem = {
-		id: crypto.randomUUID().toString(),
-		name: "",
-		displayName: "",
-		type: "Text",
-		required: true,
-		json: true,
-		definition: "",
-	}
+    const newVariable: PromptInputVariableEngineerItem = {
+      id: crypto.randomUUID().toString(),
+      name: "",
+      displayName: "",
+      type: "Text",
+      required: true,
+      json: true,
+      definition: "",
+    }
 
-	setPromptInputVariablesEngineer(current => {
+    setPromptInputVariablesEngineer(current => {
       return [newVariable, ...current];
     });
   }
@@ -192,13 +192,13 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   }
 
   function editPromptInputVariableEngineer(id: string) {
-	setPromptInputVariablesEngineer((current) =>
+    setPromptInputVariablesEngineer((current) =>
       current.map(input => (input.id === id ? { ...input, saved: false } : input))
     );
   }
 
   function removePromptInputVariableEngineer(id: string) {
-	setPromptInputVariablesEngineer(current => current.filter(input => input.id !== id))
+    setPromptInputVariablesEngineer(current => current.filter(input => input.id !== id))
   }
 
   function addPromptInput(): void {
@@ -298,6 +298,19 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
 
   async function actionFileUpload(useYolo: boolean, file: File, isImage = false): Promise<UploadFileResponseObject | null> {
     setLoadingState(LoadingKeys.Uploading, true);
+
+    if (output?.response) {
+      setOutput(null);
+      setOutputVersions([]);
+      setJsonOutput('');
+      setPromptInputs(
+        defaultPromptInputs.map(input => ({
+          ...input,
+          prompt: "",
+          //id: crypto.randomUUID().toString(),
+        }))
+      );
+    }
 
     try {
       const result = await uploadFile(sessionId, useYolo, file, isImage);
@@ -511,13 +524,13 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
         setJsonOutput,
         defaultPromptInputs,
         actionRunOnSelectedPages,
-		isEngineerPage,
-		promptInputVariablesEngineer,
-		setPromptInputVariablesEngineer,
-		addPromptInputVariableEngineer,
-		savePromptInputVariableEngineer,
-		editPromptInputVariableEngineer,
-		removePromptInputVariableEngineer
+        isEngineerPage,
+        promptInputVariablesEngineer,
+        setPromptInputVariablesEngineer,
+        addPromptInputVariableEngineer,
+        savePromptInputVariableEngineer,
+        editPromptInputVariableEngineer,
+        removePromptInputVariableEngineer
       }}
     >
       {props.children}

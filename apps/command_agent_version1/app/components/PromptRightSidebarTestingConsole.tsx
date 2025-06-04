@@ -75,10 +75,46 @@ const PromptRightSidebarTestingConsole = () => {
 						<div className="p-4">
 							<div className="flex items-center">
 								<div className="font-medium text-sm" style={{ color: '#97A3B6' }}>Preview</div>
+								{/* <button onClick={() => promptsContext.setTestingConsoleActiveClass('')}>
+									<svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+										<path d="M15.5 5.5L5.5 15.5M5.5 5.5L15.5 15.5" stroke="#97A3B6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+									</svg>
+								</button> */}
 							</div>
 							<div className="my-4">
 								{promptsContext.invoiceImage && (
 									<img className="m-auto" src={`data:content/type;base64,${promptsContext.invoiceImage}`} alt="" />
+								)}
+
+							</div>
+							<div className="flex items-center justify-between">
+								{promptsContext.invoiceNumPages &&
+									<div className="text-sm text-gray-500">Page {promptsContext.currentPage} of {promptsContext.invoiceNumPages?.toString()}</div>
+								}
+								{promptsContext.invoiceNumPages && promptsContext.invoiceNumPages > 0 && (
+									<div className="flex items-center gap-2">
+										{promptsContext.loading[LoadingKeys.ChangingPage] && (
+											<PromptLoading className="no-offset" width={25} height={25} />
+										)}
+
+										{promptsContext.currentPage && promptsContext.currentPage > 1 && (
+											<button className="btn btn-outline gray flex items-center gap-2" onClick={handlePrevPage} disabled={promptsContext.loading[LoadingKeys.ChangingPage]}>
+												<svg width="6" height="10" viewBox="0 0 6 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+													<path d="M4.44971 8.5L0.949707 5L4.44971 1.5" stroke="#4A5567" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+												</svg>
+												Back
+											</button>
+										)}
+
+										{promptsContext.currentPage && promptsContext.currentPage < promptsContext.invoiceNumPages && (
+											<button className="btn btn-outline gray flex items-center gap-2" onClick={handleNextPage} disabled={promptsContext.loading[LoadingKeys.ChangingPage]}>
+												Next
+												<svg width="6" height="10" viewBox="0 0 6 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+													<path d="M0.949707 8.5L4.44971 5L0.949707 1.5" stroke="#4A5567" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+												</svg>
+											</button>
+										)}
+									</div>
 								)}
 							</div>
 						</div>
