@@ -1,13 +1,3 @@
-"""Main FastAPI application."""
-
-# Apply patches for third-party libraries
-# These patches are applied automatically when imported
-# pylint: disable=unused-import
-from db_core.middleware import add_tenant_middleware
-from app.patches import starlette_patch, passlib_patch  # noqa: F401
-
-# pylint: enable=unused-import
-
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -15,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.security import HTTPBearer
 
-from db_core import TenantMiddleware
+from db_core.middleware import add_tenant_middleware
 
 from app.core.config import settings
 from app.core.logging import attach_logger_to_app, logger
@@ -44,17 +34,21 @@ async def lifespan(_app: FastAPI):  # pylint: disable=unused-argument
 
 
 app = FastAPI(
-    lifespan=lifespan,
-    title=settings.PROJECT_NAME,
-    description="Secure Authentication API",
+    title="Minimal Auth API",
+    description="Minimal test version",
     version="0.1.0",
-    docs_url="/docs" if settings.DEBUG else None,
-    redoc_url="/redoc" if settings.DEBUG else None,
 )
 
-# Add tenant middleware
-# app.add_middleware(TenantMiddleware, settings=multitenancy_settings)
-add_tenant_middleware(app, settings=multitenancy_settings)
+# Add tenant middleware with excluded paths for health and docs endpoints
+excluded_paths = {
+    r"^/api/health$": {"default_tenant": "default"},
+    r"^/docs.*": {"default_tenant": "default"},
+    r"^/redoc.*": {"default_tenant": "default"},
+    r"^/openapi\.json$": {"default_tenant": "default"},
+}
+add_tenant_middleware(
+    app, settings=multitenancy_settings, excluded_paths=excluded_paths
+)
 
 # Add security middleware
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
@@ -75,11 +69,22 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 @app.get("/api/health", tags=["health"])
 def health_check():
     """Health check endpoint."""
-    logger.debug("Health check endpoint called")
+    logger.info("Health check endpoint called")
     return {"status": "healthy"}
+
+
+@app.get("/api/test-logs", tags=["testing"])
+def test_logs():
+    """Test endpoint to demonstrate different log levels."""
+    logger.debug("This is a debug message")
+    logger.info("This is an info message")
+    logger.warning("This is a warning message")
+    logger.error("This is an error message")
+    logger.critical("This is a critical message")
+    return {"message": "Check the logs to see different colored log levels!"}
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8004, reload=settings.DEBUG)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8006, reload=settings.DEBUG)
