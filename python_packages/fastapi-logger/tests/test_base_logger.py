@@ -11,7 +11,9 @@ from fastapi_logger import BaseLogger
 class TestBaseLogger(TestCase):
     def setUp(self):
         self.log_output = io.StringIO()
-        self.logger = BaseLogger(stream=self.log_output, name="test-base-logger")
+        self.logger = BaseLogger(
+            stream=self.log_output, name="test-base-logger", level=logging.DEBUG
+        )
 
     def test_logger_initialization(self):
         logger_instance = self.logger.get_logger()
@@ -27,7 +29,7 @@ class TestBaseLogger(TestCase):
 
         log_content = output.getvalue()
         self.assertIn("Test basic message", log_content)
-        self.assertIn("[elevAIte Logger]", log_content)
+        self.assertIn("[ElevAIte Logger]", log_content)
         self.assertIn("INFO", log_content)
 
     @mock.patch("boto3.client")
@@ -68,5 +70,5 @@ class TestBaseLogger(TestCase):
         BaseLogger.attach_to_uvicorn()
 
         self.assertGreaterEqual(mock_get_logger.call_count, 4)
-        mock_uvicorn_logger.setLevel.assert_called_with(logging.DEBUG)
-        mock_fastapi_logger.setLevel.assert_called_with(logging.DEBUG)
+        mock_uvicorn_logger.setLevel.assert_called_with(logging.INFO)
+        mock_fastapi_logger.setLevel.assert_called_with(logging.INFO)

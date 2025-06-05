@@ -9,7 +9,7 @@ import sys
 # Add parent directory to path so we can import the package
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from fastapi_logger import FastAPILogger
+from fastapi_logger import ElevaiteLogger
 
 
 class TestCloudWatchLogger(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestCloudWatchLogger(unittest.TestCase):
         self.app = FastAPI()
 
         # Configure the logger with CloudWatch enabled
-        FastAPILogger.attach_to_uvicorn(
+        ElevaiteLogger.attach_to_uvicorn(
             cloudwatch_enabled=True,
             log_group=self.log_group,
             log_stream=self.log_stream,
