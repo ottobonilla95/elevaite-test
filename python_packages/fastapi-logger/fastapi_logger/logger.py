@@ -28,8 +28,9 @@ class ElevaiteLogger(BaseLogger):
         otlp_endpoint: Optional[str] = None,
         configure_otel: bool = False,
         resource_attributes: Optional[Dict[str, str]] = None,
+        otlp_insecure: bool = False,
+        otlp_timeout: int = 5,
     ):
-        """Initialize the Elevaite Logger with all capabilities."""
         super().__init__(
             name=name,
             level=level,
@@ -42,6 +43,8 @@ class ElevaiteLogger(BaseLogger):
             otlp_endpoint=otlp_endpoint,
             configure_otel=configure_otel,
             resource_attributes=resource_attributes,
+            otlp_insecure=otlp_insecure,
+            otlp_timeout=otlp_timeout,
         )
 
         # Initialize the trace manager

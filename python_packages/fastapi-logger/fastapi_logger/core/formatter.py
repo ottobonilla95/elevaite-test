@@ -1,11 +1,10 @@
 import logging
 import sys
 from typing import Dict, Optional
+from opentelemetry import trace
 
 
 class ColorizedFormatter(logging.Formatter):
-    """A formatter that adds colors to log levels and puts date first."""
-
     # ANSI color codes
     COLORS: Dict[str, str] = {
         "DEBUG": "\033[36m",  # Cyan
@@ -54,10 +53,30 @@ class ColorizedFormatter(logging.Formatter):
             or "color" in term
         )
 
+    def _get_trace_context(self) -> str:
+        try:
+            current_span = trace.get_current_span()
+            if current_span and current_span.is_recording():
+                span_context = current_span.get_span_context()
+                if span_context.is_valid:
+                    trace_id = format(span_context.trace_id, "032x")
+                    span_id = format(span_context.span_id, "016x")
+                    return f" | trace_id={trace_id[:16]}... span_id={span_id[:8]}..."
+        except Exception:
+            pass
+
+        return ""
+
     def format(self, record: logging.LogRecord) -> str:
-        """Format the log record with colors."""
         # Get the base formatted message
         formatted = super().format(record)
+
+        trace_context = self._get_trace_context()
+        if trace_context:
+            parts = formatted.split(" | ")
+            if len(parts) >= 4:
+                parts.insert(3, trace_context.strip(" | "))
+                formatted = " | ".join(parts)
 
         if not self.use_colors:
             return formatted

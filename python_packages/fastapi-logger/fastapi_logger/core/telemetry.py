@@ -13,6 +13,8 @@ def configure_tracer(
     otlp_endpoint: Optional[str] = None,
     add_console_exporter: bool = True,
     resource_attributes: Optional[Dict[str, Any]] = None,
+    otlp_insecure: bool = False,
+    otlp_timeout: int = 5,
 ) -> trace.TracerProvider:
     """
     Configure OpenTelemetry tracer with optional OTLP exporter.
@@ -22,6 +24,8 @@ def configure_tracer(
         otlp_endpoint: Endpoint for OTLP exporter (e.g. 'http://localhost:4317')
         add_console_exporter: Whether to add a console exporter for traces
         resource_attributes: Additional resource attributes to add
+        otlp_insecure: Whether to use insecure connection for OTLP (default: False for security)
+        otlp_timeout: Timeout in seconds for OTLP exporter (default: 5)
 
     Returns:
         The configured TracerProvider
@@ -47,9 +51,25 @@ def configure_tracer(
 
     # Add OTLP exporter if endpoint provided
     if otlp_endpoint:
-        otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint)
-        otlp_processor = BatchSpanProcessor(otlp_exporter)
-        provider.add_span_processor(otlp_processor)
+        try:
+            otlp_exporter = OTLPSpanExporter(
+                endpoint=otlp_endpoint,
+                timeout=otlp_timeout,
+                insecure=otlp_insecure,
+            )
+            otlp_processor = BatchSpanProcessor(
+                otlp_exporter,
+                export_timeout_millis=otlp_timeout * 1000,  # Convert to milliseconds
+                schedule_delay_millis=1000,  # Export every 1 second
+            )
+            provider.add_span_processor(otlp_processor)
+            security_mode = "insecure" if otlp_insecure else "secure"
+            print(
+                f"✅ OTLP exporter configured for {otlp_endpoint} ({security_mode}, timeout={otlp_timeout}s)"
+            )
+        except Exception as e:
+            print(f"⚠️  Failed to configure OTLP exporter: {e}")
+            print("   Continuing with console exporter only")
 
     return provider
 

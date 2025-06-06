@@ -15,12 +15,10 @@ _uvicorn_attached = False
 
 
 class BaseLogger:
-    """Base logger that handles configuration and core functionality."""
-
     def __init__(
         self,
         name: str = "elevaite_logger",
-        level: int = logging.INFO,  # Use INFO level by default to reduce log volume
+        level: int = logging.INFO,
         stream: TextIO = sys.stdout,
         cloudwatch_enabled: bool = False,
         log_group: Optional[str] = None,
@@ -30,6 +28,8 @@ class BaseLogger:
         otlp_endpoint: Optional[str] = None,
         configure_otel: bool = False,
         resource_attributes: Optional[Dict[str, str]] = None,
+        otlp_insecure: bool = False,
+        otlp_timeout: int = 5,
     ):
         """
         Initialize a base logger with optional CloudWatch and OpenTelemetry integration.
@@ -46,6 +46,8 @@ class BaseLogger:
             otlp_endpoint: OpenTelemetry collector endpoint (e.g. 'http://localhost:4317')
             configure_otel: Whether to configure OpenTelemetry with this logger instance
             resource_attributes: Additional resource attributes for OpenTelemetry
+            otlp_insecure: Whether to use insecure connection for OTLP (default: False for security)
+            otlp_timeout: Timeout in seconds for OTLP exporter (default: 5)
         """
         # Configure OpenTelemetry if requested
         self.tracer = default_tracer
@@ -55,6 +57,8 @@ class BaseLogger:
                     service_name=service_name,
                     otlp_endpoint=otlp_endpoint,
                     resource_attributes=resource_attributes,
+                    otlp_insecure=otlp_insecure,
+                    otlp_timeout=otlp_timeout,
                 )
                 trace.set_tracer_provider(provider)
                 self.tracer = trace.get_tracer(name)
@@ -153,6 +157,8 @@ class BaseLogger:
         otlp_endpoint: Optional[str] = None,
         configure_otel: bool = False,
         resource_attributes: Optional[Dict[str, str]] = None,
+        otlp_insecure: bool = False,
+        otlp_timeout: int = 5,
     ):
         """
         Attach this logger to Uvicorn and FastAPI logs with optional CloudWatch and OpenTelemetry integration.
@@ -166,6 +172,8 @@ class BaseLogger:
             otlp_endpoint: OpenTelemetry collector endpoint (e.g. 'http://localhost:4317')
             configure_otel: Whether to configure OpenTelemetry with this logger instance
             resource_attributes: Additional resource attributes for OpenTelemetry
+            otlp_insecure: Whether to use insecure connection for OTLP (default: False for security)
+            otlp_timeout: Timeout in seconds for OTLP exporter (default: 5)
         """
         global _uvicorn_attached
 
@@ -190,6 +198,8 @@ class BaseLogger:
             otlp_endpoint=otlp_endpoint,
             configure_otel=configure_otel,
             resource_attributes=resource_attributes,
+            otlp_insecure=otlp_insecure,
+            otlp_timeout=otlp_timeout,
         ).get_logger()
 
         # Mark our handlers to avoid duplicates
