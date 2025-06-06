@@ -13,7 +13,7 @@ from agents.command_agent import CommandAgent
 from prompts import command_agent_system_prompt
 from db.database import Base, engine, get_db
 from db.init_db import init_db
-from api import prompt_router, agent_router, demo_router, analytics_router
+from api import prompt_router, agent_router, demo_router, analytics_router, tools_router
 from api.workflow_endpoints import router as workflow_router
 from db import crud
 
@@ -68,6 +68,7 @@ app.include_router(agent_router)
 app.include_router(demo_router)
 app.include_router(analytics_router)
 app.include_router(workflow_router)
+app.include_router(tools_router)
 
 
 @app.get("/")

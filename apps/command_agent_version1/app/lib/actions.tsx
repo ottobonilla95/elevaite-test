@@ -6,6 +6,12 @@ import {
   isAgentResponseArray,
   isWorkflowDeployResponse,
   isWorkflowExecutionResponse,
+  isToolsResponse,
+  isToolCategoryResponse,
+  isToolDetailResponse,
+  isWorkflowResponse,
+  isWorkflowResponseArray,
+  isDeploymentOperationResponse,
 } from "./discriminators";
 import type {
   ChatBotGenAI,
@@ -21,6 +27,11 @@ import type {
   WorkflowCreateRequest,
   WorkflowDeploymentRequest,
   NewWorkflowExecutionRequest,
+  ToolsResponse,
+  ToolCategoryResponse,
+  ToolDetailResponse,
+  DeploymentOperationResponse,
+  WorkflowDeployment,
 } from "./interfaces";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -78,90 +89,21 @@ export async function fetchAllAgents(
   limit: number = 100,
   deployed?: boolean
 ): Promise<AgentResponse[]> {
-  try {
-    const url = new URL(`${BACKEND_URL ?? ""}api/agents/`);
+  const url = new URL(`${BACKEND_URL ?? ""}api/agents/`);
 
-    // Add query parameters
-    url.searchParams.append("skip", skip.toString());
-    url.searchParams.append("limit", limit.toString());
-    if (deployed !== undefined) {
-      url.searchParams.append("deployed", deployed.toString());
-    }
-
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Failed to fetch agents");
-
-    const data: unknown = await response.json();
-    if (isAgentResponseArray(data)) return data;
-    throw new Error("Invalid data type - expected array of agents");
-  } catch (error) {
-    console.warn("Backend not available, returning mock agents:", error);
-    // Return mock data when backend is not available
-    return [
-      {
-        id: 1,
-        agent_id: "router-1",
-        name: "Router Agent",
-        description: "Routes queries to appropriate agents",
-        agent_type: "router",
-        prompt:
-          "You are a router agent that directs queries to the right specialist.",
-        tags: ["router", "core"],
-        is_deployed: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: 2,
-        agent_id: "web-search-1",
-        name: "Web Search Agent",
-        description: "Searches the web for information",
-        agent_type: "web_search",
-        prompt:
-          "You are a web search agent that finds relevant information online.",
-        tags: ["search", "web"],
-        is_deployed: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: 3,
-        agent_id: "data-1",
-        name: "Data Agent",
-        description: "Processes and analyzes data",
-        agent_type: "data",
-        prompt: "You are a data agent that processes and analyzes information.",
-        tags: ["data", "analysis"],
-        is_deployed: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: 4,
-        agent_id: "api-1",
-        name: "API Agent",
-        description: "Connects to external APIs",
-        agent_type: "api",
-        prompt: "You are an API agent that connects to external services.",
-        tags: ["api", "integration"],
-        is_deployed: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: 5,
-        agent_id: "toshiba-1",
-        name: "Toshiba Agent",
-        description: "Specialized Toshiba agent",
-        agent_type: "toshiba",
-        prompt: "You are a specialized Toshiba agent.",
-        tags: ["toshiba", "specialized"],
-        is_deployed: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-    ];
+  // Add query parameters
+  url.searchParams.append("skip", skip.toString());
+  url.searchParams.append("limit", limit.toString());
+  if (deployed !== undefined) {
+    url.searchParams.append("deployed", deployed.toString());
   }
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Failed to fetch agents");
+
+  const data: unknown = await response.json();
+  if (isAgentResponseArray(data)) return data;
+  throw new Error("Invalid data type - expected array of agents");
 }
 
 export async function fetchAvailableAgents(): Promise<AgentResponse[]> {
@@ -176,20 +118,14 @@ export async function fetchAvailableAgents(): Promise<AgentResponse[]> {
 }
 
 export async function getWorkflows(): Promise<WorkflowResponse[]> {
-  try {
-    const url = new URL(`${BACKEND_URL ?? ""}api/workflows/`);
+  const url = new URL(`${BACKEND_URL ?? ""}api/workflows/`);
 
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Failed to fetch workflows");
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Failed to fetch workflows");
 
-    const data: unknown = await response.json();
-    if (Array.isArray(data)) return data;
-    throw new Error("Invalid data type - expected array of workflows");
-  } catch (error) {
-    console.warn("Backend not available, returning mock workflows:", error);
-    // Return empty array when backend is not available
-    return [];
-  }
+  const data: unknown = await response.json();
+  if (isWorkflowResponseArray(data)) return data;
+  throw new Error("Invalid data type - expected array of workflows");
 }
 
 export async function deployWorkflow(
@@ -238,13 +174,16 @@ export async function executeWorkflow(
 }
 
 // Additional workflow management functions
-export async function getWorkflowDetails(workflowId: string): Promise<any> {
+export async function getWorkflowDetails(workflowId: string): Promise<WorkflowResponse> {
   try {
     const response = await fetch(`${BACKEND_URL}api/workflows/${workflowId}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    return await response.json();
+
+    const data: unknown = await response.json();
+    if (isWorkflowResponse(data)) return data;
+    throw new Error("Invalid data type - expected workflow response");
   } catch (error) {
     console.error("Error fetching workflow details:", error);
     throw error;
@@ -284,36 +223,15 @@ export async function createWorkflow(
 
     return await response.json();
   } catch (error) {
-    console.warn(
-      "Backend not available, returning mock workflow creation:",
-      error
-    );
-    // Return mock workflow response when backend is not available
-    const mockWorkflowId = `workflow-${Date.now()}`;
-    return {
-      id: Date.now(),
-      workflow_id: mockWorkflowId,
-      name: workflowRequest.name,
-      description: workflowRequest.description || "",
-      version: workflowRequest.version || "1.0.0",
-      configuration: workflowRequest.configuration,
-      created_by: workflowRequest.created_by || "user",
-      is_active: workflowRequest.is_active || true,
-      tags: workflowRequest.tags || [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      is_deployed: false,
-      workflow_agents: [],
-      workflow_connections: [],
-      workflow_deployments: [],
-    };
+    console.error("Error creating workflow:", error);
+    throw error;
   }
 }
 
 export async function deployWorkflowModern(
   workflowId: string,
   deploymentRequest: WorkflowDeploymentRequest
-): Promise<any> {
+): Promise<WorkflowDeployResponse> {
   try {
     const response = await fetch(
       `${BACKEND_URL}api/workflows/${workflowId}/deploy`,
@@ -330,25 +248,18 @@ export async function deployWorkflowModern(
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return await response.json();
+    const data: unknown = await response.json();
+    if (isWorkflowDeployResponse(data)) return data;
+    throw new Error("Invalid data type - expected workflow deploy response");
   } catch (error) {
-    console.warn("Backend not available, returning mock deployment:", error);
-    // Return mock deployment response when backend is not available
-    return {
-      deployment_id: `deployment-${Date.now()}`,
-      workflow_id: workflowId,
-      deployment_name: deploymentRequest.deployment_name,
-      environment: deploymentRequest.environment || "development",
-      status: "active",
-      deployed_at: new Date().toISOString(),
-      message: "Workflow deployed successfully (mock mode)",
-    };
+    console.error("Error deploying workflow:", error);
+    throw error;
   }
 }
 
 export async function executeWorkflowModern(
   executionRequest: NewWorkflowExecutionRequest
-): Promise<any> {
+): Promise<WorkflowExecutionResponse> {
   try {
     const response = await fetch(`${BACKEND_URL}api/workflows/execute`, {
       method: "POST",
@@ -362,24 +273,18 @@ export async function executeWorkflowModern(
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return await response.json();
+    const data: unknown = await response.json();
+    if (isWorkflowExecutionResponse(data)) return data;
+    throw new Error("Invalid data type - expected workflow execution response");
   } catch (error) {
-    console.warn("Backend not available, returning mock execution:", error);
-    // Return mock execution response when backend is not available
-    return {
-      execution_id: `execution-${Date.now()}`,
-      status: "completed",
-      response: `Mock response to: "${executionRequest.query}"\n\nThis is a simulated response from the agent workflow. The actual response would come from your deployed agents working together to process the query.\n\nWorkflow: ${executionRequest.workflow_id || executionRequest.deployment_name}\nQuery processed at: ${new Date().toLocaleString()}`,
-      execution_time: Math.random() * 2 + 0.5, // Random time between 0.5-2.5 seconds
-      tokens_used: Math.floor(Math.random() * 500) + 100,
-      timestamp: new Date().toISOString(),
-    };
+    console.error("Error executing workflow:", error);
+    throw error;
   }
 }
 
 export async function stopWorkflowDeployment(
   deploymentName: string
-): Promise<any> {
+): Promise<DeploymentOperationResponse> {
   try {
     const response = await fetch(
       `${BACKEND_URL}api/workflows/deployments/${deploymentName}/stop`,
@@ -395,7 +300,9 @@ export async function stopWorkflowDeployment(
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return await response.json();
+    const data: unknown = await response.json();
+    if (isDeploymentOperationResponse(data)) return data;
+    throw new Error("Invalid data type - expected deployment operation response");
   } catch (error) {
     console.error("Error stopping workflow deployment:", error);
     throw error;
@@ -404,7 +311,7 @@ export async function stopWorkflowDeployment(
 
 export async function deleteWorkflowDeployment(
   deploymentName: string
-): Promise<any> {
+): Promise<DeploymentOperationResponse> {
   try {
     const response = await fetch(
       `${BACKEND_URL}api/workflows/deployments/${deploymentName}`,
@@ -420,14 +327,16 @@ export async function deleteWorkflowDeployment(
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return await response.json();
+    const data: unknown = await response.json();
+    if (isDeploymentOperationResponse(data)) return data;
+    throw new Error("Invalid data type - expected deployment operation response");
   } catch (error) {
     console.error("Error deleting workflow deployment:", error);
     throw error;
   }
 }
 
-export async function getActiveDeployments(): Promise<any[]> {
+export async function getActiveDeployments(): Promise<WorkflowDeployment[]> {
   try {
     const response = await fetch(
       `${BACKEND_URL}api/workflows/deployments/active`
@@ -437,9 +346,55 @@ export async function getActiveDeployments(): Promise<any[]> {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return await response.json();
+    const data: unknown = await response.json();
+    // For now, we'll assume it returns an array and validate it's an array
+    if (Array.isArray(data)) return data as WorkflowDeployment[];
+    throw new Error("Invalid data type - expected array of deployments");
   } catch (error) {
     console.error("Error fetching active deployments:", error);
     throw error;
   }
+}
+
+// Tools API functions
+export async function fetchAllTools(): Promise<ToolsResponse> {
+  const url = new URL(`${BACKEND_URL ?? ""}api/tools/`);
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Failed to fetch tools");
+
+  const data: unknown = await response.json();
+  if (isToolsResponse(data)) return data;
+  throw new Error("Invalid data type - expected tools response");
+}
+
+export async function fetchToolsByCategory(): Promise<ToolCategoryResponse> {
+  const url = new URL(`${BACKEND_URL ?? ""}api/tools/categories/list`);
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Failed to fetch tools by category");
+
+  const data: unknown = await response.json();
+  if (isToolCategoryResponse(data)) return data;
+  throw new Error("Invalid data type - expected tool category response");
+}
+
+export async function fetchToolDetails(toolName: string): Promise<ToolDetailResponse> {
+  const url = new URL(`${BACKEND_URL ?? ""}api/tools/${toolName}`);
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to fetch tool details for ${toolName}`);
+
+  const data: unknown = await response.json();
+  if (isToolDetailResponse(data)) return data;
+  throw new Error("Invalid data type - expected tool detail response");
+}
+
+export async function fetchToolSchemas(): Promise<any> {
+  const url = new URL(`${BACKEND_URL ?? ""}api/tools/schemas/openai`);
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Failed to fetch tool schemas");
+
+  return await response.json();
 }

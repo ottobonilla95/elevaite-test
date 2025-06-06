@@ -91,7 +91,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
         const botMessage = {
           id: Date.now() + 1,
-          text: result.response || result.text || "No response received",
+          text: result.response || "No response received",
           sender: "bot" as const,
         };
 

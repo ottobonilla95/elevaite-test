@@ -10,7 +10,7 @@ from openai.types.chat.chat_completion_message_tool_call_param import (
     ChatCompletionMessageToolCallParam,
 )
 from .agent_base import Agent
-from tools import tool_store
+from .tools import tool_store
 from . import agent_store
 from services.analytics_service import analytics_service
 from db.database import get_db
@@ -43,7 +43,6 @@ class CommandAgent(Agent):
             user_id=user_id,
             db=db,
         ) as workflow_id:
-
             with analytics_service.track_agent_execution(
                 agent_id=self.agent_id,
                 agent_name="CommandAgent",
@@ -53,7 +52,6 @@ class CommandAgent(Agent):
                 correlation_id=str(workflow_id),
                 db=db,
             ) as execution_id:
-
                 tries = 0
                 system_prompt = self.system_prompt.prompt
                 tools_called = []
@@ -65,9 +63,7 @@ class CommandAgent(Agent):
                 ]
 
                 while tries < self.max_retries:
-                    analytics_service.logger.info(
-                        f"Command Agent attempt {tries + 1}/{self.max_retries}"
-                    )
+                    analytics_service.logger.info(f"Command Agent attempt {tries + 1}/{self.max_retries}")
 
                     try:
                         # Track API call
@@ -80,9 +76,7 @@ class CommandAgent(Agent):
                             tool_choice="auto",
                         )
 
-                        analytics_service.logger.debug(
-                            f"OpenAI API response received for execution {execution_id}"
-                        )
+                        analytics_service.logger.debug(f"OpenAI API response received for execution {execution_id}")
 
                         if (
                             response.choices[0].finish_reason == "tool_calls"
@@ -91,16 +85,12 @@ class CommandAgent(Agent):
                             tool_calls = response.choices[0].message.tool_calls
                             _message: ChatCompletionAssistantMessageParam = {
                                 "role": "assistant",
-                                "tool_calls": cast(
-                                    List[ChatCompletionMessageToolCallParam], tool_calls
-                                ),
+                                "tool_calls": cast(List[ChatCompletionMessageToolCallParam], tool_calls),
                             }
                             messages.append(_message)
 
                             for tool in tool_calls:
-                                analytics_service.logger.info(
-                                    f"Executing tool: {tool.function.name}"
-                                )
+                                analytics_service.logger.info(f"Executing tool: {tool.function.name}")
 
                                 tool_id = tool.id
                                 arguments = json.loads(tool.function.arguments)
@@ -118,7 +108,6 @@ class CommandAgent(Agent):
                                     external_api_called=external_api,
                                     db=db,
                                 ) as usage_id:
-
                                     if function_name in agent_store:
                                         result = agent_store[function_name](**arguments)
                                         if function_name not in agents_involved:
@@ -129,9 +118,7 @@ class CommandAgent(Agent):
                                     # Update tool metrics with output
                                     analytics_service.update_tool_metrics(
                                         usage_id=usage_id,
-                                        output_data={
-                                            "result": str(result)[:1000]
-                                        },  # Truncate for storage
+                                        output_data={"result": str(result)[:1000]},  # Truncate for storage
                                         db=db,
                                     )
 
@@ -170,9 +157,7 @@ class CommandAgent(Agent):
                             return response.choices[0].message.content
 
                     except Exception as e:
-                        analytics_service.logger.error(
-                            f"Error in Command Agent execution: {str(e)}"
-                        )
+                        analytics_service.logger.error(f"Error in Command Agent execution: {str(e)}")
                         tries += 1
                         if tries >= self.max_retries:
                             # Update execution metrics with final retry count
@@ -196,9 +181,7 @@ class CommandAgent(Agent):
         """
 
         tries = 0
-        routing_options = "\n".join(
-            [f"{k}: {v}" for k, v in self.routing_options.items()]
-        )
+        routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
         system_prompt = (
             self.system_prompt.prompt
             + f"""
@@ -210,18 +193,12 @@ class CommandAgent(Agent):
 
         """
         )
-        messages: List[ChatCompletionMessageParam] = [
-            {"role": "system", "content": system_prompt}
-        ]
-        messages.append(
-            {"role": "user", "content": f"Here is the chat history: {chat_history}"}
-        )
+        messages: List[ChatCompletionMessageParam] = [{"role": "system", "content": system_prompt}]
+        messages.append({"role": "user", "content": f"Here is the chat history: {chat_history}"})
         messages.append(
             {
                 "role": "user",
-                "content": "Read the context and chat history and then answer the query."
-                + "\n\nHere is the query: "
-                + query,
+                "content": "Read the context and chat history and then answer the query." + "\n\nHere is the query: " + query,
             }
         )
         while tries < self.max_retries:
@@ -233,17 +210,12 @@ class CommandAgent(Agent):
                     stream=False,
                 )
                 print("\n\nResponse: ", response)
-                if (
-                    response.choices[0].finish_reason == "tool_calls"
-                    and response.choices[0].message.tool_calls is not None
-                ):
+                if response.choices[0].finish_reason == "tool_calls" and response.choices[0].message.tool_calls is not None:
                     tool_calls = response.choices[0].message.tool_calls[:1]
                     messages.append(
                         {
                             "role": "assistant",
-                            "tool_calls": cast(
-                                List[ChatCompletionMessageToolCallParam], tool_calls
-                            ),
+                            "tool_calls": cast(List[ChatCompletionMessageToolCallParam], tool_calls),
                         },
                     )
                     for tool in tool_calls:
@@ -260,18 +232,14 @@ class CommandAgent(Agent):
                                 "content": str(result),
                             }
                         )
-                        yield json.loads(result).get(
-                            "content", "Agent Responded"
-                        ) + "\n"
+                        yield json.loads(result).get("content", "Agent Responded") + "\n"
 
                 else:
                     if response.choices[0].message.content is None:
                         raise Exception("No content in response")
                     yield "Command Agent Responded\n"
                     yield (
-                        json.loads(response.choices[0].message.content).get(
-                            "content", "Command Agent Could Not Respond"
-                        )
+                        json.loads(response.choices[0].message.content).get("content", "Command Agent Could Not Respond")
                         + "\n\n"
                     )  # Stream the final response
                     return

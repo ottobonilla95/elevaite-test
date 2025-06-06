@@ -1,12 +1,7 @@
-import json
-from typing import Any, List, cast
-from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
-from openai.types.chat.chat_completion_tool_message_param import ChatCompletionToolMessageParam
+from typing import Any
 
 from .agent_base import Agent
-from utils import agent_schema, client
-
-from tools import tool_store
+from utils import agent_schema
 
 
 @agent_schema
@@ -22,66 +17,5 @@ class WebAgent(Agent):
         query : what is the latest news on Toshiba and Apple.
         query : what is the sum of 12 and 13, and web results for "latest news on Toshiba.
         """
-        tries = 0
-        routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
-        system_prompt = (
-            self.system_prompt.prompt
-            + f"""
-        Here are the routing options:
-        {routing_options}
-
-        Your response should be in the format:
-        {{ "routing": "respond", "content": "The answer to the query."}}
-        """
-        )
-        messages: List[ChatCompletionMessageParam] = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": query},
-        ]
-
-        while tries < self.max_retries:
-            print(tries)
-            # print("\n\nMessage: ",messages)
-            try:
-                response = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=messages,
-                    # functions=self.functions,
-                    tools=self.functions if self.functions else [],
-                    # parallel_tool_calls=True,
-                    tool_choice="auto",
-                )
-                # print("\n\nResponse: ",response)
-                if response.choices[0].finish_reason == "tool_calls" and response.choices[0].message.tool_calls is not None:
-                    tool_calls = response.choices[0].message.tool_calls
-                    messages.append(
-                        cast(
-                            ChatCompletionMessageParam,
-                            {"role": "assistant", "tool_calls": cast(List[ChatCompletionToolMessageParam], tool_calls)},
-                        )
-                    )
-                    for tool in tool_calls:
-                        print(tool.function.name)
-                        tool_id = tool.id
-                        arguments = json.loads(tool.function.arguments)
-                        function_name = tool.function.name
-                        result = tool_store[function_name](**arguments)
-                        print(result)
-                        messages.append(
-                            cast(
-                                ChatCompletionMessageParam,
-                                {
-                                    "role": "tool",
-                                    "tool_call_id": tool_id,
-                                    "content": str(result),
-                                },
-                            )
-                        )
-
-                else:
-                    return response.choices[0].message.content
-
-            except Exception as e:
-                print(f"Error: {e}")
-                return "Response could not be processed"
-            tries += 1
+        # Use the common LLM execution pattern from base class
+        return self._execute_with_llm(query=query, model="gpt-4o-mini", temperature=0.7, **kwargs)

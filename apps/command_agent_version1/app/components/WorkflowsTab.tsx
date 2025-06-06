@@ -13,22 +13,9 @@ import {
     RefreshCw
 } from "lucide-react";
 import { getWorkflows, getWorkflowDetails, deleteWorkflow } from "../lib/actions";
+import { SavedWorkflow } from "../lib/interfaces"
 
 import "./WorkflowsTab.scss";
-
-interface SavedWorkflow {
-    workflow_id: string;
-    name: string;
-    description?: string;
-    created_at: string;
-    created_by?: string;
-    is_active: boolean;
-    is_deployed: boolean;
-    deployed_at?: string;
-    version: string;
-    agent_count?: number;
-    connection_count?: number;
-}
 
 // Transform workflow data to match our interface
 function transformWorkflowData(workflows: any[]): SavedWorkflow[] {

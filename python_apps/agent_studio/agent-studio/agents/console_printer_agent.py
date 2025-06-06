@@ -20,7 +20,7 @@ from .agent_base import Agent
 from utils import agent_schema, client
 from data_classes import PromptObject
 
-from tools import tool_store
+from .tools import tool_store
 
 
 # RabbitMQ exchange name - commented out for Redis-only implementation

@@ -132,6 +132,53 @@ def print_to_console(text: str) -> str:
     return f"Printed {text} to the console."
 
 
+@function_schema
+@function_schema
+def query_retriever2(query: str) -> list:
+    """ "
+    RETRIEVER TOOL
+
+    Use this tool to query the Toshiba knowledge base.
+    Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
+
+    EXAMPLES:
+    Example: "AC01548000"
+    Example: "4348"
+    Example: "What is TAL"
+    Example: "assembly name for part number 3AC01548000"
+    Example: "TAL parts list"
+    """
+    RETRIEVER_URL = os.getenv("RETRIEVER_URL")
+    if RETRIEVER_URL is None:
+        raise ValueError("RETRIEVER_URL not found. Please set it in the environment variables.")
+    url = RETRIEVER_URL + "/query-chunks"
+    params = {"query": query, "top_k": 60}
+
+    # Make the POST request
+    response = requests.post(url, params=params)
+    res = "CONTEXT FROM RETRIEVER: \n\n"
+    sources = []
+    segments = response.json()["selected_segments"][:4]
+    for i, segment in enumerate(segments):
+        res += "*" * 5 + f"\n\nSegment {i}" + "\n" + "Contextual Header: "
+        contextual_header = segment["chunks"][0].get("contextual_header", "")
+        skip_length = len(contextual_header) if contextual_header else 0
+        res += contextual_header if contextual_header else "No contextual header" + "\n" + "Context: " + "\n"
+        # print(segment["score"])
+        print("Segment Done")
+        references = ""
+        for j, chunk in enumerate(segment["chunks"]):
+            # res += f"Contextual Header: {chunk['contextual_header']}\n"
+            res += chunk["chunk_text"][skip_length:]
+            references += f"File: {chunk['filename']}, Pages: {chunk['page_info']}\n"
+            sources.append(f"File: {chunk['filename']}, Pages: {chunk['page_info']}\n")
+            # res += "\n"
+        res += f"References: {references}"
+    res += "\n\n" + "-" * 5 + "\n\n"
+    print(res)
+    return [res, sources]
+
+
 tool_store = {
     "add_numbers": add_numbers,
     "weather_forecast": weather_forecast,
@@ -141,6 +188,7 @@ tool_store = {
     "get_customer_location": get_customer_location,
     "add_customer": add_customer,
     "print_to_console": print_to_console,
+    "query_retriever2": query_retriever2,
 }
 
 tool_schemas = {
@@ -152,4 +200,5 @@ tool_schemas = {
     "get_customer_location": get_customer_location.openai_schema,
     "add_customer": add_customer.openai_schema,
     "print_to_console": print_to_console.openai_schema,
+    "query_retriever2": query_retriever2.openai_schema,
 }

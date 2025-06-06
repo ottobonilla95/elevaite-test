@@ -6,8 +6,9 @@ import { auth } from "../auth";
 import { AppLayout } from "./components/AppLayout";
 import "./globals.css";
 import { ChatContextProvider } from "./ui/contexts/ChatContext";
+import { ToolsProvider } from "./ui/contexts/ToolsContext";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "Agentic AI",
@@ -24,17 +25,19 @@ export default async function RootLayout({ children, }: Readonly<{ children: Rea
   };
 
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className={inter.className}>
+      <body>
 
         <SessionProvider session={session}>
           <ColorContextProvider>
             <ChatContextProvider>
+              <ToolsProvider>
 
-              <AppLayout breadcrumbs={breadcrumbs}>
-                {children}
-              </AppLayout>
+                <AppLayout breadcrumbs={breadcrumbs}>
+                  {children}
+                </AppLayout>
 
+              </ToolsProvider>
             </ChatContextProvider>
           </ColorContextProvider>
         </SessionProvider>

@@ -465,7 +465,7 @@ class WorkflowService:
         """Build ToshibaAgent from configuration"""
         from agents.toshiba_agent import create_toshiba_agent
         from prompts import toshiba_agent_system_prompt
-        from tools import tool_schemas
+        from agents.tools import tool_schemas
 
         # Get ToshibaAgent-specific configuration
         functions = [tool_schemas.get("query_retriever2")] if "query_retriever2" in tool_schemas else []

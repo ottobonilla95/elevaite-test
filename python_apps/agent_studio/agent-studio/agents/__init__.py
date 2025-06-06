@@ -10,8 +10,8 @@ from prompts import (
     toshiba_agent_system_prompt,
 )
 
-from tools import weather_forecast
-from tools import web_search, tool_schemas
+from .tools import weather_forecast
+from .tools import web_search, tool_schemas
 from .data_agent import DataAgent
 from .api_agent import APIAgent
 from .web_agent import WebAgent

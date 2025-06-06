@@ -332,3 +332,53 @@ export interface PromptInputItem {
 
 
 
+// Tools-related interfaces
+export interface ToolInfo {
+  name: string;
+  description: string;
+  parameters: Record<string, any>;
+  function_type: string;
+}
+
+export interface ToolsResponse {
+  tools: ToolInfo[];
+  total_count: number;
+}
+
+export interface ToolCategoryResponse {
+  [category: string]: {
+    tools: ToolInfo[];
+    count: number;
+  };
+}
+
+export interface ToolDetailResponse {
+  name: string;
+  schema: Record<string, any>;
+  available: boolean;
+  docstring?: string;
+}
+
+// Deployment operation response
+export interface DeploymentOperationResponse {
+  status: "success" | "error";
+  message: string;
+  deployment_name?: string;
+  operation?: string;
+}
+
+
+
+export interface SavedWorkflow {
+  workflow_id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  created_by?: string;
+  is_active: boolean;
+  is_deployed: boolean;
+  deployed_at?: string;
+  version: string;
+  agent_count?: number;
+  connection_count?: number;
+}
