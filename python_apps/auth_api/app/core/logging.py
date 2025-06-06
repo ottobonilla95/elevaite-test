@@ -52,6 +52,7 @@ def attach_logger_to_app():
     Attach the logger to FastAPI and Uvicorn.
     This redirects all FastAPI and Uvicorn logs through our logger.
     """
+    print("🔧 Configuring ElevAIte Logger for Auth API...")
     ElevaiteLogger.attach_to_uvicorn(
         cloudwatch_enabled=CLOUDWATCH_ENABLED,
         log_group=LOG_GROUP,
@@ -65,3 +66,4 @@ def attach_logger_to_app():
             "deployment.environment": os.environ.get("ENVIRONMENT", "development"),
         },
     )
+    print("✅ ElevAIte Logger configured successfully!")

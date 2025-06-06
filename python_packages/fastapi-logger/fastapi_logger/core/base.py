@@ -177,15 +177,16 @@ class BaseLogger:
         """
         global _uvicorn_attached
 
-        # Prevent multiple attachments
-        if _uvicorn_attached:
-            print(
-                "Warning: Uvicorn logger already attached, skipping duplicate attachment"
-            )
-            return
-
-        # Create a marker to identify our handlers
         ELEVAITE_HANDLER_MARKER = "_elevaite_handler"
+
+        uvicorn_logger = logging.getLogger("uvicorn")
+        has_our_handler = any(
+            hasattr(h, ELEVAITE_HANDLER_MARKER) for h in uvicorn_logger.handlers
+        )
+
+        if _uvicorn_attached and has_our_handler:
+            print("✅ Uvicorn logger already properly configured with ElevAIte Logger")
+            return
 
         custom_logger = BaseLogger(
             name="elevaite_uvicorn_logger",
