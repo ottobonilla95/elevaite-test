@@ -1,11 +1,12 @@
 import uuid
 import hashlib
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
+from agents.tools import tool_schemas
 from . import models, schemas
 
 
@@ -138,13 +139,31 @@ def delete_prompt(db: Session, prompt_id: uuid.UUID) -> bool:
 
 
 # Agent CRUD operations
+def validate_agent_functions(functions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    validated_functions = []
+    for func in functions:
+        if isinstance(func, dict) and "function" in func:
+            func_name = func["function"].get("name")
+            if func_name and func_name in tool_schemas:
+                validated_functions.append(tool_schemas[func_name])
+            else:
+                validated_functions.append(func)
+        else:
+            validated_functions.append(func)
+
+    return validated_functions
+
+
 def create_agent(db: Session, agent: schemas.AgentCreate) -> models.Agent:
+    # Validate and normalize functions before storing
+    validated_functions = validate_agent_functions(agent.functions)
+
     db_agent = models.Agent(
         name=agent.name,
         parent_agent_id=agent.parent_agent_id,
         system_prompt_id=agent.system_prompt_id,
         persona=agent.persona,
-        functions=agent.functions,
+        functions=validated_functions,
         routing_options=agent.routing_options,
         short_term_memory=agent.short_term_memory,
         long_term_memory=agent.long_term_memory,
@@ -171,8 +190,50 @@ def get_agent(db: Session, agent_id: uuid.UUID) -> Optional[models.Agent]:
     return db.query(models.Agent).filter(models.Agent.agent_id == agent_id).first()
 
 
+def get_agent_with_functions(
+    db: Session, agent_id: uuid.UUID
+) -> Optional[models.Agent]:
+    agent = db.query(models.Agent).filter(models.Agent.agent_id == agent_id).first()
+    if not agent:
+        return None
+
+    reconstructed_functions = []
+    for func_schema in agent.functions:
+        if isinstance(func_schema, dict) and "function" in func_schema:
+            func_name = func_schema["function"].get("name")
+            if func_name and func_name in tool_schemas:
+                reconstructed_functions.append(tool_schemas[func_name])
+            else:
+                reconstructed_functions.append(func_schema)
+        else:
+            reconstructed_functions.append(func_schema)
+
+    agent.functions = reconstructed_functions
+    return agent
+
+
 def get_agent_by_name(db: Session, name: str) -> Optional[models.Agent]:
     return db.query(models.Agent).filter(models.Agent.name == name).first()
+
+
+def get_agent_by_name_with_functions(db: Session, name: str) -> Optional[models.Agent]:
+    agent = db.query(models.Agent).filter(models.Agent.name == name).first()
+    if not agent:
+        return None
+
+    reconstructed_functions = []
+    for func_schema in agent.functions:
+        if isinstance(func_schema, dict) and "function" in func_schema:
+            func_name = func_schema["function"].get("name")
+            if func_name and func_name in tool_schemas:
+                reconstructed_functions.append(tool_schemas[func_name])
+            else:
+                reconstructed_functions.append(func_schema)
+        else:
+            reconstructed_functions.append(func_schema)
+
+    agent.functions = reconstructed_functions
+    return agent
 
 
 def get_agents(

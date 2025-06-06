@@ -120,12 +120,12 @@ def deploy_legacy(request: dict, db: Session = fastapi.Depends(get_db)):
             code = i[0]
             db_agent = crud.get_agent_by_deployment_code(db, code)
             if db_agent is None:
-                return {"status": f"Error: Agent with deployment code '{code}' not found"}
+                return {
+                    "status": f"Error: Agent with deployment code '{code}' not found"
+                }
             agents.append(str(db_agent.name))
 
-        # Get agent schemas lazily to avoid Redis connection at import time
-        agent_schemas = get_agent_schemas()
-
+        # Build connections using database-stored agent functions
         connections = []
         for i in request["connections"]:
             connection = i.split("->")
@@ -134,16 +134,36 @@ def deploy_legacy(request: dict, db: Session = fastapi.Depends(get_db)):
 
             source_agent = crud.get_agent_by_deployment_code(db, source_code)
             if source_agent is None:
-                return {"status": f"Error: Agent with deployment code '{source_code}' not found"}
+                return {
+                    "status": f"Error: Agent with deployment code '{source_code}' not found"
+                }
             source_name = str(source_agent.name)
 
             if source_name == "CommandAgent":
-                if target_name in agent_schemas:
-                    connections.append(agent_schemas[target_name])
+                # Try to get target agent from database with reconstructed functions
+                target_agent = crud.get_agent_by_name_with_functions(db, target_name)
+                if target_agent is not None:
+                    # Use the agent's functions from the database
+                    print(
+                        f"Using database functions for {target_name}: {len(target_agent.functions)} functions"
+                    )
+                    connections.extend(target_agent.functions)
                 else:
-                    target_agent = crud.get_agent_by_name(db, target_name)
-                    if target_agent is not None and str(target_agent.name) in agent_schemas:
-                        connections.append(agent_schemas[str(target_agent.name)])
+                    # Fallback to hardcoded schemas if agent not found in database
+                    print(
+                        f"Agent {target_name} not found in database, using hardcoded schema"
+                    )
+                    agent_schemas = get_agent_schemas()
+                    if target_name in agent_schemas:
+                        connections.append(agent_schemas[target_name])
+                    else:
+                        print(f"Warning: No schema found for {target_name}")
+
+        print(f"Creating CommandAgent with {len(connections)} functions:")
+        for i, func in enumerate(connections):
+            if isinstance(func, dict) and "function" in func:
+                func_name = func["function"].get("name", "Unknown")
+                print(f"  {i+1}. {func_name}")
 
         COMMAND_AGENT = CommandAgent(
             name="WebCommandAgent",
@@ -188,9 +208,13 @@ def run(request: dict, db: Session = Depends(get_db)):
         if not session_id:
             session_id = str(uuid.uuid4())
 
-        analytics_service.create_or_update_session(session_id=session_id, user_id=user_id, db=db)
+        analytics_service.create_or_update_session(
+            session_id=session_id, user_id=user_id, db=db
+        )
 
-        res = COMMAND_AGENT.execute(query=request["query"], session_id=session_id, user_id=user_id)
+        res = COMMAND_AGENT.execute(
+            query=request["query"], session_id=session_id, user_id=user_id
+        )
 
         return {"status": "ok", "response": f"{res}", "session_id": session_id}
 
@@ -207,11 +231,15 @@ def run_stream(request: dict):
 
     async def response_stream():
         if COMMAND_AGENT is not None:
-            for chunk in COMMAND_AGENT.execute_stream(request["query"], gpt_chat_history):
+            for chunk in COMMAND_AGENT.execute_stream(
+                request["query"], gpt_chat_history
+            ):
                 yield chunk
             return
 
-    return fastapi.responses.StreamingResponse(response_stream(), media_type="text/event-stream")
+    return fastapi.responses.StreamingResponse(
+        response_stream(), media_type="text/event-stream"
+    )
 
 
 if __name__ == "__main__":
