@@ -21,13 +21,18 @@ security = HTTPBearer()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):  # pylint: disable=unused-argument
-    """Initialize database on startup."""
     logger.info("Starting Auth API application")
     try:
         # Initialize tenant schemas and tables
         logger.info("Initializing database and tenant schemas")
         await initialize_db()
         logger.info("Database initialization completed successfully")
+
+        # Force re-attachment to handle uvicorn command-line override
+        from fastapi_logger import ElevaiteLogger
+
+        ElevaiteLogger.force_reattach_to_uvicorn()
+
         yield
     finally:
         logger.info("Shutting down Auth API application")
@@ -37,6 +42,7 @@ app = FastAPI(
     title="Minimal Auth API",
     description="Minimal test version",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # Add tenant middleware with excluded paths for health and docs endpoints
