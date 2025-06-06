@@ -179,14 +179,14 @@ class BaseLogger:
 
         ELEVAITE_HANDLER_MARKER = "_elevaite_handler"
 
-        uvicorn_logger = logging.getLogger("uvicorn")
-        has_our_handler = any(
-            hasattr(h, ELEVAITE_HANDLER_MARKER) for h in uvicorn_logger.handlers
+        uvicorn_access = logging.getLogger("uvicorn.access")
+        has_default_handler = any(
+            "StreamHandler" in str(type(h)) and not hasattr(h, ELEVAITE_HANDLER_MARKER)
+            for h in uvicorn_access.handlers
         )
 
-        if _uvicorn_attached and has_our_handler:
-            print("✅ Uvicorn logger already properly configured with ElevAIte Logger")
-            return
+        if has_default_handler:
+            _uvicorn_attached = False
 
         custom_logger = BaseLogger(
             name="elevaite_uvicorn_logger",
@@ -207,36 +207,37 @@ class BaseLogger:
         for handler in custom_logger.handlers:
             setattr(handler, ELEVAITE_HANDLER_MARKER, True)
 
-        # Add our custom handler to existing loggers instead of replacing them
-        # This prevents breaking uvicorn's internal logging mechanisms
         for uvicorn_logger_name in ["uvicorn", "uvicorn.access", "uvicorn.error"]:
             uvicorn_logger = logging.getLogger(uvicorn_logger_name)
 
-            # Check if we already have our handler attached
-            has_elevaite_handler = any(
-                hasattr(h, ELEVAITE_HANDLER_MARKER) for h in uvicorn_logger.handlers
-            )
+            uvicorn_logger.handlers.clear()
 
-            if not has_elevaite_handler:
-                # Add only the first handler to avoid duplicates
-                if custom_logger.handlers:
-                    uvicorn_logger.addHandler(custom_logger.handlers[0])
-                # Set appropriate log level
-                uvicorn_logger.setLevel(logging.INFO)
-            # Prevent propagation to avoid duplicate logs
+            if custom_logger.handlers:
+                uvicorn_logger.addHandler(custom_logger.handlers[0])
+
+            uvicorn_logger.setLevel(logging.DEBUG)
+
             uvicorn_logger.propagate = False
 
-        # Add our handler to FastAPI logger
         fastapi_logger = logging.getLogger("fastapi")
-        has_elevaite_handler = any(
-            hasattr(h, ELEVAITE_HANDLER_MARKER) for h in fastapi_logger.handlers
-        )
 
-        if not has_elevaite_handler:
-            if custom_logger.handlers:
-                fastapi_logger.addHandler(custom_logger.handlers[0])
-            fastapi_logger.setLevel(logging.INFO)
+        fastapi_logger.handlers.clear()
+
+        if custom_logger.handlers:
+            fastapi_logger.addHandler(custom_logger.handlers[0])
+        fastapi_logger.setLevel(logging.DEBUG)
         fastapi_logger.propagate = False
 
-        # Mark that we've attached to uvicorn
         _uvicorn_attached = True
+
+        print("✅ ElevAIte Logger configured successfully")
+
+    @classmethod
+    def force_reattach_to_uvicorn(cls):
+        global _uvicorn_attached
+        _uvicorn_attached = False  # Reset the flag
+
+        cls.attach_to_uvicorn(
+            service_name="force-reattach",
+            configure_otel=False,
+        )
