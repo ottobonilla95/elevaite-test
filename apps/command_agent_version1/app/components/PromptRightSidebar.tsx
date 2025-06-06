@@ -5,6 +5,7 @@ import PromptRightSidebarTestingConsole from "./PromptRightSidebarTestingConsole
 import { LoadingKeys, usePrompt } from "../ui/contexts/PromptContext";
 import { PromptInput } from "./PromptInput";
 import PromptLoading from "./PromptLoading";
+import PromptRightColToggleVisilityStatus from "./PromptRightColToggleVisilityStatus";
 
 const tabs = [
 	{
@@ -119,17 +120,20 @@ function PromptRightSidebar() {
 				</div>
 			</div>
 			<div className="flex flex-1 gap-2 p-2 h-full min-h-0">
-				<div className="card relative flex flex-col flex-1 bg-white rounded-xl">
+				<div className={`card relative ${promptContext.isRightColOutputColExpanded ? 'hidden' : 'flex'} flex-col flex-1 bg-white rounded-xl`}>
 					<div className="top-wrapper overflow-auto flex flex-col">
-						<div className="top flex items-center justify-between p-4">
-							<div className="text-sm font-medium bg-white sticky top-0 z-10">Prompt Inputs</div>
-							<button onClick={handleAddPromptInput}>
-								<svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-									<g opacity="0.8">
-										<path d="M8.49992 3.33337V12.6667M3.83325 8.00004H13.1666" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-									</g>
-								</svg>
-							</button>
+						<div className="top flex items-center justify-between py-4 pl-4 h-[48px]">
+							<div className="flex items-center gap-2">
+								<div className="text-sm font-medium bg-white sticky top-0 z-10">Prompt Inputs</div>
+								<button onClick={handleAddPromptInput}>
+									<svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+										<g opacity="0.8">
+											<path d="M8.49992 3.33337V12.6667M3.83325 8.00004H13.1666" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+										</g>
+									</svg>
+								</button>
+							</div>
+							<PromptRightColToggleVisilityStatus isColExpanded={promptContext.isRightColPromptInputsColExpanded} toggleColStatus={promptContext.setIsRightColPromptInputsColExpanded} />
 						</div>
 						<div className="middle flex-1 p-4">
 							<div className="accordions">

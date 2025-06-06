@@ -84,7 +84,7 @@
 			}
 
 			&.full-expanded {
-				height: calc(100% - 53px);
+				height: calc(100% - 49px);
 				border-top: none;
 			}
 		}
@@ -102,8 +102,11 @@
 }
 
 .tabs {
-	background: #F1F4F8;
-	border: 1px solid #E6EBF0;
+	&-inner {
+		background: #F1F4F8;
+		border: 1px solid #E6EBF0;
+		border-radius: 6px;
+	}
 }
 
 .tab-links {

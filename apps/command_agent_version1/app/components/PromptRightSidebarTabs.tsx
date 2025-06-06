@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { LoadingKeys, usePrompt } from "../ui/contexts/PromptContext";
 import PromptLoading from "./PromptLoading";
+import PromptRightColToggleVisilityStatus from "./PromptRightColToggleVisilityStatus";
 
 const PromptRightSidebarTabs = () => {
 	const promptContext = usePrompt();
@@ -9,17 +10,20 @@ const PromptRightSidebarTabs = () => {
 	const [activeItem, setActiveItem] = useState('');
 
 	return (
-		<div className="card flex flex-1 bg-white rounded-xl">
+		<div className={`card ${promptContext.isRightColPromptInputsColExpanded ? 'hidden' : 'flex'} flex-1 bg-white rounded-xl`}>
 			<div className="tabs-wrapper flex flex-col w-full">
-				<div className="tabs flex m-1 p-1 text-xs text-gray-500 font-medium rounded-md">
-					<button className={`tab rounded-sm p-2 flex-1${ 'tab1' == activeTab ? ' tab-active text-orange-500 bg-white' : '' }`} onClick={() => setActiveTab("tab1")}>
-						Output
-					</button>
-					<button className={`tab rounded-sm p-2 flex-1${ 'tab2' == activeTab ? ' tab-active text-orange-500 bg-white' : '' }`} onClick={() => setActiveTab("tab2")}>
-						Generated Prompt
-					</button>
+				<div className="tabs flex my-1 ml-1 text-xs text-gray-500 font-medium rounded-md h-[48px]">
+					<div className="tabs-inner p-1 flex flex-1">
+						<button className={`tab rounded-sm p-2 flex-1${ 'tab1' == activeTab ? ' tab-active text-orange-500 bg-white' : '' }`} onClick={() => setActiveTab("tab1")}>
+							Output
+						</button>
+						<button className={`tab rounded-sm p-2 flex-1${ 'tab2' == activeTab ? ' tab-active text-orange-500 bg-white' : '' }`} onClick={() => setActiveTab("tab2")}>
+							Generated Prompt
+						</button>
+					</div>
+					<PromptRightColToggleVisilityStatus isColExpanded={promptContext.isRightColOutputColExpanded} toggleColStatus={promptContext.setIsRightColOutputColExpanded} />
 				</div>
-				<div className="tab-panels flex flex-1 text-sm mt-1 w-full rounded-xl overflow-auto">
+				<div className="tab-panels flex flex-1 text-sm w-full rounded-b-xl overflow-auto">
 					{activeTab === "tab1" && (
 						<div className="tab-panel flex flex-col flex-grow">
 							<div className="tab-content p-4">

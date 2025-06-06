@@ -58,13 +58,17 @@ export interface PromptContextStructure {
   removePromptInput: (id: string) => void;
   isRightColExpanded: boolean,
   setIsRightColExpanded: (isExpanded: boolean) => void,
+  isRightColPromptInputsColExpanded: boolean,
+  setIsRightColPromptInputsColExpanded: (isExpanded: boolean) => void,
+  isRightColOutputColExpanded: boolean,
+  setIsRightColOutputColExpanded: (isExpanded: boolean) => void,
   outputVersions: regenerateResponseObject[];
   setOutputVersions: React.Dispatch<React.SetStateAction<regenerateResponseObject[]>>;
   handleReset: () => void,
   turnToJSON: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
   jsonOutput: String,
   setJsonOutput: (output: string) => void,
-  defaultPromptInputs: PromptInputItem[]
+  defaultPromptInputs: PromptInputItem[],
 }
 
 export const PromptContext = createContext<PromptContextStructure>({
@@ -94,6 +98,10 @@ export const PromptContext = createContext<PromptContextStructure>({
   updatePromptInput: () => undefined,
   removePromptInput: () => undefined,
   isRightColExpanded: false,
+  isRightColPromptInputsColExpanded: false,
+  setIsRightColPromptInputsColExpanded: () => undefined,
+  isRightColOutputColExpanded: false,
+  setIsRightColOutputColExpanded: () => undefined,
   setIsRightColExpanded: () => undefined,
   outputVersions: [],
   setOutputVersions: () => undefined,
@@ -101,7 +109,7 @@ export const PromptContext = createContext<PromptContextStructure>({
   turnToJSON: async () => {},
   jsonOutput: '',
   setJsonOutput: () => undefined,
-  defaultPromptInputs: []
+  defaultPromptInputs: [],
 });
 
 
@@ -123,6 +131,8 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   const [promptInputs, setPromptInputs] = useState<PromptInputItem[]>(defaultPromptInputs);
   const [output, setOutput] = useState<regenerateResponseObject|null>(null);
   const [isRightColExpanded, setIsRightColExpanded] = useState<boolean>(false);
+  const [isRightColPromptInputsColExpanded, setIsRightColPromptInputsColExpanded] = useState<boolean>(false);
+  const [isRightColOutputColExpanded, setIsRightColOutputColExpanded] = useState<boolean>(false);
   const [outputVersions, setOutputVersions] = useState<regenerateResponseObject[]>([]);
   const [jsonOutput, setJsonOutput] = useState('');
 
@@ -401,13 +411,17 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
         removePromptInput,
 		isRightColExpanded,
 		setIsRightColExpanded,
+		isRightColPromptInputsColExpanded,
+		setIsRightColPromptInputsColExpanded,
+		isRightColOutputColExpanded,
+		setIsRightColOutputColExpanded,
 		outputVersions,
 		setOutputVersions,
 		handleReset,
 		turnToJSON,
 		jsonOutput,
 		setJsonOutput,
-		defaultPromptInputs
+		defaultPromptInputs,
       }}
     >
       {props.children}
