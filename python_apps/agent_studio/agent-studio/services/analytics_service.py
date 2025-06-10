@@ -1,5 +1,7 @@
 from datetime import datetime
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
+from contextlib import contextmanager
+import uuid
 from sqlalchemy.orm import Session
 
 from fastapi_logger import ElevaiteLogger
@@ -11,6 +13,7 @@ class AnalyticsService:
         self.logger = ElevaiteLogger()
         self.current_executions: Dict[str, Dict[str, Any]] = {}
         self.current_tools: Dict[str, Dict[str, Any]] = {}
+        self.current_workflows: Dict[str, Dict[str, Any]] = {}
 
     def create_or_update_session(
         self,
@@ -183,6 +186,247 @@ class AnalyticsService:
 
         except Exception as e:
             self.logger.error(f"Error ending tool usage tracking: {e}")
+
+    def start_workflow(
+        self,
+        workflow_id: str,
+        workflow_type: str,
+        agents_involved: Optional[List[str]] = None,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ) -> None:
+        try:
+            workflow_data = {
+                "workflow_id": workflow_id,
+                "workflow_type": workflow_type,
+                "agents_involved": agents_involved or [],
+                "session_id": session_id,
+                "user_id": user_id,
+                "start_time": datetime.now(),
+                "agent_count": len(agents_involved) if agents_involved else 0,
+            }
+
+            self.current_workflows[workflow_id] = workflow_data
+            self.logger.info(
+                f"Started tracking workflow: {workflow_id} of type: {workflow_type}"
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error starting workflow tracking: {e}")
+
+    def end_workflow(
+        self,
+        workflow_id: str,
+        status: str,
+        db: Optional[Session] = None,
+    ) -> None:
+        try:
+            if workflow_id not in self.current_workflows:
+                self.logger.warning(
+                    f"Workflow {workflow_id} not found in current workflows"
+                )
+                return
+
+            workflow_data = self.current_workflows[workflow_id]
+            end_time = datetime.now()
+            duration_ms = int(
+                (end_time - workflow_data["start_time"]).total_seconds() * 1000
+            )
+
+            if db:
+                metrics = models.WorkflowMetrics(
+                    workflow_id=workflow_id,
+                    workflow_type=workflow_data["workflow_type"],
+                    start_time=workflow_data["start_time"],
+                    end_time=end_time,
+                    duration_ms=duration_ms,
+                    status=status,
+                    agents_involved=workflow_data.get("agents_involved", []),
+                    agent_count=workflow_data.get("agent_count", 0),
+                    session_id=workflow_data.get("session_id"),
+                    user_id=workflow_data.get("user_id"),
+                )
+                db.add(metrics)
+                db.commit()
+
+            del self.current_workflows[workflow_id]
+            self.logger.info(f"Completed tracking workflow: {workflow_id}")
+
+        except Exception as e:
+            self.logger.error(f"Error ending workflow tracking: {e}")
+
+    def update_tool_metrics(
+        self,
+        usage_id: str,
+        output_data: Optional[Dict[str, Any]] = None,
+        db: Optional[Session] = None,
+    ) -> None:
+        try:
+            if usage_id in self.current_tools:
+                tool_data = self.current_tools[usage_id]
+                if output_data:
+                    tool_data["output_data"] = output_data
+                self.logger.debug(f"Updated tool metrics for usage_id: {usage_id}")
+            else:
+                self.logger.warning(
+                    f"Tool usage {usage_id} not found for metrics update"
+                )
+
+        except Exception as e:
+            self.logger.error(f"Error updating tool metrics: {e}")
+
+    def update_execution_metrics(
+        self,
+        execution_id: str,
+        response: Optional[str] = None,
+        tools_called: Optional[List[Dict[str, Any]]] = None,
+        tool_count: Optional[int] = None,
+        retry_count: Optional[int] = None,
+        api_calls_count: Optional[int] = None,
+        db: Optional[Session] = None,
+    ) -> None:
+        try:
+            if execution_id in self.current_executions:
+                execution_data = self.current_executions[execution_id]
+                if response:
+                    execution_data["response"] = response
+                if tools_called:
+                    execution_data["tools_called"] = tools_called
+                if tool_count is not None:
+                    execution_data["tool_count"] = tool_count
+                if retry_count is not None:
+                    execution_data["retry_count"] = retry_count
+                if api_calls_count is not None:
+                    execution_data["api_calls_count"] = api_calls_count
+
+                self.logger.debug(
+                    f"Updated execution metrics for execution_id: {execution_id}"
+                )
+            else:
+                self.logger.warning(
+                    f"Execution {execution_id} not found for metrics update"
+                )
+
+        except Exception as e:
+            self.logger.error(f"Error updating execution metrics: {e}")
+
+    @contextmanager
+    def track_workflow(
+        self,
+        workflow_type: str,
+        agents_involved: Optional[List[str]] = None,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        db: Optional[Session] = None,
+    ):
+        workflow_id = str(uuid.uuid4())
+
+        try:
+            self.start_workflow(
+                workflow_id=workflow_id,
+                workflow_type=workflow_type,
+                agents_involved=agents_involved,
+                session_id=session_id,
+                user_id=user_id,
+            )
+
+            if session_id and db:
+                self.create_or_update_session(
+                    session_id=session_id,
+                    user_id=user_id,
+                    db=db,
+                )
+
+            yield workflow_id
+
+            self.end_workflow(
+                workflow_id=workflow_id,
+                status="success",
+                db=db,
+            )
+
+        except Exception as e:
+            self.end_workflow(
+                workflow_id=workflow_id,
+                status="error",
+                db=db,
+            )
+            raise
+
+    @contextmanager
+    def track_agent_execution(
+        self,
+        agent_id: str,
+        agent_name: str,
+        query: Optional[str] = None,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        correlation_id: Optional[str] = None,
+        db: Optional[Session] = None,
+    ):
+        execution_id = str(uuid.uuid4())
+
+        try:
+            self.start_agent_execution(
+                execution_id=execution_id,
+                agent_name=agent_name,
+                user_id=user_id,
+                session_id=session_id,
+                query=query,
+            )
+
+            yield execution_id
+
+            self.end_agent_execution(
+                execution_id=execution_id,
+                status="success",
+                db=db,
+            )
+
+        except Exception as e:
+            self.end_agent_execution(
+                execution_id=execution_id,
+                status="error",
+                response=str(e),
+                db=db,
+            )
+            raise
+
+    @contextmanager
+    def track_tool_usage(
+        self,
+        tool_name: str,
+        execution_id: str,
+        input_data: Optional[Dict[str, Any]] = None,
+        external_api_called: Optional[str] = None,
+        db: Optional[Session] = None,
+    ):
+        usage_id = str(uuid.uuid4())
+
+        try:
+            self.start_tool_usage(
+                usage_id=usage_id,
+                tool_name=tool_name,
+                execution_id=execution_id,
+                parameters=input_data,
+            )
+
+            yield usage_id
+
+            self.end_tool_usage(
+                usage_id=usage_id,
+                status="success",
+                db=db,
+            )
+
+        except Exception as e:
+            self.end_tool_usage(
+                usage_id=usage_id,
+                status="error",
+                result=str(e),
+                db=db,
+            )
+            raise
 
 
 analytics_service = AnalyticsService()
