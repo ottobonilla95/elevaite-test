@@ -1,25 +1,39 @@
+import {useRef, useState, useEffect} from 'react';
 import { LoadingKeys, usePrompt } from '../ui/contexts/PromptContext';
 import PromptFileUploadModal from './PromptFileUploadModal';
 import PromptLoading from './PromptLoading';
 
 const PromptRightSidebarTestingConsole = () => {
 	const promptsContext = usePrompt();
+	const [height, setHeight] = useState(64);
+    const resizing = useRef(false);
 
-	const handleHalfExpanded = () => {
-		if (promptsContext.testingConsoleActiveClass === 'half-expanded' || promptsContext.testingConsoleActiveClass === 'full-expanded')  {
-			promptsContext.setTestingConsoleActiveClass('');
-		} else {
-			promptsContext.setTestingConsoleActiveClass('half-expanded');
-		}
-	}
+	const handleMouseDown = (e: React.MouseEvent) => {
+        resizing.current = true;
+        document.body.style.cursor = 'ns-resize';
+    };
 
-	const handleFullExpanded = () => {
-		if (promptsContext.testingConsoleActiveClass === 'half-expanded' || promptsContext.testingConsoleActiveClass === '')  {
-			promptsContext.setTestingConsoleActiveClass('full-expanded');
-		} else {
-			promptsContext.setTestingConsoleActiveClass('');
-		}
-	}
+	const handleMouseMove = (e: MouseEvent) => {
+        if (resizing.current) {
+            const windowHeight = window.innerHeight;
+            const newHeight = windowHeight - e.clientY;
+            setHeight(Math.max(64, Math.min(newHeight, windowHeight - 210)));
+        }
+    };
+
+    const handleMouseUp = () => {
+        resizing.current = false;
+        document.body.style.cursor = '';
+    };
+
+	useEffect(() => {
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    });
 
 	const handleNextPage = async () => {
 		const data = await promptsContext.goToNextPage(true);
@@ -37,9 +51,26 @@ const PromptRightSidebarTestingConsole = () => {
 		}
 	}
 
+	/* const handleHalfExpanded = () => {
+		if (promptsContext.testingConsoleActiveClass === 'half-expanded' || promptsContext.testingConsoleActiveClass === 'full-expanded')  {
+			promptsContext.setTestingConsoleActiveClass('');
+		} else {
+			promptsContext.setTestingConsoleActiveClass('half-expanded');
+		}
+	}
+
+	const handleFullExpanded = () => {
+		if (promptsContext.testingConsoleActiveClass === 'half-expanded' || promptsContext.testingConsoleActiveClass === '')  {
+			promptsContext.setTestingConsoleActiveClass('full-expanded');
+		} else {
+			promptsContext.setTestingConsoleActiveClass('');
+		}
+	} */
+
 	return (
-		<div className={`bottom testing-console ${promptsContext.testingConsoleActiveClass} w-full rounded-b-xl ${promptsContext.testingConsoleActiveClass ? 'overflow-y-auto' : 'overflow-hidden'}`}>
-			<div className="p-4 flex items-center justify-between bg-white sticky top-0 z-10">
+		<div className={`bottom testing-console ${promptsContext.testingConsoleActiveClass} w-full rounded-b-xl ${promptsContext.testingConsoleActiveClass ? 'overflow-y-auto' : 'overflow-hidden'}`} style={{ height: `${height}px`}}>
+			<div className="draggable w-full sticky top-0 left-0 z-20 h-[6px] bg-[#e5e7eb] cursor-ns-resize" onMouseDown={handleMouseDown} />
+			<div className="p-4 flex items-center justify-between bg-white sticky top-0 z-10" style={{transform: 'translateY(6px)'}}>
 				<div className="font-medium">Testing Console</div>
 				<div className="flex gap-4 items-center">
 					<button onClick={() => promptsContext.setShowFileUploadModal(true)}>
@@ -49,7 +80,7 @@ const PromptRightSidebarTestingConsole = () => {
 							</g>
 						</svg>
 					</button>
-					<button onClick={handleHalfExpanded}>
+					{/* <button onClick={handleHalfExpanded}>
 						<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
 							<path d="M2.7002 12.3998H17.1002M6.5402 2.7998H13.2602C14.6043 2.7998 15.2764 2.7998 15.7898 3.06139C16.2414 3.29149 16.6085 3.65864 16.8386 4.11023C17.1002 4.62362 17.1002 5.29568 17.1002 6.6398V13.3598C17.1002 14.7039 17.1002 15.376 16.8386 15.8894C16.6085 16.341 16.2414 16.7081 15.7898 16.9382C15.2764 17.1998 14.6043 17.1998 13.2602 17.1998H6.54019C5.19607 17.1998 4.52401 17.1998 4.01062 16.9382C3.55903 16.7081 3.19188 16.341 2.96178 15.8894C2.7002 15.376 2.7002 14.7039 2.7002 13.3598V6.6398C2.7002 5.29568 2.7002 4.62362 2.96178 4.11023C3.19188 3.65864 3.55903 3.29149 4.01062 3.06139C4.52401 2.7998 5.19607 2.7998 6.5402 2.7998Z" stroke="#4D4D50" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
 						</svg>
@@ -67,11 +98,10 @@ const PromptRightSidebarTestingConsole = () => {
 								</g>
 							</svg>
 						)}
-					</button>
+					</button> */}
 				</div>
 			</div>
 			<div className="tab-links-wrapper">
-
 				<div className="tab-link-panels overflow-y-auto">
 					<div className="tab-link-panel">
 						<div className="flex items-center justify-between p-4" style={{borderBottom: "1px solid #E2E8ED"}}>

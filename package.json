@@ -31,9 +31,9 @@
     "aws-sdk": "^2.1692.0",
     "fix": "^0.0.6",
     "next": "^14.2.10",
+    "react-flow-renderer": "^10.3.17",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
-    "react-flow-renderer": "^10.3.17",
     "sass": "^1.69.7"
   },
   "resolutions": {

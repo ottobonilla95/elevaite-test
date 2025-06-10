@@ -75,8 +75,8 @@
 			left: 0;
 			background-color: white;
 			border-top: 1px solid #E2E8ED;
-			height: 58px;
-			transition: height 0.3s;
+			//height: 58px;
+			//transition: height 0.3s;
 			@include scrollbar();
 
 			&.half-expanded {
