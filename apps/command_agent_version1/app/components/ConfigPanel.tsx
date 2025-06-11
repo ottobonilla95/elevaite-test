@@ -10,11 +10,9 @@ import {
     Zap,
     Database,
     Link2,
-    Check,
-    Loader2
+    Check
 } from "lucide-react";
 import { AgentType, AGENT_STYLES } from "./type";
-import { useTools } from "../ui/contexts/ToolsContext";
 import "./ConfigPanel.scss";
 import { on } from "events";
 
@@ -52,10 +50,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     const [outputFormat, setOutputFormat] = useState("JSON");
 
     // State for selected tools
-    const [selectedTools, setSelectedTools] = useState<string[]>([]);
-
-    // Get tools from context
-    const { tools: availableTools, isLoading: toolsLoading, error: toolsError } = useTools();
+    const [selectedTools, setSelectedTools] = useState<string[]>(["Document Parser"]);
 
     // State for agent name editing
     const [isEditingName, setIsEditingName] = useState(false);
@@ -142,7 +137,17 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
         setModel(availableModels[0]);
     }, [modelProvider, deploymentType]);
 
-    // Tools are now provided by context, no need to fetch them here
+    // Available tools options
+    const availableTools = [
+        "Document Parser",
+        "Regex Extractor",
+        "MCP Integration",
+        "Workflow Orchestrator",
+        "Real-time Analytics",
+        "Data Transformer",
+        "Semantic Search",
+        "Conversational Agent"
+    ];
 
     // Function to handle tool selection
     const handleToolSelect = (value: string) => {
@@ -154,21 +159,20 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
         }
     };
 
-    // Get tool icon based on name - dynamic mapping based on tool functionality
+    // Get tool icon based on name
     const getToolIcon = (toolName: string) => {
-        const name = toolName.toLowerCase();
+        const toolIcons: { [key: string]: React.ReactNode } = {
+            "Document Parser": <Database size={16} className="text-orange-500" />,
+            "Regex Extractor": <Zap size={16} className="text-orange-500" />,
+            "MCP Integration": <Link2 size={16} className="text-orange-500" />,
+            "Workflow Orchestrator": <Zap size={16} className="text-orange-500" />,
+            "Real-time Analytics": <Database size={16} className="text-orange-500" />,
+            "Data Transformer": <Link2 size={16} className="text-orange-500" />,
+            "Semantic Search": <Zap size={16} className="text-orange-500" />,
+            "Conversational Agent": <Database size={16} className="text-orange-500" />
+        };
 
-        // Map icons based on keywords in tool names
-        if (name.includes('database') || name.includes('data') || name.includes('storage')) {
-            return <Database size={16} className="text-orange-500" />;
-        } else if (name.includes('web') || name.includes('http') || name.includes('api') || name.includes('link')) {
-            return <Link2 size={16} className="text-orange-500" />;
-        } else if (name.includes('search') || name.includes('query') || name.includes('find')) {
-            return <Zap size={16} className="text-orange-500" />;
-        } else {
-            // Default icon for unknown tools
-            return <Zap size={16} className="text-orange-500" />;
-        }
+        return toolIcons[toolName] || <Zap size={16} className="text-orange-500" />;
     };
 
     // Handle name editing
@@ -415,27 +419,17 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
                         {/* Tool Selection Dropdown */}
                         <div className="tool-selector">
-                            {toolsLoading ? (
-                                <div className="tools-loading">
-                                    <Loader2 size={16} className="animate-spin" />
-                                    <span>Loading tools...</span>
-                                </div>
-                            ) : toolsError ? (
-                                <div className="tools-error">
-                                    <span className="error-text">{toolsError}</span>
-                                </div>
-                            ) : (
-                                <select
-                                    className="tool-select"
-                                    onChange={(e) => handleToolSelect(e.target.value)}
-                                    value=""
-                                >
-                                    <option value="" disabled>Select tools to add...</option>
-                                    {availableTools.map(tool => (
-                                        <option key={tool.name} value={tool.name}>{tool.name}</option>
-                                    ))}
-                                </select>
-                            )}
+                            <select
+                                className="tool-select"
+                                onChange={(e) => handleToolSelect(e.target.value)}
+                                value=""
+                                disabled={disabledFields}
+                            >
+                                <option value="" disabled>Select tools to add...</option>
+                                {availableTools.map(tool => (
+                                    <option key={tool} value={tool}>{tool}</option>
+                                ))}
+                            </select>
                         </div>
 
                         {/* Selected Tools */}

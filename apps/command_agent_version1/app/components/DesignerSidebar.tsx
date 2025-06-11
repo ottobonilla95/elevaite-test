@@ -1,7 +1,7 @@
 // DesignerSidebar.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
     ChevronDown,
     ChevronRight,
@@ -18,9 +18,6 @@ import {
 } from "lucide-react";
 import { AgentType, AGENT_TYPES } from "./type";
 import "./DesignerSidebar.scss";
-import { AgentResponse, ToolsResponse, SavedWorkflow } from "../lib/interfaces";
-import { fetchAllAgents, fetchAllTools } from "../lib/actions";
-import WorkflowsTab from "./WorkflowsTab";
 
 // SidebarSection component for collapsible sections
 const SidebarSection: React.FC<{
@@ -30,18 +27,31 @@ const SidebarSection: React.FC<{
     children?: React.ReactNode;
 }> = ({ title, isOpen, onToggle, children }) => {
     return (
-        <div className="sidebar-section mb-4">
+        <div className="sidebar-section mx-2">
             <div
-                className="section-header flex items-center justify-between py-2 px-1 cursor-pointer"
+                className="section-header flex items-center justify-between py-4 cursor-pointer"
                 onClick={onToggle}
             >
-                <h2 className="text-sm font-medium text-gray-800">{title}</h2>
-                <div className="text-orange-500">
-                    {isOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                <h2 className="font-medium text-black">{title}</h2>
+                <div className="text-black">
+                    {
+                        isOpen ?
+                            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 1L5 5L9 1" stroke="#212124" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            :
+                            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 5L5 1L9 5" stroke="#212124" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                    }
                 </div>
             </div>
 
-            {isOpen && <div className="section-content mt-2">{children}</div>}
+            {isOpen && (
+                <div className="section-content mt-3">
+                    {children}
+                </div>
+            )}
         </div>
     );
 };
@@ -63,10 +73,14 @@ const SidebarItem: React.FC<{
             onDragStart={onDragStart}
         >
             <div className="sidebar-item-content flex items-center">
-                <div className="item-icon mr-3">{icon}</div>
+                <div className="item-icon mr-3">
+                    {icon}
+                </div>
                 <div className="item-details">
                     <h3 className="text-sm font-medium">{label}</h3>
-                    {subLabel && <p className="text-xs text-gray-500">{subLabel}</p>}
+                    {subLabel && (
+                        <p className="text-xs text-gray-500">{subLabel}</p>
+                    )}
                 </div>
             </div>
         </div>
@@ -82,9 +96,6 @@ interface DesignerSidebarProps {
     isLoading: boolean;
     activeTab: string;
     setActiveTab: (tab: string) => void;
-    // New props for WorkflowsTab
-    onCreateNewWorkflow?: () => void;
-    onLoadWorkflow?: (workflow: SavedWorkflow) => void;
 }
 
 const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
@@ -95,60 +106,35 @@ const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
     handleSaveWorkflow, // Added save workflow function
     isLoading,
     activeTab,
-    setActiveTab,
-    onCreateNewWorkflow,
-    onLoadWorkflow,
+    setActiveTab
 }) => {
     // State for section visibility
     const [sectionsState, setSectionsState] = useState({
         components: true,
         actions: false,
-        tools: false,
+        tools: false
     });
-
-    const [agents, setAgents] = useState<AgentResponse[]>([]);
-    const [tools, setTools] = useState<ToolsResponse | null>(null);
-
-    useEffect(() => {
-        const fetchAgents = async () => {
-            try {
-                const agents = await fetchAllAgents();
-                setAgents(agents);
-                console.log("Got agents");
-                console.log(agents);
-            } catch (error) {
-                console.error("Error fetching agents:", error);
-            }
-        };
-
-        const fetchTools = async () => {
-            try {
-                const toolsData = await fetchAllTools();
-                setTools(toolsData);
-                console.log("Got tools");
-                console.log(toolsData);
-            } catch (error) {
-                console.error("Error fetching tools:", error);
-            }
-        };
-
-        fetchAgents();
-        fetchTools();
-    }, []);
 
     // Toggle section visibility
     const toggleSection = (section: keyof typeof sectionsState) => {
         setSectionsState({
             ...sectionsState,
-            [section]: !sectionsState[section],
+            [section]: !sectionsState[section]
         });
     };
+
+    const [sidebarOpen, setSidebarOpen] = useState(true);
 
     // Get agent icon based on type
     const getAgentIcon = (type: AgentType) => {
         switch (type) {
             case "router":
-                return <Router size={20} className="text-purple-600" />;
+                return <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1.25879 15.3295V6.67058C1.25879 3.68174 3.68174 1.25879 6.67058 1.25879H15.3295C18.3183 1.25879 20.7412 3.68174 20.7412 6.67058V15.3295C20.7412 18.3183 18.3183 20.7412 15.3295 20.7412H6.67058C3.68174 20.7412 1.25879 18.3183 1.25879 15.3295Z" stroke="#FE854B" stroke-width="1.62354" />
+                    <path d="M15.8706 13.7061C15.8706 13.7061 14.2471 15.8708 11 15.8708C7.75293 15.8708 6.12939 13.7061 6.12939 13.7061" stroke="#FE854B" stroke-width="1.62354" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M7.21159 8.83529C6.91271 8.83529 6.67041 8.59299 6.67041 8.29411C6.67041 7.99523 6.91271 7.75293 7.21159 7.75293C7.51047 7.75293 7.75277 7.99523 7.75277 8.29411C7.75277 8.59299 7.51047 8.83529 7.21159 8.83529Z" fill="#FE854B" stroke="#FE854B" stroke-width="1.62354" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M14.7882 8.83529C14.4894 8.83529 14.2471 8.59299 14.2471 8.29411C14.2471 7.99523 14.4894 7.75293 14.7882 7.75293C15.0871 7.75293 15.3294 7.99523 15.3294 8.29411C15.3294 8.59299 15.0871 8.83529 14.7882 8.83529Z" fill="#FE854B" stroke="#FE854B" stroke-width="1.62354" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>;
             case "web_search":
                 return <Globe size={20} className="text-blue-600" />;
             case "api":
@@ -159,23 +145,6 @@ const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
                 return <Wrench size={20} className="text-red-600" />;
             default:
                 return <Router size={20} className="text-gray-600" />;
-        }
-    };
-
-    // Get tool icon based on tool name
-    const getToolIcon = (toolName: string) => {
-        if (toolName.includes("web") || toolName.includes("search")) {
-            return <Globe size={20} className="text-blue-500" />;
-        } else if (toolName.includes("customer") || toolName.includes("data")) {
-            return <Database size={20} className="text-green-500" />;
-        } else if (toolName.includes("weather")) {
-            return <Zap size={20} className="text-yellow-500" />;
-        } else if (toolName.includes("print") || toolName.includes("console")) {
-            return <MessageSquare size={20} className="text-purple-500" />;
-        } else if (toolName.includes("add") || toolName.includes("numbers")) {
-            return <Wrench size={20} className="text-orange-500" />;
-        } else {
-            return <Zap size={20} className="text-gray-500" />;
         }
     };
 
@@ -254,14 +223,14 @@ const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
                         isOpen={sectionsState.components}
                         onToggle={() => toggleSection('components')}
                     >
-                        {agents.filter(agent =>
-                            agent.agent_type && ['router', 'web_search', 'api', 'data', 'toshiba'].includes(agent.agent_type)
+                        {AGENT_TYPES.filter(agent =>
+                            ['router', 'web_search', 'api', 'data'].includes(agent.type)
                         ).map((agent) => (
                             <SidebarItem
                                 key={agent.id}
                                 icon={
-                                    <div className={`w-8 h-8 rounded-md ${getAgentIconClass(agent.agent_type as AgentType)} flex items-center justify-center`}>
-                                        {getAgentIcon(agent.agent_type as AgentType)}
+                                    <div className={`w-8 h-8 rounded-md ${getAgentIconClass(agent.type as AgentType)} flex items-center justify-center`}>
+                                        {getAgentIcon(agent.type as AgentType)}
                                     </div>
                                 }
                                 label={agent.name}
@@ -303,65 +272,40 @@ const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
                         <SidebarItem
                             icon={
                                 <div className="w-8 h-8 rounded-md bg-green-100 flex items-center justify-center">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        className="text-green-600"
-                                    >
-                                        <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <g opacity="0.8">
+                                            <path d="M21 12L9 12M21 6L9 6M21 18L9 18M5 12C5 12.5523 4.55228 13 4 13C3.44772 13 3 12.5523 3 12C3 11.4477 3.44772 11 4 11C4.55228 11 5 11.4477 5 12ZM5 6C5 6.55228 4.55228 7 4 7C3.44772 7 3 6.55228 3 6C3 5.44772 3.44772 5 4 5C4.55228 5 5 5.44772 5 6ZM5 18C5 18.5523 4.55228 19 4 19C3.44772 19 3 18.5523 3 18C3 17.4477 3.44772 17 4 17C4.55228 17 5 17.4477 5 18Z" stroke="#FF681F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                        </g>
                                     </svg>
                                 </div>
                             }
                             label="Conditional"
                             subLabel="Add conditional logic"
                             draggable={true}
-                            onDragStart={(e) =>
-                                handleDragStart(e, {
-                                    id: "conditional-" + Date.now(),
-                                    type: "conditional",
-                                    name: "Conditional",
-                                })
-                            }
+                            onDragStart={(e) => handleDragStart(e, {
+                                id: 'conditional-' + Date.now(),
+                                type: 'conditional',
+                                name: 'Conditional'
+                            })}
                         />
 
                         {/* Delay Action */}
                         <SidebarItem
                             icon={
                                 <div className="w-8 h-8 rounded-md bg-amber-100 flex items-center justify-center">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        className="text-amber-600"
-                                    >
-                                        <circle cx="12" cy="12" r="10" />
-                                        <polyline points="12 6 12 12 16 14" />
+                                    <svg width="20" height="22" viewBox="0 0 20 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M10 8.5V12.5L12.5 14M10 4C5.30558 4 1.5 7.80558 1.5 12.5C1.5 17.1944 5.30558 21 10 21C14.6944 21 18.5 17.1944 18.5 12.5C18.5 7.80558 14.6944 4 10 4ZM10 4V1M8 1H12M18.329 4.59204L16.829 3.09204L17.579 3.84204M1.67102 4.59204L3.17102 3.09204L2.42102 3.84204" stroke="#FF681F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
                                     </svg>
                                 </div>
                             }
                             label="Delay"
                             subLabel="Add time delays"
                             draggable={true}
-                            onDragStart={(e) =>
-                                handleDragStart(e, {
-                                    id: "delay-" + Date.now(),
-                                    type: "delay",
-                                    name: "Delay",
-                                })
-                            }
+                            onDragStart={(e) => handleDragStart(e, {
+                                id: 'delay-' + Date.now(),
+                                type: 'delay',
+                                name: 'Delay'
+                            })}
                         />
 
                         {/* Troubleshooting Agent */}
@@ -383,67 +327,52 @@ const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
 
                     {/* Tools Section */}
                     <SidebarSection
-                        title={`Tools ${tools ? `(${tools.total_count})` : ''}`}
+                        title="Tools"
                         isOpen={sectionsState.tools}
                         onToggle={() => toggleSection('tools')}
                     >
-                        {tools ? (
-                            tools.tools.map((tool) => (
-                                <SidebarItem
-                                    key={tool.name}
-                                    icon={
-                                        <div className="w-8 h-8 rounded-md bg-orange-100 flex items-center justify-center">
-                                            {getToolIcon(tool.name)}
-                                        </div>
-                                    }
-                                    label={tool.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                    subLabel={tool.description.length > 50 ?
-                                        tool.description.substring(0, 50) + '...' :
-                                        tool.description
-                                    }
-                                    draggable={true}
-                                    onDragStart={(e) => handleDragStart(e, {
-                                        id: 'tool-' + tool.name + '-' + Date.now(),
-                                        type: 'tool',
-                                        name: tool.name,
-                                        tool_info: tool
-                                    })}
-                                />
-                            ))
-                        ) : (
-                            <div className="p-2 text-sm text-gray-500">Loading tools...</div>
-                        )}
+                        <SidebarItem
+                            icon={
+                                <div className="w-8 h-8 rounded-md bg-orange-100 flex items-center justify-center">
+                                    <Zap size={20} className="text-orange-500" />
+                                </div>
+                            }
+                            label="API Connectors"
+                            subLabel="Connect to external APIs"
+                            draggable={true}
+                            onDragStart={(e) => handleDragStart(e, {
+                                id: 'api-connector-' + Date.now(),
+                                type: 'api_connector',
+                                name: 'API Connector'
+                            })}
+                        />
                     </SidebarSection>
                 </div>
             )}
 
-            {/* Workflows Content */}
-            {activeTab === "workflows" && onCreateNewWorkflow && onLoadWorkflow && (
-                <WorkflowsTab
-                    onCreateNewWorkflow={onCreateNewWorkflow}
-                    onLoadWorkflow={onLoadWorkflow}
-                />
+            {/* Workflows Content (Initially Hidden) */}
+            {activeTab === "workflows" && (
+                <div className="p-4">
+                    <p className="text-center text-gray-500 py-8">No saved workflows yet.</p>
+                </div>
             )}
 
             {/* Footer Buttons */}
-            <div className="designer-sidebar-controls-container p-4 mt-auto border-t border-gray-200 space-y-2">
+            <div className="designer-sidebar-controls-container pt-3 mt-auto space-y-2">
                 {/* Save Workflow Button */}
                 <button
-                    onClick={handleSaveWorkflow}
-                    className="w-full px-4 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 transition-colors flex items-center justify-center"
-                    disabled={isLoading}
+                    onClick={() => (alert("Templates"))}
+                    className="w-full bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 transition-colors flex items-center justify-center"
                 >
-                    <Save size={16} className="mr-2" />
-                    {isLoading ? "Saving..." : "Save Workflow"}
+                    Templates
                 </button>
 
                 {/* Deploy Workflow Button */}
                 <button
-                    onClick={handleDeployWorkflow}
-                    className="w-full px-4 py-2 bg-orange-500 text-white rounded-md text-sm font-medium hover:bg-orange-600 transition-colors"
-                    disabled={isLoading}
+                    onClick={() => (alert("Help"))}
+                    className="w-full bg-orange-500 text-white rounded-md text-sm font-medium hover:bg-orange-600 transition-colors"
                 >
-                    {isLoading ? "Deploying..." : "Deploy Workflow"}
+                    Help & Support
                 </button>
             </div>
         </div>
