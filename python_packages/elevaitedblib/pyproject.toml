@@ -1,8 +1,12 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "elevaitelib"
 version = "0.2.12"
 description = ""
-authors = [{ name = "John Zachariadis", email = "<johnbelly95@gmail.com>" }]
+authors = [{ name = "John Zachariadis", email = "johnbelly95@gmail.com" }]
 readme = "README.md"
 requires-python = "~=3.11"
 
@@ -19,7 +23,11 @@ dependencies = [
   "boto3>=1.37.1",
   "requests>=2.31.0",
   "requests-aws4auth>=1.2.3",
+  "sagemaker>=2.0.0",
 ]
 
 [tool.uv.sources]
-"elevaite-client" = { workspace = true }
+elevaite_client = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["elevaitelib"]

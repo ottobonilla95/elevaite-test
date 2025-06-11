@@ -1,8 +1,12 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "elevaite_client"
 version = "0.1.2"
 description = ""
-authors = [{ name = "John Zachariadis", email = "<johnbelly95@gmail.com>" }]
+authors = [{ name = "John Zachariadis", email = "johnbelly95@gmail.com" }]
 readme = "README.md"
 requires-python = "~=3.11"
 
@@ -13,3 +17,6 @@ dependencies = [
   "lakefs>=0.6.2",
   "qdrant-client>=1.9.1",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["elevaite_client"]
