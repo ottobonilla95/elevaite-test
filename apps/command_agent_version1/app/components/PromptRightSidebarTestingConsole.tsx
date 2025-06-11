@@ -70,7 +70,7 @@ const PromptRightSidebarTestingConsole = () => {
 	return (
 		<div className={`bottom testing-console ${promptsContext.testingConsoleActiveClass} w-full rounded-b-xl ${promptsContext.testingConsoleActiveClass ? 'overflow-y-auto' : 'overflow-hidden'}`} style={{ height: `${height}px`}}>
 			<div className="draggable w-full sticky top-0 left-0 z-20 h-[6px] bg-[#e5e7eb] cursor-ns-resize" onMouseDown={handleMouseDown} />
-			<div className="p-4 flex items-center justify-between bg-white sticky top-0 z-10" style={{transform: 'translateY(6px)'}}>
+			<div className="p-4 flex items-center justify-between bg-white sticky top-0 z-10">
 				<div className="font-medium">Testing Console</div>
 				<div className="flex gap-4 items-center">
 					<button onClick={() => promptsContext.setShowFileUploadModal(true)}>
