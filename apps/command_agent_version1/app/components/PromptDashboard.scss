@@ -51,7 +51,7 @@
 
 		.top-wrapper {
 			height: calc(100% - 58px);
-			@include scrollbar();
+			@include scrollbar(#71717366, #71717326);
 		}
 
 		.middle {
@@ -62,7 +62,7 @@
 		.tab-panels {
 			background: #F8FAFC;
 			border-top: 1px solid #E2E8ED;
-			@include scrollbar();
+			@include scrollbar(#71717366, #71717326);
 		}
 
 		.details {
@@ -77,7 +77,8 @@
 			border-top: 1px solid #E2E8ED;
 			//height: 58px;
 			//transition: height 0.3s;
-			@include scrollbar();
+			@include scrollbar(#71717366, #71717326);
+
 
 			&.half-expanded {
 				height: 50%;

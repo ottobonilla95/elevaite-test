@@ -58,7 +58,8 @@ function PromptRightSidebar() {
 	return (
 		<div className="prompt-col prompt-right flex-1 flex flex-col rounded-2xl bg-white overflow-y-auto">
 			<div className="btn-wrapper bg-white px-4 py-3 gap-3 flex items-center justify-between">
-				<button type="button" onClick={() => promptContext.setIsRightColExpanded(!promptContext.isRightColExpanded)}>
+				<div><span className="font-medium">Invoice Extractor</span> <span className="text-[#E2E8ED]">|</span> <span className="text-sm">Extracts informetion from documents such as invoice, CSOWs, etc.</span></div>
+				{/* <button type="button" onClick={() => promptContext.setIsRightColExpanded(!promptContext.isRightColExpanded)}>
 					{
 					promptContext.isRightColExpanded
 					?
@@ -72,7 +73,7 @@ function PromptRightSidebar() {
 						</g>
 					</svg>
 					}
-				</button>
+				</button> */}
 				<div className="flex items-center gap-3">
 					<button
 						className="btn btn-outline btn-small flex items-center justify-center gap-1 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 px-0"
@@ -95,7 +96,7 @@ function PromptRightSidebar() {
 						)}
 					</button>
 					<button
-						className="btn btn-outline btn-small flex items-center justify-center gap-1 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 px-0"
+						className="btn btn-primary btn-small flex items-center justify-center gap-1 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 px-0"
 						onClick={handleRun}
 						disabled={promptContext.loading[LoadingKeys.Running]}
 					>

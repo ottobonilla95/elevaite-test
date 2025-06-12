@@ -302,8 +302,9 @@ export interface NewWorkflowExecutionRequest {
 
 
 export enum PromptInputTypes {
-    UserInstructions = "userInstructions",
-    TableHeader = "tableHeader",
+	DocumentHeader = "documentHeader",
+    LineItemHeader = "lineItemHeader",
+    UserFeedback = "userFeedback",
     LineItems = "lineItems",
     ExpectedOutput = "expectedOutput",
 }

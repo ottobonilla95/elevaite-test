@@ -20,7 +20,7 @@ export enum LoadingKeys {
 // STATICS
 
 const defaultPageValue: number | null = null;
-const defaultPromptInputs: PromptInputItem[] = Object.values(PromptInputTypes).map((type) => ({
+const defaultPromptInputs: PromptInputItem[] = Object.values(PromptInputTypes).slice(0, 3).map((type) => ({
   id: crypto.randomUUID().toString(),
   type: type as PromptInputTypes,
   prompt: "",
@@ -97,7 +97,7 @@ export const PromptContext = createContext<PromptContextStructure>({
   addPromptInput: () => undefined,
   updatePromptInput: () => undefined,
   removePromptInput: () => undefined,
-  isRightColExpanded: false,
+  isRightColExpanded: true,
   isRightColPromptInputsColExpanded: false,
   setIsRightColPromptInputsColExpanded: () => undefined,
   isRightColOutputColExpanded: false,
@@ -130,7 +130,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   const [testingConsoleActiveClass, setTestingConsoleActiveClass] = useState<String>('');
   const [promptInputs, setPromptInputs] = useState<PromptInputItem[]>(defaultPromptInputs);
   const [output, setOutput] = useState<regenerateResponseObject|null>(null);
-  const [isRightColExpanded, setIsRightColExpanded] = useState<boolean>(false);
+  const [isRightColExpanded, setIsRightColExpanded] = useState<boolean>(true);
   const [isRightColPromptInputsColExpanded, setIsRightColPromptInputsColExpanded] = useState<boolean>(false);
   const [isRightColOutputColExpanded, setIsRightColOutputColExpanded] = useState<boolean>(false);
   const [outputVersions, setOutputVersions] = useState<regenerateResponseObject[]>([]);
@@ -140,11 +140,10 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     setSessionId(`sid-${crypto.randomUUID().toString()}`);
   }, []);
 
-
   function addPromptInput(): void {
     const newPromptInput = {
       id: crypto.randomUUID().toString(),
-      type: PromptInputTypes.UserInstructions,
+      type: PromptInputTypes.DocumentHeader,
       prompt: "",
     }
     setPromptInputs(current => {
@@ -164,27 +163,32 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
 
 
   function getPromptInputsOptions(): {
+	documentHeader?: string,
+    lineItemHeader?: string;
     userFeedback?: string;
-    tableHeader?: string;
     lineItems?: string;
     expectedOutput?: string;
   }|undefined {
     if (!promptInputs || promptInputs.length === 0) return;
 
     const options: {
+	  documentHeader?: string,
+      lineItemHeader?: string;
       userFeedback?: string;
-      tableHeader?: string;
       lineItems?: string;
       expectedOutput?: string;
     } = {};
 
     for (var input of promptInputs) {
       switch (input.type) {
-        case PromptInputTypes.UserInstructions:
-          options.userFeedback = options.userFeedback ? options.userFeedback + "\n" + input.prompt : input.prompt;
+        case PromptInputTypes.DocumentHeader:
+          options.documentHeader = options.documentHeader ? options.documentHeader + "\n" + input.prompt : input.prompt;
           break;
-        case PromptInputTypes.TableHeader:
-          options.tableHeader = options.tableHeader ? options.tableHeader + "\n" + input.prompt : input.prompt;
+        case PromptInputTypes.LineItemHeader:
+          options.lineItemHeader = options.lineItemHeader ? options.lineItemHeader + "\n" + input.prompt : input.prompt;
+          break;
+		case PromptInputTypes.UserFeedback:
+          options.userFeedback = options.userFeedback ? options.userFeedback + "\n" + input.prompt : input.prompt;
           break;
         case PromptInputTypes.LineItems:
           options.lineItems = options.lineItems ? options.lineItems + "\n" + input.prompt : input.prompt;

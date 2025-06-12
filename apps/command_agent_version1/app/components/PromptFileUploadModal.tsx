@@ -33,7 +33,7 @@ function PromptFileUploadModal() {
 			promptsContext.setPromptInputs(
 				promptsContext.defaultPromptInputs.map(input => {
 					console.log(input)
-					if (input.type == 'tableHeader') {
+					if (input.type == 'lineItemHeader') {
 						return {
 							...input,
 							prompt: data.table_header,

@@ -1,15 +1,17 @@
-import { CommonSelect, SimpleInput, SimpleTextarea } from "@repo/ui/components";
+import { CommonSelect, SimpleTextarea } from "@repo/ui/components";
 import { PromptInputItem, PromptInputTypes } from "../lib/interfaces";
 import "./PromptInput.scss";
 import { useState } from "react";
 import { usePrompt } from "../ui/contexts/PromptContext";
+import PromptMultiTagInputs from "./PromptMultiTagInputs";
 
 
 const promptInputTypeLabels: Record<PromptInputTypes, string> = {
-    [PromptInputTypes.UserInstructions]: "User Instructions",
-    [PromptInputTypes.TableHeader]: "Line Item Header",
+    [PromptInputTypes.DocumentHeader]: "Document Header",
+    [PromptInputTypes.LineItemHeader]: "Line Item Header",
+    [PromptInputTypes.UserFeedback]: "User Feedback",
     [PromptInputTypes.LineItems]: "Line Items",
-    [PromptInputTypes.ExpectedOutput]: "Expected Output",
+	[PromptInputTypes.ExpectedOutput]: "Expected Output",
 };
 
 
@@ -60,14 +62,16 @@ export function PromptInput(props: PromptInputProps): JSX.Element {
                     </button>
                 </div>
             </div>
-			<SimpleTextarea wrapperClassName="prompt-input" value={props.prompt} onChange={handleTextChange} placeholder="Enter prompt text..." useCommonStyling></SimpleTextarea>
-            {/* <SimpleInput
-                wrapperClassName="prompt-input"
-                value={text}
-                onChange={handleTextChange}
-                placeholder="Enter prompt text..."
-                useCommonStyling
-            /> */}
+
+			{(type === PromptInputTypes.DocumentHeader || type === PromptInputTypes.LineItemHeader) ? (
+				<PromptMultiTagInputs
+				placeholder="Add content..."
+				value={["example1", "example2", "example3"]}
+				onChange={values => console.log(values)}
+				/>
+			): (
+				<SimpleTextarea wrapperClassName="prompt-input" value={props.prompt} onChange={handleTextChange} placeholder="Enter prompt text..." useCommonStyling></SimpleTextarea>
+			)}
         </div>
     );
 }

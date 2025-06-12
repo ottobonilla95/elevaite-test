@@ -11,6 +11,12 @@
 	--ev-colors-background: white;
 	--ev-colors-primary: white;
 
+	.simple-textarea-container.common-style textarea::placeholder,
+	.prompt-multi-tag-inputs input::placeholder {
+		color: #212124;
+		opacity: 1;
+	}
+
 	.simple-textarea-container.common-style {
 		padding: 5px;
 
@@ -18,12 +24,17 @@
 			font-size: 14px;
 			color: #212124;
 			border: 1px solid #E2E8ED;
-			height: 120px;
+			height: 80px;
+		}
+	}
 
-			&::placeholder {
-				color: #212124;
-				opacity: 1;
-			}
+	.prompt-multi-tag-inputs {
+		padding: 5px;
+
+		.inner {
+			height: 80px;
+			border: 1px solid #E2E8ED;
+			@include scrollbar(#71717366, #71717326);
 		}
 	}
 

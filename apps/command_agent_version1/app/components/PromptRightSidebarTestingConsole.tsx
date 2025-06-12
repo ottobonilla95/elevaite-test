@@ -71,7 +71,7 @@ const PromptRightSidebarTestingConsole = () => {
 		<div className={`bottom testing-console ${promptsContext.testingConsoleActiveClass} w-full rounded-b-xl ${promptsContext.testingConsoleActiveClass ? 'overflow-y-auto' : 'overflow-hidden'}`} style={{ height: `${height}px`}}>
 			<div className="draggable w-full sticky top-0 left-0 z-20 h-[6px] bg-[#e5e7eb] cursor-ns-resize" onMouseDown={handleMouseDown} />
 			<div className="p-4 flex items-center justify-between bg-white sticky top-0 z-10">
-				<div className="font-medium">Testing Console</div>
+				<div className="font-medium select-none">Testing Console</div>
 				<div className="flex gap-4 items-center">
 					<button onClick={() => promptsContext.setShowFileUploadModal(true)}>
 						<svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
