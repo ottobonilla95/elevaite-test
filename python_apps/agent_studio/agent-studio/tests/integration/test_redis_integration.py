@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 from redis_utils import RedisManager
-from redis_config import get_redis_config
 
 
 @pytest.fixture(scope="module")
@@ -26,7 +25,6 @@ def redis_manager():
 class TestRedisIntegration:
     def test_redis_connection(self, redis_manager):
         assert redis_manager.is_connected is True
-
         redis_client = redis_manager.redis
         assert redis_client.ping() is True
 
@@ -35,7 +33,6 @@ class TestRedisIntegration:
 
         try:
             assert redis_manager.create_stream(stream_name) is True
-
             assert redis_manager.redis.exists(stream_name) == 1
 
             group_name = "test_group"
@@ -51,6 +48,7 @@ class TestRedisIntegration:
             assert "length" in stream_info
 
         finally:
+            redis_manager.stop_all_consumers()
             redis_manager.redis.delete(stream_name)
 
     def test_message_publishing_and_reading(self, redis_manager):
@@ -65,10 +63,9 @@ class TestRedisIntegration:
                 "boolean": True,
             }
             message_id = redis_manager.publish_message(stream_name, message)
-
             assert message_id is not None
 
-            messages = redis_manager.redis.xread({stream_name: "0"})
+            messages = redis_manager.redis.xread({stream_name: "0"}, block=1000)
             assert len(messages) == 1
             assert len(messages[0][1]) >= 1
 
@@ -100,9 +97,8 @@ class TestRedisIntegration:
             return {"status": "processed", "original_id": message.get("id")}
 
         try:
-            assert (
-                redis_manager.consume_messages(stream_name, message_handler, group_name)
-                is True
+            assert redis_manager.consume_messages(
+                stream_name, message_handler, group_name, consumer_name="test_consumer"
             )
 
             time.sleep(0.1)
@@ -124,7 +120,7 @@ class TestRedisIntegration:
             assert received["data"]["content"] == "Consumer test message"
 
         finally:
-            redis_manager.stop_consumer(stream_name, group_name)
+            redis_manager.stop_consumer(stream_name, group_name, "test_consumer")
             redis_manager.redis.delete(stream_name)
 
     def test_request_reply_pattern(self, redis_manager):
@@ -141,11 +137,11 @@ class TestRedisIntegration:
             return None
 
         try:
-            assert (
-                redis_manager.consume_messages(
-                    request_stream, request_handler, "request_group"
-                )
-                is True
+            assert redis_manager.consume_messages(
+                request_stream,
+                request_handler,
+                "request_group",
+                consumer_name="responder",
             )
 
             time.sleep(0.1)
@@ -166,7 +162,7 @@ class TestRedisIntegration:
             assert "timestamp" in reply
 
         finally:
-            redis_manager.stop_consumer(request_stream, "request_group")
+            redis_manager.stop_consumer(request_stream, "request_group", "responder")
             redis_manager.redis.delete(request_stream)
 
     def test_multiple_consumers(self, redis_manager):
@@ -185,18 +181,12 @@ class TestRedisIntegration:
             return None
 
         try:
-            assert (
-                redis_manager.consume_messages(
-                    stream_name, consumer1_handler, group_name, "consumer1"
-                )
-                is True
+            assert redis_manager.consume_messages(
+                stream_name, consumer1_handler, group_name, consumer_name="consumer1"
             )
 
-            assert (
-                redis_manager.consume_messages(
-                    stream_name, consumer2_handler, group_name, "consumer2"
-                )
-                is True
+            assert redis_manager.consume_messages(
+                stream_name, consumer2_handler, group_name, consumer_name="consumer2"
             )
 
             time.sleep(0.1)
@@ -217,18 +207,19 @@ class TestRedisIntegration:
             assert len(consumer1_messages) > 0 or len(consumer2_messages) > 0
 
         finally:
-            redis_manager.stop_consumer(stream_name, group_name)
+            redis_manager.stop_consumer(stream_name, group_name, "consumer1")
+            redis_manager.stop_consumer(stream_name, group_name, "consumer2")
             redis_manager.redis.delete(stream_name)
 
     def test_error_handling_and_recovery(self, redis_manager):
         stream_name = f"test_stream_{uuid.uuid4().hex}"
+        group_name = "error_test_group"
 
         error_count = 0
         processed_count = 0
 
         def error_prone_handler(message: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             nonlocal error_count, processed_count
-
             data = message.get("data", {})
             if data.get("should_error", False):
                 error_count += 1
@@ -238,11 +229,11 @@ class TestRedisIntegration:
                 return {"status": "success"}
 
         try:
-            assert (
-                redis_manager.consume_messages(
-                    stream_name, error_prone_handler, "error_test_group"
-                )
-                is True
+            assert redis_manager.consume_messages(
+                stream_name,
+                error_prone_handler,
+                group_name,
+                consumer_name="error_consumer",
             )
 
             time.sleep(0.1)
@@ -260,6 +251,7 @@ class TestRedisIntegration:
             time.sleep(2)
 
             assert processed_count == 3
+
         finally:
-            redis_manager.stop_consumer(stream_name, "error_test_group")
+            redis_manager.stop_consumer(stream_name, group_name, "error_consumer")
             redis_manager.redis.delete(stream_name)

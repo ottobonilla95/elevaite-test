@@ -115,7 +115,7 @@ class TestDemoEndpoints:
         assert data["total_agents"] == len(DEFAULT_AGENTS)
         assert len(data["available_deployment_codes"]) == len(AGENT_CODES)
 
-        for code, agent_name in AGENT_CODES.items():
+        for agent_name, code in AGENT_CODES.items():
             assert code in data["available_deployment_codes"]
             assert data["available_deployment_codes"][code] == agent_name
 
