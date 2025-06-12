@@ -37,6 +37,7 @@ def create_workflow(workflow: schemas.WorkflowCreate, db: Session = Depends(get_
 
         # Process agents from configuration
         agents_config = workflow.configuration.get("agents", [])
+        print(workflow)
         for agent_config in agents_config:
             agent_type = agent_config.get("agent_type", "")
 

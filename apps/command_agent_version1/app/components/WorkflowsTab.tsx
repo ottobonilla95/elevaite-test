@@ -176,51 +176,60 @@ const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
                     savedWorkflows.map((workflow) => (
                         <div
                             key={workflow.workflow_id}
-                            className="border border-gray-200 rounded-lg p-4 hover:border-orange-300 transition-colors flex flex-wrap w-full"
+                            className="workflow-item border border-gray-200 rounded-lg p-4 hover:border-orange-300 transition-colors"
                         >
-                            <div className="flex justify-between items-start flex-wrap w-full">
-                                <div className="flex flex-col w-full">
-                                    <div className="flex items-center gap-2 mb-2 w-full">
-                                        <h4 className="font-medium text-gray-800 text-balance w-full">{workflow.name}</h4>
-                                        {workflow.is_deployed && (
-                                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                                                Deployed
-                                            </span>
-                                        )}
-                                        {workflow.is_active && (
-                                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-                                                Active
-                                            </span>
-                                        )}
-                                    </div>
-                                    <p className="text-sm text-gray-600 mb-2">{workflow.description || "No description"}</p>
+                            {/* Title Section */}
+                            <div className="workflow-title-section mb-3">
+                                <h4 className="font-medium text-gray-800 text-base leading-tight">{workflow.name}</h4>
+                                <p className="text-sm text-gray-600 mt-1">{workflow.description || "No description"}</p>
+                            </div>
 
-                                    <div className="flex flex-wrap items-center gap-2 mb-2 text-xs text-gray-500">
-                                        <div className="flex items-center gap-1">
-                                            <User size={12} />
-                                            {workflow.created_by || "Unknown"}
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <Calendar size={12} />
-                                            {formatDate(workflow.created_at)}
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <Settings size={12} />
-                                            {workflow.agent_count || 0} agents, {workflow.connection_count || 0} connections
-                                        </div>
-                                        {workflow.deployed_at && (
-                                            <div className="flex items-center gap-1">
-                                                <Play size={12} />
-                                                Deployed: {formatDate(workflow.deployed_at)}
-                                            </div>
-                                        )}
-                                    </div>
+                            {/* Status Pills Section */}
+                            <div className="workflow-status-section mb-3">
+                                <div className="flex gap-2 flex-wrap">
+                                    {workflow.is_deployed && (
+                                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full whitespace-nowrap">
+                                            Deployed
+                                        </span>
+                                    )}
+                                    {workflow.is_active && (
+                                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full whitespace-nowrap">
+                                            Active
+                                        </span>
+                                    )}
                                 </div>
+                            </div>
 
-                                <div className="flex gap-2 ml-4">
+                            {/* Meta Information */}
+                            <div className="workflow-meta-section mb-4">
+                                <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                                    <div className="flex items-center gap-1">
+                                        <User size={12} />
+                                        {workflow.created_by || "Unknown"}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Calendar size={12} />
+                                        {formatDate(workflow.created_at)}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Settings size={12} />
+                                        {workflow.agent_count || 0} agents, {workflow.connection_count || 0} connections
+                                    </div>
+                                    {workflow.deployed_at && (
+                                        <div className="flex items-center gap-1">
+                                            <Play size={12} />
+                                            Deployed: {formatDate(workflow.deployed_at)}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Action Buttons Section */}
+                            <div className="workflow-actions-section">
+                                <div className="flex gap-2">
                                     <button
                                         onClick={() => handleLoadWorkflow(workflow)}
-                                        className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors flex items-center"
+                                        className="px-3 py-2 bg-blue-500 text-white rounded text-xs font-medium hover:bg-blue-600 transition-colors flex-1 flex items-center justify-center"
                                         disabled={isLoading}
                                     >
                                         <Download size={12} className="mr-1" />
@@ -228,7 +237,7 @@ const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
                                     </button>
                                     <button
                                         onClick={() => handleDeleteWorkflow(workflow.workflow_id)}
-                                        className="px-3 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors flex items-center"
+                                        className="px-3 py-2 bg-red-500 text-white rounded text-xs font-medium hover:bg-red-600 transition-colors flex items-center justify-center"
                                         disabled={isLoading}
                                     >
                                         <Trash2 size={12} className="mr-1" />
@@ -242,7 +251,7 @@ const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
             </div>
 
 
-        </div>
+        </div >
     );
 };
 

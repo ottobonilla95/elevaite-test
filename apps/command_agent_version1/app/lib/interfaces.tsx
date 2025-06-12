@@ -1,6 +1,8 @@
 // Enums, Interfaces, Types, and initializer objects
 ////////////////////////////////////////////////////
 
+import { AgentType } from "../components/type";
+
 export const SESSION_ID_PREFIX = "sessionId_";
 export const USER_MESSAGE_ID_PREFIX = "userMessageId_";
 export const CHATBOT_MESSAGE_ID_PREFIX = "chatbotMessageId_";
@@ -95,15 +97,6 @@ export interface PromptResponse {
   last_deployed?: string | null;
 }
 
-export type AgentType =
-  | "router"
-  | "web_search"
-  | "data"
-  | "troubleshooting"
-  | "api"
-  | "weather"
-  | "toshiba";
-
 export interface AgentResponse {
   name: string;
   agent_type?: AgentType | null;
@@ -133,6 +126,21 @@ export interface AgentResponse {
   session_id?: string | null;
   last_active?: string | null;
   system_prompt: PromptResponse;
+}
+
+export interface AgentNodeData {
+  id: string;
+  shortId?: string;
+  type: AgentType;
+  name: string;
+  prompt?: string;
+  tools?: string[];
+  config?: any;
+  onDelete: (id: string) => void;
+  onConfigure: (id: string) => void;
+  tags?: string[];
+  agent: AgentResponse;
+  description?: string;
 }
 
 // Workflow-related interfaces

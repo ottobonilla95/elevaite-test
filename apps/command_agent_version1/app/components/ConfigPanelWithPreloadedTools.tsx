@@ -10,7 +10,12 @@ import {
     Zap,
     Database,
     Link2,
-    Check
+    Check,
+    Search,
+    Code,
+    FileText,
+    Calculator,
+    Mail
 } from "lucide-react";
 import { AgentType, AGENT_STYLES } from "./type";
 import { ToolInfo } from "../lib/interfaces";
@@ -147,14 +152,22 @@ const ConfigPanelWithPreloadedTools: React.FC<ConfigPanelWithPreloadedToolsProps
     // Get tool icon based on name - dynamic mapping based on tool functionality
     const getToolIcon = (toolName: string) => {
         const name = toolName.toLowerCase();
-        
+
         // Map icons based on keywords in tool names
-        if (name.includes('database') || name.includes('data') || name.includes('storage')) {
+        if (name.includes('web') || name.includes('search')) {
+            return <Search size={16} className="text-orange-500" />;
+        } else if (name.includes('database') || name.includes('data')) {
             return <Database size={16} className="text-orange-500" />;
-        } else if (name.includes('web') || name.includes('http') || name.includes('api') || name.includes('link')) {
+        } else if (name.includes('api') || name.includes('http') || name.includes('link')) {
             return <Link2 size={16} className="text-orange-500" />;
-        } else if (name.includes('search') || name.includes('query') || name.includes('find')) {
-            return <Zap size={16} className="text-orange-500" />;
+        } else if (name.includes('code') || name.includes('execution')) {
+            return <Code size={16} className="text-orange-500" />;
+        } else if (name.includes('file') || name.includes('document')) {
+            return <FileText size={16} className="text-orange-500" />;
+        } else if (name.includes('math') || name.includes('calculate')) {
+            return <Calculator size={16} className="text-orange-500" />;
+        } else if (name.includes('mail') || name.includes('email')) {
+            return <Mail size={16} className="text-orange-500" />;
         } else {
             // Default icon for unknown tools
             return <Zap size={16} className="text-orange-500" />;

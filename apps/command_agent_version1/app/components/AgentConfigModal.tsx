@@ -3,18 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { X, Plus, Save, Check } from "lucide-react";
 import { AgentType } from "./type";
+import { AgentNodeData } from "../lib/interfaces";
 
 interface ModalProps {
     isOpen: boolean;
-    nodeData: {
-        id: string;
-        type: AgentType;
-        name: string;
-        shortId?: string;
-        prompt?: string;
-        description?: string;
-        tags?: string[]; // Add tags array
-    } | null;
+    nodeData: Omit<AgentNodeData, "onDelete" | "onConfigure"> | null;
     onClose: () => void;
     onSave: (id: string, name: string, prompt: string, description: string, tags: string[]) => void;
 }
@@ -275,10 +268,11 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                     <label className="block text-sm font-medium mb-1">Model</label>
                                     <select
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
-                                        defaultValue="claude"
+                                        defaultValue={nodeData.agent.system_prompt.ai_model_name || "claude"}
                                     >
                                         <option value="claude">Claude 3</option>
-                                        <option value="gpt4">GPT-4</option>
+                                        <option value="gpt4o">GPT-4o</option>
+                                        <option value="GPT-4o-mini">GPT-4o-mini</option>
                                         <option value="gpt35">GPT-3.5</option>
                                         <option value="mixtral">Mixtral</option>
                                         <option value="llama3">Llama 3</option>

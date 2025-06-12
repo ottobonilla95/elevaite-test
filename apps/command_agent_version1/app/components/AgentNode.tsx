@@ -2,23 +2,14 @@
 
 import React, { memo } from "react";
 import { Handle, Position } from "react-flow-renderer";
-import { Router, Globe, Database, Link2, Wrench, Edit, X, Zap } from "lucide-react";
+import { Router, Globe, Database, Link2, Wrench, Edit, X, Zap, Search, Code, FileText, Calculator, Mail } from "lucide-react";
 import { AgentType, AGENT_STYLES } from "./type";
 import "./AgentNode.scss";
+import { AgentNodeData } from "../lib/interfaces";
 
 interface NodeProps {
     id: string;
-    data: {
-        id: string;
-        shortId?: string;
-        type: AgentType;
-        name: string;
-        prompt?: string;
-        tools?: string[];
-        config?: any; // Add config to display parameters
-        onDelete: (id: string) => void;
-        onConfigure: () => void;
-    };
+    data: AgentNodeData;
     selected: boolean;
 }
 
@@ -44,23 +35,29 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
         }
     };
 
-    // Get icon for tool
+    // Get icon for tool - dynamic mapping based on tool functionality
     const getToolIcon = (toolName: string) => {
-        const toolIcons: { [key: string]: React.ReactNode } = {
-            "Tool 1": <Zap size={16} className="text-orange-500" />,
-            "Tool 2": <Database size={16} className="text-orange-500" />,
-            "Tool 3": <Link2 size={16} className="text-orange-500" />,
-            "Document Parser": <Database size={16} className="text-orange-500" />,
-            "Regex Extractor": <Zap size={16} className="text-orange-500" />,
-            "MCP Integration": <Link2 size={16} className="text-orange-500" />,
-            "Workflow Orchestrator": <Zap size={16} className="text-orange-500" />,
-            "Real-time Analytics": <Database size={16} className="text-orange-500" />,
-            "Data Transformer": <Link2 size={16} className="text-orange-500" />,
-            "Semantic Search": <Zap size={16} className="text-orange-500" />,
-            "Conversational Agent": <Database size={16} className="text-orange-500" />
-        };
+        const name = toolName.toLowerCase();
 
-        return toolIcons[toolName] || <Zap size={16} className="text-orange-500" />;
+        // Map icons based on keywords in tool names
+        if (name.includes('web') || name.includes('search')) {
+            return <Search size={16} className="text-orange-500" />;
+        } else if (name.includes('database') || name.includes('data')) {
+            return <Database size={16} className="text-orange-500" />;
+        } else if (name.includes('api') || name.includes('http') || name.includes('link')) {
+            return <Link2 size={16} className="text-orange-500" />;
+        } else if (name.includes('code') || name.includes('execution')) {
+            return <Code size={16} className="text-orange-500" />;
+        } else if (name.includes('file') || name.includes('document')) {
+            return <FileText size={16} className="text-orange-500" />;
+        } else if (name.includes('math') || name.includes('calculate')) {
+            return <Calculator size={16} className="text-orange-500" />;
+        } else if (name.includes('mail') || name.includes('email')) {
+            return <Mail size={16} className="text-orange-500" />;
+        } else {
+            // Default icon for unknown tools
+            return <Zap size={16} className="text-orange-500" />;
+        }
     };
 
     const handleDelete = (e: React.MouseEvent) => {
@@ -70,7 +67,7 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
 
     const handleOpenConfig = (e: React.MouseEvent) => {
         e.stopPropagation();
-        onConfigure();
+        onConfigure(id);
     };
 
     // Clean subtitle text
@@ -83,16 +80,6 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
     const getModelName = () => {
         const model = config.model || "Claude 3";
         return model;
-    };
-
-    // Get charge type
-    const getChargeType = () => {
-        return config.modelChargeType || "Hosted";
-    };
-
-    // Get dataset name
-    const getDatasetName = () => {
-        return config.dataset || "Knowledge Base";
     };
 
     return (
@@ -128,9 +115,7 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
 
             {/* Badge section */}
             <div className="agent-badges">
-                <span className="badge">{getChargeType()}</span>
                 <span className="badge">{getModelName()}</span>
-                <span className="badge">{getDatasetName()}</span>
             </div>
 
             {/* Tools Section */}

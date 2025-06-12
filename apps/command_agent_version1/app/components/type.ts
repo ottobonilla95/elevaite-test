@@ -1,21 +1,8 @@
 // types.ts - Contains all type definitions needed for the agent workflow
 
-export type AgentType = "router" | "web_search" | "Weather Search Agent" | "data" | "troubleshooting" | "api" | "toshiba";
+import { AgentNodeData } from "../lib/interfaces";
 
-export interface NodeData {
-    id: string;
-    shortId?: string;
-    type: AgentType;
-    name: string;
-    prompt?: string;
-    description?: string;
-    tools?: string[];
-    config?: any;
-    onDelete: (id: string) => void;
-    onConfigure: (id: string) => void;
-    tags?: string[];
-
-}
+export type AgentType = "router" | "web_search" | "Weather Search Agent" | "data" | "troubleshooting" | "api" | "toshiba" | "custom";
 
 export interface NodeType {
     source: string;
@@ -37,7 +24,7 @@ export interface NodeItem {
         x: number;
         y: number;
     };
-    data: NodeData;
+    data: AgentNodeData;
 }
 
 
@@ -84,7 +71,8 @@ export const AGENT_STYLES: Record<AgentType, { bgClass: string; textClass: strin
     data: { bgClass: "bg-purple-100", textClass: "text-purple-600" },
     troubleshooting: { bgClass: "bg-red-100", textClass: "text-red-600" },
     api: { bgClass: "bg-red-100", textClass: "text-red-600" },
-    toshiba: { bgClass: "bg-red-100", textClass: "text-red-600" }
+    toshiba: { bgClass: "bg-red-100", textClass: "text-red-600" },
+    custom: { bgClass: "bg-gray-100", textClass: "text-gray-600" }
 };
 
 // Available agent types

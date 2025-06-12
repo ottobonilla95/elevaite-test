@@ -98,7 +98,8 @@ const AgentPromptEditor: React.FC<AgentPromptEditorProps> = ({
                                 defaultValue="claude"
                             >
                                 <option value="claude">Claude 3</option>
-                                <option value="gpt4">GPT-4</option>
+                                <option value="gpt4o">GPT-4o</option>
+                                <option value="GPT-4o-mini">GPT-4o-mini</option>
                                 <option value="gpt35">GPT-3.5</option>
                                 <option value="mixtral">Mixtral</option>
                                 <option value="llama3">Llama 3</option>
