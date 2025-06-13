@@ -7,6 +7,7 @@ const PromptRightSidebarTestingConsole = () => {
 	const promptsContext = usePrompt();
 	const [height, setHeight] = useState(64);
     const resizing = useRef(false);
+	const [isPagesDropdownVisible, setIsPagesDropdownVisible] = useState(false);
 
 	const handleMouseDown = (e: React.MouseEvent) => {
         resizing.current = true;
@@ -51,6 +52,10 @@ const PromptRightSidebarTestingConsole = () => {
 		}
 	}
 
+	function handlePageChange() {
+		setIsPagesDropdownVisible(!isPagesDropdownVisible);
+	}
+
 	/* const handleHalfExpanded = () => {
 		if (promptsContext.testingConsoleActiveClass === 'half-expanded' || promptsContext.testingConsoleActiveClass === 'full-expanded')  {
 			promptsContext.setTestingConsoleActiveClass('');
@@ -68,7 +73,7 @@ const PromptRightSidebarTestingConsole = () => {
 	} */
 
 	return (
-		<div className={`bottom testing-console ${promptsContext.testingConsoleActiveClass} w-full rounded-b-xl ${promptsContext.testingConsoleActiveClass ? 'overflow-y-auto' : 'overflow-hidden'}`} style={{ height: `${height}px`}}>
+		<div className={`bottom testing-console ${promptsContext.testingConsoleActiveClass} w-full rounded-b-xl overflow-y-auto`} style={{ height: `${height}px`}}>
 			<div className="draggable w-full sticky top-0 left-0 z-20 h-[6px] bg-[#e5e7eb] cursor-ns-resize" onMouseDown={handleMouseDown} />
 			<div className="p-4 flex items-center justify-between bg-white sticky top-0 z-10">
 				<div className="font-medium select-none">Testing Console</div>
@@ -119,6 +124,64 @@ const PromptRightSidebarTestingConsole = () => {
 								{promptsContext.file ? `${(promptsContext.file.size / (1024 * 1024)).toFixed(2)} MB` : 'No file size'}
 							</div>
 						</div>
+						{/* <div className="p-4 mt-4">
+							<div className="flex justify-between">
+								<div className="relative">
+									<button onClick={handlePageChange} className="current-page flex justify-between items-center rounded-md px-3 py-2 text-sm w-[300px]">
+									{'page ' + promptsContext.currentPage}
+										<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<path d="M3.5 5.25L7 8.75L10.5 5.25" stroke="#4A5567" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+										</svg>
+									</button>
+									{isPagesDropdownVisible && promptsContext.invoiceNumPages && promptsContext.invoiceNumPages > 1 && (
+										<div className="custom-checkboxes rounded-lg bg-white w-[300px] mt-1">
+											<div className="custom-checkbox">
+												<label htmlFor="all">
+													<input id="all" type="checkbox" />
+													<span>Select All</span>
+												</label>
+											</div>
+											<div className="custom-checkbox">
+												<label htmlFor="1">
+													<input id="1" type="checkbox" />
+													<span>page 2</span>
+												</label>
+											</div>
+											<div className="custom-checkbox">
+												<label htmlFor="2">
+													<input id="2" type="checkbox" />
+													<span>page 3</span>
+												</label>
+											</div>
+											{[...Array(promptsContext.invoiceNumPages || 0)].map((_, idx) => {
+												const pageNum = idx + 1;
+												return (
+													<div className="custom-checkbox" key={pageNum}>
+														<label htmlFor={`page-${pageNum}`}>
+															<input id={`page-${pageNum}`} type="checkbox" />
+															<span>{`page ${pageNum}`}</span>
+														</label>
+													</div>
+												);
+											})}
+										</div>
+									)}
+								</div>
+								<div className="navigation-arrows flex gap-2 relative" style={{top: '3px'}}>
+									<button className="btn btn-outline gray w-[38px] h-[32px]" onClick={handlePrevPage} disabled={promptsContext.loading[LoadingKeys.ChangingPage]}>
+										<svg width="6" height="10" viewBox="0 0 6 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<path d="M4.44971 8.5L0.949707 5L4.44971 1.5" stroke="#4A5567" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+										</svg>
+									</button>
+									<button className="btn btn-outline gray w-[38px] h-[32px]" onClick={handleNextPage} disabled={promptsContext.loading[LoadingKeys.ChangingPage]}>
+										<svg width="6" height="10" viewBox="0 0 6 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<path d="M0.949707 8.5L4.44971 5L0.949707 1.5" stroke="#4A5567" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+										</svg>
+									</button>
+								</div>
+							</div>
+						</div> */}
+
 						<div className="p-4">
 							<div className="flex items-center">
 								<div className="font-medium text-sm" style={{color: '#97A3B6'}}>Preview</div>

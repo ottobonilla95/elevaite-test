@@ -41,7 +41,7 @@ const PromptRightSidebarTabs = () => {
 
 								<pre className="whitespace-pre-wrap break-words mb-4 text-sm font-sans">
 									{promptContext.jsonOutput}
-									{!promptContext.jsonOutput && promptContext.output?.response}
+									{!promptContext.jsonOutput && promptContext.output?.result}
 								</pre>
 							</div>
 

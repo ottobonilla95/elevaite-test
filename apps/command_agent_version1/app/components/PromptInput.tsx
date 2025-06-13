@@ -66,8 +66,8 @@ export function PromptInput(props: PromptInputProps): JSX.Element {
 			{(type === PromptInputTypes.DocumentHeader || type === PromptInputTypes.LineItemHeader) ? (
 				<PromptMultiTagInputs
 				placeholder="Add content..."
-				value={["example1", "example2", "example3"]}
-				onChange={values => console.log(values)}
+				values={props.values ?? []}
+        		onChange={values => promptContext.updatePromptInput(props.id, { values })}
 				/>
 			): (
 				<SimpleTextarea wrapperClassName="prompt-input" value={props.prompt} onChange={handleTextChange} placeholder="Enter prompt text..." useCommonStyling></SimpleTextarea>

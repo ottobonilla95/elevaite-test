@@ -1,7 +1,7 @@
 "use client";
 import { ChangeEvent, createContext, SetStateAction, useContext, useEffect, useState } from "react";
-import { deploy, nextPage, previousPage, reRun, run, uploadFile } from "../../lib/actionsPrompt";
-import { PageChangeResponseObject, PromptInputItem, PromptInputTypes, regenerateResponseObject, type UploadFileResponseObject } from "../../lib/interfaces";
+import { deploy, nextPage, previousPage, processCurrentPage, reRun, run, uploadFile } from "../../lib/actionsPrompt";
+import { PageChangeResponseObject, ProcessCurrentPageResponseObject, PromptInputItem, PromptInputTypes, regenerateResponseObject, type UploadFileResponseObject } from "../../lib/interfaces";
 import { toast } from "react-toastify";
 
 
@@ -24,6 +24,7 @@ const defaultPromptInputs: PromptInputItem[] = Object.values(PromptInputTypes).s
   id: crypto.randomUUID().toString(),
   type: type as PromptInputTypes,
   prompt: "",
+  values: []
 }));
 
 
@@ -40,6 +41,7 @@ export interface PromptContextStructure {
   setOutput: (response: regenerateResponseObject|null) => void
   loading: Record<string, boolean>;
   fileUpload: (useYolo: boolean, file: File, isImage?: boolean) => Promise<UploadFileResponseObject | null>;
+  processCurrentPage: () => Promise<ProcessCurrentPageResponseObject | null>;
   showFileUploadModal: boolean,
   setShowFileUploadModal: (show: boolean) => void;
   invoiceImage: String | null;
@@ -82,6 +84,7 @@ export const PromptContext = createContext<PromptContextStructure>({
   setOutput: () => undefined,
   loading: {},
   fileUpload: async () => null,
+  processCurrentPage: async () => null,
   showFileUploadModal: false,
   setShowFileUploadModal: () => undefined,
   invoiceImage: null,
@@ -145,6 +148,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
       id: crypto.randomUUID().toString(),
       type: PromptInputTypes.DocumentHeader,
       prompt: "",
+	  values: []
     }
     setPromptInputs(current => {
       return [newPromptInput, ...current];
@@ -182,10 +186,12 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     for (var input of promptInputs) {
       switch (input.type) {
         case PromptInputTypes.DocumentHeader:
-          options.documentHeader = options.documentHeader ? options.documentHeader + "\n" + input.prompt : input.prompt;
-          break;
+        const joinedDocumentHeaderValues = Array.isArray(input.values) ? input.values.join(",") : input.values;
+  		options.documentHeader = options.documentHeader ? options.documentHeader + "," + joinedDocumentHeaderValues : joinedDocumentHeaderValues;
+		  break;
         case PromptInputTypes.LineItemHeader:
-          options.lineItemHeader = options.lineItemHeader ? options.lineItemHeader + "\n" + input.prompt : input.prompt;
+		  const joinedLineItemHeaderValues = Array.isArray(input.values) ? input.values.join(",") : input.values;
+          options.lineItemHeader = options.lineItemHeader ? options.lineItemHeader + "," + joinedLineItemHeaderValues : joinedLineItemHeaderValues;
           break;
 		case PromptInputTypes.UserFeedback:
           options.userFeedback = options.userFeedback ? options.userFeedback + "\n" + input.prompt : input.prompt;
@@ -235,19 +241,6 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   async function actionFileUpload(useYolo: boolean, file: File, isImage = false): Promise<UploadFileResponseObject | null> {
     setLoadingState(LoadingKeys.Uploading, true);
 
-	if ( output?.response  ) {
-		setOutput(null);
-		setOutputVersions([]);
-		setJsonOutput('');
-		setPromptInputs(
-			defaultPromptInputs.map(input => ({
-				...input,
-				prompt: "",
-				//id: crypto.randomUUID().toString(),
-			}))
-		);
-	}
-
     try {
       const result = await uploadFile(sessionId, useYolo, file, isImage);
       if (result) setOutput(null);
@@ -255,6 +248,35 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     } catch (error) {
       // eslint-disable-next-line no-console -- placeholder for error logging
       console.error("File upload failed:", error);
+      return null;
+    } finally {
+      //setLoadingState(LoadingKeys.Uploading, false);
+    }
+  }
+
+  async function actionProcessCurrentPage(): Promise<ProcessCurrentPageResponseObject | null> {
+	//setLoadingState(LoadingKeys.Uploading, true);
+
+	if ( output?.result  ) {
+		setOutput(null);
+		setOutputVersions([]);
+		setJsonOutput('');
+		setPromptInputs(
+			defaultPromptInputs.map(input => ({
+				...input,
+				prompt: "",
+				values: []
+			}))
+		);
+	}
+
+	try {
+      const result = await processCurrentPage(sessionId);
+      if (result) setOutput(null);
+      return result;
+    } catch (error) {
+      // eslint-disable-next-line no-console -- placeholder for error logging
+      console.error("Process current page failed:", error);
       return null;
     } finally {
       setLoadingState(LoadingKeys.Uploading, false);
@@ -296,6 +318,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
 
   async function actionRun(): Promise<void> {
     setLoadingState(LoadingKeys.Running, true);
+	console.log(getPromptInputsOptions())
     try {
       const result = await reRun(sessionId, getPromptInputsOptions());
       console.log("RE Run result", result);
@@ -365,7 +388,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
 					{
 					"role": "user",
 					"content": `turn this to json
-						${output?.response}
+						${output?.result}
 					`
 					}
 				]
@@ -398,6 +421,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
 		setOutput,
         loading,
         fileUpload: actionFileUpload,
+		processCurrentPage: actionProcessCurrentPage,
         showFileUploadModal, // Placeholder for file upload modal state
         setShowFileUploadModal,
         invoiceImage,

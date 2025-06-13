@@ -320,6 +320,13 @@ export interface UploadFileResponseObject {
     result: string;
 }
 
+export interface ProcessCurrentPageResponseObject {
+	document_headers: string[],
+	line_item_headers: string[],
+	result: string,
+	prompt: string
+}
+
 export interface PageChangeResponseObject {
     image: string;
     prompt: string;
@@ -328,7 +335,7 @@ export interface PageChangeResponseObject {
 export interface regenerateResponseObject {
     id?: string;
     prompt: string;
-    response: string;
+    result: string;
 }
 
 export type RunResponseObject = string[];
@@ -341,6 +348,7 @@ export interface PromptInputItem {
     type: PromptInputTypes;
     label?: string;
     prompt: string;
+	values: string[];
 }
 
 

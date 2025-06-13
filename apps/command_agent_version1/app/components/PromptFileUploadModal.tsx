@@ -23,26 +23,28 @@ function PromptFileUploadModal() {
 		e.preventDefault();
 
 		const data = await promptsContext.fileUpload(true, promptsContext.file as File, false);
+		const finalData = await promptsContext.processCurrentPage();
 		console.log("File uploaded:", data);
+		console.log("Processed Current Page:", finalData);
 
-		if (data) {
-			promptsContext.setTestingConsoleActiveClass('half-expanded');
+		if (data && finalData) {
+			//promptsContext.setTestingConsoleActiveClass('half-expanded');
 			promptsContext.setInvoiceImage(data.image as string);
 			promptsContext.setInvoiceNumPages(data.num_pages as number);
 			promptsContext.setShowFileUploadModal(false);
 			promptsContext.setPromptInputs(
 				promptsContext.defaultPromptInputs.map(input => {
 					console.log(input)
-					if (input.type == 'lineItemHeader') {
+					if (input.type == 'documentHeader') {
 						return {
 							...input,
-							prompt: data.table_header,
+							values: finalData.document_headers,
 							//id: crypto.randomUUID().toString(),
 						}
-					} else if (input.type == 'lineItems') {
+					} else if (input.type == 'lineItemHeader') {
 						return {
 							...input,
-							prompt: data.line_items,
+							values: finalData.line_item_headers,
 							//id: crypto.randomUUID().toString(),
 						}
 					}

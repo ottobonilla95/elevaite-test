@@ -1,15 +1,19 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 interface PromptMultiTagInputsProps {
   placeholder?: string;
-  value?: string[];
+  values?: string[];
   onChange?: (values: string[]) => void;
 }
 
-const PromptMultiTagInputs = ({placeholder, value, onChange}: PromptMultiTagInputsProps) => {
-  const [inputs, setInputs] = useState<string[]>(value || []);
+const PromptMultiTagInputs = ({placeholder, values, onChange}: PromptMultiTagInputsProps) => {
+  const [inputs, setInputs] = useState<string[]>(values || []);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setInputs(values ?? []);
+  }, [values]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);

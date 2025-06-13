@@ -1,4 +1,4 @@
-import type { DeployResponse, PageChangeResponseObject, regenerateResponseObject, RunResponseObject, UploadFileResponseObject } from "./interfaces";
+import type { DeployResponse, PageChangeResponseObject, ProcessCurrentPageResponseObject, regenerateResponseObject, RunResponseObject, UploadFileResponseObject } from "./interfaces";
 
 
 
@@ -6,6 +6,10 @@ import type { DeployResponse, PageChangeResponseObject, regenerateResponseObject
 
 export function isUploadFileResponse(data: unknown): data is UploadFileResponseObject {
   return isUploadFileResponseObject(data);
+}
+
+export function isProcessCurrentPageResponse(data: unknown): data is ProcessCurrentPageResponseObject {
+	return isProcessCurrentPageResponseObject(data);
 }
 
 export function isPageChangeResponse(data: unknown): data is PageChangeResponseObject {
@@ -54,6 +58,14 @@ function isUploadFileResponseObject(item: unknown): item is UploadFileResponseOb
 	'result' in item;
 }
 
+function isProcessCurrentPageResponseObject(item: unknown): item is ProcessCurrentPageResponseObject {
+	return isObject(item) &&
+    "document_headers" in item &&
+    "line_item_headers" in item &&
+    "result" in item &&
+    "prompt" in item;
+}
+
 function isPageResponseObject(item: unknown): item is PageChangeResponseObject {
     return isObject(item) &&
     "image" in item &&
@@ -62,6 +74,6 @@ function isPageResponseObject(item: unknown): item is PageChangeResponseObject {
 
 function isReRunResponseObject(item: unknown): item is regenerateResponseObject {
     return isObject(item) &&
-    "response" in item &&
+    "result" in item &&
     "prompt" in item;
 }

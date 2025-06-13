@@ -1,5 +1,5 @@
-import { isDeployResponse, isPageChangeResponse, isReRunResponse, isRunResponse, isUploadFileResponse } from "./discriminatorsPrompt";
-import type { DeployResponse, PageChangeResponseObject, RunResponseObject, UploadFileResponseObject } from "./interfaces";
+import { isDeployResponse, isPageChangeResponse, isProcessCurrentPageResponse, isReRunResponse, isRunResponse, isUploadFileResponse } from "./discriminatorsPrompt";
+import type { DeployResponse, PageChangeResponseObject, ProcessCurrentPageResponseObject, RunResponseObject, UploadFileResponseObject } from "./interfaces";
 
 
 
@@ -24,6 +24,20 @@ export async function uploadFile(sessionId: string, useYolo: boolean, file: File
   const data = await response.json();
   if (isUploadFileResponse(data)) return data;
   throw new Error("Unexpected upload file response");
+}
+
+export async function processCurrentPage(sessionId: string): Promise<ProcessCurrentPageResponseObject> {
+	const url = new URL(`${BACKEND_URL ?? ""}process_current_page/`);
+	url.searchParams.set("session_id", sessionId);
+
+	const response = await fetch(url.toString(), {
+    	method: "POST",
+  	});
+
+	if (!response.ok) throw new Error("Process current page failed");
+	const data = await response.json();
+	if (isProcessCurrentPageResponse(data)) return data;
+	throw new Error("Unexpected process current page response");
 }
 
 export async function nextPage(sessionId: string, useYolo: boolean): Promise<PageChangeResponseObject> {
@@ -71,13 +85,12 @@ export async function run(sessionId: string): Promise<RunResponseObject> {
   throw new Error("Unexpected extraction response");
 }
 
-export async function reRun(sessionId: string, options?: { userFeedback?: string; tableHeader?: string; lineItems?: string; expectedOutput?: string;}): Promise<any> {
+export async function reRun(sessionId: string, options?: { documentHeader?: string; lineItemHeader?: string; userFeedback?: string;}): Promise<any> {
   const url = new URL(`${BACKEND_URL ?? ""}regenerate/`);
   url.searchParams.set("session_id", sessionId);
+  url.searchParams.set("document_header", options?.documentHeader ?? "");
+  url.searchParams.set("line_item_header", options?.lineItemHeader ?? "");
   url.searchParams.set("user_feedback", options?.userFeedback ?? "");
-  url.searchParams.set("table_header", options?.tableHeader ?? "");
-  url.searchParams.set("line_items", options?.lineItems ?? "");
-  url.searchParams.set("expected_output", options?.expectedOutput ?? "");
 
   const response = await fetch(url.toString(), {
     method: "POST",
