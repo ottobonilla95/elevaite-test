@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Literal, Any
+from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
 
 from pydantic import BaseModel, ConfigDict
 
@@ -70,7 +71,6 @@ class AgentBase(BaseModel):
     parent_agent_id: Optional[uuid.UUID] = None
     system_prompt_id: uuid.UUID
     persona: Optional[str] = None
-    functions: List[Dict[str, Any]]
     routing_options: Dict[str, str]
     short_term_memory: bool = False
     long_term_memory: bool = False
@@ -89,8 +89,16 @@ class AgentBase(BaseModel):
     deployment_code: Optional[str] = None
 
 
+class AgentFunctionInner(BaseModel):
+    name: str
+
+
+class AgentFunction(BaseModel):
+    function: AgentFunctionInner
+
+
 class AgentCreate(AgentBase):
-    pass
+    functions: List[AgentFunction]
 
 
 class AgentUpdate(BaseModel):
@@ -110,7 +118,7 @@ class AgentUpdate(BaseModel):
     parent_agent_id: Optional[uuid.UUID] = None
     system_prompt_id: Optional[uuid.UUID] = None
     persona: Optional[str] = None
-    functions: Optional[List[Dict[str, Any]]] = None
+    functions: Optional[List[AgentFunction]] = None
     routing_options: Optional[Dict[str, str]] = None
     short_term_memory: Optional[bool] = None
     long_term_memory: Optional[bool] = None
@@ -124,9 +132,7 @@ class AgentUpdate(BaseModel):
     status: Optional[Literal["active", "paused", "terminated"]] = None
     priority: Optional[int] = None
     failure_strategies: Optional[List[str]] = None
-    collaboration_mode: Optional[
-        Literal["single", "team", "parallel", "sequential"]
-    ] = None
+    collaboration_mode: Optional[Literal["single", "team", "parallel", "sequential"]] = None
     available_for_deployment: Optional[bool] = None
     deployment_code: Optional[str] = None
 
@@ -138,10 +144,12 @@ class AgentInDB(AgentBase):
     agent_id: uuid.UUID
     session_id: Optional[str] = None
     last_active: Optional[datetime] = None
+    functions: List[ChatCompletionToolParam]
 
 
 class AgentResponse(AgentInDB):
     system_prompt: PromptResponse
+    functions: List[ChatCompletionToolParam]
 
 
 # Schemas for PromptVersion

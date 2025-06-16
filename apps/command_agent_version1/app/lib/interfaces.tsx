@@ -3,6 +3,23 @@
 
 import { AgentType } from "../components/type";
 
+// OpenAI Function Calling Types
+export interface ChatCompletionToolParam {
+    type: "function";
+    function: {
+        name: string;
+        description?: string;
+        parameters?: Record<string, any>;
+    };
+}
+
+// Agent Function Types (for backward compatibility and creation)
+export interface AgentFunction {
+    function: {
+        name: string;
+    };
+}
+
 export const SESSION_ID_PREFIX = "sessionId_";
 export const USER_MESSAGE_ID_PREFIX = "userMessageId_";
 export const CHATBOT_MESSAGE_ID_PREFIX = "chatbotMessageId_";
@@ -104,7 +121,7 @@ export interface AgentResponse {
     parent_agent_id?: string | null;
     system_prompt_id: string;
     persona?: string | null;
-    functions: object[];
+    functions: ChatCompletionToolParam[];
     routing_options: Record<string, string>;
     short_term_memory: boolean;
     long_term_memory: boolean;
@@ -128,13 +145,76 @@ export interface AgentResponse {
     system_prompt: PromptResponse;
 }
 
+export interface AgentConfigData {
+    agentName: string;
+    deploymentType: string;
+    modelProvider: string;
+    model: string;
+    outputFormat: string;
+    selectedTools: string[];
+}
+
+// Agent creation interfaces that match backend structure
+
+export interface AgentCreate {
+    name: string;
+    agent_type?: AgentType | null;
+    description?: string | null;
+    parent_agent_id?: string | null;
+    system_prompt_id: string;
+    persona?: string | null;
+    routing_options: Record<string, string>;
+    short_term_memory: boolean;
+    long_term_memory: boolean;
+    reasoning: boolean;
+    input_type: ("text" | "voice" | "image")[];
+    output_type: ("text" | "voice" | "image")[];
+    response_type: "json" | "yaml" | "markdown" | "HTML" | "None";
+    max_retries: number;
+    timeout?: number | null;
+    deployed: boolean;
+    status: "active" | "paused" | "terminated";
+    priority?: number | null;
+    failure_strategies?: string[] | null;
+    collaboration_mode: "single" | "team" | "parallel" | "sequential";
+    available_for_deployment: boolean;
+    deployment_code?: string | null;
+    functions: AgentFunction[];
+}
+
+export interface AgentUpdate {
+    name?: string;
+    agent_type?: AgentType | null;
+    description?: string | null;
+    parent_agent_id?: string | null;
+    system_prompt_id?: string;
+    persona?: string | null;
+    functions?: AgentFunction[];
+    routing_options?: Record<string, string>;
+    short_term_memory?: boolean;
+    long_term_memory?: boolean;
+    reasoning?: boolean;
+    input_type?: ("text" | "voice" | "image")[];
+    output_type?: ("text" | "voice" | "image")[];
+    response_type?: "json" | "yaml" | "markdown" | "HTML" | "None";
+    max_retries?: number;
+    timeout?: number | null;
+    deployed?: boolean;
+    status?: "active" | "paused" | "terminated";
+    priority?: number | null;
+    failure_strategies?: string[] | null;
+    collaboration_mode?: "single" | "team" | "parallel" | "sequential";
+    available_for_deployment?: boolean;
+    deployment_code?: string | null;
+}
+
 export interface AgentNodeData {
     id: string;
     shortId?: string;
     type: AgentType;
     name: string;
     prompt?: string;
-    tools?: string[];
+    tools?: ChatCompletionToolParam[];
     config?: any;
     onDelete: (id: string) => void;
     onConfigure: (id: string) => void;
@@ -302,7 +382,7 @@ export interface NewWorkflowExecutionRequest {
 
 
 export enum PromptInputTypes {
-	DocumentHeader = "documentHeader",
+    DocumentHeader = "documentHeader",
     LineItemHeader = "lineItemHeader",
     UserFeedback = "userFeedback",
     LineItems = "lineItems",
@@ -321,10 +401,10 @@ export interface UploadFileResponseObject {
 }
 
 export interface ProcessCurrentPageResponseObject {
-	document_headers: string[],
-	line_item_headers: string[],
-	result: string,
-	prompt: string
+    document_headers: string[],
+    line_item_headers: string[],
+    result: string,
+    prompt: string
 }
 
 export interface PageChangeResponseObject {
@@ -348,7 +428,7 @@ export interface PromptInputItem {
     type: PromptInputTypes;
     label?: string;
     prompt: string;
-	values: string[];
+    values: string[];
 }
 
 

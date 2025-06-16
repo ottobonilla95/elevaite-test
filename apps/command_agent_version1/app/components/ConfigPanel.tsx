@@ -18,7 +18,8 @@ import {
     Mail
 } from "lucide-react";
 import { AgentType, AGENT_STYLES } from "./type";
-import { useTools } from "../ui/contexts/ToolsContext";
+import { AgentConfigData, ChatCompletionToolParam } from "../lib/interfaces";
+import { fetchToolSchemasAsArray } from "../lib/actions";
 import "./ConfigPanel.scss";
 
 interface ConfigPanelProps {
@@ -26,11 +27,13 @@ interface ConfigPanelProps {
     agentType: AgentType | "custom";
     description: string;
     onEditPrompt: () => void;
-    onSave?: (configData: any) => void;
+    onSave?: (configData: AgentConfigData) => void;
     onClose?: () => void;
     onNameChange?: (newName: string) => void;
     toggleSidebar?: () => void;
     sidebarOpen?: boolean;
+    currentFunctions?: ChatCompletionToolParam[]; // Current agent functions
+    onFunctionsChange?: (functions: ChatCompletionToolParam[]) => void; // Callback for function changes
 }
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({
@@ -43,6 +46,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     onNameChange,
     toggleSidebar,
     sidebarOpen,
+    currentFunctions = [],
+    onFunctionsChange,
 }) => {
     // State for collapsible sections
     const [parametersOpen, setParametersOpen] = useState(true);
@@ -54,11 +59,15 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     const [model, setModel] = useState("Llama-3.1-8B-Instruct");
     const [outputFormat, setOutputFormat] = useState("JSON");
 
-    // State for selected tools
-    const [selectedTools, setSelectedTools] = useState<string[]>([]);
+    // State for selected tools (now as ChatCompletionToolParam array)
+    const [selectedFunctions, setSelectedFunctions] = useState<ChatCompletionToolParam[]>(currentFunctions);
 
-    // Use tools context
-    const { tools: availableTools, isLoading: toolsLoading, error: toolsError } = useTools();
+    // State for available tool schemas
+    const [availableToolSchemas, setAvailableToolSchemas] = useState<ChatCompletionToolParam[]>([]);
+    const [toolSchemasLoading, setToolSchemasLoading] = useState(false);
+    const [toolSchemasError, setToolSchemasError] = useState<string | null>(null);
+
+    // Note: We're now using tool schemas directly instead of the tools context
 
     // State for agent name editing
     const [isEditingName, setIsEditingName] = useState(false);
@@ -77,6 +86,30 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     useEffect(() => {
         setEditedName(agentName);
     }, [agentName]);
+
+    // Update selected functions when currentFunctions prop changes
+    useEffect(() => {
+        setSelectedFunctions(currentFunctions);
+    }, [currentFunctions]);
+
+    // Load tool schemas on component mount
+    useEffect(() => {
+        const loadToolSchemas = async () => {
+            try {
+                setToolSchemasLoading(true);
+                setToolSchemasError(null);
+                const schemas = await fetchToolSchemasAsArray();
+                setAvailableToolSchemas(schemas);
+            } catch (error) {
+                console.error("Failed to load tool schemas:", error);
+                setToolSchemasError("Failed to load tool schemas");
+            } finally {
+                setToolSchemasLoading(false);
+            }
+        };
+
+        loadToolSchemas();
+    }, []);
 
     // Deployment type options
     const deploymentTypes = [
@@ -148,13 +181,28 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
 
     // Function to handle tool selection
-    const handleToolSelect = (value: string) => {
-        // Toggle selection
-        if (selectedTools.includes(value)) {
-            setSelectedTools(selectedTools.filter(tool => tool !== value));
+    const handleToolSelect = (toolName: string) => {
+        // Find the tool schema for the selected tool
+        const toolSchema = availableToolSchemas.find(schema => schema.function.name === toolName);
+        if (!toolSchema) return;
 
+        // Check if tool is already selected
+        const isSelected = selectedFunctions.some(func => func.function.name === toolName);
+
+        let updatedFunctions: ChatCompletionToolParam[];
+        if (isSelected) {
+            // Remove the tool
+            updatedFunctions = selectedFunctions.filter(func => func.function.name !== toolName);
         } else {
-            setSelectedTools([...selectedTools, value]);
+            // Add the tool
+            updatedFunctions = [...selectedFunctions, toolSchema];
+        }
+
+        setSelectedFunctions(updatedFunctions);
+
+        // Notify parent component of the change
+        if (onFunctionsChange) {
+            onFunctionsChange(updatedFunctions);
         }
     };
 
@@ -200,13 +248,16 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     // Handle save button click
     const handleSave = () => {
         if (onSave) {
+            // Convert functions back to tool names for backward compatibility
+            const selectedToolNames = selectedFunctions.map(func => func.function.name);
+
             onSave({
                 agentName: editedName, // Include the potentially updated name
                 deploymentType,
                 modelProvider,
                 model,
                 outputFormat,
-                selectedTools
+                selectedTools: selectedToolNames
             });
         }
     };
@@ -425,13 +476,13 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
                     <div className="section-content">
                         <p className="tools-description">Select tools to add to your agent:</p>
 
-                        {toolsLoading ? (
+                        {toolSchemasLoading ? (
                             <div className="text-center py-2">
-                                <div className="text-sm text-gray-500">Loading tools...</div>
+                                <div className="text-sm text-gray-500">Loading tool schemas...</div>
                             </div>
-                        ) : toolsError ? (
+                        ) : toolSchemasError ? (
                             <div className="text-center py-2">
-                                <div className="text-sm text-red-500">{toolsError}</div>
+                                <div className="text-sm text-red-500">{toolSchemasError}</div>
                             </div>
                         ) : (
                             <>
@@ -444,8 +495,10 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
                                         disabled={disabledFields}
                                     >
                                         <option value="" disabled>Select tools to add...</option>
-                                        {availableTools.map(tool => (
-                                            <option key={tool.name} value={tool.name}>{tool.name}</option>
+                                        {availableToolSchemas.map(schema => (
+                                            <option key={schema.function.name} value={schema.function.name}>
+                                                {schema.function.name}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
@@ -453,22 +506,20 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
                         )}
 
                         {/* Selected Tools */}
-                        {selectedTools.length > 0 && (
+                        {selectedFunctions.length > 0 && (
                             <div className="selected-tools-container">
                                 <h4 className="selected-tools-title">Selected Tools:</h4>
                                 <div className="selected-tools-list">
-                                    {selectedTools.map(tool => (
+                                    {selectedFunctions.map(func => (
                                         <div
-                                            key={tool}
+                                            key={func.function.name}
                                             className="tool-badge"
                                         >
-                                            {getToolIcon(tool)}
-                                            <span className="tool-name">{tool}</span>
+                                            {getToolIcon(func.function.name)}
+                                            <span className="tool-name">{func.function.name}</span>
                                             <button
                                                 className="remove-tool-button"
-                                                onClick={() => setSelectedTools(
-                                                    selectedTools.filter(t => t !== tool)
-                                                )}
+                                                onClick={() => handleToolSelect(func.function.name)}
                                             >
                                                 ×
                                             </button>

@@ -5,7 +5,7 @@ import { Handle, Position } from "react-flow-renderer";
 import { Router, Globe, Database, Link2, Wrench, Edit, X, Zap, Search, Code, FileText, Calculator, Mail } from "lucide-react";
 import { AgentType, AGENT_STYLES } from "./type";
 import "./AgentNode.scss";
-import { AgentNodeData } from "../lib/interfaces";
+import { AgentNodeData, ChatCompletionToolParam } from "../lib/interfaces";
 
 interface NodeProps {
     id: string;
@@ -16,6 +16,9 @@ interface NodeProps {
 const AgentNode = memo(({ id, data, selected }: NodeProps) => {
     const { type, name, tools = [], config = {}, onDelete, onConfigure } = data;
     const styles = AGENT_STYLES[type] || { bgClass: "bg-gray-100", textClass: "text-gray-600" };
+
+    // Extract tool names from ChatCompletionToolParam array
+    const toolNames = tools.map((tool: ChatCompletionToolParam) => tool.function.name);
 
     // Get the appropriate icon based on agent type
     const getAgentIcon = (type: AgentType) => {
@@ -119,7 +122,7 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
             </div>
 
             {/* Tools Section */}
-            {(tools && tools.length > 0) && (
+            {(toolNames && toolNames.length > 0) && (
                 <div className="agent-tools">
                     <div className="tools-header">
                         <span className="tools-title">Tools</span>
@@ -131,10 +134,10 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
                         </button>
                     </div>
                     <div className="tools-list">
-                        {tools.map((tool, index) => (
+                        {toolNames.map((toolName, index) => (
                             <span key={index} className="tool-badge">
-                                {getToolIcon(tool)}
-                                <span className="tool-name">{tool}</span>
+                                {getToolIcon(toolName)}
+                                <span className="tool-name">{toolName}</span>
                             </span>
                         ))}
                     </div>

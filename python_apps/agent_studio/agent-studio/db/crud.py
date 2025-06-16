@@ -1,7 +1,8 @@
 import uuid
 import hashlib
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
+from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -15,9 +16,7 @@ def create_prompt(db: Session, prompt: schemas.PromptCreate) -> models.Prompt:
     sha_hash = prompt.sha_hash
     if sha_hash is None:
         # Create a hash based on the prompt content, label, and timestamp
-        content_to_hash = (
-            f"{prompt.prompt}{prompt.prompt_label}{datetime.now().isoformat()}"
-        )
+        content_to_hash = f"{prompt.prompt}{prompt.prompt_label}{datetime.now().isoformat()}"
         sha_hash = hashlib.sha256(content_to_hash.encode()).hexdigest()[:40]
 
     db_prompt = models.Prompt(
@@ -45,9 +44,7 @@ def get_prompt(db: Session, prompt_id: uuid.UUID) -> Optional[models.Prompt]:
     return db.query(models.Prompt).filter(models.Prompt.pid == prompt_id).first()
 
 
-def get_prompt_by_app_and_label(
-    db: Session, app_name: str, prompt_label: str
-) -> List[models.Prompt]:
+def get_prompt_by_app_and_label(db: Session, app_name: str, prompt_label: str) -> List[models.Prompt]:
     return (
         db.query(models.Prompt)
         .filter(
@@ -58,32 +55,26 @@ def get_prompt_by_app_and_label(
     )
 
 
-def get_deployed_prompt(
-    db: Session, app_name: str, prompt_label: str
-) -> Optional[models.Prompt]:
+def get_deployed_prompt(db: Session, app_name: str, prompt_label: str) -> Optional[models.Prompt]:
     return (
         db.query(models.Prompt)
         .filter(
             models.Prompt.app_name == app_name,
             models.Prompt.prompt_label == prompt_label,
-            models.Prompt.is_deployed == True,
+            models.Prompt.is_deployed,
         )
         .first()
     )
 
 
-def get_prompts(
-    db: Session, skip: int = 0, limit: int = 100, app_name: Optional[str] = None
-) -> List[models.Prompt]:
+def get_prompts(db: Session, skip: int = 0, limit: int = 100, app_name: Optional[str] = None) -> List[models.Prompt]:
     query = db.query(models.Prompt)
     if app_name:
         query = query.filter(models.Prompt.app_name == app_name)
     return query.offset(skip).limit(limit).all()
 
 
-def update_prompt(
-    db: Session, prompt_id: uuid.UUID, prompt_update: schemas.PromptUpdate
-) -> Optional[models.Prompt]:
+def update_prompt(db: Session, prompt_id: uuid.UUID, prompt_update: schemas.PromptUpdate) -> Optional[models.Prompt]:
     db_prompt = get_prompt(db, prompt_id)
     if not db_prompt:
         return None
@@ -97,9 +88,7 @@ def update_prompt(
     return db_prompt
 
 
-def deploy_prompt(
-    db: Session, prompt_id: uuid.UUID, app_name: str, environment: str = "production"
-) -> Optional[models.Prompt]:
+def deploy_prompt(db: Session, prompt_id: uuid.UUID, app_name: str, environment: str = "production") -> Optional[models.Prompt]:
     db_prompt = get_prompt(db, prompt_id)
     if db_prompt is None or str(db_prompt.app_name) != app_name:
         return None
@@ -139,17 +128,14 @@ def delete_prompt(db: Session, prompt_id: uuid.UUID) -> bool:
 
 
 # Agent CRUD operations
-def validate_agent_functions(functions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def validate_agent_functions(functions: List[schemas.AgentFunction]) -> List[ChatCompletionToolParam]:
     validated_functions = []
-    for func in functions:
-        if isinstance(func, dict) and "function" in func:
-            func_name = func["function"].get("name")
-            if func_name and func_name in tool_schemas:
-                validated_functions.append(tool_schemas[func_name])
-            else:
-                validated_functions.append(func)
+    for _func in functions:
+        func_name = _func.function.name
+        if func_name and func_name in tool_schemas:
+            validated_functions.append(tool_schemas[func_name])
         else:
-            validated_functions.append(func)
+            raise ValueError(f"Function {func_name} not found in tool_schemas")
 
     return validated_functions
 
@@ -192,9 +178,7 @@ def get_agent(db: Session, agent_id: uuid.UUID) -> Optional[models.Agent]:
     return db.query(models.Agent).filter(models.Agent.agent_id == agent_id).first()
 
 
-def get_agent_with_functions(
-    db: Session, agent_id: uuid.UUID
-) -> Optional[models.Agent]:
+def get_agent_with_functions(db: Session, agent_id: uuid.UUID) -> Optional[models.Agent]:
     agent = db.query(models.Agent).filter(models.Agent.agent_id == agent_id).first()
     if not agent:
         return None
@@ -238,9 +222,7 @@ def get_agent_by_name_with_functions(db: Session, name: str) -> Optional[models.
     return agent
 
 
-def get_agents(
-    db: Session, skip: int = 0, limit: int = 100, deployed: Optional[bool] = None
-) -> List[models.Agent]:
+def get_agents(db: Session, skip: int = 0, limit: int = 100, deployed: Optional[bool] = None) -> List[models.Agent]:
     query = db.query(models.Agent)
     if deployed is not None:
         query = query.filter(models.Agent.deployed == deployed)
@@ -248,20 +230,14 @@ def get_agents(
 
 
 def get_available_agents(db: Session) -> List[models.Agent]:
-    return (
-        db.query(models.Agent)
-        .filter(models.Agent.available_for_deployment == True)
-        .all()
-    )
+    return db.query(models.Agent).filter(models.Agent.available_for_deployment).all()
 
 
 def get_agent_by_deployment_code(db: Session, code: str) -> Optional[models.Agent]:
     return db.query(models.Agent).filter(models.Agent.deployment_code == code).first()
 
 
-def update_agent(
-    db: Session, agent_id: uuid.UUID, agent_update: schemas.AgentUpdate
-) -> Optional[models.Agent]:
+def update_agent(db: Session, agent_id: uuid.UUID, agent_update: schemas.AgentUpdate) -> Optional[models.Agent]:
     db_agent = get_agent(db, agent_id)
     if not db_agent:
         return None
@@ -269,6 +245,9 @@ def update_agent(
     update_data = agent_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_agent, key, value)
+
+    if "functions" in update_data:
+        setattr(db_agent, "functions", validate_agent_functions(update_data["functions"]))
 
     db.commit()
     db.refresh(db_agent)
@@ -303,16 +282,10 @@ def create_workflow(db: Session, workflow: schemas.WorkflowCreate) -> models.Wor
 
 
 def get_workflow(db: Session, workflow_id: uuid.UUID) -> Optional[models.Workflow]:
-    return (
-        db.query(models.Workflow)
-        .filter(models.Workflow.workflow_id == workflow_id)
-        .first()
-    )
+    return db.query(models.Workflow).filter(models.Workflow.workflow_id == workflow_id).first()
 
 
-def get_workflow_by_name(
-    db: Session, name: str, version: Optional[str] = None
-) -> Optional[models.Workflow]:
+def get_workflow_by_name(db: Session, name: str, version: Optional[str] = None) -> Optional[models.Workflow]:
     query = db.query(models.Workflow).filter(models.Workflow.name == name)
     if version:
         query = query.filter(models.Workflow.version == version)
@@ -334,9 +307,7 @@ def get_workflows(
     return query.offset(skip).limit(limit).all()
 
 
-def update_workflow(
-    db: Session, workflow_id: uuid.UUID, workflow_update: schemas.WorkflowUpdate
-) -> Optional[models.Workflow]:
+def update_workflow(db: Session, workflow_id: uuid.UUID, workflow_update: schemas.WorkflowUpdate) -> Optional[models.Workflow]:
     db_workflow = get_workflow(db, workflow_id)
     if not db_workflow:
         return None
@@ -365,9 +336,7 @@ def delete_workflow(db: Session, workflow_id: uuid.UUID) -> bool:
 
 
 # WorkflowAgent CRUD operations
-def create_workflow_agent(
-    db: Session, workflow_agent: schemas.WorkflowAgentCreate
-) -> models.WorkflowAgent:
+def create_workflow_agent(db: Session, workflow_agent: schemas.WorkflowAgentCreate) -> models.WorkflowAgent:
     db_workflow_agent = models.WorkflowAgent(
         workflow_id=workflow_agent.workflow_id,
         agent_id=workflow_agent.agent_id,
@@ -382,19 +351,11 @@ def create_workflow_agent(
     return db_workflow_agent
 
 
-def get_workflow_agents(
-    db: Session, workflow_id: uuid.UUID
-) -> List[models.WorkflowAgent]:
-    return (
-        db.query(models.WorkflowAgent)
-        .filter(models.WorkflowAgent.workflow_id == workflow_id)
-        .all()
-    )
+def get_workflow_agents(db: Session, workflow_id: uuid.UUID) -> List[models.WorkflowAgent]:
+    return db.query(models.WorkflowAgent).filter(models.WorkflowAgent.workflow_id == workflow_id).all()
 
 
-def delete_workflow_agent(
-    db: Session, workflow_id: uuid.UUID, agent_id: uuid.UUID
-) -> bool:
+def delete_workflow_agent(db: Session, workflow_id: uuid.UUID, agent_id: uuid.UUID) -> bool:
     db_workflow_agent = (
         db.query(models.WorkflowAgent)
         .filter(
@@ -413,9 +374,7 @@ def delete_workflow_agent(
 
 
 # WorkflowConnection CRUD operations
-def create_workflow_connection(
-    db: Session, connection: schemas.WorkflowConnectionCreate
-) -> models.WorkflowConnection:
+def create_workflow_connection(db: Session, connection: schemas.WorkflowConnectionCreate) -> models.WorkflowConnection:
     db_connection = models.WorkflowConnection(
         workflow_id=connection.workflow_id,
         source_agent_id=connection.source_agent_id,
@@ -432,14 +391,8 @@ def create_workflow_connection(
     return db_connection
 
 
-def get_workflow_connections(
-    db: Session, workflow_id: uuid.UUID
-) -> List[models.WorkflowConnection]:
-    return (
-        db.query(models.WorkflowConnection)
-        .filter(models.WorkflowConnection.workflow_id == workflow_id)
-        .all()
-    )
+def get_workflow_connections(db: Session, workflow_id: uuid.UUID) -> List[models.WorkflowConnection]:
+    return db.query(models.WorkflowConnection).filter(models.WorkflowConnection.workflow_id == workflow_id).all()
 
 
 def delete_workflow_connection(
@@ -467,9 +420,7 @@ def delete_workflow_connection(
 
 
 # WorkflowDeployment CRUD operations
-def create_workflow_deployment(
-    db: Session, deployment: schemas.WorkflowDeploymentCreate
-) -> models.WorkflowDeployment:
+def create_workflow_deployment(db: Session, deployment: schemas.WorkflowDeploymentCreate) -> models.WorkflowDeployment:
     db_deployment = models.WorkflowDeployment(
         workflow_id=deployment.workflow_id,
         environment=deployment.environment,
@@ -491,24 +442,12 @@ def create_workflow_deployment(
     return db_deployment
 
 
-def get_workflow_deployment(
-    db: Session, deployment_id: uuid.UUID
-) -> Optional[models.WorkflowDeployment]:
-    return (
-        db.query(models.WorkflowDeployment)
-        .filter(models.WorkflowDeployment.deployment_id == deployment_id)
-        .first()
-    )
+def get_workflow_deployment(db: Session, deployment_id: uuid.UUID) -> Optional[models.WorkflowDeployment]:
+    return db.query(models.WorkflowDeployment).filter(models.WorkflowDeployment.deployment_id == deployment_id).first()
 
 
-def get_workflow_deployment_by_workflow_id(
-    db: Session, workflow_id: uuid.UUID
-) -> Optional[models.WorkflowDeployment]:
-    return (
-        db.query(models.WorkflowDeployment)
-        .filter(models.WorkflowDeployment.workflow_id == workflow_id)
-        .first()
-    )
+def get_workflow_deployment_by_workflow_id(db: Session, workflow_id: uuid.UUID) -> Optional[models.WorkflowDeployment]:
+    return db.query(models.WorkflowDeployment).filter(models.WorkflowDeployment.workflow_id == workflow_id).first()
 
 
 def get_workflow_deployment_by_name(
@@ -525,11 +464,7 @@ def get_workflow_deployment_by_name(
 
 
 def get_active_workflow_deployments(db: Session) -> List[models.WorkflowDeployment]:
-    return (
-        db.query(models.WorkflowDeployment)
-        .filter(models.WorkflowDeployment.status == "active")
-        .all()
-    )
+    return db.query(models.WorkflowDeployment).filter(models.WorkflowDeployment.status == "active").all()
 
 
 def update_workflow_deployment(
@@ -563,9 +498,7 @@ def delete_workflow_deployment(db: Session, deployment_id: uuid.UUID) -> bool:
     return True
 
 
-def create_agent_execution_metrics(
-    db: Session, metrics: schemas.AgentExecutionMetricsCreate
-) -> models.AgentExecutionMetrics:
+def create_agent_execution_metrics(db: Session, metrics: schemas.AgentExecutionMetricsCreate) -> models.AgentExecutionMetrics:
     db_metrics = models.AgentExecutionMetrics(
         execution_id=metrics.execution_id or uuid.uuid4(),
         agent_id=metrics.agent_id,
@@ -589,9 +522,7 @@ def update_agent_execution_metrics(
     metrics_update: schemas.AgentExecutionMetricsUpdate,
 ) -> Optional[models.AgentExecutionMetrics]:
     db_metrics = (
-        db.query(models.AgentExecutionMetrics)
-        .filter(models.AgentExecutionMetrics.execution_id == execution_id)
-        .first()
+        db.query(models.AgentExecutionMetrics).filter(models.AgentExecutionMetrics.execution_id == execution_id).first()
     )
     if not db_metrics:
         return None
@@ -605,19 +536,11 @@ def update_agent_execution_metrics(
     return db_metrics
 
 
-def get_agent_execution_metrics(
-    db: Session, execution_id: uuid.UUID
-) -> Optional[models.AgentExecutionMetrics]:
-    return (
-        db.query(models.AgentExecutionMetrics)
-        .filter(models.AgentExecutionMetrics.execution_id == execution_id)
-        .first()
-    )
+def get_agent_execution_metrics(db: Session, execution_id: uuid.UUID) -> Optional[models.AgentExecutionMetrics]:
+    return db.query(models.AgentExecutionMetrics).filter(models.AgentExecutionMetrics.execution_id == execution_id).first()
 
 
-def create_tool_usage_metrics(
-    db: Session, metrics: schemas.ToolUsageMetricsCreate
-) -> models.ToolUsageMetrics:
+def create_tool_usage_metrics(db: Session, metrics: schemas.ToolUsageMetricsCreate) -> models.ToolUsageMetrics:
     db_metrics = models.ToolUsageMetrics(
         usage_id=metrics.usage_id or uuid.uuid4(),
         tool_name=metrics.tool_name,
@@ -636,11 +559,7 @@ def create_tool_usage_metrics(
 def update_tool_usage_metrics(
     db: Session, usage_id: uuid.UUID, metrics_update: schemas.ToolUsageMetricsUpdate
 ) -> Optional[models.ToolUsageMetrics]:
-    db_metrics = (
-        db.query(models.ToolUsageMetrics)
-        .filter(models.ToolUsageMetrics.usage_id == usage_id)
-        .first()
-    )
+    db_metrics = db.query(models.ToolUsageMetrics).filter(models.ToolUsageMetrics.usage_id == usage_id).first()
     if not db_metrics:
         return None
 
@@ -653,9 +572,7 @@ def update_tool_usage_metrics(
     return db_metrics
 
 
-def create_workflow_metrics(
-    db: Session, metrics: schemas.WorkflowMetricsCreate
-) -> models.WorkflowMetrics:
+def create_workflow_metrics(db: Session, metrics: schemas.WorkflowMetricsCreate) -> models.WorkflowMetrics:
     db_metrics = models.WorkflowMetrics(
         workflow_id=metrics.workflow_id or uuid.uuid4(),
         workflow_type=metrics.workflow_type,
@@ -675,11 +592,7 @@ def create_workflow_metrics(
 def update_workflow_metrics(
     db: Session, workflow_id: uuid.UUID, metrics_update: schemas.WorkflowMetricsUpdate
 ) -> Optional[models.WorkflowMetrics]:
-    db_metrics = (
-        db.query(models.WorkflowMetrics)
-        .filter(models.WorkflowMetrics.workflow_id == workflow_id)
-        .first()
-    )
+    db_metrics = db.query(models.WorkflowMetrics).filter(models.WorkflowMetrics.workflow_id == workflow_id).first()
     if not db_metrics:
         return None
 
@@ -692,9 +605,7 @@ def update_workflow_metrics(
     return db_metrics
 
 
-def create_session_metrics(
-    db: Session, metrics: schemas.SessionMetricsCreate
-) -> models.SessionMetrics:
+def create_session_metrics(db: Session, metrics: schemas.SessionMetricsCreate) -> models.SessionMetrics:
     db_metrics = models.SessionMetrics(
         session_id=metrics.session_id,
         start_time=metrics.start_time or datetime.now(),
@@ -711,11 +622,7 @@ def create_session_metrics(
 def update_session_metrics(
     db: Session, session_id: str, metrics_update: schemas.SessionMetricsUpdate
 ) -> Optional[models.SessionMetrics]:
-    db_metrics = (
-        db.query(models.SessionMetrics)
-        .filter(models.SessionMetrics.session_id == session_id)
-        .first()
-    )
+    db_metrics = db.query(models.SessionMetrics).filter(models.SessionMetrics.session_id == session_id).first()
     if not db_metrics:
         return None
 
@@ -728,14 +635,8 @@ def update_session_metrics(
     return db_metrics
 
 
-def get_session_metrics(
-    db: Session, session_id: str
-) -> Optional[models.SessionMetrics]:
-    return (
-        db.query(models.SessionMetrics)
-        .filter(models.SessionMetrics.session_id == session_id)
-        .first()
-    )
+def get_session_metrics(db: Session, session_id: str) -> Optional[models.SessionMetrics]:
+    return db.query(models.SessionMetrics).filter(models.SessionMetrics.session_id == session_id).first()
 
 
 def get_agent_usage_stats(
@@ -776,11 +677,7 @@ def get_agent_usage_stats(
             models.AgentExecutionMetrics.status == "failure",
         ).count()
 
-        success_rate = (
-            success_count / stat.total_executions * 100
-            if stat.total_executions > 0
-            else 0
-        )
+        success_rate = success_count / stat.total_executions * 100 if stat.total_executions > 0 else 0
 
         result.append(
             schemas.AgentUsageStats(
@@ -834,9 +731,7 @@ def get_tool_usage_stats(
             models.ToolUsageMetrics.status == "failure",
         ).count()
 
-        success_rate = (
-            success_count / stat.total_calls * 100 if stat.total_calls > 0 else 0
-        )
+        success_rate = success_count / stat.total_calls * 100 if stat.total_calls > 0 else 0
 
         # Get most used by agent (simplified)
         most_used_agent = "Unknown"  # Simplified for now
@@ -893,11 +788,7 @@ def get_workflow_performance_stats(
             models.WorkflowMetrics.status == "failure",
         ).count()
 
-        success_rate = (
-            success_count / stat.total_workflows * 100
-            if stat.total_workflows > 0
-            else 0
-        )
+        success_rate = success_count / stat.total_workflows * 100 if stat.total_workflows > 0 else 0
 
         result.append(
             schemas.WorkflowPerformanceStats(
@@ -919,27 +810,19 @@ def get_error_summary(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
 ) -> List[schemas.ErrorSummary]:
-    exec_query = db.query(models.AgentExecutionMetrics).filter(
-        models.AgentExecutionMetrics.status == "failure"
-    )
+    exec_query = db.query(models.AgentExecutionMetrics).filter(models.AgentExecutionMetrics.status == "failure")
 
     if start_date:
-        exec_query = exec_query.filter(
-            models.AgentExecutionMetrics.start_time >= start_date
-        )
+        exec_query = exec_query.filter(models.AgentExecutionMetrics.start_time >= start_date)
     if end_date:
-        exec_query = exec_query.filter(
-            models.AgentExecutionMetrics.start_time <= end_date
-        )
+        exec_query = exec_query.filter(models.AgentExecutionMetrics.start_time <= end_date)
 
     total_errors = exec_query.count()
 
     # Group by error type (simplified - using first word of error message)
     error_stats = (
         exec_query.with_entities(
-            func.split_part(models.AgentExecutionMetrics.error_message, " ", 1).label(
-                "error_type"
-            ),
+            func.split_part(models.AgentExecutionMetrics.error_message, " ", 1).label("error_type"),
             func.count().label("count"),
             models.AgentExecutionMetrics.agent_name,
         )
@@ -962,9 +845,7 @@ def get_error_summary(
     result = []
     for error_type, data in error_dict.items():
         percentage = (data["count"] / total_errors * 100) if total_errors > 0 else 0
-        most_affected_agent = (
-            max(data["agents"], key=data["agents"].get) if data["agents"] else None
-        )
+        most_affected_agent = max(data["agents"], key=data["agents"].get) if data["agents"] else None
 
         result.append(
             schemas.ErrorSummary(
@@ -988,45 +869,25 @@ def get_session_activity_stats(
     exec_query = db.query(models.AgentExecutionMetrics)
 
     if start_date:
-        session_query = session_query.filter(
-            models.SessionMetrics.start_time >= start_date
-        )
-        exec_query = exec_query.filter(
-            models.AgentExecutionMetrics.start_time >= start_date
-        )
+        session_query = session_query.filter(models.SessionMetrics.start_time >= start_date)
+        exec_query = exec_query.filter(models.AgentExecutionMetrics.start_time >= start_date)
     if end_date:
-        session_query = session_query.filter(
-            models.SessionMetrics.start_time <= end_date
-        )
-        exec_query = exec_query.filter(
-            models.AgentExecutionMetrics.start_time <= end_date
-        )
+        session_query = session_query.filter(models.SessionMetrics.start_time <= end_date)
+        exec_query = exec_query.filter(models.AgentExecutionMetrics.start_time <= end_date)
 
     total_sessions = session_query.count()
-    active_sessions = session_query.filter(
-        models.SessionMetrics.is_active == True
-    ).count()
+    active_sessions = session_query.filter(models.SessionMetrics.is_active).count()
 
-    avg_duration = session_query.with_entities(
-        func.avg(models.SessionMetrics.duration_ms)
-    ).scalar()
+    avg_duration = session_query.with_entities(func.avg(models.SessionMetrics.duration_ms)).scalar()
 
-    avg_queries = session_query.with_entities(
-        func.avg(models.SessionMetrics.total_queries)
-    ).scalar()
+    avg_queries = session_query.with_entities(func.avg(models.SessionMetrics.total_queries)).scalar()
 
     # Query stats
     total_queries = exec_query.count()
-    successful_queries = exec_query.filter(
-        models.AgentExecutionMetrics.status == "success"
-    ).count()
-    failed_queries = exec_query.filter(
-        models.AgentExecutionMetrics.status == "failure"
-    ).count()
+    successful_queries = exec_query.filter(models.AgentExecutionMetrics.status == "success").count()
+    failed_queries = exec_query.filter(models.AgentExecutionMetrics.status == "failure").count()
 
-    query_success_rate = (
-        successful_queries / total_queries * 100 if total_queries > 0 else 0
-    )
+    query_success_rate = successful_queries / total_queries * 100 if total_queries > 0 else 0
 
     return schemas.SessionActivityStats(
         total_sessions=total_sessions,

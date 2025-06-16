@@ -14,13 +14,14 @@ import ChatSidebar from "./ChatSidebar";
 
 // Import types
 import { AgentType, AGENT_TYPES } from "./type";
-import { AgentNodeData, SavedWorkflow, WorkflowAgent, WorkflowCreateRequest, WorkflowResponse } from "../lib/interfaces";
+import { AgentNodeData, AgentResponse, SavedWorkflow, WorkflowAgent, WorkflowCreateRequest, WorkflowResponse } from "../lib/interfaces";
 
 // Import styles
 import "./AgentConfigForm.scss";
 import { WorkflowAPI } from "../api/workflowApi.ts";
 import HeaderBottom from "./HeaderBottom.tsx";
 import { createWorkflow } from "../lib/actions.tsx";
+import { isAgentResponse } from "../lib/discriminators.tsx";
 
 // Define additional types needed
 interface Node {
@@ -49,27 +50,27 @@ interface ChatMessage {
   sender: "user" | "bot";
 }
 
-interface WorkflowConfig {
-  workflowId: string;
-  workflowName: string;
-  agents: Array<{
-    id: string;
-    uuid: string;
-    type: AgentType;
-    name: string;
-    prompt?: string;
-    tools?: string[];
-    tags?: string[];
-    position: {
-      x: number;
-      y: number;
-    };
-  }>;
-  connections: Array<{
-    fromUuid: string;
-    toUuid: string;
-  }>;
-}
+// interface WorkflowConfig {
+//   workflowId: string;
+//   workflowName: string;
+//   agents: Array<{
+//     id: string;
+//     uuid: string;
+//     type: AgentType;
+//     name: string;
+//     prompt?: string;
+//     tools?: string[];
+//     tags?: string[];
+//     position: {
+//       x: number;
+//       y: number;
+//     };
+//   }>;
+//   connections: Array<{
+//     fromUuid: string;
+//     toUuid: string;
+//   }>;
+// }
 
 const AgentConfigForm: React.FC = () => {
   // First, let's handle the client-side initialization properly
@@ -149,6 +150,9 @@ const AgentConfigForm: React.FC = () => {
       try {
         const agentData = JSON.parse(agentDataJson);
         console.log("Dropped agent data:", agentData);
+        if (!agentData || !isAgentResponse(agentData)) {
+          throw new Error("Invalid agent data");
+        }
 
         // Get drop position in react-flow coordinates
         const position = reactFlowInstanceRef.current.project({
@@ -163,32 +167,32 @@ const AgentConfigForm: React.FC = () => {
           type: "agent",
           position,
           data: {
-            id: nodeId,
-            shortId: agentData.id,
-            type: agentData.type,
+            id: agentData.agent_id,
+            shortId: agentData.id.toString(),
+            type: agentData.agent_type || "custom",
             name: agentData.name,
             prompt: "", // Initialize with empty prompt
-            tools: agentData.tools, // Default tools
-            tags: [agentData.type], // Initialize tags with the type
+            tools: agentData.functions, // ChatCompletionToolParam array
+            tags: [agentData.agent_type || "custom"], // Initialize tags with the type
             onDelete: handleDeleteNode,
             onConfigure: () => handleNodeSelect({
               id: nodeId,
               type: "agent",
               position,
               data: {
-                id: nodeId,
-                shortId: agentData.id,
-                type: agentData.type,
+                id: agentData.agent_id,
+                shortId: agentData.id.toString(),
+                type: agentData.agent_type || "custom",
                 name: agentData.name,
-                prompt: "",
-                tools: agentData.tools,
-                tags: [agentData.type],
+                prompt: agentData.system_prompt?.prompt || "",
+                tools: agentData.functions, // ChatCompletionToolParam array
+                tags: [agentData.agent_type || "custom"],
                 onDelete: handleDeleteNode,
                 onConfigure: () => { }, // This will be overwritten
-                agent: agentData.agent
+                agent: agentData
               }
             }),
-            agent: agentData.agent
+            agent: agentData
           },
         };
 
@@ -213,13 +217,10 @@ const AgentConfigForm: React.FC = () => {
   }, []);
 
   // Handle drag start for agent types
-  const handleDragStart = useCallback((event: React.DragEvent<HTMLDivElement>, agent: any) => {
+  const handleDragStart = useCallback((event: React.DragEvent<HTMLDivElement>, agent: AgentResponse) => {
     // Ensure the agent has all required properties
-    const dragData = {
-      id: agent.id || `agent-${Date.now()}`,
-      type: agent.type || 'custom',
-      name: agent.name || 'Custom Agent',
-    };
+    const dragData = agent;
+    console.log("Dragging agent:", dragData);
 
     // Set the data transfer
     event.dataTransfer.setData("application/reactflow", JSON.stringify(dragData));
@@ -458,7 +459,7 @@ const AgentConfigForm: React.FC = () => {
               type: agent.agent_type || "custom",
               name: agent.name,
               prompt: agent.system_prompt?.prompt || "",
-              tools: agent.functions?.map((func: any) => func.name) || [],
+              tools: agent.functions || [], // Keep as ChatCompletionToolParam array
               tags: [agent.agent_type || "custom"],
               config: { model: agent.system_prompt.ai_model_name, },
               onDelete: handleDeleteNode,
@@ -611,6 +612,15 @@ const AgentConfigForm: React.FC = () => {
                       onNameChange={(newName) => handleAgentNameChange(selectedNode.id, newName)}
                       toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
                       sidebarOpen={sidebarOpen}
+                      currentFunctions={selectedNode.data.tools || []}
+                      onFunctionsChange={(functions) => {
+                        // Update the node's tools when functions change
+                        setNodes(nodes => nodes.map(node =>
+                          node.id === selectedNode.id
+                            ? { ...node, data: { ...node.data, tools: functions } }
+                            : node
+                        ));
+                      }}
                     />
                   </div>
                 )}

@@ -1,4 +1,4 @@
-import type { ChatMessageResponse, SessionSummaryObject, AgentResponse, WorkflowDeployResponse, WorkflowExecutionResponse, ToolsResponse, ToolCategoryResponse, ToolDetailResponse, WorkflowResponse, SavedWorkflow, DeploymentOperationResponse } from "./interfaces";
+import type { ChatMessageResponse, SessionSummaryObject, AgentResponse, WorkflowDeployResponse, WorkflowExecutionResponse, ToolsResponse, ToolCategoryResponse, ToolDetailResponse, WorkflowResponse, SavedWorkflow, DeploymentOperationResponse, ChatCompletionToolParam, FunctionDefinition } from "./interfaces";
 
 
 
@@ -88,6 +88,23 @@ function isSessionSummaryObject(item: unknown): item is SessionSummaryObject {
         "solution" in item;
 }
 
+function isChatCompletionToolParam(item: unknown): item is ChatCompletionToolParam {
+    return isObject(item) &&
+        "type" in item &&
+        "function" in item &&
+        item.type === "function" &&
+        isFunctionDefinition(item.function);
+}
+
+function isFunctionDefinition(item: unknown): item is FunctionDefinition {
+    return isObject(item) &&
+        "name" in item &&
+        typeof item.name === "string" &&
+        // description and parameters are optional
+        (!("description" in item) || typeof item.description === "string") &&
+        (!("parameters" in item) || typeof item.parameters === "object");
+}
+
 function isAgentResponseObject(item: unknown): item is AgentResponse {
     return isObject(item) &&
         "name" in item &&
@@ -100,6 +117,7 @@ function isAgentResponseObject(item: unknown): item is AgentResponse {
         typeof item.name === "string" &&
         typeof item.system_prompt_id === "string" &&
         Array.isArray(item.functions) &&
+        item.functions.every(func => isChatCompletionToolParam(func)) &&
         typeof item.routing_options === "object" &&
         typeof item.id === "number" &&
         typeof item.agent_id === "string" &&

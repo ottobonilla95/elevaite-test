@@ -7,8 +7,9 @@ import inspect
 import functools
 from typing import Any, Callable, Dict, List, Protocol, Union, cast, get_type_hints
 
+from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
+from openai.types.shared_params.function_definition import FunctionDefinition
 from agents.agent_base import Agent
-
 
 dotenv.load_dotenv(".env.local")
 dotenv.load_dotenv(".env")
@@ -24,7 +25,7 @@ except Exception as e:
 
 
 class OpenAISchemaFunction(Protocol):
-    openai_schema: Dict[str, Any]
+    openai_schema: ChatCompletionToolParam
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
 
@@ -35,29 +36,49 @@ def function_schema(func: Callable[..., Any]) -> OpenAISchemaFunction:
     Decorator that generates an OpenAI function schema and attaches it to the function.
     """
 
-    def python_function_to_openai_schema(func) -> Dict[str, Any]:
+    def python_function_to_openai_schema(func) -> ChatCompletionToolParam:
         """Converts a function into an OpenAI JSON schema."""
         signature = inspect.signature(func)
         type_hints = get_type_hints(func)
 
-        schema = {
-            "type": "function",
-            "function": {
-                "name": func.__name__,
-                "description": func.__doc__ or f"Function {func.__name__}",
-                "parameters": {"type": "object", "properties": {}, "required": []},
-            },
-        }
+        schema = ChatCompletionToolParam(
+            type="function",
+            function=FunctionDefinition(
+                name=func.__name__,
+                description=func.__doc__ or f"Function {func.__name__}",
+                parameters={
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                },
+            ),
+        )
 
         for param_name, param in signature.parameters.items():
             param_type = type_hints.get(param_name, Any)
             openai_type, is_optional = python_type_to_openai_type(param_type)
 
             # schema["parameters"]["properties"][param_name] = {
+            if "parameters" not in schema["function"]:
+                schema["function"]["parameters"] = {
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                }
+            if "properties" not in schema["function"]["parameters"] or not isinstance(
+                schema["function"]["parameters"]["properties"], Dict
+            ):
+                schema["function"]["parameters"]["properties"] = {}
             schema["function"]["parameters"]["properties"][param_name] = {
                 "type": openai_type,
                 "description": f"{param_name} parameter",
             }
+            if (
+                "required" not in schema["function"]["parameters"]
+                or schema["function"]["parameters"]["required"] is None
+                or not isinstance(schema["function"]["parameters"]["required"], List)
+            ):
+                schema["function"]["parameters"]["required"] = []
 
             # Add to required list only if it's not Optional and has no default value
             if not is_optional and param.default is inspect.Parameter.empty:
@@ -127,8 +148,7 @@ def agent_schema(cls: type[Agent]) -> AgentWithSchema:
             "type": "function",
             "function": {
                 "name": agent_cls.__name__,  # Tool name = Class name
-                "description": execute_method.__doc__
-                or f"Agent {agent_cls.__name__} execution function",
+                "description": execute_method.__doc__ or f"Agent {agent_cls.__name__} execution function",
                 "parameters": {"type": "object", "properties": {}, "required": []},
             },
         }

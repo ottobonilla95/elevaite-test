@@ -306,7 +306,7 @@ const DesignerSidebar: React.FC<DesignerSidebarProps> = ({
                             ['router', 'web_search', 'api', 'data', 'toshiba'].includes(agent.agent_type as AgentType)
                         ).map((agent) => (
                             <SidebarItem
-                                key={agent.id}
+                                key={agent.agent_id}
                                 icon={
                                     <div className={`w-8 h-8 rounded-md ${getAgentIconClass(agent.agent_type as AgentType)} flex items-center justify-center`}>
                                         {getAgentIcon(agent.agent_type as AgentType)}

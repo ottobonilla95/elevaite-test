@@ -12,6 +12,7 @@ import {
   isWorkflowResponse,
   isWorkflowResponseArray,
   isDeploymentOperationResponse,
+  isAgentResponse,
 } from "./discriminators";
 import type {
   ChatBotGenAI,
@@ -19,6 +20,9 @@ import type {
   ChatbotV,
   SessionSummaryObject,
   AgentResponse,
+  AgentCreate,
+  AgentUpdate,
+  ChatCompletionToolParam,
   WorkflowDeployRequest,
   WorkflowDeployResponse,
   WorkflowExecutionRequest,
@@ -115,6 +119,54 @@ export async function fetchAvailableAgents(): Promise<AgentResponse[]> {
   const data: unknown = await response.json();
   if (isAgentResponseArray(data)) return data;
   throw new Error("Invalid data type - expected array of agents");
+}
+
+export async function updateAgent(
+  agentId: string,
+  agentUpdate: AgentUpdate
+): Promise<AgentResponse> {
+  const url = new URL(`${BACKEND_URL ?? ""}api/agents/${agentId}`);
+
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(agentUpdate),
+  });
+
+  if (!response.ok) throw new Error("Failed to update agent");
+
+  const data: unknown = await response.json();
+  if (isAgentResponse(data)) return data;
+  throw new Error("Invalid data type - expected agent response");
+}
+
+export async function updateAgentFunctions(
+  agentId: string,
+  functions: ChatCompletionToolParam[]
+): Promise<AgentResponse> {
+  return updateAgent(agentId, { functions });
+}
+
+export async function createAgent(
+  agentData: AgentCreate
+): Promise<AgentResponse> {
+  const url = new URL(`${BACKEND_URL ?? ""}api/agents/`);
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(agentData),
+  });
+
+  if (!response.ok) throw new Error("Failed to create agent");
+
+  const data: unknown = await response.json();
+  if (isAgentResponse(data)) return data;
+  throw new Error("Invalid data type - expected agent response");
 }
 
 export async function getWorkflows(): Promise<WorkflowResponse[]> {
@@ -391,11 +443,20 @@ export async function fetchToolDetails(toolName: string): Promise<ToolDetailResp
   throw new Error("Invalid data type - expected tool detail response");
 }
 
-export async function fetchToolSchemas(): Promise<any> {
+export async function fetchToolSchemas(): Promise<{
+  schemas: Record<string, ChatCompletionToolParam>;
+  total_count: number;
+  format: string;
+}> {
   const url = new URL(`${BACKEND_URL ?? ""}api/tools/schemas/openai`);
 
   const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to fetch tool schemas");
 
   return await response.json();
+}
+
+export async function fetchToolSchemasAsArray(): Promise<ChatCompletionToolParam[]> {
+  const schemasResponse = await fetchToolSchemas();
+  return Object.values(schemasResponse.schemas);
 }
