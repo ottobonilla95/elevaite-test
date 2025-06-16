@@ -131,17 +131,6 @@ class Agent(BaseModel):
 
         try:
             tries = 0
-
-            # Build messages array
-            messages: List[ChatCompletionMessageParam] = []
-
-            # Add chat history if provided
-            if chat_history:
-                # Cast chat history to proper message format
-                messages.extend(cast(List[ChatCompletionMessageParam], chat_history))
-
-            # Build routing options string if available
-            routing_options = ""
             if self.routing_options:
                 routing_options = "\n".join(
                     [f"{k}: {v}" for k, v in self.routing_options.items()]
@@ -159,12 +148,20 @@ class Agent(BaseModel):
             else:
                 system_prompt = self.system_prompt.prompt
 
-            messages.extend(
-                [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": query},
+            # Build messages array
+            messages: List[ChatCompletionMessageParam] = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": query},
+            ]
+
+            # Add chat history if provided
+            if chat_history:
+                # Insert chat history before the current query
+                messages = [
+                    {"role": "system", "content": system_prompt}
+                ] + cast(List[ChatCompletionMessageParam], chat_history) + [
+                    {"role": "user", "content": query}
                 ]
-            )
 
             # Main retry loop
             while tries < self.max_retries:

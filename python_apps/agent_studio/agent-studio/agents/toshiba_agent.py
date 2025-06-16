@@ -4,7 +4,6 @@ Adapted for the agent_studio workflow system with streaming support
 """
 
 import json
-import time
 import uuid
 import asyncio
 from typing import Any, List, Dict, Optional, AsyncGenerator
@@ -21,77 +20,22 @@ class ToshibaAgent(Agent):
     Supports both synchronous and asynchronous execution with streaming capabilities.
     """
 
-    def execute(self, query: str, chat_history: Optional[List[Dict[str, str]]] = None, **kwargs: Any) -> str:
-        """
-        Synchronous execution for compatibility with workflow system
-        """
-        tries = 0
-        start_time = datetime.now()
-
-        # Convert chat_history to the format expected by ToshibaAgent
-        formatted_chat_history = []
-        if chat_history:
-            for msg in chat_history:
-                if msg.get("actor") == "user":
-                    formatted_chat_history.append({"role": "user", "content": msg.get("content", "")})
-                elif msg.get("actor") == "assistant":
-                    formatted_chat_history.append({"role": "assistant", "content": msg.get("content", "")})
-
-        routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
-        system_prompt = (
-            self.system_prompt.prompt
-            + f"""\n\n
-        Here are the routing options:
-        {routing_options}
-        """
-        )
-
-        messages = formatted_chat_history + [{"role": "system", "content": system_prompt}, {"role": "user", "content": query}]
-
-        while tries < self.max_retries:
-            try:
-                response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=messages,
-                    tools=self.functions,
-                    tool_choice="auto",
-                    temperature=0,
-                    response_format={"type": "json_object"},
-                )
-
-                if response.choices[0].finish_reason == "tool_calls":
-                    tool_calls = response.choices[0].message.tool_calls
-                    messages += [{"role": "assistant", "tool_calls": tool_calls}]
-
-                    for tool in tool_calls:
-                        tool_id = tool.id
-                        arguments = json.loads(tool.function.arguments)
-                        function_name = tool.function.name
-
-                        if function_name in tool_store:
-                            result = tool_store[function_name](**arguments)
-                            # Handle different result formats
-                            if isinstance(result, (list, tuple)) and len(result) > 0:
-                                result = result[0]
-                        else:
-                            result = f"Tool {function_name} not found"
-
-                        messages += [{"role": "tool", "tool_call_id": tool_id, "content": str(result)}]
-                else:
-                    print(f"Time taken by ToshibaAgent: {datetime.now() - start_time}")
-                    return response.choices[0].message.content or json.dumps(
-                        {"routing": "failed", "content": "No response generated"}
-                    )
-
-            except Exception as e:
-                print(f"ToshibaAgent Error: {e}")
-                tries += 1
-
-        return json.dumps(
-            {
-                "routing": "failed",
-                "content": "Couldn't find the answer to your query. Can you please provide some more context?",
-            }
+    def execute(
+        self,
+        query: str,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        chat_history: Optional[List[Dict[str, Any]]] = None,
+        enable_analytics: bool = False,
+        **kwargs: Any,
+    ) -> str:
+        return super().execute(
+            query=query,
+            session_id=session_id,
+            user_id=user_id,
+            chat_history=chat_history,
+            enable_analytics=enable_analytics,
+            **kwargs,
         )
 
     async def execute_async(

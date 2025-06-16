@@ -242,23 +242,20 @@ class ConsolePrinterAgent(Agent):
                 print(f"Error: {e}")
             tries += 1
 
-    def execute(self, **kwargs: Any) -> Any:
-        """
-        This agent prints the input to the console.
-        Uses Redis for communication.
-        """
-        query = kwargs.get("query", "")
-        # Use request-reply pattern for synchronous communication
-        if self.stream_name is None:
-            return "Error: No stream name configured for this agent"
-
-        response = self.request_reply(
-            self.stream_name,
-            {"type": "query", "query": query, "priority": kwargs.get("priority", 0)},
-            timeout=self.timeout or 10,
+    def execute(
+        self,
+        query: str,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        chat_history: Optional[List[Dict[str, Any]]] = None,
+        enable_analytics: bool = False,
+        **kwargs: Any,
+    ) -> str:
+        return super().execute(
+            query=query,
+            session_id=session_id,
+            user_id=user_id,
+            chat_history=chat_history,
+            enable_analytics=enable_analytics,
+            **kwargs,
         )
-
-        if response:
-            return response.get("result", "No result returned")
-        else:
-            return "Timeout or error occurred while waiting for response"
