@@ -71,6 +71,7 @@ export interface PromptContextStructure {
   jsonOutput: String,
   setJsonOutput: (output: string) => void,
   defaultPromptInputs: PromptInputItem[],
+  actionRunOnSelectedPages: (pages: number[]) => void
 }
 
 export const PromptContext = createContext<PromptContextStructure>({
@@ -113,6 +114,7 @@ export const PromptContext = createContext<PromptContextStructure>({
   jsonOutput: '',
   setJsonOutput: () => undefined,
   defaultPromptInputs: [],
+  actionRunOnSelectedPages: () => undefined
 });
 
 
@@ -419,7 +421,9 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     }
   }
 
-
+  function actionRunOnSelectedPages(pages: number[]) {
+    console.log("run action for pages " + pages.join(','));
+  }
 
   return (
     <PromptContext.Provider
@@ -463,6 +467,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
         jsonOutput,
         setJsonOutput,
         defaultPromptInputs,
+        actionRunOnSelectedPages
       }}
     >
       {props.children}

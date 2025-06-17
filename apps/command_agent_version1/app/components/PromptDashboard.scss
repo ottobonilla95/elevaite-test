@@ -179,16 +179,51 @@
 }
 
 .custom-checkboxes {
+	position: absolute;
+	top: 100%;
+	left: 0;
 	border: 1px solid rgba(227, 232, 239, 1);
+	filter: drop-shadow(0 1px 1px 0 rgba(0, 0, 0, 0.04));
 
 	.custom-checkbox {
+		padding: 12px;
 		border-bottom: 1px solid #E3E8EF;
 	}
 
 	label {
-		display: block;
-		padding: 12px;
 		cursor: pointer;
+
+		&[class="All Pages"] {
+			cursor: default;
+
+			span {
+				&::before,
+				&::after {
+					display: none;
+				}
+			}
+		}
+	}
+
+	.versions {
+		&-label {
+			span {
+				font-style: italic;
+				color: var(--orange);
+				font-size: 12px;
+				padding: 2px 4px;
+				border-radius: 4px;
+				border: 1px solid var(--orange);
+			}
+		}
+	}
+
+	.version {
+		border: 1px solid rgb(226, 232, 237);
+
+		& + .version {
+			margin-top: 8px;
+		}
 	}
 
 	[type="checkbox"] {
