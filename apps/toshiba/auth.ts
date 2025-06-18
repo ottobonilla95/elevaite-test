@@ -54,7 +54,7 @@ export const authOptions: NextAuthConfig = {
             const needsPasswordReset =
               tokenResponse.password_change_required === true;
 
-            return {
+            const user = {
               id: userDetails.id.toString(),
               email: userDetails.email,
               name: userDetails.full_name ?? email,
@@ -62,6 +62,8 @@ export const authOptions: NextAuthConfig = {
               refreshToken: tokenResponse.refresh_token,
               needsPasswordReset,
             } satisfies User;
+
+            return user;
           } catch (error) {
             // Provide more detailed error message for specific errors
             if (error instanceof Error) {

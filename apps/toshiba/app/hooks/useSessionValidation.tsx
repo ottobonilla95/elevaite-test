@@ -72,7 +72,9 @@ export function useSessionValidation(): {
 
       // Call the server action to validate the session
       const response = await fetch("/api/auth/validate-session", {
+        method: "POST",
         headers: {
+          "Content-Type": "application/json",
           "X-Refresh-Token": refreshToken || "",
         },
       });
