@@ -10,7 +10,7 @@ class AbbreviationTrie:
 
     def insert(self, key: str, value: str):
         node = self.root
-        for char in key.lower():
+        for char in key:
             if char not in node.children:
                 node.children[char] = TrieNode()
             node = node.children[char]
@@ -24,7 +24,7 @@ class AbbreviationTrie:
                 dfs(next_node, path + [char], results)
 
         node = self.root
-        for char in prefix.lower():
+        for char in prefix:
             if char not in node.children:
                 return []
             node = node.children[char]

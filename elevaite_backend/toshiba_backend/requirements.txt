@@ -16,3 +16,4 @@ scipy
 sqlalchemy
 asyncpg
 aiohttp
+boto3

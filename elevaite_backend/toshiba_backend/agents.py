@@ -30,7 +30,7 @@ class ToshibaAgent(Agent):
 
 
         # Initialize messages with chat history and system prompt
-        messages = [{"role": "user", "content": system_prompt}]
+        messages = [{"role": "system", "content": system_prompt}]
         messages.extend(chat_history)
         messages.append({"role": "user", "content": "Answer this query: " + query})
 
@@ -121,7 +121,7 @@ class ToshibaAgent(Agent):
                         print("-" * 100)
                         yield session_status
                         final_response = client.chat.completions.create(
-                            model="gpt-4o",
+                            model="gpt-4.1",
                             messages=messages,
                             temperature=0.6,
                             response_format={"type": "text"},
@@ -206,7 +206,7 @@ toshiba_agent = ToshibaAgent(name="ToshibaAgent",
                 agent_id=uuid.uuid4(),
                 system_prompt=toshiba_agent_system_prompt,
                 persona="Helper",
-                functions=[tool_schemas["query_retriever"], tool_schemas["customer_query_retriever"]],
+                functions=[tool_schemas["query_retriever"], tool_schemas["walgreens_query_retriever"], tool_schemas["kroger_query_retriever"], tool_schemas["tractor_query_retriever"], tool_schemas["dollar_general_query_retriever"], tool_schemas["sams_club_query_retriever"], tool_schemas["wegmans_query_retriever"], tool_schemas["ross_query_retriever"]],
                 routing_options={"ask": "If you think you need to ask more information or context from the user to answer the question.",
                                  "continue": "If you think you have the answer, you can stop here.",
                                  "give_up": "If you think you can't answer the query, you can give up and let the user know."

@@ -21,6 +21,7 @@ class ChatRequestTable(Base):
     qid = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     session_id = Column(UUID(as_uuid=True), nullable=True)
     sr_ticket_id = Column(String, nullable=True)
+    original_request = Column(String, nullable=True)
     request = Column(String, nullable=True)
     request_timestamp = Column(DateTime, nullable=True)
     response = Column(String, nullable=True)
@@ -234,6 +235,7 @@ class DatabaseConnection:
                     session_id=chat_request.session_id,
                     request=chat_request.request,
                     request_timestamp=chat_request.request_timestamp,
+                    original_request=chat_request.original_request,
                     response=chat_request.response,
                     response_timestamp=datetime.datetime.now(),
                     user_id=chat_request.user_id,
@@ -299,13 +301,11 @@ class DatabaseConnection:
     async def get_past_sessions(self, user_id: str):
         async with self.SessionLocal() as session:
             try:
-                stmt = select(ChatRequestTable.session_id).where(ChatRequestTable.session_id.in_(
-                    select(ChatRequestTable.session_id)
-                    .where(ChatRequestTable.user_id == user_id)
-                    .group_by(ChatRequestTable.session_id)
-                    .order_by(func.max(ChatRequestTable.request_timestamp).desc())
+                stmt =select(ChatRequestTable.session_id)\
+                    .where(ChatRequestTable.user_id == user_id)\
+                    .group_by(ChatRequestTable.session_id)\
+                    .order_by(func.max(ChatRequestTable.request_timestamp).desc())\
                     .limit(10)
-                ))
                 result = await session.execute(stmt)
                 chat_requests = result.scalars().all()
                 return chat_requests
@@ -318,7 +318,9 @@ class DatabaseConnection:
             try:
                 stmt = select(ChatRequestTable).where(ChatRequestTable.session_id == session_id)
                 result = await session.execute(stmt)
+                # print("Result: ", result)
                 chat_requests = result.scalars().all()
+                # print("Chat requests: ", chat_requests)
                 return chat_requests
             except Exception as e:
                 print(f"Error fetching session messages: {str(e)}")

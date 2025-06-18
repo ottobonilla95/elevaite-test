@@ -24,6 +24,7 @@ class QueryRequest(BaseModel):
     minimum_value: float = 0.35
     irrelevant_chunk_penalty: float = 0.1
     segment_method: str = "greedy"
+    machine_types: Optional[List[str]] = None
 
 app = FastAPI()
 
@@ -35,7 +36,8 @@ async def query_kb(request: QueryRequest):
         retrieval_start_time = time.time()
         retrieved_chunks, chunk_values = rerank_separately_then_merge(
             query=request.query, 
-            top_k=request.top_k
+            top_k=request.top_k,
+            machine_types=request.machine_types
         )
         retrieval_time = (time.time() - retrieval_start_time) * 1000
 
@@ -100,8 +102,8 @@ async def health_check():
     return {"status": "ok"}
 
 @app.post("/query-chunks")
-async def query_chunks_api(query: str, top_k: int = Query(20)):
-    request = QueryRequest(query=query, top_k=top_k)
+async def query_chunks_api(query: str, top_k: int = Query(20), machine_types: Optional[List[str]] = Query(None)):
+    request = QueryRequest(query=query, top_k=top_k, machine_types=machine_types)
     return await query_kb(request)
 
 if __name__ == "__main__":

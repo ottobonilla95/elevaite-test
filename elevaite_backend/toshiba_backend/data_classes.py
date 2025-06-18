@@ -123,6 +123,8 @@ class ChatRequest(BaseModel):
     session_id: uuid.UUID = Field(default_factory=uuid.UUID)
     user_id: str
     request: Optional[str]
+    original_request: Optional[str]
+    sr_ticket_id: Optional[str]
     request_timestamp: Optional[datetime]
     response: Optional[str]
     response_timestamp: Optional[datetime]
@@ -148,6 +150,22 @@ class AgentFlow(BaseModel):
     created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
     updated_at: datetime = Field(default_factory=lambda: datetime.now())
 
+
+class SourceReference(BaseModel):
+    filename: str
+    pages: str
+    url: Optional[str] = None
+    awsLink: Optional[str] = None
+    fullMatchText: Optional[str] = None
+
+    # def __init__(self, filename: str, pages: str, url: str = None, awsLink: str = None, fullMatchText: str = None):
+    #     self.filename = filename
+    #     self.pages = pages
+    #     self.url = url
+    #     self.awsLink = awsLink
+    #     self.fullMatchText = fullMatchText
+
+
 class MessageObject(BaseModel):
     id: uuid.UUID = Field(default_factory=uuid.UUID)
     userName: str
@@ -161,7 +179,7 @@ class MessageObject(BaseModel):
     media: Optional[List[str]] = None
     isStreaming: bool = False
     agentStatus: Optional[str] = None
-    sources: Optional[List[str]] = None
+    sources: Optional[List[SourceReference]] = None
 
 class SessionObject(BaseModel):
     id: uuid.UUID = Field(default_factory=uuid.UUID)

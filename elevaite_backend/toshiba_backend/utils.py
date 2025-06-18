@@ -34,13 +34,17 @@ def function_schema(func):
 
         for param_name, param in signature.parameters.items():
             param_type = type_hints.get(param_name, Any)
-            openai_type, is_optional = python_type_to_openai_type(param_type)
+            openai_type, is_optional, items_type = python_type_to_openai_type(param_type)
 
-            # schema["parameters"]["properties"][param_name] = {
-            schema["function"]["parameters"]["properties"][param_name] = {
+            prop = {
                 "type": openai_type,
                 "description": f"{param_name} parameter"
             }
+            if openai_type == "array":
+                prop["items"] = {"type": items_type}
+
+            # schema["parameters"]["properties"][param_name] = {
+            schema["function"]["parameters"]["properties"][param_name] = prop
 
             # Add to required list only if it's not Optional and has no default value
             if not is_optional and param.default is inspect.Parameter.empty:
@@ -58,12 +62,14 @@ def function_schema(func):
             args = get_args(py_type)
             non_none_types = [t for t in args if t is not type(None)]
             if len(non_none_types) == 1:
-                openai_type, _ = python_type_to_openai_type(non_none_types[0])
-                return openai_type, True  # It's Optional
+                openai_type, _, items_type = python_type_to_openai_type(non_none_types[0])
+                return openai_type, True, items_type
 
         # Handle List[X]
         if get_origin(py_type) is list or get_origin(py_type) is List:
-            return "array", False
+            item_type = get_args(py_type)[0] if get_args(py_type) else str
+            mapping = {int: "integer", float: "number", str: "string", bool: "boolean", dict: "object"}
+            return "array", False, mapping.get(item_type, "string")
 
         # Base type mapping
         mapping = {
@@ -74,7 +80,7 @@ def function_schema(func):
             dict: "object",
         }
 
-        return mapping.get(py_type, "string"), False  # Default to string
+        return mapping.get(py_type, "string"), False, None  # Default to string
 
     # Attach schema as a function attribute
     func.openai_schema = python_function_to_openai_schema(func)

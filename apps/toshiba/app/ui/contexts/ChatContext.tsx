@@ -117,9 +117,6 @@ useEffect(() => {
       for (const item of newSessions) {
         for (const message of item.messages) {
           message.userName = session?.user?.name ?? "Unknown User";
-          if (message.isBot) {
-            message.sources = await processSources(extractSourcesFromText(message.text ?? "") ?? []);
-          }
         }
       }
       setSessions([...newSessions, defaultSession]);
@@ -477,50 +474,73 @@ useEffect(() => {
 
   }
 
+//   async function processSources(extractedSources: any[]): Promise<any[]> {
+//   let sources = extractedSources;
+//
+//   // If no sources were extracted, use the default source
+//   if (!sources || sources.length === 0) {
+//     sources = [];
+//   } else {
+//     // For extracted sources that don't have URLs, try to get them
+//     for (const source of sources) {
+//       if (!source.url) {
+//         // If we have an awsLink, use that to generate the URL
+//         if (source.awsLink) {
+//           try {
+//             console.log("Using awsLink to generate URL:", source.awsLink);
+//             const imageFilename = `${source.awsLink}.png`;
+//             console.log("Image filename:", imageFilename);
+//             const imageUrl = await getImageUrl(imageFilename);
+//             console.log("Generated image URL:", imageUrl);
+//             if (imageUrl) {
+//               source.url = imageUrl;
+//             }
+//           } catch (error) {
+//             console.error("Error getting image URL from awsLink:", error);
+//           }
+//         } else {
+//           // Fallback to the old method if no awsLink is available
+//           const pageNum = source.pages.split(",")[0].split("-")[0].trim();
+//           const imageFilename = `${source.filename.replace(".pdf", "")}_page_${pageNum}.png`;
+//           try {
+//             const imageUrl = await getImageUrl(imageFilename);
+//             if (imageUrl) {
+//               source.url = imageUrl;
+//             }
+//           } catch (error) {
+//             console.error("Error getting image URL:", error);
+//           }
+//         }
+//       }
+//     }
+//   }
+//
+//   return sources;
+// }
   async function processSources(extractedSources: any[]): Promise<any[]> {
-  let sources = extractedSources;
+    if (!extractedSources?.length) return [];
 
-  // If no sources were extracted, use the default source
-  if (!sources || sources.length === 0) {
-    sources = [];
-  } else {
-    // For extracted sources that don't have URLs, try to get them
-    for (const source of sources) {
-      if (!source.url) {
-        // If we have an awsLink, use that to generate the URL
+    return Promise.all(extractedSources.map(async (source) => {
+      if (source.url) return source;
+
+      try {
+        let imageFilename;
         if (source.awsLink) {
-          try {
-            console.log("Using awsLink to generate URL:", source.awsLink);
-            const imageFilename = `${source.awsLink}.png`;
-            console.log("Image filename:", imageFilename);
-            const imageUrl = await getImageUrl(imageFilename);
-            console.log("Generated image URL:", imageUrl);
-            if (imageUrl) {
-              source.url = imageUrl;
-            }
-          } catch (error) {
-            console.error("Error getting image URL from awsLink:", error);
-          }
+          imageFilename = `${source.awsLink}.png`;
         } else {
-          // Fallback to the old method if no awsLink is available
-          const pageNum = source.pages.split(",")[0].split("-")[0].trim();
-          const imageFilename = `${source.filename.replace(".pdf", "")}_page_${pageNum}.png`;
-          try {
-            const imageUrl = await getImageUrl(imageFilename);
-            if (imageUrl) {
-              source.url = imageUrl;
-            }
-          } catch (error) {
-            console.error("Error getting image URL:", error);
-          }
+          const pageNum = source.pages?.split(",")?.[0]?.split("-")?.[0]?.trim();
+          imageFilename = `${source.filename?.replace(".pdf", "")}_page_${pageNum}.png`;
         }
+
+        const imageUrl = await getImageUrl(imageFilename);
+        if (imageUrl) source.url = imageUrl;
+      } catch (error) {
+        console.error("Error getting image URL:", error);
       }
-    }
+
+      return source;
+    }));
   }
-
-  return sources;
-}
-
   async function handleServerChatbotResponse(
     userId: string,
     messageText: string,

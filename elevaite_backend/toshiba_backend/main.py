@@ -12,10 +12,12 @@ import dotenv
 import os
 from shared_state import session_status, update_status, get_status
 import uuid
-from database_connection import ChatRequest, DatabaseConnection
+from database_connection import ChatRequest
 from pydantic import BaseModel
 from shared_state import database_connection
 from query_reformulator import reformulate_query_final
+from extract_sources import extract_sources_from_text
+from add_columns import add_columns
 dotenv.load_dotenv(".env")
 
 
@@ -123,11 +125,12 @@ async def run(request: Request):
     # Parse the JSON body
     data = await request.json()
     print(data)
+    original_query = data.get("query")
 
     start_time = datetime.now()
     await update_status(data.get("uid"), "Reformulating query...")
     try:
-        query = reformulate_query_final(data.get("query"))
+        query = reformulate_query_final(original_query)
     except Exception as e:
         print(f"Error reformulating query: {str(e)}")
         query = data.get("query")
@@ -155,6 +158,7 @@ async def run(request: Request):
         agent_flow_id = str(uuid.uuid4())
         full_response = ""
         try:
+            print("Query: ", query)
             async for chunk in toshiba_agent.execute3(query=query,qid= data.get("qid"), session_id=data.get("sid"), chat_history=chat_history, user_id=user_id, agent_flow_id=agent_flow_id):
                 if chunk:
                     if isinstance(chunk, dict):
@@ -199,16 +203,19 @@ async def run(request: Request):
 
                 # Use timezone-naive datetime for request_timestamp and response_timestamp
                 current_time_naive = datetime.now()
+                print("Current Time Naive: ", current_time_naive)
 
                 data_log = ChatRequest(
                     qid=qid_uuid,
                     session_id=sid_uuid,
                     request=query,
+                    original_request=original_query,
                     user_id=user_id,
                     request_timestamp=start_time,
                     response=full_response,
                     response_timestamp=current_time_naive,
-                    agent_flow_id=agent_flow_id
+                    agent_flow_id=agent_flow_id,
+                    sr_ticket_id=""
                 )
                 print("Data Log: ",data_log)
                 try:
@@ -319,25 +326,75 @@ async def update_feedback(feedback_request: FeedbackRequest = Body(...)):
 @app.get("/pastSessions")
 async def get_past_sessions(request: Request):
     print("Getting past sessions")
-    print("Request: ", request)
-    sessions = set(await database_connection.get_past_sessions(request.query_params.get("uid")))
+    start_time = datetime.now()
+    user_id = request.query_params.get("uid")
+
+    # Get sessions in a single database call
+    sessions = set(await database_connection.get_past_sessions(user_id))
+
+    # Use gather to fetch all session messages concurrently
+    session_results = await asyncio.gather(
+        *(database_connection.get_session_messages(session) for session in sessions)
+    )
+
     past_sessions = []
-    for session in sessions:
-        res = await database_connection.get_session_messages(session)
+    for res in session_results:
+        if not res:  # Skip empty results
+            continue
+
         messages = []
+        # Process all messages in a session at once
         for r in res:
+            # Add user message
+            # print("Response: ", r.response)
+            sources = await extract_sources_from_text(r.response)
+            # print("Sources: ", sources)
             messages.append(
-                MessageObject(id=uuid.uuid4(), userName=r.user_id, isBot=False, text=r.request, date=r.request_timestamp))
+                MessageObject(id=uuid.uuid4(), userName=r.user_id, isBot=False,
+                              text=r.request, date=r.request_timestamp))
+            # Add bot message
             messages.append(
-                MessageObject(id=r.qid, userName="ElevAIte", isBot=True, text=r.response, date=r.response_timestamp,
-                              vote=r.vote, feedback=r.feedback))
-        session_info = SessionObject(id=session, label=res[0].response[:20], creationDate=res[0].request_timestamp,
-                                     messages=messages)
+                MessageObject(id=r.qid, userName="ElevAIte", isBot=True,
+                              text=r.response, date=r.response_timestamp,
+                              vote=r.vote, feedback=r.feedback, sources=sources))
+
+        # Create session object
+        session_info = SessionObject(
+            id=res[0].session_id,
+            label=res[0].response[:20],
+            creationDate=res[0].request_timestamp,
+            messages=messages
+        )
         past_sessions.append(session_info)
-    await database_connection.close_db()
+
+    # Don't close the connection here as it might be needed elsewhere
+    # Let the lifespan handler manage connection closing
+    print(f"Time taken for fetching past sessions: {datetime.now() - start_time}")
     return past_sessions
 
+# @app.get("/pastSessions")
+# async def get_past_sessions(request: Request):
+#     print("Getting past sessions")
+#     print("Request: ", request)
+#     sessions = set(await database_connection.get_past_sessions(request.query_params.get("uid")))
+#     past_sessions = []
+#     for session in sessions:
+#         res = await database_connection.get_session_messages(session)
+#         messages = []
+#         for r in res:
+#             messages.append(
+#                 MessageObject(id=uuid.uuid4(), userName=r.user_id, isBot=False, text=r.request, date=r.request_timestamp))
+#             messages.append(
+#                 MessageObject(id=r.qid, userName="ElevAIte", isBot=True, text=r.response, date=r.response_timestamp,
+#                               vote=r.vote, feedback=r.feedback))
+#         session_info = SessionObject(id=session, label=res[0].response[:20], creationDate=res[0].request_timestamp,
+#                                      messages=messages)
+#         past_sessions.append(session_info)
+#     await database_connection.close_db()
+#     return past_sessions
+
 if __name__ == "__main__":
+    asyncio.run(add_columns())
     import uvicorn
 
     app.add_middleware(

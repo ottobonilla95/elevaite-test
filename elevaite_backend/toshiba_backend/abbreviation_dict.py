@@ -54,7 +54,7 @@ abbreviations = {
     "ANSI": "American National Standards Institute",
     "AOI": "Automated Optical Inspections",
     "AOM": "Advanced Order Management",
-    "AP": "Accounts Payable",
+    "AP_num3": "Accounts Payable",
     "AP_num2": "Asia Pacific",
     "APAC": "Asia Pacific and China",
     "APAR": "Authorized program analysis report - request for correction of a defect in a supported release of a program.",
@@ -76,7 +76,7 @@ abbreviations = {
     "ASCA": "Application Systems Control & Auditability",
     "ASL": "Alternate Stock Level",
     "ASL_num2": "Approved Supplier List",
-    "ASM": "Area Security Manager",
+    "ASM_num2": "Area Security Manager",
     "ASQC": "American Society for Quality Control",
     "ASSD": "Actual Supplier Ship Date",
     "ASTAP": "Asia-Pacific Tele community Standardization Program",
@@ -140,7 +140,7 @@ abbreviations = {
     "CCIB": "Chinese Commodity Inspection Bureau",
     "CCR": "Contract Change Request",
     "CCSA": "China Communications Standards Association",
-    "CD": "Cash Drawer",
+    "CD_num2": "Cash Drawer",
     "CDA": "Confidential Disclosure Agreement = see/use MNDA",
     "CDC": "Country Distribution Center",
     "CDRH": "Center for Devices and Radiological Health (USA)",
@@ -156,7 +156,7 @@ abbreviations = {
     "CFOC": "Corporate Focal Point",
     "CFR": "Code of Federal Regulations (USA)",
     "CHQ": "Corporate Headquarters",
-    "CI": "Corporate Instruction",
+    "CI_num2": "Corporate Instruction",
     "CIAS": "Common Intercompany Accounting System",
     "CIC": "Credit Invoice Control",
     "CIF": "Cost, Insurance, and Freight",
@@ -191,7 +191,6 @@ abbreviations = {
     "CPFR": "Collaborative Planning Forecasting and Replenishment",
     "CPL": "Components Placement List",
     "CPPS": "Common Parts Process System",
-    "CPU": "Central Processing Unit",
     "CQ": "ClearQuest, a defect tracking tool",
     "CQC": "China Quality Certification Center",
     "CR": "Cash Receipt, usually implies cash receipt station",
@@ -509,8 +508,8 @@ abbreviations = {
     "ISP": "Initial Spare Part",
     "ISU": "Industry Solution Unit",
     "ISV": "Independent Service Vendor",
-    "IT": "Independent Test",
-    "IT_num2": "Information Technology",
+    "IT test": "Independent Test",
+    "IT": "Information Technology",
     "ITI": "Czech Republic Institute of Technical Inspection",
     "ITS": "Information Technology Services",
     "ITS_num2": "Integrated Technology Services",
@@ -1068,7 +1067,7 @@ abbreviations = {
     "UkrSEPRO": "Ukranian Certification System",
     "UL": "Underwriter's Laboratories",
     "ULT": "Useful Life Test",
-    "UPC": "Universal Product Code",
+    "UPC_num2": "Universal Product Code",
     "UPK": "User Productivity kit",
     "UPOS": "Unified Point Of Sale drivers. A standard for POS I/O APIs. TGCS has own version of UPOS implementation in the form of OPOS and JavaPOS.",
     "UPR": "Used Parts Returnable",
@@ -1119,9 +1118,148 @@ abbreviations = {
     "WWDM": "World Wide Data Management",
     "WWPD": "World Wide Parts Database",
     "X.org": "X.org",
-    "XBRL": "Extensible Business Reporting Language"
+    "XBRL": "Extensible Business Reporting Language",
+    "bat": "battery",
+    "batt": "battery",
+    "asy": "assembly",
+    "bkt": "bracket",
+    "WLMT": "Walmart",
+    "KRG": "Kroger",
+    "KRGR": "Kroger",
+    "DRW": "Drawer",
+    "REV": "Revision",
+    "INCL": "Includes",
+    "DISP": "Display",
+    "Mon": "Monitor",
+    "UNIV": "Universal",
+    "NTWK": "Network",
+    "CNTRL": "Controller",
+    "PWR": "Power",
+    "SUP": "Supply",
+    "PC": "Personal Computer",
+    "AV": "Audio Video",
+    "TSC": "Tractor Supply Company",
+    "TS": "Tractor Supply",
+    "TV": "Television",
+    "AP": "Access Pointe",
+    "CD": "Cash Drawer",
+    "PRN": "Printer",
+    "SFF": "small form factor",
+    "WNTY": "Warranty",
+    "Mono": "monochrome",
+    "UPC": "Universal Product Code",
+    "ADPTR": "Adapter",
+    "APPL": "Appliance",
+    "PCB": "printed circuit board",
+    "IG": "iron gray (may not always be the case but is likely the case)",
+    "M TOLE": "Mettler Toledo",
+    "INTF": "Interface",
+    "MTOLE": "Mettler Toledo",
+    "INTERS": "Interstate Battery",
+    "BELK": "Belkin",
+    "LENV": "Lenovo",
+    "MON": "Monitor",
+    "MON LENV": "Monitor Lenovo",
+    "OKI": "Okidata",
+    "Lexmark": "Lexmark",
+    "HP": "Hewlett Packard",
+    "CTG": "Cables to go",
+    "GB": "Gigabyte",
+    "MB": "Megabyte",
+    "SILV": "Silver",
+    "BLK": "Black",
+    "LVD": "Low Voltage Disk",
+    "SPEAKR": "Speaker",
+    "ASM": "Assembly",
+    "PCI": "Peripheral Component Interconnect",
+    "V2": "Version 2",
+    "ASY": "assembly",
+    "SARC": "Sarcomm",
+    "WLG": "Walgreens",
+    "WGN": "Walgreens",
+    "WMT": "Walmart",
+    "SLO": "Service Level Objective",
+    "DASD": "Direct Acccess Storage Device",
+    "DDR": "double data rate",
+    "CPU": "central processer unit",
+    "proc": "microprocessor",
+    "op panel": "operator panel",
+    "COM": "Communication",
+    "Thx": "Thanks",
+    "HDR": "Hard Drive Retention",
+    "T&T": "Training & Tasks (Costco)",
+    "T&M": "Time & Materials",
+    "ACC": "Accessory",
+    "IF": "Interface",
+    "IPL": "initial program load",
+    "SENT": "Sentry (scanner scales)",
+    "HT": "Harris Teeter",
+    "HH": "Handheld",
+    "EPSN": "Epson",
+    "FSL": "Forwards Stocking Locaion",
+    "PIR": "Passive Infared",
+    "LLT": "Platter (scanner scale)",
+    "FXD": "Fixed (scanner scale)",
+    "M98": "9800i scanner scale",
+    "CI": "Configuration Item (Tractor Supply Company)",
+    "Mid-flight": "TSC only; depot and customer; ups scans part @ honeywell and must get old part back in;",
 }
 
+MACHINE_ABBREVIATIONS = \
+    {'2001': {'001': 'TCX M1'},
+    '2011': {'100': 'TCX M11'},
+    '4612': {'All': 'SurePoint Mobile', 'C01': 'SurePoint Mobile', 'D01': 'SurePoint Mobile', 'L01': 'SurePoint Mobile', 'P01': 'SurePoint Mobile'},
+    '4613': {'xx8': 'SurePOS 100', '108': 'SurePOS 100', 'E18': 'SurePOS 100', 'EA8': 'SurePOS 100', 'A18': 'SurePOS 100'},
+    '4614': {'Oxx': 'SureOne', '1xx': 'SureOne', 'A0x': 'SureOne', 'P8x': 'SureOne', 'SOx': 'SureOne', 'SPx': 'SureOne', 'V0x': 'SureOne', 'V8x': 'SureOne'},
+    '4615': {'C0x': 'SureOne', 'J0x': 'SureOne'},
+    '4674': {'All': '4674 (AP only)'},
+    '4683': {'All': '4683'},
+    '4693': {'All': '4693'},
+    '4694': {'All': '4694'},
+    '4695': {'All': '4695'},
+    '4750': {'D10': 'Toshiba Basics'},
+    '4800': {'0xx': 'SureBase', '1xx': 'SurePOS 730', '7xx': 'SurePOS 700', '2xx': 'SurePOS 750', '7x1': 'SurePOS 700', '7x2': 'SurePOS 700', '7x3': 'SurePOS 700', '7x4': 'SurePOS 700'},
+    '4810': {'31x': 'SurePOS 300', '32x': 'SurePOS 300', '33x': 'SurePOS 300', '34x': 'TCX300', '35x': 'TCX300', '3x0': 'TCX300', '3x1': 'TCX300'},
+    '4818': {'3x1': 'Toshiba Basics T10', 'x10': 'Toshiba Basics T10'},
+    '4825': {'x4x': 'TCX 620'},
+    '4828': {'x2x': 'TCx 810 Essential'},
+    '4835': {'All': 'NetVista Kiosk'},
+    '4836': {'1xx': 'Anyplace Kiosk'},
+    '4838': {'1xx': 'Anyplace Kiosk', '3xx': 'Anyplace Kiosk', '5xx': 'Anyplace Kiosk', '7xx': 'Anyplace Kiosk', '9xx': 'Anyplace Kiosk'},
+    '4840': {'xx1': 'SurePOS 500', 'xx2': 'SurePOS 500', 'xx3': 'SurePOS 500', 'xx4': 'SurePOS 500'},
+    '4845': {'1xx': 'IBM Self Checkout', 'Nxx': 'IBM Self Checkout', 'Exx': 'IBM Self Checkout', 'Xxx': 'IBM Self Checkout', '6xx': 'IBM Self Checkout', '8xx': 'IBM Self Checkout', 'Bxx': 'IBM Self Checkout', 'Ixx': 'IBM Self Checkout', '7xx': 'IBM Self Checkout', 'Wxx': 'IBM Self Checkout', 'Kxx': 'IBM Self Checkout'},
+    '4846': {'xx5': 'SurePOS 500'},
+    '4851': {'x14': 'SurePOS 500'},
+    '4852': {'xx6': 'SurePOS 500', 'x7x': 'SurePOS 500'},
+    '4855': {'xxE': 'Anyplace Checkout'},
+    '4888': {'Exx': 'System 6', 'BW4': 'System 6'},
+    '4900': {'7x5': 'SurePOS 700', '7x6': 'TCX 700', '7x7': 'TCX 700'},
+    '4901': {'x1x': 'TCx 900'},
+    '4910': {'Exx': 'SurePOS 300 Express bundle'},
+    '6140': {'1xx': 'TCxWave', 'x3x': 'TCxWave', 'x4x': 'TCxWave', 'x5x': 'TCxWave'},
+    '6183': {'2xx': 'TCx Flight'},
+    '6200': {'1xx': 'TCx 800'},
+    '6201': {'All': 'TCx 810'},
+    '6225': {'All': 'TCx 820'},
+    '6700': {'100': 'MXP Vison Kiosk'},
+    '6800': {'1xx': 'System 7', '2xx': 'System 7', '3xx': 'MxP Self Checkout 810', '4xx': 'MxP Self Checkout 820', 'KDU': 'System 7 Kit of Parts', 'Kxx': 'MxP Self Checkout'},
+    '6900': {'1xx': 'Pro-X Hybrid Kiosk'},
+    '7054': {'All': 'Personal Shopper'},
+    '8368': {'All': '8368 s'},
+    '4610': {'Txx': 'SureMark printer', '1xx': 'Fiscal printer', '2xx': 'SureMark printer', 'Gxx': 'Fiscal printer', 'Kx6': 'Fiscal printer', 'Sxx': 'Fiscal printer'},
+    '4679': {'Wxx': '4679 POS Printer (AP only)', 'Gxx': '4679 POS Printer (AP only)', '3xx': 'Fiscal printers'},
+    '4685': {'Kxx': 'Keyboards (AP only)', 'Cxx': 'Cash drawer (AP only)', 'S01': 'Scanners (AP only)', 'S02': 'Scanners (AP only)', 'P04': 'Scanners (AP only)', 'L0A': 'Scanners (AP only)', 'L0F': 'Scanners (AP only)', 'L0H': 'Scanners (AP only)', 'L0C': 'Scanners (AP only)'},
+    '4698': {'101': 'Scanners (AP only)', '201': 'Scanners (AP only)', '102': 'Scanners (AP only)', '202': 'Scanners (AP only)'},
+    '4689': {'All': 'Thermal receipt+journal printer (AP only)'},
+    '4820': {'46x': 'SurePoint Display', '48x': 'SurePoint Display', '8Bx': 'SurePoint Display', '42T': 'SurePoint Display', '42D': 'SurePoint Display', '4xx': 'SurePoint Display', 'FBD': 'SurePoint Display', '4xR': 'SurePoint Display', '1xx': 'SurePoint Display', '2xx': 'SurePoint Display', '5xx': 'SurePoint Display', 'xxB': 'SurePoint Display', '21x': 'SurePoint Display', '2Dx': 'SurePoint Display', '51x': 'SurePoint Display', '5Dx': 'SurePoint Display', '2Ax': 'SurePoint Display', '2Lx': 'SurePoint Display', '2Nx': 'SurePoint Display', '5Ax': 'SurePoint Display', '5Lx': 'SurePoint Display', '5Nx': 'SurePoint Display'},
+    '6145': {'1xx': 'TCx Printer', '2xx': 'TCx Printer', '5Cx': 'TCx Display'},
+    '6149': {'1xx': 'TCx Printer', '2xx': 'TCx Printer', '5Cx': 'TCx Display', '5Nx': 'TCx Display', '5Sx': 'TCx Display', 'Bxx': 'TCx Display', 'Wxx': 'TCx Display'},
+    '6150': {'x1x': 'TCx Touch Display'},
+    '6160': {'00x': 'TCx Edgecam (produce recognition camera)'},
+    '6180': {'Sxx': 'S10 Cube printer'},
+    '6260': {'00x': 'TCx Edgecam+ (loss prevention camera)'},
+    '9338': {'All': 'TABS barcode printer'},
+    }
 
 
 ABBREVIATION_TABLE = """
@@ -1130,7 +1268,15 @@ ABBREVIATION_TABLE = """
 | 2001 | 001 | TCX M1 |
 | 2011 | 100 | TCX M11 |
 | 4612 | All | SurePoint Mobile |
+| 4612 | C01 | SurePoint Mobile |
+| 4612 | D01 | SurePoint Mobile |
+| 4612 | L01 | SurePoint Mobile |
+| 4612 | P01 | SurePoint Mobile |
 | 4613 | xx8 | SurePOS 100 |
+| 4613 | 108 | SurePOS 100 |
+| 4613 | E18 | SurePOS 100 |
+| 4613 | EA8 | SurePOS 100 |
+| 4613 | A18 | SurePOS 100 |
 | 4614 | Oxx | SureOne |
 | 4614 | 1xx | SureOne |
 | 4614 | A0x | SureOne |
@@ -1141,22 +1287,10 @@ ABBREVIATION_TABLE = """
 | 4614 | V8x | SureOne |
 | 4615 | C0x | SureOne |
 | 4615 | J0x | SureOne |
-| 4674 | All | 4674 (AP only) |
+| 4674 | All | 4674 (AP only)|
 | 4683 | All | 4683 |
 | 4693 | All | 4693 |
-| 4694 | 001/004/024 | 4694 |
-| 4694 | 041/044 | 4694 |
-| 4694 | 104/124 | 4694 |
-| 4694 | 144/154 | 4694 |
-| 4694 | 1x6 | 4694 |
-| 4694 | 244/254 | 4694 |
-| 4694 | 205 | 4694 |
-| 4694 | 245 | 4694 |
-| 4694 | 206/246 | 4694 |
-| 4694 | 207/247 V07/V47 | 4694 |
-| 4694 | 307/347 | 4694 |
-| 4694 | P07/P47 | 4694 |
-| 4694 | HD1 | 4694 |
+| 4694 | All | 4694 |
 | 4695 | All | 4695 |
 | 4750 | D10 | Toshiba Basics |
 | 4800 | 0xx | SureBase |
@@ -1174,6 +1308,7 @@ ABBREVIATION_TABLE = """
 | 4810 | 34x | TCX300 |
 | 4810 | 35x | TCX300 |
 | 4810 | 3x0 | TCX300 |
+| 4810 | 3x1 | TCX300 |
 | 4818 | 3x1 | Toshiba Basics T10 |
 | 4818 | x10 | Toshiba Basics T10 |
 | 4825 | x4x | TCX 620 |
@@ -1186,23 +1321,27 @@ ABBREVIATION_TABLE = """
 | 4838 | 7xx | Anyplace Kiosk |
 | 4838 | 9xx | Anyplace Kiosk |
 | 4840 | xx1 | SurePOS 500 |
-| 4840 | x x2 | SurePOS 500 |
-| 4840 | x x3 | SurePOS 500 |
+| 4840 | xx2 | SurePOS 500 |
+| 4840 | xx3 | SurePOS 500 |
 | 4840 | xx4 | SurePOS 500 |
 | 4845 | 1xx | IBM Self Checkout |
 | 4845 | Nxx | IBM Self Checkout |
 | 4845 | Exx | IBM Self Checkout |
-| 4845 | Xxx | CHEC 5 |
-| 4845 | 6xx | CHEC 6 |
-| 4845 | 8xx | |
-| 4845 | Bxx | |
+| 4845 | Xxx | IBM Self Checkout |
+| 4845 | 6xx | IBM Self Checkout |
+| 4845 | 8xx | IBM Self Checkout |
+| 4845 | Bxx | IBM Self Checkout |
+| 4845 | Ixx | IBM Self Checkout |
+| 4845 | 7xx | IBM Self Checkout |
+| 4845 | Wxx | IBM Self Checkout |
+| 4845 | Kxx | IBM Self Checkout |
 | 4846 | xx5 | SurePOS 500 |
 | 4851 | x14 | SurePOS 500 |
 | 4852 | xx6 | SurePOS 500 |
 | 4852 | x7x | SurePOS 500 |
 | 4855 | xxE | Anyplace Checkout |
 | 4888 | Exx | System 6 |
-| 4900 | BW4 | System 6 |
+| 4888 | BW4 | System 6 |
 | 4900 | 7x5 | SurePOS 700 |
 | 4900 | 7x6 | TCX 700 |
 | 4900 | 7x7 | TCX 700 |
@@ -1218,19 +1357,25 @@ ABBREVIATION_TABLE = """
 | 6225 | All | TCX 820 |
 | 6700 | 100 | MXP Vison Kiosk |
 | 6800 | 1xx | System 7 |
-| 6800 | 2xx | MxP Self Checkout 810 |
-| 6800 | 3xx | MxP Self Checkout 820 |
-| 6800 | 4xx | System 7 Kit of Parts |
+| 6800 | 2xx | System 7 |
+| 6800 | 3xx | MxP Self Checkout 810 |
+| 6800 | 4xx | MxP Self Checkout 820 |
+| 6800 | KDU | System 7 Kit of Parts |
 | 6800 | Kxx | MxP Self Checkout |
 | 6900 | 1xx | Pro-X Hybrid Kiosk |
 | 7054 | All | Personal Shopper |
-| 8368 | All | |
+| 8368 | All | 8368 s|
 | 4610 | Txx | SureMark printer |
-| 4610 | Txx | Fiscal printer |
-| 4679 | All | 4679 POS Printer (AP only) |
-| 4679 | Txx | Fiscal printers |
-| 4685 | All | Keyboards (AP only) |
-| 4685 | All | Cash drawer (AP only) |
+| 4610 | 1xx | Fiscal printer |
+| 4610 | 2xx | SureMark printer |
+| 4610 | Gxx | Fiscal printer |
+| 4610 | Kx6 | Fiscal printer |
+| 4610 | Sxx | Fiscal printer |
+| 4679 | Wxx | 4679 POS Printer (AP only) |
+| 4679 | Gxx | 4679 POS Printer (AP only) |
+| 4679 | 3xx | Fiscal printers |
+| 4685 | Kxx | Keyboards (AP only) |
+| 4685 | Cxx | Cash drawer (AP only) |
 | 4685 | S01 | Scanners (AP only) |
 | 4685 | S02 | Scanners (AP only) |
 | 4685 | P04 | Scanners (AP only) |
@@ -1256,19 +1401,19 @@ ABBREVIATION_TABLE = """
 | 4820 | 2xx | SurePoint Display |
 | 4820 | 5xx | SurePoint Display |
 | 4820 | 1xx | SurePoint Display |
-| 4820 | 2xx | |
-| 4820 | 5xx | |
-| 4820 | xxB | |
-| 4820 | 21x | |
-| 4820 | 2Dx | |
-| 4820 | 51x | |
-| 4820 | 5Dx | |
-| 4820 | 2Ax | |
-| 4820 | 2Lx | |
-| 4820 | 2Nx | |
-| 4820 | 5Ax | |
-| 4820 | 5Lx | |
-| 4820 | 5Nx | |
+| 4820 | 2xx | SurePoint Display |
+| 4820 | 5xx | SurePoint Display |
+| 4820 | xxB | SurePoint Display |
+| 4820 | 21x | SurePoint Display |
+| 4820 | 2Dx | SurePoint Display |
+| 4820 | 51x | SurePoint Display |
+| 4820 | 5Dx | SurePoint Display |
+| 4820 | 2Ax | SurePoint Display | 
+| 4820 | 2Lx | SurePoint Display |
+| 4820 | 2Nx | SurePoint Display |
+| 4820 | 5Ax | SurePoint Display |
+| 4820 | 5Lx | SurePoint Display |
+| 4820 | 5Nx | SurePoint Display |
 | 6145 | 1xx | TCx Printer |
 | 6145 | 2xx | TCx Printer |
 | 6145 | 5Cx | TCx Display |

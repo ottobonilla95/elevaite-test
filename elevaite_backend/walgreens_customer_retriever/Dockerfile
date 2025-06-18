@@ -14,6 +14,7 @@ COPY requirements.txt .
 
 # Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m nltk.downloader stopwords
 
 # Copy the rest of the application code
 COPY . .

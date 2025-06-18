@@ -179,14 +179,14 @@ import cohere
 import numpy as np
 from dotenv import load_dotenv
 from scipy.stats import beta
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 
 load_dotenv()
 
 base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(base_path)
 
-from retrieval_stage.retrieve_qdrant import retrieve_chunks_semantic, retrieve_by_payload, extract_part_numbers, retrieve_by_keywords, extract_keywords
+from retrieval_stage.retrieve_qdrant import retrieve_chunks_semantic, retrieve_by_payload, extract_part_numbers, retrieve_by_keywords, extract_keywords, extract_mtm_numbers
 
 
 cohere_client = cohere.Client(os.getenv("COHERE_API_KEY"))
@@ -219,13 +219,23 @@ def dynamic_keyword_boost(query: str, final_chunks: List[Dict], final_scores: Li
     boosted_scores = []
     for chunk, score in zip(final_chunks, final_scores):
         text = chunk.get("chunk_text", "").lower()
-        if any(keyword.lower() in text for keyword in query_keywords):
-            boosted_scores.append(score + boost_amount)
+        # if any(keyword.lower() in text for keyword in query_keywords):
+        #     print("Boosting score for chunk: ", chunk["chunk_text"])
+        #     print("Boost amount: ", boost_amount)
+        #     print("Original score: ", score)
+        #     print("Boosted score: ", score + boost_amount)
+        #     boosted_scores.append(score + boost_amount)
+        # else:
+        #     boosted_scores.append(score)
+        keyword_matches = sum(1 for keyword in query_keywords if keyword.lower() in text)
+        if keyword_matches > 0:
+            boost = boost_amount * (1 + np.exp(-keyword_matches))
+            boosted_scores.append(score + boost)
         else:
             boosted_scores.append(score)
     return boosted_scores
 
-def rerank_separately_then_merge(query: str, top_k: int = 30) -> Tuple[List[Dict], List[float]]:
+def rerank_separately_then_merge(query: str, top_k: int = 30, machine_types: Optional[List[str]] = None) -> Tuple[List[Dict], List[float]]:
     """
     1. Semantic retrieval + rerank
     2. Exact match retrieval + rerank
@@ -236,7 +246,7 @@ def rerank_separately_then_merge(query: str, top_k: int = 30) -> Tuple[List[Dict
     final_chunks: List[Dict] = []
     final_scores: List[float] = []
 
-    semantic_chunks = retrieve_chunks_semantic(query, top_k=top_k)
+    semantic_chunks = retrieve_chunks_semantic(query, top_k=top_k, machine_types=machine_types)
     semantic_texts = [c["chunk_text"] for c in semantic_chunks]
     _, semantic_values = rerank_text_chunks(query, semantic_texts)
 
@@ -252,7 +262,42 @@ def rerank_separately_then_merge(query: str, top_k: int = 30) -> Tuple[List[Dict
     if part_numbers:
         payload_chunks = []
         for pn in part_numbers:
-            payload_chunks.extend(retrieve_by_payload(pn, top_k=top_k))
+            payload_chunks.extend(retrieve_by_payload(pn, top_k=top_k, machine_types=machine_types))
+
+        payload_chunks = [c for c in payload_chunks if c["chunk_id"] not in seen_ids]
+        payload_texts = [c["chunk_text"] for c in payload_chunks]
+
+        if payload_texts:
+            _, payload_values = rerank_text_chunks(query, payload_texts)
+
+            for chunk, val in zip(payload_chunks, payload_values):
+                seen_ids.add(chunk["chunk_id"])
+                chunk["search_type"] = "exact_match"
+                final_chunks.append(chunk)
+                final_scores.append(val + 1.05)
+
+    #3 ---
+    keywords = extract_keywords(query)
+    if keywords:
+        sparse_chunks = retrieve_by_keywords(keywords, top_k=30, machine_types=machine_types)
+        sparse_chunks = [c for c in sparse_chunks if c["chunk_id"] not in seen_ids]
+        sparse_texts = [c["chunk_text"] for c in sparse_chunks]
+
+        if sparse_texts:
+            _, sparse_values = rerank_text_chunks(query, sparse_texts)
+
+            for chunk, val in zip(sparse_chunks, sparse_values):
+                seen_ids.add(chunk["chunk_id"])
+                chunk["search_type"] = "sparse_keyword"
+                final_chunks.append(chunk)
+                final_scores.append(val + 0.02)
+
+    #4 ---
+    mtm_numbers = extract_mtm_numbers(query)
+    if mtm_numbers:
+        payload_chunks = []
+        for pn in mtm_numbers:
+            payload_chunks.extend(retrieve_by_payload(pn, top_k=top_k, machine_types=machine_types))
 
         payload_chunks = [c for c in payload_chunks if c["chunk_id"] not in seen_ids]
         payload_texts = [c["chunk_text"] for c in payload_chunks]
@@ -265,22 +310,6 @@ def rerank_separately_then_merge(query: str, top_k: int = 30) -> Tuple[List[Dict
                 chunk["search_type"] = "exact_match"
                 final_chunks.append(chunk)
                 final_scores.append(val + 0.05)
-
-    #3 ---
-    keywords = extract_keywords(query)
-    if keywords:
-        sparse_chunks = retrieve_by_keywords(keywords, top_k=30)
-        sparse_chunks = [c for c in sparse_chunks if c["chunk_id"] not in seen_ids]
-        sparse_texts = [c["chunk_text"] for c in sparse_chunks]
-
-        if sparse_texts:
-            _, sparse_values = rerank_text_chunks(query, sparse_texts)
-
-            for chunk, val in zip(sparse_chunks, sparse_values):
-                seen_ids.add(chunk["chunk_id"])
-                chunk["search_type"] = "sparse_keyword"
-                final_chunks.append(chunk)
-                final_scores.append(val + 0.02)
 
     # finalboost
     final_scores = dynamic_keyword_boost(query, final_chunks, final_scores, boost_amount=0.15)
