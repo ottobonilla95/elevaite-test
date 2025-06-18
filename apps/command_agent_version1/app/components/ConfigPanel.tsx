@@ -25,6 +25,7 @@ import "./ConfigPanel.scss";
 interface ConfigPanelProps {
     agentName: string;
     agentType: AgentType | "custom";
+    agentConfig?: AgentConfigData;
     description: string;
     onEditPrompt: () => void;
     onSave?: (configData: AgentConfigData) => void;
@@ -48,6 +49,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     sidebarOpen,
     currentFunctions = [],
     onFunctionsChange,
+    agentConfig
 }) => {
     // State for collapsible sections
     const [parametersOpen, setParametersOpen] = useState(true);
@@ -122,7 +124,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     const getModelProviders = (deployType: string) => {
         switch (deployType) {
             case "Elevaite":
-                return ["meta", "openbmb"];
+                return ["meta", "openbmb", "OpenAI"];
             case "Enterprise":
                 return ["OpenAI", "Gemini", "Bedrock", "Azure"];
             case "Cloud":
@@ -140,6 +142,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
                     return ["Llama-3.1-8B-Instruct"];
                 case "openbmb":
                     return ["MiniCPM-V-2_6"];
+                case "OpenAI":
+                    return ["GPT-4o", "GPT-4o mini", "GPT-3.5", "o3-mini"];
                 default:
                     return ["Llama-3.1-8B-Instruct"];
             }
@@ -178,7 +182,15 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
         setModel(availableModels[0]);
     }, [modelProvider, deploymentType]);
 
-
+    useEffect(() => {
+        if (agentConfig) {
+            setDeploymentType(agentConfig.deploymentType);
+            setModelProvider(agentConfig.modelProvider);
+            setModel(agentConfig.model);
+            setOutputFormat(agentConfig.outputFormat);
+            setSelectedFunctions(agentConfig.selectedTools);
+        }
+    }, [agentConfig]);
 
     // Function to handle tool selection
     const handleToolSelect = (toolName: string) => {
@@ -248,16 +260,13 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     // Handle save button click
     const handleSave = () => {
         if (onSave) {
-            // Convert functions back to tool names for backward compatibility
-            const selectedToolNames = selectedFunctions.map(func => func.function.name);
-
             onSave({
                 agentName: editedName, // Include the potentially updated name
                 deploymentType,
                 modelProvider,
                 model,
                 outputFormat,
-                selectedTools: selectedToolNames
+                selectedTools: selectedFunctions
             });
         }
     };

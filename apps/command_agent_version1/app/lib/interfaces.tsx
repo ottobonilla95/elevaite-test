@@ -151,7 +151,7 @@ export interface AgentConfigData {
     modelProvider: string;
     model: string;
     outputFormat: string;
-    selectedTools: string[];
+    selectedTools: ChatCompletionToolParam[];
 }
 
 // Agent creation interfaces that match backend structure
@@ -215,7 +215,7 @@ export interface AgentNodeData {
     name: string;
     prompt?: string;
     tools?: ChatCompletionToolParam[];
-    config?: any;
+    config?: AgentConfigData;
     onDelete: (id: string) => void;
     onConfigure: (id: string) => void;
     tags?: string[];

@@ -20,7 +20,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
 }) => {
     const [name, setName] = useState("");
     const [prompt, setPrompt] = useState("");
-    const [description, setDescription] = useState("");
+    const [description, setDescription] = useState(nodeData?.agent.description || "");
     const [tags, setTags] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState("prompt");
     const maxLength = 1000;
@@ -268,7 +268,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                     <label className="block text-sm font-medium mb-1">Model</label>
                                     <select
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
-                                        defaultValue={nodeData.agent.system_prompt.ai_model_name || "claude"}
+                                        defaultValue={nodeData.config?.model || "claude"}
                                     >
                                         <option value="claude">Claude 3</option>
                                         <option value="gpt4o">GPT-4o</option>

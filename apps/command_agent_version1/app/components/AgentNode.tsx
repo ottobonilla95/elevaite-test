@@ -14,7 +14,7 @@ interface NodeProps {
 }
 
 const AgentNode = memo(({ id, data, selected }: NodeProps) => {
-    const { type, name, tools = [], config = {}, onDelete, onConfigure } = data;
+    const { type, name, tools = [], config, onDelete, onConfigure } = data;
     const styles = AGENT_STYLES[type] || { bgClass: "bg-gray-100", textClass: "text-gray-600" };
 
     // Extract tool names from ChatCompletionToolParam array
@@ -81,7 +81,7 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
 
     // Get model display name
     const getModelName = () => {
-        const model = config.model || "Claude 3";
+        const model = config?.model || "Claude 3";
         return model;
     };
 

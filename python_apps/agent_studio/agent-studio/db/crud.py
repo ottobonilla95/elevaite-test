@@ -131,7 +131,8 @@ def delete_prompt(db: Session, prompt_id: uuid.UUID) -> bool:
 def validate_agent_functions(functions: List[schemas.AgentFunction]) -> List[ChatCompletionToolParam]:
     validated_functions = []
     for _func in functions:
-        func_name = _func.function.name
+        __func = schemas.AgentFunction.model_validate(_func)
+        func_name = __func.function.name
         if func_name and func_name in tool_schemas:
             validated_functions.append(tool_schemas[func_name])
         else:

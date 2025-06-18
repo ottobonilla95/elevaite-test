@@ -14,7 +14,7 @@ import ChatSidebar from "./ChatSidebar";
 
 // Import types
 import { AgentType, AGENT_TYPES } from "./type";
-import { AgentNodeData, AgentResponse, SavedWorkflow, WorkflowAgent, WorkflowCreateRequest, WorkflowResponse } from "../lib/interfaces";
+import { AgentConfigData, AgentNodeData, AgentResponse, SavedWorkflow, WorkflowAgent, WorkflowCreateRequest, WorkflowResponse } from "../lib/interfaces";
 
 // Import styles
 import "./AgentConfigForm.scss";
@@ -189,10 +189,26 @@ const AgentConfigForm: React.FC = () => {
                 tags: [agentData.agent_type || "custom"],
                 onDelete: handleDeleteNode,
                 onConfigure: () => { }, // This will be overwritten
-                agent: agentData
+                agent: agentData,
+                config: {
+                  model: agentData.system_prompt.ai_model_name,
+                  agentName: agentData.name,
+                  deploymentType: "",
+                  modelProvider: agentData.system_prompt.ai_model_provider,
+                  outputFormat: "",
+                  selectedTools: agentData.functions
+                }
               }
             }),
-            agent: agentData
+            agent: agentData,
+            config: {
+              model: agentData.system_prompt.ai_model_name,
+              agentName: agentData.name,
+              deploymentType: "",
+              modelProvider: agentData.system_prompt.ai_model_provider,
+              outputFormat: "",
+              selectedTools: agentData.functions
+            }
           },
         };
 
@@ -461,7 +477,7 @@ const AgentConfigForm: React.FC = () => {
               prompt: agent.system_prompt?.prompt || "",
               tools: agent.functions || [], // Keep as ChatCompletionToolParam array
               tags: [agent.agent_type || "custom"],
-              config: { model: agent.system_prompt.ai_model_name, },
+              config: { model: agent.system_prompt.ai_model_name, agentName: agent.name, deploymentType: "", modelProvider: agent.system_prompt.ai_model_provider, outputFormat: "", selectedTools: agent.functions },
               onDelete: handleDeleteNode,
               onConfigure: () => handleNodeSelect(newNode),
               agent: agent
@@ -509,7 +525,7 @@ const AgentConfigForm: React.FC = () => {
   };
 
   // Handle saving the agent configuration with tools
-  const handleSaveAgentConfig = (configData: any) => {
+  const handleSaveAgentConfig = (configData: AgentConfigData) => {
     if (!selectedNode) return;
 
     console.log("Saving agent configuration:", configData);
@@ -603,6 +619,7 @@ const AgentConfigForm: React.FC = () => {
                 {showConfigPanel && selectedNode && (
                   <div className={`config-panel-container${!sidebarOpen ? ' shrinked' : ''}`}>
                     <ConfigPanel
+                      agentConfig={selectedNode.data.config}
                       agentName={selectedNode.data.name}
                       agentType={selectedNode.data.type}
                       description={selectedNode.data.description || ""}
