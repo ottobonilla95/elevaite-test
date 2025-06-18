@@ -24,13 +24,28 @@ interface ErrorResponse {
  */
 export async function fetchAuthUsers(): Promise<ExtendedUserObject[]> {
   try {
+    // Get the auth token from the session for server-side authentication
+    const session = await auth();
+    const authToken = session?.authToken;
+
     // Use the local auth API
-    const backendUrl = "http://localhost:8000";
+    const backendUrl = process.env.AUTH_API_URL ?? "http://localhost:8000";
+    const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+
+    // Prepare headers with authentication
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Tenant-ID": tenantId,
+    };
+
+    // Add authorization header if token exists
+    if (authToken) {
+      headers.Authorization = `Bearer ${authToken}`;
+    }
+
     const response = await fetch(`${backendUrl}/api/auth/users`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       cache: "no-store",
     });
 

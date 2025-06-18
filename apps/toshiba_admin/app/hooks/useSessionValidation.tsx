@@ -65,26 +65,45 @@ export function useSessionValidation() {
     try {
       console.log("Validating session...");
 
-      // Get the session data from localStorage if available
-      // This is where next-auth stores the session data including the refresh token
+      // Get the current session to extract tokens
+      // We need to call the session endpoint to get the current session data
+      let accessToken = "";
       let refreshToken = "";
+
       try {
-        const sessionData = localStorage.getItem("next-auth.session-token");
-        if (sessionData) {
-          // Try to extract refresh token from session data if it's stored there
-          refreshToken = sessionData;
+        const sessionResponse = await fetch("/api/auth/session");
+        if (sessionResponse.ok) {
+          const sessionData = (await sessionResponse.json()) as {
+            authToken?: string;
+            user?: {
+              refreshToken?: string;
+            };
+          };
+          accessToken = sessionData.authToken ?? "";
+          refreshToken = sessionData.user?.refreshToken ?? "";
         }
       } catch (error) {
-        console.error("Error accessing localStorage:", error);
+        console.error("Error getting session data:", error);
       }
 
       // Call the server action to validate the session
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Add Authorization header if we have an access token
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+
+      // Add refresh token header if we have one
+      if (refreshToken) {
+        headers["X-Refresh-Token"] = refreshToken;
+      }
+
       const response = await fetch("/api/auth/validate-session", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Refresh-Token": refreshToken || "",
-        },
+        headers,
       });
 
       if (!response.ok) {

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { auth } from "../../../../../auth";
-import type { ExtendedUserObject } from "../../../lib/interfaces";
+import type { ExtendedUserObject } from "../../../../lib/interfaces";
 
 interface AuthApiUser {
   id: number;
@@ -24,13 +24,32 @@ interface ErrorResponse {
  */
 export async function fetchAuthUsers(): Promise<ExtendedUserObject[]> {
   try {
+    // Get the auth token from the session for server-side authentication
+    const session = await auth();
+    const authToken = session?.authToken;
+
     // Use the local auth API
     const backendUrl = process.env.AUTH_API_URL;
+    const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+
+    if (!backendUrl) {
+      return [];
+    }
+
+    // Prepare headers with authentication
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Tenant-ID": tenantId,
+    };
+
+    // Add authorization header if token exists
+    if (authToken) {
+      headers.Authorization = `Bearer ${authToken}`;
+    }
+
     const response = await fetch(`${backendUrl}/api/auth/users`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       cache: "no-store",
     });
 
@@ -119,7 +138,7 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
     const session = await auth();
     // Access the token from the session object directly (not from user)
     // In the stockConfig callbacks, the token is stored as session.authToken
-    const authToken = (session as any)?.authToken;
+    const authToken = session?.authToken;
 
     if (!authToken) {
       return false;
@@ -127,6 +146,10 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
 
     // Use environment variable for backend URL with fallback
     const backendUrl = process.env.AUTH_API_URL;
+
+    if (!backendUrl) {
+      return false;
+    }
 
     // Add tenant ID header for multi-tenancy
     const tenantId = process.env.AUTH_TENANT_ID ?? "default";
@@ -188,7 +211,7 @@ export async function resetUserPassword(
     const session = await auth();
     // Access the token from the session object directly (not from user)
     // In the stockConfig callbacks, the token is stored as session.authToken
-    const authToken = (session as unknown)?.authToken;
+    const authToken = session?.authToken;
 
     if (!authToken && process.env.NODE_ENV !== "development") {
       return {
@@ -199,6 +222,13 @@ export async function resetUserPassword(
 
     // Use environment variable for backend URL with fallback
     const backendUrl = process.env.AUTH_API_URL;
+
+    if (!backendUrl) {
+      return {
+        success: false,
+        message: "Backend URL is not configured. Please contact support.",
+      };
+    }
 
     // Add tenant ID header for multi-tenancy
     const tenantId = process.env.AUTH_TENANT_ID ?? "default";
