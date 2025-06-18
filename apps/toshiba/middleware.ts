@@ -10,8 +10,8 @@ interface CheckPasswordResetResponse {
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const session = await auth();
   const requestHeaders = new Headers(request.headers);
-  console.log("Middleware - Request URL:",request.url);
-  requestHeaders.set('x-url', request.url);
+  console.log("Middleware - Request URL:", request.url);
+  requestHeaders.set("x-url", request.url);
 
   // Allow access to login and forgot-password pages without a session
   if (
@@ -80,9 +80,8 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     request: {
       // Apply new request headers
       headers: requestHeaders,
-    }
+    },
   });
-
 }
 
 export const config = {

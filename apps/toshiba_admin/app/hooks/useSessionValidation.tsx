@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 
 // Define a global variable to store the timeout ID
 declare global {
   interface Window {
-    sessionValidationTimeout?: NodeJS.Timeout;
-    sessionValidationIntervalId?: NodeJS.Timeout;
+    sessionValidationTimeout?: number;
+    sessionValidationIntervalId?: number;
     lastSessionValidation?: number;
   }
 }
@@ -16,8 +15,9 @@ declare global {
 /**
  * Hook to validate the session on user interactions
  */
-export function useSessionValidation() {
-  const router = useRouter();
+export function useSessionValidation(): {
+  checkSession: () => Promise<boolean>;
+} {
   const [isValidating, setIsValidating] = useState(false);
 
   const checkSession = useCallback(async (): Promise<boolean> => {
@@ -86,22 +86,26 @@ export function useSessionValidation() {
         console.error("Error getting session data:", error);
       }
 
-      // Call the server action to validate the session
+      if (!accessToken) {
+        return false;
+      }
+
+      const authApiUrl =
+        process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:8004";
+      const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
+
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "X-Tenant-ID": tenantId,
       };
-
-      // Add Authorization header if we have an access token
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`;
-      }
 
       // Add refresh token header if we have one
       if (refreshToken) {
         headers["X-Refresh-Token"] = refreshToken;
       }
 
-      const response = await fetch("/api/auth/validate-session", {
+      const response = await fetch(`${authApiUrl}/api/auth/validate-session`, {
         method: "POST",
         headers,
       });
@@ -124,6 +128,9 @@ export function useSessionValidation() {
       const data = (await response.json()) as {
         valid: boolean;
         reason?: string;
+        user_id?: number;
+        email?: string;
+        is_password_temporary?: boolean;
       };
       console.log("Session validation response:", data);
 
@@ -150,7 +157,7 @@ export function useSessionValidation() {
     } finally {
       setIsValidating(false);
     }
-  }, [router, isValidating]);
+  }, []);
 
   // Validate session on user interaction
   useEffect(() => {
@@ -158,12 +165,12 @@ export function useSessionValidation() {
     const handleUserInteraction = (): void => {
       // Debounce to prevent too many calls
       if (window.sessionValidationTimeout) {
-        clearTimeout(window.sessionValidationTimeout);
+        window.clearTimeout(window.sessionValidationTimeout);
       }
 
-      window.sessionValidationTimeout = setTimeout(() => {
-        void checkSession(); // void operator to explicitly ignore the Promise
-      }, 1000); // 1 second debounce
+      window.sessionValidationTimeout = window.setTimeout(() => {
+        void checkSession();
+      }, 5000);
     };
 
     // Add event listeners
@@ -174,9 +181,9 @@ export function useSessionValidation() {
     // to avoid immediate validation after login
     const initialDelay = setTimeout(() => {
       // Set up the interval after the initial delay
-      const intervalId = setInterval(() => {
-        void checkSession(); // void operator to explicitly ignore the Promise
-      }, 60000); // Check every minute
+      const intervalId = window.setInterval(() => {
+        void checkSession();
+      }, 300000);
 
       // Store the interval ID so we can clear it on cleanup
       window.sessionValidationIntervalId = intervalId;
@@ -186,17 +193,17 @@ export function useSessionValidation() {
       // Clean up
       document.removeEventListener("click", handleUserInteraction);
       document.removeEventListener("keydown", handleUserInteraction);
-      clearTimeout(initialDelay);
+      window.clearTimeout(initialDelay);
 
       if (window.sessionValidationIntervalId) {
-        clearInterval(window.sessionValidationIntervalId);
+        window.clearInterval(window.sessionValidationIntervalId);
       }
 
       if (window.sessionValidationTimeout) {
-        clearTimeout(window.sessionValidationTimeout);
+        window.clearTimeout(window.sessionValidationTimeout);
       }
     };
-  }, [checkSession]);
+  }, []);
 
   return { checkSession };
 }

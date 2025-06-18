@@ -52,7 +52,7 @@ export function SessionValidator({
     }
 
     void validateSession();
-  }, [pathname, checkSession, router, isValidating]);
+  }, [pathname]);
 
   // Show loading state while validating session on initial load
   if (
