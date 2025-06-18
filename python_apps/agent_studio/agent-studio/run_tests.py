@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 def run_command(cmd, description=""):
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     if description:
         print(f"🧪 {description}")
         print("=" * 60)
@@ -59,6 +59,20 @@ def run_demo_tests():
     return run_command(cmd, "Demo Endpoint Tests")
 
 
+def run_tool_tests():
+    cmd = [
+        "python",
+        "-m",
+        "pytest",
+        "tests/unit/test_tool_storage.py",
+        "tests/integration/test_tool_registry.py",
+        "tests/functional/test_tool_endpoints.py",
+        "-v",
+        "--tb=short",
+    ]
+    return run_command(cmd, "Tool Storage Tests")
+
+
 def run_functional_tests():
     cmd = ["python", "-m", "pytest", "tests/functional/", "-v", "--tb=short"]
     return run_command(cmd, "All Functional Tests")
@@ -98,6 +112,7 @@ def run_quick_tests():
     print("=" * 60)
 
     success1, _ = run_analytics_tests()
+    success2 = run_tool_tests()
 
     cmd = [
         "python",
@@ -106,27 +121,20 @@ def run_quick_tests():
         "tests/unit/test_demo_service.py::TestDemoInitializationService::test_service_initialization",
         "-v",
     ]
-    success2, _ = run_command(cmd, "Key Unit Test")
+    success3, _ = run_command(cmd, "Key Unit Test")
 
-    return success1 and success2
+    return success1 and success2 and success3
 
 
 def main():
     parser = argparse.ArgumentParser(description="Agent Studio Test Runner")
-    parser.add_argument(
-        "--analytics", action="store_true", help="Run analytics tests only"
-    )
+    parser.add_argument("--analytics", action="store_true", help="Run analytics tests only")
     parser.add_argument("--demo", action="store_true", help="Run demo tests only")
-    parser.add_argument(
-        "--functional", action="store_true", help="Run functional tests only"
-    )
-    parser.add_argument(
-        "--integration", action="store_true", help="Run integration tests only"
-    )
+    parser.add_argument("--tools", action="store_true", help="Run tool storage tests only")
+    parser.add_argument("--functional", action="store_true", help="Run functional tests only")
+    parser.add_argument("--integration", action="store_true", help="Run integration tests only")
     parser.add_argument("--unit", action="store_true", help="Run unit tests only")
-    parser.add_argument(
-        "--coverage", action="store_true", help="Run all tests with coverage"
-    )
+    parser.add_argument("--coverage", action="store_true", help="Run all tests with coverage")
     parser.add_argument("--quick", action="store_true", help="Run quick test suite")
     parser.add_argument("--all", action="store_true", help="Run all tests (default)")
 
@@ -137,6 +145,7 @@ def main():
     print("Available test categories:")
     print("  📊 Analytics Tests - API endpoint tests for analytics")
     print("  🎭 Demo Tests - API endpoint tests for demo functionality")
+    print("  🔧 Tool Tests - Tool storage, registry, and API tests")
     print("  🧪 Functional Tests - All API and feature tests")
     print("  🔗 Integration Tests - Cross-component integration tests")
     print("  ⚙️  Unit Tests - Individual component tests")
@@ -149,6 +158,8 @@ def main():
         success, _ = run_analytics_tests()
     elif args.demo:
         success, _ = run_demo_tests()
+    elif args.tools:
+        success = run_tool_tests()
     elif args.functional:
         success, _ = run_functional_tests()
     elif args.integration:

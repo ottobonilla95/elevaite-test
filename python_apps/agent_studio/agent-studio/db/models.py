@@ -412,3 +412,129 @@ class SessionMetrics(Base):
     average_response_time_ms: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     total_tokens_used: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class ToolCategory(Base):
+    __tablename__ = "tool_categories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    category_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    icon: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    color: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+
+    # Relationships
+    tools = relationship("Tool", back_populates="category")
+
+
+class MCPServer(Base):
+    __tablename__ = "mcp_servers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    server_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    # Connection details
+    host: Mapped[str] = mapped_column(String, nullable=False)
+    port: Mapped[int] = mapped_column(Integer, nullable=False)
+    protocol: Mapped[str] = mapped_column(String, default="http")  # http, https, ws, wss
+    endpoint: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # API endpoint path
+
+    # Authentication
+    auth_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # none, bearer, basic, api_key
+    auth_config: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)  # Auth configuration
+
+    # Status and health
+    status: Mapped[str] = mapped_column(String, default="active")  # active, inactive, error, maintenance
+    last_health_check: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    health_check_interval: Mapped[int] = mapped_column(Integer, default=300)  # seconds
+    consecutive_failures: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Metadata
+    version: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    capabilities: Mapped[Optional[List[str]]] = mapped_column(JSONB, nullable=True)
+    tags: Mapped[Optional[List[str]]] = mapped_column(JSONB, nullable=True)
+
+    # Timestamps
+    registered_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
+    last_seen: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+
+    # Relationships
+    tools = relationship("Tool", back_populates="mcp_server")
+
+    # Constraints
+    __table_args__ = (UniqueConstraint("name", name="uix_mcp_server_name"),)
+
+
+class Tool(Base):
+    __tablename__ = "tools"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tool_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
+
+    # Basic tool information
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    display_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    version: Mapped[str] = mapped_column(String, default="1.0.0")
+
+    # Tool type and execution
+    tool_type: Mapped[str] = mapped_column(String, nullable=False)  # local, remote, mcp
+    execution_type: Mapped[str] = mapped_column(String, default="function")  # function, api, command
+
+    # Schema and parameters
+    parameters_schema: Mapped[dict] = mapped_column(JSONB, nullable=False)  # OpenAI function schema
+    return_schema: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)  # Expected return format
+
+    # Local tool implementation (for local tools)
+    module_path: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Python module path
+    function_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Function name
+
+    # Remote tool configuration (for MCP tools)
+    mcp_server_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("mcp_servers.server_id"), nullable=True
+    )
+    remote_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Tool name on remote server
+
+    # Categorization
+    category_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tool_categories.category_id"), nullable=True
+    )
+    tags: Mapped[Optional[List[str]]] = mapped_column(JSONB, nullable=True)
+
+    # Status and availability
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_available: Mapped[bool] = mapped_column(Boolean, default=True)
+    requires_auth: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Performance and reliability
+    timeout_seconds: Mapped[int] = mapped_column(Integer, default=30)
+    retry_count: Mapped[int] = mapped_column(Integer, default=3)
+    rate_limit_per_minute: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    # Metadata
+    created_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+    last_used: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    # Usage statistics (denormalized for performance)
+    usage_count: Mapped[int] = mapped_column(Integer, default=0)
+    success_count: Mapped[int] = mapped_column(Integer, default=0)
+    error_count: Mapped[int] = mapped_column(Integer, default=0)
+    average_execution_time_ms: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
+    # Relationships
+    category = relationship("ToolCategory", back_populates="tools")
+    mcp_server = relationship("MCPServer", back_populates="tools")
+
+    # Constraints
+    __table_args__ = (
+        UniqueConstraint("name", "version", name="uix_tool_name_version"),
+        UniqueConstraint("mcp_server_id", "remote_name", name="uix_mcp_tool"),
+    )

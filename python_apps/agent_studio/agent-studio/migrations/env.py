@@ -17,7 +17,23 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 from db.database import Base
-from db.models import Prompt, Agent, PromptVersion, PromptDeployment
+from db.models import (
+    Prompt,
+    Agent,
+    PromptVersion,
+    PromptDeployment,
+    Workflow,
+    WorkflowAgent,
+    WorkflowConnection,
+    WorkflowDeployment,
+    AgentExecutionMetrics,
+    ToolUsageMetrics,
+    WorkflowMetrics,
+    SessionMetrics,
+    ToolCategory,
+    MCPServer,
+    Tool,
+)
 
 target_metadata = Base.metadata
 

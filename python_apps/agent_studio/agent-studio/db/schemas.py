@@ -637,3 +637,192 @@ class AnalyticsSummary(BaseModel):
     workflow_stats: List[WorkflowPerformanceStats]
     error_summary: List[ErrorSummary]
     session_stats: SessionActivityStats
+
+
+# Tool Category Schemas
+class ToolCategoryBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    color: Optional[str] = None
+
+
+class ToolCategoryCreate(ToolCategoryBase):
+    pass
+
+
+class ToolCategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    color: Optional[str] = None
+
+
+class ToolCategoryInDB(ToolCategoryBase):
+    id: int
+    category_id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ToolCategoryResponse(ToolCategoryInDB):
+    pass
+
+
+# MCP Server Schemas
+class MCPServerBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    host: str
+    port: int
+    protocol: str = "http"
+    endpoint: Optional[str] = None
+    auth_type: Optional[str] = None
+    auth_config: Optional[Dict[str, Any]] = None
+    version: Optional[str] = None
+    capabilities: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    health_check_interval: int = 300
+
+
+class MCPServerCreate(MCPServerBase):
+    pass
+
+
+class MCPServerUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    host: Optional[str] = None
+    port: Optional[int] = None
+    protocol: Optional[str] = None
+    endpoint: Optional[str] = None
+    auth_type: Optional[str] = None
+    auth_config: Optional[Dict[str, Any]] = None
+    status: Optional[str] = None
+    version: Optional[str] = None
+    capabilities: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    health_check_interval: Optional[int] = None
+
+
+class MCPServerInDB(MCPServerBase):
+    id: int
+    server_id: uuid.UUID
+    status: str
+    last_health_check: Optional[datetime] = None
+    consecutive_failures: int
+    registered_at: datetime
+    last_seen: Optional[datetime] = None
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MCPServerResponse(MCPServerInDB):
+    pass
+
+
+# Tool Schemas
+class ToolBase(BaseModel):
+    name: str
+    display_name: Optional[str] = None
+    description: str
+    version: str = "1.0.0"
+    tool_type: str  # local, remote, mcp
+    execution_type: str = "function"  # function, api, command
+    parameters_schema: Dict[str, Any]
+    return_schema: Optional[Dict[str, Any]] = None
+    module_path: Optional[str] = None
+    function_name: Optional[str] = None
+    remote_name: Optional[str] = None
+    tags: Optional[List[str]] = None
+    requires_auth: bool = False
+    timeout_seconds: int = 30
+    retry_count: int = 3
+    rate_limit_per_minute: Optional[int] = None
+
+
+class ToolCreate(ToolBase):
+    category_id: Optional[uuid.UUID] = None
+    mcp_server_id: Optional[uuid.UUID] = None
+    created_by: Optional[str] = None
+
+
+class ToolUpdate(BaseModel):
+    name: Optional[str] = None
+    display_name: Optional[str] = None
+    description: Optional[str] = None
+    version: Optional[str] = None
+    tool_type: Optional[str] = None
+    execution_type: Optional[str] = None
+    parameters_schema: Optional[Dict[str, Any]] = None
+    return_schema: Optional[Dict[str, Any]] = None
+    module_path: Optional[str] = None
+    function_name: Optional[str] = None
+    remote_name: Optional[str] = None
+    category_id: Optional[uuid.UUID] = None
+    mcp_server_id: Optional[uuid.UUID] = None
+    tags: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+    is_available: Optional[bool] = None
+    requires_auth: Optional[bool] = None
+    timeout_seconds: Optional[int] = None
+    retry_count: Optional[int] = None
+    rate_limit_per_minute: Optional[int] = None
+
+
+class ToolInDB(ToolBase):
+    id: int
+    tool_id: uuid.UUID
+    category_id: Optional[uuid.UUID] = None
+    mcp_server_id: Optional[uuid.UUID] = None
+    is_active: bool
+    is_available: bool
+    created_by: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    last_used: Optional[datetime] = None
+    usage_count: int
+    success_count: int
+    error_count: int
+    average_execution_time_ms: Optional[float] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ToolResponse(ToolInDB):
+    category: Optional[ToolCategoryResponse] = None
+    mcp_server: Optional[MCPServerResponse] = None
+
+
+# Tool Execution Schemas
+class ToolExecutionRequest(BaseModel):
+    tool_id: uuid.UUID
+    parameters: Dict[str, Any]
+    session_id: Optional[str] = None
+    user_id: Optional[str] = None
+    timeout_override: Optional[int] = None
+
+
+class ToolExecutionResponse(BaseModel):
+    status: str  # success, error, timeout
+    result: Optional[Any] = None
+    error_message: Optional[str] = None
+    execution_time_ms: int
+    tool_id: uuid.UUID
+    timestamp: datetime
+
+
+# MCP Server Registration Schema (for self-registration)
+class MCPServerRegistration(BaseModel):
+    name: str
+    description: Optional[str] = None
+    host: str
+    port: int
+    protocol: str = "http"
+    endpoint: Optional[str] = None
+    version: Optional[str] = None
+    capabilities: Optional[List[str]] = None
+    tools: Optional[List[Dict[str, Any]]] = None  # Tool definitions from the server
