@@ -29,7 +29,6 @@ declare module "next-auth" {
     user?: {
       accountMemberships?: UserAccountMembershipObject[];
       rbacId?: string;
-      refreshToken?: string;
     } & DefaultSession["user"];
   }
 
@@ -66,7 +65,7 @@ async function refreshGoogleToken(token: JWT): Promise<JWT> {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion -- Straight from the docs https://authjs.dev/guides/refresh-token-rotation?framework=next-js
       refresh_token: token.refresh_token!,
     }),
-  });
+  })
 
   interface GoogleTokenResponse {
     access_token: string;
@@ -107,7 +106,7 @@ async function refreshAuthApiToken(token: JWT): Promise<JWT> {
   const AUTH_API_REFRESH_ENDPOINT = `${AUTH_API_URL}/api/auth/refresh`;
 
   // Get tenant ID from environment or use default
-  const TENANT_ID = process.env.AUTH_TENANT_ID ?? "default";
+  const TENANT_ID = process.env.AUTH_TENANT_ID ?? 'default';
 
   if (!token.refresh_token) {
     throw new Error("Missing refresh token. Cannot refresh access token.");
@@ -131,7 +130,7 @@ async function refreshAuthApiToken(token: JWT): Promise<JWT> {
     token_type: string;
   }
 
-  const tokensOrError = (await response.json()) as AuthApiTokenResponse;
+  const tokensOrError = await response.json() as AuthApiTokenResponse;
 
   if (!response.ok) {
     throw new TokenRefreshError(
@@ -155,25 +154,13 @@ const _config = {
   callbacks: {
     async jwt({ account, token, user }): Promise<JWT> {
       if (account) {
-        if (
-          !account.access_token &&
-          !account.refresh_token &&
-          !user.accessToken &&
-          !user.refreshToken
-        ) {
+        if (!account.access_token && !account.refresh_token && !user.accessToken && !user.refreshToken) {
           throw new Error("Account doesn't contain tokens");
         }
-        if (
-          Boolean(account.access_token) &&
-          (account.access_token === token.access_token ||
-            user.accessToken === token.access_token) &&
-          Boolean(account.refresh_token) &&
-          (account.refresh_token === token.refresh_token ||
-            user.refreshToken === token.refresh_token) &&
-          Boolean(account.provider) &&
-          account.provider === token.provider
-        ) {
-          return token;
+        if (Boolean(account.access_token) && ((account.access_token === token.access_token) || (user.accessToken === token.access_token))
+          && Boolean(account.refresh_token) && ((account.refresh_token === token.refresh_token) || (user.refreshToken === token.refresh_token))
+          && Boolean(account.provider) && account.provider === token.provider) {
+          return token
         }
 
         if (account.provider === "google") {
@@ -189,15 +176,13 @@ const _config = {
         }
 
         if (account.provider === "credentials") {
-          const newToken = {
+          return {
             ...token,
             access_token: user.accessToken,
             expires_at: Math.floor(Date.now() / 1000 + 3600),
             refresh_token: user.refreshToken,
             provider: "credentials" as const,
           };
-
-          return newToken;
         }
       }
 
@@ -228,12 +213,6 @@ const _config = {
       session.user ? (session.user.id = token.sub ?? user.id) : null;
       Object.assign(session, { authToken: token.access_token });
       Object.assign(session, { error: token.error });
-
-      // Add refresh token to user object for access in components
-      if (token.refresh_token) {
-        session.user.refreshToken = token.refresh_token;
-      }
-
       // const authToken = token.access_token;
       // const RBAC_URL = process.env.RBAC_BACKEND_URL;
       // if (!RBAC_URL)
