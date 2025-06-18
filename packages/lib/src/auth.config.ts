@@ -95,7 +95,7 @@ async function refreshGoogleToken(token: JWT): Promise<JWT> {
     access_token: tokensOrError.access_token,
     expires_at: Math.floor(Date.now() / 1000 + tokensOrError.expires_in),
     refresh_token: tokensOrError.refresh_token ?? token.refresh_token,
-    provider: "google",
+    provider: "google" as const,
   };
 }
 
@@ -147,7 +147,7 @@ async function refreshAuthApiToken(token: JWT): Promise<JWT> {
     // Default token expiration to 1 hour (3600 seconds)
     expires_at: Math.floor(Date.now() / 1000 + 3600),
     refresh_token: tokensOrError.refresh_token,
-    provider: "credentials",
+    provider: "credentials" as const,
   };
 }
 
@@ -184,7 +184,7 @@ const _config = {
               Date.now() / 1000 + (account.expires_in ?? 0)
             ),
             refresh_token: account.refresh_token,
-            provider: "google",
+            provider: "google" as const,
           };
         }
 
@@ -194,7 +194,7 @@ const _config = {
             access_token: user.accessToken,
             expires_at: Math.floor(Date.now() / 1000 + 3600),
             refresh_token: user.refreshToken,
-            provider: "credentials",
+            provider: "credentials" as const,
           };
 
           return newToken;
