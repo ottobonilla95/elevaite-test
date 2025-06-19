@@ -1,3 +1,21 @@
+import type { Tool, ChatCompletionToolParam } from "./interfaces";
+
+/**
+ * Converts a Tool object to OpenAI ChatCompletionToolParam format
+ * @param tool - The tool object from the database
+ * @returns OpenAI-compatible tool schema
+ */
+export function toolToOpenAISchema(tool: Tool): ChatCompletionToolParam {
+    return {
+        type: "function",
+        function: {
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters_schema
+        }
+    };
+}
+
 // "use client";
 //
 // import { v4 as uuidv4 } from 'uuid';

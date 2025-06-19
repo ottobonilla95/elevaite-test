@@ -37,10 +37,10 @@ const HeaderBottom: React.FC<HeaderBottomProps> = ({
 				</button>
 				<button className={`btn-workflow-testing${activeBtnAction === 'workflow-testing' ? ' active' : ''}`} type="button" onClick={() => setActiveBtnAction("workflow-testing")}>
 					<svg width="17" height="19" viewBox="0 0 17 19" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M14.6695 9.48291V4.17099C14.6695 4.03578 14.6158 3.90611 14.5202 3.81049L11.8449 1.13517C11.7493 1.03955 11.6196 0.98584 11.4844 0.98584H1.58404C1.30248 0.98584 1.07422 1.2141 1.07422 1.49566V17.4702C1.07422 17.7518 1.30248 17.98 1.58404 17.98H7.02217" stroke="#1E1E1E" strokeWidth="1.27456" stroke-linecap="round" stroke-linejoin="round" />
-						<path d="M4.47266 7.78311H11.2703M4.47266 4.38428H7.87148M4.47266 11.1819H7.02178" stroke="#1E1E1E" strokeWidth="1.27456" stroke-linecap="round" stroke-linejoin="round" />
-						<path d="M12.9308 13.6803L13.7805 12.8306C14.1526 12.4585 14.7559 12.4585 15.128 12.8306C15.5001 13.2027 15.5001 13.806 15.128 14.178L14.2783 15.0278M12.9308 13.6803L10.3892 16.2218C10.2619 16.3492 10.1783 16.5138 10.1506 16.6917L9.94434 18.0142L11.2667 17.8081C11.4447 17.7803 11.6093 17.6967 11.7366 17.5693L14.2783 15.0278M12.9308 13.6803L14.2783 15.0278" stroke="#1E1E1E" strokeWidth="1.27456" stroke-linecap="round" stroke-linejoin="round" />
-						<path d="M11.271 0.98584V3.87484C11.271 4.15641 11.4992 4.38467 11.7808 4.38467H14.6698" stroke="#1E1E1E" strokeWidth="1.27456" stroke-linecap="round" stroke-linejoin="round" />
+						<path d="M14.6695 9.48291V4.17099C14.6695 4.03578 14.6158 3.90611 14.5202 3.81049L11.8449 1.13517C11.7493 1.03955 11.6196 0.98584 11.4844 0.98584H1.58404C1.30248 0.98584 1.07422 1.2141 1.07422 1.49566V17.4702C1.07422 17.7518 1.30248 17.98 1.58404 17.98H7.02217" stroke="#1E1E1E" strokeWidth="1.27456" strokeLinecap="round" strokeLinejoin="round" />
+						<path d="M4.47266 7.78311H11.2703M4.47266 4.38428H7.87148M4.47266 11.1819H7.02178" stroke="#1E1E1E" strokeWidth="1.27456" strokeLinecap="round" strokeLinejoin="round" />
+						<path d="M12.9308 13.6803L13.7805 12.8306C14.1526 12.4585 14.7559 12.4585 15.128 12.8306C15.5001 13.2027 15.5001 13.806 15.128 14.178L14.2783 15.0278M12.9308 13.6803L10.3892 16.2218C10.2619 16.3492 10.1783 16.5138 10.1506 16.6917L9.94434 18.0142L11.2667 17.8081C11.4447 17.7803 11.6093 17.6967 11.7366 17.5693L14.2783 15.0278M12.9308 13.6803L14.2783 15.0278" stroke="#1E1E1E" strokeWidth="1.27456" strokeLinecap="round" strokeLinejoin="round" />
+						<path d="M11.271 0.98584V3.87484C11.271 4.15641 11.4992 4.38467 11.7808 4.38467H14.6698" stroke="#1E1E1E" strokeWidth="1.27456" strokeLinecap="round" strokeLinejoin="round" />
 					</svg>
 				</button>
 			</div>

@@ -23,7 +23,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
     const [description, setDescription] = useState(nodeData?.agent.description || "");
     const [tags, setTags] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState("prompt");
-    const maxLength = 1000;
+    const maxLength = 2000;
 
     // Available tag options
     const availableTags = [

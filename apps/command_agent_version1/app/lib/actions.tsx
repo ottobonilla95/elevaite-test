@@ -6,9 +6,7 @@ import {
   isAgentResponseArray,
   isWorkflowDeployResponse,
   isWorkflowExecutionResponse,
-  isToolsResponse,
-  isToolCategoryResponse,
-  isToolDetailResponse,
+
   isWorkflowResponse,
   isWorkflowResponseArray,
   isDeploymentOperationResponse,
@@ -31,11 +29,10 @@ import type {
   WorkflowCreateRequest,
   WorkflowDeploymentRequest,
   NewWorkflowExecutionRequest,
-  ToolsResponse,
-  ToolCategoryResponse,
-  ToolDetailResponse,
+
   DeploymentOperationResponse,
   WorkflowDeployment,
+
 } from "./interfaces";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -425,57 +422,13 @@ export async function getActiveDeployments(): Promise<WorkflowDeployment[]> {
   }
 }
 
-// Tools API functions
-export async function fetchAllTools(): Promise<ToolsResponse> {
-  const url = new URL(`${BACKEND_URL ?? ""}api/tools/`);
+// Tools API functions - Updated for new database-backed system
 
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Failed to fetch tools");
 
-  const data: unknown = await response.json();
-  if (isToolsResponse(data)) return data;
-  throw new Error("Invalid data type - expected tools response");
-}
 
-export async function fetchToolsByCategory(): Promise<ToolCategoryResponse> {
-  const url = new URL(`${BACKEND_URL ?? ""}api/tools/categories/list`);
 
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Failed to fetch tools by category");
 
-  const data: unknown = await response.json();
-  if (isToolCategoryResponse(data)) return data;
-  throw new Error("Invalid data type - expected tool category response");
-}
 
-export async function fetchToolDetails(toolName: string): Promise<ToolDetailResponse> {
-  const url = new URL(`${BACKEND_URL ?? ""}api/tools/${toolName}`);
-
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to fetch tool details for ${toolName}`);
-
-  const data: unknown = await response.json();
-  if (isToolDetailResponse(data)) return data;
-  throw new Error("Invalid data type - expected tool detail response");
-}
-
-export async function fetchToolSchemas(): Promise<{
-  schemas: Record<string, ChatCompletionToolParam>;
-  total_count: number;
-  format: string;
-}> {
-  const url = new URL(`${BACKEND_URL ?? ""}api/tools/schemas/openai`);
-
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Failed to fetch tool schemas");
-
-  return await response.json();
-}
-
-export async function fetchToolSchemasAsArray(): Promise<ChatCompletionToolParam[]> {
-  const schemasResponse = await fetchToolSchemas();
-  return Object.values(schemasResponse.schemas);
-}
 
 // Agent execution interfaces
 export interface AgentExecutionRequest {

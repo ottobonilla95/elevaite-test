@@ -1,15 +1,18 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { fetchAllTools } from '../../lib/actions';
-import { ToolInfo } from '../../lib/interfaces';
-import { getToolsFromCache, setToolsCache } from '../../lib/toolsCache';
+import { fetchAvailableTools, fetchToolCategories } from '../../lib/tool_actions';
+import { Tool, ToolCategory } from '../../lib/interfaces';
 
 interface ToolsContextType {
-  tools: ToolInfo[];
+  tools: Tool[];
+  categories: ToolCategory[];
   isLoading: boolean;
   error: string | null;
   refetchTools: () => Promise<void>;
+  // Utility functions
+  getToolsByCategory: (categoryId?: string) => Tool[];
+  getAvailableTools: () => Tool[];
 }
 
 const ToolsContext = createContext<ToolsContextType | undefined>(undefined);
@@ -19,32 +22,28 @@ interface ToolsProviderProps {
 }
 
 export const ToolsProvider: React.FC<ToolsProviderProps> = ({ children }) => {
-  const [tools, setTools] = useState<ToolInfo[]>([]);
+  const [tools, setTools] = useState<Tool[]>([]);
+  const [categories, setCategories] = useState<ToolCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
 
   const loadTools = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // Check cache first
-      const cachedTools = getToolsFromCache();
-      if (cachedTools) {
-        setTools(cachedTools);
-        setIsLoading(false);
-        return;
-      }
+      // Fetch new tools system data
+      const [toolsResponse, categoriesResponse] = await Promise.all([
+        fetchAvailableTools(),
+        fetchToolCategories()
+      ]);
 
-      // Fetch from API if not in cache
-      const toolsResponse = await fetchAllTools();
-      setTools(toolsResponse.tools);
-
-      // Cache the results
-      setToolsCache(toolsResponse.tools);
+      setTools(toolsResponse);
+      setCategories(categoriesResponse);
     } catch (err) {
-      console.error("Failed to fetch tools:", err);
-      setError("Failed to load tools from API");
+      console.error("Failed to fetch new tools:", err);
+      setError("Failed to load new tools from API");
     } finally {
       setIsLoading(false);
     }
@@ -54,15 +53,29 @@ export const ToolsProvider: React.FC<ToolsProviderProps> = ({ children }) => {
     await loadTools();
   };
 
+  // Utility functions
+  const getToolsByCategory = (categoryId?: string): Tool[] => {
+    if (!categoryId) return tools;
+    return tools.filter(tool => tool.category_id === categoryId);
+  };
+
+  const getAvailableTools = (): Tool[] => {
+    return tools.filter(tool => tool.is_active && tool.is_available);
+  };
+
   useEffect(() => {
+    // Load both legacy and new tools on mount
     loadTools();
   }, []);
 
   const value: ToolsContextType = {
     tools,
+    categories,
     isLoading,
     error,
     refetchTools,
+    getToolsByCategory,
+    getAvailableTools,
   };
 
   return (

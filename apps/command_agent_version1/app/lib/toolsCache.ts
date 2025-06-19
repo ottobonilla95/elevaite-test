@@ -1,15 +1,15 @@
-import { ToolInfo } from './interfaces';
+import { Tool } from './interfaces';
 
 // Simple in-memory cache for tools
-let toolsCache: ToolInfo[] | null = null;
+let toolsCache: Tool[] | null = null;
 let cacheTimestamp: number | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-export function getToolsFromCache(): ToolInfo[] | null {
+export function getToolsFromCache(): Tool[] | null {
   if (!toolsCache || !cacheTimestamp) {
     return null;
   }
-  
+
   const now = Date.now();
   if (now - cacheTimestamp > CACHE_DURATION) {
     // Cache expired
@@ -17,11 +17,11 @@ export function getToolsFromCache(): ToolInfo[] | null {
     cacheTimestamp = null;
     return null;
   }
-  
+
   return toolsCache;
 }
 
-export function setToolsCache(tools: ToolInfo[]): void {
+export function setToolsCache(tools: Tool[]): void {
   toolsCache = tools;
   cacheTimestamp = Date.now();
 }

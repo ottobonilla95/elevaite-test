@@ -177,6 +177,10 @@
         border-radius: 0.375rem;
         font-size: 0.875rem;
         color: #111827; // gray-900
+
+        option{
+          font-family: "__Inter_e8ce0c", "__Inter_Fallback_e8ce0c";
+        }
       }
 
       .tools-loading {
