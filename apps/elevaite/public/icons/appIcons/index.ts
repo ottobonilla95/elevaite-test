@@ -7,6 +7,7 @@ import deckBuilder from "./deckBuilder.svg";
 import insights from "./insights.svg";
 import campaignBuilder from "./campaignBuilder.svg";
 import contracts from "./contracts.svg";
+import analytics from "./analytics.svg";
 
 interface SvgType {
   src: string;
@@ -31,5 +32,6 @@ export const ApplicationIcons = {
     contractsIopex: { src: (contracts as SvgType).src, alt: "Contract Co-Pilot for Iopex" },
     insights: { src: (insights as SvgType).src, alt: "ElevAIte Insights" },
     campaignBuilder: { src: (campaignBuilder as SvgType).src, alt: "Campaign Builder" },
+    analytics: { src: (analytics as SvgType).src, alt: "Analytics Dashboard" },
   },
 };

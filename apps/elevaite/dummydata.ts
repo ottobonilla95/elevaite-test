@@ -112,8 +112,8 @@ const appLinks: Record<string, { development: string; production: string; test: 
     test: "",
   },
   insights: {
-    development: "https://arlo.opexwise.ai",
-    production: "https://arlo.opexwise.ai",
+    development: "https://elevaite-assist.iopex.ai/",
+    production: "https://elevaite-assist.iopex.ai/",
     test: "",
   },
   contracts: {
@@ -149,6 +149,11 @@ const appLinks: Record<string, { development: string; production: string; test: 
   qaViewURL: {
     development: "https://elevaite-dev.iopex.ai",
     production: "https://elevaite-dev.iopex.ai",
+    test: "",
+  },
+  mediaAnalytics: {
+    development: "https://elevaite-ads.iopex.ai/dashboard",
+    production: "https://elevaite-ads.iopex.ai/dashboard",
     test: "",
   }
 
@@ -304,9 +309,9 @@ export function getApplications(
       cards: [
         {
           icon: ApplicationIcons.applications.insights.src,
-          description: "Your BI Application to make informed decisions. Data to Insights.",
+          description: "Leverage AI-powered analytics to gain actionable insights on your campaigns and creatives to optimize performance.",
           iconAlt: ApplicationIcons.applications.insights.alt,
-          title: "elevAIte Insights",
+          title: "Campaign & Creative Insights",
           link: appLinks.insights[env],
           id: "insights",
           miscLabel: "Version 2.0",
@@ -320,6 +325,17 @@ export function getApplications(
           title: "Media and Marketing",
           link: appLinks.mediaplan[env],
           id: "mediaplan",
+          miscLabel: "Version 1.0",
+          subtitle: "By Elevaite",
+          openInNewTab: true,
+        },
+        {
+          icon: ApplicationIcons.applications.analytics.src,
+          description: "Gain actionable insights and feedback analytics to monitor Media Plan Co-pilot effectiveness and drive performance optimization.",
+          iconAlt: ApplicationIcons.applications.analytics.alt,
+          title: "Media Analytics Dashboard",
+          link: appLinks.mediaAnalytics[env],
+          id: "mediaAnalytics",
           miscLabel: "Version 1.0",
           subtitle: "By Elevaite",
           openInNewTab: true,
