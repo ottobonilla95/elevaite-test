@@ -27,9 +27,14 @@ class DemoInitializationService:
             added_prompts = []
 
             for prompt_data in DEFAULT_PROMPTS:
+                # Check using the same constraint as the database: (app_name, prompt_label, version)
                 existing_prompt = (
                     self.db.query(models.Prompt)
-                    .filter(models.Prompt.unique_label == prompt_data.unique_label)
+                    .filter(
+                        models.Prompt.app_name == prompt_data.app_name,
+                        models.Prompt.prompt_label == prompt_data.prompt_label,
+                        models.Prompt.version == prompt_data.version,
+                    )
                     .first()
                 )
 
@@ -47,9 +52,13 @@ class DemoInitializationService:
                         variables=prompt_data.variables,
                     )
 
-                    crud.create_prompt(db=self.db, prompt=prompt_create)
-                    added_prompts.append(prompt_data.prompt_label)
-                    added_count += 1
+                    # Use safe creation to avoid constraint violations
+                    created_prompt = crud.create_prompt_safe(db=self.db, prompt=prompt_create)
+                    if created_prompt:
+                        added_prompts.append(prompt_data.prompt_label)
+                        added_count += 1
+                    else:
+                        skipped_count += 1
                 else:
                     skipped_count += 1
 
@@ -87,19 +96,11 @@ class DemoInitializationService:
             updated_agents = []
 
             for agent_data in DEFAULT_AGENTS:
-                existing_agent = (
-                    self.db.query(models.Agent)
-                    .filter(models.Agent.name == agent_data.name)
-                    .first()
-                )
+                existing_agent = self.db.query(models.Agent).filter(models.Agent.name == agent_data.name).first()
 
                 if existing_agent is None:
                     # Check if the required prompt exists
-                    prompt = (
-                        self.db.query(models.Prompt)
-                        .filter(models.Prompt.unique_label == agent_data.prompt_label)
-                        .first()
-                    )
+                    prompt = self.db.query(models.Prompt).filter(models.Prompt.unique_label == agent_data.prompt_label).first()
 
                     if prompt is None:
                         return (
@@ -132,25 +133,23 @@ class DemoInitializationService:
                         collaboration_mode=agent_data.collaboration_mode,
                         deployment_code=deployment_code,
                         available_for_deployment=True,
+                        agent_type=agent_data.agent_type,
                     )
 
                     crud.create_agent(db=self.db, agent=agent_create)
+                    print(f"Added agent: {agent_data.agent_type}")
                     added_agents.append(f"{agent_data.name} (code: {deployment_code})")
                     added_count += 1
                 else:
                     # Check if we need to update deployment code
                     existing_code = getattr(existing_agent, "deployment_code", None)
-                    has_code = (
-                        existing_code is not None and str(existing_code).strip() != ""
-                    )
+                    has_code = existing_code is not None and str(existing_code).strip() != ""
                     deployment_code = AGENT_CODES.get(agent_data.name)
 
                     if not has_code and deployment_code is not None:
                         setattr(existing_agent, "deployment_code", deployment_code)
                         setattr(existing_agent, "available_for_deployment", True)
-                        updated_agents.append(
-                            f"{agent_data.name} (added code: {deployment_code})"
-                        )
+                        updated_agents.append(f"{agent_data.name} (added code: {deployment_code})")
                         updated_count += 1
                     else:
                         skipped_count += 1

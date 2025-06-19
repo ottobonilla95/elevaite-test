@@ -4,12 +4,15 @@ Provides CRUD operations for tools, tool categories, and MCP servers
 """
 
 import uuid
+import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from db import crud, schemas
 from db.database import get_db
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/tools", tags=["tools"])
 
@@ -126,7 +129,7 @@ def delete_mcp_server(server_id: uuid.UUID, db: Session = Depends(get_db)):
 
 # MCP Server Self-Registration endpoint
 @router.post("/mcp-servers/register", response_model=schemas.MCPServerResponse)
-def register_mcp_server(registration: schemas.MCPServerRegistration, db: Session = Depends(get_db)):
+async def register_mcp_server(registration: schemas.MCPServerRegistration, db: Session = Depends(get_db)):
     """
     Self-registration endpoint for MCP servers.
     This allows MCP servers to register themselves on startup.
@@ -160,10 +163,16 @@ def register_mcp_server(registration: schemas.MCPServerRegistration, db: Session
         )
         server = crud.create_mcp_server(db=db, server=server_create)
 
-    # TODO: Register tools from the server if provided
-    if registration.tools:
-        # This will be implemented in Phase 2
-        pass
+    # Register tools from the server if provided
+    if registration.tools and server:
+        from services.mcp_client import mcp_client
+
+        try:
+            # Register tools automatically
+            registered_tools = await mcp_client.register_tools_from_server(server, db)
+            logger.info(f"Registered {len(registered_tools)} tools from server {server.name}")
+        except Exception as e:
+            logger.error(f"Failed to register tools from server {server.name}: {e}")
 
     return server
 
@@ -249,11 +258,14 @@ def delete_tool(tool_id: uuid.UUID, db: Session = Depends(get_db)):
 
 # Tool execution endpoint (for testing and direct execution)
 @router.post("/{tool_id}/execute", response_model=schemas.ToolExecutionResponse)
-def execute_tool(tool_id: uuid.UUID, execution_request: schemas.ToolExecutionRequest, db: Session = Depends(get_db)):
+async def execute_tool(tool_id: uuid.UUID, execution_request: schemas.ToolExecutionRequest, db: Session = Depends(get_db)):
     """
     Execute a tool directly.
-    This is a basic implementation for Phase 1 - will be enhanced in Phase 2.
+    Phase 2: Full implementation with local and MCP tool execution.
     """
+    from services.tool_registry import tool_registry
+    from datetime import datetime
+
     tool = crud.get_tool(db, tool_id)
     if not tool:
         raise HTTPException(status_code=404, detail="Tool not found")
@@ -261,14 +273,24 @@ def execute_tool(tool_id: uuid.UUID, execution_request: schemas.ToolExecutionReq
     if not tool.is_active or not tool.is_available:
         raise HTTPException(status_code=400, detail="Tool is not available for execution")
 
-    # For Phase 1, we'll return a placeholder response
-    # In Phase 2, this will implement actual tool execution
-    from datetime import datetime
+    try:
+        # Execute the tool using the tool registry
+        result = await tool_registry.execute_tool(tool_name=tool.name, parameters=execution_request.parameters, db=db)
 
-    return schemas.ToolExecutionResponse(
-        status="success",
-        result={"message": "Tool execution placeholder - will be implemented in Phase 2"},
-        execution_time_ms=100,
-        tool_id=tool_id,
-        timestamp=datetime.now(),
-    )
+        return schemas.ToolExecutionResponse(
+            status=result["status"],
+            result=result["result"],
+            execution_time_ms=result["execution_time_ms"],
+            tool_id=tool_id,
+            timestamp=datetime.fromisoformat(result["timestamp"]),
+        )
+
+    except Exception as e:
+        logger.error(f"Tool execution failed for {tool.name}: {e}")
+        return schemas.ToolExecutionResponse(
+            status="error",
+            result={"error": str(e)},
+            execution_time_ms=0,
+            tool_id=tool_id,
+            timestamp=datetime.now(),
+        )

@@ -11,6 +11,29 @@ from agents.tools import tool_schemas
 from . import models, schemas
 
 
+def get_prompt_by_constraint(db: Session, app_name: str, prompt_label: str, version: str) -> Optional[models.Prompt]:
+    """Get prompt by the unique constraint fields: (app_name, prompt_label, version)."""
+    return (
+        db.query(models.Prompt)
+        .filter(
+            models.Prompt.app_name == app_name,
+            models.Prompt.prompt_label == prompt_label,
+            models.Prompt.version == version,
+        )
+        .first()
+    )
+
+
+def create_prompt_safe(db: Session, prompt: schemas.PromptCreate) -> Optional[models.Prompt]:
+    """Create a prompt safely, checking for existing prompts first."""
+    # Check if prompt already exists using the database constraint
+    existing = get_prompt_by_constraint(db, prompt.app_name, prompt.prompt_label, prompt.version)
+    if existing:
+        return existing
+
+    return create_prompt(db, prompt)
+
+
 def create_prompt(db: Session, prompt: schemas.PromptCreate) -> models.Prompt:
     # Generate a hash if one isn't provided
     sha_hash = prompt.sha_hash
@@ -168,6 +191,7 @@ def create_agent(db: Session, agent: schemas.AgentCreate) -> models.Agent:
         available_for_deployment=agent.available_for_deployment,
         deployment_code=agent.deployment_code,
         last_active=datetime.now(),
+        agent_type=agent.agent_type,
     )
     db.add(db_agent)
     db.commit()
@@ -701,6 +725,11 @@ def get_tools(
 
 def get_tools_by_mcp_server(db: Session, server_id: uuid.UUID) -> List[models.Tool]:
     return db.query(models.Tool).filter(models.Tool.mcp_server_id == server_id).all()
+
+
+def get_tool_by_mcp_server_and_name(db: Session, server_id: uuid.UUID, tool_name: str) -> Optional[models.Tool]:
+    """Get a tool by MCP server ID and remote tool name."""
+    return db.query(models.Tool).filter(models.Tool.mcp_server_id == server_id, models.Tool.remote_name == tool_name).first()
 
 
 def get_available_tools(db: Session) -> List[models.Tool]:

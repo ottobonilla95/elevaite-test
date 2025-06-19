@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Literal, Any
 
+from db.schemas import AgentFunction, AgentFunctionInner
+
 
 @dataclass
 class DefaultPrompt:
@@ -23,7 +25,7 @@ class DefaultAgent:
     description: Optional[str]
     prompt_label: str
     persona: str
-    functions: List[Dict[str, Any]]
+    functions: List[AgentFunction]
     routing_options: Dict[str, str]
     short_term_memory: bool
     long_term_memory: bool
@@ -153,7 +155,7 @@ DEFAULT_AGENTS: List[DefaultAgent] = [
         description="Searches the web for information and provides relevant results",
         prompt_label="WebAgentPrompt",
         persona="Helper",
-        functions=[],
+        functions=[AgentFunction(function=AgentFunctionInner(name="web_search"))],
         routing_options={
             "continue": "If you think you can't answer the query, you can continue to the next tool or do some reasoning.",
             "respond": "If you think you have the answer, you can stop here.",
@@ -179,7 +181,7 @@ DEFAULT_AGENTS: List[DefaultAgent] = [
         description="Processes and analyzes data from various sources",
         prompt_label="DataAgentPrompt",
         persona="Helper",
-        functions=[],
+        functions=[AgentFunction(function=AgentFunctionInner(name="web_search"))],
         routing_options={
             "continue": "If you think you can't answer the query, you can continue to the next tool or do some reasoning.",
             "respond": "If you think you have the answer, you can stop here.",
@@ -281,7 +283,7 @@ DEFAULT_AGENTS: List[DefaultAgent] = [
         description="Specialized agent for Toshiba parts, assemblies, and technical information",
         prompt_label="ToshibaAgentPrompt",
         persona="Toshiba Expert",
-        functions=[],  # Functions will be populated during registration
+        functions=[AgentFunction(function=AgentFunctionInner(name="query_retriever2"))],
         routing_options={
             "ask": "If you think you need to ask more information or context from the user to answer the question.",
             "continue": "If you think you have the answer, you can stop here.",

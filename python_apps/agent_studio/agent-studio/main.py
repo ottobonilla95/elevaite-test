@@ -12,7 +12,6 @@ from agents import get_agent_schemas
 from agents.command_agent import CommandAgent
 from prompts import command_agent_system_prompt
 from db.database import Base, engine, get_db
-from db.init_db import init_db
 from api import prompt_router, agent_router, demo_router, analytics_router, tools_router
 from api.workflow_endpoints import router as workflow_router
 from db import crud
@@ -22,8 +21,50 @@ from db import crud
 
 from contextlib import asynccontextmanager
 import logging
+import asyncio
 
+
+# Configure logging with a custom filter to suppress CancelledError
+class CancelledErrorFilter(logging.Filter):
+    def filter(self, record):
+        # Filter out CancelledError exceptions from asyncio
+        if record.exc_info and record.exc_info[0] is asyncio.CancelledError:
+            return False
+        # Also filter out log messages that contain "CancelledError"
+        if "CancelledError" in record.getMessage():
+            return False
+        return True
+
+
+# Set up logging configuration
 logging.basicConfig(level=logging.DEBUG)
+
+# Add the filter to the root logger
+root_logger = logging.getLogger()
+cancelled_error_filter = CancelledErrorFilter()
+for handler in root_logger.handlers:
+    handler.addFilter(cancelled_error_filter)
+
+
+# Set up custom exception handler for asyncio to suppress CancelledError
+def custom_exception_handler(loop, context):
+    """Custom exception handler for asyncio that suppresses CancelledError."""
+    exception = context.get("exception")
+    if isinstance(exception, asyncio.CancelledError):
+        # Silently ignore CancelledError exceptions
+        return
+
+    # For other exceptions, use the default handler
+    loop.default_exception_handler(context)
+
+
+# Set the custom exception handler for the current event loop
+try:
+    loop = asyncio.get_event_loop()
+    loop.set_exception_handler(custom_exception_handler)
+except RuntimeError:
+    # If no event loop is running, we'll set it later when the loop starts
+    pass
 
 dotenv.load_dotenv(".env.local")
 
@@ -45,11 +86,46 @@ origins = [
 
 @asynccontextmanager
 async def lifespan(app_instance: fastapi.FastAPI):  # noqa: ARG001
+    # Startup
+    # Ensure the custom exception handler is set for the current event loop
+    try:
+        loop = asyncio.get_running_loop()
+        loop.set_exception_handler(custom_exception_handler)
+    except RuntimeError:
+        pass
+
     Base.metadata.create_all(bind=engine)
-    init_db()
+    # Note: Database initialization moved to /admin/initialize endpoint
+
+    # Start background tasks (MCP health monitoring, etc.)
+    from services.background_tasks import start_background_tasks
+
+    try:
+        await start_background_tasks()
+        logging.info("Background tasks started successfully")
+    except Exception as e:
+        logging.error(f"Failed to start background tasks: {e}")
+        # Continue startup even if background tasks fail
+
     yield
 
-    pass
+    # Shutdown
+    from services.background_tasks import stop_background_tasks
+
+    try:
+        await stop_background_tasks()
+        logging.info("Background tasks stopped successfully")
+    except Exception as e:
+        logging.error(f"Error stopping background tasks: {e}")
+
+    # Close MCP client connections
+    from services.mcp_client import mcp_client
+
+    try:
+        await mcp_client.close()
+        logging.info("MCP client connections closed")
+    except Exception as e:
+        logging.error(f"Error closing MCP client: {e}")
 
 
 app = fastapi.FastAPI(title="Agent Studio Backend", version="0.1.0", lifespan=lifespan)
@@ -77,8 +153,17 @@ def status():
 
 
 @app.get("/hc")
-def health_check():
-    return {"status": "ok"}
+async def health_check():
+    """Enhanced health check including background tasks."""
+    from services.background_tasks import health_check_background_tasks
+
+    basic_status = {"status": "ok"}
+
+    try:
+        background_status = await health_check_background_tasks()
+        return {**basic_status, "background_tasks": background_status}
+    except Exception as e:
+        return {**basic_status, "background_tasks": {"healthy": False, "error": str(e)}}
 
 
 @app.get("/deployment/codes")
@@ -96,6 +181,127 @@ def get_deployment_codes(db: Session = fastapi.Depends(get_db)):
             code_map[str(deployment_code)] = str(agent.name)
 
     return code_map
+
+
+@app.post("/admin/initialize")
+async def initialize_system(db: Session = Depends(get_db)):
+    """Initialize the complete system: prompts, tools, and agents in the correct order."""
+    try:
+        from db.init_db import init_tool_categories, init_tools
+        from services.demo_service import DemoInitializationService
+
+        results = {}
+        overall_success = True
+
+        print("🚀 Starting system initialization...")
+
+        # Step 1: Initialize prompts first (required for agents)
+        print("📋 Step 1: Initializing prompts...")
+        service = DemoInitializationService(db)
+        prompts_success, prompts_message, prompts_details = service.initialize_prompts()
+        results["prompts"] = {"success": prompts_success, "message": prompts_message, "details": prompts_details}
+
+        if prompts_success:
+            print(f"✅ Prompts: {prompts_message}")
+        else:
+            print(f"❌ Prompts: {prompts_message}")
+            overall_success = False
+
+        # Step 2: Initialize tool categories and tools
+        print("🛠️  Step 2: Initializing tools...")
+        try:
+            categories = init_tool_categories(db)
+            init_tools(db, categories)
+
+            total_categories = crud.get_tool_categories(db)
+            total_tools = crud.get_tools(db)
+            tools_message = f"Initialized {len(total_categories)} categories and {len(total_tools)} tools"
+
+            results["tools"] = {
+                "success": True,
+                "message": tools_message,
+                "details": {"categories": len(total_categories), "tools": len(total_tools)},
+            }
+            print(f"✅ Tools: {tools_message}")
+
+        except Exception as e:
+            tools_error = f"Tool initialization failed: {str(e)}"
+            results["tools"] = {"success": False, "message": tools_error, "details": {}}
+            print(f"❌ Tools: {tools_error}")
+            overall_success = False
+
+        # Step 3: Initialize agents (requires prompts to exist)
+        print("🤖 Step 3: Initializing agents...")
+        if prompts_success:
+            try:
+                agents_success, agents_message, agents_details = service.initialize_agents()
+                results["agents"] = {"success": agents_success, "message": agents_message, "details": agents_details}
+
+                if agents_success:
+                    print(f"✅ Agents: {agents_message}")
+                else:
+                    print(f"❌ Agents: {agents_message}")
+                    overall_success = False
+
+            except Exception as e:
+                agents_error = f"Agent initialization failed: {str(e)}"
+                results["agents"] = {"success": False, "message": agents_error, "details": {}}
+                print(f"❌ Agents: {agents_error}")
+                overall_success = False
+        else:
+            skip_message = "Skipped agent initialization due to prompt initialization failure"
+            results["agents"] = {"success": False, "message": skip_message, "details": {}}
+            print(f"⏭️  Agents: {skip_message}")
+
+        # Summary
+        if overall_success:
+            summary = "🎉 System initialization completed successfully!"
+        else:
+            summary = "⚠️  System initialization completed with some failures"
+
+        print(summary)
+
+        return {"success": overall_success, "message": summary, "results": results}
+
+    except Exception as e:
+        error_msg = f"System initialization failed: {str(e)}"
+        print(f"💥 {error_msg}")
+        return {"success": False, "error": error_msg}
+
+
+@app.post("/admin/mcp/health-check")
+async def trigger_mcp_health_check():
+    """Manually trigger health check for all MCP servers."""
+    from services.background_tasks import trigger_mcp_health_check
+
+    try:
+        result = await trigger_mcp_health_check()
+        return result
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/admin/mcp/sync-tools")
+async def sync_mcp_tools():
+    """Manually trigger tool synchronization from all MCP servers."""
+    from services.background_tasks import sync_tools_from_mcp_servers
+
+    try:
+        result = await sync_tools_from_mcp_servers()
+        return result
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/admin/background-tasks/status")
+async def get_background_task_status():
+    """Get the status of background tasks."""
+    from services.background_tasks import get_background_task_status
+
+    try:
+        return get_background_task_status()
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # Temporarily disable deploy endpoint to test API startup
@@ -120,9 +326,7 @@ def deploy_legacy(request: dict, db: Session = fastapi.Depends(get_db)):
             code = i[0]
             db_agent = crud.get_agent_by_deployment_code(db, code)
             if db_agent is None:
-                return {
-                    "status": f"Error: Agent with deployment code '{code}' not found"
-                }
+                return {"status": f"Error: Agent with deployment code '{code}' not found"}
             agents.append(str(db_agent.name))
 
         # Build connections using database-stored agent functions
@@ -134,9 +338,7 @@ def deploy_legacy(request: dict, db: Session = fastapi.Depends(get_db)):
 
             source_agent = crud.get_agent_by_deployment_code(db, source_code)
             if source_agent is None:
-                return {
-                    "status": f"Error: Agent with deployment code '{source_code}' not found"
-                }
+                return {"status": f"Error: Agent with deployment code '{source_code}' not found"}
             source_name = str(source_agent.name)
 
             if source_name == "CommandAgent":
@@ -144,15 +346,11 @@ def deploy_legacy(request: dict, db: Session = fastapi.Depends(get_db)):
                 target_agent = crud.get_agent_by_name_with_functions(db, target_name)
                 if target_agent is not None:
                     # Use the agent's functions from the database
-                    print(
-                        f"Using database functions for {target_name}: {len(target_agent.functions)} functions"
-                    )
+                    print(f"Using database functions for {target_name}: {len(target_agent.functions)} functions")
                     connections.extend(target_agent.functions)
                 else:
                     # Fallback to hardcoded schemas if agent not found in database
-                    print(
-                        f"Agent {target_name} not found in database, using hardcoded schema"
-                    )
+                    print(f"Agent {target_name} not found in database, using hardcoded schema")
                     agent_schemas = get_agent_schemas()
                     if target_name in agent_schemas:
                         connections.append(agent_schemas[target_name])
@@ -163,7 +361,7 @@ def deploy_legacy(request: dict, db: Session = fastapi.Depends(get_db)):
         for i, func in enumerate(connections):
             if isinstance(func, dict) and "function" in func:
                 func_name = func["function"].get("name", "Unknown")
-                print(f"  {i+1}. {func_name}")
+                print(f"  {i + 1}. {func_name}")
 
         COMMAND_AGENT = CommandAgent(
             name="WebCommandAgent",
@@ -208,13 +406,9 @@ def run(request: dict, db: Session = Depends(get_db)):
         if not session_id:
             session_id = str(uuid.uuid4())
 
-        analytics_service.create_or_update_session(
-            session_id=session_id, user_id=user_id, db=db
-        )
+        analytics_service.create_or_update_session(session_id=session_id, user_id=user_id, db=db)
 
-        res = COMMAND_AGENT.execute(
-            query=request["query"], session_id=session_id, user_id=user_id
-        )
+        res = COMMAND_AGENT.execute(query=request["query"], session_id=session_id, user_id=user_id)
 
         return {"status": "ok", "response": f"{res}", "session_id": session_id}
 
@@ -231,15 +425,11 @@ def run_stream(request: dict):
 
     async def response_stream():
         if COMMAND_AGENT is not None:
-            for chunk in COMMAND_AGENT.execute_stream(
-                request["query"], gpt_chat_history
-            ):
+            for chunk in COMMAND_AGENT.execute_stream(request["query"], gpt_chat_history):
                 yield chunk
             return
 
-    return fastapi.responses.StreamingResponse(
-        response_stream(), media_type="text/event-stream"
-    )
+    return fastapi.responses.StreamingResponse(response_stream(), media_type="text/event-stream")
 
 
 if __name__ == "__main__":

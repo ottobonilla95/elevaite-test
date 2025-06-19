@@ -29,9 +29,7 @@ def initialize_demo_prompts(db: Session = Depends(get_db)):
     if not success:
         raise HTTPException(status_code=500, detail=message)
 
-    return DemoInitializationResponse(
-        success=success, message=message, details={"prompts": details}
-    )
+    return DemoInitializationResponse(success=success, message=message, details={"prompts": details})
 
 
 @router.post("/initialize/agents", response_model=DemoInitializationResponse)
@@ -42,28 +40,20 @@ def initialize_demo_agents(db: Session = Depends(get_db)):
     if not success:
         raise HTTPException(status_code=500, detail=message)
 
-    return DemoInitializationResponse(
-        success=success, message=message, details={"agents": details}
-    )
+    return DemoInitializationResponse(success=success, message=message, details={"agents": details})
 
 
 @router.get("/status", response_model=DemoStatusResponse)
 def get_demo_status(db: Session = Depends(get_db)):
     prompts_count = 0
     for prompt_data in DEFAULT_PROMPTS:
-        existing_prompt = (
-            db.query(models.Prompt)
-            .filter(models.Prompt.unique_label == prompt_data.unique_label)
-            .first()
-        )
+        existing_prompt = db.query(models.Prompt).filter(models.Prompt.unique_label == prompt_data.unique_label).first()
         if existing_prompt:
             prompts_count += 1
 
     agents_count = 0
     for agent_data in DEFAULT_AGENTS:
-        existing_agent = (
-            db.query(models.Agent).filter(models.Agent.name == agent_data.name).first()
-        )
+        existing_agent = db.query(models.Agent).filter(models.Agent.name == agent_data.name).first()
         if existing_agent:
             agents_count += 1
 
@@ -90,11 +80,7 @@ def get_demo_info():
             {
                 "label": prompt.prompt_label,
                 "unique_label": prompt.unique_label,
-                "description": (
-                    prompt.prompt[:100] + "..."
-                    if len(prompt.prompt) > 100
-                    else prompt.prompt
-                ),
+                "description": (prompt.prompt[:100] + "..." if len(prompt.prompt) > 100 else prompt.prompt),
             }
             for prompt in DEFAULT_PROMPTS
         ],
@@ -113,3 +99,73 @@ def get_demo_info():
         ],
         "deployment_codes": AGENT_CODES,
     }
+
+
+@router.post("/initialize/tools", response_model=DemoInitializationResponse)
+def initialize_tools(db: Session = Depends(get_db)):
+    """Initialize tool categories and tools from the existing tool_store."""
+    try:
+        from db.init_db import init_tool_categories, init_tools
+
+        # Initialize tool categories
+        categories = init_tool_categories(db)
+
+        # Initialize tools
+        init_tools(db, categories)
+
+        # Get counts for response
+        total_categories = crud.get_tool_categories(db)
+        total_tools = crud.get_tools(db)
+
+        return DemoInitializationResponse(
+            success=True,
+            message=f"Successfully initialized {len(total_categories)} tool categories and {len(total_tools)} tools",
+            details={"categories": len(total_categories), "tools": len(total_tools)},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error initializing tools: {str(e)}")
+
+
+@router.post("/initialize/complete", response_model=DemoInitializationResponse)
+def initialize_complete_system(db: Session = Depends(get_db)):
+    """Initialize the complete system: prompts, tools, and agents in the correct order."""
+    try:
+        from db.init_db import init_tool_categories, init_tools
+
+        results = {}
+
+        # Step 1: Initialize prompts first (required for agents)
+        service = DemoInitializationService(db)
+        prompts_success, prompts_message, prompts_details = service.initialize_prompts()
+        results["prompts"] = {"success": prompts_success, "message": prompts_message, "details": prompts_details}
+
+        if not prompts_success:
+            raise HTTPException(status_code=500, detail=f"Failed to initialize prompts: {prompts_message}")
+
+        # Step 2: Initialize tool categories and tools
+        categories = init_tool_categories(db)
+        init_tools(db, categories)
+
+        total_categories = crud.get_tool_categories(db)
+        total_tools = crud.get_tools(db)
+        results["tools"] = {
+            "success": True,
+            "message": f"Initialized {len(total_categories)} categories and {len(total_tools)} tools",
+            "details": {"categories": len(total_categories), "tools": len(total_tools)},
+        }
+
+        # Step 3: Initialize agents (requires prompts to exist)
+        agents_success, agents_message, agents_details = service.initialize_agents()
+        results["agents"] = {"success": agents_success, "message": agents_message, "details": agents_details}
+
+        if not agents_success:
+            raise HTTPException(status_code=500, detail=f"Failed to initialize agents: {agents_message}")
+
+        return DemoInitializationResponse(
+            success=True, message="Successfully initialized complete system: prompts, tools, and agents", details=results
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error during complete initialization: {str(e)}")
