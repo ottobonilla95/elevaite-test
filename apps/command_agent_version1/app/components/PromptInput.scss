@@ -1,7 +1,3 @@
-
-
-
-
 .prompt-input-container {
     border-radius: 12px;
     //background-color: #fff;
@@ -11,18 +7,52 @@
 	--ev-colors-background: white;
 	--ev-colors-primary: white;
 
+	&.rounded-md {
+		border-radius: 8px;
+	}
+
+	&.no-margin {
+		margin: 0;
+	}
+
+	.common-select {
+		button {
+			padding: 10px;
+			width: 100%;
+		}
+	}
+
+	&.prompt-checkbox-container {
+		border: none;
+		box-shadow: none;
+		text-align: center;
+
+		.simple-input-container {
+			display: inline-flex;
+		}
+
+		input {
+			padding: 0;
+		}
+	}
+
+	.simple-input-container.common-style input::placeholder,
 	.simple-textarea-container.common-style textarea::placeholder,
 	.prompt-multi-tag-inputs input::placeholder {
 		color: #212124;
 		opacity: 1;
 	}
 
+	input,
+	textarea {
+		font-size: 14px;
+		color: #212124;
+	}
+
 	.simple-textarea-container.common-style {
 		padding: 5px;
 
 		textarea {
-			font-size: 14px;
-			color: #212124;
 			border: 1px solid #E2E8ED;
 			height: 80px;
 		}

@@ -283,3 +283,20 @@
 		}
 	}
 }
+
+.card-variable {
+	& + .card-variable {
+		margin-top: 16px;
+	}
+
+	&-new {
+		.prompt-textarea-container {
+			box-shadow: none;
+			border: none;
+
+			.simple-textarea-container.common-style {
+				padding: 0;
+			}
+		}
+	}
+}

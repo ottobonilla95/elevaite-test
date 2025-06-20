@@ -1,8 +1,9 @@
 "use client";
 import { ChangeEvent, createContext, SetStateAction, useContext, useEffect, useState } from "react";
 import { deploy, nextPage, previousPage, processCurrentPage, reRun, run, uploadFile } from "../../lib/actionsPrompt";
-import { PageChangeResponseObject, ProcessCurrentPageResponseObject, PromptInputItem, PromptInputTypes, regenerateResponseObject, type UploadFileResponseObject } from "../../lib/interfaces";
+import { PageChangeResponseObject, ProcessCurrentPageResponseObject, PromptInputItem, PromptInputTypes, PromptInputVariableEngineerItem, regenerateResponseObject, type UploadFileResponseObject } from "../../lib/interfaces";
 import { toast } from "react-toastify";
+import { usePathname } from "next/navigation";
 
 
 // ENUMS and INTERFACES
@@ -71,7 +72,14 @@ export interface PromptContextStructure {
   jsonOutput: String,
   setJsonOutput: (output: string) => void,
   defaultPromptInputs: PromptInputItem[],
-  actionRunOnSelectedPages: (pages: number[]) => void
+  actionRunOnSelectedPages: (pages: number[]) => void,
+  isEngineerPage: boolean,
+  promptInputVariablesEngineer: PromptInputVariableEngineerItem[],
+  setPromptInputVariablesEngineer: (variables: PromptInputVariableEngineerItem[]) => void,
+  addPromptInputVariableEngineer: () => void,
+  savePromptInputVariableEngineer: (id: string, updates: PromptInputVariableEngineerItem) => void,
+  editPromptInputVariableEngineer: (id: string) => void,
+  removePromptInputVariableEngineer: (id: string) => void
 }
 
 export const PromptContext = createContext<PromptContextStructure>({
@@ -114,7 +122,14 @@ export const PromptContext = createContext<PromptContextStructure>({
   jsonOutput: '',
   setJsonOutput: () => undefined,
   defaultPromptInputs: [],
-  actionRunOnSelectedPages: () => undefined
+  actionRunOnSelectedPages: () => undefined,
+  isEngineerPage: false,
+  promptInputVariablesEngineer: [],
+  setPromptInputVariablesEngineer: () => undefined,
+  addPromptInputVariableEngineer: () => undefined,
+  savePromptInputVariableEngineer: () => undefined,
+  editPromptInputVariableEngineer: () => undefined,
+  removePromptInputVariableEngineer: () => undefined,
 });
 
 
@@ -125,6 +140,10 @@ interface PromptContextProviderProps {
 }
 
 export function PromptContextProvider(props: PromptContextProviderProps): React.ReactElement {
+  // check if it's the engineer page
+  const pathname = usePathname();
+  const isEngineerPage = pathname === '/prompt-engineer';
+
   const [sessionId, setSessionId] = useState("");
   const [currentPage, setCurrentPage] = useState<number | null>(defaultPageValue);
   const [loading, setLoading] = useState<Record<string, boolean>>({});
@@ -135,15 +154,48 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   const [testingConsoleActiveClass, setTestingConsoleActiveClass] = useState<String>('');
   const [promptInputs, setPromptInputs] = useState<PromptInputItem[]>(defaultPromptInputs);
   const [output, setOutput] = useState<regenerateResponseObject | null>(null);
-  const [isRightColExpanded, setIsRightColExpanded] = useState<boolean>(true);
+  const [isRightColExpanded, setIsRightColExpanded] = useState<boolean>(!isEngineerPage);
   const [isRightColPromptInputsColExpanded, setIsRightColPromptInputsColExpanded] = useState<boolean>(false);
   const [isRightColOutputColExpanded, setIsRightColOutputColExpanded] = useState<boolean>(false);
   const [outputVersions, setOutputVersions] = useState<regenerateResponseObject[]>([]);
   const [jsonOutput, setJsonOutput] = useState('');
+  const [promptInputVariablesEngineer, setPromptInputVariablesEngineer] = useState<PromptInputVariableEngineerItem[]>([]);
 
   useEffect(() => {
     setSessionId(`sid-${crypto.randomUUID().toString()}`);
   }, []);
+
+  function addPromptInputVariableEngineer() {
+	const newVariable: PromptInputVariableEngineerItem = {
+		id: crypto.randomUUID().toString(),
+		name: "",
+		displayName: "",
+		type: "Text",
+		required: true,
+		json: true,
+		definition: "",
+	}
+
+	setPromptInputVariablesEngineer(current => {
+      return [newVariable, ...current];
+    });
+  }
+
+  function savePromptInputVariableEngineer(id: string, updates: PromptInputVariableEngineerItem ) {
+	setPromptInputVariablesEngineer((current) =>
+      current.map(input => (input.id === id ? { ...input, ...updates } : input))
+    );
+  }
+
+  function editPromptInputVariableEngineer(id: string) {
+	setPromptInputVariablesEngineer((current) =>
+      current.map(input => (input.id === id ? { ...input, saved: false } : input))
+    );
+  }
+
+  function removePromptInputVariableEngineer(id: string) {
+	setPromptInputVariablesEngineer(current => current.filter(input => input.id !== id))
+  }
 
   function addPromptInput(): void {
     const newPromptInput = {
@@ -242,19 +294,6 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
 
   async function actionFileUpload(useYolo: boolean, file: File, isImage = false): Promise<UploadFileResponseObject | null> {
     setLoadingState(LoadingKeys.Uploading, true);
-
-    if (output?.response) {
-      setOutput(null);
-      setOutputVersions([]);
-      setJsonOutput('');
-      setPromptInputs(
-        defaultPromptInputs.map(input => ({
-          ...input,
-          prompt: "",
-          //id: crypto.randomUUID().toString(),
-        }))
-      );
-    }
 
     try {
       const result = await uploadFile(sessionId, useYolo, file, isImage);
@@ -467,7 +506,14 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
         jsonOutput,
         setJsonOutput,
         defaultPromptInputs,
-        actionRunOnSelectedPages
+        actionRunOnSelectedPages,
+		isEngineerPage,
+		promptInputVariablesEngineer,
+		setPromptInputVariablesEngineer,
+		addPromptInputVariableEngineer,
+		savePromptInputVariableEngineer,
+		editPromptInputVariableEngineer,
+		removePromptInputVariableEngineer
       }}
     >
       {props.children}

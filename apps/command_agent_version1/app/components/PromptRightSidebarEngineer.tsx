@@ -1,16 +1,22 @@
-import React, { useEffect } from "react";
+import React, { useState } from "react";
 import PromptRightSidebarTabs from "./PromptRightSidebarTabs";
 import PromptRightSidebarTestingConsole from "./PromptRightSidebarTestingConsole";
 import { LoadingKeys, usePrompt } from "../ui/contexts/PromptContext";
 import { PromptInput } from "./PromptInput";
 import PromptLoading from "./PromptLoading";
 import PromptRightColToggleVisilityStatus from "./PromptRightColToggleVisilityStatus";
+import PromptInputVariableEngineer from "./PromptInputVariableEngineer";
 
-function PromptRightSidebar() {
+function PromptRightSidebarEngineer() {
+	const [activeTab, setActiveTab] = useState("tab1"); //variables
 	const promptContext = usePrompt();
 
 	function handleAddPromptInput(): void {
-		promptContext.addPromptInput();
+		if ("tab2" === activeTab) {
+			promptContext.addPromptInputVariableEngineer();
+		} else {
+			promptContext.addPromptInput();
+		}
 	}
 
 	function handleReset(): void {
@@ -29,25 +35,21 @@ function PromptRightSidebar() {
 	return (
 		<div className="prompt-col prompt-right flex-1 flex flex-col rounded-2xl bg-white overflow-y-auto">
 			<div className="btn-wrapper bg-white px-4 py-3 gap-3 flex items-center justify-between">
-				{promptContext.isEngineerPage ? (
-					<button type="button" onClick={() => promptContext.setIsRightColExpanded(!promptContext.isRightColExpanded)}>
-						{
-						promptContext.isRightColExpanded
-						?
-						<svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M1 11L6 6L1 1M8 11L13 6L8 1" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-						</svg>
-						:
-						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<g opacity="0.8">
-								<path d="M18 17L13 12L18 7M11 17L6 12L11 7" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-							</g>
-						</svg>
-						}
-					</button>
-				) : (
-					<div><span className="font-medium">Invoice Extractor</span> <span className="text-[#E2E8ED]">|</span> <span className="text-sm">Extracts informetion from documents such as invoice, CSOWs, etc.</span></div>
-				)}
+				<button type="button" onClick={() => promptContext.setIsRightColExpanded(!promptContext.isRightColExpanded)}>
+					{
+					promptContext.isRightColExpanded
+					?
+					<svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M1 11L6 6L1 1M8 11L13 6L8 1" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+					</svg>
+					:
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<g opacity="0.8">
+							<path d="M18 17L13 12L18 7M11 17L6 12L11 7" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+						</g>
+					</svg>
+					}
+				</button>
 				<div className="flex items-center gap-3">
 					<button
 						className="btn btn-outline btn-small flex items-center justify-center gap-1 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 px-0"
@@ -96,26 +98,48 @@ function PromptRightSidebar() {
 			</div>
 			<div className="flex flex-1 gap-2 p-2 h-full min-h-0">
 				<div className={`card relative ${promptContext.isRightColOutputColExpanded ? 'hidden' : 'flex'} flex-col flex-1 bg-white rounded-xl`}>
-					<div className="top-wrapper overflow-auto flex flex-col">
-						<div className="top flex items-center justify-between py-4 pl-4 h-[48px]">
-							<div className="flex items-center gap-2">
-								<div className="text-sm font-medium bg-white sticky top-0 z-10">Prompt Inputs</div>
+					{/*start*/}
+					<div className="top-wrapper rounded-xl overflow-auto bg-[#F8FAFC]">
+					<div className="tabs-wrapper flex flex-col w-full bg-white">
+						<div className="tabs flex my-1 ml-1 text-xs text-gray-500 font-medium h-[48px]">
+							<div className="tabs-inner p-1 flex flex-1">
+								<button className={`tab rounded-sm p-2 flex-1${ 'tab1' == activeTab ? ' tab-active text-orange-500 bg-white' : '' }`} onClick={() => setActiveTab("tab1")}>
+									Prompt Inputs
+								</button>
+								<button className={`tab rounded-sm p-2 flex-1${ 'tab2' == activeTab ? ' tab-active text-orange-500 bg-white' : '' }`} onClick={() => setActiveTab("tab2")}>
+									Variables
+								</button>
+							</div>
+							<div className="flex items-center ml-4">
 								<button onClick={handleAddPromptInput}>
 									<svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 										<g opacity="0.8">
-											<path d="M8.49992 3.33337V12.6667M3.83325 8.00004H13.1666" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+											<path d="M8.49992 3.33337V12.6667M3.83325 8.00004H13.1666" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 										</g>
 									</svg>
 								</button>
+								<PromptRightColToggleVisilityStatus isColExpanded={promptContext.isRightColPromptInputsColExpanded} toggleColStatus={promptContext.setIsRightColPromptInputsColExpanded} />
 							</div>
-							<PromptRightColToggleVisilityStatus isColExpanded={promptContext.isRightColPromptInputsColExpanded} toggleColStatus={promptContext.setIsRightColPromptInputsColExpanded} />
 						</div>
-						<div className="middle flex-1 p-4">
-							<div className="accordions">
-								{promptContext.promptInputs.map(item => <PromptInput key={item.id} {...item} />)}
-							</div>
+						<div className="tab-panels flex flex-1 text-sm w-full rounded-b-xl overflow-auto">
+							{activeTab === "tab1" && (
+								<div className="tab-panel flex flex-col flex-grow">
+									<div className="tab-content p-4">
+										{promptContext.promptInputs.map(item => <PromptInput key={item.id} {...item} /> )}
+									</div>
+								</div>
+							)}
+							{activeTab === "tab2" && (
+								<div className="tab-panel flex-col flex-grow">
+									<div className="tab-content p-4">
+										{promptContext.promptInputVariablesEngineer.length > 0 && promptContext.promptInputVariablesEngineer.map((variable) => <PromptInputVariableEngineer key={variable.id} {...variable} />)}
+ 									</div>
+								</div>
+							)}
 						</div>
 					</div>
+					</div>
+					{/*end*/}
 					<PromptRightSidebarTestingConsole />
 				</div>
 				<PromptRightSidebarTabs />
@@ -123,4 +147,4 @@ function PromptRightSidebar() {
 		</div>
 	)
 }
-export default PromptRightSidebar;
+export default PromptRightSidebarEngineer;
