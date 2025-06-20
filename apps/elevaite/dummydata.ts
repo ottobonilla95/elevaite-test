@@ -152,8 +152,8 @@ const appLinks: Record<string, { development: string; production: string; test: 
     test: "",
   },
   mediaAnalytics: {
-    development: "https://elevaite-ads.iopex.ai/dashboard",
-    production: "https://elevaite-ads.iopex.ai/dashboard",
+    development: "https://elevaite-media-analytics.iopex.ai",
+    production: "https://elevaite-media-analytics.iopex.ai",
     test: "",
   }
 
