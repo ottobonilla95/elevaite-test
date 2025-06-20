@@ -3,7 +3,6 @@ from typing import Dict, List, Optional, Literal, Any
 
 from db.schemas import AgentFunction, AgentFunctionInner
 
-
 @dataclass
 class DefaultPrompt:
     prompt_label: str
@@ -16,7 +15,6 @@ class DefaultPrompt:
     tags: List[str]
     hyper_parameters: Dict[str, str]
     variables: Dict[str, str]
-
 
 @dataclass
 class DefaultAgent:
@@ -41,7 +39,6 @@ class DefaultAgent:
     failure_strategies: List[str]
     collaboration_mode: Literal["single", "team", "parallel", "sequential"]
 
-
 AGENT_CODES = {
     "WebAgent": "w",
     "DataAgent": "d",
@@ -50,7 +47,6 @@ AGENT_CODES = {
     "HelloWorldAgent": "h",
     "ToshibaAgent": "t",
 }
-
 
 DEFAULT_PROMPTS: List[DefaultPrompt] = [
     DefaultPrompt(
@@ -115,27 +111,7 @@ DEFAULT_PROMPTS: List[DefaultPrompt] = [
     ),
     DefaultPrompt(
         prompt_label="Toshiba Agent Prompt",
-        prompt="""You are a specialized Toshiba agent designed to answer questions related to Toshiba parts, assemblies, and general information.
-
-Your primary responsibilities include:
-- Providing accurate information about Toshiba elevator parts and components
-- Helping users find specific part numbers and specifications
-- Assisting with assembly information and technical details
-- Offering guidance on Toshiba product compatibility and usage
-
-When responding:
-- Use the available tools to search for relevant information
-- Provide detailed and accurate responses based on the retrieved data
-- If you cannot find specific information, clearly state this and suggest alternative approaches
-- Always maintain a helpful and professional tone
-
-Your response should be in JSON format with the following structure:
-{
-    "routing": "continue" | "respond" | "give_up",
-    "content": "Your detailed response here"
-}
-
-Use "continue" if you need more information, "respond" when you have a complete answer, and "give_up" if you cannot help with the query.""",
+        prompt="You are a specialized Toshiba technical expert. Help users with Toshiba parts, assemblies, and technical information.",
         unique_label="ToshibaAgentPrompt",
         app_name="agent_studio",
         version="1.0",
@@ -146,7 +122,6 @@ Use "continue" if you need more information, "respond" when you have a complete 
         variables={"domain": "toshiba_parts"},
     ),
 ]
-
 
 DEFAULT_AGENTS: List[DefaultAgent] = [
     DefaultAgent(

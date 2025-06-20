@@ -1,7 +1,6 @@
 import os
 import sys
 
-# Add the parent directory to the Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
@@ -17,9 +16,7 @@ from prompts import (
     toshiba_agent_system_prompt,
 )
 
-
 def init_tool_categories(db):
-    """Initialize default tool categories."""
     categories = [
         {
             "name": "Search & Retrieval",
@@ -51,7 +48,6 @@ def init_tool_categories(db):
     created_categories = {}
 
     for cat_data in categories:
-        # Check if category already exists
         existing = crud.get_tool_category_by_name(db, cat_data["name"])
         if existing:
             print(f"✓ Category '{cat_data['name']}' already exists")
@@ -63,16 +59,13 @@ def init_tool_categories(db):
 
     return created_categories
 
-
 def init_tools(db, categories):
-    """Initialize tools from the existing tool_store."""
     try:
         from agents.tools import tool_store, tool_schemas
     except ImportError:
         print("⚠ Could not import tool_store and tool_schemas, skipping tool initialization")
         return
 
-    # Tool category mapping
     tool_categories = {
         "web_search": "Search & Retrieval",
         "query_retriever2": "Search & Retrieval",
@@ -89,13 +82,11 @@ def init_tools(db, categories):
 
     for tool_name, tool_function in tool_store.items():
         try:
-            # Check if tool already exists
             existing = crud.get_tool_by_name(db, tool_name)
             if existing:
                 print(f"✓ Tool '{tool_name}' already exists")
                 continue
 
-            # Get tool schema
             if tool_name not in tool_schemas:
                 print(f"⚠ No schema found for tool '{tool_name}', skipping")
                 continue
@@ -103,11 +94,9 @@ def init_tools(db, categories):
             schema = tool_schemas[tool_name]
             function_info = schema.get("function", {})
 
-            # Determine category
             category_name = tool_categories.get(tool_name, "Utilities")
             category_id = categories.get(category_name, {}).category_id if category_name in categories else None
 
-            # Create tool
             tool_create = schemas.ToolCreate(
                 name=tool_name,
                 display_name=function_info.get("name", tool_name).replace("_", " ").title(),
@@ -136,9 +125,7 @@ def init_tools(db, categories):
 
     print(f"✓ Successfully added {migrated_count} tools")
 
-
 def init_agents(db):
-    """Initialize agents from the default fixtures."""
     try:
         from services.demo_service import DemoInitializationService
     except ImportError:
@@ -159,24 +146,17 @@ def init_agents(db):
     else:
         print(f"✗ {message}")
 
-
 def init_db():
-    """
-    Initialize the database by creating all tables and adding initial data.
-    """
-    # Create tables
+    
     Base.metadata.create_all(bind=engine)
 
-    # Create a database session
     db = SessionLocal()
 
     try:
-        # Check if we already have prompts in the database
         existing_prompts = db.query(models.Prompt).first()
         if existing_prompts:
             print("Database already initialized with prompts.")
         else:
-            # Add initial prompts
             prompts = [
                 web_agent_system_prompt,
                 api_agent_system_prompt,
@@ -224,14 +204,12 @@ def init_db():
 
             print("Database initialized with prompts.")
 
-        # Initialize tool categories and tools
         print("\nInitializing tool categories...")
         categories = init_tool_categories(db)
 
         print("\nInitializing tools...")
         init_tools(db, categories)
 
-        # Initialize agents
         print("\nInitializing agents...")
         init_agents(db)
 
@@ -239,7 +217,6 @@ def init_db():
 
     finally:
         db.close()
-
 
 if __name__ == "__main__":
     init_db()
