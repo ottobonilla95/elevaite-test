@@ -1,4 +1,4 @@
-import { CommonCheckbox, CommonSelect, CommonSelectOption, SimpleInput, SimpleTextarea } from "@repo/ui/components"
+import { CommonSelect, CommonSelectOption, SimpleInput, SimpleTextarea } from "@repo/ui/components"
 import { usePrompt } from "../ui/contexts/PromptContext";
 import { PromptInputVariableEngineerItem, PromptInputVariableEngineerType } from "../lib/interfaces";
 import { useEffect, useState } from "react";
@@ -93,30 +93,6 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 		promptContext.removePromptInputVariableEngineer(props.id);
 	}
 
-	const handleNameChange = (text: string) => {
-		setName(text)
-	}
-
-	const handleDisplayNameChange = (text: string) => {
-		setDisplayName(text);
-	}
-
-	const handleTypeChange = (text: PromptInputVariableEngineerType) => {
-		setType(text);
-	}
-
-	const handleRequiredChange = (value: boolean) => {
-		setRequired(value);
-	}
-
-	const handleJsonChange = (value: boolean) => {
-		setJson(value);
-	}
-
-	const handleDefinitionChange = (text: string) => {
-		setDefinition(text);
-	}
-
   return (
 	<>
 		{props.saved ? (
@@ -178,13 +154,13 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 								<div>
 									<label className="inline-block text-sm font-medium mb-2" htmlFor="variable-name">Variable Name</label>
 									<div className="prompt-input-container no-margin rounded-md">
-										<SimpleInput id="variable-name" wrapperClassName="prompt-input" value={name} placeholder="{table_header}" useCommonStyling onChange={handleNameChange} />
+										<SimpleInput id="variable-name" wrapperClassName="prompt-input" value={name} placeholder="{table_header}" useCommonStyling onChange={(text: string) => setName(text)} />
 									</div>
 								</div>
 								<div>
 									<label className="inline-block text-sm font-medium mb-2" htmlFor="variable-display-name">Variable Label (Display Name)</label>
 									<div className="prompt-input-container no-margin rounded-md">
-										<SimpleInput id="variable-display-name" wrapperClassName="prompt-input" value={displayName} placeholder="Table Header" useCommonStyling onChange={handleDisplayNameChange} />
+										<SimpleInput id="variable-display-name" wrapperClassName="prompt-input" value={displayName} placeholder="Table Header" useCommonStyling onChange={(text: string) => setDisplayName(text)} />
 									</div>
 								</div>
 							</div>
@@ -192,7 +168,7 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 								<div>
 									<label className="inline-block text-sm font-medium mb-2" htmlFor="variable-type">Input Type</label>
 									<div className="prompt-input-container no-margin rounded-md">
-										<CommonSelect id="variable-type" defaultValue={type} options={variableTypes} onSelectedValueChange={handleTypeChange} />
+										<CommonSelect id="variable-type" defaultValue={type} options={variableTypes} onSelectedValueChange={(text: PromptInputVariableEngineerType) => setType(text)} />
 									</div>
 								</div>
 								<div>
