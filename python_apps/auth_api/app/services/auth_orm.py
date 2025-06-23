@@ -194,19 +194,6 @@ async def authenticate_user(
                                 update_sql, {"now": now, "user_id": user_id}
                             )
 
-                            # Invalidate all sessions for this user
-                            # This is the perfect place to invalidate all sessions when setting is_password_temporary to true
-                            # We're doing this when the user logs in with a temporary password, not when the password is reset
-                            print(
-                                f"Invalidating all sessions for user ID {user_id} after setting is_password_temporary=TRUE"
-                            )
-                            stmt = (
-                                update(Session)
-                                .where(Session.user_id == user_id)
-                                .values(is_active=False)
-                            )
-                            await session.execute(stmt)
-
                             await session.commit()
 
                             # Log the SQL result
@@ -533,6 +520,28 @@ async def create_user_session(
             print(
                 f"Creating session for user {user.email} (ID: {user.id}), is_password_temporary={user.is_password_temporary}"
             )
+
+            if user.is_password_temporary:
+                print(
+                    f"User {user.email} has temporary password, invalidating all existing sessions before creating new one"
+                )
+                try:
+                    stmt = (
+                        update(Session)
+                        .where(Session.user_id == user_id)
+                        .values(is_active=False)
+                    )
+                    await session.execute(stmt)
+                    await session.commit()
+                    print(
+                        f"Successfully invalidated existing sessions for user {user.email}"
+                    )
+                except Exception as invalidate_error:
+                    print(f"Error invalidating existing sessions: {invalidate_error}")
+                    try:
+                        await session.rollback()
+                    except Exception:
+                        pass
     except Exception as e:
         print(f"Error getting user in create_user_session: {e}")
         # Continue without user info

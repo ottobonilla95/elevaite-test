@@ -60,7 +60,9 @@ limiter = Limiter(key_func=get_remote_address)
 @router.get("/me", response_model=UserDetail)
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get information about the currently authenticated user."""
-    print(f"GET /me: User {current_user.email} has is_password_temporary={current_user.is_password_temporary}")
+    print(
+        f"GET /me: User {current_user.email} has is_password_temporary={current_user.is_password_temporary}"
+    )
     return current_user
 
 
@@ -128,14 +130,20 @@ async def get_password_status(
         "email": row.email,
         "is_password_temporary": row.is_password_temporary,
         "has_temporary_password": row.has_temporary_password,
-        "temporary_password_expiry": (row.temporary_password_expiry.isoformat() if row.temporary_password_expiry else None),
+        "temporary_password_expiry": (
+            row.temporary_password_expiry.isoformat()
+            if row.temporary_password_expiry
+            else None
+        ),
         "is_expired": is_expired,
         "current_time": now.isoformat(),
         "orm_is_password_temporary": current_user.is_password_temporary,  # For comparison with direct SQL result
     }
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
 @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
 async def register_user(
     request: Request,  # Required for rate limiting
@@ -166,7 +174,9 @@ async def admin_create_user(
 ):
     """Create a new user (admin only)."""
     # Log the admin action
-    logger.info(f"Admin user {current_user.email} (ID: {current_user.id}) is creating a new user with email: {user_data.email}")
+    logger.info(
+        f"Admin user {current_user.email} (ID: {current_user.id}) is creating a new user with email: {user_data.email}"
+    )
 
     try:
         user = await create_user(session, user_data)
@@ -188,11 +198,15 @@ async def admin_create_user(
             details=details,
         )
 
-        logger.info(f"User {user_data.email} successfully created by admin {current_user.email}")
+        logger.info(
+            f"User {user_data.email} successfully created by admin {current_user.email}"
+        )
         return user
     except HTTPException as e:
         # Log failed attempt
-        logger.error(f"Admin user {current_user.email} failed to create user with email: {user_data.email}. Error: {e.detail}")
+        logger.error(
+            f"Admin user {current_user.email} failed to create user with email: {user_data.email}. Error: {e.detail}"
+        )
         raise
 
 
@@ -228,16 +242,24 @@ async def login(
     try:
         from app.core.password_utils import is_password_temporary
 
-        is_test_account, _ = is_password_temporary(login_data.email, login_data.password)
+        is_test_account, _ = is_password_temporary(
+            login_data.email, login_data.password
+        )
         if is_test_account:
-            logger.info(f"Test account detected for {login_data.email}, will trigger password reset")
+            logger.info(
+                f"Test account detected for {login_data.email}, will trigger password reset"
+            )
 
             if is_test_account and user_id_value:
                 from sqlalchemy import text
 
-                update_sql = text("UPDATE users SET is_password_temporary = TRUE, updated_at = :now WHERE id = :user_id")
+                update_sql = text(
+                    "UPDATE users SET is_password_temporary = TRUE, updated_at = :now WHERE id = :user_id"
+                )
                 now = datetime.now(timezone.utc)
-                await session.execute(update_sql, {"now": now, "user_id": user_id_value})
+                await session.execute(
+                    update_sql, {"now": now, "user_id": user_id_value}
+                )
 
                 # Invalidate all sessions for this user when setting is_password_temporary to true
                 print(
@@ -273,7 +295,10 @@ async def login(
             user_dict = getattr(user, "__dict__", {})
             user_id_value = user_dict.get("id") or user.id
     except HTTPException as http_exc:
-        if http_exc.status_code == status.HTTP_403_FORBIDDEN and http_exc.detail == "email_not_verified":
+        if (
+            http_exc.status_code == status.HTTP_403_FORBIDDEN
+            and http_exc.detail == "email_not_verified"
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="email_not_verified",
@@ -291,7 +316,9 @@ async def login(
     access_token = None
     refresh_token = None
     try:
-        access_token, refresh_token = await create_user_session(session, user_id_value, request)
+        access_token, refresh_token = await create_user_session(
+            session, user_id_value, request
+        )
     except Exception as e:
         print(f"Error creating user session: {e}")
         try:
@@ -414,13 +441,17 @@ async def refresh_token(
 
             # Also get the user object for logging
             user_result = await session.execute(
-                async_select(User).where(User.id == user_id).execution_options(synchronize_session="fetch")
+                async_select(User)
+                .where(User.id == user_id)
+                .execution_options(synchronize_session="fetch")
             )
             user = user_result.scalars().first()
         except Exception as e:
             print(f"Error checking password temporary status during token refresh: {e}")
     else:
-        print(f"WARNING: Session is None in refresh_token endpoint for user ID {user_id}")
+        print(
+            f"WARNING: Session is None in refresh_token endpoint for user ID {user_id}"
+        )
 
     response = {
         "access_token": access_token,
@@ -454,7 +485,7 @@ async def logout(
     request: Request,
     session: AsyncSession = Depends(get_async_session),
 ):
-    """Logout by invalidating the refresh token."""
+    """Logout by invalidating the refresh token and optionally all sessions."""
     # Validate token first
     user_id = await verify_refresh_token(session, token_data.refresh_token)
 
@@ -468,8 +499,18 @@ async def logout(
             user_agent=request.headers.get("user-agent"),
         )
 
-    # Always invalidate the token, even if it's not valid
+    # Always invalidate the specific token
     await invalidate_session(session, token_data.refresh_token)
+
+    # For better security and to prevent session corruption issues,
+    # also invalidate all other sessions for this user
+    if user_id:
+        try:
+            print(f"Logout: Invalidating all sessions for user ID {user_id}")
+            await invalidate_all_sessions(session, user_id)
+        except Exception as e:
+            print(f"Error invalidating all sessions during logout: {e}")
+            # Continue even if we couldn't invalidate all sessions
 
     return {"message": "Successfully logged out"}
 
@@ -482,7 +523,9 @@ async def verify_email(
 ):
     """Verify user email with token."""
     # Find user with this verification token
-    result = await session.execute(async_select(User).where(User.verification_token == verification_data.token))
+    result = await session.execute(
+        async_select(User).where(User.verification_token == verification_data.token)
+    )
     user = result.scalars().first()
 
     if not user:
@@ -492,7 +535,11 @@ async def verify_email(
         )
 
     # Mark user as verified and active
-    stmt = update(User).where(User.id == user.id).values(is_verified=True, status="active", verification_token=None)
+    stmt = (
+        update(User)
+        .where(User.id == user.id)
+        .values(is_verified=True, status="active", verification_token=None)
+    )
     await session.execute(stmt)
     await session.commit()
 
@@ -529,7 +576,9 @@ async def resend_verification_email(
     user = result.scalars().first()
 
     if not user:
-        return {"message": "If your email exists in our system, a verification email will be sent."}
+        return {
+            "message": "If your email exists in our system, a verification email will be sent."
+        }
 
     if user.is_verified:
         return {"message": "Your email is already verified. You can log in now."}
@@ -558,7 +607,9 @@ async def resend_verification_email(
     except Exception as e:
         print(f"Error logging verification email activity: {e}")
 
-    return {"message": "If your email exists in our system, a verification email will be sent."}
+    return {
+        "message": "If your email exists in our system, a verification email will be sent."
+    }
 
 
 @router.post("/forgot-password")
@@ -570,12 +621,16 @@ async def forgot_password(
 ):
     """Initialize password reset flow with automatic password generation."""
     # Find user by email
-    result = await session.execute(async_select(User).where(User.email == reset_data.email))
+    result = await session.execute(
+        async_select(User).where(User.email == reset_data.email)
+    )
     user = result.scalars().first()
 
     # Always return success even if email doesn't exist (security)
     if not user:
-        return {"message": "If your email is registered, you will receive a password reset email"}
+        return {
+            "message": "If your email is registered, you will receive a password reset email"
+        }
 
     # Generate a new secure password
     from app.core.password_utils import generate_secure_password
@@ -631,11 +686,15 @@ async def forgot_password(
         print(f"Error logging password reset activity: {e}")
         # Continue even if we couldn't log the activity
 
-    return {"message": "If your email is registered, you will receive a password reset email"}
+    return {
+        "message": "If your email is registered, you will receive a password reset email"
+    }
 
 
 @router.post("/reset-password")
-async def reset_password(reset_data: PasswordResetConfirm, session: AsyncSession = Depends(get_async_session)):
+async def reset_password(
+    reset_data: PasswordResetConfirm, session: AsyncSession = Depends(get_async_session)
+):
     """Reset password with token."""
     # Find user with this reset token
     result = await session.execute(
@@ -685,12 +744,18 @@ async def reset_password(reset_data: PasswordResetConfirm, session: AsyncSession
         is_temp = verify_result.scalar_one_or_none()
 
         if is_temp:
-            print(f"WARNING: is_password_temporary is still True after password reset for user {user.email}")
+            print(
+                f"WARNING: is_password_temporary is still True after password reset for user {user.email}"
+            )
             # Force it to be False with a direct SQL update
-            force_sql = text("UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id")
+            force_sql = text(
+                "UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id"
+            )
             await session.execute(force_sql, {"user_id": user.id})
             await session.commit()
-            print(f"Successfully forced is_password_temporary to FALSE for user {user.email}")
+            print(
+                f"Successfully forced is_password_temporary to FALSE for user {user.email}"
+            )
     except Exception as e:
         print(f"Error updating password during reset: {e}")
         await session.rollback()
@@ -776,7 +841,6 @@ async def change_password(
 
     print(f"Starting password change for user {user_email} (ID: {user_id})")
 
-    # Step 1: Try to update everything with ORM
     try:
         # Always ensure is_password_temporary is set to False
         stmt = (
@@ -791,17 +855,17 @@ async def change_password(
         )
         await session.execute(stmt)
 
-        # Invalidate all sessions for this user
         stmt = update(Session).where(Session.user_id == user_id).values(is_active=False)
         await session.execute(stmt)
-
         await session.commit()
         password_updated = True
         temp_fields_cleared = True
         is_temp_flag_cleared = True
-        print(f"Successfully updated password with ORM for user {user_email}")
     except Exception as e:
         print(f"Error updating password with ORM: {e}")
+        password_updated = False
+        temp_fields_cleared = False
+        is_temp_flag_cleared = False
         if session:
             try:
                 await session.rollback()
@@ -841,20 +905,21 @@ async def change_password(
                 is_temp_flag_cleared = not is_temp
                 temp_fields_cleared = not (has_temp_password or has_temp_expiry)
             else:
-                print(f"WARNING: Could not verify user {user_email} state after password change")
+                print(
+                    f"WARNING: Could not verify user {user_email} state after password change"
+                )
     except Exception as verify_error:
         print(f"Error verifying user state: {verify_error}")
 
-    # Step 3: If any of our operations failed, try direct SQL as a fallback
     if not (password_updated and is_temp_flag_cleared and temp_fields_cleared):
-        print(f"Some operations failed for user {user_email}, attempting direct SQL fallback")
+        print(
+            f"Some operations failed for user {user_email}, attempting direct SQL fallback"
+        )
 
         try:
             from sqlalchemy import text
 
-            # Only proceed if we have a valid session
             if session:
-                # Comprehensive update with direct SQL
                 direct_sql = text(
                     """
                     UPDATE users
@@ -870,14 +935,18 @@ async def change_password(
                 await session.execute(
                     direct_sql,
                     {
-                        "new_password_hash": get_password_hash(change_data.new_password),
+                        "new_password_hash": get_password_hash(
+                            change_data.new_password
+                        ),
                         "user_id": user_id,
                     },
                 )
 
                 try:
                     await session.commit()
-                    print(f"Successfully updated password with direct SQL for user {user_email}")
+                    print(
+                        f"Successfully updated password with direct SQL for user {user_email}"
+                    )
 
                     # Update our tracking flags
                     password_updated = True
@@ -888,18 +957,24 @@ async def change_password(
                     try:
                         await session.rollback()
                     except Exception as rollback_error:
-                        print(f"Error during rollback after commit failure: {rollback_error}")
+                        print(
+                            f"Error during rollback after commit failure: {rollback_error}"
+                        )
         except Exception as direct_error:
             print(f"Error with direct SQL update: {direct_error}")
             if session:
                 try:
                     await session.rollback()
                 except Exception as rollback_error:
-                    print(f"Error during rollback after direct SQL failure: {rollback_error}")
+                    print(
+                        f"Error during rollback after direct SQL failure: {rollback_error}"
+                    )
 
     # Step 4: Last resort - try to at least set is_password_temporary to FALSE if it's still TRUE
     if not is_temp_flag_cleared:
-        print(f"Still need to clear is_password_temporary flag for user {user_email}, making final attempt")
+        print(
+            f"Still need to clear is_password_temporary flag for user {user_email}, making final attempt"
+        )
 
         try:
             from sqlalchemy import text
@@ -907,21 +982,31 @@ async def change_password(
             # Only proceed if we have a valid session
             if session:
                 # Simple update to just set is_password_temporary to FALSE
-                force_sql = text("UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id")
+                force_sql = text(
+                    "UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id"
+                )
                 await session.execute(force_sql, {"user_id": user_id})
 
                 try:
                     await session.commit()
-                    print(f"Successfully forced is_password_temporary to FALSE for user {user_email}")
+                    print(
+                        f"Successfully forced is_password_temporary to FALSE for user {user_email}"
+                    )
                     is_temp_flag_cleared = True
                 except Exception as commit_error:
-                    print(f"Error committing is_password_temporary update: {commit_error}")
+                    print(
+                        f"Error committing is_password_temporary update: {commit_error}"
+                    )
         except Exception as force_error:
-            print(f"Error with final attempt to set is_password_temporary to FALSE: {force_error}")
+            print(
+                f"Error with final attempt to set is_password_temporary to FALSE: {force_error}"
+            )
 
     # Step 5: Last resort - try to clear temporary password fields if they're still set
     if not temp_fields_cleared:
-        print(f"Still need to clear temporary password fields for user {user_email}, making final attempt")
+        print(
+            f"Still need to clear temporary password fields for user {user_email}, making final attempt"
+        )
 
         try:
             from sqlalchemy import text
@@ -940,12 +1025,16 @@ async def change_password(
 
                 try:
                     await session.commit()
-                    print(f"Successfully cleared temporary password fields for user {user_email}")
+                    print(
+                        f"Successfully cleared temporary password fields for user {user_email}"
+                    )
                     temp_fields_cleared = True
                 except Exception as commit_error:
                     print(f"Error committing temporary fields update: {commit_error}")
         except Exception as clear_error:
-            print(f"Error with final attempt to clear temporary password fields: {clear_error}")
+            print(
+                f"Error with final attempt to clear temporary password fields: {clear_error}"
+            )
 
     # Log the final state
     print(
@@ -973,6 +1062,59 @@ async def change_password(
     # Always return success to the user, even if some operations failed
     # The frontend relies on this to continue the flow
     return {"message": "Password successfully changed"}
+
+
+@router.post("/recover-session")
+async def recover_session(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    user_id = current_user.id
+    user_email = current_user.email
+
+    print(f"Session recovery requested for user {user_email} (ID: {user_id})")
+
+    try:
+        print(f"Cleaning up all existing sessions for user {user_email}")
+        await invalidate_all_sessions(session, user_id)
+
+        if not current_user.is_password_temporary:
+            print(f"Ensuring is_password_temporary is FALSE for user {user_email}")
+            from sqlalchemy import text
+
+            reset_sql = text(
+                "UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id"
+            )
+            await session.execute(reset_sql, {"user_id": user_id})
+            await session.commit()
+
+        print(f"Creating fresh session for user {user_email}")
+        access_token, refresh_token = await create_user_session(
+            session, user_id, request
+        )
+
+        await log_user_activity(
+            session,
+            user_id,
+            "session_recovery",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+
+        return {
+            "message": "Session recovered successfully",
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+        }
+
+    except Exception as e:
+        print(f"Error during session recovery for user {user_email}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to recover session",
+        )
 
 
 @router.post("/mfa/setup", response_model=MfaSetupResponse)
@@ -1070,23 +1212,24 @@ async def admin_reset_password(
     current_user: User = Depends(get_current_superuser),
     session: AsyncSession = Depends(get_async_session),
 ):
-    """Reset a user's password (admin only)."""
-    # Log the admin action
-    logger.info(f"Admin user {current_user.email} (ID: {current_user.id}) is resetting password for {reset_data.email}")
+    logger.info(
+        f"Admin user {current_user.email} (ID: {current_user.id}) is resetting password for {reset_data.email}"
+    )
 
-    # Find user by email
-    result = await session.execute(async_select(User).where(User.email == reset_data.email))
+    result = await session.execute(
+        async_select(User).where(User.email == reset_data.email)
+    )
     user = result.scalars().first()
 
     if not user:
-        # Log failed attempt
-        logger.warning(f"Admin user {current_user.email} attempted to reset password for non-existent user: {reset_data.email}")
+        logger.warning(
+            f"Admin user {current_user.email} attempted to reset password for non-existent user: {reset_data.email}"
+        )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
 
-    # Update user with new password
     try:
         if reset_data.is_one_time_password:
             # Set temporary password with 48-hour expiry
@@ -1096,7 +1239,9 @@ async def admin_reset_password(
                 update(User)
                 .where(User.id == user.id)
                 .values(
-                    temporary_hashed_password=get_password_hash(reset_data.new_password),
+                    temporary_hashed_password=get_password_hash(
+                        reset_data.new_password
+                    ),
                     temporary_password_expiry=expiry_time,
                     password_reset_token=None,
                     password_reset_expires=None,
@@ -1129,17 +1274,25 @@ async def admin_reset_password(
         if not reset_data.is_one_time_password:
             from sqlalchemy import text
 
-            verify_sql = text("SELECT is_password_temporary FROM users WHERE id = :user_id")
+            verify_sql = text(
+                "SELECT is_password_temporary FROM users WHERE id = :user_id"
+            )
             verify_result = await session.execute(verify_sql, {"user_id": user.id})
             is_temp = verify_result.scalar_one_or_none()
 
             if is_temp:
-                print(f"WARNING: is_password_temporary is still True after admin password reset for user {user.email}")
+                print(
+                    f"WARNING: is_password_temporary is still True after admin password reset for user {user.email}"
+                )
                 # Force it to be False with a direct SQL update
-                force_sql = text("UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id")
+                force_sql = text(
+                    "UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id"
+                )
                 await session.execute(force_sql, {"user_id": user.id})
                 await session.commit()
-                print(f"Successfully forced is_password_temporary to FALSE for user {user.email}")
+                print(
+                    f"Successfully forced is_password_temporary to FALSE for user {user.email}"
+                )
     except Exception as e:
         print(f"Error updating password during admin reset: {e}")
         await session.rollback()
@@ -1203,10 +1356,10 @@ async def admin_reset_password(
 
     # Extract name from full_name or use empty string
     name = user.full_name.split()[0] if user.full_name else ""
-    await send_password_reset_email_with_new_password(user.email, name, reset_data.new_password)
+    await send_password_reset_email_with_new_password(
+        user.email, name, reset_data.new_password
+    )
 
-    # Log activity
-    # Get the user ID as a plain integer
     user_dict = dict(user.__dict__)
     user_id_value = user_dict["id"]
 
@@ -1226,9 +1379,13 @@ async def admin_reset_password(
         details=details,
     )
 
-    logger.info(f"Password reset successfully for user {reset_data.email} by admin {current_user.email}")
+    logger.info(
+        f"Password reset successfully for user {reset_data.email} by admin {current_user.email}"
+    )
 
-    return {"message": "Password reset successfully. The user will receive an email with the new password."}
+    return {
+        "message": "Password reset successfully. The user will receive an email with the new password."
+    }
 
 
 @router.delete("/sessions/{session_id}")
@@ -1336,7 +1493,9 @@ async def validate_session(
             user_session = result.scalars().first()
 
             if not user_session:
-                print(f"Session with provided refresh token is not valid for user: {user.email}")
+                print(
+                    f"Session with provided refresh token is not valid for user: {user.email}"
+                )
                 return {"valid": False, "reason": "session_invalidated"}
 
         # Session is valid

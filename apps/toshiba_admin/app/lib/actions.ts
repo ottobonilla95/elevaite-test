@@ -92,7 +92,43 @@ export async function authenticateGoogle(): Promise<
 }
 
 export async function logout(): Promise<void> {
-  await signOut();
+  try {
+    const session = await auth();
+    const accessToken = session?.authToken ?? session?.user?.accessToken;
+
+    if (accessToken) {
+      const authApiUrl = process.env.AUTH_API_URL;
+      if (authApiUrl) {
+        try {
+          const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
+          const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+
+          const refreshToken = session?.user?.refreshToken;
+
+          if (refreshToken) {
+            await fetch(`${apiUrl}/api/auth/logout`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+                "X-Tenant-ID": tenantId,
+              },
+              body: JSON.stringify({
+                refresh_token: refreshToken,
+              }),
+            });
+          }
+        } catch (apiError) {
+          // Continue with NextAuth signOut even if API call fails
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error during logout preparation:", error);
+    // Continue with NextAuth signOut even if preparation fails
+  }
+
+  await signOut({ redirectTo: "/login" });
 }
 
 // Server action for resetting password

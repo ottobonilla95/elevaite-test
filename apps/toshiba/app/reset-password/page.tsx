@@ -139,7 +139,8 @@ export default function ResetPassword(): JSX.Element {
       /* eslint-disable-next-line no-console -- Debug logging */
       console.log("Reset Password Page - Signing out and redirecting to login");
 
-      redirect("/login");
+      const { signOut } = await import("next-auth/react");
+      await signOut({ redirect: true, callbackUrl: "/login" });
     } catch (err) {
       /* eslint-disable-next-line no-console -- Needed for error reporting */
       console.error("Error signing out:", err);

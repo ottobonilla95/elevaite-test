@@ -1,6 +1,6 @@
 "use server";
 import { AuthError } from "next-auth";
-import { signIn, auth } from "../../auth";
+import { signIn, signOut, auth } from "../../auth";
 import { redirect } from "next/navigation";
 import {
   type ChatMessageResponse,
@@ -8,13 +8,18 @@ import {
   type ChatbotV,
   type ChatMessageObject,
   type SessionSummaryObject,
-  SessionObject
+  SessionObject,
 } from "./interfaces";
-import {isChatMessageResponse, isPastSessionsResponse, isSessionSummaryResponse} from "./discriminators";
+import {
+  isChatMessageResponse,
+  isPastSessionsResponse,
+  isSessionSummaryResponse,
+} from "./discriminators";
 import { headers } from "next/headers";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
-const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL ?? "https://tgcs.iopex.ai";
+const FRONTEND_URL =
+  process.env.NEXT_PUBLIC_FRONTEND_URL ?? "https://tgcs.iopex.ai";
 
 export async function authenticate(
   _prevState: string | undefined,
@@ -50,11 +55,91 @@ export async function authenticate(
 }
 
 export async function logout(): Promise<void> {
-	return redirect("/login");
+  try {
+    const session = await auth();
+    const accessToken = session?.authToken ?? session?.user?.accessToken;
+
+    if (accessToken) {
+      const authApiUrl = process.env.AUTH_API_URL;
+      if (authApiUrl) {
+        try {
+          const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
+          const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+
+          const refreshToken = session?.user?.refreshToken;
+
+          if (refreshToken) {
+            await fetch(`${apiUrl}/api/auth/logout`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+                "X-Tenant-ID": tenantId,
+              },
+              body: JSON.stringify({
+                refresh_token: refreshToken,
+              }),
+            });
+          }
+        } catch (apiError) {
+          // Continue with NextAuth signOut even if API call fails
+        }
+      }
+    }
+  } catch (error) {
+    // Continue with NextAuth signOut even if preparation fails
+  }
+
+  await signOut({ redirectTo: "/login" });
 }
 
+export async function recoverSession(): Promise<boolean> {
+  try {
+    const session = await auth();
+    const accessToken = session?.authToken ?? session?.user?.accessToken;
 
-export async function fetchChatbotResponse(userId: string, messageText: string, sessionId: string, messageHistory: ChatMessageObject[], chatbotV: ChatbotV, chatbotGenAi: ChatBotGenAI): Promise<ChatMessageResponse> {
+    if (!accessToken) {
+      return false;
+    }
+
+    const authApiUrl = process.env.AUTH_API_URL;
+    if (!authApiUrl) {
+      return false;
+    }
+
+    const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
+    const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+
+    const response = await fetch(`${apiUrl}/api/auth/recover-session`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "X-Tenant-ID": tenantId,
+      },
+    });
+
+    if (response.ok) {
+      console.log("Session recovery successful");
+      return true;
+    } else {
+      console.error("Session recovery failed:", response.status);
+      return false;
+    }
+  } catch (error) {
+    console.error("Error during session recovery:", error);
+    return false;
+  }
+}
+
+export async function fetchChatbotResponse(
+  userId: string,
+  messageText: string,
+  sessionId: string,
+  messageHistory: ChatMessageObject[],
+  chatbotV: ChatbotV,
+  chatbotGenAi: ChatBotGenAI
+): Promise<ChatMessageResponse> {
   const url = `${BACKEND_URL ?? ""}run`;
   const response = await fetch(url, {
     method: "POST",
@@ -75,8 +160,13 @@ export async function fetchChatbotResponse(userId: string, messageText: string, 
   throw new Error("Invalid data type");
 }
 
-export async function fetchSessionSummary(userId: string, sessionId: string): Promise<SessionSummaryObject> {
-  const url = new URL(`${BACKEND_URL ?? ""}summarization?uid=${userId}&sid=${sessionId}`);
+export async function fetchSessionSummary(
+  userId: string,
+  sessionId: string
+): Promise<SessionSummaryObject> {
+  const url = new URL(
+    `${BACKEND_URL ?? ""}summarization?uid=${userId}&sid=${sessionId}`
+  );
   const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to fetch");
   const data: unknown = await response.json();
@@ -84,9 +174,11 @@ export async function fetchSessionSummary(userId: string, sessionId: string): Pr
   throw new Error("Invalid data type");
 }
 
-export async function getImageUrl(filename: string): Promise<string | undefined> {
-  "use server"
-  console.log("getImageUrl: ", filename)
+export async function getImageUrl(
+  filename: string
+): Promise<string | undefined> {
+  "use server";
+  console.log("getImageUrl: ", filename);
   const headersList = headers();
   // console.log("Headerlist read",headersList);
   // read the custom x-url header
@@ -96,19 +188,19 @@ export async function getImageUrl(filename: string): Promise<string | undefined>
   console.log("HeaderURL: ", headerUrl);
 
   try {
-    const _url = new URL(`${headerUrl.origin}/api/images`)
-    _url.searchParams.set("filename", filename)
-    console.log("getImageUrl: ", _url.toString())
+    const _url = new URL(`${headerUrl.origin}/api/images`);
+    _url.searchParams.set("filename", filename);
+    console.log("getImageUrl: ", _url.toString());
     // const response = await fetch(_url);
     // if (!response.ok) {
     //   throw new Error('Failed to fetch image');
     // }
     // const data = await response.text()
     // return data
-    return _url.toString()
+    return _url.toString();
   } catch (error) {
     // eslint-disable-next-line no-console -- nah, I want it here for now
-    console.error('Error fetching image:', error);
+    console.error("Error fetching image:", error);
   }
 }
 
@@ -225,7 +317,9 @@ export async function resetPassword(newPassword: string): Promise<{
   }
 }
 
-export async function fetchPastSessions(userId: string): Promise<SessionObject[]> {
+export async function fetchPastSessions(
+  userId: string
+): Promise<SessionObject[]> {
   const url = new URL(`${BACKEND_URL ?? ""}pastSessions?uid=${userId}`);
   console.log(userId);
   const response = await fetch(url);
