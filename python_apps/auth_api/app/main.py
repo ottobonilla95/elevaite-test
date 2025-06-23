@@ -62,7 +62,7 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
 # Add CORS middleware with secure defaults
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["https://elevaite-staging.iopex.ai"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
