@@ -16,6 +16,7 @@ export default function ResetPassword(): JSX.Element {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const router = useRouter();
   const { data: session, status } = useSession();
 
@@ -24,6 +25,16 @@ export default function ResetPassword(): JSX.Element {
     // Debug logging
     console.log("Reset Password Page - Session status:", status);
     console.log("Reset Password Page - Session:", session);
+    console.log("Reset Password Page - isSuccess:", isSuccess);
+    console.log("Reset Password Page - isRedirecting:", isRedirecting);
+
+    // If we're already redirecting or in success state, don't do anything
+    if (isRedirecting || isSuccess) {
+      console.log(
+        "Reset Password Page - Already redirecting or in success state, skipping redirect logic"
+      );
+      return;
+    }
 
     // If session is still loading, do nothing
     if (status === "loading") {
@@ -32,10 +43,12 @@ export default function ResetPassword(): JSX.Element {
     }
 
     // If user is not authenticated, redirect to login
-    if (status === "unauthenticated") {
+    // BUT only if we're not in the success state (password was successfully reset)
+    if (status === "unauthenticated" && !isSuccess) {
       console.log(
-        "Reset Password Page - User is not authenticated, redirecting to login"
+        "Reset Password Page - User is not authenticated and not in success state, redirecting to login"
       );
+      setIsRedirecting(true);
       // Use window.location.href instead of router.push to avoid Next.js client-side routing
       // This will cause a full page reload and avoid any potential refresh loops
       window.location.href = "/login";
@@ -53,14 +66,8 @@ export default function ResetPassword(): JSX.Element {
       }
 
       console.log("Reset Password Page - User needs to reset password");
-
-      // Set email from session
-      if (session.user.email) {
-        console.log("Reset Password Page - Setting email:", session.user.email);
-        setEmail(session.user.email);
-      }
     }
-  }, [status, session, router]);
+  }, [status, session, router, isSuccess, isRedirecting]);
   /* eslint-enable no-console -- End of debug logging section */
 
   const handleResetPassword = async (): Promise<void> => {
@@ -134,18 +141,25 @@ export default function ResetPassword(): JSX.Element {
   };
 
   const handleContinue = async (): Promise<void> => {
-    // Sign out and redirect to login
+    // Prevent multiple clicks and race conditions
+    if (isRedirecting) {
+      console.log("Reset Password Page - Already redirecting, ignoring click");
+      return;
+    }
+
+    setIsRedirecting(true);
+
     try {
       /* eslint-disable-next-line no-console -- Debug logging */
       console.log("Reset Password Page - Signing out and redirecting to login");
 
-      const { signOut } = await import("next-auth/react");
-      await signOut({ redirect: true, callbackUrl: "/login" });
+      // The session is already invalidated by the password reset, so we don't need to call signOut
+      // This avoids the race condition between signOut and useEffect
+      window.location.href = "/login";
     } catch (err) {
       /* eslint-disable-next-line no-console -- Needed for error reporting */
-      console.error("Error signing out:", err);
+      console.error("Error during redirect:", err);
 
-      // Fallback to manual redirect
       window.location.href = "/login";
     }
   };
@@ -188,10 +202,10 @@ export default function ResetPassword(): JSX.Element {
               <button
                 className="continue-button"
                 onClick={handleContinue}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isRedirecting}
                 type="button"
               >
-                Continue to Login
+                {isRedirecting ? "Redirecting..." : "Continue to Login"}
               </button>
             </div>
           ) : (
