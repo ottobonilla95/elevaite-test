@@ -1,4 +1,3 @@
-
 import uuid
 from datetime import datetime
 from typing import List, Optional
@@ -15,6 +14,7 @@ from ..schemas import (
     MCPServerUpdate,
 )
 
+
 def create_tool_category(db: Session, category: ToolCategoryCreate) -> ToolCategory:
     db_category = ToolCategory(
         name=category.name,
@@ -27,16 +27,26 @@ def create_tool_category(db: Session, category: ToolCategoryCreate) -> ToolCateg
     db.refresh(db_category)
     return db_category
 
+
 def get_tool_category(db: Session, category_id: uuid.UUID) -> Optional[ToolCategory]:
-    return db.query(ToolCategory).filter(ToolCategory.category_id == category_id).first()
+    return (
+        db.query(ToolCategory).filter(ToolCategory.category_id == category_id).first()
+    )
+
 
 def get_tool_category_by_name(db: Session, name: str) -> Optional[ToolCategory]:
     return db.query(ToolCategory).filter(ToolCategory.name == name).first()
 
-def get_tool_categories(db: Session, skip: int = 0, limit: int = 100) -> List[ToolCategory]:
+
+def get_tool_categories(
+    db: Session, skip: int = 0, limit: int = 100
+) -> List[ToolCategory]:
     return db.query(ToolCategory).offset(skip).limit(limit).all()
 
-def update_tool_category(db: Session, category_id: uuid.UUID, category_update: ToolCategoryUpdate) -> Optional[ToolCategory]:
+
+def update_tool_category(
+    db: Session, category_id: uuid.UUID, category_update: ToolCategoryUpdate
+) -> Optional[ToolCategory]:
     db_category = get_tool_category(db, category_id)
     if not db_category:
         return None
@@ -50,6 +60,7 @@ def update_tool_category(db: Session, category_id: uuid.UUID, category_update: T
     db.refresh(db_category)
     return db_category
 
+
 def delete_tool_category(db: Session, category_id: uuid.UUID) -> bool:
     db_category = get_tool_category(db, category_id)
     if not db_category:
@@ -58,6 +69,7 @@ def delete_tool_category(db: Session, category_id: uuid.UUID) -> bool:
     db.delete(db_category)
     db.commit()
     return True
+
 
 def create_mcp_server(db: Session, server: MCPServerCreate) -> MCPServer:
     db_server = MCPServer(
@@ -79,22 +91,31 @@ def create_mcp_server(db: Session, server: MCPServerCreate) -> MCPServer:
     db.refresh(db_server)
     return db_server
 
+
 def get_mcp_server(db: Session, server_id: uuid.UUID) -> Optional[MCPServer]:
     return db.query(MCPServer).filter(MCPServer.server_id == server_id).first()
+
 
 def get_mcp_server_by_name(db: Session, name: str) -> Optional[MCPServer]:
     return db.query(MCPServer).filter(MCPServer.name == name).first()
 
-def get_mcp_servers(db: Session, skip: int = 0, limit: int = 100, status: Optional[str] = None) -> List[MCPServer]:
+
+def get_mcp_servers(
+    db: Session, skip: int = 0, limit: int = 100, status: Optional[str] = None
+) -> List[MCPServer]:
     query = db.query(MCPServer)
     if status:
         query = query.filter(MCPServer.status == status)
     return query.offset(skip).limit(limit).all()
 
+
 def get_active_mcp_servers(db: Session) -> List[MCPServer]:
     return db.query(MCPServer).filter(MCPServer.status == "active").all()
 
-def update_mcp_server(db: Session, server_id: uuid.UUID, server_update: MCPServerUpdate) -> Optional[MCPServer]:
+
+def update_mcp_server(
+    db: Session, server_id: uuid.UUID, server_update: MCPServerUpdate
+) -> Optional[MCPServer]:
     db_server = get_mcp_server(db, server_id)
     if not db_server:
         return None
@@ -108,6 +129,7 @@ def update_mcp_server(db: Session, server_id: uuid.UUID, server_update: MCPServe
     db.refresh(db_server)
     return db_server
 
+
 def delete_mcp_server(db: Session, server_id: uuid.UUID) -> bool:
     db_server = get_mcp_server(db, server_id)
     if not db_server:
@@ -117,7 +139,10 @@ def delete_mcp_server(db: Session, server_id: uuid.UUID) -> bool:
     db.commit()
     return True
 
-def update_mcp_server_health(db: Session, server_id: uuid.UUID, is_healthy: bool) -> Optional[MCPServer]:
+
+def update_mcp_server_health(
+    db: Session, server_id: uuid.UUID, is_healthy: bool
+) -> Optional[MCPServer]:
     db_server = get_mcp_server(db, server_id)
     if not db_server:
         return None
@@ -136,6 +161,7 @@ def update_mcp_server_health(db: Session, server_id: uuid.UUID, is_healthy: bool
     db.commit()
     db.refresh(db_server)
     return db_server
+
 
 def create_tool(db: Session, tool: ToolCreate) -> Tool:
     db_tool = Tool(
@@ -165,33 +191,58 @@ def create_tool(db: Session, tool: ToolCreate) -> Tool:
     db.refresh(db_tool)
     return db_tool
 
+
 def get_tool(db: Session, tool_id: uuid.UUID) -> Optional[Tool]:
     return db.query(Tool).filter(Tool.tool_id == tool_id).first()
 
-def get_tool_by_name(db: Session, name: str, version: Optional[str] = None) -> Optional[Tool]:
+
+def get_tool_by_name(
+    db: Session, name: str, version: Optional[str] = None
+) -> Optional[Tool]:
     query = db.query(Tool).filter(Tool.name == name)
     if version:
         query = query.filter(Tool.version == version)
     return query.first()
 
-def get_tools(db: Session, skip: int = 0, limit: int = 100, is_active: Optional[bool] = None, tool_type: Optional[str] = None) -> List[Tool]:
+
+def get_tools(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    is_active: Optional[bool] = None,
+    is_available: Optional[bool] = None,
+    tool_type: Optional[str] = None,
+    category_id: Optional[uuid.UUID] = None,
+) -> List[Tool]:
     query = db.query(Tool)
     if is_active is not None:
         query = query.filter(Tool.is_active == is_active)
+    if is_available is not None:
+        query = query.filter(Tool.is_available == is_available)
     if tool_type:
         query = query.filter(Tool.tool_type == tool_type)
+    if category_id:
+        query = query.filter(Tool.category_id == category_id)
     return query.offset(skip).limit(limit).all()
+
 
 def get_tools_by_category(db: Session, category_id: uuid.UUID) -> List[Tool]:
     return db.query(Tool).filter(Tool.category_id == category_id).all()
 
+
 def get_tools_by_mcp_server(db: Session, mcp_server_id: uuid.UUID) -> List[Tool]:
     return db.query(Tool).filter(Tool.mcp_server_id == mcp_server_id).all()
 
-def get_available_tools(db: Session) -> List[Tool]:
-    return db.query(Tool).filter(Tool.is_active == True, Tool.is_available == True).all()
 
-def update_tool(db: Session, tool_id: uuid.UUID, tool_update: ToolUpdate) -> Optional[Tool]:
+def get_available_tools(db: Session) -> List[Tool]:
+    return (
+        db.query(Tool).filter(Tool.is_active == True, Tool.is_available == True).all()
+    )
+
+
+def update_tool(
+    db: Session, tool_id: uuid.UUID, tool_update: ToolUpdate
+) -> Optional[Tool]:
     db_tool = get_tool(db, tool_id)
     if not db_tool:
         return None
@@ -205,6 +256,7 @@ def update_tool(db: Session, tool_id: uuid.UUID, tool_update: ToolUpdate) -> Opt
     db.refresh(db_tool)
     return db_tool
 
+
 def delete_tool(db: Session, tool_id: uuid.UUID) -> bool:
     db_tool = get_tool(db, tool_id)
     if not db_tool:
@@ -214,14 +266,20 @@ def delete_tool(db: Session, tool_id: uuid.UUID) -> bool:
     db.commit()
     return True
 
-def update_tool_usage_stats(db: Session, tool_id: uuid.UUID, success: bool, execution_time_ms: Optional[float] = None) -> Optional[Tool]:
+
+def update_tool_usage_stats(
+    db: Session,
+    tool_id: uuid.UUID,
+    success: bool,
+    execution_time_ms: Optional[float] = None,
+) -> Optional[Tool]:
     db_tool = get_tool(db, tool_id)
     if not db_tool:
         return None
 
     db_tool.usage_count += 1
     db_tool.last_used = datetime.now()
-    
+
     if success:
         db_tool.success_count += 1
     else:
@@ -231,7 +289,10 @@ def update_tool_usage_stats(db: Session, tool_id: uuid.UUID, success: bool, exec
         if db_tool.average_execution_time_ms is None:
             db_tool.average_execution_time_ms = execution_time_ms
         else:
-            total_time = db_tool.average_execution_time_ms * (db_tool.usage_count - 1) + execution_time_ms
+            total_time = (
+                db_tool.average_execution_time_ms * (db_tool.usage_count - 1)
+                + execution_time_ms
+            )
             db_tool.average_execution_time_ms = total_time / db_tool.usage_count
 
     db.commit()
