@@ -106,7 +106,6 @@ export function useSessionValidation(): {
       }
 
       const response = await fetch(`${authApiUrl}/api/auth/validate-session`, {
-        method: "POST",
         headers,
       });
 

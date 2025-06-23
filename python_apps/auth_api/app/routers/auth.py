@@ -1282,6 +1282,9 @@ async def validate_session(
         payload = verify_token(token, "access")
         user_id = int(payload["sub"])
 
+        print("HELLO! DEBUG")
+        print(f"Payload - {payload}")
+
         # Get user from database
         from sqlalchemy.future import select as async_select
         from app.db.models import UserStatus

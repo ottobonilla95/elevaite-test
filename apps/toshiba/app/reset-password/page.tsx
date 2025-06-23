@@ -3,8 +3,9 @@
 import { AuthFluff, ElevaiteIcons } from "@repo/ui/components";
 import { useState, useEffect } from "react";
 import type { JSX } from "react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { redirect } from "next/navigation";
 import { resetPassword } from "../lib/actions";
 import "./page.scss";
 
@@ -138,7 +139,7 @@ export default function ResetPassword(): JSX.Element {
       /* eslint-disable-next-line no-console -- Debug logging */
       console.log("Reset Password Page - Signing out and redirecting to login");
 
-      await signOut({ redirect: true, callbackUrl: "/login" });
+      redirect("/login");
     } catch (err) {
       /* eslint-disable-next-line no-console -- Needed for error reporting */
       console.error("Error signing out:", err);

@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"Error during application shutdown: {str(e)}")
 
-app = FastAPI(title="Agent Studio Backend", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Agent Studio Backend", version="0.1.0", lifespan=lifespan, root_path="/api/core", docs_url="/docs")
 
 # Configure CORS
 app.add_middleware(

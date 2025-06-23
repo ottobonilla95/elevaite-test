@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
-import { signOut } from "next-auth/react";
+import { redirect } from "next/navigation";
 
 // Define a global variable to store the timeout ID
 declare global {
@@ -94,15 +94,14 @@ export function useSessionValidation(): {
       }
 
       const response = await fetch(`${authApiUrl}/api/auth/validate-session`, {
-        method: "POST",
         headers,
       });
 
       if (!response.ok) {
         // Only log out if we get a 401 Unauthorized
         if (response.status === 401) {
-          await signOut({ callbackUrl: "/login" });
-          return false;
+           redirect("/login");
+           return false;
         }
         return true; // For other errors, assume valid to prevent excessive logouts
       }
@@ -121,8 +120,8 @@ export function useSessionValidation(): {
           data.reason === "user_not_found" ||
           data.reason === "user_inactive"
         ) {
-          await signOut({ callbackUrl: "/login" });
-          return false;
+          redirect("/login");
+ 	  return false;
         }
         return true; // For other reasons, assume valid to prevent excessive logouts
       }

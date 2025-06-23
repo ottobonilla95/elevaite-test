@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { signOut } from "next-auth/react";
+import { redirect } from "next/navigation";
 import { useSessionValidation } from "../hooks/useSessionValidation";
 
 export function SessionValidator({
@@ -41,7 +41,7 @@ export function SessionValidator({
 
         if (!isValid) {
           // Use signOut to clear the session and redirect to login
-          await signOut({ callbackUrl: "/login" });
+          redirect("/login");
         }
       } catch (error) {
         // Fail silently

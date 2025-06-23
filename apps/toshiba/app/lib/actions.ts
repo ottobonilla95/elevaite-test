@@ -1,6 +1,7 @@
 "use server";
 import { AuthError } from "next-auth";
-import { signIn, signOut, auth } from "../../auth";
+import { signIn, auth } from "../../auth";
+import { redirect } from "next/navigation";
 import {
   type ChatMessageResponse,
   type ChatBotGenAI,
@@ -49,7 +50,7 @@ export async function authenticate(
 }
 
 export async function logout(): Promise<void> {
-  await signOut();
+	return redirect("/login");
 }
 
 
