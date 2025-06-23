@@ -14,7 +14,8 @@ import type {
 } from "./interfaces";
 import { toolToOpenAISchema } from "./utils";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000/";
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000/";
 
 // Comprehensive tools API
 export async function fetchAllToolsNew(
@@ -32,8 +33,10 @@ export async function fetchAllToolsNew(
   url.searchParams.set("limit", limit.toString());
   if (tool_type) url.searchParams.set("tool_type", tool_type);
   if (category_id) url.searchParams.set("category_id", category_id);
-  if (is_active !== undefined) url.searchParams.set("is_active", is_active.toString());
-  if (is_available !== undefined) url.searchParams.set("is_available", is_available.toString());
+  if (is_active !== undefined)
+    url.searchParams.set("is_active", is_active.toString());
+  if (is_available !== undefined)
+    url.searchParams.set("is_available", is_available.toString());
 
   const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to fetch tools");
@@ -71,11 +74,14 @@ export async function fetchToolById(toolId: string): Promise<Tool> {
     throw new Error("Failed to fetch tool");
   }
 
-  return await response.json() as Tool;
+  return (await response.json()) as Tool;
 }
 
 // Update tool
-export async function updateTool(toolId: string, update: Partial<Tool>): Promise<Tool> {
+export async function updateTool(
+  toolId: string,
+  update: Partial<Tool>
+): Promise<Tool> {
   const url = new URL(`${BACKEND_URL ?? ""}api/tools/${toolId}`);
 
   const response = await fetch(url, {
@@ -93,7 +99,7 @@ export async function updateTool(toolId: string, update: Partial<Tool>): Promise
     throw new Error("Failed to update tool");
   }
 
-  return await response.json() as Tool;
+  return (await response.json()) as Tool;
 }
 
 // Delete tool
@@ -131,7 +137,9 @@ export async function fetchToolCategories(
   throw new Error("Invalid data type - expected categories array");
 }
 
-export async function fetchToolCategoryById(categoryId: string): Promise<ToolCategory> {
+export async function fetchToolCategoryById(
+  categoryId: string
+): Promise<ToolCategory> {
   const url = new URL(`${BACKEND_URL ?? ""}api/tools/categories/${categoryId}`);
 
   const response = await fetch(url);
@@ -142,10 +150,12 @@ export async function fetchToolCategoryById(categoryId: string): Promise<ToolCat
     throw new Error("Failed to fetch tool category");
   }
 
-  return await response.json() as ToolCategory;
+  return (await response.json()) as ToolCategory;
 }
 
-export async function createToolCategory(category: ToolCategoryCreate): Promise<ToolCategory> {
+export async function createToolCategory(
+  category: ToolCategoryCreate
+): Promise<ToolCategory> {
   const url = new URL(`${BACKEND_URL ?? ""}api/tools/categories`);
 
   const response = await fetch(url, {
@@ -163,7 +173,7 @@ export async function createToolCategory(category: ToolCategoryCreate): Promise<
     throw new Error("Failed to create tool category");
   }
 
-  return await response.json() as ToolCategory;
+  return (await response.json()) as ToolCategory;
 }
 
 export async function updateToolCategory(
@@ -187,7 +197,7 @@ export async function updateToolCategory(
     throw new Error("Failed to update tool category");
   }
 
-  return await response.json() as ToolCategory;
+  return (await response.json()) as ToolCategory;
 }
 
 export async function deleteToolCategory(categoryId: string): Promise<void> {
@@ -250,10 +260,12 @@ export async function fetchMCPServerById(serverId: string): Promise<MCPServer> {
     throw new Error("Failed to fetch MCP server");
   }
 
-  return await response.json() as MCPServer;
+  return (await response.json()) as MCPServer;
 }
 
-export async function createMCPServer(server: MCPServerCreate): Promise<MCPServer> {
+export async function createMCPServer(
+  server: MCPServerCreate
+): Promise<MCPServer> {
   const url = new URL(`${BACKEND_URL ?? ""}api/tools/mcp-servers`);
 
   const response = await fetch(url, {
@@ -271,7 +283,7 @@ export async function createMCPServer(server: MCPServerCreate): Promise<MCPServe
     throw new Error("Failed to create MCP server");
   }
 
-  return await response.json() as MCPServer;
+  return (await response.json()) as MCPServer;
 }
 
 export async function updateMCPServer(
@@ -295,7 +307,7 @@ export async function updateMCPServer(
     throw new Error("Failed to update MCP server");
   }
 
-  return await response.json() as MCPServer;
+  return (await response.json()) as MCPServer;
 }
 
 export async function deleteMCPServer(serverId: string): Promise<void> {
@@ -314,8 +326,13 @@ export async function deleteMCPServer(serverId: string): Promise<void> {
 }
 
 // MCP Server Health Management
-export async function updateMCPServerHealth(serverId: string, isHealthy: boolean): Promise<{ message: string; status: string }> {
-  const url = new URL(`${BACKEND_URL ?? ""}api/tools/mcp-servers/${serverId}/health`);
+export async function updateMCPServerHealth(
+  serverId: string,
+  isHealthy: boolean
+): Promise<{ message: string; status: string }> {
+  const url = new URL(
+    `${BACKEND_URL ?? ""}api/tools/mcp-servers/${serverId}/health`
+  );
 
   const response = await fetch(url, {
     method: "POST",
@@ -359,13 +376,13 @@ export async function executeTool(
     throw new Error("Failed to execute tool");
   }
 
-  return await response.json() as ToolExecutionResponse;
+  return (await response.json()) as ToolExecutionResponse;
 }
 
 // Get available tools as OpenAI schemas
-export async function fetchToolSchemasAsArray(): Promise<ChatCompletionToolParam[]> {
+export async function fetchToolSchemasAsArray(): Promise<
+  ChatCompletionToolParam[]
+> {
   const tools = await fetchAvailableTools();
   return tools.map(toolToOpenAISchema);
 }
-
-
