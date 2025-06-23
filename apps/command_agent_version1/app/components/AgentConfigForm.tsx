@@ -14,14 +14,22 @@ import ChatSidebar from "./ChatSidebar";
 
 // Import types
 import { AgentType, AGENT_TYPES } from "./type";
-import { AgentConfigData, AgentNodeData, AgentResponse, SavedWorkflow, WorkflowAgent, WorkflowCreateRequest, WorkflowResponse } from "../lib/interfaces";
+import {
+  AgentConfigData,
+  AgentNodeData,
+  AgentResponse,
+  SavedWorkflow,
+  WorkflowAgent,
+  WorkflowCreateRequest,
+  WorkflowResponse,
+} from "../lib/interfaces";
 
 // Import styles
 import "./AgentConfigForm.scss";
 import { WorkflowAPI } from "../api/workflowApi.ts";
-import HeaderBottom from "./HeaderBottom.tsx";
-import { createWorkflow } from "../lib/actions.tsx";
-import { isAgentResponse } from "../lib/discriminators.tsx";
+import HeaderBottom from "./HeaderBottom";
+import { createWorkflow } from "../lib/actions";
+import { isAgentResponse } from "../lib/discriminators";
 
 // Define additional types needed
 interface Node {
@@ -114,20 +122,25 @@ const AgentConfigForm: React.FC = () => {
   }, []);
 
   // Node operations
-  const handleDeleteNode = useCallback((nodeId: string) => {
-    setNodes(prevNodes => prevNodes.filter(node => node.id !== nodeId));
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      setNodes((prevNodes) => prevNodes.filter((node) => node.id !== nodeId));
 
-    // Also remove any connected edges
-    setEdges(prevEdges => prevEdges.filter(edge =>
-      edge.source !== nodeId && edge.target !== nodeId
-    ));
+      // Also remove any connected edges
+      setEdges((prevEdges) =>
+        prevEdges.filter(
+          (edge) => edge.source !== nodeId && edge.target !== nodeId
+        )
+      );
 
-    // If we just deleted the selected node, clear the selection
-    if (selectedNode && selectedNode.id === nodeId) {
-      setSelectedNode(null);
-      setShowConfigPanel(false);
-    }
-  }, [selectedNode]);
+      // If we just deleted the selected node, clear the selection
+      if (selectedNode && selectedNode.id === nodeId) {
+        setSelectedNode(null);
+        setShowConfigPanel(false);
+      }
+    },
+    [selectedNode]
+  );
 
   // Handle dropping an agent onto the canvas
   const onDrop = useCallback(
@@ -157,7 +170,7 @@ const AgentConfigForm: React.FC = () => {
         // Get drop position in react-flow coordinates
         const position = reactFlowInstanceRef.current.project({
           x: event.clientX - reactFlowBounds.left,
-          y: event.clientY - reactFlowBounds.top
+          y: event.clientY - reactFlowBounds.top,
         });
 
         // Create a new node with a unique ID
@@ -175,31 +188,32 @@ const AgentConfigForm: React.FC = () => {
             tools: agentData.functions, // ChatCompletionToolParam array
             tags: [agentData.agent_type || "custom"], // Initialize tags with the type
             onDelete: handleDeleteNode,
-            onConfigure: () => handleNodeSelect({
-              id: nodeId,
-              type: "agent",
-              position,
-              data: {
-                id: agentData.agent_id,
-                shortId: agentData.id.toString(),
-                type: agentData.agent_type || "custom",
-                name: agentData.name,
-                prompt: agentData.system_prompt?.prompt || "",
-                tools: agentData.functions, // ChatCompletionToolParam array
-                tags: [agentData.agent_type || "custom"],
-                onDelete: handleDeleteNode,
-                onConfigure: () => { }, // This will be overwritten
-                agent: agentData,
-                config: {
-                  model: agentData.system_prompt.ai_model_name,
-                  agentName: agentData.name,
-                  deploymentType: "",
-                  modelProvider: agentData.system_prompt.ai_model_provider,
-                  outputFormat: "",
-                  selectedTools: agentData.functions
-                }
-              }
-            }),
+            onConfigure: () =>
+              handleNodeSelect({
+                id: nodeId,
+                type: "agent",
+                position,
+                data: {
+                  id: agentData.agent_id,
+                  shortId: agentData.id.toString(),
+                  type: agentData.agent_type || "custom",
+                  name: agentData.name,
+                  prompt: agentData.system_prompt?.prompt || "",
+                  tools: agentData.functions, // ChatCompletionToolParam array
+                  tags: [agentData.agent_type || "custom"],
+                  onDelete: handleDeleteNode,
+                  onConfigure: () => {}, // This will be overwritten
+                  agent: agentData,
+                  config: {
+                    model: agentData.system_prompt.ai_model_name,
+                    agentName: agentData.name,
+                    deploymentType: "",
+                    modelProvider: agentData.system_prompt.ai_model_provider,
+                    outputFormat: "",
+                    selectedTools: agentData.functions,
+                  },
+                },
+              }),
             agent: agentData,
             config: {
               model: agentData.system_prompt.ai_model_name,
@@ -207,18 +221,17 @@ const AgentConfigForm: React.FC = () => {
               deploymentType: "",
               modelProvider: agentData.system_prompt.ai_model_provider,
               outputFormat: "",
-              selectedTools: agentData.functions
-            }
+              selectedTools: agentData.functions,
+            },
           },
         };
 
-        setNodes(prevNodes => [...prevNodes, newNode]);
+        setNodes((prevNodes) => [...prevNodes, newNode]);
 
         // Set the newly created node as selected after a small delay
         setTimeout(() => {
           handleNodeSelect(newNode);
         }, 50);
-
       } catch (error) {
         console.error("Error creating node:", error);
       }
@@ -233,26 +246,32 @@ const AgentConfigForm: React.FC = () => {
   }, []);
 
   // Handle drag start for agent types
-  const handleDragStart = useCallback((event: React.DragEvent<HTMLDivElement>, agent: AgentResponse) => {
-    // Ensure the agent has all required properties
-    const dragData = agent;
-    console.log("Dragging agent:", dragData);
+  const handleDragStart = useCallback(
+    (event: React.DragEvent<HTMLDivElement>, agent: AgentResponse) => {
+      // Ensure the agent has all required properties
+      const dragData = agent;
+      console.log("Dragging agent:", dragData);
 
-    // Set the data transfer
-    event.dataTransfer.setData("application/reactflow", JSON.stringify(dragData));
-    event.dataTransfer.effectAllowed = "move";
+      // Set the data transfer
+      event.dataTransfer.setData(
+        "application/reactflow",
+        JSON.stringify(dragData)
+      );
+      event.dataTransfer.effectAllowed = "move";
 
-    // Add visual feedback for dragging
-    if (event.currentTarget.classList) {
-      const element = event.currentTarget;
-      element.classList.add('dragging');
-      setTimeout(() => {
-        if (element) {
-          element.classList.remove('dragging');
-        }
-      }, 100);
-    }
-  }, []);
+      // Add visual feedback for dragging
+      if (event.currentTarget.classList) {
+        const element = event.currentTarget;
+        element.classList.add("dragging");
+        setTimeout(() => {
+          if (element) {
+            element.classList.remove("dragging");
+          }
+        }, 100);
+      }
+    },
+    []
+  );
 
   // Handle node selection
   const handleNodeSelect = useCallback((node: Node) => {
@@ -273,99 +292,123 @@ const AgentConfigForm: React.FC = () => {
   }, []);
 
   // Handle saving the prompt
-  const handleSavePrompt = useCallback((id: string, name: string, prompt: string, description: string, tags: string[] = []) => {
-    // Update the node data with the new name, prompt, description and tags
-    setNodes(prevNodes => prevNodes.map(node =>
-      node.id === id
-        ? {
-          ...node,
-          data: {
-            ...node.data,
-            name,
-            prompt,
-            description,
-            tags
-          }
-        }
-        : node
-    ));
-    setIsPromptModalOpen(false);
+  const handleSavePrompt = useCallback(
+    (
+      id: string,
+      name: string,
+      prompt: string,
+      description: string,
+      tags: string[] = []
+    ) => {
+      // Update the node data with the new name, prompt, description and tags
+      setNodes((prevNodes) =>
+        prevNodes.map((node) =>
+          node.id === id
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  name,
+                  prompt,
+                  description,
+                  tags,
+                },
+              }
+            : node
+        )
+      );
+      setIsPromptModalOpen(false);
 
-    // Update selectedNode if it's the node we just edited
-    if (selectedNode && selectedNode.id === id) {
-      setSelectedNode(prev => prev ? {
-        ...prev,
-        data: {
-          ...prev.data,
-          name,
-          prompt,
-          description,
-          tags
-        }
-      } : null);
-    }
-  }, [selectedNode]);
+      // Update selectedNode if it's the node we just edited
+      if (selectedNode && selectedNode.id === id) {
+        setSelectedNode((prev) =>
+          prev
+            ? {
+                ...prev,
+                data: {
+                  ...prev.data,
+                  name,
+                  prompt,
+                  description,
+                  tags,
+                },
+              }
+            : null
+        );
+      }
+    },
+    [selectedNode]
+  );
 
   // Handle agent name change
-  const handleAgentNameChange = useCallback((nodeId: string, newName: string) => {
-    if (newName.trim() === '') return; // Don't allow empty names
+  const handleAgentNameChange = useCallback(
+    (nodeId: string, newName: string) => {
+      if (newName.trim() === "") return; // Don't allow empty names
 
-    // Update the node data with the new name
-    setNodes(prevNodes => prevNodes.map(node =>
-      node.id === nodeId
-        ? {
-          ...node,
-          data: {
-            ...node.data,
-            name: newName,
-            // Make sure onDelete and onConfigure are maintained
-            onDelete: node.data.onDelete,
-            onConfigure: node.data.onConfigure
-          }
-        }
-        : node
-    ));
+      // Update the node data with the new name
+      setNodes((prevNodes) =>
+        prevNodes.map((node) =>
+          node.id === nodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  name: newName,
+                  // Make sure onDelete and onConfigure are maintained
+                  onDelete: node.data.onDelete,
+                  onConfigure: node.data.onConfigure,
+                },
+              }
+            : node
+        )
+      );
 
-    // Also update selectedNode if it's the node we just edited
-    if (selectedNode && selectedNode.id === nodeId) {
-      setSelectedNode(prev => prev ? {
-        ...prev,
-        data: {
-          ...prev.data,
-          name: newName
-        }
-      } : null);
-    }
+      // Also update selectedNode if it's the node we just edited
+      if (selectedNode && selectedNode.id === nodeId) {
+        setSelectedNode((prev) =>
+          prev
+            ? {
+                ...prev,
+                data: {
+                  ...prev.data,
+                  name: newName,
+                },
+              }
+            : null
+        );
+      }
 
-    // Show a brief notification to confirm the name change (optional)
-    const notification = document.createElement('div');
-    notification.textContent = `Agent renamed to "${newName}"`;
-    notification.style.position = 'fixed';
-    notification.style.bottom = '20px';
-    notification.style.right = '20px';
-    notification.style.backgroundColor = '#f97316';
-    notification.style.color = 'white';
-    notification.style.padding = '10px 15px';
-    notification.style.borderRadius = '4px';
-    notification.style.zIndex = '9999';
-    notification.style.opacity = '0';
-    notification.style.transition = 'opacity 0.3s ease';
+      // Show a brief notification to confirm the name change (optional)
+      const notification = document.createElement("div");
+      notification.textContent = `Agent renamed to "${newName}"`;
+      notification.style.position = "fixed";
+      notification.style.bottom = "20px";
+      notification.style.right = "20px";
+      notification.style.backgroundColor = "#f97316";
+      notification.style.color = "white";
+      notification.style.padding = "10px 15px";
+      notification.style.borderRadius = "4px";
+      notification.style.zIndex = "9999";
+      notification.style.opacity = "0";
+      notification.style.transition = "opacity 0.3s ease";
 
-    document.body.appendChild(notification);
+      document.body.appendChild(notification);
 
-    // Fade in
-    setTimeout(() => {
-      notification.style.opacity = '1';
-    }, 100);
-
-    // Remove after 3 seconds
-    setTimeout(() => {
-      notification.style.opacity = '0';
+      // Fade in
       setTimeout(() => {
-        document.body.removeChild(notification);
-      }, 300);
-    }, 3000);
-  }, [selectedNode, setNodes]);
+        notification.style.opacity = "1";
+      }, 100);
+
+      // Remove after 3 seconds
+      setTimeout(() => {
+        notification.style.opacity = "0";
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 300);
+      }, 3000);
+    },
+    [selectedNode, setNodes]
+  );
 
   // Deploy workflow
   const handleDeployWorkflow = async () => {
@@ -379,8 +422,9 @@ const AgentConfigForm: React.FC = () => {
     }
 
     // Log router check
-    const routerNode = nodes.find(node =>
-      node.data.tags?.includes('router') || node.data.type === 'router'
+    const routerNode = nodes.find(
+      (node) =>
+        node.data.tags?.includes("router") || node.data.type === "router"
     );
     console.log("Router node found:", routerNode);
 
@@ -393,11 +437,13 @@ const AgentConfigForm: React.FC = () => {
     try {
       setIsChatMode(true);
       setShowConfigPanel(false);
-      setChatMessages([{
-        id: Date.now(),
-        text: "Workflow deployed successfully. You can now ask questions.",
-        sender: "bot"
-      }]);
+      setChatMessages([
+        {
+          id: Date.now(),
+          text: "Workflow deployed successfully. You can now ask questions.",
+          sender: "bot",
+        },
+      ]);
     } catch (error) {
       console.error("Error:", error);
       alert("Error: " + (error as Error).message);
@@ -414,20 +460,20 @@ const AgentConfigForm: React.FC = () => {
       // workflowId: workflowIdRef.current,
       name: workflowName,
       configuration: {
-        agents: nodes.map(node => ({
+        agents: nodes.map((node) => ({
           agent_id: node.data.agent.agent_id,
           agent_type: node.data.agent.agent_type as string,
           prompt: node.data.prompt, // Include prompt in saved workflow
           tools: node.data.tools, // Include tools in saved workflow
           tags: node.data.tags, // Include tags in saved workflow
-          position: node.position
+          position: node.position,
         })),
 
-        connections: edges.map(edge => ({
+        connections: edges.map((edge) => ({
           source_agent_id: edge.source,
-          target_agent_id: edge.target
-        }))
-      }
+          target_agent_id: edge.target,
+        })),
+      },
     };
 
     console.log("Saving workflow:", workflow);
@@ -457,35 +503,44 @@ const AgentConfigForm: React.FC = () => {
       const loadedNodes: Node[] = [];
       console.log("Workflow agents:", workflowDetails.workflow_agents);
       if (workflowDetails.workflow_agents) {
-        workflowDetails.workflow_agents.forEach((workflowAgent: WorkflowAgent) => {
-          const agent = workflowAgent.agent;
-          const nodeId = workflowAgent.node_id || workflowAgent.agent_id;
-          console.log("Dropped agent data:", agent);
+        workflowDetails.workflow_agents.forEach(
+          (workflowAgent: WorkflowAgent) => {
+            const agent = workflowAgent.agent;
+            const nodeId = workflowAgent.node_id || workflowAgent.agent_id;
+            console.log("Dropped agent data:", agent);
 
-          const newNode: Node = {
-            id: nodeId,
-            type: "agent",
-            position: {
-              x: workflowAgent.position_x || 100,
-              y: workflowAgent.position_y || 100,
-            },
-            data: {
+            const newNode: Node = {
               id: nodeId,
-              shortId: agent.deployment_code || agent.agent_id,
-              type: agent.agent_type || "custom",
-              name: agent.name,
-              prompt: agent.system_prompt?.prompt || "",
-              tools: agent.functions || [], // Keep as ChatCompletionToolParam array
-              tags: [agent.agent_type || "custom"],
-              config: { model: agent.system_prompt.ai_model_name, agentName: agent.name, deploymentType: "", modelProvider: agent.system_prompt.ai_model_provider, outputFormat: "", selectedTools: agent.functions },
-              onDelete: handleDeleteNode,
-              onConfigure: () => handleNodeSelect(newNode),
-              agent: agent
-            },
-          };
+              type: "agent",
+              position: {
+                x: workflowAgent.position_x || 100,
+                y: workflowAgent.position_y || 100,
+              },
+              data: {
+                id: nodeId,
+                shortId: agent.deployment_code || agent.agent_id,
+                type: agent.agent_type || "custom",
+                name: agent.name,
+                prompt: agent.system_prompt?.prompt || "",
+                tools: agent.functions || [], // Keep as ChatCompletionToolParam array
+                tags: [agent.agent_type || "custom"],
+                config: {
+                  model: agent.system_prompt.ai_model_name,
+                  agentName: agent.name,
+                  deploymentType: "",
+                  modelProvider: agent.system_prompt.ai_model_provider,
+                  outputFormat: "",
+                  selectedTools: agent.functions,
+                },
+                onDelete: handleDeleteNode,
+                onConfigure: () => handleNodeSelect(newNode),
+                agent: agent,
+              },
+            };
 
-          loadedNodes.push(newNode);
-        });
+            loadedNodes.push(newNode);
+          }
+        );
       }
 
       // Convert workflow connections to edges
@@ -537,31 +592,37 @@ const AgentConfigForm: React.FC = () => {
     const agentName = configData.agentName || selectedNode.data.name;
 
     // Update the node data with the new configuration
-    setNodes(prevNodes => prevNodes.map(node =>
-      node.id === selectedNode.id
-        ? {
-          ...node,
-          data: {
-            ...node.data,
-            name: agentName, // Use the potentially updated name
-            tools, // Update tools from configuration
-            config: configData  // Store configuration in the node data
-          }
-        }
-        : node
-    ));
+    setNodes((prevNodes) =>
+      prevNodes.map((node) =>
+        node.id === selectedNode.id
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                name: agentName, // Use the potentially updated name
+                tools, // Update tools from configuration
+                config: configData, // Store configuration in the node data
+              },
+            }
+          : node
+      )
+    );
 
     // Update selectedNode if it's the node we just edited
     if (selectedNode) {
-      setSelectedNode(prev => prev ? {
-        ...prev,
-        data: {
-          ...prev.data,
-          name: agentName,
-          tools,
-          config: configData
-        }
-      } : null);
+      setSelectedNode((prev) =>
+        prev
+          ? {
+              ...prev,
+              data: {
+                ...prev.data,
+                name: agentName,
+                tools,
+                config: configData,
+              },
+            }
+          : null
+      );
     }
 
     // Show confirmation
@@ -617,7 +678,9 @@ const AgentConfigForm: React.FC = () => {
 
                 {/* Configuration Panel - shown when a node is selected */}
                 {showConfigPanel && selectedNode && (
-                  <div className={`config-panel-container${!sidebarOpen ? ' shrinked' : ''}`}>
+                  <div
+                    className={`config-panel-container${!sidebarOpen ? " shrinked" : ""}`}
+                  >
                     <ConfigPanel
                       agentConfig={selectedNode.data.config}
                       agentName={selectedNode.data.name}
@@ -626,17 +689,24 @@ const AgentConfigForm: React.FC = () => {
                       onEditPrompt={handleOpenPromptModal}
                       onSave={handleSaveAgentConfig}
                       onClose={() => setShowConfigPanel(false)}
-                      onNameChange={(newName) => handleAgentNameChange(selectedNode.id, newName)}
+                      onNameChange={(newName) =>
+                        handleAgentNameChange(selectedNode.id, newName)
+                      }
                       toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
                       sidebarOpen={sidebarOpen}
                       currentFunctions={selectedNode.data.tools || []}
                       onFunctionsChange={(functions) => {
                         // Update the node's tools when functions change
-                        setNodes(nodes => nodes.map(node =>
-                          node.id === selectedNode.id
-                            ? { ...node, data: { ...node.data, tools: functions } }
-                            : node
-                        ));
+                        setNodes((nodes) =>
+                          nodes.map((node) =>
+                            node.id === selectedNode.id
+                              ? {
+                                  ...node,
+                                  data: { ...node.data, tools: functions },
+                                }
+                              : node
+                          )
+                        );
                       }}
                     />
                   </div>
@@ -647,16 +717,20 @@ const AgentConfigForm: React.FC = () => {
               {selectedNode && (
                 <AgentConfigModal
                   isOpen={isPromptModalOpen}
-                  nodeData={selectedNode ? {
-                    id: selectedNode.id,
-                    type: selectedNode.data.type,
-                    name: selectedNode.data.name,
-                    shortId: selectedNode.data.shortId,
-                    prompt: selectedNode.data.prompt,
-                    description: selectedNode.data.description,
-                    tags: selectedNode.data.tags,
-                    agent: selectedNode.data.agent
-                  } : null}
+                  nodeData={
+                    selectedNode
+                      ? {
+                          id: selectedNode.id,
+                          type: selectedNode.data.type,
+                          name: selectedNode.data.name,
+                          shortId: selectedNode.data.shortId,
+                          prompt: selectedNode.data.prompt,
+                          description: selectedNode.data.description,
+                          tags: selectedNode.data.tags,
+                          agent: selectedNode.data.agent,
+                        }
+                      : null
+                  }
                   onClose={handleClosePromptModal}
                   onSave={handleSavePrompt}
                 />
