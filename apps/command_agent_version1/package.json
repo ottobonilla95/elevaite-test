@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\command_agent_version1\\Dockerfile\" -t command_agent_version1:latest \".\""
+    "docker": "cd ../.. && docker build --pull --rm -f \"apps/command_agent_version1/Dockerfile\" -t command_agent_version1:latest \".\""
   },
   "dependencies": {
     "@auth/core": "^0.29.0",
