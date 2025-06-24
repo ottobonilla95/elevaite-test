@@ -44,6 +44,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
           };
           const actualNeedsReset = userData.is_password_temporary === true;
 
+          const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL;
           if (!actualNeedsReset && needsPasswordReset) {
             try {
               const baseUrl = request.nextUrl.origin;
@@ -63,7 +64,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
                 console.log(
                   "Middleware - Updated session needsPasswordReset to false"
                 );
-                return NextResponse.redirect(new URL("/", request.url));
+                return NextResponse.redirect(new URL("/", frontendUrl));
               } else {
                 console.error("Middleware - Failed to update session");
               }
@@ -78,8 +79,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
           if (actualNeedsReset) {
             return NextResponse.next();
           }
-
-          return NextResponse.redirect(new URL("/", request.url));
+          return NextResponse.redirect(new URL("/", frontendUrl));
         }
       }
     } catch (error) {
