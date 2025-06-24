@@ -45,3 +45,16 @@ export interface PromptInputItem {
   prompt: string;
   values: string[];
 }
+
+export type PromptInputVariableEngineerType = "String" | "Text" | "Textarea";
+
+export interface PromptInputVariableEngineerItem {
+  id: string;
+  name: string;
+  displayName: string;
+  type: PromptInputVariableEngineerType;
+  required: boolean;
+  json: boolean;
+  definition: string;
+  saved?: boolean,
+}
