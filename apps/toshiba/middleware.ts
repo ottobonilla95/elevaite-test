@@ -44,42 +44,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
           };
           const actualNeedsReset = userData.is_password_temporary === true;
 
-          if (!actualNeedsReset && needsPasswordReset) {
-            try {
-              const baseUrl = request.nextUrl.origin;
-              const updateResponse = await fetch(
-                `${baseUrl}/api/auth/update-session`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Cookie: request.headers.get("cookie") ?? "",
-                  },
-                  body: JSON.stringify({ needsPasswordReset: false }),
-                }
-              );
-
-              if (updateResponse.ok) {
-                console.log(
-                  "Middleware - Updated session needsPasswordReset to false"
-                );
-                return NextResponse.redirect(new URL("/", request.url));
-              } else {
-                console.error("Middleware - Failed to update session");
-              }
-            } catch (updateError) {
-              console.error(
-                "Middleware - Error updating session:",
-                updateError
-              );
-            }
+          if (!actualNeedsReset) {
+            return NextResponse.redirect(new URL("/", request.url));
           }
-
-          if (actualNeedsReset) {
-            return NextResponse.next();
-          }
-
-          return NextResponse.redirect(new URL("/", request.url));
         }
       }
     } catch (error) {
