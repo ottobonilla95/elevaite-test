@@ -3,7 +3,7 @@
 import { AuthFluff, ElevaiteIcons } from "@repo/ui/components";
 import { useState, useEffect } from "react";
 import type { JSX } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { redirect } from "next/navigation";
 import { resetPassword } from "../lib/actions";
@@ -118,6 +118,9 @@ export default function ResetPassword(): JSX.Element {
       if (result.success) {
         /* eslint-disable-next-line no-console -- Debug logging */
         console.log("Reset Password Page - Password reset successful");
+
+        await signOut({ redirect: false });
+
         setIsSuccess(true);
       } else {
         /* eslint-disable-next-line no-console -- Debug logging */
