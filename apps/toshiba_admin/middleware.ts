@@ -93,7 +93,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL("/reset-password", request.url));
   }
   if (request.nextUrl.pathname === "/reset-password") {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(
+      new URL("/api/auth/signout?callbackUrl=/login", request.url)
+    );
   }
 
   return NextResponse.next();
