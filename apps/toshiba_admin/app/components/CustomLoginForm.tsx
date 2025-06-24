@@ -31,18 +31,6 @@ export function CustomLoginForm({
 
   useEffect(() => {
     setMounted(true);
-
-    // Hide the register link when the component mounts
-    if (typeof document !== "undefined") {
-      const style = document.createElement("style");
-      style.innerHTML = `
-        /* Hide the register link section */
-        .login-form-main-container > div:last-child {
-          display: none !important;
-        }
-      `;
-      document.head.appendChild(style);
-    }
   }, []);
 
   // Only render the component on the client side to avoid hydration issues

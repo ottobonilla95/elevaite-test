@@ -5,12 +5,21 @@ import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import { useSessionValidation } from "../hooks/useSessionValidation";
 
-export function SessionValidator({ children }: { children: React.ReactNode }) {
+export function SessionValidator({
+  children,
+}: {
+  children: React.ReactNode;
+}): JSX.Element {
   const { checkSession } = useSessionValidation();
   const pathname = usePathname();
   const router = useRouter();
   const [isValidating, setIsValidating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Validate session on initial load and when pathname changes
   useEffect(() => {
@@ -52,6 +61,10 @@ export function SessionValidator({ children }: { children: React.ReactNode }) {
 
     void validateSession();
   }, [pathname, checkSession, router, isValidating]);
+
+  if (!isMounted) {
+    return <>{children}</>;
+  }
 
   // Show loading state while validating session on initial load
   if (
