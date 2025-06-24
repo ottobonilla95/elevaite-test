@@ -11,12 +11,12 @@ interface HeaderBottomProps {
 	handleDeployWorkflow: () => void;
 }
 
-const HeaderBottom: React.FC<HeaderBottomProps> = ({
+function HeaderBottom({
 	workflowName,
 	workflowDescription = "Analyze and process invoice documents",
 	handleDeployWorkflow, // Added save workflow function
 	isLoading,
-}) => {
+}: HeaderBottomProps): JSX.Element {
 
 	const [activeBtnAction, setActiveBtnAction] = React.useState("workflow-creation");
 
@@ -51,6 +51,6 @@ const HeaderBottom: React.FC<HeaderBottomProps> = ({
 			</div>
 		</div>
 	);
-};
+}
 
 export default HeaderBottom;

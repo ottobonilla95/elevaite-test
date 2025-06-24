@@ -30,7 +30,7 @@ import {
     updateMCPServer,
     deleteMCPServer,
     fetchMCPServers
-} from "../lib/tool_actions";
+} from "../lib/toolActions";
 
 interface ToolManagementProps {
     className?: string;

@@ -12,14 +12,14 @@ import {
     Download,
     RefreshCw
 } from "lucide-react";
-import { getWorkflows, getWorkflowDetails, deleteWorkflow } from "../lib/actions";
-import { SavedWorkflow } from "../lib/interfaces"
+import { getWorkflows, getWorkflowDetails, deleteWorkflow } from "../../lib/actions";
+import { type SavedWorkflow, type WorkflowResponse } from "../../lib/interfaces"
 
 import "./WorkflowsTab.scss";
 
 // Transform workflow data to match our interface
-function transformWorkflowData(workflows: any[]): SavedWorkflow[] {
-    return workflows.map((workflow: any) => ({
+function transformWorkflowData(workflows: WorkflowResponse[]): SavedWorkflow[] {
+    return workflows.map((workflow) => ({
         workflow_id: workflow.workflow_id,
         name: workflow.name,
         description: workflow.description,
@@ -29,8 +29,8 @@ function transformWorkflowData(workflows: any[]): SavedWorkflow[] {
         is_deployed: workflow.is_deployed,
         deployed_at: workflow.deployed_at,
         version: workflow.version,
-        agent_count: workflow.workflow_agents?.length || 0,
-        connection_count: workflow.workflow_connections?.length || 0
+        agent_count: workflow.workflow_agents.length || 0,
+        connection_count: workflow.workflow_connections.length || 0
     }));
 }
 
@@ -39,16 +39,16 @@ interface WorkflowsTabProps {
     onLoadWorkflow: (workflow: SavedWorkflow) => void;
 }
 
-const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
+function WorkflowsTab({
     onCreateNewWorkflow,
     onLoadWorkflow
-}) => {
+}: WorkflowsTabProps): JSX.Element {
     const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflow[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Load workflows from API
-    const loadWorkflows = async () => {
+    const loadWorkflows = async (): Promise<void> => {
         setIsLoading(true);
         setError(null);
         try {
@@ -67,7 +67,7 @@ const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
 
     // Load workflows on component mount
     useEffect(() => {
-        loadWorkflows();
+        void loadWorkflows();
     }, []);
 
 
@@ -133,6 +133,7 @@ const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
                         onClick={loadWorkflows}
                         className="px-3 py-2 bg-gray-500 text-white rounded-md text-sm font-medium hover:bg-gray-600 transition-colors flex items-center"
                         disabled={isLoading}
+                        type="button"
                     >
                         <RefreshCw size={16} className={`mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                         Refresh
@@ -140,6 +141,7 @@ const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
                     <button
                         onClick={onCreateNewWorkflow}
                         className="px-3 py-2 bg-green-500 text-white rounded-md text-sm font-medium hover:bg-green-600 transition-colors flex items-center"
+                        type="button"
                     >
                         <Plus size={16} className="mr-2" />
                         New Workflow
@@ -148,11 +150,11 @@ const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
             </div>
 
             {/* Error Message */}
-            {error && (
+            {error ? (
                 <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md">
                     {error}
                 </div>
-            )}
+            ) : null}
 
             {/* Workflows List */}
             <div className="space-y-3 w-full">
@@ -168,6 +170,7 @@ const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
                         <button
                             onClick={onCreateNewWorkflow}
                             className="px-4 py-2 bg-orange-500 text-white rounded-md text-sm font-medium hover:bg-orange-600 transition-colors"
+                            type="button"
                         >
                             Create Your First Workflow
                         </button>
@@ -181,22 +184,22 @@ const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
                             {/* Title Section */}
                             <div className="workflow-title-section mb-3">
                                 <h4 className="font-medium text-gray-800 text-base leading-tight">{workflow.name}</h4>
-                                <p className="text-sm text-gray-600 mt-1">{workflow.description || "No description"}</p>
+                                <p className="text-sm text-gray-600 mt-1">{workflow.description ?? "No description"}</p>
                             </div>
 
                             {/* Status Pills Section */}
                             <div className="workflow-status-section mb-3">
                                 <div className="flex gap-2 flex-wrap">
-                                    {workflow.is_deployed && (
+                                    {workflow.is_deployed ? (
                                         <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full whitespace-nowrap">
                                             Deployed
                                         </span>
-                                    )}
-                                    {workflow.is_active && (
+                                    ) : null}
+                                    {workflow.is_active ? (
                                         <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full whitespace-nowrap">
                                             Active
                                         </span>
-                                    )}
+                                    ) : null}
                                 </div>
                             </div>
 
@@ -205,7 +208,7 @@ const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
                                 <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
                                     <div className="flex items-center gap-1">
                                         <User size={12} />
-                                        {workflow.created_by || "Unknown"}
+                                        {workflow.created_by ?? "Unknown"}
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <Calendar size={12} />
@@ -213,14 +216,14 @@ const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <Settings size={12} />
-                                        {workflow.agent_count || 0} agents, {workflow.connection_count || 0} connections
+                                        {workflow.agent_count ?? 0} agents, {workflow.connection_count ?? 0} connections
                                     </div>
-                                    {workflow.deployed_at && (
+                                    {workflow.deployed_at ? (
                                         <div className="flex items-center gap-1">
                                             <Play size={12} />
                                             Deployed: {formatDate(workflow.deployed_at)}
                                         </div>
-                                    )}
+                                    ) : null}
                                 </div>
                             </div>
 
@@ -231,6 +234,7 @@ const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
                                         onClick={() => handleLoadWorkflow(workflow)}
                                         className="px-3 py-2 bg-blue-500 text-white rounded text-xs font-medium hover:bg-blue-600 transition-colors flex-1 flex items-center justify-center"
                                         disabled={isLoading}
+                                        type="button"
                                     >
                                         <Download size={12} className="mr-1" />
                                         Load
@@ -239,6 +243,7 @@ const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
                                         onClick={() => handleDeleteWorkflow(workflow.workflow_id)}
                                         className="px-3 py-2 bg-red-500 text-white rounded text-xs font-medium hover:bg-red-600 transition-colors flex items-center justify-center"
                                         disabled={isLoading}
+                                        type="button"
                                     >
                                         <Trash2 size={12} className="mr-1" />
                                         Delete
@@ -253,6 +258,6 @@ const WorkflowsTab: React.FC<WorkflowsTabProps> = ({
 
         </div >
     );
-};
+}
 
 export default WorkflowsTab;

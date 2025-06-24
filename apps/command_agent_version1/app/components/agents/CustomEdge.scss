@@ -1,5 +1,5 @@
 // CustomEdge.scss
-@import 'variables';
+@import '../variables';
 
 .edge-label-container {
     // This ensures the foreignObject doesn't capture pointer events except for its contents

@@ -13,7 +13,7 @@ interface CustomEdgeProps extends EdgeProps {
     data?: CustomEdgeData;
 }
 
-const CustomEdge: React.FC<CustomEdgeProps> = ({
+function CustomEdge({
     id,
     sourceX,
     sourceY,
@@ -24,7 +24,7 @@ const CustomEdge: React.FC<CustomEdgeProps> = ({
     style = {},
     markerEnd,
     data
-}) => {
+}: CustomEdgeProps): JSX.Element {
     // Create a curved path between source and target
     const edgePath = `M ${sourceX} ${sourceY} C ${sourceX} ${sourceY + 50} ${targetX} ${targetY - 50} ${targetX} ${targetY}`;
 
@@ -105,6 +105,6 @@ const CustomEdge: React.FC<CustomEdgeProps> = ({
             </foreignObject>
         </>
     );
-};
+}
 
 export default CustomEdge;

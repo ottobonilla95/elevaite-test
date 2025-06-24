@@ -2,7 +2,11 @@
   "extends": [
     "@repo/eslint-config/next.js"
   ],
-  "ignorePatterns": [
-    "*"
-  ]
+  "rules": {
+    "no-alert": "warn",
+    "@typescript-eslint/no-floating-promises": "warn",
+    "@typescript-eslint/no-confusing-void-expression": "warn",
+    "jsx-a11y/click-events-have-key-events": "warn",
+    "jsx-a11y/no-static-element-interactions": "warn"
+  }
 }

@@ -1,11 +1,12 @@
-import { Metadata } from "next";
+import { type Metadata } from "next";
 import { PromptContextProvider } from "../ui/contexts/PromptContext";
 
 export const metadata: Metadata = {
-  title: "Agentic AI - Prompts",
-  description: "Your control room for your prompts",
+    title: "Agentic AI - Prompts",
+    description: "Your control room for your prompts",
 };
 
+// eslint-disable-next-line @typescript-eslint/require-await -- no, I want it async, buzz off
 export default async function Layout({ children, }: Readonly<{ children: React.ReactNode; }>): Promise<JSX.Element> {
 
     return (

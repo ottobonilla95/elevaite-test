@@ -3,9 +3,8 @@
 import React, { memo } from "react";
 import { Handle, Position } from "react-flow-renderer";
 import { Router, Globe, Database, Link2, Wrench, Edit, X, Zap, Search, Code, FileText, Calculator, Mail } from "lucide-react";
-import { AgentType, AGENT_STYLES } from "./type";
 import "./AgentNode.scss";
-import { AgentNodeData, ChatCompletionToolParam } from "../lib/interfaces";
+import { type AgentNodeData, type AgentType, type ChatCompletionToolParam } from "../../lib/interfaces";
 
 interface NodeProps {
     id: string;
@@ -15,14 +14,14 @@ interface NodeProps {
 
 const AgentNode = memo(({ id, data, selected }: NodeProps) => {
     const { type, name, tools = [], config, onDelete, onConfigure } = data;
-    const styles = AGENT_STYLES[type] || { bgClass: "bg-gray-100", textClass: "text-gray-600" };
+    // const styles = AGENT_STYLES[type] || { bgClass: "bg-gray-100", textClass: "text-gray-600" };
 
     // Extract tool names from ChatCompletionToolParam array
     const toolNames = tools.map((tool: ChatCompletionToolParam) => tool.function.name);
 
     // Get the appropriate icon based on agent type
-    const getAgentIcon = (type: AgentType) => {
-        switch (type) {
+    const getAgentIcon = (_type: AgentType): JSX.Element => {
+        switch (_type) {
             case "router":
                 return <Router size={20} className="text-blue-600" />;
             case "web_search":
@@ -39,49 +38,49 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
     };
 
     // Get icon for tool - dynamic mapping based on tool functionality
-    const getToolIcon = (toolName: string) => {
-        const name = toolName.toLowerCase();
+    const getToolIcon = (toolName: string): JSX.Element => {
+        const _name = toolName.toLowerCase();
 
         // Map icons based on keywords in tool names
-        if (name.includes('web') || name.includes('search')) {
+        if (_name.includes('web') || _name.includes('search')) {
             return <Search size={16} className="text-orange-500" />;
-        } else if (name.includes('database') || name.includes('data')) {
+        } else if (_name.includes('database') || _name.includes('data')) {
             return <Database size={16} className="text-orange-500" />;
-        } else if (name.includes('api') || name.includes('http') || name.includes('link')) {
+        } else if (_name.includes('api') || _name.includes('http') || _name.includes('link')) {
             return <Link2 size={16} className="text-orange-500" />;
-        } else if (name.includes('code') || name.includes('execution')) {
+        } else if (_name.includes('code') || _name.includes('execution')) {
             return <Code size={16} className="text-orange-500" />;
-        } else if (name.includes('file') || name.includes('document')) {
+        } else if (_name.includes('file') || _name.includes('document')) {
             return <FileText size={16} className="text-orange-500" />;
-        } else if (name.includes('math') || name.includes('calculate')) {
+        } else if (_name.includes('math') || _name.includes('calculate')) {
             return <Calculator size={16} className="text-orange-500" />;
-        } else if (name.includes('mail') || name.includes('email')) {
+        } else if (_name.includes('mail') || _name.includes('email')) {
             return <Mail size={16} className="text-orange-500" />;
-        } else {
-            // Default icon for unknown tools
-            return <Zap size={16} className="text-orange-500" />;
         }
+        // Default icon for unknown tools
+        return <Zap size={16} className="text-orange-500" />;
+
     };
 
-    const handleDelete = (e: React.MouseEvent) => {
+    const handleDelete = (e: React.MouseEvent): void => {
         e.stopPropagation();
         onDelete(id);
     };
 
-    const handleOpenConfig = (e: React.MouseEvent) => {
+    const handleOpenConfig = (e: React.MouseEvent): void => {
         e.stopPropagation();
         onConfigure(id);
     };
 
     // Clean subtitle text
-    const getSubtitle = (type: AgentType) => {
-        if (type === "web_search") return "web search";
-        return type.replace('_', ' ');
+    const getSubtitle = (_type: AgentType): string => {
+        if (_type === "web_search") return "web search";
+        return _type.replace('_', ' ');
     };
 
     // Get model display name
-    const getModelName = () => {
-        const model = config?.model || "Claude 3";
+    const getModelName = (): string => {
+        const model = config?.model ?? "Claude 3";
         return model;
     };
 
@@ -104,12 +103,14 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
                     <button
                         onClick={handleOpenConfig}
                         className="control-button edit-button"
+                        type="button"
                     >
                         <Edit size={16} />
                     </button>
                     <button
                         onClick={handleDelete}
                         className="control-button delete-button"
+                        type="button"
                     >
                         <X size={16} />
                     </button>
@@ -122,27 +123,28 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
             </div>
 
             {/* Tools Section */}
-            {(toolNames && toolNames.length > 0) && (
+            {(toolNames.length > 0) ? (
                 <div className="agent-tools">
                     <div className="tools-header">
                         <span className="tools-title">Tools</span>
                         <button
                             onClick={handleOpenConfig}
                             className="edit-tools-button"
+                            type="button"
                         >
                             <Edit size={14} />
                         </button>
                     </div>
                     <div className="tools-list">
                         {toolNames.map((toolName, index) => (
-                            <span key={index} className="tool-badge">
+                            <span key={`tool-${index.toString()}`} className="tool-badge">
                                 {getToolIcon(toolName)}
                                 <span className="tool-name">{toolName}</span>
                             </span>
                         ))}
                     </div>
                 </div>
-            )}
+            ) : null}
 
             {/* Input Handle - Blue dot at top */}
             <Handle

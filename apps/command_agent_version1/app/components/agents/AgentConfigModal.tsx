@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { X, Plus, Save, Check } from "lucide-react";
-import { AgentType } from "./type";
-import { AgentNodeData } from "../lib/interfaces";
+import { AgentType } from "../type";
+import { AgentNodeData } from "../../lib/interfaces";
 
 interface ModalProps {
     isOpen: boolean;
