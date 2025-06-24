@@ -31,8 +31,28 @@
 			display: inline-flex;
 		}
 
-		input {
-			padding: 0;
+		.common-checkbox-container {
+			justify-content: center;
+
+			.checkbox-content,
+			input {
+				width: 20px;
+				height: 20px;
+			}
+
+			input {
+				padding: 0;
+				border: 1px solid var(--orange);
+
+				&:checked {
+					background-color: var(--orange);
+					border-color: var(--orange);
+				}
+			}
+
+			 .checkbox-icon > svg {
+				color: white;
+			}
 		}
 	}
 

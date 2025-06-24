@@ -1,7 +1,7 @@
-import { CommonSelect, CommonSelectOption, SimpleInput, SimpleTextarea } from "@repo/ui/components"
+import { CommonCheckbox, CommonSelect, CommonSelectOption, SimpleInput, SimpleTextarea } from "@repo/ui/components"
 import { usePrompt } from "../ui/contexts/PromptContext";
 import { PromptInputVariableEngineerItem, PromptInputVariableEngineerType } from "../lib/interfaces";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type PromptInputVariableEngineerProps = PromptInputVariableEngineerItem;
 
@@ -13,6 +13,10 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 	const [json, setJson] = useState(true);
 	const [definition, setDefinition] = useState("");
 	const allFilled = name && displayName && definition;
+
+	useEffect(() => {
+		console.log('Required: ', required, 'JSON: ', json);
+	}, [required, json]);
 
 	const promptContext = usePrompt();
 
@@ -42,6 +46,30 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 
 	const handleRemoveVariable = () => {
 		promptContext.removePromptInputVariableEngineer(props.id);
+	}
+
+	const handleNameChange = (text: string) => {
+		setName(text)
+	}
+
+	const handleDisplayNameChange = (text: string) => {
+		setDisplayName(text);
+	}
+
+	const handleTypeChange = (text: PromptInputVariableEngineerType) => {
+		setType(text);
+	}
+
+	const handleRequiredChange = (value: boolean) => {
+		setRequired(value);
+	}
+
+	const handleJsonChange = (value: boolean) => {
+		setJson(value);
+	}
+
+	const handleDefinitionChange = (text: string) => {
+		setDefinition(text);
 	}
 
   return (
@@ -93,13 +121,13 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 								<div>
 									<label className="inline-block text-sm font-medium mb-2" htmlFor="variable-name">Variable Name</label>
 									<div className="prompt-input-container no-margin rounded-md">
-										<SimpleInput id="variable-name" wrapperClassName="prompt-input" value={name} placeholder="{table_header}" useCommonStyling onChange={(text: string) => setName(text)} />
+										<SimpleInput id="variable-name" wrapperClassName="prompt-input" value={name} placeholder="{table_header}" useCommonStyling onChange={handleNameChange} />
 									</div>
 								</div>
 								<div>
 									<label className="inline-block text-sm font-medium mb-2" htmlFor="variable-display-name">Variable Label (Display Name)</label>
 									<div className="prompt-input-container no-margin rounded-md">
-										<SimpleInput id="variable-display-name" wrapperClassName="prompt-input" value={displayName} placeholder="Table Header" useCommonStyling onChange={(text: string) => setDisplayName(text)} />
+										<SimpleInput id="variable-display-name" wrapperClassName="prompt-input" value={displayName} placeholder="Table Header" useCommonStyling onChange={handleDisplayNameChange} />
 									</div>
 								</div>
 							</div>
@@ -107,26 +135,26 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 								<div>
 									<label className="inline-block text-sm font-medium mb-2" htmlFor="variable-type">Input Type</label>
 									<div className="prompt-input-container no-margin rounded-md">
-										<CommonSelect id="variable-type" defaultValue={type} options={variableTypes} onSelectedValueChange={(text: PromptInputVariableEngineerType) => setType(text)} />
+										<CommonSelect id="variable-type" defaultValue={type} options={variableTypes} onSelectedValueChange={handleTypeChange} />
 									</div>
 								</div>
 								<div>
 									<label className="inline-block text-sm mb-2 text-[#4A5567]" htmlFor="variable-required">Required</label>
 									<div className="prompt-input-container no-margin prompt-checkbox-container rounded-md">
-										<SimpleInput id="variable-required" type="checkbox" wrapperClassName="prompt-input" value="" checked={required} useCommonStyling onChange={() => setRequired(!required)} />
+										<CommonCheckbox defaultTrue={required} onChange={handleRequiredChange} />
 									</div>
 								</div>
 								<div>
 									<label className="inline-block text-sm mb-2" htmlFor="variable-json">JSON</label>
 									<div className="prompt-input-container no-margin prompt-checkbox-container rounded-md">
-										<SimpleInput id="variable-json" type="checkbox" wrapperClassName="prompt-input" value="" checked={json} useCommonStyling onChange={() => setJson(!json)} />
+										<CommonCheckbox defaultTrue={json} onChange={handleJsonChange} />
 									</div>
 								</div>
 							</div>
 							<div>
 								<label className="inline-block text-sm font-medium mb-2" htmlFor="variable-define-variable">Define Variable</label>
 								<div className="prompt-input-container prompt-textarea-container no-margin">
-									<SimpleTextarea wrapperClassName="prompt-input" value={definition} placeholder="{header / Customer / Product /Quantity / Invoice Amount}" useCommonStyling onChange={(text: string) => setDefinition(text)}></SimpleTextarea>
+									<SimpleTextarea wrapperClassName="prompt-input" value={definition} placeholder="{header / Customer / Product /Quantity / Invoice Amount}" useCommonStyling onChange={handleDefinitionChange}></SimpleTextarea>
 								</div>
 							</div>
 						</div>
