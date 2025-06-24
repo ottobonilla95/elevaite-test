@@ -38,13 +38,15 @@ export const authConfig = {
     async session({ session, token, user }) {
       // Debug logging
 
-      // First call the stock session callback
-      const stockSession = await stockConfig.callbacks.session({
-        session,
-        token,
-        user,
-        newSession: undefined,
-      });
+      // First call the stock session callback if it exists
+      const stockSession = stockConfig.callbacks?.session
+        ? await stockConfig.callbacks.session({
+            session,
+            token,
+            user,
+            newSession: undefined,
+          })
+        : session;
 
       // Then add our custom properties from the token
       if (!stockSession.user) {
@@ -65,12 +67,17 @@ export const authConfig = {
     async jwt({ token, user, account }) {
       // Debug logging
 
-      // First call the stock JWT callback
-      const stockToken = await stockConfig.callbacks.jwt({
-        token,
-        user,
-        account,
-      });
+      const stockToken = stockConfig.callbacks?.jwt
+        ? await stockConfig.callbacks.jwt({
+            token,
+            user,
+            account,
+          })
+        : token;
+
+      if (!stockToken) {
+        return token;
+      }
 
       // Then add our custom properties from the user
       if (user.needsPasswordReset !== undefined) {

@@ -9,6 +9,7 @@ declare module "next-auth" {
     error?: "RefreshAccessTokenError";
     user?: {
       needsPasswordReset?: boolean;
+      isAdmin?: boolean;
     } & DefaultSession["user"];
   }
 
@@ -16,11 +17,13 @@ declare module "next-auth" {
     accessToken?: string;
     refreshToken?: string;
     needsPasswordReset?: boolean;
+    isAdmin?: boolean;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
     needsPasswordReset?: boolean;
+    isAdmin?: boolean;
   }
 }
