@@ -1,5 +1,6 @@
 from .prompts import (
     create_prompt,
+    create_prompt_safe,
     get_prompt,
     get_prompt_by_pid,
     get_prompt_by_unique_label,
@@ -91,6 +92,7 @@ from .tools import (
 
 __all__ = [
     "create_prompt",
+    "create_prompt_safe",
     "get_prompt",
     "get_prompt_by_pid",
     "get_prompt_by_unique_label",
