@@ -23,16 +23,41 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   const needsPasswordReset = session.user.needsPasswordReset === true;
 
-  if (needsPasswordReset) {
-    if (request.nextUrl.pathname === "/reset-password") {
-      return NextResponse.next();
+  if (request.nextUrl.pathname === "/reset-password") {
+    try {
+      const authApiUrl = process.env.AUTH_API_URL;
+      if (authApiUrl && session.authToken) {
+        const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+
+        const response = await fetch(`${authApiUrl}/api/auth/me`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.authToken}`,
+            "X-Tenant-ID": tenantId,
+          },
+        });
+
+        if (response.ok) {
+          const userData = (await response.json()) as {
+            is_password_temporary?: boolean;
+          };
+          const actualNeedsReset = userData.is_password_temporary === true;
+
+          if (!actualNeedsReset) {
+            return NextResponse.redirect(new URL("/", request.url));
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Middleware - Error checking password status:", error);
     }
 
-    return NextResponse.redirect(new URL("/reset-password", request.url));
+    return NextResponse.next();
   }
 
-  if (request.nextUrl.pathname === "/reset-password") {
-    return NextResponse.redirect(new URL("/", request.url));
+  if (needsPasswordReset) {
+    return NextResponse.redirect(new URL("/reset-password", request.url));
   }
 
   return NextResponse.next({
