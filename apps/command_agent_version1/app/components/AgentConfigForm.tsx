@@ -5,8 +5,8 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { ReactFlowProvider, type ReactFlowInstance, type Edge as ReactFlowEdge, type Node as ReactFlowNode } from "react-flow-renderer";
 import { type AgentConfigData, type AgentNodeData, type AgentResponse, SavedWorkflow, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowResponse } from "../lib/interfaces";
-import { createWorkflow, deployWorkflowModern } from "../lib/actions.tsx";
-import { isAgentResponse } from "../lib/discriminators.tsx";
+import { createWorkflow, deployWorkflowModern } from "../lib/actions";
+import { isAgentResponse } from "../lib/discriminators";
 import DesignerSidebar from "./agents/DesignerSidebar";
 import DesignerCanvas from "./agents/DesignerCanvas";
 import ConfigPanel from "./agents/ConfigPanel";
@@ -16,13 +16,6 @@ import ChatInterface from "./agents/ChatInterface";
 // Import styles
 import "./AgentConfigForm.scss";
 import HeaderBottom from "./agents/HeaderBottom.tsx";
-
-interface CustomEdgeData {
-  actionType?: "Action" | "Conditional" | "Notification" | "Delay";
-}
-
-type Edge = ReactFlowEdge<CustomEdgeData>
-type Node = ReactFlowNode<AgentNodeData>;
 
 interface ChatMessage {
   id: number;

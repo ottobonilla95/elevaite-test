@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo } from "react";
+import React, { memo, type SVGProps } from "react";
 import { Handle, Position } from "react-flow-renderer";
 import { Router, Globe, Database, Link2, Wrench, Edit, X, Zap, Search, Code, FileText, Calculator, Mail } from "lucide-react";
 import "./AgentNode.scss";
@@ -11,7 +11,23 @@ interface NodeProps {
     data: AgentNodeData;
     selected: boolean;
 }
-
+function Dots(props: SVGProps<SVGSVGElement>): JSX.Element {
+    return <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={14}
+        height={8}
+        fill="none"
+        {...props}
+    >
+        <path
+            stroke="#212124"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M3 1.667a.667.667 0 1 0-1.333 0 .667.667 0 0 0 1.333 0ZM7.667 1.667a.667.667 0 1 0-1.333 0 .667.667 0 0 0 1.333 0ZM12.334 1.667a.667.667 0 1 0-1.334 0 .667.667 0 0 0 1.334 0ZM3 6.333a.667.667 0 1 0-1.333 0 .667.667 0 0 0 1.333 0ZM7.667 6.333a.667.667 0 1 0-1.333 0 .667.667 0 0 0 1.333 0ZM12.334 6.333a.667.667 0 1 0-1.334 0 .667.667 0 0 0 1.334 0Z"
+        />
+    </svg>
+}
 const AgentNode = memo(({ id, data, selected }: NodeProps) => {
     const { type, name, tools = [], config, onDelete, onConfigure } = data;
     // const styles = AGENT_STYLES[type] || { bgClass: "bg-gray-100", textClass: "text-gray-600" };
@@ -86,9 +102,10 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
 
     return (
         <div
-            className={`agent-node ${selected ? "selected" : ""}`}
+            className={`agent-node ${selected ? "selected" : ""} flex justify-center`}
         >
             {/* Header with title and controls */}
+            <Dots />
             <div className="agent-node-header">
                 <div className="agent-icon-container">
                     <div className="agent-icon">

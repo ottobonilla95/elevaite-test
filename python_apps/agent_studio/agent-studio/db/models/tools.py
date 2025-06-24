@@ -1,4 +1,3 @@
-
 import uuid
 from datetime import datetime
 from typing import List, Optional
@@ -6,6 +5,7 @@ from typing import List, Optional
 from sqlalchemy import (
     Boolean,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -16,6 +16,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, get_utc_datetime
+
 
 class ToolCategory(Base):
     __tablename__ = "tool_categories"
@@ -30,6 +31,7 @@ class ToolCategory(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
 
     tools = relationship("Tool", back_populates="category")
+
 
 class MCPServer(Base):
     __tablename__ = "mcp_servers"
@@ -63,6 +65,7 @@ class MCPServer(Base):
     tools = relationship("Tool", back_populates="mcp_server")
 
     __table_args__ = (UniqueConstraint("name", name="uix_mcp_server_name"),)
+
 
 class Tool(Base):
     __tablename__ = "tools"
@@ -103,6 +106,9 @@ class Tool(Base):
     is_available: Mapped[bool] = mapped_column(Boolean, default=True)  # Runtime availability
     last_used: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     usage_count: Mapped[int] = mapped_column(Integer, default=0)
+    success_count: Mapped[int] = mapped_column(Integer, default=0)
+    error_count: Mapped[int] = mapped_column(Integer, default=0)
+    average_execution_time_ms: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     documentation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     examples: Mapped[Optional[List[dict]]] = mapped_column(JSONB, nullable=True)
