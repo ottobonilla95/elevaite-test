@@ -23,19 +23,24 @@ export const authConfig = {
     ...stockConfig.callbacks,
     // Override the session callback to include the needsPasswordReset property
     async session({ session, token, user }) {
-      session.user ? (session.user.id = token.sub ?? user.id) : null;
-      Object.assign(session, { authToken: token.access_token });
-      Object.assign(session, { error: token.error });
+      const stockSession = stockConfig.callbacks?.session
+        ? await stockConfig.callbacks.session({
+            session,
+            token,
+            user,
+            newSession: undefined,
+          })
+        : session;
 
-      // Then add our custom properties from the token
-      if (token.needsPasswordReset !== undefined) {
-        if (!session.user) {
-          session.user = {};
-        }
-        session.user.needsPasswordReset = token.needsPasswordReset;
+      if (!stockSession.user) {
+        stockSession.user = {};
       }
 
-      return session;
+      if (token.needsPasswordReset !== undefined) {
+        stockSession.user.needsPasswordReset = token.needsPasswordReset;
+      }
+
+      return stockSession;
     },
     // Override the JWT callback to include the needsPasswordReset property
     async jwt({ token, user, account }) {
