@@ -79,9 +79,28 @@ export default function ResetPassword(): JSX.Element {
 
       if (result.success) {
         await logout();
+      } else {
+        const errorMessage =
+          result.message || "Failed to reset password. Please try again.";
+        console.log(
+          "Setting error message:",
+          errorMessage,
+          typeof errorMessage
+        );
+        setError(errorMessage);
       }
     } catch (err) {
-      // Fail silently
+      console.log("Reset password caught error:", err);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "An unexpected error occurred. Please try again.";
+      console.log(
+        "Setting catch error message:",
+        errorMessage,
+        typeof errorMessage
+      );
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

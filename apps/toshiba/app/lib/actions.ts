@@ -283,16 +283,43 @@ export async function resetPassword(newPassword: string): Promise<{
     if (!response.ok) {
       const errorData: unknown = await response.json();
       console.error("Server Action - Password reset error:", errorData);
+
+      let errorMessage = "Failed to reset password";
+      if (
+        typeof errorData === "object" &&
+        errorData !== null &&
+        "detail" in errorData
+      ) {
+        const detail = (errorData as { detail: unknown }).detail;
+        console.log("Server Action - Error detail:", detail, typeof detail);
+
+        if (typeof detail === "string") {
+          errorMessage = detail;
+        } else if (Array.isArray(detail) && detail.length > 0) {
+          // Handle Pydantic validation errors which return an array of error objects
+          const firstError = detail[0];
+          if (
+            typeof firstError === "object" &&
+            firstError !== null &&
+            "msg" in firstError
+          ) {
+            errorMessage = String((firstError as { msg: unknown }).msg);
+          } else {
+            errorMessage = "Password validation failed";
+          }
+        } else if (detail !== null && detail !== undefined) {
+          errorMessage = String(detail);
+        }
+      }
+
+      console.log(
+        "Server Action - Final error message:",
+        errorMessage,
+        typeof errorMessage
+      );
       return {
         success: false,
-        message:
-          typeof errorData === "object" &&
-          errorData !== null &&
-          "detail" in errorData
-            ? typeof errorData === "object" && "detail" in errorData
-              ? String(errorData.detail)
-              : "Unknown error"
-            : "Failed to reset password",
+        message: errorMessage,
       };
     }
 
