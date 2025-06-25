@@ -40,6 +40,10 @@ export const authConfig = {
         stockSession.user.needsPasswordReset = token.needsPasswordReset;
       }
 
+      if (token.is_superuser !== undefined) {
+        stockSession.user.is_superuser = token.is_superuser;
+      }
+
       return stockSession;
     },
     // Override the JWT callback to include the needsPasswordReset property
@@ -66,6 +70,9 @@ export const authConfig = {
           if (user?.needsPasswordReset !== undefined) {
             token.needsPasswordReset = user.needsPasswordReset;
           }
+          if (user?.is_superuser !== undefined) {
+            token.is_superuser = user.is_superuser;
+          }
           return token;
         }
 
@@ -80,6 +87,9 @@ export const authConfig = {
 
           if (user?.needsPasswordReset !== undefined) {
             newToken.needsPasswordReset = user.needsPasswordReset;
+          }
+          if (user?.is_superuser !== undefined) {
+            newToken.is_superuser = user.is_superuser;
           }
 
           return newToken;

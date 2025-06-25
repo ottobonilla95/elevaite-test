@@ -47,11 +47,7 @@ export default async function RootLayout({
 }): Promise<JSX.Element> {
   const session = await auth();
 
-  // Check if user is admin
-  const isAdmin =
-    session?.user?.email?.includes("admin") ||
-    (session?.user as any)?.role === "admin" ||
-    (session?.user as any)?.is_superuser === true;
+  const isAdmin = (session?.user as any)?.is_superuser === true;
 
   return (
     <html lang="en">

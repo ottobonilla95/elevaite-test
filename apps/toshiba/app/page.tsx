@@ -8,13 +8,8 @@ import { redirect } from "next/navigation";
 export default async function Page(): Promise<JSX.Element | never> {
   const session = await auth();
 
-  // Check if user is admin
-  const isAdmin =
-    session?.user?.email?.includes("admin") ||
-    (session?.user as any)?.role === "admin" ||
-    (session?.user as any)?.is_superuser === true;
+  const isAdmin = (session?.user as any)?.is_superuser === true;
 
-  // If not admin, redirect to chatbot
   if (!isAdmin) {
     redirect("/chatbot");
   }
