@@ -1,0 +1,114 @@
+.batch-evaluation-modal-container {
+    padding: 24px;
+    width: 500px;
+    max-width: 90vw;
+    
+    .modal-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    
+    .upload-area {
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        padding: 30px 20px;
+        text-align: center;
+        margin-bottom: 24px;
+        transition: all 0.2s ease;
+        background-color: #f9f9f9;
+        position: relative;
+        
+        &.dragging {
+            border-color: var(--ev-colors-primary);
+            background-color: rgba(var(--ev-colors-primary-rgb), 0.05);
+        }
+        
+        &.has-file {
+            border-color: var(--ev-colors-primary);
+            background-color: rgba(var(--ev-colors-primary-rgb), 0.05);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-prompt {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            
+            .upload-icon {
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                background-color: rgba(var(--ev-colors-primary-rgb), 0.1);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 8px;
+                
+                svg {
+                    color: var(--ev-colors-primary);
+                }
+            }
+            
+            .upload-label {
+                font-weight: 500;
+                color: var(--ev-colors-primary);
+                cursor: pointer;
+                
+                &:hover {
+                    text-decoration: underline;
+                }
+            }
+            
+            .upload-hint {
+                font-size: 14px;
+                color: #666;
+            }
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            
+            .file-name {
+                font-weight: 500;
+                word-break: break-all;
+            }
+            
+            .remove-file {
+                background: none;
+                border: none;
+                color: #666;
+                font-size: 20px;
+                cursor: pointer;
+                padding: 0 8px;
+                
+                &:hover {
+                    color: #f00;
+                }
+            }
+        }
+    }
+    
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        
+        .evaluate-button {
+            background-color: var(--ev-colors-primary);
+            color: white;
+            
+            &:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+            }
+        }
+    }
+}

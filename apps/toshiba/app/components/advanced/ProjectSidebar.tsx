@@ -213,7 +213,8 @@ export function ProjectSidebar({ isExpanded, setIsExpanded }: { isExpanded: bool
                                                     <div className="session-details">
                                                         {/* <span className="session-title">{session.label || "Chat session"}</span> */}
                                                         <span className="session-preview">
-                                                            {session.messages.length > 0
+                                                            {session.label ? session.label
+                                                                :session.messages.length > 0
                                                                 ? getMessagePreview(session.messages[session.messages.length - 1].text)
                                                                 : "New conversation"}
                                                         </span>

@@ -106,6 +106,26 @@
     & .discover { grid-area: discover; }
     & .title { grid-area: title; }
 
+    .batch-evaluation-button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+
+    .batch-evaluation-button {
+        background-color: var(--ev-colors-primary);
+        color: white;
+        padding: 10px 16px;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+
+        &:hover {
+            background-color: darken(gray, 10%);
+        }
+    }
+}
 
 
 }
+
+

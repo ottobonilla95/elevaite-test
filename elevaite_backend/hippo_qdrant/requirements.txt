@@ -1,0 +1,7 @@
+igraph
+openai
+pandas
+dotenv
+qdrant_client
+fastapi
+uvicorn

@@ -1,28 +1,26 @@
 "use client";
-import { useSession } from "next-auth/react";
-import { createContext, useContext, useEffect, useState } from "react";
-import {fetchPastSessions, fetchSessionSummary, getImageUrl} from "../../lib/actions";
-import { extractSourcesFromText } from "../../lib/sourceUtils";
-import type {
-  ChatBotGenAI,
-  ChatMessageObject,
-  ChatMessageResponse,
-  ChatbotV,
-  SessionObject,
-  SessionSummaryObject,
-  WindowGrid,
-} from "../../lib/interfaces";
+import {createContext, useContext, useEffect, useState} from "react";
+import {batchEvaluation, fetchPastSessions, fetchSessionSummary, getImageUrl} from "../../lib/actions";
+import {extractSourcesFromText} from "../../lib/sourceUtils";
+import {isSessionObject} from "../../lib/discriminators";
 import {
   CHATBOT_MESSAGE_ID_PREFIX,
-  SESSION_ID_PREFIX,
-  USER_MESSAGE_ID_PREFIX,
+  ChatBotGenAI,
+  ChatbotV,
+  ChatMessageObject,
+  ChatMessageResponse,
   defaultChatbotV,
   defaultGenAIBotOption,
   defaultSession,
+  SESSION_ID_PREFIX,
+  SessionObject,
+  SessionSummaryObject,
+  USER_MESSAGE_ID_PREFIX,
+  WindowGrid,
 } from "../../lib/interfaces";
-import { getLoadingMessageFromAgentStatus } from "./ChatContextHelpers";
-import { v4 as uuidv4 } from "uuid";
-import { Session } from "next-auth";
+import {getLoadingMessageFromAgentStatus} from "./ChatContextHelpers";
+import {v4 as uuidv4} from "uuid";
+import {Session} from "next-auth";
 
 
 // STRUCTURE
@@ -36,6 +34,7 @@ export interface ChatContextStructure {
   setSelectedSession: (sessionId: string) => void;
   setSelectedGenAIBot: (value: ChatBotGenAI) => void;
   isChatLoading: boolean;
+  userEmail: string;
   chatLoadingMessage: string;
   addNewUserMessageToCurrentSession: (message: string) => void;
   updateMessageVote: (messageId: string, passedVote: -1 | 0 | 1) => void;
@@ -47,6 +46,8 @@ export interface ChatContextStructure {
   agentStatus: string;
   recentChatsMessage: string;
   setRecentChatsMessage: (message: string) => void;
+  processExcelFile: (file: File) => Promise<void>;
+  isBatchEvaluationUser: boolean;
 }
 
 export const ChatContext = createContext<ChatContextStructure>({
@@ -69,6 +70,9 @@ export const ChatContext = createContext<ChatContextStructure>({
   agentStatus: "Initializing...",
   recentChatsMessage: "Loading recent chats...",
   setRecentChatsMessage: () => {/**/ },
+  processExcelFile: (file: File) => Promise.resolve(),
+  userEmail: "",
+  isBatchEvaluationUser: false,
 });
 
 // PROVIDER
@@ -90,6 +94,8 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
   const [activeWindowGrid, setActiveWindowGrid] = useState<WindowGrid | undefined>();
   const [agentStatus, setAgentStatus] = useState("Starting...");
   const [recentChatsMessage, setRecentChatsMessage] = useState("Loading recent chats...");
+  const [userEmail, setUserEmail] = useState<string>(session?.user?.email ?? "");
+  const [isBatchEvaluationUser, setIsBatchEvaluationUser] = useState(false);
 
 
   // Initializations
@@ -98,34 +104,59 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
   // }, [sessions]);
 
   useEffect(() => {
-  if (!selectedSession) return;
-  const newSessions = sessions.map((item) =>
-    item.id === selectedSession.id ? selectedSession : item
-  );
-  setSessions(newSessions);
-}, [selectedSession]);
+    if (session) {
+      // const allowedEmails = process.env.NEXT_PUBLIC_BATCH_EVALUATION_USERS ?? "";
 
-useEffect(() => {
-  if (sessions.length === 0) {
-    setRecentChatsMessage("Loading recent chats...");
-    (async () => {
-      const newSessions = await fetchPastSessions(session?.user?.email ?? "Unknown User");
-      if (newSessions.length === 0) {
-        setRecentChatsMessage("No Chats");
+      const allowedEmails = ["somansh.budhwar@iopex.com","nikhitha.kandula@iopex.com","binu.ramachandran@iopex.com","Walker.Franklin@toshibagcs.com","thomas.conway@toshibagcs.com","dheeraj.kumar@iopex.com","somansh@gmail.com"]
+      console.log("Allowed Emails:", allowedEmails);
+      console.log("Session Email:", session?.user?.email);
+      console.log("----Chat Context----");
+      console.log("Is Batch Evaluation User:", isBatchEvaluationUser);
+      if (allowedEmails.includes(session?.user?.email ?? "")) {
+        console.log("Allowed");
+        setIsBatchEvaluationUser(true);
       }
-      // Map all the sessions and change the user name to the current user name
-      for (const item of newSessions) {
-        for (const message of item.messages) {
-          message.userName = session?.user?.name ?? "Unknown User";
+      console.log("Is Batch Evaluation User:", isBatchEvaluationUser);
+      console.log("---- End Chat Context----");
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (!selectedSession) return;
+    const newSessions = sessions.map((item) =>
+        item.id === selectedSession.id ? selectedSession : item
+    );
+    setSessions(newSessions);
+  }, [selectedSession]);
+
+  useEffect(() => {
+    if (sessions.length === 0) {
+      setRecentChatsMessage("Loading recent chats...");
+      (async () => {
+        const newSessions = await fetchPastSessions(session?.user?.email ?? "Unknown User");
+        if (newSessions.length === 0) {
+          setRecentChatsMessage("No Chats");
         }
-      }
-      setSessions([...newSessions, defaultSession]);
-      setSelectedSession(defaultSession);
-    })();
-  } else {
-    setSelectedSession(sessions[sessions.length - 1]);
-  }
-}, [sessions.length, session]);
+        // Map all the sessions and change the user name to the current user name
+        for (const item of newSessions) {
+          console.log("Session:", item);
+          for (const message of item.messages) {
+            message.userName = session?.user?.name ?? "Unknown User";
+          }
+        }
+        setSessions([...newSessions, defaultSession]);
+        setSelectedSession(defaultSession);
+      })();
+    } else {
+      setSelectedSession(sessions[sessions.length - 1]);
+    }
+  }, [sessions.length, session]);
+
+  //   useEffect(() => {
+  //   if (session) {
+  //     setUserEmail(session?.user?.email);
+  //   }
+  // }, [session]);
 
 //   useEffect(() => {
 //   // Whenever we add a session or delete all sessions, select the latest one.
@@ -166,13 +197,13 @@ useEffect(() => {
   function addNewSession(): void {
     // Find highest id
     const sessionIdNumbersList = sessions.map((item) =>
-      Number(item.id.slice(SESSION_ID_PREFIX.length))
+        Number(item.id.slice(SESSION_ID_PREFIX.length))
     );
     // New id will be highest +1
     const newIdNumber =
-      sessionIdNumbersList.length > 0
-        ? Math.max(...sessionIdNumbersList) + 1
-        : 0;
+        sessionIdNumbersList.length > 0
+            ? Math.max(...sessionIdNumbersList) + 1
+            : 0;
     const newId = SESSION_ID_PREFIX + newIdNumber.toString();
     // New Session
     const newSession: SessionObject = {
@@ -191,14 +222,47 @@ useEffect(() => {
     const foundSession = sessions.find((item) => item.id === sessionId);
     if (!foundSession) return;
     setSessions((current) =>
-      current.filter((item) => {
-        return item.id !== sessionId;
-      })
+        current.filter((item) => {
+          return item.id !== sessionId;
+        })
     );
   }
 
   function clearAllSessions(): void {
     setSessions([]);
+  }
+
+  async function processExcelFile(file: File): Promise<void> {
+    try {
+      // Create FormData inside the server action
+      console.log("Processing file in ChatContext:", file);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('user_id', session?.user?.email ?? "Unknown User");
+      console.log("Form Data:", formData);
+      setActiveWindowGrid(WindowGrid.active);
+      // addNewUserMessageToCurrentSession("Processing file...");
+      setIsChatLoading(true);
+
+
+      const result = await batchEvaluation(formData);
+      deleteSessionById(selectedSession?.id ?? "");
+      console.log("Batch evaluation result:", result);
+      if (isSessionObject(result)) {
+        const newSession: SessionObject = {
+          id: result.id,
+          label: result.label,
+          messages: result.messages,
+          creationDate: result.creationDate,
+        };
+        setSessions((currentSessions) => [...currentSessions, newSession]);
+        setSelectedSession(newSession);
+        setIsChatLoading(false);
+
+      }
+    } catch (error) {
+      console.error("Error uploading file:", error);
+    }
   }
 
   function setInternallySelectedSession(sessionId: string): void {
@@ -865,6 +929,9 @@ useEffect(() => {
         agentStatus,
         recentChatsMessage,
         setRecentChatsMessage,
+        processExcelFile,
+        userEmail,
+        isBatchEvaluationUser
       }}
     >
       {props.children}

@@ -234,3 +234,16 @@ export async function fetchPastSessions(userId: string): Promise<SessionObject[]
   if (isPastSessionsResponse(data)) return data;
   throw new Error("Invalid data type");
 }
+
+export async function batchEvaluation(formData: FormData): Promise<any> {
+  const url = new URL(`${BACKEND_URL ?? ""}batchEvaluation`);
+  const response = await fetch(url, {
+    method: "POST",
+    // headers: {
+    //   "Content-Type": "multipart/form-data",
+    // },
+    body: formData,
+  });
+  if (!response.ok) throw new Error("Failed to upload file");
+  return await response.json();
+}

@@ -201,12 +201,193 @@ class ToshibaAgent(Agent):
         yield failure_response
         return
 
+    def execute(self, query: Any, qid: str, session_id: str, chat_history: Any, user_id: str, agent_flow_id: str) -> Any:
+        """
+        Toshiba agent to answer any question related to Toshiba parts, assemblies, general information, etc.
+        Non-streaming version that returns a complete response.
+        """
+        tries = 0
+        max_tries = self.max_retries
+        start_time = datetime.now()
+        system_prompt = TOSHIBA_AGENT_PROMPT6
+        final_response = ""
+        tool_call_data = []
+        sources = []
+
+        # Initialize messages with chat history and system prompt
+        messages = [{"role": "system", "content": system_prompt}]
+        messages.extend(chat_history)
+        messages.append({"role": "user", "content": "Answer this query: " + query})
+
+        # Main loop for retries
+        while tries < max_tries:
+            try:
+                print(f"\nToshiba Agent Tries: {tries}")
+                # update_status(user_id, "Reformulated Query: " + query)
+                start_time = datetime.now()
+
+                # Initial call to the LLM
+                response = client.chat.completions.create(
+                    model="gpt-4.1",
+                    messages=messages,
+                    tools=self.functions,
+                    tool_choice="auto",
+                    temperature=0.6,
+                    max_tokens=2000,
+                    stream=False
+                )
+
+                # Handle tool calls if present
+                assistant_message = response.choices[0].message
+
+                if hasattr(assistant_message, 'tool_calls') and assistant_message.tool_calls:
+                    tool_calls = assistant_message.tool_calls[:1]
+                    messages += [{"role": "assistant", "content": None, "tool_calls": tool_calls},]
+                    print(f"Tool Calls: {tool_calls}")
+
+                    # Process all tool calls
+                    for tool in tool_calls:
+                        tool_id = tool.id
+                        function_name = tool.function.name
+                        try:
+                            arguments = json.loads(tool.function.arguments)
+                            print(f"Arguments: {arguments}")
+                            # update_status(user_id, "Searching: "+arguments.get("query", query))
+                            retriever_time = datetime.now()
+
+                            if function_name in tool_store:
+                                result, sources = tool_store[function_name](**arguments)
+                                if isinstance(result, list) and len(result) > 0:
+                                    result = result[0]
+                            else:
+                                result = f"Tool {function_name} not found in tool_store"
+
+                            tool_call_data.append({
+                                "name": tool_calls[0].function.name,
+                                "arguments": tool_calls[0].function.arguments,
+                                "result": result
+                            })
+
+                            print(f"Time taken by the agent to retrieve the data: {datetime.now() - retriever_time}")
+
+                            # Add tool response to messages
+                            messages.append({
+                                "role": "tool",
+                                "tool_call_id": tool_id,
+                                "content": str(result)
+                            })
+                        except Exception as tool_error:
+                            # Handle errors in tool execution
+                            error_message = f"Error executing tool {function_name}: {str(tool_error)}"
+                            print(error_message)
+                            messages.append({
+                                "role": "tool",
+                                "tool_call_id": tool_id,
+                                "content": error_message
+                            })
+
+                    print(f"Time taken for all tool calls: {datetime.now() - start_time}")
+
+                    # Now get the final response without streaming
+                    try:
+                        # update_status(user_id, "Generating Response...")
+                        print("-" * 100)
+                        for message in messages:
+                            print(message)
+                        print("-" * 100)
+                        
+                        final_response_obj = client.chat.completions.create(
+                            model="gpt-4.1",
+                            messages=messages,
+                            temperature=0.6,
+                            response_format={"type": "text"},
+                            max_tokens=2000,
+                            stream=False
+                        )
+
+                        final_response = final_response_obj.choices[0].message.content
+                        print(final_response)
+                        print(sources)
+                        print(
+                            f"Time taken for final response: {datetime.now() - start_time}"
+                        )
+                        
+                        # If we received no content, provide a fallback
+                        if not final_response:
+                            final_response = json.dumps({
+                                "routing": "success",
+                                "content": {
+                                    "Answer": "The information has been processed, but no direct response was generated."
+                                }
+                            })
+                        
+                        # Save to database and return response
+                        # self._save_agent_flow(agent_flow_id, session_id, qid, user_id, query,
+                        #                      final_response, tries, tool_call_data, chat_history)
+                        return final_response
+
+                    except Exception as response_error:
+                        print(f"Error generating final response: {response_error}")
+                        tries += 1
+                        continue
+                else:
+                    # No tool calls, just return the content directly
+                    # update_status(user_id, "Generating Response...")
+                    if hasattr(assistant_message, 'content') and assistant_message.content:
+                        final_response = assistant_message.content
+                    else:
+                        final_response = json.dumps({
+                            "routing": "success",
+                            "content": {"Answer": "Processed your query, but no direct response was generated."}
+                        })
+                    
+                    # Save to database and return response
+                    # self._save_agent_flow(agent_flow_id, session_id, qid, user_id, query,
+                    #                      final_response, tries, tool_call_data, chat_history)
+                    return final_response
+
+            except Exception as e:
+                print(f"Error in main execution loop: {e}")
+                tries += 1
+                # Short delay before retry
+                time.sleep(1)
+
+        # Return failure message if max retries reached
+        failure_response = "Couldn't find the answer to your query. Please try again with a different query."
+        self._save_agent_flow(agent_flow_id, session_id, qid, user_id, query, 
+                             failure_response, tries, tool_call_data, chat_history)
+        return failure_response
+        
+    # def _save_agent_flow(self, agent_flow_id, session_id, qid, user_id, query,
+    #                      response, tries, tool_call_data, chat_history):
+    #     """Helper method to save agent flow data to database"""
+    #     data_log = AgentFlow(
+    #         agent_flow_id=uuid.UUID(agent_flow_id),
+    #         session_id=uuid.UUID(session_id),
+    #         qid=uuid.UUID(qid),
+    #         user_id=user_id,
+    #         request=query,
+    #         response=response,
+    #         created_at=datetime.now(),
+    #         updated_at=datetime.now(),
+    #         tries=tries,
+    #         tool_calls=json.dumps(tool_call_data),
+    #         chat_history=json.dumps(chat_history),
+    #     )
+    #     print(data_log)
+    #     database_connection.save_agent_flow(data_log)
 
 toshiba_agent = ToshibaAgent(name="ToshibaAgent",
                 agent_id=uuid.uuid4(),
                 system_prompt=toshiba_agent_system_prompt,
                 persona="Helper",
-                functions=[tool_schemas["query_retriever"], tool_schemas["walgreens_query_retriever"], tool_schemas["kroger_query_retriever"], tool_schemas["tractor_query_retriever"], tool_schemas["dollar_general_query_retriever"], tool_schemas["sams_club_query_retriever"], tool_schemas["wegmans_query_retriever"], tool_schemas["ross_query_retriever"]],
+                functions=[tool_schemas["query_retriever"], tool_schemas["walgreens_query_retriever"], \
+                           tool_schemas["kroger_query_retriever"], tool_schemas["tractor_query_retriever"], \
+                           tool_schemas["dollar_general_query_retriever"], tool_schemas["sams_club_query_retriever"], \
+                           tool_schemas["wegmans_query_retriever"], tool_schemas["ross_query_retriever"],\
+                           tool_schemas["costco_query_retriever"], tool_schemas["whole_foods_query_retriever"], \
+                           tool_schemas["bjs_query_retriever"], tool_schemas["alex_lee_query_retriever"], \
+                           tool_schemas["badger_query_retriever"], tool_schemas["sr_database"]],
                 routing_options={"ask": "If you think you need to ask more information or context from the user to answer the question.",
                                  "continue": "If you think you have the answer, you can stop here.",
                                  "give_up": "If you think you can't answer the query, you can give up and let the user know."

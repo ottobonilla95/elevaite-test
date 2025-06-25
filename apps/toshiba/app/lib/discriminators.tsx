@@ -48,7 +48,7 @@ function isSessionSummaryObject(item: unknown): item is SessionSummaryObject {
         "solution" in item;
 }
 
-function isSessionObject(item: unknown): item is SessionObject {
+export function isSessionObject(item: unknown): item is SessionObject {
     return isObject(item) &&
         "id" in item &&
         "label" in item &&

@@ -229,7 +229,6 @@ class DatabaseConnection:
     async def save_chat_request(self, chat_request: ChatRequest):
         async with self.SessionLocal() as session:
             try:
-
                 chat_request_data = ChatRequestTable(
                     qid=chat_request.qid,
                     session_id=chat_request.session_id,
@@ -241,7 +240,8 @@ class DatabaseConnection:
                     user_id=chat_request.user_id,
                     agent_flow_id=chat_request.agent_flow_id,
                     created_at=datetime.datetime.now(),
-                    updated_at=datetime.datetime.now()
+                    updated_at=datetime.datetime.now(),
+                    sr_ticket_id=chat_request.sr_ticket_id
                 )
                 session.add(chat_request_data)
                 await session.flush()

@@ -72,6 +72,11 @@ LIST OF Primary CUSTOMERS:
 5. Dollar General
 6. Wegmans
 7. Ross
+8. Costco
+9. Whole Foods
+10. BJs or BJ's
+11. Alex Lee
+12. Badger
 ###
 
 EXAMPLES:

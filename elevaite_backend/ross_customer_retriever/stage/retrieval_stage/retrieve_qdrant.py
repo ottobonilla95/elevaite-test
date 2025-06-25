@@ -49,7 +49,7 @@ def get_embedding(text: str) -> List[float]:
 
 qdrant_url = "http://3.101.65.253"
 qdrant_port = 5333
-collection_name = "toshiba_dollar_general"
+collection_name = "toshiba_ross"
 
 
 # qdrant_url = "http://3.101.65.253"

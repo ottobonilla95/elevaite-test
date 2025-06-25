@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { WindowGrid } from "../../lib/interfaces";
-import { useChat } from "../../ui/contexts/ChatContext";
+import {ChatContextProvider, useChat} from "../../ui/contexts/ChatContext";
 import { ChatbotInput } from "../ChatbotInput";
 import { ChatbotWindow } from "../ChatbotWindow";
 import { CaseDetails } from "./CaseDetails";
@@ -15,13 +15,42 @@ import { Recents } from "./Recents";
 import { Discover } from "./Discover";
 import { Tabs } from "./Tabs";
 import { ChatFeedback } from "./ChatFeedback";
+import { CommonButton, CommonModal } from "@repo/ui/components";
+import { BatchEvaluationModal } from "./BatchEvaluationModal";
 
 export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
     const chatContext = useChat();
     const [activeWindow, setActiveWindow] = useState<React.ReactNode[]>([]);
-
+    const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+    const [isAllowed, setIsAllowed] = useState(false);
+    // const allowedEmails = ["somansh.budhwar@iopex.com,nikhitha.kandula@iopex.com","binu.ramachandran@iopex.com","Walker.Franklin@toshibagcs.com","thomas.conway@toshibagcs.com","dheeraj.kumar@iopex.com","somansh@gmail.com"]
+    // console.log("Allowed emails:", allowedEmails);
+    // const isAllowed = allowedEmails.includes(chatContext.userEmail);
     // console.log("activeWindow", activeWindow);
     // console.log("chatcontext", chatContext.activeWindowGrid);
+
+    useEffect(() => {
+        console.log("----Effect in MainAreaSwitcher Context----");
+        const allowedEmails = ["somansh.budhwar@iopex.com","nikhitha.kandula@iopex.com","binu.ramachandran@iopex.com","Walker.Franklin@toshibagcs.com","thomas.conway@toshibagcs.com","dheeraj.kumar@iopex.com","somansh@gmail.com"];
+
+        // Check if email is in allowed list OR if isBatchEvaluationUser is true
+        const shouldAllow = allowedEmails.includes(chatContext.userEmail) || chatContext.isBatchEvaluationUser;
+
+        console.log("User email:", chatContext.userEmail);
+        console.log("isBatchEvaluationUser from context:", chatContext.isBatchEvaluationUser);
+        console.log("Should allow batch evaluation:", shouldAllow);
+        setIsAllowed(shouldAllow);
+        getActiveWindow(WindowGrid.toshiba1);
+
+        // Only update state if it's different to avoid unnecessary re-renders
+        if (isAllowed !== shouldAllow) {
+            setIsAllowed(shouldAllow);
+            getActiveWindow(WindowGrid.toshiba1);
+            console.log("Updated isAllowed to:", shouldAllow);
+        }
+
+        console.log("----End Effect in MainAreaSwitcher Context----");
+    }, [chatContext.isBatchEvaluationUser, chatContext.userEmail, isAllowed]);
 
     useEffect(() => {
         if (chatContext.activeWindowGrid === undefined) {
@@ -30,7 +59,20 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
             getActiveWindow(chatContext.activeWindowGrid);
         }
     }, [chatContext.activeWindowGrid]);
-    // console.log("open", isSidebarCollapsed)
+    
+    function handleBatchEvaluation(): void {
+        setIsBatchModalOpen(true);
+    }
+    
+    function handleBatchSubmit(file: File): void {
+        console.log("Processing batch file:", file);
+
+        // Pass the file directly instead of FormData
+        chatContext.processExcelFile(file);
+
+        setIsBatchModalOpen(false);
+    }
+
     function getActiveWindow(type?: WindowGrid): void {
         switch (type) {
             case WindowGrid.closed:
@@ -78,6 +120,7 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
 
             case WindowGrid.toshiba1:
                 // This is the welcome screen / new chat screen
+                console.log("Rendering toshiba1 window, isAllowed =", isAllowed);
                 setActiveWindow([
                     <div key="toshiba1" className="toshiba1">
                         <CoPilot noUpload label="Ask Toshiba">
@@ -91,6 +134,24 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
                                     "Diagnostic Code Lookup",
                                 ]}
                             />
+                            {/*<div className="batch-evaluation-button-container">*/}
+                            {/*    <CommonButton */}
+                            {/*        onClick={handleBatchEvaluation}*/}
+                            {/*        className="batch-evaluation-button"*/}
+                            {/*    >*/}
+                            {/*        Batch Evaluation*/}
+                            {/*    </CommonButton>*/}
+                            {/*</div>*/}
+                            {isAllowed && (
+                                <div className="batch-evaluation-button-container">
+                                    <CommonButton
+                                        onClick={handleBatchEvaluation}
+                                        className="batch-evaluation-button"
+                                    >
+                                        Batch Evaluation
+                                    </CommonButton>
+                                </div>
+                            )}
                         </CoPilot>
                     </div>,
                 ]);
@@ -142,6 +203,15 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
     return (
         <div className={["main-area-switcher-container", chatContext.activeWindowGrid ?? "toshiba1", isSidebarCollapsed ? "sidebar-collapsed" : "sidebar-expanded"].filter(Boolean).join(" ")}>
             {activeWindow.map(component => component)}
+            
+            {isBatchModalOpen && (
+                <CommonModal onClose={() => setIsBatchModalOpen(false)}>
+                    <BatchEvaluationModal 
+                        onClose={() => setIsBatchModalOpen(false)}
+                        onSubmit={handleBatchSubmit}
+                    />
+                </CommonModal>
+            )}
         </div>
     );
 }

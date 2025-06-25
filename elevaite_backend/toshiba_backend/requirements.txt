@@ -17,3 +17,5 @@ sqlalchemy
 asyncpg
 aiohttp
 boto3
+python-multipart
+openpyxl

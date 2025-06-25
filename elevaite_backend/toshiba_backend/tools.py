@@ -22,10 +22,10 @@ def query_retriever(query: str, machine_types: Optional[List[str]] = None) -> li
     EXAMPLES:
     Example: query="part number AC01548000"
     Example: query="What is 2110"
-    Example: query="What is 4348"
     Example: query="What is TAL"
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
+
     Example: query="diagnostic code X is 0 Y is 2"
 
     Never query just the part number. Add a description. For example, if the user asks for "3AC01548000", query with "part number 3AC01548000".
@@ -175,10 +175,12 @@ def walgreens_query_retriever(query: str) -> list:
     EXAMPLES:
     Example: query="part number AC01548000"
     Example: query="What is 2110"
-    Example: query="What is 4348"
     Example: query="stock room camera part number"
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
+    Example: query="Client Advocates list"
+
+    Essentially, if the user asks "Walgreens <question>" then the query should be "<question>"
 
     Never query just the part number. Add a description. For example, if the user asks for "3AC01548000", query with "part number 3AC01548000".
     If the user asks a query with "MTM <model>" then query with "MTM <model>". For example, if the user asks "What is the part number for the MTM 036-W21 camera?", query with "MTM 036-W21 camera part number".
@@ -255,10 +257,12 @@ def kroger_query_retriever(query: str) -> list:
     EXAMPLES:
     Example: query="part number AC01548000"
     Example: query="What is 2110"
-    Example: query="What is 4348"
     Example: query="stock room camera part number"
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
+    Example: query="Client Advocates list"
+
+    Essentially, if the user asks "Kroger <question>" then the query should be "<question>"
 
     Never query just the part number. Add a description. For example, if the user asks for "3AC01548000", query with "part number 3AC01548000".
     If the user asks a query with "MTM <model>" then query with "MTM <model>". For example, if the user asks "What is the part number for the MTM 036-W21 camera?", query with "MTM 036-W21 camera part number".
@@ -335,10 +339,12 @@ def tractor_query_retriever(query: str) -> list:
     EXAMPLES:
     Example: query="part number AC01548000"
     Example: query="What is 2110"
-    Example: query="What is 4348"
     Example: query="stock room camera part number"
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
+    Example: query="Client Advocates list"
+
+    Essentially, if the user asks "Tractor Supply <question>" then the query should be "<question>"
 
     Never query just the part number. Add a description. For example, if the user asks for "3AC01548000", query with "part number 3AC01548000".
     If the user asks a query with "MTM <model>" then query with "MTM <model>". For example, if the user asks "What is the part number for the MTM 036-W21 camera?", query with "MTM 036-W21 camera part number".
@@ -415,10 +421,12 @@ def sams_club_query_retriever(query: str) -> list:
     EXAMPLES:
     Example: query="part number AC01548000"
     Example: query="What is 2110"
-    Example: query="What is 4348"
     Example: query="stock room camera part number"
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
+    Example: query="Client Advocates list"
+
+    Essentially, if the user asks "Sam's Club <question>" then the query should be "<question>"
 
     Never query just the part number. Add a description. For example, if the user asks for "3AC01548000", query with "part number 3AC01548000".
     If the user asks a query with "MTM <model>" then query with "MTM <model>". For example, if the user asks "What is the part number for the MTM 036-W21 camera?", query with "MTM 036-W21 camera part number".
@@ -494,10 +502,12 @@ def dollar_general_query_retriever(query: str) -> list:
     EXAMPLES:
     Example: query="part number AC01548000"
     Example: query="What is 2110"
-    Example: query="What is 4348"
     Example: query="stock room camera part number"
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
+    Example: query="Client Advocates list"
+
+    Essentially, if the user asks "Dollar General <question>" then the query should be "<question>"
 
     Never query just the part number. Add a description. For example, if the user asks for "3AC01548000", query with "part number 3AC01548000".
     If the user asks a query with "MTM <model>" then query with "MTM <model>". For example, if the user asks "What is the part number for the MTM 036-W21 camera?", query with "MTM 036-W21 camera part number".
@@ -567,16 +577,18 @@ def wegmans_query_retriever(query: str) -> list:
     """"
     WEGMANS DATA RETRIEVER TOOL
 
-    Use this tool to query the Toshiba Dollar General knowledge base.
+    Use this tool to query the Toshiba Wegmans knowledge base.
     Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
 
     EXAMPLES:
     Example: query="part number AC01548000"
     Example: query="What is 2110"
-    Example: query="What is 4348"
     Example: query="stock room camera part number"
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
+    Example: query="Client Advocates list"
+
+    Essentially, if the user asks "Wegmans <question>" then the query should be "<question>"
 
     Never query just the part number. Add a description. For example, if the user asks for "3AC01548000", query with "part number 3AC01548000".
     If the user asks a query with "MTM <model>" then query with "MTM <model>". For example, if the user asks "What is the part number for the MTM 036-W21 camera?", query with "MTM 036-W21 camera part number".
@@ -646,16 +658,18 @@ def ross_query_retriever(query: str) -> list:
     """"
     DOLLAR GENERAL DATA RETRIEVER TOOL
 
-    Use this tool to query the Toshiba Dollar General knowledge base.
+    Use this tool to query the Toshiba Ross knowledge base.
     Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
 
     EXAMPLES:
     Example: query="part number AC01548000"
     Example: query="What is 2110"
-    Example: query="What is 4348"
     Example: query="stock room camera part number"
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
+    Example: query="Client Advocates list"
+
+    Essentially, if the user asks "Ross <question>" then the query should be "<question>"
 
     Never query just the part number. Add a description. For example, if the user asks for "3AC01548000", query with "part number 3AC01548000".
     If the user asks a query with "MTM <model>" then query with "MTM <model>". For example, if the user asks "What is the part number for the MTM 036-W21 camera?", query with "MTM 036-W21 camera part number".
@@ -720,6 +734,439 @@ def ross_query_retriever(query: str) -> list:
     res = "CONTEXT FROM RETRIEVER: \n\n"
     return [res+first_response+second_response, sources+second_sources]
 
+@function_schema
+def costco_query_retriever(query: str) -> list:
+    """"
+    COSTCO DATA RETRIEVER TOOL
+
+    Use this tool to query the Toshiba Costco base.
+    Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
+
+    EXAMPLES:
+    Example: query="part number AC01548000"
+    Example: query="What is 2110"
+    Example: query="stock room camera part number"
+    Example: query="assembly name for part number 3AC01548000"
+    Example: query="TAL parts list"
+    Example: query="Client Advocates list"
+
+    Essentially, if the user asks "Costco <question>" then the query should be "<question>"
+
+    Never query just the part number. Add a description. For example, if the user asks for "3AC01548000", query with "part number 3AC01548000".
+    If the user asks a query with "MTM <model>" then query with "MTM <model>". For example, if the user asks "What is the part number for the MTM 036-W21 camera?", query with "MTM 036-W21 camera part number".
+    """
+
+    def get_response(url, params):
+    # Make the POST request
+        try:
+            response = requests.post(url, params=params)
+            res = ""
+            sources = []
+            segments = response.json()["selected_segments"][:SEGMENT_NUM]
+            for i,segment in enumerate(segments):
+                res += "*"*5+f"\n\nSegment Begins: "+"\n" #+"Contextual Header: "
+                references = ""
+                for j,chunk in enumerate(segment["chunks"]):
+                    res += f"Chunk {j}: "+chunk["chunk_text"]
+                    pages = re.findall(r"\d+", str(chunk['page_info']))
+                    res += f"\nSource for Chunk {j}: "
+                    for page in pages:
+                        print(chunk["filename"]+f" page {page}")
+                        filename = chunk["filename"].strip(".pdf")
+                        if "page" in filename:
+                            res+=f"{filename}" + f" [aws_id: {filename}]\n"
+                        else:
+                            res += f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}]\n"
+                    if "page" in filename:
+                        sources.append(f"{filename}" + f" [aws_id: {filename}] score: [{round(segment['score'], 2)}]")
+                    else:
+                        sources.append(
+                            f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}] score: [{round(segment['score'], 2)}]")
+
+            res += "Segment Ends\n"+"-"*5+"\n\n"
+
+            return [res, sources]
+        except Exception as e:
+            print(f"Failed to call retriever: {e}")
+            return ["",[]]
+
+    url = os.getenv("COSTCO_RETRIEVER_URL") + "/query-chunks"
+    params = {
+        "query": query,
+        "top_k": 60
+    }
+    try:
+        first_response, sources = get_response(url, params)
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+        first_response, sources = ["",[]]
+
+    # params = {
+    #     "query": alt_query,
+    #     "top_k": 60,
+    #     "minimum_value": 0.1
+    # }
+    try:
+        # second_response, second_sources = get_response(url, params)
+        second_response, second_sources = ["", []]
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+        second_response, second_sources = ["",[]]
+    res = "CONTEXT FROM RETRIEVER: \n\n"
+    return [res+first_response+second_response, sources+second_sources]
+
+@function_schema
+def whole_foods_query_retriever(query: str) -> list:
+    """"
+    WHOLE FOODS DATA RETRIEVER TOOL
+
+    Use this tool to query the Toshiba Whole Foods knowledge base.
+    Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
+
+    EXAMPLES:
+    Example: query="part number AC01548000"
+    Example: query="What is 2110"
+    Example: query="stock room camera part number"
+    Example: query="assembly name for part number 3AC01548000"
+    Example: query="TAL parts list"
+    Example: query="Client Advocates list"
+
+    Essentially, if the user asks "Whole Foods <question>" then the query should be "<question>"
+
+    Never query just the part number. Add a description. For example, if the user asks for "3AC01548000", query with "part number 3AC01548000".
+    If the user asks a query with "MTM <model>" then query with "MTM <model>". For example, if the user asks "What is the part number for the MTM 036-W21 camera?", query with "MTM 036-W21 camera part number".
+    """
+
+    def get_response(url, params):
+    # Make the POST request
+        try:
+            response = requests.post(url, params=params)
+            res = ""
+            sources = []
+            segments = response.json()["selected_segments"][:SEGMENT_NUM]
+            for i,segment in enumerate(segments):
+                res += "*"*5+f"\n\nSegment Begins: "+"\n" #+"Contextual Header: "
+                references = ""
+                for j,chunk in enumerate(segment["chunks"]):
+                    res += f"Chunk {j}: "+chunk["chunk_text"]
+                    pages = re.findall(r"\d+", str(chunk['page_info']))
+                    res += f"\nSource for Chunk {j}: "
+                    for page in pages:
+                        print(chunk["filename"]+f" page {page}")
+                        filename = chunk["filename"].strip(".pdf")
+                        if "page" in filename:
+                            res+=f"{filename}" + f" [aws_id: {filename}]\n"
+                        else:
+                            res += f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}]\n"
+                    if "page" in filename:
+                        sources.append(f"{filename}" + f" [aws_id: {filename}] score: [{round(segment['score'], 2)}]")
+                    else:
+                        sources.append(
+                            f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}] score: [{round(segment['score'], 2)}]")
+
+            res += "Segment Ends\n"+"-"*5+"\n\n"
+
+            return [res, sources]
+        except Exception as e:
+            print(f"Failed to call retriever: {e}")
+            return ["",[]]
+
+    url = os.getenv("WHOLE_FOODS_RETRIEVER_URL") + "/query-chunks"
+    params = {
+        "query": query,
+        "top_k": 60
+    }
+    try:
+        first_response, sources = get_response(url, params)
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+        first_response, sources = ["",[]]
+
+    # params = {
+    #     "query": alt_query,
+    #     "top_k": 60,
+    #     "minimum_value": 0.1
+    # }
+    try:
+        # second_response, second_sources = get_response(url, params)
+        second_response, second_sources = ["", []]
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+        second_response, second_sources = ["",[]]
+    res = "CONTEXT FROM RETRIEVER: \n\n"
+    return [res+first_response+second_response, sources+second_sources]
+
+@function_schema
+def bjs_query_retriever(query: str) -> list:
+    """"
+    BJ's DATA RETRIEVER TOOL
+
+    Use this tool to query the Toshiba BJ's knowledge base.
+    Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
+
+    EXAMPLES:
+    Example: query="part number AC01548000"
+    Example: query="What is 2110"
+    Example: query="stock room camera part number"
+    Example: query="assembly name for part number 3AC01548000"
+    Example: query="TAL parts list"
+    Example: query="Client Advocates list"
+
+    Essentially, if the user asks "BJs <question>" then the query should be "<question>"
+
+    Never query just the part number. Add a description. For example, if the user asks for "3AC01548000", query with "part number 3AC01548000".
+    If the user asks a query with "MTM <model>" then query with "MTM <model>". For example, if the user asks "What is the part number for the MTM 036-W21 camera?", query with "MTM 036-W21 camera part number".
+    """
+
+    def get_response(url, params):
+    # Make the POST request
+        try:
+            response = requests.post(url, params=params)
+            res = ""
+            sources = []
+            segments = response.json()["selected_segments"][:SEGMENT_NUM]
+            for i,segment in enumerate(segments):
+                res += "*"*5+f"\n\nSegment Begins: "+"\n" #+"Contextual Header: "
+                references = ""
+                for j,chunk in enumerate(segment["chunks"]):
+                    res += f"Chunk {j}: "+chunk["chunk_text"]
+                    pages = re.findall(r"\d+", str(chunk['page_info']))
+                    res += f"\nSource for Chunk {j}: "
+                    for page in pages:
+                        print(chunk["filename"]+f" page {page}")
+                        filename = chunk["filename"].strip(".pdf")
+                        if "page" in filename:
+                            res+=f"{filename}" + f" [aws_id: {filename}]\n"
+                        else:
+                            res += f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}]\n"
+                    if "page" in filename:
+                        sources.append(f"{filename}" + f" [aws_id: {filename}] score: [{round(segment['score'], 2)}]")
+                    else:
+                        sources.append(
+                            f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}] score: [{round(segment['score'], 2)}]")
+
+            res += "Segment Ends\n"+"-"*5+"\n\n"
+
+            return [res, sources]
+        except Exception as e:
+            print(f"Failed to call retriever: {e}")
+            return ["",[]]
+
+    url = os.getenv("BJS_RETRIEVER_URL") + "/query-chunks"
+    params = {
+        "query": query,
+        "top_k": 60
+    }
+    try:
+        first_response, sources = get_response(url, params)
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+        first_response, sources = ["",[]]
+
+    # params = {
+    #     "query": alt_query,
+    #     "top_k": 60,
+    #     "minimum_value": 0.1
+    # }
+    try:
+        # second_response, second_sources = get_response(url, params)
+        second_response, second_sources = ["", []]
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+        second_response, second_sources = ["",[]]
+    res = "CONTEXT FROM RETRIEVER: \n\n"
+    return [res+first_response+second_response, sources+second_sources]
+
+@function_schema
+def alex_lee_query_retriever(query: str) -> list:
+    """"
+    ALEX LEE DATA RETRIEVER TOOL
+
+    Use this tool to query the Toshiba ALEX LEE knowledge base.
+    Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
+
+    EXAMPLES:
+    Example: query="part number AC01548000"
+    Example: query="What is 2110"
+    Example: query="stock room camera part number"
+    Example: query="assembly name for part number 3AC01548000"
+    Example: query="TAL parts list"
+    Example: query="Client Advocates list"
+
+    Essentially, if the user asks "Alex Lee <question>" then the query should be "<question>"
+
+    Never query just the part number. Add a description. For example, if the user asks for "3AC01548000", query with "part number 3AC01548000".
+    If the user asks a query with "MTM <model>" then query with "MTM <model>". For example, if the user asks "What is the part number for the MTM 036-W21 camera?", query with "MTM 036-W21 camera part number".
+    """
+
+    def get_response(url, params):
+    # Make the POST request
+        try:
+            response = requests.post(url, params=params)
+            res = ""
+            sources = []
+            segments = response.json()["selected_segments"][:SEGMENT_NUM]
+            for i,segment in enumerate(segments):
+                res += "*"*5+f"\n\nSegment Begins: "+"\n" #+"Contextual Header: "
+                references = ""
+                for j,chunk in enumerate(segment["chunks"]):
+                    res += f"Chunk {j}: "+chunk["chunk_text"]
+                    pages = re.findall(r"\d+", str(chunk['page_info']))
+                    res += f"\nSource for Chunk {j}: "
+                    for page in pages:
+                        print(chunk["filename"]+f" page {page}")
+                        filename = chunk["filename"].strip(".pdf")
+                        if "page" in filename:
+                            res+=f"{filename}" + f" [aws_id: {filename}]\n"
+                        else:
+                            res += f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}]\n"
+                    if "page" in filename:
+                        sources.append(f"{filename}" + f" [aws_id: {filename}] score: [{round(segment['score'], 2)}]")
+                    else:
+                        sources.append(
+                            f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}] score: [{round(segment['score'], 2)}]")
+
+            res += "Segment Ends\n"+"-"*5+"\n\n"
+
+            return [res, sources]
+        except Exception as e:
+            print(f"Failed to call retriever: {e}")
+            return ["",[]]
+
+    url = os.getenv("ALEX_LEE_RETRIEVER_URL") + "/query-chunks"
+    params = {
+        "query": query,
+        "top_k": 60
+    }
+    try:
+        first_response, sources = get_response(url, params)
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+        first_response, sources = ["",[]]
+
+    # params = {
+    #     "query": alt_query,
+    #     "top_k": 60,
+    #     "minimum_value": 0.1
+    # }
+    try:
+        # second_response, second_sources = get_response(url, params)
+        second_response, second_sources = ["", []]
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+        second_response, second_sources = ["",[]]
+    res = "CONTEXT FROM RETRIEVER: \n\n"
+    return [res+first_response+second_response, sources+second_sources]
+
+@function_schema
+def badger_query_retriever(query: str) -> list:
+    """"
+    BADGER DATA RETRIEVER TOOL
+
+    Use this tool to query the Toshiba BADGER knowledge base.
+    Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
+
+    EXAMPLES:
+    Example: query="part number AC01548000"
+    Example: query="What is 2110"
+    Example: query="stock room camera part number"
+    Example: query="assembly name for part number 3AC01548000"
+    Example: query="TAL parts list"
+    Example: query="Client Advocates list"
+
+    Essentially, if the user asks "Badger <question>" then the query should be "<question>"
+
+    Never query just the part number. Add a description. For example, if the user asks for "3AC01548000", query with "part number 3AC01548000".
+    If the user asks a query with "MTM <model>" then query with "MTM <model>". For example, if the user asks "What is the part number for the MTM 036-W21 camera?", query with "MTM 036-W21 camera part number".
+    """
+
+    def get_response(url, params):
+    # Make the POST request
+        try:
+            response = requests.post(url, params=params)
+            res = ""
+            sources = []
+            segments = response.json()["selected_segments"][:SEGMENT_NUM]
+            for i,segment in enumerate(segments):
+                res += "*"*5+f"\n\nSegment Begins: "+"\n" #+"Contextual Header: "
+                references = ""
+                for j,chunk in enumerate(segment["chunks"]):
+                    res += f"Chunk {j}: "+chunk["chunk_text"]
+                    pages = re.findall(r"\d+", str(chunk['page_info']))
+                    res += f"\nSource for Chunk {j}: "
+                    for page in pages:
+                        print(chunk["filename"]+f" page {page}")
+                        filename = chunk["filename"].strip(".pdf")
+                        if "page" in filename:
+                            res+=f"{filename}" + f" [aws_id: {filename}]\n"
+                        else:
+                            res += f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}]\n"
+                    if "page" in filename:
+                        sources.append(f"{filename}" + f" [aws_id: {filename}] score: [{round(segment['score'], 2)}]")
+                    else:
+                        sources.append(
+                            f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}] score: [{round(segment['score'], 2)}]")
+
+            res += "Segment Ends\n"+"-"*5+"\n\n"
+
+            return [res, sources]
+        except Exception as e:
+            print(f"Failed to call retriever: {e}")
+            return ["",[]]
+
+    url = os.getenv("BADGER_RETRIEVER_URL") + "/query-chunks"
+    params = {
+        "query": query,
+        "top_k": 60
+    }
+    try:
+        first_response, sources = get_response(url, params)
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+        first_response, sources = ["",[]]
+
+    # params = {
+    #     "query": alt_query,
+    #     "top_k": 60,
+    #     "minimum_value": 0.1
+    # }
+    try:
+        # second_response, second_sources = get_response(url, params)
+        second_response, second_sources = ["", []]
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+        second_response, second_sources = ["",[]]
+    res = "CONTEXT FROM RETRIEVER: \n\n"
+    return [res+first_response+second_response, sources+second_sources]
+
+@function_schema
+def sr_database(query: str) -> list:
+    """"
+    SERVICE REQUEST DATABASE TOOL
+
+    Use this tool to query the Toshiba Service Request database.
+    Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
+
+    EXAMPLES:
+    query = "What are the SR tickets closed on 2024-11-06 and who resolved them?"
+    query = "Which SRs were resolved between 2024-11-05 and 2024-11-07?"
+    query = "Which SRs closed in Florida and who handled them?"
+    query = "What tickets were handled by Jason Hechler?"
+    """
+    st_url = os.getenv("SR_DATABASE_URL")+"/query-sr"
+    params = {
+        "query": query
+    }
+    try:
+        print(st_url)
+        print(params)
+        response = requests.post(st_url, params=params)
+        print(response.json())
+        res = response.json()["answer"]
+        return [res, []]
+    except Exception as e:
+        print(f"Failed to call SR database: {e}")
+        return []
 
 tool_store = {
     "query_retriever": query_retriever,
@@ -730,6 +1177,12 @@ tool_store = {
     "tractor_query_retriever": tractor_query_retriever,
     "ross_query_retriever": ross_query_retriever,
     "wegmans_query_retriever": wegmans_query_retriever,
+    "costco_query_retriever": costco_query_retriever,
+    "whole_foods_query_retriever": whole_foods_query_retriever,
+    "bjs_query_retriever": bjs_query_retriever,
+    "alex_lee_query_retriever": alex_lee_query_retriever,
+    "badger_query_retriever": badger_query_retriever,
+    "sr_database": sr_database,
 }
 
 
@@ -742,6 +1195,12 @@ tool_schemas = {
     "tractor_query_retriever": tractor_query_retriever.openai_schema,
     "ross_query_retriever": ross_query_retriever.openai_schema,
     "wegmans_query_retriever": wegmans_query_retriever.openai_schema,
+    "costco_query_retriever": costco_query_retriever.openai_schema,
+    "whole_foods_query_retriever": whole_foods_query_retriever.openai_schema,
+    "bjs_query_retriever": bjs_query_retriever.openai_schema,
+    "alex_lee_query_retriever": alex_lee_query_retriever.openai_schema,
+    "badger_query_retriever": badger_query_retriever.openai_schema,
+    "sr_database": sr_database.openai_schema,
 }
 
 # for key in query_retriever.openai_schema["function"]:
