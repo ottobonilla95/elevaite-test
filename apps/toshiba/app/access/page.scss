@@ -1,0 +1,10 @@
+.access-main-container {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 20px;
+  padding: 20px;
+
+  color: var(--ev-colors-text);
+  background-color: var(--ev-colors-background);
+}

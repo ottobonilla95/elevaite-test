@@ -16,6 +16,7 @@
     padding: 10px 32px;
     justify-content: space-between;
     align-items: center;
+    width: 100%;
   }
 
   & .navbar-left,
@@ -34,6 +35,7 @@
   }
   & .navbar-right {
     flex-grow: 0;
+    margin-left: auto;
   }
 
   & button.help-button {
