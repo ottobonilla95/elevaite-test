@@ -17,7 +17,7 @@ def generate_secure_password(length: int = 16) -> str:
     lowercase = string.ascii_lowercase
     uppercase = string.ascii_uppercase
     digits = string.digits
-    special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+    special_chars = '!@#$%^&*(),.?":{}|<>'
 
     # Ensure at least one character from each set
     password = [

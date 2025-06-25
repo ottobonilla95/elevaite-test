@@ -1,12 +1,10 @@
-"""Authentication routes."""
-
+import re
 from datetime import datetime, timedelta, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-# No security imports needed here as they're imported from app.core.security
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy import and_, update
@@ -817,7 +815,24 @@ async def reset_password(
 class ChangePasswordRequest(BaseModel):
     """Change password request schema."""
 
-    new_password: str = Field(..., min_length=12)
+    new_password: str = Field(..., min_length=9)
+
+    @field_validator("new_password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        if len(v) < 9:
+            raise ValueError("Password must be at least 9 characters")
+
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Password must contain at least one special character")
+
+        return v
 
 
 @router.post("/change-password")

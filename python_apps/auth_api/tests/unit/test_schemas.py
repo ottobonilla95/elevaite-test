@@ -47,7 +47,7 @@ class TestUserCreateSchema:
         }
         with pytest.raises(ValidationError) as exc_info:
             UserCreate(**user_data)
-        assert "String should have at least 12 characters" in str(exc_info.value)
+        assert "String should have at least 9 characters" in str(exc_info.value)
 
     def test_password_no_lowercase(self):
         """Test that a password without lowercase letters fails validation."""
@@ -58,7 +58,9 @@ class TestUserCreateSchema:
         }
         with pytest.raises(ValidationError) as exc_info:
             UserCreate(**user_data)
-        assert "Password must contain at least one lowercase letter" in str(exc_info.value)
+        assert "Password must contain at least one lowercase letter" in str(
+            exc_info.value
+        )
 
     def test_password_no_uppercase(self):
         """Test that a password without uppercase letters fails validation."""
@@ -69,7 +71,9 @@ class TestUserCreateSchema:
         }
         with pytest.raises(ValidationError) as exc_info:
             UserCreate(**user_data)
-        assert "Password must contain at least one uppercase letter" in str(exc_info.value)
+        assert "Password must contain at least one uppercase letter" in str(
+            exc_info.value
+        )
 
     def test_password_no_digit(self):
         """Test that a password without digits fails validation."""
@@ -91,7 +95,9 @@ class TestUserCreateSchema:
         }
         with pytest.raises(ValidationError) as exc_info:
             UserCreate(**user_data)
-        assert "Password must contain at least one special character" in str(exc_info.value)
+        assert "Password must contain at least one special character" in str(
+            exc_info.value
+        )
 
     def test_optional_full_name(self):
         """Test that full_name is optional."""
