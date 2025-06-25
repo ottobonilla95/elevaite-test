@@ -1,8 +1,13 @@
 "use client";
-import {createContext, useContext, useEffect, useState} from "react";
-import {batchEvaluation, fetchPastSessions, fetchSessionSummary, getImageUrl} from "../../lib/actions";
-import {extractSourcesFromText} from "../../lib/sourceUtils";
-import {isSessionObject} from "../../lib/discriminators";
+import { createContext, useContext, useEffect, useState } from "react";
+import {
+  batchEvaluation,
+  fetchPastSessions,
+  fetchSessionSummary,
+  getImageUrl,
+} from "../../lib/actions";
+import { extractSourcesFromText } from "../../lib/sourceUtils";
+import { isSessionObject } from "../../lib/discriminators";
 import {
   CHATBOT_MESSAGE_ID_PREFIX,
   ChatBotGenAI,
@@ -18,10 +23,9 @@ import {
   USER_MESSAGE_ID_PREFIX,
   WindowGrid,
 } from "../../lib/interfaces";
-import {getLoadingMessageFromAgentStatus} from "./ChatContextHelpers";
-import {v4 as uuidv4} from "uuid";
-import {Session} from "next-auth";
-
+import { getLoadingMessageFromAgentStatus } from "./ChatContextHelpers";
+import { v4 as uuidv4 } from "uuid";
+import { Session } from "next-auth";
 
 // STRUCTURE
 
@@ -52,24 +56,48 @@ export interface ChatContextStructure {
 
 export const ChatContext = createContext<ChatContextStructure>({
   sessions: [],
-  addNewSession: () => {/**/ },
-  deleteSessionById: () => {/**/ },
-  clearAllSessions: () => {/**/ },
+  addNewSession: () => {
+    /**/
+  },
+  deleteSessionById: () => {
+    /**/
+  },
+  clearAllSessions: () => {
+    /**/
+  },
   selectedSession: undefined,
-  setSelectedSession: () => {/**/ },
-  setSelectedGenAIBot: () => {/**/ },
+  setSelectedSession: () => {
+    /**/
+  },
+  setSelectedGenAIBot: () => {
+    /**/
+  },
   isChatLoading: false,
   chatLoadingMessage: "",
-  addNewUserMessageToCurrentSession: () => {/**/ },
-  updateMessageVote: () => {/**/ },
-  updateMessageFeedback: () => {/**/ },
-  getSessionSummary: () => {/**/ },
-  removeExpectedDisplayFromSelectedSessionSummary: () => {/**/ },
+  addNewUserMessageToCurrentSession: () => {
+    /**/
+  },
+  updateMessageVote: () => {
+    /**/
+  },
+  updateMessageFeedback: () => {
+    /**/
+  },
+  getSessionSummary: () => {
+    /**/
+  },
+  removeExpectedDisplayFromSelectedSessionSummary: () => {
+    /**/
+  },
   activeWindowGrid: undefined,
-  setActiveWindowGrid: () => {/**/ },
+  setActiveWindowGrid: () => {
+    /**/
+  },
   agentStatus: "Initializing...",
   recentChatsMessage: "Loading recent chats...",
-  setRecentChatsMessage: () => {/**/ },
+  setRecentChatsMessage: () => {
+    /**/
+  },
   processExcelFile: (file: File) => Promise.resolve(),
   userEmail: "",
   isBatchEvaluationUser: false,
@@ -79,24 +107,33 @@ export const ChatContext = createContext<ChatContextStructure>({
 
 interface ChatContextProviderProps {
   children: React.ReactNode;
-  session: Session | null;
 }
 
-export function ChatContextProvider(props: ChatContextProviderProps): JSX.Element {
-  const session = props.session;
-  const [sessions, setSessions] = useState<SessionObject[]>([]);
+export function ChatContextProvider(
+  props: ChatContextProviderProps
+): JSX.Element {
+  const session = useSession();
+  const [sessions, setSessions] = useState<SessionObject[]>([defaultSession]);
   const [selectedSession, setSelectedSession] = useState<SessionObject>();
-  const [selectedGenAIBot, setSelectedGenAIBot] = useState<ChatBotGenAI>(defaultGenAIBotOption);
+  const [selectedGenAIBot, setSelectedGenAIBot] = useState<ChatBotGenAI>(
+    defaultGenAIBotOption
+  );
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- No provisions to change this for now. Leaving it because we will, eventually.
-  const [selectedChatbotV, setSelectedChatbotV] = useState<ChatbotV>(defaultChatbotV);
+  const [selectedChatbotV, setSelectedChatbotV] =
+    useState<ChatbotV>(defaultChatbotV);
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
   const [chatLoadingMessage, setChatLoadingMessage] = useState<string>("");
-  const [activeWindowGrid, setActiveWindowGrid] = useState<WindowGrid | undefined>();
+  const [activeWindowGrid, setActiveWindowGrid] = useState<
+    WindowGrid | undefined
+  >();
   const [agentStatus, setAgentStatus] = useState("Starting...");
-  const [recentChatsMessage, setRecentChatsMessage] = useState("Loading recent chats...");
-  const [userEmail, setUserEmail] = useState<string>(session?.user?.email ?? "");
+  const [recentChatsMessage, setRecentChatsMessage] = useState(
+    "Loading recent chats..."
+  );
+  const [userEmail, setUserEmail] = useState<string>(
+    session?.user?.email ?? ""
+  );
   const [isBatchEvaluationUser, setIsBatchEvaluationUser] = useState(false);
-
 
   // Initializations
   // useEffect(() => {
@@ -107,7 +144,15 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
     if (session) {
       // const allowedEmails = process.env.NEXT_PUBLIC_BATCH_EVALUATION_USERS ?? "";
 
-      const allowedEmails = ["somansh.budhwar@iopex.com","nikhitha.kandula@iopex.com","binu.ramachandran@iopex.com","Walker.Franklin@toshibagcs.com","thomas.conway@toshibagcs.com","dheeraj.kumar@iopex.com","somansh@gmail.com"]
+      const allowedEmails = [
+        "somansh.budhwar@iopex.com",
+        "nikhitha.kandula@iopex.com",
+        "binu.ramachandran@iopex.com",
+        "Walker.Franklin@toshibagcs.com",
+        "thomas.conway@toshibagcs.com",
+        "dheeraj.kumar@iopex.com",
+        "somansh@gmail.com",
+      ];
       console.log("Allowed Emails:", allowedEmails);
       console.log("Session Email:", session?.user?.email);
       console.log("----Chat Context----");
@@ -124,7 +169,7 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
   useEffect(() => {
     if (!selectedSession) return;
     const newSessions = sessions.map((item) =>
-        item.id === selectedSession.id ? selectedSession : item
+      item.id === selectedSession.id ? selectedSession : item
     );
     setSessions(newSessions);
   }, [selectedSession]);
@@ -133,7 +178,9 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
     if (sessions.length === 0) {
       setRecentChatsMessage("Loading recent chats...");
       (async () => {
-        const newSessions = await fetchPastSessions(session?.user?.email ?? "Unknown User");
+        const newSessions = await fetchPastSessions(
+          session?.user?.email ?? "Unknown User"
+        );
         if (newSessions.length === 0) {
           setRecentChatsMessage("No Chats");
         }
@@ -158,27 +205,27 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
   //   }
   // }, [session]);
 
-//   useEffect(() => {
-//   // Whenever we add a session or delete all sessions, select the latest one.
-//   if (sessions.length === 0) {
-//     (async () => {
-//       const newSessions = await fetchPastSessions(session?.user?.email ?? "Unknown User");
-//       //  Mao all the sessions and change the user name to the current user name
-//       newSessions.forEach((item) => {
-//         item.messages.forEach((message) => {
-//           message.userName = session?.user?.name ?? "Unknown User";
-//           if (message.isBot) {
-//             message.sources = await processSources(extractSourcesFromText(message.text ?? "") ?? []);
-//           }
-//         });
-//       });
-//       setSessions([...newSessions, defaultSession]);
-//       setSelectedSession(defaultSession);
-//     })();
-//   } else {
-//     setSelectedSession(sessions[sessions.length - 1]);
-//   }
-// }, [sessions.length]);
+  //   useEffect(() => {
+  //   // Whenever we add a session or delete all sessions, select the latest one.
+  //   if (sessions.length === 0) {
+  //     (async () => {
+  //       const newSessions = await fetchPastSessions(session?.user?.email ?? "Unknown User");
+  //       //  Mao all the sessions and change the user name to the current user name
+  //       newSessions.forEach((item) => {
+  //         item.messages.forEach((message) => {
+  //           message.userName = session?.user?.name ?? "Unknown User";
+  //           if (message.isBot) {
+  //             message.sources = await processSources(extractSourcesFromText(message.text ?? "") ?? []);
+  //           }
+  //         });
+  //       });
+  //       setSessions([...newSessions, defaultSession]);
+  //       setSelectedSession(defaultSession);
+  //     })();
+  //   } else {
+  //     setSelectedSession(sessions[sessions.length - 1]);
+  //   }
+  // }, [sessions.length]);
 
   // useEffect(() => {
   //   // Whenever we add a session or delete all sessions, select the latest one.
@@ -197,20 +244,18 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
   function addNewSession(): void {
     // Find highest id
     const sessionIdNumbersList = sessions.map((item) =>
-        Number(item.id.slice(SESSION_ID_PREFIX.length))
+      Number(item.id.slice(SESSION_ID_PREFIX.length))
     );
     // New id will be highest +1
     const newIdNumber =
-        sessionIdNumbersList.length > 0
-            ? Math.max(...sessionIdNumbersList) + 1
-            : 0;
+      sessionIdNumbersList.length > 0
+        ? Math.max(...sessionIdNumbersList) + 1
+        : 0;
     const newId = SESSION_ID_PREFIX + newIdNumber.toString();
     // New Session
     const newSession: SessionObject = {
-      // id: newId,
-      // label: `Session ${(newIdNumber + 1).toString()}`,
-      id: uuidv4().toString(),
-      label: `Session`,
+      id: newId,
+      label: `Session ${(newIdNumber + 1).toString()}`,
       messages: [],
       creationDate: new Date().toISOString(),
     };
@@ -222,9 +267,9 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
     const foundSession = sessions.find((item) => item.id === sessionId);
     if (!foundSession) return;
     setSessions((current) =>
-        current.filter((item) => {
-          return item.id !== sessionId;
-        })
+      current.filter((item) => {
+        return item.id !== sessionId;
+      })
     );
   }
 
@@ -237,13 +282,12 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
       // Create FormData inside the server action
       console.log("Processing file in ChatContext:", file);
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('user_id', session?.user?.email ?? "Unknown User");
+      formData.append("file", file);
+      formData.append("user_id", session?.user?.email ?? "Unknown User");
       console.log("Form Data:", formData);
       setActiveWindowGrid(WindowGrid.active);
       // addNewUserMessageToCurrentSession("Processing file...");
       setIsChatLoading(true);
-
 
       const result = await batchEvaluation(formData);
       deleteSessionById(selectedSession?.id ?? "");
@@ -258,7 +302,6 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
         setSessions((currentSessions) => [...currentSessions, newSession]);
         setSelectedSession(newSession);
         setIsChatLoading(false);
-
       }
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -287,10 +330,10 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
         : 0
       ).toString();
     const newMessage: ChatMessageObject = {
-      id: uuidv4().toString(),
+      id: newId,
       date: new Date().toISOString(),
       isBot: false,
-      userName: session?.user?.name ?? "Unknown User",
+      userName: session.data?.user?.name ?? "Unknown User",
       text: messageText,
     };
     const newSession = updateSessionListWithNewMessage(
@@ -312,67 +355,11 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
 
   function updateMessageVote(messageId: string, passedVote: -1 | 0 | 1): void {
     if (!selectedSession) return;
-
-    // Update the UI state
     const newMessageList = [...selectedSession.messages].map((item) =>
       item.id === messageId ? { ...item, vote: passedVote } : item
     );
     const newSelectedSession = { ...selectedSession, messages: newMessageList };
     setSelectedSession(newSelectedSession);
-
-    // Get the current message
-    const currentMessage = selectedSession.messages.find(
-      (item) => item.id === messageId
-    );
-
-    if (!currentMessage) return;
-
-    // Send the vote to the backend
-    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
-
-    // Get the user ID (using the first message's userName as a fallback)
-    const userId = session?.user?.id ??
-      session?.user?.name ??
-      currentMessage.userName ??
-      "Unknown User";
-
-    // Ensure we have valid UUIDs
-    let messageUuid = currentMessage.id;
-    let sessionUuid = selectedSession.id;
-
-    // Check if the IDs are already valid UUIDs
-    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-    // If not a valid UUID, generate a new one
-    if (!uuidPattern.test(messageUuid)) {
-      messageUuid = uuidv4().toString();
-      console.log(`Generated new UUID for message: ${messageUuid}`);
-    }
-
-    if (!uuidPattern.test(sessionUuid)) {
-      sessionUuid = uuidv4().toString();
-      console.log(`Generated new UUID for session: ${sessionUuid}`);
-    }
-
-    fetch(`${BACKEND_URL}vote`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message_id: messageUuid,
-        user_id: userId,
-        vote: passedVote,
-        session_id: sessionUuid
-      }),
-    })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Vote update success:', data);
-      })
-      .catch((error: unknown) => {
-        console.error('Error updating vote:', error);
-      });
   }
 
   function updateMessageFeedback(
@@ -380,70 +367,11 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
     passedFeedback: string
   ): void {
     if (!selectedSession) return;
-
-    // Get the current message to check if feedback has changed
-    const currentMessage = selectedSession.messages.find(
-      (item) => item.id === messageId
+    const newMessageList = [...selectedSession.messages].map((item) =>
+      item.id === messageId ? { ...item, feedback: passedFeedback } : item
     );
-
-    if (!currentMessage) return;
-
-    // Only send to backend if feedback has changed
-    if (currentMessage.feedback !== passedFeedback) {
-      // Update the UI state
-      const newMessageList = [...selectedSession.messages].map((item) =>
-        item.id === messageId ? { ...item, feedback: passedFeedback } : item
-      );
-      const newSelectedSession = { ...selectedSession, messages: newMessageList };
-      setSelectedSession(newSelectedSession);
-
-      // Send the feedback to the backend
-      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
-
-      // Get the user ID (using the first message's userName as a fallback)
-      const userId = session?.user?.id ??
-        session?.user?.name ??
-        currentMessage.userName ??
-        "Unknown User";
-
-      // Ensure we have valid UUIDs
-      let messageUuid = currentMessage.id;
-      let sessionUuid = selectedSession.id;
-
-      // Check if the IDs are already valid UUIDs
-      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-      // If not a valid UUID, generate a new one
-      if (!uuidPattern.test(messageUuid)) {
-        messageUuid = uuidv4().toString();
-        console.log(`Generated new UUID for message: ${messageUuid}`);
-      }
-
-      if (!uuidPattern.test(sessionUuid)) {
-        sessionUuid = uuidv4().toString();
-        console.log(`Generated new UUID for session: ${sessionUuid}`);
-      }
-
-      fetch(`${BACKEND_URL}feedback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message_id: messageUuid,
-          user_id: userId,
-          feedback: passedFeedback,
-          session_id: sessionUuid
-        }),
-      })
-        .then(response => response.json())
-        .then(data => {
-          console.log('Feedback update success:', data);
-        })
-        .catch((error: unknown) => {
-          console.error('Error updating feedback:', error);
-        });
-    }
+    const newSelectedSession = { ...selectedSession, messages: newMessageList };
+    setSelectedSession(newSelectedSession);
   }
 
   function updateCurrentSessionWithSummary(
@@ -470,7 +398,7 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
   //   passedSession: SessionObject
   // ): Promise<void> {
   //
-  //   // const userId = session?.user?.id;
+  //   // const userId = session.data?.user?.id;
   //   // For testing purposes, we are using a hardcoded userId
   //   const userId = "testUserId"; // Replace with actual user ID logic
   //   if (!userId) return;
@@ -521,12 +449,9 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
     messageText: string,
     passedSession: SessionObject
   ): Promise<void> {
-    const userId = session?.user?.email ??
-      session?.user?.name ??
-      session?.user?.id ??
-      "Unknown User";
+    // const userId = session.data?.user?.id;
     // For testing purposes, we are using a hardcoded userId
-    // const userId = "testUserId"; // Replace with actual user ID logic
+    const userId = "testUserId"; // Replace with actual user ID logic
     if (!userId) return;
     await handleServerChatbotResponse(userId, messageText, passedSession);
   }
@@ -535,88 +460,19 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
     if (event.data && typeof event.data === "string") {
       setChatLoadingMessage(getLoadingMessageFromAgentStatus(event.data));
     }
-
   }
 
-//   async function processSources(extractedSources: any[]): Promise<any[]> {
-//   let sources = extractedSources;
-//
-//   // If no sources were extracted, use the default source
-//   if (!sources || sources.length === 0) {
-//     sources = [];
-//   } else {
-//     // For extracted sources that don't have URLs, try to get them
-//     for (const source of sources) {
-//       if (!source.url) {
-//         // If we have an awsLink, use that to generate the URL
-//         if (source.awsLink) {
-//           try {
-//             console.log("Using awsLink to generate URL:", source.awsLink);
-//             const imageFilename = `${source.awsLink}.png`;
-//             console.log("Image filename:", imageFilename);
-//             const imageUrl = await getImageUrl(imageFilename);
-//             console.log("Generated image URL:", imageUrl);
-//             if (imageUrl) {
-//               source.url = imageUrl;
-//             }
-//           } catch (error) {
-//             console.error("Error getting image URL from awsLink:", error);
-//           }
-//         } else {
-//           // Fallback to the old method if no awsLink is available
-//           const pageNum = source.pages.split(",")[0].split("-")[0].trim();
-//           const imageFilename = `${source.filename.replace(".pdf", "")}_page_${pageNum}.png`;
-//           try {
-//             const imageUrl = await getImageUrl(imageFilename);
-//             if (imageUrl) {
-//               source.url = imageUrl;
-//             }
-//           } catch (error) {
-//             console.error("Error getting image URL:", error);
-//           }
-//         }
-//       }
-//     }
-//   }
-//
-//   return sources;
-// }
-  async function processSources(extractedSources: any[]): Promise<any[]> {
-    if (!extractedSources?.length) return [];
-
-    return Promise.all(extractedSources.map(async (source) => {
-      if (source.url) return source;
-
-      try {
-        let imageFilename;
-        if (source.awsLink) {
-          imageFilename = `${source.awsLink}.png`;
-        } else {
-          const pageNum = source.pages?.split(",")?.[0]?.split("-")?.[0]?.trim();
-          imageFilename = `${source.filename?.replace(".pdf", "")}_page_${pageNum}.png`;
-        }
-
-        const imageUrl = await getImageUrl(imageFilename);
-        if (imageUrl) source.url = imageUrl;
-      } catch (error) {
-        console.error("Error getting image URL:", error);
-      }
-
-      return source;
-    }));
-  }
   async function handleServerChatbotResponse(
     userId: string,
     messageText: string,
     passedSession: SessionObject
   ): Promise<void> {
-    if (!selectedSession) return;
     setIsChatLoading(true);
     console.log("Starting to fetch chatbot response");
 
     // 1. Create a placeholder for the bot message that will be updated as chunks arrive
     const placeholderBotMessage: ChatMessageObject = {
-      id: uuidv4().toString(),
+      id: `bot-message-${Date.now()}`,
       isBot: true,
       date: new Date().toISOString(),
       text: "",
@@ -625,12 +481,10 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
       // Add any other required fields for your ChatMessageObject type
     };
 
-    updateSessionListWithNewMessage(placeholderBotMessage, passedSession);
-
     // 2. Add the placeholder message to the session
     const sessionWithPlaceholder = {
       ...passedSession,
-      messages: [...passedSession.messages, placeholderBotMessage]
+      messages: [...passedSession.messages, placeholderBotMessage],
     };
     setSelectedSession(sessionWithPlaceholder); // Assuming you have a state setter for current session
 
@@ -657,20 +511,22 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
 
     try {
       // 4. Fetch using streaming approach
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL ?? ""}run`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query: messageText,
-          qid: placeholderBotMessage.id,
-          uid: userId,
-          sid: passedSession.id,
-          messages: passedSession.messages.slice(-12), // Keeping your context window
-          collection: selectedGenAIBot,
-        }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL ?? ""}run`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: messageText,
+            uid: userId,
+            sid: passedSession.id,
+            messages: passedSession.messages.slice(-6), // Keeping your context window
+            collection: selectedGenAIBot,
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
@@ -693,7 +549,7 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
           const lines = chunk;
           for (const line of lines) {
             // if (line.startsWith('data: ')) {
-            const eventData = line
+            const eventData = line;
             if (eventData) {
               // Update accumulated text
               accumulatedText += eventData;
@@ -701,7 +557,7 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
               // Update the bot message in the session
               const updatedSession = {
                 ...sessionWithPlaceholder,
-                messages: sessionWithPlaceholder.messages.map(msg =>
+                messages: sessionWithPlaceholder.messages.map((msg) =>
                   msg.id === placeholderBotMessage.id
                     ? { ...msg, text: accumulatedText }
                     : msg
@@ -711,88 +567,30 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
               setSelectedSession(updatedSession);
 
               // Also update session list if you maintain separate state for that
-              // updateSessionInList(updatedSession);
+              updateSessionInList(updatedSession);
             }
           }
           // }
         }
 
-        console.log("accumulatedText:", accumulatedText);
-
-        // Extract source information from the accumulated text
-        const extractedSources = extractSourcesFromText(accumulatedText);
-        console.log("extractedSources:", extractedSources);
-
-        // If we have sources from the text, use them
-        // Otherwise, use the default source (for backward compatibility)
-        // let sources = extractedSources;
-        //
-        // // If no sources were extracted, use the default source
-        // if (!sources || sources.length === 0) {
-        //   // const imageFilename = "6800 Hardware Service Guide (2)_page_41.png";
-        //   // const imageUrl = await getImageUrl(imageFilename);
-        //   // console.log("imageUrl:", imageUrl);
-        //
-        //   sources = [];
-        // } else {
-        //   // For extracted sources that don't have URLs, try to get them
-        //   for (const source of sources) {
-        //     if (!source.url) {
-        //       // If we have an awsLink, use that to generate the URL
-        //       if (source.awsLink) {
-        //         try {
-        //           // The awsLink is already in the format we need for getImageUrl
-        //           console.log("Using awsLink to generate URL:", source.awsLink);
-        //           const imageFilename = `${source.awsLink}.png`;
-        //           console.log("Image filename:", imageFilename);
-        //           const imageUrl = await getImageUrl(imageFilename);
-        //           console.log("Generated image URL:", imageUrl);
-        //           if (imageUrl) {
-        //             source.url = imageUrl;
-        //           }
-        //         } catch (error) {
-        //           console.error("Error getting image URL from awsLink:", error);
-        //         }
-        //       } else {
-        //         // Fallback to the old method if no awsLink is available
-        //         const pageNum = source.pages.split(",")[0].split("-")[0].trim();
-        //         const imageFilename = `${source.filename.replace(".pdf", "")}_page_${pageNum}.png`;
-        //         try {
-        //           const imageUrl = await getImageUrl(imageFilename);
-        //           if (imageUrl) {
-        //             source.url = imageUrl;
-        //           }
-        //         } catch (error) {
-        //           console.error("Error getting image URL:", error);
-        //         }
-        //       }
-        //     }
-        //   }
-        // }
-        const sources = await processSources(extractedSources ?? []);
-
-        const final_text = accumulatedText;
-        console.log("final_text:", final_text);
-
         // 6. After streaming is complete, finalize the message
         const finalMessage: ChatMessageObject = {
           ...placeholderBotMessage,
-          text: final_text,
+          text: accumulatedText,
           isStreaming: false, // Mark as no longer streaming
-          sources: sources
         };
 
         // Update the session with the complete message
         const finalSession = {
           ...sessionWithPlaceholder,
-          messages: sessionWithPlaceholder.messages.map(msg =>
+          messages: sessionWithPlaceholder.messages.map((msg) =>
             msg.id === placeholderBotMessage.id ? finalMessage : msg
-          )
+          ),
         };
 
         updateSessionListWithNewMessage(finalMessage, passedSession);
         setSelectedSession(finalSession);
-        // updateSessionInList(finalSession);
+        updateSessionInList(finalSession);
       }
     } catch (error) {
       console.error("Error in chatbot response:", error);
@@ -800,7 +598,9 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
       // Remove the placeholder message on error or show an error state
       const sessionWithoutPlaceholder = {
         ...passedSession,
-        messages: passedSession.messages.filter(msg => msg.id !== placeholderBotMessage.id)
+        messages: passedSession.messages.filter(
+          (msg) => msg.id !== placeholderBotMessage.id
+        ),
       };
       setSelectedSession(sessionWithoutPlaceholder);
 
@@ -821,23 +621,23 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
 
   // Helper function to update a session in your session list
   // Implement this based on your state management approach
-  // function updateSessionInList(updatedSession: SessionObject): void {
-  //   // Example implementation:
-  //   setSessions(prevSessions =>
-  //     prevSessions.map(session =>
-  //       session.id === updatedSession.id ? updatedSession : session
-  //     )
-  //   );
-  // }
+  function updateSessionInList(updatedSession: SessionObject): void {
+    // Example implementation:
+    setSessions((prevSessions) =>
+      prevSessions.map((session) =>
+        session.id === updatedSession.id ? updatedSession : session
+      )
+    );
+  }
 
   function getSessionSummary(): void {
-    const userId = session?.user?.id;
+    const userId = session.data?.user?.id;
     if (!userId || !selectedSession) return;
     // If we already have the summary and the length of the messages hasn't changed, serve it again.
     if (
       selectedSession.summary?.sessionMessageLengthOnLastUpdate &&
       selectedSession.summary.sessionMessageLengthOnLastUpdate ===
-      selectedSession.messages.length
+        selectedSession.messages.length
     ) {
       updateCurrentSessionWithSummary(
         selectedSession.summary,
@@ -931,7 +731,7 @@ export function ChatContextProvider(props: ChatContextProviderProps): JSX.Elemen
         setRecentChatsMessage,
         processExcelFile,
         userEmail,
-        isBatchEvaluationUser
+        isBatchEvaluationUser,
       }}
     >
       {props.children}

@@ -1,25 +1,6 @@
 "use server";
 import { AuthError } from "next-auth";
 import { signIn, signOut, auth } from "../../auth";
-import { redirect } from "next/navigation";
-import {
-  type ChatMessageResponse,
-  type ChatBotGenAI,
-  type ChatbotV,
-  type ChatMessageObject,
-  type SessionSummaryObject,
-  SessionObject,
-} from "./interfaces";
-import {
-  isChatMessageResponse,
-  isPastSessionsResponse,
-  isSessionSummaryResponse,
-} from "./discriminators";
-import { headers } from "next/headers";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
-const FRONTEND_URL =
-  process.env.NEXT_PUBLIC_FRONTEND_URL ?? "https://tgcs.iopex.ai";
 
 export async function authenticate(
   _prevState: string | undefined,
@@ -27,11 +8,16 @@ export async function authenticate(
 ): Promise<
   | "Invalid credentials."
   | "Email not verified."
+  | "Admin access required."
   | "Something went wrong."
   | undefined
 > {
   try {
-    await signIn("credentials", formData);
+    await signIn("credentials", {
+      ...formData,
+      redirect: true,
+      callbackUrl: "/",
+    });
     return undefined;
   } catch (error) {
     if (error instanceof AuthError) {
@@ -40,15 +26,66 @@ export async function authenticate(
           return "Invalid credentials.";
         default:
           // Check if this is an email verification error
-          if (error.message?.includes("email_not_verified")) {
+          if (error.message.includes("email_not_verified")) {
             return "Email not verified.";
+          }
+          // Check if this is an admin access required error
+          if (error.message.includes("admin_access_required")) {
+            return "Admin access required.";
           }
           return "Something went wrong.";
       }
     }
     // Check for custom errors
-    if (error instanceof Error && error.message === "email_not_verified") {
-      return "Email not verified.";
+    if (error instanceof Error) {
+      if (error.message === "email_not_verified") {
+        return "Email not verified.";
+      }
+      if (error.message === "admin_access_required") {
+        return "Admin access required.";
+      }
+    }
+    throw error;
+  }
+}
+
+export async function authenticateGoogle(): Promise<
+  | "Invalid credentials."
+  | "Email not verified."
+  | "Admin access required."
+  | "Something went wrong."
+  | undefined
+> {
+  try {
+    await signIn("google", {
+      redirect: true,
+      callbackUrl: "/",
+    });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case "CredentialsSignin":
+          return "Invalid credentials.";
+        default:
+          // Check if this is an email verification error
+          if (error.message.includes("email_not_verified")) {
+            return "Email not verified.";
+          }
+          // Check if this is an admin access required error
+          if (error.message.includes("admin_access_required")) {
+            return "Admin access required.";
+          }
+          return "Something went wrong.";
+      }
+    }
+    // Check for custom errors
+    if (error instanceof Error) {
+      if (error.message === "email_not_verified") {
+        return "Email not verified.";
+      }
+      if (error.message === "admin_access_required") {
+        return "Admin access required.";
+      }
     }
     throw error;
   }
@@ -87,176 +124,39 @@ export async function logout(): Promise<void> {
       }
     }
   } catch (error) {
+    console.error("Error during logout preparation:", error);
     // Continue with NextAuth signOut even if preparation fails
   }
 
   await signOut({ redirectTo: "/login" });
 }
 
-export async function recoverSession(): Promise<boolean> {
-  try {
-    const session = await auth();
-    const accessToken = session?.authToken ?? session?.user?.accessToken;
-
-    if (!accessToken) {
-      return false;
-    }
-
-    const authApiUrl = process.env.AUTH_API_URL;
-    if (!authApiUrl) {
-      return false;
-    }
-
-    const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
-    const tenantId = process.env.AUTH_TENANT_ID ?? "default";
-
-    const response = await fetch(`${apiUrl}/api/auth/recover-session`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-        "X-Tenant-ID": tenantId,
-      },
-    });
-
-    if (response.ok) {
-      console.log("Session recovery successful");
-      return true;
-    } else {
-      console.error("Session recovery failed:", response.status);
-      return false;
-    }
-  } catch (error) {
-    console.error("Error during session recovery:", error);
-    return false;
-  }
-}
-
-export async function fetchChatbotResponse(
-  userId: string,
-  messageText: string,
-  sessionId: string,
-  messageHistory: ChatMessageObject[],
-  chatbotV: ChatbotV,
-  chatbotGenAi: ChatBotGenAI
-): Promise<ChatMessageResponse> {
-  const url = `${BACKEND_URL ?? ""}run`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query: messageText,
-      uid: userId,
-      sid: sessionId,
-      messages: messageHistory.slice(-6),
-      collection: chatbotGenAi,
-    }),
-  });
-  if (!response.ok) throw new Error("Failed to fetch");
-  const data: unknown = await response.json();
-  if (isChatMessageResponse(data)) return data;
-  throw new Error("Invalid data type");
-}
-
-export async function fetchSessionSummary(
-  userId: string,
-  sessionId: string
-): Promise<SessionSummaryObject> {
-  const url = new URL(
-    `${BACKEND_URL ?? ""}summarization?uid=${userId}&sid=${sessionId}`
-  );
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Failed to fetch");
-  const data: unknown = await response.json();
-  if (isSessionSummaryResponse(data)) return data;
-  throw new Error("Invalid data type");
-}
-
-export async function getImageUrl(
-  filename: string
-): Promise<string | undefined> {
-  "use server";
-  console.log("getImageUrl: ", filename);
-  const headersList = headers();
-  // console.log("Headerlist read",headersList);
-  // read the custom x-url header
-  // console.log(headersList.get('x-url'));
-  // const headerUrl = new URL(headersList.get('x-url') ?? "");
-  const headerUrl = new URL(FRONTEND_URL);
-  console.log("HeaderURL: ", headerUrl);
-
-  try {
-    const _url = new URL(`${headerUrl.origin}/api/images`);
-    _url.searchParams.set("filename", filename);
-    console.log("getImageUrl: ", _url.toString());
-    // const response = await fetch(_url);
-    // if (!response.ok) {
-    //   throw new Error('Failed to fetch image');
-    // }
-    // const data = await response.text()
-    // return data
-    return _url.toString();
-  } catch (error) {
-    // eslint-disable-next-line no-console -- nah, I want it here for now
-    console.error("Error fetching image:", error);
-  }
-}
-
+// Server action for resetting password
 export async function resetPassword(newPassword: string): Promise<{
   success: boolean;
   message: string;
   needsPasswordReset?: boolean;
 }> {
-  console.log(
-    "Server Action - resetPassword called with password length:",
-    newPassword.length
-  );
-
   try {
     // Get the auth token from the session
     const session = await auth();
-    console.log("Server Action - Session:", session?.user?.email);
-    console.log(
-      "Server Action - Full session:",
-      JSON.stringify(session, null, 2)
-    );
 
     // Check for access token in different possible locations
     const accessToken =
       session?.authToken ??
       session?.user?.accessToken ??
-      (session as { accessToken?: string })?.accessToken;
+      (session as { accessToken?: string }).accessToken;
 
     if (!accessToken) {
-      console.error("Server Action - No auth token found in session");
-      console.error(
-        "Server Action - Session keys:",
-        Object.keys(session ?? {})
-      );
-      if (session?.user) {
-        console.error("Server Action - User keys:", Object.keys(session.user));
-      }
       throw new Error("No auth token found in session");
     }
 
     const authApiUrl = process.env.AUTH_API_URL;
     if (!authApiUrl) {
-      console.error(
-        "Server Action - AUTH_API_URL not found in environment variables"
-      );
       throw new Error("AUTH_API_URL not found in environment variables");
     }
 
     const tenantId = process.env.AUTH_TENANT_ID ?? "default";
-
-    console.log(
-      "Server Action - Resetting password for user:",
-      session?.user?.email ?? "unknown"
-    );
-    console.log("Server Action - Using auth API URL:", authApiUrl);
-    console.log("Server Action - Using tenant ID:", tenantId);
 
     // Explicitly use IPv4 address instead of localhost to avoid IPv6 issues
     const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
@@ -275,10 +175,6 @@ export async function resetPassword(newPassword: string): Promise<{
     });
 
     // Debug logging
-    console.log(
-      "Server Action - Password reset response status:",
-      response.status
-    );
 
     if (!response.ok) {
       const errorData: unknown = await response.json();
@@ -323,9 +219,6 @@ export async function resetPassword(newPassword: string): Promise<{
       };
     }
 
-    const responseData = await response.json();
-    console.log("Server Action - Password reset successful:", responseData);
-
     // The auth-api will invalidate all sessions for this user,
     // so the user will need to log in again with their new password
     // Also explicitly return that the user no longer needs to reset their password
@@ -335,7 +228,6 @@ export async function resetPassword(newPassword: string): Promise<{
       needsPasswordReset: false, // Explicitly set to false after successful password reset
     };
   } catch (error) {
-    console.error("Server Action - Error resetting password:", error);
     return {
       success: false,
       message:

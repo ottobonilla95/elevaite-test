@@ -1,8 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
+export async function POST(req: NextRequest) {
   try {
-    const { email } = (await req.json()) as { email: string };
+    const { email } = await req.json();
 
     if (!email || typeof email !== "string" || !email.includes("@")) {
       return NextResponse.json(
@@ -11,16 +11,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const authApiUrl = process.env.AUTH_API_URL ?? "http://localhost:8004";
+    // Call the auth API to send a password reset email
+    const authApiUrl = process.env.AUTH_API_URL;
 
+    // Use IPv4 explicitly to avoid IPv6 connection issues
     const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 5000);
+    console.log(
+      `Connecting to auth API at: ${apiUrl}/api/auth/forgot-password`
+    );
 
-    let response: Response;
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+    let response;
     try {
       response = await fetch(`${apiUrl}/api/auth/forgot-password`, {
         method: "POST",
@@ -31,36 +36,45 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         signal: controller.signal,
       });
 
+      // Clear the timeout
       clearTimeout(timeoutId);
     } catch (fetchError) {
+      // Clear the timeout
       clearTimeout(timeoutId);
 
-      if ((fetchError as Error).name === "AbortError") {
+      // Check if the request was aborted due to timeout
+      if (fetchError.name === "AbortError") {
         throw new Error(
           "Request timed out. The auth API is taking too long to respond."
         );
       }
 
+      // Re-throw the original error
       throw fetchError;
     }
 
     if (!response.ok) {
-      const errorData = (await response.json()) as { detail?: string };
+      const errorData = await response.json();
       return NextResponse.json(
-        { message: errorData.detail ?? "Failed to process request" },
+        { message: errorData.detail || "Failed to process request" },
         { status: response.status }
       );
     }
 
+    // Return success response
     return NextResponse.json(
       { message: "Password reset email sent successfully" },
       { status: 200 }
     );
   } catch (error) {
+    console.error("Error in forgot-password API route:", error);
+
+    // Provide more detailed error information
     let errorMessage = "Internal server error";
     if (error instanceof Error) {
       errorMessage = `${error.name}: ${error.message}`;
 
+      // Check for network errors
       if (error.message.includes("ECONNREFUSED")) {
         errorMessage = `Could not connect to auth API. Please ensure the auth API is running and accessible at the configured URL.`;
       }

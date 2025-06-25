@@ -1,29 +1,31 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../auth";
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
+export async function POST(req: NextRequest) {
   try {
+    // Get the auth token from the session
     const session = await auth();
+    console.log("Change Password API - Session:", session?.user?.email);
 
+    // Check for access token in different possible locations
     const accessToken =
       session?.authToken ??
       session?.user?.accessToken ??
       (session as { accessToken?: string }).accessToken;
 
     if (!accessToken) {
+      console.error("Change Password API - No auth token found in session");
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }
       );
     }
 
-    const body = (await req.json()) as {
-      newPassword?: string;
-      tenantId?: string;
-    };
-    const { newPassword, tenantId: requestTenantId } = body;
+    // Parse the request body
+    const body = await req.json();
+    const { new_password, tenant_id } = body;
 
-    if (!newPassword) {
+    if (!new_password) {
       return NextResponse.json(
         { error: "New password is required" },
         { status: 400 }
@@ -32,6 +34,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const authApiUrl = process.env.AUTH_API_URL;
     if (!authApiUrl) {
+      console.error(
+        "Change Password API - AUTH_API_URL not found in environment variables"
+      );
       return NextResponse.json(
         { error: "Server configuration error" },
         { status: 500 }
@@ -40,8 +45,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // Explicitly use IPv4 address instead of localhost to avoid IPv6 issues
     const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
-    const tenantId = requestTenantId ?? process.env.AUTH_TENANT_ID ?? "default";
+    const tenantId = tenant_id || process.env.AUTH_TENANT_ID || "default";
 
+    console.log("Change Password API - Using auth API URL:", apiUrl);
+    console.log("Change Password API - Using tenant ID:", tenantId);
+
+    // Call the auth-api to change the password
     const response = await fetch(`${apiUrl}/api/auth/change-password`, {
       method: "POST",
       headers: {
@@ -50,22 +59,35 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         "X-Tenant-ID": tenantId,
       },
       body: JSON.stringify({
-        new_password: newPassword,
+        new_password,
       }),
     });
 
-    if (!response.ok) {
-      const errorData = (await response.json()) as { detail?: string };
+    // Debug logging
+    console.log(
+      "Change Password API - Password reset response status:",
+      response.status
+    );
 
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Change Password API - Password reset error:", errorData);
       return NextResponse.json(
         {
           success: false,
-          message: errorData.detail ?? "Failed to reset password",
+          message: errorData.detail || "Failed to reset password",
         },
         { status: response.status }
       );
     }
 
+    const responseData = await response.json();
+    console.log(
+      "Change Password API - Password reset successful:",
+      responseData
+    );
+
+    // Return success response
     return NextResponse.json(
       {
         success: true,
@@ -75,6 +97,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       { status: 200 }
     );
   } catch (error) {
+    console.error("Change Password API - Error:", error);
     return NextResponse.json(
       {
         success: false,

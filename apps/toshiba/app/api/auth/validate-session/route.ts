@@ -1,10 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../auth";
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
+export async function GET(req: NextRequest) {
   try {
     // Get the auth token from the session
     const session = await auth();
+    console.log("Validate Session API - Session:", session?.user?.email);
 
     // Check for access token and refresh token
     const accessToken = session?.authToken;
@@ -12,10 +13,21 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     // Get refresh token from the request header (sent by the client)
     // This is important because the client might have the refresh token in localStorage
     // even if it's not in the session object
-    const refreshToken =
-      req.headers.get("x-refresh-token") ?? session?.user?.refreshToken ?? "";
+    let refreshToken =
+      req.headers.get("x-refresh-token") || session?.user?.refreshToken || "";
+
+    console.log("Validate Session API - Access token exists:", !!accessToken);
+    console.log("Validate Session API - Refresh token exists:", !!refreshToken);
+
+    if (refreshToken) {
+      console.log(
+        "Validate Session API - Refresh token prefix:",
+        refreshToken.substring(0, 10)
+      );
+    }
 
     if (!accessToken) {
+      console.error("Validate Session API - No auth token found in session");
       return NextResponse.json(
         { valid: false, reason: "no_token" },
         { status: 401 }
@@ -25,6 +37,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     // Get the auth API URL
     const authApiUrl = process.env.AUTH_API_URL;
     if (!authApiUrl) {
+      console.error("Validate Session API - AUTH_API_URL not configured");
       return NextResponse.json(
         { valid: false, reason: "server_config_error" },
         { status: 500 }
@@ -34,13 +47,15 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     // Explicitly use IPv4 address instead of localhost to avoid IPv6 issues
     const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
 
+    console.log(
+      `Validate Session API - Calling ${apiUrl}/api/auth/validate-session`
+    );
+
     // Call the validate-session endpoint with a timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 5000); // 5 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-    let response: Response;
+    let response;
     try {
       response = await fetch(`${apiUrl}/api/auth/validate-session`, {
         method: "POST",
@@ -54,12 +69,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
       // Clear the timeout
       clearTimeout(timeoutId);
-    } catch (fetchError: unknown) {
+    } catch (fetchError) {
       // Clear the timeout
       clearTimeout(timeoutId);
 
+      console.error("Validate Session API - Fetch error:", fetchError);
+
       // Check if it's a timeout
-      if (fetchError instanceof Error && fetchError.name === "AbortError") {
+      if (fetchError.name === "AbortError") {
         return NextResponse.json(
           { valid: false, reason: "timeout" },
           { status: 504 }
@@ -67,14 +84,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       }
 
       // Check for connection refused
-      if (
-        fetchError instanceof Error &&
-        "cause" in fetchError &&
-        fetchError.cause !== null &&
-        typeof fetchError.cause === "object" &&
-        "code" in fetchError.cause &&
-        fetchError.cause.code === "ECONNREFUSED"
-      ) {
+      if (fetchError.cause && fetchError.cause.code === "ECONNREFUSED") {
+        console.error(`Validate Session API - Connection refused to ${apiUrl}`);
         return NextResponse.json(
           { valid: false, reason: "connection_refused" },
           { status: 503 }
@@ -85,11 +96,19 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       throw fetchError;
     }
 
+    console.log("Validate Session API - Response status:", response.status);
+
     if (!response.ok) {
+      console.error(
+        "Validate Session API - Auth API returned error:",
+        response.status
+      );
+
       try {
-        /* empty */
+        const errorData = await response.json();
+        console.error("Validate Session API - Error details:", errorData);
       } catch (e) {
-        /* empty */
+        console.error("Validate Session API - Could not parse error response");
       }
 
       return NextResponse.json(
@@ -99,11 +118,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
 
     // Parse the response
-    const data = (await response.json()) as { valid: boolean };
+    const data = await response.json();
+    console.log("Validate Session API - Response data:", data);
 
     // Return the validation result
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
+    console.error("Validate Session API - Error:", error);
     return NextResponse.json(
       { valid: false, reason: "server_error" },
       { status: 500 }

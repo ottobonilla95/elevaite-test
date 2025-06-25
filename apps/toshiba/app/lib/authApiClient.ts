@@ -24,6 +24,8 @@ export interface UserResponse {
 export interface UserDetailResponse extends UserResponse {
   status: string;
   last_login: string | null;
+  is_superuser: boolean;
+  is_password_temporary: boolean;
 }
 
 export interface RefreshTokenRequest {
@@ -67,6 +69,7 @@ export class AuthApiClient {
    * Login with email and password
    */
   async login(email: string, password: string): Promise<TokenResponse> {
+    // Create AbortController for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
@@ -80,13 +83,11 @@ export class AuthApiClient {
         signal: controller.signal,
       });
 
-      // Clear the timeout
       clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = (await response.json()) as { detail?: string };
 
-        // Check if this is an email verification error
         if (
           response.status === 403 &&
           errorData.detail === "email_not_verified"
@@ -97,9 +98,8 @@ export class AuthApiClient {
         throw new Error(errorData.detail ?? "Login failed");
       }
 
-      return (await response.json()) as TokenResponse;
+      return response.json() as Promise<TokenResponse>;
     } catch (error) {
-      // Clear the timeout
       clearTimeout(timeoutId);
 
       // Check if the request was aborted due to timeout
@@ -109,14 +109,15 @@ export class AuthApiClient {
         );
       }
 
+      // Re-throw the original error
       throw error;
     }
   }
 
   /**
-   * Get user details
+   * Get current user information
    */
-  async getUserDetails(accessToken: string): Promise<UserDetailResponse> {
+  async getCurrentUser(accessToken: string): Promise<UserDetailResponse> {
     // Create AbortController for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -132,7 +133,6 @@ export class AuthApiClient {
         signal: controller.signal,
       });
 
-      // Clear the timeout
       clearTimeout(timeoutId);
 
       if (!response.ok) {
@@ -140,9 +140,8 @@ export class AuthApiClient {
         throw new Error(errorData.detail ?? "Failed to get user information");
       }
 
-      return (await response.json()) as UserDetailResponse;
+      return response.json() as Promise<UserDetailResponse>;
     } catch (error) {
-      // Clear the timeout
       clearTimeout(timeoutId);
 
       // Check if the request was aborted due to timeout
@@ -155,56 +154,24 @@ export class AuthApiClient {
       // Re-throw the original error
       throw error;
     }
-  }
-
-  /**
-   * Get current user information (alias for getUserDetails for compatibility with toshiba_admin)
-   */
-  async getCurrentUser(accessToken: string): Promise<UserDetailResponse> {
-    return this.getUserDetails(accessToken);
   }
 
   /**
    * Refresh access token
    */
   async refreshToken(refreshToken: string): Promise<TokenResponse> {
-    // Create AbortController for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 5000); // 5 second timeout
+    const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
 
-    try {
-      const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
-        method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify({ refresh_token: refreshToken }),
-        signal: controller.signal,
-      });
-
-      // Clear the timeout
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorData = (await response.json()) as { detail?: string };
-        throw new Error(errorData.detail ?? "Failed to refresh token");
-      }
-
-      return (await response.json()) as TokenResponse;
-    } catch (error) {
-      // Clear the timeout
-      clearTimeout(timeoutId);
-
-      // Check if the request was aborted due to timeout
-      if (error instanceof Error && error.name === "AbortError") {
-        throw new Error(
-          `Request timed out. Could not connect to auth API at ${this.baseUrl}`
-        );
-      }
-
-      // Re-throw the original error
-      throw error;
+    if (!response.ok) {
+      const errorData = (await response.json()) as { detail?: string };
+      throw new Error(errorData.detail ?? "Failed to refresh token");
     }
+
+    return response.json() as Promise<TokenResponse>;
   }
 
   /**
@@ -230,29 +197,6 @@ export class AuthApiClient {
       throw new Error(errorData.detail ?? "Registration failed");
     }
 
-    return (await response.json()) as UserResponse;
-  }
-
-  async checkPasswordTemporary(accessToken: string): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.baseUrl}/api/auth/password-status`, {
-        method: "GET",
-        headers: this.getHeaders({
-          Authorization: `Bearer ${accessToken}`,
-        }),
-      });
-
-      if (!response.ok) {
-        // Default to false if we can't check
-        return false;
-      }
-
-      const data = (await response.json()) as { is_temporary: boolean };
-
-      return data.is_temporary;
-    } catch (error) {
-      // Default to false if we can't check
-      return false;
-    }
+    return response.json() as Promise<UserResponse>;
   }
 }

@@ -21,6 +21,8 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // Admin access control is handled in the page components themselves
+
   const needsPasswordReset = session.user.needsPasswordReset === true;
 
   if (request.nextUrl.pathname === "/reset-password") {
