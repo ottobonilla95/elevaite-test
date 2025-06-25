@@ -25,9 +25,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   if (request.nextUrl.pathname === "/reset-password") {
     if (!needsPasswordReset) {
-      return NextResponse.redirect(
-        new URL("/api/auth/signout?callbackUrl=/login", request.url)
-      );
+      return NextResponse.redirect(new URL("/api/logout", request.url));
     }
 
     return NextResponse.next();
