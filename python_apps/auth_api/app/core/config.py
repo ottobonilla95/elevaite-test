@@ -2,7 +2,7 @@ import os
 import secrets
 from typing import List, Union
 
-from pydantic import field_validator
+from pydantic import field_validator, validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv
 
@@ -40,10 +40,22 @@ class Settings(BaseSettings):
     MFA_ENABLED: bool = True
 
     # CORS
-    CORS_ORIGINS: List[str] = []
+    CORS_ORIGINS: Union[str, List[str]] = []
+
+    @validator("CORS_ORIGINS", pre=True)
+    def parse_cors_origins(cls, v):
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",")]
+        return v
 
     # Trusted hosts
-    ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1"]
+    ALLOWED_HOSTS: Union[str, List[str]]= ["localhost", "127.0.0.1"]
+
+    @validator("ALLOWED_HOSTS", pre=True)
+    def parse_allowed_hosts(cls, v):
+        if isinstance(v, str):
+            return [host.strip() for host in v.split(",")]
+        return v
 
     # Database
     @property

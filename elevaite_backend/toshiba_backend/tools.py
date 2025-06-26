@@ -7,7 +7,8 @@ from typing import List, Optional
 from abbreviation_dict import MACHINE_ABBREVIATIONS
 SEGMENT_NUM = 5
 
-dotenv.load_dotenv(".env.local")
+if not os.getenv("KUBERNETES_SERVICE_HOST"):
+    dotenv.load_dotenv(".env.local")
 
 @function_schema
 def query_retriever(query: str, machine_types: Optional[List[str]] = None) -> list:

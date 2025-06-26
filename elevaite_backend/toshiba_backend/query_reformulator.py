@@ -7,7 +7,8 @@ from abbreviation_dict import abbreviations, MACHINE_ABBREVIATIONS
 from dotenv import load_dotenv
 from abbreviation_dict import ABBREVIATION_TABLE
 
-load_dotenv()
+if not os.getenv("KUBERNETES_SERVICE_HOST"):
+    load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
 

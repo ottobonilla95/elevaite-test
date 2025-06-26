@@ -1,7 +1,10 @@
 import asyncio
 from database_connection import DatabaseConnection
 from dotenv import load_dotenv
-load_dotenv()
+import os
+
+if not os.getenv("KUBERNETES_SERVICE_HOST"):
+    load_dotenv()
 # Initialize database connection
 database_connection = DatabaseConnection()
 session_status = {}
