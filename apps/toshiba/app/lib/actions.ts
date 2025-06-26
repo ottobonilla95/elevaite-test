@@ -112,7 +112,7 @@ export async function recoverSession(): Promise<boolean> {
     }
 
     const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
-    const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+    const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
 
     const response = await fetch(`${apiUrl}/api/auth/recover-session`, {
       method: "POST",
