@@ -106,7 +106,7 @@ export async function recoverSession(): Promise<boolean> {
       return false;
     }
 
-    const authApiUrl = process.env.AUTH_API_URL;
+    const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
     if (!authApiUrl) {
       return false;
     }
