@@ -13,10 +13,9 @@
 
   & .navbar-holder {
     display: flex;
-    padding: 10px 32px;
+    padding: 0 32px;
     justify-content: space-between;
     align-items: center;
-    width: 100%;
   }
 
   & .navbar-left,
@@ -34,8 +33,8 @@
     }
   }
   & .navbar-right {
-    flex-grow: 0;
     margin-left: auto;
+    justify-content: flex-end;
   }
 
   & button.help-button {
