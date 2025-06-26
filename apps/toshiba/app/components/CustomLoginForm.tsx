@@ -10,6 +10,7 @@ interface CustomLoginFormProps {
   ) => Promise<
     | "Invalid credentials."
     | "Email not verified."
+    | "Admin access required."
     | "Something went wrong."
     | undefined
   >;
@@ -36,10 +37,33 @@ export function CustomLoginForm({
     }
   }, []);
 
+  // Adapter function to match LogInForm's expected interface
+  const adaptedAuthenticate = async (
+    prevstate: string,
+    formData: { email: string; password: string; rememberMe: boolean }
+  ): Promise<
+    | "Invalid credentials."
+    | "Email not verified."
+    | "Something went wrong."
+    | undefined
+  > => {
+    const result = await authenticate(prevstate, {
+      email: formData.email,
+      password: formData.password,
+    });
+
+    // Filter out "Admin access required." since LogInForm doesn't support it
+    if (result === "Admin access required.") {
+      return "Something went wrong.";
+    }
+
+    return result;
+  };
+
   // Only render the component on the client side to avoid hydration issues
   if (!mounted) {
     return <div className="ui-h-[400px]" />;
   }
 
-  return <LogInForm authenticate={authenticate} />;
+  return <LogInForm authenticate={adaptedAuthenticate} />;
 }

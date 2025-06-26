@@ -7,6 +7,9 @@ import { auth } from "../auth";
 import { SessionValidator } from "./components/SessionValidator";
 import { LayoutWrapper } from "./components/LayoutWrapper";
 
+// Force dynamic rendering for all pages
+export const dynamic = "force-dynamic";
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {

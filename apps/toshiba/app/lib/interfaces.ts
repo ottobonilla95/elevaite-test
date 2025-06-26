@@ -217,6 +217,14 @@ export interface ChatMessageResponse {
   media?: string[];
 }
 
+export interface SourceReference {
+  filename: string;
+  pages: string;
+  url?: string;
+  awsLink?: string;
+  fullMatchText?: string;
+}
+
 export interface ChatMessageObject {
   id: string;
   userName: string;
@@ -230,6 +238,7 @@ export interface ChatMessageObject {
   media?: ChatMessageFileObject[];
   isStreaming?: boolean;
   agentStatus?: string;
+  sources?: SourceReference[];
 }
 
 export interface ChatMessageFileObject {

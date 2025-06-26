@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../auth";
 
+// Force dynamic rendering
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     // Get the auth token from the session
