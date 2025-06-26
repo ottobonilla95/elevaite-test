@@ -15,7 +15,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   if (
     request.nextUrl.pathname === "/login" ||
-    request.nextUrl.pathname === "/forgot-password"
+    request.nextUrl.pathname === "/forgot-password" ||
+    request.nextUrl.pathname === "/verify-email" ||
+    request.nextUrl.pathname === "/resend-verification"
   ) {
     return NextResponse.next();
   }
@@ -47,6 +49,6 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|forgot-password|login).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|forgot-password|login|verify-email|resend-verification).*)",
   ],
 };
