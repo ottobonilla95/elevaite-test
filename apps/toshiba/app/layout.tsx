@@ -5,27 +5,23 @@ import "./ui/globals.css";
 import "@repo/ui/styles.css";
 import { auth } from "../auth";
 import { SessionValidator } from "./components/SessionValidator";
-import { LayoutWrapper } from "./components/LayoutWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Toshiba",
-  description: "Toshiba Application",
+  title: "ElevAIte Chat",
+  description: "ElevAIte's Chatbot, ready to answer your questions!",
 };
 
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>): Promise<JSX.Element> {
   const session = await auth();
-
   return (
     <html lang="en">
       <body className={inter.className}>
         <SessionProvider session={session}>
-          <SessionValidator>
-            <LayoutWrapper>{children}</LayoutWrapper>
-          </SessionValidator>
+          <SessionValidator>{children}</SessionValidator>
         </SessionProvider>
       </body>
     </html>

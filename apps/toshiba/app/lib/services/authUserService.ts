@@ -130,8 +130,30 @@ export async function refreshUsersList(): Promise<void> {
 export async function isCurrentUserAdmin(): Promise<boolean> {
   try {
     const session = await auth();
-    return (session?.user as any)?.is_superuser === true;
+    const authToken = session?.authToken;
+
+    if (!authToken) {
+      return false;
+    }
+
+    const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+
+    const response = await fetch(`${backendUrl}/api/auth/me`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const userData = (await response.json()) as { is_superuser?: boolean };
+
+    return userData.is_superuser === true;
   } catch (error) {
+    // If there's an error, assume the user is not an admin for security
     return false;
   }
 }
@@ -173,27 +195,17 @@ export async function resetUserPassword(
       };
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
-
-    if (!backendUrl) {
-      return {
-        success: false,
-        message: "Backend URL is not configured. Please contact support.",
-      };
-    }
-
-    const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "X-Tenant-ID": tenantId,
-      Authorization: `Bearer ${authToken}`,
-    };
+    const backendUrl =
+      process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:8004";
 
     const response = await fetch(
       `${backendUrl}/api/auth/admin/reset-password`,
       {
         method: "POST",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
         body: JSON.stringify({
           email,
           new_password: password,

@@ -3,12 +3,7 @@ import type { NextRequest } from "next/server";
 import { auth } from "./auth";
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
-  let session: any;
-  try {
-    session = await auth();
-  } catch (authError) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
+  const session = await auth();
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-url", request.url);
