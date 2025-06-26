@@ -47,7 +47,9 @@ export async function fetchAuthUsers(): Promise<ExtendedUserObject[]> {
       headers.Authorization = `Bearer ${authToken}`;
     }
 
-    const response = await fetch(`${backendUrl}/api/auth/users`, {
+    const apiUrl = backendUrl.replace("localhost", "127.0.0.1");
+
+    const response = await fetch(`${apiUrl}/api/auth/users`, {
       method: "GET",
       headers,
       cache: "no-store",

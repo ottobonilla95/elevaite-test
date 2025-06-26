@@ -111,15 +111,15 @@ export function UsersList(props: UsersListProps): JSX.Element {
   // State to store combined users (RBAC + Native Auth API)
   const [combinedUsers, setCombinedUsers] = useState<ExtendedUserObject[]>([]);
 
-  // Fetch combined users when RBAC users change
-  useEffect(() => {
-    async function loadCombinedUsers(): Promise<void> {
-      const users = await fetchCombinedUsers(rolesContext.users);
-      setCombinedUsers(users);
-    }
+  // Function to load users from auth API
+  const loadUsers = async (): Promise<void> => {
+    const users = await fetchCombinedUsers([]);
+    setCombinedUsers(users);
+  };
 
-    void loadCombinedUsers();
-  }, [rolesContext.users]);
+  useEffect(() => {
+    void loadUsers();
+  }, []);
 
   // Check if current user is an admin
   useEffect(() => {
@@ -263,10 +263,7 @@ export function UsersList(props: UsersListProps): JSX.Element {
     setIsUserCreatedModalOpen(true);
 
     // Refresh the users list to include the newly created user
-    void refreshUsersList();
-
-    // Trigger a refresh of the RBAC users as well
-    rolesContext.refresh(ACCESS_MANAGEMENT_TABS.USERS);
+    void loadUsers();
   }
 
   function handleSearch(term: string): void {
