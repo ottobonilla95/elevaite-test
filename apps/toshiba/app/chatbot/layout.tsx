@@ -18,9 +18,13 @@ export default async function RootLayout({
   return (
     <SessionProvider session={session}>
       <ColorContextProvider>
-        <ChatContextProvider session={session}>
+        {session ? (
+          <ChatContextProvider session={session}>
+            <AppLayout breadcrumbs={breadcrumbs}>{children}</AppLayout>
+          </ChatContextProvider>
+        ) : (
           <AppLayout breadcrumbs={breadcrumbs}>{children}</AppLayout>
-        </ChatContextProvider>
+        )}
       </ColorContextProvider>
     </SessionProvider>
   );
