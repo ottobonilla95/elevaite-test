@@ -5,6 +5,7 @@ import "./ui/globals.css";
 import "@repo/ui/styles.css";
 import { auth } from "../auth";
 import { SessionValidator } from "./components/SessionValidator";
+import { LayoutWrapper } from "./components/LayoutWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,7 +22,9 @@ export default async function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <SessionProvider session={session}>
-          <SessionValidator>{children}</SessionValidator>
+          <SessionValidator>
+            <LayoutWrapper>{children}</LayoutWrapper>
+          </SessionValidator>
         </SessionProvider>
       </body>
     </html>
