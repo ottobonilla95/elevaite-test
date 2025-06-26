@@ -24,12 +24,12 @@ export default function ResendVerificationPage() {
     setMessage("");
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+      const backendUrl = process.env.AUTH_API_URL;
       const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
 
       if (!backendUrl) {
         setMessage(
-          "Failed to send verification email. Please try again later."
+          "The app is misconfigured, please contact a site administrator."
         );
         setIsSuccess(false);
         setIsLoading(false);

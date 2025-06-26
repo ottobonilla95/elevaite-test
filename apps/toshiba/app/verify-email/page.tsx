@@ -22,7 +22,6 @@ export default function VerifyEmailPage() {
     if (!token) {
       setVerificationResult({
         success: false,
-        message: "Invalid verification link. No token provided.",
       });
       setIsLoading(false);
       return;
@@ -33,7 +32,7 @@ export default function VerifyEmailPage() {
 
   const verifyEmail = async (token: string) => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+      const backendUrl = process.env.AUTH_API_URL;
       const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
 
       if (!backendUrl) {

@@ -28,8 +28,7 @@ export async function createUser(
       };
     }
 
-    const backendUrl =
-      process.env.AUTH_API_URL ?? process.env.NEXT_PUBLIC_AUTH_API_URL;
+    const backendUrl = process.env.AUTH_API_URL;
     const tenantId = process.env.AUTH_TENANT_ID ?? "default";
 
     if (!backendUrl) {

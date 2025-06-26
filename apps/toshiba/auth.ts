@@ -5,9 +5,7 @@ import { z } from "zod";
 import { authConfig } from "./auth.config";
 import { AuthApiClient } from "./app/lib/authApiClient";
 
-// Try both environment variable names
-const authApiUrl =
-  process.env.AUTH_API_URL ?? process.env.NEXT_PUBLIC_AUTH_API_URL;
+const authApiUrl = process.env.AUTH_API_URL;
 if (!authApiUrl) {
   throw new Error("AUTH_API_URL does not exist in the env");
 }

@@ -78,8 +78,7 @@ export function useSessionValidation(): {
         return false;
       }
 
-      const authApiUrl =
-        process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8004";
+      const authApiUrl = process.env.AUTH_API_URL || "http://localhost:8004";
       const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID || "default";
 
       const headers: Record<string, string> = {
@@ -100,8 +99,8 @@ export function useSessionValidation(): {
       if (!response.ok) {
         // Only log out if we get a 401 Unauthorized
         if (response.status === 401) {
-           redirect("/login");
-           return false;
+          redirect("/login");
+          return false;
         }
         return true; // For other errors, assume valid to prevent excessive logouts
       }
@@ -121,7 +120,7 @@ export function useSessionValidation(): {
           data.reason === "user_inactive"
         ) {
           redirect("/login");
- 	  return false;
+          return false;
         }
         return true; // For other reasons, assume valid to prevent excessive logouts
       }
