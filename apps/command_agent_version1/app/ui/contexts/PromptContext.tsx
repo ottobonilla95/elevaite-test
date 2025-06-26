@@ -181,6 +181,10 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     });
   }
 
+  useEffect(() => {
+	console.log("Prompt Input Variables Engineer", promptInputVariablesEngineer);
+  }, [promptInputVariablesEngineer]);
+
   function savePromptInputVariableEngineer(id: string, updates: PromptInputVariableEngineerItem ) {
 	setPromptInputVariablesEngineer((current) =>
       current.map(input => (input.id === id ? { ...input, ...updates } : input))

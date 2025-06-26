@@ -169,3 +169,78 @@
         color: #333;
     }
 }
+
+.prompt-textarea-container {
+	box-shadow: none;
+	border: none;
+
+	.simple-textarea-container.common-style {
+		padding: 0;
+	}
+}
+
+.prompt-multi-tag-container {
+	box-shadow: none;
+	border: none;
+
+	.prompt-multi-tag-inputs {
+		padding: 0;
+	}
+
+	.inner {
+		padding: 10px;
+	}
+}
+
+.prompt-select-container {
+	span {
+		font-size: 14px;
+	}
+
+
+	.common-button {
+		border-radius: 0;
+
+
+	}
+
+	button + button {
+		border-top: 1px solid #E2E8ED;
+	}
+
+	.common-select .common-select-options-container .common-select-options-contents {
+		border-radius: 0;
+		padding: 0;
+		gap: 0;
+
+		.common-button:not(:disabled):hover {
+ 			background: #FF681F29;
+			filter: none;
+		}
+
+		.select-separator-container {
+			font-weight: 600;
+			color: #202023;
+			padding: 10px;
+
+			.select-separator.start {
+				display: none;
+			}
+		}
+	}
+}
+
+.prompt-input-range-slider {
+	background: #E2E8ED;
+	height: 6px;
+
+	.range-slider__thumb {
+		width: 16px;
+		height: 16px;
+	}
+
+	.range-slider__thumb,
+	.range-slider__range {
+		background: var(--orange);
+	}
+}

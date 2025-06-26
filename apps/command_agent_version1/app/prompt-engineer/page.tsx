@@ -18,6 +18,7 @@ export default function Prompt(): JSX.Element {
     <main className="main-prompts-container">
       <PromptDashboard />
 	  <ToastContainer closeButton={CloseButton}/>
+	  <div id="portal-root"></div>
     </main>
   );
 }

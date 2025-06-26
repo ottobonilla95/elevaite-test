@@ -288,14 +288,27 @@
 	& + .card-variable {
 		margin-top: 16px;
 	}
+}
 
-	&-new {
-		.prompt-textarea-container {
-			box-shadow: none;
-			border: none;
+.card-on-hover {
+	border: 1px solid #E2E8ED;
+	filter: drop-shadow(0 15px 5px rgba(0, 0, 0, 0.15));
+}
 
-			.simple-textarea-container.common-style {
-				padding: 0;
+.version-history {
+	.card {
+		border: 1px solid var(--orange);
+		box-shadow: 0 0 0 4px #FF681F33;
+
+		&-wrapper {
+			&::before {
+				content: '';
+				position: absolute;
+				top: 44px;
+				left: -35px;
+				height: calc(100% - 4px);
+				width: 1px;
+				background: #E2E8ED;
 			}
 		}
 	}

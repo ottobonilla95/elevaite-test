@@ -11,6 +11,7 @@ export interface CommonCheckboxProps {
     info?: string;
     errorMessage?: string;
     defaultTrue?: boolean;
+	checked?: boolean;
     onChange?: (value: boolean, field?: string) => void;
 }
 
@@ -19,22 +20,23 @@ export interface CommonCheckboxProps {
 export function CommonCheckbox(props: CommonCheckboxProps): JSX.Element {
     const [isChecked, setIsChecked] = useState(!!props.defaultTrue);
 
-    
+
     function handleChange(event: React.FormEvent<HTMLInputElement>): void {
         setIsChecked(event.currentTarget.checked);
         if (props.onChange) props.onChange(event.currentTarget.checked, props.field);
     }
 
-    
+	const checkedValue = props.checked !== undefined ? props.checked : isChecked;
+
     return (
         <div className="common-checkbox-container">
             <div className="checkbox-content">
                 <input
-                    checked={isChecked}
+                    checked={checkedValue}
                     onChange={handleChange}
                     type="checkbox"
                 />
-                <div className={["checkbox-icon", isChecked ? "shown" : ""].filter(Boolean).join(" ")}>
+                <div className={["checkbox-icon", checkedValue ? "shown" : ""].filter(Boolean).join(" ")}>
                     <ElevaiteIcons.SVGCheckmark/>
                 </div>
             </div>

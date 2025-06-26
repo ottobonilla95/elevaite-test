@@ -27,6 +27,8 @@ export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> 
     addLabel?: string;
     noDoubleClick?: boolean;
     useCommonStyling?: boolean;
+	onHover?: (value: string) => void;
+	onLeave?: (value: string) => void;
     AdvancedOptionComponent?: (props: AdvancedSelectOptionProps) => JSX.Element;
 }
 
@@ -110,7 +112,7 @@ export function CommonSelect({
                 AdvancedOptionComponent ? "advanced" : undefined,
             ].filter(Boolean).join(" ")}
         >
-            <CommonButton 
+            <CommonButton
                 passedRef={buttonRef}
                 className="common-select-display"
                 onClick={handleToggle}
@@ -125,7 +127,7 @@ export function CommonSelect({
                         selectedOption.selectedLabel ? selectedOption.selectedLabel : (selectedOption.label ? selectedOption.label : selectedOption.value)
                     }
                 </span>
-                {isLoading ? 
+                {isLoading ?
                     <SVGSpinner className="spinner"/>
                     :
                     <SVGChevron/>
@@ -140,19 +142,19 @@ export function CommonSelect({
                 ].filter(Boolean).join(" ")}>
                     <div className="common-select-options-accordion">
                         <div className="common-select-options-contents">
-                            {options.length === 0 ? 
+                            {options.length === 0 ?
                                 <div className="empty-list">
                                     {emptyListLabel ? emptyListLabel : "No options"}
                                 </div>
                             :
-                            options.map((option) => 
-                                option.isSeparator ? typeof option.isSeparator === "boolean" ? 
+                            options.map((option) =>
+                                option.isSeparator ? typeof option.isSeparator === "boolean" ?
                                     <div key={option.value} className="select-separator-container">
                                         {!option.label ? undefined : <><div className="select-separator start"/><span>{option.label}</span></>}
                                         <div className="select-separator"/>
                                     </div>
                                 : <div key={option.value}>{option.isSeparator}</div> :
-                                    AdvancedOptionComponent ? 
+                                    AdvancedOptionComponent ?
                                     <AdvancedOptionComponent key={option.value} {...option} onOptionClick={handleClick} showTitles={showTitles} />
                                 :
                                 <CommonButton
@@ -161,6 +163,8 @@ export function CommonSelect({
                                     onClick={() => { handleClick(option); } }
                                     noBackground
                                     disabled={option.disabled}
+									onMouseEnter={() => { if (props.onHover) props.onHover(option.value); }}
+									onMouseLeave={() => { if (props.onLeave) props.onLeave(option.value); }}
                                     title={showTitles ? (option.label ? option.label : option.value) : ""}
                                 >
                                     {!showSelected || selectedOption?.value !== option.value ? undefined :
