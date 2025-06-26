@@ -48,7 +48,7 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
   const [userEmail, setUserEmail] = useState("");
   const [userPassword, setUserPassword] = useState(generateClientPassword());
   const [isOneTimePassword, setIsOneTimePassword] = useState(true);
-  const [showPassword, setShowPassword] = useState(true); // Show password by default for admin
+  const [showPassword, setShowPassword] = useState(false); // Hide password by default
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
