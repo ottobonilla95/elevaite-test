@@ -17,7 +17,7 @@ export async function GET() {
       );
     }
 
-    const authApiUrl = process.env.AUTH_API_URL;
+    const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
     if (!authApiUrl) {
       return NextResponse.json(
         { error: "Server configuration error", is_admin: false },
@@ -27,7 +27,7 @@ export async function GET() {
 
     // Explicitly use IPv4 address instead of localhost to avoid IPv6 issues
     const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
-    const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+    const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
 
     const response = await fetch(`${apiUrl}/api/auth/me`, {
       method: "GET",

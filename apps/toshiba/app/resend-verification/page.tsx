@@ -24,7 +24,7 @@ export default function ResendVerificationPage() {
     setMessage("");
 
     try {
-      const backendUrl = process.env.AUTH_API_URL;
+      const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
       const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
 
       if (!backendUrl) {

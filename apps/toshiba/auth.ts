@@ -5,12 +5,10 @@ import { z } from "zod";
 import { authConfig } from "./auth.config";
 import { AuthApiClient } from "./app/lib/authApiClient";
 
-const authApiUrl = process.env.AUTH_API_URL;
-if (!authApiUrl) {
-  throw new Error("AUTH_API_URL does not exist in the env");
-}
+const authApiUrl =
+  process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:8004";
 
-const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
 
 // Create an instance of the Auth API client with the tenant ID
 const authApiClient = new AuthApiClient(authApiUrl, tenantId);

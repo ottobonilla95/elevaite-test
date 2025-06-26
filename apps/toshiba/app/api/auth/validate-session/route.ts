@@ -35,9 +35,11 @@ export async function GET(req: NextRequest) {
     }
 
     // Get the auth API URL
-    const authApiUrl = process.env.AUTH_API_URL;
+    const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
     if (!authApiUrl) {
-      console.error("Validate Session API - AUTH_API_URL not configured");
+      console.error(
+        "Validate Session API - NEXT_PUBLIC_AUTH_API_URL not configured"
+      );
       return NextResponse.json(
         { valid: false, reason: "server_config_error" },
         { status: 500 }

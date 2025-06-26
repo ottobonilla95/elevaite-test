@@ -28,8 +28,8 @@ export async function createUser(
       };
     }
 
-    const backendUrl = process.env.AUTH_API_URL;
-    const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+    const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+    const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
 
     if (!backendUrl) {
       return {
@@ -38,7 +38,6 @@ export async function createUser(
       };
     }
 
-    // Fix localhost IPv6 issue by using 127.0.0.1
     const apiUrl = backendUrl.replace("localhost", "127.0.0.1");
 
     console.log("Making request to:", `${apiUrl}/api/auth/admin/create-user`);

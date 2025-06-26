@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Call the auth API to send a password reset email
-    const authApiUrl = process.env.AUTH_API_URL;
+    const authApiUrl =
+      process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:8004";
 
     // Use IPv4 explicitly to avoid IPv6 connection issues
     const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");

@@ -32,10 +32,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const authApiUrl = process.env.AUTH_API_URL;
+    const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
     if (!authApiUrl) {
       console.error(
-        "Change Password API - AUTH_API_URL not found in environment variables"
+        "Change Password API - NEXT_PUBLIC_AUTH_API_URL not found in environment variables"
       );
       return NextResponse.json(
         { error: "Server configuration error" },
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     // Explicitly use IPv4 address instead of localhost to avoid IPv6 issues
     const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
-    const tenantId = tenant_id || process.env.AUTH_TENANT_ID || "default";
+    const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID || "default";
 
     console.log("Change Password API - Using auth API URL:", apiUrl);
     console.log("Change Password API - Using tenant ID:", tenantId);

@@ -97,11 +97,11 @@ export async function logout(): Promise<void> {
     const accessToken = session?.authToken ?? session?.user?.accessToken;
 
     if (accessToken) {
-      const authApiUrl = process.env.AUTH_API_URL;
+      const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
       if (authApiUrl) {
         try {
           const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
-          const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+          const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
 
           const refreshToken = session?.user?.refreshToken;
 
@@ -151,12 +151,14 @@ export async function resetPassword(newPassword: string): Promise<{
       throw new Error("No auth token found in session");
     }
 
-    const authApiUrl = process.env.AUTH_API_URL;
+    const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
     if (!authApiUrl) {
-      throw new Error("AUTH_API_URL not found in environment variables");
+      throw new Error(
+        "NEXT_PUBLIC_AUTH_API_URL not found in environment variables"
+      );
     }
 
-    const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+    const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
 
     // Explicitly use IPv4 address instead of localhost to avoid IPv6 issues
     const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");

@@ -78,7 +78,8 @@ export function useSessionValidation(): {
         return false;
       }
 
-      const authApiUrl = process.env.AUTH_API_URL || "http://localhost:8004";
+      const authApiUrl =
+        process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8004";
       const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID || "default";
 
       const headers: Record<string, string> = {

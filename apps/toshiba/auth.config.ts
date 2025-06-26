@@ -102,13 +102,13 @@ export const authConfig = {
 
       try {
         if (token.provider === "credentials") {
-          const authApiUrl = process.env.AUTH_API_URL;
+          const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
           if (!authApiUrl) {
-            throw new Error("AUTH_API_URL is not configured");
+            throw new Error("NEXT_PUBLIC_AUTH_API_URL is not configured");
           }
 
           const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
-          const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+          const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
 
           const response = await fetch(`${apiUrl}/api/auth/refresh`, {
             method: "POST",

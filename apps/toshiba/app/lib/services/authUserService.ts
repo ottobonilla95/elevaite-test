@@ -29,8 +29,8 @@ export async function fetchAuthUsers(): Promise<ExtendedUserObject[]> {
     const authToken = session?.authToken;
 
     // Use the local auth API
-    const backendUrl = process.env.AUTH_API_URL;
-    const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+    const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+    const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
 
     if (!backendUrl) {
       return [];
@@ -173,7 +173,7 @@ export async function resetUserPassword(
       };
     }
 
-    const backendUrl = process.env.AUTH_API_URL;
+    const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
 
     if (!backendUrl) {
       return {
@@ -182,7 +182,7 @@ export async function resetUserPassword(
       };
     }
 
-    const tenantId = process.env.AUTH_TENANT_ID ?? "default";
+    const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "X-Tenant-ID": tenantId,

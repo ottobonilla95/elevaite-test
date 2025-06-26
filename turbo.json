@@ -1,8 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [
-    "**/.env.*local"
-  ],
+  "globalDependencies": ["**/.env.*local"],
   "globalEnv": [
     "AUTH_SECRET",
     "AWS_REGION",
@@ -32,19 +30,13 @@
     "RBAC_BACKEND_URL",
     "NODE_TLS_REJECT_UNAUTHORIZED",
     "NEXT_PUBLIC_ARLO_BACKEND_URL",
-    "AUTH_TENANT_ID",
-    "AUTH_API_URL"
+    "NEXT_PUBLIC_AUTH_API_URL",
+    "NEXT_PUBLIC_AUTH_TENANT_ID"
   ],
   "tasks": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "dist/**",
-        ".next/**",
-        "!.next/cache/**"
-      ]
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "lint": {
       "cache": false
