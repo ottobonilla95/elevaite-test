@@ -129,51 +129,9 @@ export async function refreshUsersList(): Promise<void> {
  */
 export async function isCurrentUserAdmin(): Promise<boolean> {
   try {
-    // In development mode, always return true for testing
-    if (process.env.NODE_ENV === "development") {
-      return true;
-    }
-
-    // Get the auth token from the session
     const session = await auth();
-    // Access the token from the session object directly (not from user)
-    // In the stockConfig callbacks, the token is stored as session.authToken
-    const authToken = session?.authToken;
-
-    if (!authToken) {
-      return false;
-    }
-
-    // Use environment variable for backend URL with fallback
-    const backendUrl = process.env.AUTH_API_URL;
-
-    if (!backendUrl) {
-      return false;
-    }
-
-    // Add tenant ID header for multi-tenancy
-    const tenantId = process.env.AUTH_TENANT_ID ?? "default";
-
-    // Call the API to check if the user is an admin
-    const response = await fetch(`${backendUrl}/api/auth/me`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-        "X-Tenant-ID": tenantId,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      return false;
-    }
-
-    const userData = (await response.json()) as { is_superuser?: boolean };
-
-    // Check if the user is a superuser/admin
-    return userData.is_superuser === true;
+    return (session?.user as any)?.is_superuser === true;
   } catch (error) {
-    // If there's an error, assume the user is not an admin for security
     return false;
   }
 }
@@ -194,33 +152,27 @@ export async function resetUserPassword(
   try {
     const { email, password, isOneTimePassword } = params;
 
-    // Get the auth token from the session
-    // This is a server component, so we can use auth() to get the current session
     const sessionCookie =
       cookies().get("__Secure-authjs.session-token") ??
       cookies().get("authjs.session-token");
 
-    if (!sessionCookie && process.env.NODE_ENV !== "development") {
+    if (!sessionCookie) {
       return {
         success: false,
         message: "Authentication session not found. Please log in again.",
       };
     }
 
-    // Get the token from the session
     const session = await auth();
-    // Access the token from the session object directly (not from user)
-    // In the stockConfig callbacks, the token is stored as session.authToken
     const authToken = session?.authToken;
 
-    if (!authToken && process.env.NODE_ENV !== "development") {
+    if (!authToken) {
       return {
         success: false,
         message: "Authentication token not found. Please log in again.",
       };
     }
 
-    // Use environment variable for backend URL with fallback
     const backendUrl = process.env.AUTH_API_URL;
 
     if (!backendUrl) {
@@ -230,19 +182,12 @@ export async function resetUserPassword(
       };
     }
 
-    // Add tenant ID header for multi-tenancy
     const tenantId = process.env.AUTH_TENANT_ID ?? "default";
-
-    // Call the admin password reset endpoint with admin token
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "X-Tenant-ID": tenantId,
+      Authorization: `Bearer ${authToken}`,
     };
-
-    // Add authorization header if token exists
-    if (authToken) {
-      headers.Authorization = `Bearer ${authToken}`;
-    }
 
     const response = await fetch(
       `${backendUrl}/api/auth/admin/reset-password`,
@@ -288,7 +233,6 @@ export async function resetUserPassword(
         "Password reset successfully. The user will receive an email with the new password.",
     };
   } catch (error: unknown) {
-    // Log error but don't expose details to client
     return {
       success: false,
       message: "An unexpected error occurred. Please try again later.",

@@ -3,12 +3,16 @@ import type { NextRequest } from "next/server";
 import { auth } from "./auth";
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
-  const session = await auth();
+  let session: any;
+  try {
+    session = await auth();
+  } catch (authError) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   const requestHeaders = new Headers(request.headers);
-  console.log("Middleware - Request URL:", request.url);
   requestHeaders.set("x-url", request.url);
 
-  // Allow access to login and forgot-password pages without a session
   if (
     request.nextUrl.pathname === "/login" ||
     request.nextUrl.pathname === "/forgot-password"
@@ -16,12 +20,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return NextResponse.next();
   }
 
-  // If user is not logged in, redirect to login
   if (!session?.user) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
-
-  // Admin access control is handled in the page components themselves
 
   const needsPasswordReset = session.user.needsPasswordReset === true;
 
@@ -39,14 +40,12 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   return NextResponse.next({
     request: {
-      // Apply new request headers
       headers: requestHeaders,
     },
   });
 }
 
 export const config = {
-  // Include all paths except static assets, API routes, forgot-password, and login pages
   matcher: [
     "/((?!api|_next/static|_next/image|favicon.ico|forgot-password|login).*)",
   ],
