@@ -3,7 +3,8 @@ name: Deploy Toshiba App
 on:
     workflow_run:
         workflows: ["Build Toshiba App"]
-        types: completed
+        types: 
+            - completed
 
 jobs:
     deploy:
