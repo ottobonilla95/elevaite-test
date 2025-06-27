@@ -109,6 +109,16 @@ jobs:
 
             docker push ${IMAGE}:${TAG}
 
+      - name: Save built tags
+        run: |
+            echo "UI_TAG=staging-${GITHUB_SHA::8}" >> build-tags.env
+            echo "BACKEND_TAG=staging-${GITHUB_SHA::8}" >> build-tags.env
+            echo "AUTH_TAG=staging-${GITHUB_SHA::8}" >> build-tags.env
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-tags
+          path: build-tags.env
 
       - name: CI Summary
         run: |

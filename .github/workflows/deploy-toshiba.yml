@@ -1,0 +1,58 @@
+name: Deploy Toshiba App
+
+on:
+    workflow_run:
+        workflows: ["Build Toshiba App"]
+        types: [completed]
+
+jobs:
+    deploy:
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Download build artifacts
+              uses: dawidd6/action-download-artifact@v2
+              with:
+                name: build-tags
+                path: build-toshiba.yml
+                branch: develop
+
+            - name: Parse image tags
+              id: parse_tags
+              run: |
+                source ./build-tags.env
+
+                JSON="{\"environment\": \"staging\""
+
+                if [[ -n "$UI_TAG" ]]; then
+                    echo "UI tag found: $UI_TAG"
+                    JSON+=", \"ui_tag\": \"$UI_TAG\""
+                fi
+                if [[ -n "$BACKEND_TAG" ]]; then
+                    echo "Backend tag found: $BACKEND_TAG"
+                    JSON+=", \"backend_tag\": \"$BACKEND_TAG\""
+                fi
+                if [[ -n "$AUTH_TAG" ]]; then
+                    echo "Auth tag found: $AUTH_TAG"
+                    JSON+=", \"auth_tag\": \"$AUTH_TAG\""
+                fi
+
+                JSON+="}"
+                echo "payload=$JSON" >> $GITHUB_OUTPUT
+
+            - name: Trigger reusable deployment workflowp
+              uses: actions/github-script@v7
+              with:
+                github-token: ${{ secrets.GITHUB_TOKEN }}
+                script: |
+                  const payload = JSON.parse(process.env.payload);
+                  await github.rest.actions.createWorkflowDispatch({
+                    owner: 'iopexses',
+                    repo: 'elev8s',
+                    workflow_id: 'deploy-toshiba.yml',
+                    ref: 'reusable-action',
+                    inputs: payload
+                  });
+              env:
+                payload: ${{ steps.parse_tags.outputs.payload }}
