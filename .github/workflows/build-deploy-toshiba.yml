@@ -1,4 +1,4 @@
-name: Build Toshiba App
+name: Build and Deploy Toshiba App
 
 on:
   push:
@@ -110,18 +110,29 @@ jobs:
             docker push ${IMAGE}:${TAG}
 
       - name: Save built tags
+        id: set_tags
         run: |
-            echo "UI_TAG=staging-${GITHUB_SHA::8}" >> build-tags.env
-            echo "BACKEND_TAG=staging-${GITHUB_SHA::8}" >> build-tags.env
-            echo "AUTH_TAG=staging-${GITHUB_SHA::8}" >> build-tags.env
+            echo "ui_tag=staging-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+            echo "backend_tag=staging-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+            echo "auth_tag=staging-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: build-tags
-          path: build-tags.env
+    outputs:
+      ui_tag: ${{ steps.set_tags.outputs.ui_tag }}
+      backend_tag: ${{ steps.set_tags.outputs.backend_tag }}
+      auth_tag: ${{ steps.set_tags.outputs.auth_tag }}
 
-      - name: CI Summary
-        run: |
-            echo "Toshiba changed: ${{ steps.check_ui.outputs.toshiba_ui_changed }}"
-            echo "Toshiba Backend changed: ${{ steps.check_backend.outputs.toshiba_backend_changed }}"
-            echo "Toshiba Auth API changed: ${{ steps.check_auth.outputs.toshiba_auth_changed }}"
+  deploy-toshiba:
+    name: Deploy Toshiba
+    needs: build-toshiba
+    if: ${{ success() }}
+    uses: iopexses/elev8s/.github/workflows/deploy-stage.yaml@reusable-action
+    with:
+      environment: staging
+      ui_tag: ${{ needs.build-toshiba.outputs.ui_tag }}
+      backend_tag: ${{ needs.build-toshiba.outputs.backend_tag }}
+      auth_tag: ${{ needs.build-toshiba.outputs.auth_tag }}
+    secrets:
+      STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
+      STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      STAGE_AWS_REGION: ${{ secrets.STAGE_AWS_REGION }}
+      STAGE_EKS_CLUSTER_NAME: ${{ secrets.STAGE_EKS_CLUSTER_NAME }}
