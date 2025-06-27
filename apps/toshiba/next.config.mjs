@@ -5,6 +5,7 @@ const nextConfig = {
   sassOptions: {
     includePaths: ["./app/ui"],
     prependData: `@use "@repo/sass-config/mainSass.scss" as *;`,
+    silenceDeprecations: ["legacy-js-api", "mixed-decls"],
   },
   images: {
     remotePatterns: [

@@ -9,11 +9,15 @@
 
   @include scrollbar();
 
+  // Fallback background color first
+  background-color: var(--ev-colors-background, #161616);
+
+  // Then add the background image and gradient
   background: url("/images/background-application-light.png"),
     linear-gradient(
       to right,
-      var(--ev-colors-background),
-      var(--ev-colors-background)
+      var(--ev-colors-background, #161616),
+      var(--ev-colors-background, #161616)
     );
   background-position:
     right -50px bottom -200px,
