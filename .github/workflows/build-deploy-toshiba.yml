@@ -128,9 +128,9 @@ jobs:
     uses: iopexses/elev8s/.github/workflows/deploy-stage.yaml@reusable-action
     with:
       environment: staging
-      ui_tag: ${{ needs.build-toshiba.outputs.ui_tag }}
-      backend_tag: ${{ needs.build-toshiba.outputs.backend_tag }}
-      auth_tag: ${{ needs.build-toshiba.outputs.auth_tag }}
+      toshiba_ui_tag: ${{ needs.build-toshiba.outputs.ui_tag }}
+      toshiba_api_tag: ${{ needs.build-toshiba.outputs.backend_tag }}
+      toshiba_auth_tag: ${{ needs.build-toshiba.outputs.auth_tag }}
     secrets:
       STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
       STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
