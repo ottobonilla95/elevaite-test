@@ -112,15 +112,19 @@ jobs:
       - name: Save built tags
         id: set_tags
         run: |
-            if [[ "${{ steps.check_ui.outputs.toshiba_ui_changed }}" == "true" ]; then
+            if [[ "$TOSHIBA_UI_CHANGED" == "true" ]; then
                 echo "ui_tag=staging-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
             fi
-            if [[ "${{ steps.check_backend.outputs.toshiba_backend_changed }}" == "true" ]]; then
+            if [[ "$TOSHIBA_BACKEND_CHANGED" == "true" ]]; then
                 echo "backend_tag=staging-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
             fi
-            if [[ "${{ steps.check_auth.outputs.toshiba_auth_changed }}" == "true" ]]; then
+            if [[ "$TOSHIBA_AUTH_CHANGED" == "true" ]]; then
                 echo "auth_tag=staging-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
             fi
+        env:
+          TOSHIBA_UI_CHANGED: ${{ steps.check_ui.outputs.toshiba_ui_changed }}
+          TOSHIBA_BACKEND_CHANGED: ${{ steps.check_backend.outputs.toshiba_backend_changed }}
+          TOSHIBA_AUTH_CHANGED: ${{ steps.check_auth.outputs.toshiba_auth_changed }}
 
     outputs:
       ui_tag: ${{ steps.set_tags.outputs.ui_tag }}
