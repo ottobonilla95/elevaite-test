@@ -112,7 +112,7 @@ jobs:
       - name: Save built tags
         id: set_tags
         run: |
-            if [[ "$TOSHIBA_UI_CHANGED" == "true" ]; then
+            if [[ "$TOSHIBA_UI_CHANGED" == "true" ]]; then
                 echo "ui_tag=staging-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
             fi
             if [[ "$TOSHIBA_BACKEND_CHANGED" == "true" ]]; then
