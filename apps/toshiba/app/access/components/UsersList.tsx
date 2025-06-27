@@ -4,6 +4,7 @@ import {
   type CommonMenuItem,
 } from "@repo/ui/components";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { ListHeader } from "../../lib/components/ListHeader";
 import {
   ListRow,
@@ -16,17 +17,7 @@ import {
   type SortingObject,
 } from "../../lib/interfaces";
 
-// Define the enum locally to avoid import issues
-enum ACCESS_MANAGEMENT_TABS {
-  ACCOUNTS = "Accounts",
-  PROJECTS = "Projects",
-  USERS = "Users",
-  ROLES = "Roles",
-}
-import {
-  fetchCombinedUsers,
-  refreshUsersList,
-} from "../../lib/services/authUserService";
+import { fetchCombinedUsers } from "../../lib/services/authUserService";
 import { AddEditUser } from "./Add Edit Modals/AddEditUser";
 import { AddEditUserRoles } from "./Add Edit Modals/AddEditUserRoles";
 import { CreateUser } from "./Add Edit Modals/CreateUser";
@@ -47,9 +38,9 @@ interface UsersListProps {
 
 export function UsersList(props: UsersListProps): JSX.Element {
   const rolesContext = useRoles();
+  const { data: session } = useSession();
   const [displayUsers, setDisplayUsers] = useState<ExtendedUserObject[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
   const [sorting, setSorting] = useState<SortingObject<ExtendedUserObject>>({
     field: undefined,
   });
@@ -96,7 +87,7 @@ export function UsersList(props: UsersListProps): JSX.Element {
       },
     },
     // Only show reset password option to admins
-    ...(isCurrentUserAdmin
+    ...((session?.user as any)?.is_superuser === true
       ? [
           {
             label: "Reset Password",
@@ -121,38 +112,7 @@ export function UsersList(props: UsersListProps): JSX.Element {
     void loadUsers();
   }, []);
 
-  // Check if current user is an admin
-  useEffect(() => {
-    async function checkAdminStatus(): Promise<void> {
-      try {
-        // In development mode, always set to true for testing
-        if (process.env.NODE_ENV === "development") {
-          setIsCurrentUserAdmin(true);
-          return;
-        }
-
-        // In production, make an API call to check admin status
-        const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
-        const response = await fetch(`${backendUrl}/api/auth/me`, {
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          setIsCurrentUserAdmin(false);
-          return;
-        }
-
-        const userData = (await response.json()) as { is_superuser?: boolean };
-        const isAdmin = Boolean(userData.is_superuser);
-        setIsCurrentUserAdmin(isAdmin);
-      } catch (error) {
-        // If there's an error, assume the user is not an admin for security
-        setIsCurrentUserAdmin(false);
-      }
-    }
-
-    void checkAdminStatus();
-  }, []);
+  const isCurrentUserAdmin = (session?.user as any)?.is_superuser === true;
 
   // Update display users when combined users, search term, or sorting changes
   useEffect(() => {
