@@ -62,7 +62,7 @@ jobs:
   push:
     needs: [check-changes, build]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref_name == 'develop'
     outputs:
       toshiba_ui_tag: ${{ steps.set_tags.outputs.ui_tag }}
       toshiba_backend_tag: ${{ steps.set_tags.outputs.backend_tag }}
@@ -152,7 +152,7 @@ jobs:
   deploy-toshiba:
     name: Deploy Toshiba
     needs: push
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref_name == 'develop'
     uses: iopexses/elev8s/.github/workflows/deploy-stage.yaml@reusable-action
     with:
       environment: staging
