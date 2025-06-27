@@ -133,6 +133,6 @@ jobs:
       toshiba_auth_tag: ${{ needs.build-toshiba.outputs.auth_tag }}
     secrets:
       STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
-      STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
       STAGE_AWS_REGION: ${{ secrets.STAGE_AWS_REGION }}
       STAGE_EKS_CLUSTER_NAME: ${{ secrets.STAGE_EKS_CLUSTER_NAME }}
