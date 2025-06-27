@@ -81,9 +81,11 @@ jobs:
                 --build-arg NEXT_PUBLIC_BACKEND_URL=https://elevaite-staging.iopex.ai/api/core/ \
                 -f apps/toshiba/Dockerfile \
                 -t ${IMAGE}:${TAG} \
+                -t ${IMAGE}:latest \
                 .
 
             docker push ${IMAGE}:${TAG}
+            docker push ${IMAGE}:latest
 
       - name: Build & Push Toshiba Backend
         if: steps.check_backend.outputs.toshiba_backend_changed == 'true'
@@ -93,9 +95,11 @@ jobs:
             docker build \
               -f elevaite_backend/toshiba_backend/Dockerfile \
               -t ${IMAGE}:${TAG} \
+              -t ${IMAGE}:latest \
               elevaite_backend/toshiba_backend
 
             docker push ${IMAGE}:${TAG}
+            docker push ${IMAGE}:latest
 
       - name: Build & Push Toshiba Auth API
         if: steps.check_auth.outputs.toshiba_auth_changed == 'true'
@@ -105,9 +109,11 @@ jobs:
             docker build \
               -f python_apps/auth_api/Dockerfile \
               -t ${IMAGE}:${TAG} \
+              -t ${IMAGE}:latest \
               .
 
             docker push ${IMAGE}:${TAG}
+            docker push ${IMAGE}:latest
 
       - name: Save built tags
         id: set_tags
@@ -138,9 +144,9 @@ jobs:
     uses: iopexses/elev8s/.github/workflows/deploy-stage.yaml@reusable-action
     with:
       environment: staging
-      toshiba_ui_tag: ${{ needs.build-toshiba.outputs.ui_tag || ''}}
-      toshiba_api_tag: ${{ needs.build-toshiba.outputs.backend_tag || ''}}
-      toshiba_auth_tag: ${{ needs.build-toshiba.outputs.auth_tag || ''}}
+      toshiba_ui_tag: ${{ needs.build-toshiba.outputs.ui_tag || 'latest'}}
+      toshiba_api_tag: ${{ needs.build-toshiba.outputs.backend_tag || 'latest'}}
+      toshiba_auth_tag: ${{ needs.build-toshiba.outputs.auth_tag || 'latest'}}
     secrets:
       STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
       STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
