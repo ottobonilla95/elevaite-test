@@ -12,9 +12,9 @@ jobs:
   check-changes:
     runs-on: ubuntu-latest
     outputs:
-      toshiba_ui_changed: ${{ steps.check_ui.outputs.toshiba_ui_changed }}
-      toshiba_backend_changed: ${{ steps.check_backend.outputs.toshiba_backend_changed }}
-      toshiba_auth_changed: ${{ steps.check_auth.outputs.toshiba_auth_changed }}
+      toshiba_ui_changed: ${{ steps.check.outputs.toshiba_ui_changed }}
+      toshiba_backend_changed: ${{ steps.check.outputs.toshiba_backend_changed }}
+      toshiba_auth_changed: ${{ steps.check.outputs.toshiba_auth_changed }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -27,14 +27,10 @@ jobs:
             echo "toshiba_backend_changed=$(git diff --name-only origin/develop | grep -q '^elevaite_backend/toshiba_backend/' && echo true || echo false)" >> $GITHUB_OUTPUT
             echo "toshiba_auth_changed=$(git diff --name-only origin/develop | grep -q '^python_apps/auth_api/' && echo true || echo false)" >> $GITHUB_OUTPUT
   
-  build-and-push:
+  build:
     needs: check-changes
     runs-on: ubuntu-latest
     if: ${{ needs.check-changes.outputs.toshiba_ui_changed == 'true' || needs.check-changes.outputs.toshiba_backend_changed == 'true' || needs.check-changes.outputs.toshiba_auth_changed == 'true' }}
-    outputs:
-      toshiba_ui_tag: ${{ steps.set_tags.outputs.ui_tag }}
-      toshiba_backend_tag: ${{ steps.set_tags.outputs.backend_tag }}
-      toshiba_auth_tag: ${{ steps.set_tags.outputs.auth_tag }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -42,6 +38,46 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Build Toshiba UI
+        if: ${{ needs.check-changes.outputs.toshiba_ui_changed == 'true' }}
+        run: |
+          docker build \
+                --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
+                --build-arg NEXT_PUBLIC_AUTH_API_URL=https://elevaite-staging.iopex.ai \
+                --build-arg NEXT_PUBLIC_BACKEND_URL=https://elevaite-staging.iopex.ai/api/core/ \
+                -f apps/toshiba/Dockerfile \
+                .
+
+      - name: Build Toshiba Backend
+        if: ${{ needs.check-changes.outputs.toshiba_backend_changed == 'true' }}
+        run: |
+          docker build \
+            -f elevaite_backend/toshiba_backend/Dockerfile \
+            elevaite_backend/toshiba_backend
+
+      - name: Build Toshiba Auth API
+        if: ${{ needs.check-changes.outputs.toshiba_auth_changed == 'true' }}
+        run: |
+          docker build \
+            -f python_apps/auth_api/Dockerfile \
+            .
+
+  push:
+    needs: [check-changes, build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    outputs:
+      toshiba_ui_tag: ${{ steps.set_tags.outputs.ui_tag }}
+      toshiba_backend_tag: ${{ steps.set_tags.outputs.backend_tag }}
+      toshiba_auth_tag: ${{ steps.set_tags.outputs.auth_tag }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+    
       - name: Authenticate with AWS
         uses: aws-actions/configure-aws-credentials@v3
         with:
@@ -58,7 +94,7 @@ jobs:
           echo "branch_tag=$(echo ${{ github.ref_name }} | tr '/' '-')" >> $GITHUB_OUTPUT
 
       - name: Build & Push Toshiba UI
-        if: needs.check-changes.outputs.toshiba_ui_changed == 'true' && github.ref == 'refs/heads/develop'
+        if: needs.check-changes.outputs.toshiba_ui_changed == 'true'
         run: |
             IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-ui"
             docker build \
@@ -74,7 +110,7 @@ jobs:
             docker push ${IMAGE}:latest
 
       - name: Build & Push Toshiba Backend
-        if: needs.check-changes.outputs.toshiba_backend_changed == 'true' && github.ref == 'refs/heads/develop'
+        if: needs.check-changes.outputs.toshiba_backend_changed == 'true'
         run: |
             IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-backend"
             docker build \
@@ -87,7 +123,7 @@ jobs:
             docker push ${IMAGE}:latest
 
       - name: Build & Push Toshiba Auth API
-        if: needs.check-changes.outputs.toshiba_auth_changed == 'true' && github.ref == 'refs/heads/develop'
+        if: needs.check-changes.outputs.toshiba_auth_changed == 'true'
         run: |
             IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-auth-api"
             docker build \
@@ -118,14 +154,14 @@ jobs:
 
   deploy-toshiba:
     name: Deploy Toshiba
-    needs: build-and-push
+    needs: push
     if: github.ref == 'refs/heads/develop'
     uses: iopexses/elev8s/.github/workflows/deploy-stage.yaml@reusable-action
     with:
       environment: staging
-      toshiba_ui_tag: ${{ needs.build-and-push.outputs.toshiba_ui_tag || 'latest'}}
-      toshiba_api_tag: ${{ needs.build-and-push.outputs.toshiba_backend_tag || 'latest'}}
-      toshiba_auth_tag: ${{ needs.build-and-push.outputs.toshiba_auth_tag || 'latest'}}
+      toshiba_ui_tag: ${{ needs.push.outputs.toshiba_ui_tag || 'latest'}}
+      toshiba_api_tag: ${{ needs.push.outputs.toshiba_backend_tag || 'latest'}}
+      toshiba_auth_tag: ${{ needs.push.outputs.toshiba_auth_tag || 'latest'}}
     secrets:
       STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
       STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
