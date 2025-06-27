@@ -29,54 +29,89 @@ jobs:
       - name: Fetch full history
         run: git fetch --no-tags --prune --depth=2 origin develop
 
-      - name: Check for Toshiba changes
-        id: changes
+      - name: Set short SHA
+        id: meta
+        run: echo "sha_short=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+
+      - name: Check Toshiba UI changes
+        id: check_ui
         run: |
-            echo "checking Toshiba changes..."
             if git diff --name-only origin/develop | grep -q '^apps/toshiba/'; then
-                echo "toshiba_changed=true" >> $GITHUB_OUTPUT
+                echo "toshiba_ui_changed=true" >> $GITHUB_OUTPUT
             else
-                echo "toshiba_changed=false" >> $GITHUB_OUTPUT
+                echo "toshiba_ui_changed=false" >> $GITHUB_OUTPUT
             fi
 
-      - name: Build Toshiba Docker Image
-        if: steps.changes.outputs.toshiba_changed == 'true'
-        run: |
-            echo "Changes detected in Toshiba, building Docker image..."
-            docker build \
-                -f apps/toshiba/Dockerfile \
-                -t "${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-ui:latest" \
-                .
-
-      - name: Skip Toshiba Build
-        if: steps.changes.outputs.toshiba_changed == 'false'
-        run: |
-            echo "No changes detected in Toshiba, skipping build..."
-
-      - name: Check for Toshiba backend changes
+      - name: Check Toshiba Backend changes
         id: check_backend
         run: |
-          git fetch --depth=2 origin develop
-          if git diff --name-only origin/develop | grep -q '^elevaite_backend/toshiba_backend/'; then
-            echo "backend_changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "backend_changed=false" >> $GITHUB_OUTPUT
-          fi
+            if git diff --name-only origin/develop | grep -q '^elevaite_backend/toshiba_backend/'; then
+                echo "toshiba_backend_changed=true" >> $GITHUB_OUTPUT
+            else
+                echo "toshiba_backend_changed=false" >> $GITHUB_OUTPUT
+            fi
 
-      - name: Build Toshiba Backend Docker Image
-        if: steps.check_backend.outputs.backend_changed == 'true'
+      - name: Check Toshiba Auth API changes
+        id: check_auth
         run: |
+            if git diff --name-only origin/develop | grep -q '^python_apps/auth_api/'; then
+                echo "toshiba_auth_changed=true" >> $GITHUB_OUTPUT
+            else
+                echo "toshiba_auth_changed=false" >> $GITHUB_OUTPUT
+            fi
+
+      - name: Authenticate with AWS
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build & Push Toshiba UI
+        if: steps.check_ui.outputs.toshiba_ui_changed == 'true'
+        run: |
+            IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-ui"
+            TAG=staging-${{ steps.meta.outputs.sha_short }}
             docker build \
-              -t ${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-backend:latest \
+                --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
+                --build-arg NEXT_PUBLIC_AUTH_API_URL=https://elevaite-staging.iopex.ai \
+                --build-arg NEXT_PUBLIC_BACKEND_URL=https://elevaite-staging.iopex.ai/api/core/ \
+                -f apps/toshiba/Dockerfile \
+                -t ${IMAGE}:${TAG} \
+                .
+
+            docker push ${IMAGE}:${TAG}
+
+      - name: Build & Push Toshiba Backend
+        if: steps.check_backend.outputs.toshiba_backend_changed == 'true'
+        run: |
+            IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-backend"
+            TAG=staging-${{ steps.meta.outputs.sha_short }}
+            docker build \
               -f elevaite_backend/toshiba_backend/Dockerfile \
+              -t ${IMAGE}:${TAG} \
               elevaite_backend/toshiba_backend
 
-      - name: Skip Toshiba Backend Build
-        if: steps.check_backend.outputs.backend_changed == 'false'
+            docker push ${IMAGE}:${TAG}
+
+      - name: Build & Push Toshiba Auth API
+        if: steps.check_auth.outputs.toshiba_auth_changed == 'true'
         run: |
-            echo "No changes detected in Toshiba backend, skipping build..."
+            IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-auth-api"
+            TAG=staging-${{ steps.meta.outputs.sha_short }}
+            docker build \
+              -f python_apps/auth_api/Dockerfile \
+              -t ${IMAGE}:${TAG} \
+              .
+
+            docker push ${IMAGE}:${TAG}
+
 
       - name: CI Summary
         run: |
-            echo "Toshiba changes: ${{ steps.changes.outputs.toshiba_changed }}"
-            echo "Toshiba backend changes: ${{ steps.check_backend.outputs.backend_changed }}"
+            echo "Toshiba changed: ${{ steps.check_ui.outputs.toshiba_ui_changed }}"
+            echo "Toshiba Backend changed: ${{ steps.check_backend.outputs.toshiba_backend_changed }}"
+            echo "Toshiba Auth API changed: ${{ steps.check_auth.outputs.toshiba_auth_changed }}"
