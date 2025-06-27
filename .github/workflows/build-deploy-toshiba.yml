@@ -19,6 +19,7 @@ jobs:
       - name: Detect Changes
         id: check
         run: |
+            echo "Ref: ${{ github.ref_name }} - ${{ github.ref }}"
             git fetch --no-tags --prune --depth=2 origin develop
             echo "toshiba_ui_changed=$(git diff --name-only origin/develop | grep -q '^apps/toshiba/' && echo true || echo false)" >> $GITHUB_OUTPUT
             echo "toshiba_backend_changed=$(git diff --name-only origin/develop | grep -q '^elevaite_backend/toshiba_backend/' && echo true || echo false)" >> $GITHUB_OUTPUT
