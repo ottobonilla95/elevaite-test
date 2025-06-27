@@ -244,3 +244,31 @@
 		background: var(--orange);
 	}
 }
+
+.common-select-green {
+	display: inline-flex;
+	font-weight: 500;
+	font-size: 12px;
+	border-radius: 6px;
+	color: #6C8271;
+	background: #6C82711F;
+
+	.common-button.no-background:hover:not(:disabled),
+	.common-button.no-background:active:not(:disabled) {
+		background: #6C82711F;
+	}
+
+	.common-select-options-container .common-select-options-contents {
+		background: white;
+		border: 1px solid #E3E8EF;
+		box-shadow: none;
+		border-radius: 6px;
+		margin: 5px 0 0;
+
+		.common-button {
+			border-radius: 6px;
+			color: #6C8271;
+			background: #6C82711F;
+		}
+	}
+}

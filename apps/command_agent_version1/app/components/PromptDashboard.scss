@@ -88,6 +88,13 @@
 				height: calc(100% - 49px);
 				border-top: none;
 			}
+
+			.simple-textarea-container {
+				textarea {
+					@include scrollbar(#71717366, #71717326);
+				}
+			}
+
 		}
 	}
 }

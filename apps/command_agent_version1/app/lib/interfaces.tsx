@@ -627,22 +627,3 @@ export interface PromptInputVariableEngineerItem {
 	definition: string;
 	saved?: boolean,
 }
-
-export type NewPromptInputParameter = "Parameters" | "Elevaite" | "Enterprise" | "Cloud";
-
-export type NewPromptInputStatus = "Status" | "Draft" | "In Review" | "Approved";
-
-export type NewPromptInputVersion = "Version";
-
-export type NewPromptInputExecution = "Hosted" | "Custom API";
-
-export type NewPromptInputOutputFormat = "JSON" | "CSV" | "HTML";
-
-export interface NewPromptInputSelectedModelOnHover {
-	id: string;
-	name: string;
-	description: string;
-	context: string;
-	inputPricing: string;
-	outputPricing: string;
-}

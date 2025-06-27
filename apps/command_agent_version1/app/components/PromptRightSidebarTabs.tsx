@@ -2,6 +2,14 @@ import { useState } from "react";
 import { LoadingKeys, usePrompt } from "../ui/contexts/PromptContext";
 import PromptLoading from "./PromptLoading";
 import PromptRightColToggleVisilityStatus from "./PromptRightColToggleVisilityStatus";
+import { CommonSelect, CommonSelectOption } from "@repo/ui/components";
+
+const models: CommonSelectOption[] = [
+	{ value: 'GPT4o-Mini'},
+	{ value: 'GPT 4 Turbo'},
+	{ value: 'Claude 3.5 Sonet'},
+	{ value: 'Claude 3 Opus'},
+];
 
 const PromptRightSidebarTabs = () => {
 	const promptContext = usePrompt();
@@ -27,6 +35,14 @@ const PromptRightSidebarTabs = () => {
 					{activeTab === "tab1" && (
 						<div className="tab-panel flex flex-col flex-grow">
 							<div className="tab-content p-4">
+
+								<CommonSelect
+									className="common-select-green"
+									defaultValue="GPT4o-Mini"
+									options={models}
+									onSelectedValueChange={(value) => console.log(value)}
+								/>
+
 								{promptContext.output && (
 									<div className="flex items-center gap-2 mb-4">
 										<label className="flex items-center gap-2" htmlFor="json">

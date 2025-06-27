@@ -54,6 +54,18 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 		setRequired(selectedVariable?.required ?? true);
 		setJson(selectedVariable?.json ?? true);
 		setDefinition(selectedVariable?.definition || "");
+
+		const updates: PromptInputVariableEngineerItem = {
+			id: props.id,
+			name: selectedVariable?.name || "",
+			displayName: selectedVariable?.displayName || "",
+			type: selectedVariable?.type || "Text",
+			required: selectedVariable?.required ?? true,
+			json: selectedVariable?.json ?? true,
+			definition: selectedVariable?.definition || "",
+			saved: true,
+		}
+		promptContext.savePromptInputVariableEngineer(props.id, updates);
 	}
 
 	const handleRemoveVariable = () => {
@@ -114,6 +126,11 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 						<div className="header flex items-center justify-between pb-4" style={{borderBottom: '1px solid #E3E8EF'}}>
 							<div className="text-lg font-medium">{"" !== name ? name : 'New Variable'}</div>
 							<div className="flex items-center gap-2">
+								<button onClick={handleSaveVariable} disabled={!allFilled} title="Save Variable">
+									<svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+										<path d="M16.8 5.69971L8 14.4997L4 10.4997" stroke="#FF681F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+									</svg>
+								</button>
 								{edit && (
 									<button onClick={handleCancelEditVariable} title="Cancel Edit">
 										<svg width="12" height="13" viewBox="0 0 12 13" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -121,11 +138,6 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 										</svg>
 									</button>
 								)}
-								<button onClick={handleSaveVariable} disabled={!allFilled} title="Save Variable">
-									<svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-										<path d="M16.8 5.69971L8 14.4997L4 10.4997" stroke="#FF681F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-									</svg>
-								</button>
 								<button onClick={handleRemoveVariable} title="Remove Variable">
 									<svg width="17" height="16" viewBox="0 0 17 16" fill="none">
 										<g opacity="0.8">

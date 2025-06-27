@@ -87,7 +87,7 @@ const PromptVersionHistory = () => {
 					<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
 						<rect width="32" height="32" rx="16" fill="#E2E8ED"/>
 						<g opacity="0.8">
-							<path d="M10 19L16 13L22 19" stroke="#212124" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M10 13L16 19L22 13" stroke="#212124" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 						</g>
 					</svg>
 				</button>

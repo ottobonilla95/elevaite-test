@@ -6,6 +6,50 @@ import { CommonSelect, CommonSelectOption, SimpleInput, SimpleTextarea } from "@
 import { NewPromptInputExecution, NewPromptInputOutputFormat, NewPromptInputParameter, NewPromptInputSelectedModelOnHover, NewPromptInputStatus, NewPromptInputVersion } from "../lib/interfaces";
 import PromptMultiTagInputs from "./PromptMultiTagInputs";
 
+const parameters: CommonSelectOption[] = [
+	{ value: 'Parameters', disabled: true },
+	{ value: 'None'}
+];
+
+const statuses: CommonSelectOption[] = [
+	{ value: 'Status', disabled: true },
+	{ value: 'Draft'},
+	{ value: 'In Review'},
+	{ value: 'Approved'},
+];
+
+const models: CommonSelectOption[] = [
+	{ value: 'Model', disabled: true },
+	{ value: 'Open AI', label: 'Open AI', isSeparator: true },
+	{ value: 'GPT4o-Mini'},
+	{ value: 'GPT 4 Turbo'},
+	{ value: 'Anthropic', label: 'Anthropic', isSeparator: true },
+	{ value: 'Claude 3.5 Sonet'},
+	{ value: 'Claude 3 Opus'},
+];
+
+const availableModels: NewPromptInputSelectedModelOnHover[] = [
+	{ id: 'GPT4o-Mini', name: 'GPT 4', description: 'GPT 4 from OpenAI has broad general knowledge and domain expertise allowing it to follow complex instructions in natural language and solve difficult problems accurately.', context: '8,192 tokens', inputPricing: '$30.00/ 1M tokens', outputPricing: '$60.00/ 1M tokens' },
+	{ id: 'GPT 4 Turbo', name: 'GPT 4', description: 'GPT 4 from OpenAI has broad general knowledge and domain expertise allowing it to follow complex instructions in natural language and solve difficult problems accurately.', context: '8,192 tokens', inputPricing: '$30.00/ 1M tokens', outputPricing: '$60.00/ 1M tokens' },
+	{ id: 'Claude 3.5 Sonet', name: 'Claude 3.5', description: 'GPT 4 from OpenAI has broad general knowledge and domain expertise allowing it to follow complex instructions in natural language and solve difficult problems accurately.', context: '8,192 tokens', inputPricing: '$30.00/ 1M tokens', outputPricing: '$60.00/ 1M tokens' },
+	{ id: 'Claude 3 Opus', name: 'Claude 3', description: 'GPT 4 from OpenAI has broad general knowledge and domain expertise allowing it to follow complex instructions in natural language and solve difficult problems accurately.', context: '8,192 tokens', inputPricing: '$30.00/ 1M tokens', outputPricing: '$60.00/ 1M tokens' },
+];
+
+const versions: CommonSelectOption[] = [
+	{ value: 'Version', disabled: true },
+];
+
+const executions: CommonSelectOption[] = [
+	{ value: 'Hosted'},
+	{ value: 'Custom API'},
+];
+
+const outputs: CommonSelectOption[] = [
+	{ value: 'JSON'},
+	{ value: 'CSV'},
+	{ value: 'HTML'},
+];
+
 const PromptNewForm = () => {
 	const [name, setName] = useState("");
 	const [tags, setTags] = useState<string[]>([]);
@@ -48,52 +92,7 @@ const PromptNewForm = () => {
 		}
 	}, [showHover]);
 
-	/*need fix*/
-	const parameters: CommonSelectOption[] = [
-		{ value: 'Parameters', disabled: true },
-		{ value: 'None'}
-	];
-
-	const statuses: CommonSelectOption[] = [
-		{ value: 'Status', disabled: true },
-		{ value: 'Draft'},
-		{ value: 'In Review'},
-		{ value: 'Approved'},
-	];
-
-	const models: CommonSelectOption[] = [
-		{ value: 'Model', disabled: true },
-		{ value: 'Open AI', label: 'Open AI', isSeparator: true },
-		{ value: 'GPT4o-Mini'},
-		{ value: 'GPT 4 Turbo'},
-		{ value: 'Anthropic', label: 'Anthropic', isSeparator: true },
-		{ value: 'Claude 3.5 Sonet'},
-		{ value: 'Claude 3 Opus'},
-	];
-
-	const availableModels: NewPromptInputSelectedModelOnHover[] = [
-		{ id: 'GPT4o-Mini', name: 'GPT 4', description: 'GPT 4 from OpenAI has broad general knowledge and domain expertise allowing it to follow complex instructions in natural language and solve difficult problems accurately.', context: '8,192 tokens', inputPricing: '$30.00/ 1M tokens', outputPricing: '$60.00/ 1M tokens' },
-		{ id: 'GPT 4 Turbo', name: 'GPT 4', description: 'GPT 4 from OpenAI has broad general knowledge and domain expertise allowing it to follow complex instructions in natural language and solve difficult problems accurately.', context: '8,192 tokens', inputPricing: '$30.00/ 1M tokens', outputPricing: '$60.00/ 1M tokens' },
-		{ id: 'Claude 3.5 Sonet', name: 'Claude 3.5', description: 'GPT 4 from OpenAI has broad general knowledge and domain expertise allowing it to follow complex instructions in natural language and solve difficult problems accurately.', context: '8,192 tokens', inputPricing: '$30.00/ 1M tokens', outputPricing: '$60.00/ 1M tokens' },
-		{ id: 'Claude 3 Opus', name: 'Claude 3', description: 'GPT 4 from OpenAI has broad general knowledge and domain expertise allowing it to follow complex instructions in natural language and solve difficult problems accurately.', context: '8,192 tokens', inputPricing: '$30.00/ 1M tokens', outputPricing: '$60.00/ 1M tokens' },
-	];
-
 	const selectedModelObject = availableModels.find(model => model.id === selectedModelOnHover);
-
-	const versions: CommonSelectOption[] = [
-		{ value: 'Version', disabled: true },
-	];
-
-	const executions: CommonSelectOption[] = [
-		{ value: 'Hosted'},
-		{ value: 'Custom API'},
-	];
-
-	const outputs: CommonSelectOption[] = [
-		{ value: 'JSON'},
-		{ value: 'CSV'},
-		{ value: 'HTML'},
-	];
 
 	const handleNameChange = (text: string) => {
 		setName(text);
@@ -138,15 +137,15 @@ const PromptNewForm = () => {
 	}
 
 	const handleTagsChange = (tags: string[]) => {
-		setTags(tags)
+		setTags(tags);
 	}
 
 	const handleTemperatureChange = (text: string) => {
-		setTemperature(text)
+		setTemperature(text);
 	}
 
 	const handleMaxTokensChange = (text: string) => {
-		setMaxTokens(text)
+		setMaxTokens(text);
 	}
 
 	const handleRangeSliderTemperatureChange = (value: number[]) => {
@@ -263,7 +262,7 @@ const PromptNewForm = () => {
 						<SimpleInput id="temperature" type="number" wrapperClassName="prompt-input" value={temperature} useCommonStyling onChange={handleTemperatureChange} />
 					</div>
 					<div className="mt-5 my-4">
-						<RangeSlider className="prompt-input-range-slider" defaultValue={[0, 0]} min={0} max={1} step={0.1} onInput={handleRangeSliderTemperatureChange} />
+						<RangeSlider className="prompt-input-range-slider" value={[0, Number(temperature)]} min={0} max={1} step={0.1} onInput={handleRangeSliderTemperatureChange} />
 						<div className="flex justify-between text-xs mt-3">
 							<span>Predictable</span>
 							<span>Creative</span>
@@ -276,7 +275,7 @@ const PromptNewForm = () => {
 						<SimpleInput id="max-tokens" type="number" wrapperClassName="prompt-input" value={maxTokens} useCommonStyling onChange={handleMaxTokensChange} />
 					</div>
 					<div className="mt-5 my-4">
-						<RangeSlider className="prompt-input-range-slider" defaultValue={[0, 0]} min={0} max={2000} step={100} onInput={handleRangeSliderMaxTokensChange} />
+						<RangeSlider className="prompt-input-range-slider" value={[0, Number(maxTokens)]} min={0} max={2000} step={100} onInput={handleRangeSliderMaxTokensChange} />
 						<div className="flex justify-between text-xs mt-3">
 							<span>Small Content</span>
 							<span>Large Content</span>
