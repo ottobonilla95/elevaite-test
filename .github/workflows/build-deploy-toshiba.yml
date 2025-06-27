@@ -112,9 +112,15 @@ jobs:
       - name: Save built tags
         id: set_tags
         run: |
-            echo "ui_tag=staging-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
-            echo "backend_tag=staging-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
-            echo "auth_tag=staging-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+            if [[ "${{ steps.check_ui.outputs.toshiba_ui_changed }}" == "true" ]; then
+                echo "ui_tag=staging-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+            fi
+            if [[ "${{ steps.check_backend.outputs.toshiba_backend_changed }}" == "true" ]]; then
+                echo "backend_tag=staging-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+            fi
+            if [[ "${{ steps.check_auth.outputs.toshiba_auth_changed }}" == "true" ]]; then
+                echo "auth_tag=staging-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+            fi
 
     outputs:
       ui_tag: ${{ steps.set_tags.outputs.ui_tag }}
