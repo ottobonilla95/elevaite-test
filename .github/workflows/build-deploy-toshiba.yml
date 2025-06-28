@@ -15,15 +15,37 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch develop branch
+        run: |
+          git fetch origin develop --depth=2
 
       - name: Detect Changes
         id: check
         run: |
-            echo "Ref: ${{ github.ref_name }} - ${{ github.ref }}"
-            git fetch --no-tags --prune --depth=2 origin develop
-            echo "toshiba_ui_changed=$(git diff --name-only origin/develop | grep -q '^apps/toshiba/' && echo true || echo false)" >> $GITHUB_OUTPUT
-            echo "toshiba_backend_changed=$(git diff --name-only origin/develop | grep -q '^elevaite_backend/toshiba_backend/' && echo true || echo false)" >> $GITHUB_OUTPUT
-            echo "toshiba_auth_changed=$(git diff --name-only origin/develop | grep -q '^python_apps/auth_api/' && echo true || echo false)" >> $GITHUB_OUTPUT
+          git diff --name-only origin/develop...HEAD > changed_files.txt
+          echo "Changed Files:"
+          cat changed_files.txt
+
+          UI_CHANGED=false
+          BACKEND_CHANGED=false
+          AUTH_CHANGED=false
+
+          if grep -q '^apps/toshiba/' changed_files.txt; then
+            UI_CHANGED=true
+          fi
+          if grep -q '^elevaite_backend/toshiba_backend/' changed_files.txt; then
+            BACKEND_CHANGED=true
+          fi
+          if grep -q '^python_apps/auth_api/' changed_files.txt; then
+            AUTH_CHANGED=true
+          fi
+
+          echo "toshiba_ui_changed=${UI_CHANGED}" >> $GITHUB_OUTPUT
+          echo "toshiba_backend_changed=${BACKEND_CHANGED}" >> $GITHUB_OUTPUT
+          echo "toshiba_auth_changed=${AUTH_CHANGED}" >> $GITHUB_OUTPUT
   
   build:
     needs: check-changes
