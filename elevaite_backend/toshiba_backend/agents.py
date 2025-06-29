@@ -180,9 +180,9 @@ class ToshibaAgent(Agent):
                 # print(final_response)
                 # print(sources)
                 data_log = AgentFlow(
-                    agent_flow_id=uuid.UUID(agent_flow_id),
-                    session_id=uuid.UUID(session_id),
-                    qid=uuid.UUID(qid),
+                    agent_flow_id=uuid.UUID(agent_flow_id) if type(agent_flow_id) == str else agent_flow_id,
+                    session_id=uuid.UUID(session_id) if type(session_id) == str else session_id,
+                    qid=uuid.UUID(qid) if type(qid) == str else qid,
                     user_id=user_id,
                     request=query,
                     response=final_response,
@@ -193,7 +193,7 @@ class ToshibaAgent(Agent):
                     chat_history=json.dumps(chat_history),
                 )
 
-                print(data_log)
+                print("Data Log: ", data_log)
                 await database_connection.save_agent_flow(data_log)
 
         # Return failure message if max retries reached
@@ -217,7 +217,7 @@ class ToshibaAgent(Agent):
         # Initialize messages with chat history and system prompt
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(chat_history)
-        messages.append({"role": "user", "content": "Answer this query: " + query})
+        messages.append({"role": "user", "content": "Use the chat history as context and answer this query by the field service engineer: " + query})
 
         # Main loop for retries
         while tries < max_tries:

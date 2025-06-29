@@ -4,6 +4,7 @@ import type {
   CommonInputProps,
   CommonCheckboxProps,
 } from "@repo/ui/components";
+import { v4 as uuidv4 } from "uuid";
 
 // ENUMS
 ////////////////
@@ -205,8 +206,8 @@ export interface SessionSummaryObject {
 }
 
 export const defaultSession: SessionObject = {
-  id: `${SESSION_ID_PREFIX}0`,
-  label: "Session 1",
+  id: uuidv4().toString(),
+  label: "Starting New Chat...",
   messages: [],
   creationDate: new Date().toISOString(),
 };

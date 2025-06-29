@@ -766,6 +766,7 @@ abbreviations = {
     "PMO": "Project Management Office",
     "PMR": "Problem management record number that represents a service incident with a customer.",
     "PN": "Part Number",
+    "pn" : "Part Number",
     "PO": "Standard PO (Oracle PO Type) - defined goods/services/pricing for a specific purchase",
     "POD": "Proof of Delivery",
     "POK": "IBM Poughkeepsie",

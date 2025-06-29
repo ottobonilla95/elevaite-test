@@ -37,7 +37,7 @@ def extract_abbreviation_expansions(query: str) -> dict:
 
     return matches
 
-def reformulate_query_with_llm(original_query: str, abbreviation_expansions: str, openai_model="gpt-4.1") -> str:
+def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dict, openai_model="gpt-4.1", chat_history: list = []) -> str:
     # if not abbreviation_expansions:
     #     return original_query
 
@@ -48,93 +48,87 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: str
     machine_types = "\n".join(f"{i}. {k}" for i, (k, v) in enumerate(MACHINE_ABBREVIATIONS.items()))
 
     system_prompt = f"""
-You are a helpful AI assistant for query rewriting.
-When users include abbreviations in their queries, expand them inline to clarify the meaning.
-When users enter machine type, expand it to the full machine name.
-Make the reformulated query clear and complete, but keep it short.
+    You are a helpful AI assistant for query rewriting. Your output will be sent to another system that needs clear, expanded queries.
 
-### Machine Abbreviations
-Machines are identified by a machine type, model, and name.
-The machine type is the first number, and the model is the second number.
-For example, in "4612 C01", "6145" is the machine type, "100" is the model, and SurePoint Mobile is the name.
-The machine type is always 4 digits, and the model is always 3 digits.
-In the data, {{'4612': "{{'C01': 'SurePoint Mobile'}}"}} means that the machine type is 4612, the model is C01, and the name is SurePoint Mobile.
-{{'4835': "{{'All': 'NetVista Kiosk'}}"}} here All means all models of the machine type 4835 are NetVista Kiosk.
-{{'4836': "{{'1xx': 'Anyplace Kiosk'}}"}} here 1xx means all models that start with 1 are Anyplace Kiosk.
+    Your job is to:
+    1. Expand machine codes or abbreviations inline using known names.
+    2. Reformulate vague or incomplete queries using context from chat history.
+    3. If the query is complete and not affected by abbreviations or history, return it as-is.
+    4. Ensure the result is meaningful, well-formed, and clearly expresses user intent.
 
-The only machine types that exist are:
-{machine_types}
+    ### MACHINE EXPANSION RULES:
+    - Machine entries follow this format: Machine Type (4 digits), Model (3 alphanumeric), and Name.
+    - Expand to this format: "<Full Name> (Machine Type: XXXX Model: XXX)"
+    - Use partial rules if applicable:
+        - {{'4835': {{'All': 'NetVista Kiosk'}}}} → All models
+        - {{'4836': {{'1xx': 'Anyplace Kiosk'}}}} → Models starting with 1
+    - If only the machine type is provided, use the most common or relevant model/name.
 
-LIST OF Primary CUSTOMERS:
-1. Walgreens
-2. Kroger
-3. Sam's Club aka Sams
-4. Tractor Supply
-5. Dollar General
-6. Wegmans
-7. Ross
-8. Costco
-9. Whole Foods
-10. BJs or BJ's
-11. Alex Lee
-12. Badger
-###
+    Expand **only** if the machine type is in this list:
+    {machine_types}
 
-EXAMPLES:
-Original Query: "4610 1NR ink setting"
-Known Abbreviations: 4610 = {{'1NR': 'SureMark Printer'}}
-Rewritten Query: "SureMark Printer (Machine Type: 4610 Model: 1NR) ink setting"
+    ### CUSTOMER NAMES:
+    Walgreens, Kroger, Sam's Club (Sams), Tractor Supply, Dollar General, Wegmans, Ross, Costco, Whole Foods, BJ's, Alex Lee, Badger
 
-Original Query: "4694 244 motor part"
-Known Abbreviations: 4694 = {{'All': '4694'}}
-Rewritten Query: "4694 (Machine Type: 4694 Model: 244) motor part"
+    ### DO NOT EXPAND:
+    - Invalid machine types (not in the list)
+    - MTM codes without valid types
+    - "TCx Sky" (OS)
+    - Toshiba part numbers (e.g. 80Y1564, 3AC01587100)
 
-Original Query: "4800-0xx SSD motor part"
-Known Abbreviations: 4800 = {{'011': 'SureBase', '010': 'SureBase', '110': 'SurePoint Display'}}
-Rewritten Query: "SureBase (Machine Type: 4800 Model: 0xx) Solid State Drive (SSD) part"
+    ### IF NO REWRITE IS NEEDED:
+    - If the input is a greeting or unrelated small talk (e.g. "hello", "thanks", "okay"), pass it through exactly.
+    - If the query is already clear and not affected by known abbreviations or context, return it as-is.
 
-Original Query: "0365-K6A Kroger motor part"
-Known Abbreviations: {{None}}
-Rewritten Query: "0365-K6A Kroger motor part"
+    ### EXAMPLES:
 
-Original Query: "MTM 08R3-PU8 Walgreens printer part"
-Known Abbreviations: {{None}}
-Rewritten Query: "MTM 08R3-PU8 Walgreens printer part"
+    Original: "hello"
+    → Rewritten: "hello"
 
-Notice how 0365 is not in the list of machine types, so it is not expanded.
-###
+    Original: "foyer part number"
+    Chat history: "search in 7610"
+    → Rewritten: "Foyer part number in System 42 (Machine Type: 7610)"
 
-Rewrite the query by expanding each abbreviation using its full form.
-Keep both the full form and the abbreviation together, like this format:
-"<Full Form> (<Abbreviation>)"
+    Original: "4694 244 motor part"
+    → Rewritten: "4694 (Machine Type: 4694 Model: 244) motor part"
 
-IF THE USER ENTERS AN INVALID MACHINE TYPE, MODEL OR NAME, IGNORE IT.
-For example, if the user enters "036-100" which is not a valid machine type in the list above, ignore it and don't expand it.
-For example, if the user enters "MTM 036-W04" then the user is referring to some other Machine type code, so ignore it and don't expand it.
+    Original: "MTM 036-W04"
+    → Rewritten: "MTM 036-W04" (invalid machine type, no expansion)
 
-TCx Sky is the operating system. Don't expand it.
-Toshiba Part numbers are always 7 digits like 80Y1564 or 11-digit like 3AC01587100. Don't expand them.
-"""
+    Rewritten queries must be natural and complete, as if a human rephrased them for clarity — but only when needed.
+
+    ###
+    """
 
     user_prompt = f"""
-Known Abbreviations: {expansion_context}
-Original Query: "{original_query}"
-Rewritten Query:
-"""
+    Known Abbreviations: {expansion_context}
+    Original Query: "{original_query}"
+
+    Chat History: {chat_history}
+
+    Rewrite the query as follows:
+    - Expand abbreviations and machine codes inline, using this format: "<Full Name> (<Abbreviation>)"
+    - If the query is vague (e.g. "search in 7610"), combine it with previous relevant messages to form a natural, clear query.
+    - If the chat history or known abbreviations do not help clarify the query, return the query exactly as written.
+    - If the input is casual conversation (e.g. "hello", "thanks"), pass it through without rewriting.
+
+    Rewritten Query:
+    """
 
     response = client.chat.completions.create(
         model=openai_model,
         messages=[
-            {"role": "system", "content": system_prompt.strip()},
-            {"role": "user", "content": user_prompt.strip()}
+            {"role": "system", "content": system_prompt.strip()}]
+        + chat_history +
+            [{"role": "user", "content": user_prompt.strip()}
         ],
-        temperature=0.1
+        temperature=0.6
     )
     # print(system_prompt)
 
     return response.choices[0].message.content.strip()
 
-def reformulate_query_final(query: str) -> str:
+def reformulate_query_final(query: str, chat_history: list) -> str:
     print("\nOriginal Query:", query)
     filtered_query = query.replace("?", " ")
     filtered_query = filtered_query.replace("-", " ")
@@ -142,7 +136,9 @@ def reformulate_query_final(query: str) -> str:
 
     print("\nFinal Expansions:", expansions)
 
-    rewritten = reformulate_query_with_llm(query, expansions)
+    rewritten = reformulate_query_with_llm(original_query=query,
+                                           abbreviation_expansions=expansions,
+                                           chat_history=chat_history)
 
     return rewritten
 

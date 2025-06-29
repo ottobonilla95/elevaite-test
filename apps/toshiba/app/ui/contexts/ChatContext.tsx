@@ -258,7 +258,7 @@ export function ChatContextProvider(
       // id: newId,
       // label: `Session ${(newIdNumber + 1).toString()}`,
       id: uuidv4().toString(),
-      label: `Session`,
+      label: `Starting New Chat...`,
       messages: [],
       creationDate: new Date().toISOString(),
     };
@@ -848,6 +848,7 @@ export function ChatContextProvider(
           messages: sessionWithPlaceholder.messages.map((msg) =>
             msg.id === placeholderBotMessage.id ? finalMessage : msg
           ),
+          label: finalMessage.text.substring(0, 20) + "...",
         };
 
         updateSessionListWithNewMessage(finalMessage, passedSession);

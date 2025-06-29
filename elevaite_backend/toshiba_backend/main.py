@@ -138,22 +138,9 @@ async def run(request: Request):
     original_query = data.get("query")
 
     start_time = datetime.now()
-    await update_status(data.get("uid"), "Reformulating query...")
-    try:
-        query = reformulate_query_final(original_query)
-    except Exception as e:
-        print(f"Error reformulating query: {str(e)}")
-        query = data.get("query")
-    user_id = data.get("uid")
+    # Convert messages to chat history format if needed
     chat_history = data.get("messages", [])
 
-    if not query:
-        return {"error": "No query provided"}
-
-    if not user_id:
-        return {"error": "No user ID provided"}
-
-    # Convert messages to chat history format if needed
     if chat_history:
         chat_history = convert_messages_to_chat_history(chat_history)
         # Remove the last message if it exists (likely the current query)
@@ -161,11 +148,25 @@ async def run(request: Request):
             chat_history = chat_history[:-1]
     else:
         chat_history = []
+    await update_status(data.get("uid"), "Reformulating query...")
+
+    try:
+        query = reformulate_query_final(original_query, chat_history)
+    except Exception as e:
+        print(f"Error reformulating query: {str(e)}")
+        query = data.get("query")
+    user_id = data.get("uid")
+
+    if not query:
+        return {"error": "No query provided"}
+
+    if not user_id:
+        return {"error": "No user ID provided"}
 
     print(f"Time taken for request processing: {datetime.now() - start_time}")
 
     async def response_generator():
-        agent_flow_id = str(uuid.uuid4())
+        agent_flow_id = uuid.uuid4()
         full_response = ""
         try:
             print("Query: ", query)
@@ -185,7 +186,7 @@ async def run(request: Request):
 
                     full_response += chunk
                     yield f"{chunk if isinstance(chunk, str) else ''}"
-            # yield "Hi."
+                # yield "Hi."
 
         except Exception as e:
             error_msg = f"Error during streaming: {str(e)}"
