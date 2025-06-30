@@ -19,6 +19,10 @@ WORKDIR /app
 # Accept build-time env var
 ARG NEXT_PUBLIC_BACKEND_URL
 ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+ARG NEXT_PUBLIC_AUTH_API_URL
+ENV NEXT_PUBLIC_AUTH_API_URL=$NEXT_PUBLIC_AUTH_API_URL
+ARG NEXT_PUBLIC_AUTH_TENANT_ID
+ENV NEXT_PUBLIC_AUTH_TENANT_ID=$NEXT_PUBLIC_AUTH_TENANT_ID
 
 # First install the dependencies (as they change less often)
 COPY .gitignore .gitignore
@@ -30,8 +34,7 @@ RUN npm ci
 # Build the project with the env injected
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
-RUN NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL npx --yes turbo run build --filter=toshiba...
-
+RUN NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL NEXT_PUBLIC_AUTH_API_URL=$NEXT_PUBLIC_AUTH_API_URL NEXT_PUBLIC_AUTH_TENANT_ID=$NEXT_PUBLIC_AUTH_TENANT_ID npx --yes turbo run build --filter=toshiba...
 FROM base AS runner
 WORKDIR /app
 
