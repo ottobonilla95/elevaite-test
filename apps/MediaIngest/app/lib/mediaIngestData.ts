@@ -90,8 +90,73 @@ export const mediaIngestSteps: MediaIngestStep[] = [
     },
   },
   {
+    id: "datainput",
+    title: "Data Input Components",
+    description: "Extract text and metadata from various document formats",
+    details:
+      "The parsing step involves extracting raw text and metadata from documents in various formats such as PDF, DOCX, HTML, etc. This step prepares the content for further processing.",
+    features: [
+      "Support for multiple document formats (PDF, DOCX, TXT, HTML, etc.)",
+      "Extraction of document metadata (title, author, creation date, etc.)",
+      "Preservation of document structure (headings, paragraphs, lists, etc.)",
+      "Handling of embedded images and tables",
+      "OCR for scanned documents",
+    ],
+    examples: [
+      {
+        input: "PDF document with text, images, and tables",
+        output: "Extracted plain text with metadata and structural information",
+      },
+      {
+        input: "Scanned document with handwritten notes",
+        output: "OCR-processed text with confidence scores",
+      },
+    ],
+    configOptions: [
+      {
+        id: "parsing_mode",
+        label: "Parsing Mode",
+        type: "select",
+        options: ["auto_parser", "custom_parser"],
+        default: "auto_parser",
+        description:
+          "Choose between automatic parser selection or custom parser",
+      },
+      {
+        id: "file_type",
+        label: "File Type",
+        type: "select",
+        options: ["pdf", "docx", "txt", "html", "url"],
+        default: "pdf",
+        description: "Select the type of document to parse",
+      },
+      {
+        id: "ocr_enabled",
+        label: "Enable OCR",
+        type: "checkbox",
+        default: true,
+        description:
+          "Enable Optical Character Recognition for scanned documents",
+      },
+    ],
+    providers: {
+      sagemaker: {
+        supported: true,
+        description: "Fully supported with all parsing options",
+      },
+      airflow: {
+        supported: true,
+        description: "Supported with limited OCR capabilities",
+      },
+      bedrock: {
+        supported: true,
+        description: "Native support for all document types",
+      },
+    },
+  },
+  {
     id: "parsing",
-    title: "Parsing",
+    title: "Feature Extraction",
     description: "Extract text and metadata from various document formats",
     details:
       "The parsing step involves extracting raw text and metadata from documents in various formats such as PDF, DOCX, HTML, etc. This step prepares the content for further processing.",
@@ -156,7 +221,7 @@ export const mediaIngestSteps: MediaIngestStep[] = [
   },
   {
     id: "chunking",
-    title: "Chunking",
+    title: "Creative Analysis Components",
     description: "Split documents into smaller, manageable pieces",
     details:
       "Chunking divides the extracted text into smaller segments based on semantic meaning, fixed size, or natural breaks like paragraphs. This makes the content more manageable for processing and retrieval.",
@@ -233,7 +298,7 @@ export const mediaIngestSteps: MediaIngestStep[] = [
   },
   {
     id: "embedding",
-    title: "Embedding",
+    title: "Creative Insights Agent",
     description: "Convert text chunks into vector representations",
     details:
       "The embedding step transforms text chunks into numerical vector representations using machine learning models. These vectors capture the semantic meaning of the text, enabling similarity searches and other operations.",
@@ -296,7 +361,7 @@ export const mediaIngestSteps: MediaIngestStep[] = [
   },
   {
     id: "vectorstore",
-    title: "Vector Store",
+    title: "Storage Components",
     description: "Store and index vectors for efficient retrieval",
     details:
       "The Vector Store step involves storing the generated embeddings in a specialized database optimized for vector similarity search. This enables efficient retrieval of relevant information based on semantic similarity.",

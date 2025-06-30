@@ -427,6 +427,18 @@ export default function Home(): JSX.Element {
             <ElevaiteIcons.SVGSpinner size={26} />
           </div>
         );
+      case "datainput":
+        return (
+          <div className="step-icon datainput">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" />
+            </svg>
+          </div>
+        );
       case "parsing":
         return (
           <div className="step-icon editing">
@@ -610,7 +622,6 @@ export default function Home(): JSX.Element {
                 <div
                   className={`pipeline-step-box ${selectedStep === step.id ? "selected" : ""} ${mediaIngestSteps.findIndex((s) => s.id === selectedStep) >= mediaIngestSteps.findIndex((s) => s.id === step.id) ? "highlighted" : ""}`}
                   onClick={() => handleStepSelect(step.id)}
-                  title={step.description}
                 >
                   <div className="icon-circle">{getStepIcon(step.id)}</div>
                   <div className="step-title">{step.title}</div>
@@ -642,13 +653,7 @@ export default function Home(): JSX.Element {
                     {mediaIngestSteps.find((s) => s.id === selectedStep)?.title}{" "}
                     Configuration
                   </h1>
-                  <div
-                    className="info-icon"
-                    title={
-                      mediaIngestSteps.find((s) => s.id === selectedStep)
-                        ?.details
-                    }
-                  >
+                  <div className="info-icon">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="14"
@@ -1443,7 +1448,7 @@ export default function Home(): JSX.Element {
                 >
                   <path d="M8 5v14l11-7z" />
                 </svg>
-                Run Process
+                Run {mediaIngestSteps.find((s) => s.id === selectedStep)?.title}
               </button>
               <button className="save-button">
                 <svg
