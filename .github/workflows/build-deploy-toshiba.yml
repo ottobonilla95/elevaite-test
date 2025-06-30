@@ -46,41 +46,7 @@ jobs:
           echo "toshiba_ui_changed=${UI_CHANGED}" >> $GITHUB_OUTPUT
           echo "toshiba_backend_changed=${BACKEND_CHANGED}" >> $GITHUB_OUTPUT
           echo "toshiba_auth_changed=${AUTH_CHANGED}" >> $GITHUB_OUTPUT
-  
-  # build:
-  #   needs: check-changes
-  #   runs-on: ubuntu-latest
-  #   if: ${{ needs.check-changes.outputs.toshiba_ui_changed == 'true' || needs.check-changes.outputs.toshiba_backend_changed == 'true' || needs.check-changes.outputs.toshiba_auth_changed == 'true' }}
-  #   steps:
-  #     - name: Checkout repo
-  #       uses: actions/checkout@v4
 
-  #     - name: Set up Docker Buildx
-  #       uses: docker/setup-buildx-action@v3
-
-  #     - name: Build Toshiba UI
-  #       if: ${{ needs.check-changes.outputs.toshiba_ui_changed == 'true' }}
-  #       run: |
-  #         docker build \
-  #               --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
-  #               --build-arg NEXT_PUBLIC_AUTH_API_URL=https://elevaite-staging.iopex.ai \
-  #               --build-arg NEXT_PUBLIC_BACKEND_URL=https://elevaite-staging.iopex.ai/api/core/ \
-  #               -f apps/toshiba/Dockerfile \
-  #               .
-
-  #     - name: Build Toshiba Backend
-  #       if: ${{ needs.check-changes.outputs.toshiba_backend_changed == 'true' }}
-  #       run: |
-  #         docker build \
-  #           -f elevaite_backend/toshiba_backend/Dockerfile \
-  #           elevaite_backend/toshiba_backend
-
-  #     - name: Build Toshiba Auth API
-  #       if: ${{ needs.check-changes.outputs.toshiba_auth_changed == 'true' }}
-  #       run: |
-  #         docker build \
-  #           -f python_apps/auth_api/Dockerfile \
-  #           .
 
   build-and-push:
     needs: check-changes
@@ -186,3 +152,57 @@ jobs:
       STAGE_AWS_REGION: ${{ secrets.STAGE_AWS_REGION }}
       STAGE_EKS_CLUSTER_NAME: ${{ secrets.STAGE_EKS_CLUSTER_NAME }}
       ELEV8S_READ_TOKEN: ${{ secrets.ELEV8S_READ_TOKEN }}
+
+  comment-pr:
+    needs: deploy-toshiba
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get PR Number
+        id: get_pr_number
+        uses: jwalton/gh-find-current-pr@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get commit log and changed files
+        id: changes
+        run: |
+          git fetch origin develop --depth=20 || true
+
+          echo "commit_log<<EOF" >> $GITHUB_OUTPUT
+          git log origin/develop..HEAD --oneline >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "files_changed<<EOF" >> $GITHUB_OUTPUT
+          git diff --name-only origin/develop..HEAD >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Set up GitHub CLI
+        run: |
+          sudo apt-get install gh -y
+
+      - name: Comment on PR
+        if: success() && steps.get_pr_number.outputs.number
+        run: |
+          gh pr comment ${{ steps.get_pr_number.outputs.number }} --body "
+          ✅ **Deployment to Staging Complete**
+
+          🔁 **Changes Deployed**:
+          \`\`\`
+          ${{ steps.changes.outputs.files_changed }}
+          \`\`\`
+
+          📌 **Commits**:
+          \`\`\`
+          ${{ steps.changes.outputs.commit_log }}
+          \`\`\`
+
+          🌐 [Test the changes here](https://elevaite-staging.iopex.ai)
+          "
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
