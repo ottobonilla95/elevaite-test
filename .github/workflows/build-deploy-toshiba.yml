@@ -47,45 +47,44 @@ jobs:
           echo "toshiba_backend_changed=${BACKEND_CHANGED}" >> $GITHUB_OUTPUT
           echo "toshiba_auth_changed=${AUTH_CHANGED}" >> $GITHUB_OUTPUT
   
-  build:
+  # build:
+  #   needs: check-changes
+  #   runs-on: ubuntu-latest
+  #   if: ${{ needs.check-changes.outputs.toshiba_ui_changed == 'true' || needs.check-changes.outputs.toshiba_backend_changed == 'true' || needs.check-changes.outputs.toshiba_auth_changed == 'true' }}
+  #   steps:
+  #     - name: Checkout repo
+  #       uses: actions/checkout@v4
+
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
+
+  #     - name: Build Toshiba UI
+  #       if: ${{ needs.check-changes.outputs.toshiba_ui_changed == 'true' }}
+  #       run: |
+  #         docker build \
+  #               --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
+  #               --build-arg NEXT_PUBLIC_AUTH_API_URL=https://elevaite-staging.iopex.ai \
+  #               --build-arg NEXT_PUBLIC_BACKEND_URL=https://elevaite-staging.iopex.ai/api/core/ \
+  #               -f apps/toshiba/Dockerfile \
+  #               .
+
+  #     - name: Build Toshiba Backend
+  #       if: ${{ needs.check-changes.outputs.toshiba_backend_changed == 'true' }}
+  #       run: |
+  #         docker build \
+  #           -f elevaite_backend/toshiba_backend/Dockerfile \
+  #           elevaite_backend/toshiba_backend
+
+  #     - name: Build Toshiba Auth API
+  #       if: ${{ needs.check-changes.outputs.toshiba_auth_changed == 'true' }}
+  #       run: |
+  #         docker build \
+  #           -f python_apps/auth_api/Dockerfile \
+  #           .
+
+  build-and-push:
     needs: check-changes
     runs-on: ubuntu-latest
-    if: ${{ needs.check-changes.outputs.toshiba_ui_changed == 'true' || needs.check-changes.outputs.toshiba_backend_changed == 'true' || needs.check-changes.outputs.toshiba_auth_changed == 'true' }}
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Toshiba UI
-        if: ${{ needs.check-changes.outputs.toshiba_ui_changed == 'true' }}
-        run: |
-          docker build \
-                --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
-                --build-arg NEXT_PUBLIC_AUTH_API_URL=https://elevaite-staging.iopex.ai \
-                --build-arg NEXT_PUBLIC_BACKEND_URL=https://elevaite-staging.iopex.ai/api/core/ \
-                -f apps/toshiba/Dockerfile \
-                .
-
-      - name: Build Toshiba Backend
-        if: ${{ needs.check-changes.outputs.toshiba_backend_changed == 'true' }}
-        run: |
-          docker build \
-            -f elevaite_backend/toshiba_backend/Dockerfile \
-            elevaite_backend/toshiba_backend
-
-      - name: Build Toshiba Auth API
-        if: ${{ needs.check-changes.outputs.toshiba_auth_changed == 'true' }}
-        run: |
-          docker build \
-            -f python_apps/auth_api/Dockerfile \
-            .
-
-  push:
-    needs: [check-changes, build]
-    runs-on: ubuntu-latest
-    if: github.ref_name == 'develop'
     outputs:
       toshiba_ui_tag: ${{ steps.set_tags.outputs.ui_tag }}
       toshiba_backend_tag: ${{ steps.set_tags.outputs.backend_tag }}
@@ -174,14 +173,13 @@ jobs:
 
   deploy-toshiba:
     name: Deploy Toshiba
-    needs: push
-    if: github.ref_name == 'develop'
+    needs: build-and-push
     uses: iopexses/elev8s/.github/workflows/deploy-stage.yaml@reusable-action
     with:
       environment: staging
-      toshiba_ui_tag: ${{ needs.push.outputs.toshiba_ui_tag || 'latest'}}
-      toshiba_api_tag: ${{ needs.push.outputs.toshiba_backend_tag || 'latest'}}
-      toshiba_auth_tag: ${{ needs.push.outputs.toshiba_auth_tag || 'latest'}}
+      toshiba_ui_tag: ${{ needs.build-and-push.outputs.toshiba_ui_tag || 'latest'}}
+      toshiba_api_tag: ${{ needs.build-and-push.outputs.toshiba_backend_tag || 'latest'}}
+      toshiba_auth_tag: ${{ needs.build-and-push.outputs.toshiba_auth_tag || 'latest'}}
     secrets:
       STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
       STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
