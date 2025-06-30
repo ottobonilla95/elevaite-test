@@ -93,6 +93,7 @@ interface DesignerSidebarProps {
 	handleSaveWorkflow: () => void;
 	handleCreateNewWorkflow: () => void;
 	handleLoadWorkflow: (workflow: SavedWorkflow) => void;
+	handleCreateNewAgent: () => void;
 	isLoading: boolean;
 	activeTab: string;
 	setActiveTab: (tab: string) => void;
@@ -106,6 +107,7 @@ function DesignerSidebar({
 	handleSaveWorkflow,
 	handleCreateNewWorkflow,
 	handleLoadWorkflow,
+	handleCreateNewAgent,
 	isLoading,
 	activeTab,
 	setActiveTab
@@ -237,11 +239,10 @@ function DesignerSidebar({
 
 					{/* Footer Buttons */}
 					<div className="designer-sidebar-controls-container pt-3 mt-auto space-y-2">
-						{/* Save Workflow Button */}
+						{/* Create New Agent Button */}
 						<button
 							type="button"
-							// eslint-disable-next-line no-alert -- TODO: remove this
-							onClick={() => { alert("Crete new Agent"); }}
+							onClick={handleCreateNewAgent}
 							className="w-full bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 transition-colors flex items-center justify-center"
 						>
 							Create new Agent

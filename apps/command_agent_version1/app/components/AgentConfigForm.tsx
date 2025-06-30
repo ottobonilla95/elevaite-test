@@ -4,8 +4,8 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 // eslint-disable-next-line import/named -- Seems to be a problem with eslint
 import { v4 as uuidv4 } from "uuid";
 import { ReactFlowProvider, type ReactFlowInstance } from "react-flow-renderer";
-import { type AgentConfigData, type AgentNodeData, type AgentResponse, type Edge, type Node, SavedWorkflow, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowResponse } from "../lib/interfaces";
-import { createWorkflow, deployWorkflowModern } from "../lib/actions";
+import { type AgentConfigData, type AgentNodeData, type AgentResponse, type AgentCreate, type AgentUpdate, type AgentFunction, type ChatCompletionToolParam, type Edge, type Node, SavedWorkflow, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowResponse } from "../lib/interfaces";
+import { createWorkflow, deployWorkflowModern, createAgent, updateAgent } from "../lib/actions";
 import { isAgentResponse } from "../lib/discriminators";
 import DesignerSidebar from "./agents/DesignerSidebar";
 import DesignerCanvas from "./agents/DesignerCanvas";
@@ -21,6 +21,69 @@ interface ChatMessage {
   id: number;
   text: string;
   sender: "user" | "bot";
+}
+
+// Helper function to convert ChatCompletionToolParam to AgentFunction
+function convertToolsToAgentFunctions(tools: ChatCompletionToolParam[]): AgentFunction[] {
+  return tools.map(tool => ({
+    function: {
+      name: tool.function.name
+    }
+  }));
+}
+
+// Helper function to convert AgentConfigData to AgentCreate
+function convertConfigToAgentCreate(
+  configData: AgentConfigData,
+  tools: ChatCompletionToolParam[],
+  agentName: string,
+  selectedPromptId: string | null
+): AgentCreate {
+  // Validate required fields
+  if (!selectedPromptId) {
+    throw new Error("A prompt must be selected to create an agent");
+  }
+
+  // Map output format to response_type with exact case matching
+  const getResponseType = (outputFormat?: string): "json" | "yaml" | "markdown" | "HTML" | "None" => {
+    if (!outputFormat) return "json";
+
+    const format = outputFormat.toLowerCase();
+    switch (format) {
+      case "json": return "json";
+      case "yaml": return "yaml";
+      case "markdown": return "markdown";
+      case "html": return "HTML";
+      case "none": return "None";
+      default: return "json";
+    }
+  };
+
+  return {
+    name: agentName,
+    agent_type: configData.agentType || "router",
+    description: configData.description || "",
+    parent_agent_id: null,
+    system_prompt_id: selectedPromptId,
+    persona: null,
+    routing_options: {},
+    short_term_memory: false,
+    long_term_memory: false,
+    reasoning: false,
+    input_type: ["text"],
+    output_type: ["text"],
+    response_type: getResponseType(configData.outputFormat),
+    max_retries: 3,
+    timeout: null,
+    deployed: false,
+    status: "active",
+    priority: null,
+    failure_strategies: null,
+    collaboration_mode: "single",
+    available_for_deployment: true,
+    deployment_code: null,
+    functions: convertToolsToAgentFunctions(tools)
+  };
 }
 
 function AgentConfigForm(): JSX.Element {
@@ -406,6 +469,111 @@ function AgentConfigForm(): JSX.Element {
     setShowConfigPanel(false);
   };
 
+  // Create a new empty agent on the canvas
+  const handleCreateNewAgent = () => {
+    if (!reactFlowWrapper.current || !reactFlowInstanceRef.current) {
+      console.error("React Flow wrapper or instance not ready");
+      return;
+    }
+
+    // Create a new empty agent with default values
+    const nodeId = uuidv4();
+    const agentId = uuidv4();
+
+    // Create a default empty agent data structure
+    const defaultAgentData: AgentResponse = {
+      agent_id: agentId,
+      id: parseInt(agentId.slice(0, 8), 16), // Convert part of UUID to number
+      name: "New Agent",
+      description: "A new agent ready to be configured",
+      agent_type: "router",
+      system_prompt: {
+        prompt_label: "new-agent-prompt",
+        prompt: "",
+        unique_label: `new-agent-${agentId.slice(0, 8)}`,
+        app_name: "agent-studio",
+        version: "1.0.0",
+        ai_model_provider: "openai",
+        ai_model_name: "gpt-4",
+        tags: ["new"],
+        hyper_parameters: null,
+        variables: null,
+        id: parseInt(agentId.slice(0, 8), 16),
+        pid: agentId,
+        sha_hash: "",
+        is_deployed: false,
+        created_time: new Date().toISOString(),
+        deployed_time: null,
+        last_deployed: null
+      },
+      functions: [],
+      deployment_code: agentId.slice(0, 8),
+      system_prompt_id: agentId,
+      parent_agent_id: null,
+      persona: null,
+      routing_options: {},
+      short_term_memory: false,
+      long_term_memory: false,
+      reasoning: false,
+      input_type: ["text"],
+      output_type: ["text"],
+      response_type: "json",
+      max_retries: 3,
+      timeout: null,
+      deployed: false,
+      status: "active",
+      priority: null,
+      failure_strategies: null,
+      collaboration_mode: "single",
+      available_for_deployment: true,
+      session_id: null,
+      last_active: null
+    };
+
+    // Position the new agent in the center of the visible canvas
+    const canvasCenter = reactFlowInstanceRef.current.getViewport();
+    const position = {
+      x: -canvasCenter.x / canvasCenter.zoom + 300,
+      y: -canvasCenter.y / canvasCenter.zoom + 200
+    };
+
+    const newNode: Node = {
+      id: nodeId,
+      type: "agent",
+      position,
+      data: {
+        id: agentId,
+        shortId: agentId.slice(0, 8),
+        type: "router",
+        name: "New Agent",
+        prompt: "",
+        tools: [],
+        tags: ["new"],
+        onDelete: handleDeleteNode,
+        onConfigure: () => {
+          handleNodeSelect(newNode);
+        },
+        agent: defaultAgentData,
+        config: {
+          model: "gpt-4",
+          agentName: "New Agent",
+          deploymentType: "Elevaite",
+          modelProvider: "openai",
+          outputFormat: "JSON",
+          selectedTools: []
+        }
+      },
+    };
+
+    // Add the new node to the canvas
+    setNodes(prevNodes => [...prevNodes, newNode]);
+
+    // Select the newly created node and open the config panel
+    setTimeout(() => {
+      handleNodeSelect(newNode);
+    }, 50);
+  };
+
   // Load an existing workflow
   const handleLoadWorkflow = (workflowDetails: WorkflowResponse) => {
     try {
@@ -484,35 +652,141 @@ function AgentConfigForm(): JSX.Element {
     }
   };
 
-  // Handle saving the agent configuration with tools
-  const handleSaveAgentConfig = (configData: AgentConfigData) => {
-    if (!selectedNode) return;
+  // Helper function to create a new agent in the database
+  const handleCreateNewAgentInDB = async (
+    configData: AgentConfigData,
+    tools: ChatCompletionToolParam[],
+    agentName: string
+  ): Promise<void> => {
+    const selectedPromptId = configData.selectedPromptId;
+    console.log("Config Data being saved: ", configData);
 
-    console.log("Saving agent configuration:", configData);
+    if (!selectedPromptId) {
+      throw new Error("A prompt must be selected to create an agent");
+    }
 
-    // If tools are provided in the configuration data, update them
-    const tools = configData.selectedTools || selectedNode.data.tools || [];
+    const agentCreateData = convertConfigToAgentCreate(configData, tools, agentName, selectedPromptId);
 
-    // The name might have been updated through the inline editor
-    const agentName = configData.agentName || selectedNode.data.name;
+    // Log the data being sent to help debug 422 errors
+    console.log("Creating agent with data:", JSON.stringify(agentCreateData, null, 2));
 
-    // Update the node data with the new configuration
+    const newAgent = await createAgent(agentCreateData);
+
+    // Update the node with the new agent data from the database
+    if (selectedNode) {
+      setNodes(prevNodes => prevNodes.map(node =>
+        node.id === selectedNode.id
+          ? {
+            ...node,
+            data: {
+              ...node.data,
+              agent: newAgent // Update with the real agent data from DB
+            }
+          }
+          : node
+      ));
+    }
+
+    // Agent created successfully
+  };
+
+  // Helper function to update an existing agent in the database
+  const handleUpdateExistingAgentInDB = async (
+    configData: AgentConfigData,
+    tools: ChatCompletionToolParam[],
+    agentName: string
+  ): Promise<void> => {
+    if (!selectedNode?.data.agent?.agent_id) {
+      throw new Error("No agent ID found for update");
+    }
+
+    const agentUpdateData: AgentUpdate = {
+      name: agentName,
+      agent_type: configData.agentType,
+      description: configData.description,
+      functions: convertToolsToAgentFunctions(tools),
+      response_type: configData.outputFormat?.toLowerCase() as "json" | "yaml" | "markdown" | "HTML" | "None" || "json"
+    };
+
+    // Include prompt update if a new prompt was selected
+    if (configData.selectedPromptId) {
+      agentUpdateData.system_prompt_id = configData.selectedPromptId;
+    }
+
+    const updatedAgent = await updateAgent(selectedNode.data.agent.agent_id, agentUpdateData);
+
+    // Update the node with the updated agent data from the database
     setNodes(prevNodes => prevNodes.map(node =>
       node.id === selectedNode.id
         ? {
           ...node,
           data: {
             ...node.data,
-            name: agentName, // Use the potentially updated name
-            tools, // Update tools from configuration
-            config: configData  // Store configuration in the node data
+            agent: updatedAgent // Update with the real agent data from DB
           }
         }
         : node
     ));
 
-    // Show confirmation
-    alert(`Configuration saved for ${agentName}`);
+    // Agent updated successfully
+  };
+
+  // Handle saving the agent configuration with tools
+  const handleSaveAgentConfig = async (configData: AgentConfigData) => {
+    if (!selectedNode) return;
+
+    console.log("Saving agent configuration:", configData);
+
+    // Saving agent configuration
+
+    try {
+      // If tools are provided in the configuration data, update them
+      const tools = configData.selectedTools || selectedNode.data.tools || [];
+
+      // The name might have been updated through the inline editor
+      const agentName = configData.agentName || selectedNode.data.name;
+
+      if (configData.isNewAgent) {
+        // Create a new agent in the database
+        await handleCreateNewAgentInDB(configData, tools, agentName);
+      } else {
+        // Update existing agent in the database
+        await handleUpdateExistingAgentInDB(configData, tools, agentName);
+      }
+
+      // Update the node data with the new configuration
+      setNodes(prevNodes => prevNodes.map(node =>
+        node.id === selectedNode.id
+          ? {
+            ...node,
+            data: {
+              ...node.data,
+              name: agentName, // Use the potentially updated name
+              tools, // Update tools from configuration
+              config: configData  // Store configuration in the node data
+            }
+          }
+          : node
+      ));
+
+      // Show confirmation
+      alert(`Configuration saved for ${agentName}`);
+    } catch (error) {
+      console.error("Error saving agent configuration:", error);
+
+      // Enhanced error handling for 422 validation errors
+      let errorMessage = "Unknown error";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+
+        // If it's a fetch error, try to extract more details
+        if (error.message.includes("422") || error.message.includes("validation")) {
+          errorMessage = `Validation Error (422): ${error.message}\n\nPlease check the console for the data being sent.`;
+        }
+      }
+
+      alert(`Error saving configuration: ${errorMessage}`);
+    }
   };
 
   // If not yet mounted, return a loading placeholder
@@ -544,6 +818,7 @@ function AgentConfigForm(): JSX.Element {
                 handleSaveWorkflow={handleSaveWorkflow}
                 handleCreateNewWorkflow={handleCreateNewWorkflow}
                 handleLoadWorkflow={handleLoadWorkflow}
+                handleCreateNewAgent={handleCreateNewAgent}
                 isLoading={isLoading}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}

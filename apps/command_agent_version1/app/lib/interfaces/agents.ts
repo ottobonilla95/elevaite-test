@@ -37,6 +37,34 @@ export interface PromptResponse {
 	last_deployed?: string | null;
 }
 
+export interface PromptCreate {
+	prompt_label: string;
+	prompt: string;
+	unique_label: string;
+	app_name: string;
+	version: string;
+	ai_model_provider: string;
+	ai_model_name: string;
+	tags?: string[] | null;
+	hyper_parameters?: Record<string, string> | null;
+	variables?: Record<string, string> | null;
+	sha_hash?: string | null;
+}
+
+export interface PromptUpdate {
+	prompt_label?: string | null;
+	prompt?: string | null;
+	unique_label?: string | null;
+	app_name?: string | null;
+	version?: string | null;
+	ai_model_provider?: string | null;
+	ai_model_name?: string | null;
+	is_deployed?: boolean | null;
+	tags?: string[] | null;
+	hyper_parameters?: Record<string, string> | null;
+	variables?: Record<string, string> | null;
+}
+
 export interface AgentResponse {
 	name: string;
 	agent_type?: AgentType | null;
@@ -70,11 +98,16 @@ export interface AgentResponse {
 
 export interface AgentConfigData {
 	agentName: string;
+	agentType?: AgentType;
+	description?: string;
+	tags?: string;
+	selectedPromptId?: string | null;
 	deploymentType: string;
 	modelProvider: string;
 	model: string;
 	outputFormat: string;
 	selectedTools: ChatCompletionToolParam[];
+	isNewAgent?: boolean; // Flag to indicate if this should create a new agent
 }
 
 export interface AgentCreate {

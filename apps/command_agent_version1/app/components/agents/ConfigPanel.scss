@@ -221,7 +221,8 @@
       .selected-tools-list {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        padding: 0.5rem;
+		gap: 1.5rem;
 
         .tool-badge {
           display: inline-flex;

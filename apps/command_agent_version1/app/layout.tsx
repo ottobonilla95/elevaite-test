@@ -7,6 +7,7 @@ import { AppLayout } from "./components/AppLayout";
 import "./globals.css";
 import { ChatContextProvider } from "./ui/contexts/ChatContext";
 import { ToolsProvider } from "./ui/contexts/ToolsContext";
+import { PromptsProvider } from "./ui/contexts/PromptsContext";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 
@@ -32,11 +33,13 @@ export default async function RootLayout({ children, }: Readonly<{ children: Rea
           <ColorContextProvider>
             <ChatContextProvider>
               <ToolsProvider>
+                <PromptsProvider>
 
-                <AppLayout breadcrumbs={breadcrumbs}>
-                  {children}
-                </AppLayout>
+                  <AppLayout breadcrumbs={breadcrumbs}>
+                    {children}
+                  </AppLayout>
 
+                </PromptsProvider>
               </ToolsProvider>
             </ChatContextProvider>
           </ColorContextProvider>
