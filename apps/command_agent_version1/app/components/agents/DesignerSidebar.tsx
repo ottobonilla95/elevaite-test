@@ -21,6 +21,7 @@ import { useTools } from "../../ui/contexts/ToolsContext";
 import { fetchAllAgents } from "../../lib/actions";
 import { isValidAgentType } from "../../lib/discriminators";
 import WorkflowsTab from "./WorkflowsTab";
+import TabHeader, { type Tab } from "../TabHeader";
 import "./DesignerSidebar.scss";
 
 // SidebarSection component for collapsible sections
@@ -120,6 +121,11 @@ function DesignerSidebar({
 	// Use tools context
 	const [agents, setAgents] = useState<AgentResponse[]>([]);
 
+	// Define tabs for TabHeader component
+	const sidebarTabs: Tab[] = [
+		{ id: "actions", label: "Actions" },
+		{ id: "workflows", label: "Workflows" }
+	];
 
 	useEffect(() => {
 		const fetchAgents = async () => {
@@ -191,29 +197,12 @@ function DesignerSidebar({
 
 			{/* Navigation Tabs */}
 			<div className="sidebar-header-tabs bg-white flex items-center justify-between">
-				<div className="sidebar-header-tabs-inner p-1 rounded-lg flex items-center w-full">
-					<button
-						className={`flex-1 text-center py-1 px-4 rounded-4 text-xs cursor-pointer ${activeTab === "actions"
-							? "active font-medium bg-white text-orange-500"
-							: "text-gray-500 hover:text-orange-500"
-							}`}
-						onClick={() => { setActiveTab("actions"); }}
-						type="button"
-					>
-						Actions
-					</button>
-					<button
-						className={`flex-1 text-center py-1 px-4 rounded-4 text-xs cursor-pointer ${activeTab === "workflows"
-							? "active font-medium bg-white text-orange-500"
-							: "text-gray-500 hover:text-orange-500"
-							}`}
-						onClick={() => { setActiveTab("workflows"); }}
-						type="button"
-					>
-						Workflows
-					</button>
-				</div>
-
+				<TabHeader
+					tabs={sidebarTabs}
+					activeTab={activeTab}
+					onTabChange={setActiveTab}
+					innerClassName="sidebar-header-tabs-inner p-1 rounded-lg flex items-center w-full"
+				/>
 				<button type="button" onClick={() => { setSidebarOpen(!sidebarOpen); }}>
 					{sidebarOpen ? <SidebarCollapseIcon /> : <SidebarExpandIcon />}
 				</button>

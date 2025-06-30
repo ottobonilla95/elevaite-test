@@ -49,3 +49,23 @@ export function getSubtitle(_type: AgentType): string {
     if (_type === "web_search") return "web search";
     return _type.replace('_', ' ');
 };
+
+
+
+export function SidebarCollapseIcon(): JSX.Element {
+    return (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g opacity="0.8">
+                <path d="M18 17L13 12L18 7M11 17L6 12L11 7" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </g>
+        </svg>
+    );
+}
+
+export function SidebarExpandIcon(): JSX.Element {
+    return (
+        <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 11L6 6L1 1M8 11L13 6L8 1" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}

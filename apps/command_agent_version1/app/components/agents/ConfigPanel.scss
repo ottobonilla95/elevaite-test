@@ -6,6 +6,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+	gap: 8px;
 
     // Header with title and close button
     .config-panel-header {
@@ -38,7 +39,7 @@
     // Agent type badges
     .agent-type-container {
       display: flex;
-      align-items: center;
+      align-items: start;
       margin-bottom: 0.75rem;
 
       .agent-type-badge {
@@ -113,6 +114,8 @@
           font-size: 0.75rem;
           color: #6b7280; // gray-500
           margin-bottom: 0.25rem;
+          display: flex;
+          flex-direction: column;
         }
 
         .parameter-select {
@@ -234,6 +237,7 @@
           .tool-name {
             margin-left: 0.25rem;
             margin-right: 0.25rem;
+			color: var(--orange)
           }
 
           .remove-tool-button {

@@ -241,7 +241,7 @@ def deploy_workflow(
 @router.get("/deployments/active", response_model=List[schemas.WorkflowDeploymentResponse])
 def list_active_deployments(db: Session = Depends(get_db)):
     """List all active workflow deployments"""
-    deployments = crud.get_active_workflow_deployments(db)
+    deployments = crud.workflows.get_active_workflow_deployments(db)
     return deployments
 
 
@@ -250,9 +250,9 @@ def stop_workflow_deployment(deployment_name: str, db: Session = Depends(get_db)
     """Stop/undeploy a workflow deployment by name"""
     try:
         # Find the deployment by name (try development first, then production)
-        deployment = crud.get_workflow_deployment_by_name(db, deployment_name, "development")
+        deployment = crud.workflows.get_workflow_deployment_by_name(db, deployment_name, "development")
         if not deployment:
-            deployment = crud.get_workflow_deployment_by_name(db, deployment_name, "production")
+            deployment = crud.workflows.get_workflow_deployment_by_name(db, deployment_name, "production")
 
         if not deployment:
             raise HTTPException(
