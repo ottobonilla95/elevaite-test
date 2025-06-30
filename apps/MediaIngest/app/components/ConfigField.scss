@@ -1,0 +1,16 @@
+.config-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  
+  .config-field-label {
+    font-size: 14px;
+    color: #808080;
+    font-weight: 600;
+  }
+  
+  .config-field-content {
+    width: 100%;
+  }
+}

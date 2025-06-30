@@ -1,0 +1,237 @@
+.step-detail-container {
+  padding: 2rem;
+  padding-top: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  color: white;
+
+  .step-detail-header {
+    margin-bottom: 2rem;
+
+    .back-button {
+      background-color: #333;
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 1rem;
+
+      &:hover {
+        background-color: #444;
+      }
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      color: var(--ev-colors-highlight, #e75f33);
+    }
+
+    .step-description {
+      font-size: 1.2rem;
+      color: #ccc;
+    }
+  }
+
+  .step-detail-content {
+    .detail-section {
+      margin-bottom: 2.5rem;
+
+      h2 {
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 0.5rem;
+      }
+
+      p {
+        line-height: 1.6;
+        color: #eee;
+      }
+
+      .features-list {
+        list-style-type: none;
+        padding: 0;
+
+        li {
+          padding: 0.75rem 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          &:before {
+            content: "•";
+            color: var(--ev-colors-highlight, #e75f33);
+            font-weight: bold;
+            display: inline-block;
+            width: 1em;
+            margin-left: -1em;
+          }
+        }
+      }
+
+      .examples-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+
+        .example-card {
+          display: flex;
+          background-color: #282828;
+          border-radius: 8px;
+          padding: 1.5rem;
+          align-items: center;
+
+          .example-input,
+          .example-output {
+            flex: 1;
+
+            h3 {
+              font-size: 1.2rem;
+              margin-bottom: 0.5rem;
+              color: #ccc;
+            }
+
+            p {
+              background-color: #333;
+              padding: 1rem;
+              border-radius: 4px;
+              font-family: monospace;
+            }
+          }
+
+          .example-arrow {
+            margin: 0 1.5rem;
+            font-size: 1.5rem;
+            color: #666;
+          }
+        }
+      }
+
+      .pipeline-position {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem;
+        background-color: #282828;
+        border-radius: 8px;
+        overflow-x: auto;
+
+        .position-step {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+
+          .position-node {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+
+            &:hover {
+              background-color: #555;
+            }
+
+            &.current {
+              background-color: var(--ev-colors-highlight, #e75f33);
+            }
+          }
+
+          .position-title {
+            font-size: 0.9rem;
+            text-align: center;
+            width: 80px;
+          }
+        }
+
+        .position-arrow {
+          margin: 0 1rem;
+          font-size: 1.5rem;
+          color: #666;
+          display: flex;
+          align-items: center;
+          height: 50px;
+        }
+      }
+    }
+  }
+}
+
+.step-not-found {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    margin-bottom: 2rem;
+    color: #ccc;
+  }
+
+  button {
+    background-color: var(--ev-colors-highlight, #e75f33);
+    border: none;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+
+    &:hover {
+      background-color: darken(#e75f33, 10%);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .step-detail-container {
+    padding: 1rem;
+
+    .step-detail-content {
+      .detail-section {
+        .examples-container {
+          .example-card {
+            flex-direction: column;
+
+            .example-input,
+            .example-output {
+              width: 100%;
+            }
+
+            .example-arrow {
+              transform: rotate(90deg);
+              margin: 1rem 0;
+            }
+          }
+        }
+
+        .pipeline-position {
+          min-width: 600px;
+
+          .position-step {
+            min-width: 80px;
+          }
+
+          .position-arrow {
+            min-width: 20px;
+          }
+        }
+      }
+    }
+  }
+}

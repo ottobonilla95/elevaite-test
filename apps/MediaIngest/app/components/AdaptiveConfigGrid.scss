@@ -1,0 +1,76 @@
+.adaptive-config-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+
+  .adaptive-config-grid {
+    display: grid;
+    gap: 24px;
+    width: 100%;
+    flex: 1;
+    grid-auto-rows: 1fr;
+    min-height: 0;
+    height: 100%;
+
+    .config-column {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      border: 2px solid #3f3f41;
+      padding: 16px;
+      height: 100%;
+      min-height: 100%;
+      overflow-y: hidden;
+      justify-content: flex-start;
+      align-items: stretch;
+    }
+
+    .config-option {
+      width: 100%;
+      position: relative;
+      margin-bottom: 8px;
+
+      // Ensure all dropdown containers have consistent height
+      & > div {
+        width: 100%;
+        background-color: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 0;
+      }
+
+      & div[style*="position: relative"] {
+        overflow: visible !important;
+      }
+    }
+  }
+}
+
+body {
+  .dropdown-menu {
+    z-index: 9999 !important;
+  }
+
+  div[style*="position: relative"]
+    > div[style*="display: flex"][style*="justify-content: space-between"] {
+    height: 40px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Ensure consistent height for all form elements */
+  .config-field-content {
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    .custom-number-input,
+    .custom-dropdown {
+      height: 40px !important;
+      box-sizing: border-box !important;
+    }
+  }
+}
