@@ -5,7 +5,6 @@ from typing import List, Optional
 from sqlalchemy import (
     Boolean,
     DateTime,
-    Float,
     ForeignKey,
     Integer,
     String,
@@ -106,9 +105,6 @@ class Tool(Base):
     is_available: Mapped[bool] = mapped_column(Boolean, default=True)  # Runtime availability
     last_used: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     usage_count: Mapped[int] = mapped_column(Integer, default=0)
-    success_count: Mapped[int] = mapped_column(Integer, default=0)
-    error_count: Mapped[int] = mapped_column(Integer, default=0)
-    average_execution_time_ms: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     documentation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     examples: Mapped[Optional[List[dict]]] = mapped_column(JSONB, nullable=True)

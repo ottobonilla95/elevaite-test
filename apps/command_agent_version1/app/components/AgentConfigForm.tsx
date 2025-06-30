@@ -3,8 +3,8 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 // eslint-disable-next-line import/named -- Seems to be a problem with eslint
 import { v4 as uuidv4 } from "uuid";
-import { ReactFlowProvider, type ReactFlowInstance, type Edge as ReactFlowEdge, type Node as ReactFlowNode } from "react-flow-renderer";
-import { type AgentConfigData, type AgentNodeData, type AgentResponse, SavedWorkflow, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowResponse } from "../lib/interfaces";
+import { ReactFlowProvider, type ReactFlowInstance } from "react-flow-renderer";
+import { type AgentConfigData, type AgentNodeData, type AgentResponse, type Edge, type Node, SavedWorkflow, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowResponse } from "../lib/interfaces";
 import { createWorkflow, deployWorkflowModern } from "../lib/actions";
 import { isAgentResponse } from "../lib/discriminators";
 import DesignerSidebar from "./agents/DesignerSidebar";
@@ -209,9 +209,9 @@ function AgentConfigForm(): JSX.Element {
   }, []);
 
   // Handle node selection
-  const handleNodeSelect = useCallback((node: Node) => {
+  const handleNodeSelect = useCallback((node: Node | null) => {
     setSelectedNode(node);
-    setShowConfigPanel(true);
+    setShowConfigPanel(node !== null);
   }, []);
 
   // Handle opening the prompt modal
@@ -511,19 +511,6 @@ function AgentConfigForm(): JSX.Element {
         : node
     ));
 
-    // Update selectedNode if it's the node we just edited
-    if (selectedNode) {
-      setSelectedNode(prev => prev ? {
-        ...prev,
-        data: {
-          ...prev.data,
-          name: agentName,
-          tools,
-          config: configData
-        }
-      } : null);
-    }
-
     // Show confirmation
     alert(`Configuration saved for ${agentName}`);
   };
@@ -578,6 +565,7 @@ function AgentConfigForm(): JSX.Element {
                 {/* Configuration Panel - shown when a node is selected */}
                 {showConfigPanel && selectedNode ? <div className={`config-panel-container${!sidebarOpen ? ' shrinked' : ''}`}>
                   <ConfigPanel
+                    agent={selectedNode.data}
                     agentConfig={selectedNode.data.config}
                     agentName={selectedNode.data.name}
                     agentType={selectedNode.data.type}

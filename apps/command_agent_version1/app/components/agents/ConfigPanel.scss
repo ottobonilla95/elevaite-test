@@ -1,4 +1,5 @@
 // ConfigPanel.scss
+@import '../variables';
 
 .config-panel {
     padding: 16px;
@@ -291,6 +292,21 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  
+  .agent-icon {
+          height: 56px;
+          width: 56px;
+          border-radius: 0.375rem;
+          background-color: $gray-50;
+          border: 1px solid $gray-200;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          & > svg {
+            color: $accent-primary;
+          }
+        }
 }
 
 .edit-name-button {
