@@ -70,6 +70,11 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
+# Include SMS MFA router
+from app.routers import sms_mfa
+
+app.include_router(sms_mfa.router, prefix="/api/sms-mfa", tags=["sms-mfa"])
+
 
 @app.get("/api/health", tags=["health"])
 def health_check():
