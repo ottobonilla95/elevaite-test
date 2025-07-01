@@ -24,8 +24,14 @@ export default function Home(): JSX.Element {
   const [isWarningFlashing, setIsWarningFlashing] = useState(false);
 
   // Loading step state
-  const [dataSource, setDataSource] = useState<string>("s3");
-  const [fileFormat, setFileFormat] = useState<string>("pdf");
+  const [campaignFormat, setCampaignFormat] = useState<string>("mixed");
+  const [campaignLocation, setCampaignLocation] = useState<string>("us-east");
+  const [sourceS3Bucket, setSourceS3Bucket] = useState<string>(
+    "creative-assets-source"
+  );
+  const [destinationS3Bucket, setDestinationS3Bucket] = useState<string>(
+    "processed-creative-insights"
+  );
 
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([
     {
@@ -665,99 +671,101 @@ export default function Home(): JSX.Element {
                       containerClassName="config-grid-container"
                       options={[
                         {
-                          id: "data_source",
+                          id: "campaign_format",
                           children: (
-                            <ConfigField label="Data Source">
+                            <ConfigField label="Campaign Format">
                               <CustomDropdown
                                 options={[
-                                  { value: "s3", label: "Amazon S3" },
-                                  { value: "local", label: "Local Storage" },
+                                  { value: "video", label: "Video Campaign" },
+                                  { value: "image", label: "Image Campaign" },
+                                  {
+                                    value: "mixed",
+                                    label: "Mixed Media Campaign",
+                                  },
+                                  { value: "display", label: "Display Ads" },
+                                  {
+                                    value: "social",
+                                    label: "Social Media Campaign",
+                                  },
                                 ]}
-                                defaultValue={dataSource}
+                                defaultValue={campaignFormat}
                                 onChange={(value) => {
-                                  setDataSource(value);
-                                  console.log("Selected data source:", value);
+                                  setCampaignFormat(value);
+                                  console.log(
+                                    "Selected campaign format:",
+                                    value
+                                  );
                                 }}
                               />
                             </ConfigField>
                           ),
                         },
                         {
-                          id: "file_format",
+                          id: "location",
                           children: (
-                            <ConfigField label="File Format">
+                            <ConfigField label="Campaign Location">
                               <CustomDropdown
                                 options={[
-                                  { value: "pdf", label: "PDF" },
-                                  { value: "docx", label: "Word Document" },
-                                  { value: "xlsx", label: "Excel Spreadsheet" },
-                                  { value: "html", label: "HTML" },
+                                  { value: "us-east", label: "US East Coast" },
+                                  { value: "us-west", label: "US West Coast" },
+                                  { value: "us-central", label: "US Central" },
+                                  { value: "europe", label: "Europe" },
+                                  {
+                                    value: "asia-pacific",
+                                    label: "Asia Pacific",
+                                  },
+                                  { value: "global", label: "Global Campaign" },
                                 ]}
-                                defaultValue={fileFormat}
+                                defaultValue={campaignLocation}
                                 onChange={(value) => {
-                                  setFileFormat(value);
-                                  console.log("Selected file format:", value);
+                                  setCampaignLocation(value);
+                                  console.log(
+                                    "Selected campaign location:",
+                                    value
+                                  );
                                 }}
                               />
                             </ConfigField>
                           ),
                         },
-                        ...(dataSource === "s3"
-                          ? [
-                              {
-                                id: "s3_bucket_name",
-                                children: (
-                                  <ConfigField label="S3 Bucket Name">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter bucket name"
-                                      defaultValue="kb-check-pdf"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "aws_region",
-                                children: (
-                                  <ConfigField label="AWS Region">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="e.g., us-east-1"
-                                      defaultValue="us-east-2"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
-                          : []),
-                        ...(dataSource === "local"
-                          ? [
-                              {
-                                id: "input_directory",
-                                children: (
-                                  <ConfigField label="Input Directory">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter input directory path"
-                                      defaultValue="/elevaite_ingestion/INPUT"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "output_directory",
-                                children: (
-                                  <ConfigField label="Output Directory">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter output directory path"
-                                      defaultValue="/elevaite_ingestion/OUTPUT"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
-                          : []),
+                        {
+                          id: "source_s3_bucket",
+                          children: (
+                            <ConfigField label="Source S3 Bucket">
+                              <CustomInput
+                                type="text"
+                                placeholder="e.g., creative-assets-source"
+                                defaultValue={sourceS3Bucket}
+                                onChange={(e) => {
+                                  setSourceS3Bucket(e.target.value);
+                                  console.log(
+                                    "Source S3 bucket:",
+                                    e.target.value
+                                  );
+                                }}
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "destination_s3_bucket",
+                          children: (
+                            <ConfigField label="Destination S3 Bucket">
+                              <CustomInput
+                                type="text"
+                                placeholder="e.g., processed-creative-insights"
+                                defaultValue={destinationS3Bucket}
+                                onChange={(e) => {
+                                  setDestinationS3Bucket(e.target.value);
+                                  console.log(
+                                    "Destination S3 bucket:",
+                                    e.target.value
+                                  );
+                                }}
+                              />
+                            </ConfigField>
+                          ),
+                        },
                       ]}
                     />
                   </div>
