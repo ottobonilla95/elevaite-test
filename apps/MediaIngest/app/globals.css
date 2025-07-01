@@ -32,3 +32,28 @@ main {
   background-color: #000 !important;
   min-height: 100vh;
 }
+
+/* Custom textarea styles */
+.custom-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background-color: #1a1a1a;
+  color: white;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.custom-textarea:focus {
+  outline: none;
+  border-color: #e75f33;
+  box-shadow: 0 0 0 2px rgba(231, 95, 51, 0.2);
+}
+
+.custom-textarea::placeholder {
+  color: #666;
+}

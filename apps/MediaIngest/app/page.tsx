@@ -27,29 +27,6 @@ export default function Home(): JSX.Element {
   const [dataSource, setDataSource] = useState<string>("s3");
   const [fileFormat, setFileFormat] = useState<string>("pdf");
 
-  // Parsing step state
-  const [parsingMode, setParsingMode] = useState<string>("auto_parser");
-  const [parserType, setParserType] = useState<string>("");
-  const [parserTool, setParserTool] = useState<string>("");
-
-  // Chunking step state
-  const [chunkingStrategy, setChunkingStrategy] =
-    useState<string>("recursive_chunking");
-  const [thresholdType, setThresholdType] = useState<string>("percentile");
-  const [thresholdAmount, setThresholdAmount] = useState<number>(90);
-  const [chunkSize, setChunkSize] = useState<number>(500);
-  const [chunkOverlap, setChunkOverlap] = useState<number>(50);
-  const [maxChunkSize, setMaxChunkSize] = useState<number>(500);
-
-  // Embedding step state
-  const [embeddingProvider, setEmbeddingProvider] = useState<string>("openai");
-  const [embeddingModel, setEmbeddingModel] = useState<string>(
-    "text-embedding-ada-002"
-  );
-
-  // Vectorstore step state
-  const [vectorDb, setVectorDb] = useState<string>("qdrant"); // From vector_db_config.py
-
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([
     {
       id: "1",
@@ -786,144 +763,128 @@ export default function Home(): JSX.Element {
                   </div>
                 )}
 
+                {selectedStep === "datainput" && (
+                  <div className="config-container">
+                    <AdaptiveConfigGrid
+                      containerClassName="config-grid-container"
+                      options={[
+                        {
+                          id: "campaign_data_folder",
+                          children: (
+                            <ConfigField label="Campaign Data Folder File Path">
+                              <CustomInput
+                                type="text"
+                                placeholder="/data/campaigns"
+                                defaultValue="/data/campaigns"
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "creative_data_folders",
+                          children: (
+                            <ConfigField label="Creative Data Folders">
+                              <CustomInput
+                                type="text"
+                                placeholder="/data/creatives"
+                                defaultValue="/data/creatives"
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "checkpoint_file_folder",
+                          children: (
+                            <ConfigField label="Checkpoint File Folder">
+                              <CustomInput
+                                type="text"
+                                placeholder="/data/checkpoints"
+                                defaultValue="/data/checkpoints"
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "checkpoint_frequency",
+                          children: (
+                            <ConfigField label="Checkpoint Frequency">
+                              <CustomDropdown
+                                options={[
+                                  { value: "5%", label: "5% of campaigns" },
+                                  { value: "10%", label: "10% of campaigns" },
+                                  { value: "15%", label: "15% of campaigns" },
+                                  { value: "20%", label: "20% of campaigns" },
+                                  { value: "25%", label: "25% of campaigns" },
+                                ]}
+                                defaultValue="10%"
+                                onChange={(value) =>
+                                  console.log("Checkpoint frequency:", value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                      ]}
+                    />
+                  </div>
+                )}
+
                 {selectedStep === "parsing" && (
                   <div className="config-container">
                     <AdaptiveConfigGrid
                       containerClassName="config-grid-container"
                       options={[
                         {
-                          id: "parsing_mode",
+                          id: "md5_hash_generation",
                           children: (
-                            <ConfigField label="Parsing Mode">
+                            <ConfigField label="MD5 Hash Generation">
                               <CustomDropdown
                                 options={[
-                                  {
-                                    value: "auto_parser",
-                                    label: "Auto Parser",
-                                  },
-                                  {
-                                    value: "custom_parser",
-                                    label: "Custom Parser",
-                                  },
+                                  { value: "true", label: "True" },
+                                  { value: "false", label: "False" },
                                 ]}
-                                defaultValue={parsingMode}
-                                onChange={(value) => {
-                                  setParsingMode(value);
-                                  console.log("Selected parsing mode:", value);
-                                }}
+                                defaultValue="true"
+                                onChange={(value) =>
+                                  console.log("MD5 Hash:", value)
+                                }
                               />
                             </ConfigField>
                           ),
                         },
                         {
-                          id: "parser_type",
+                          id: "file_size_calculation",
                           children: (
-                            <ConfigField label="Parser Type">
+                            <ConfigField label="File Size Calculation">
                               <CustomDropdown
                                 options={[
-                                  { value: "pdf", label: "PDF Parser" },
-                                  { value: "docx", label: "DOCX Parser" },
-                                  { value: "xlsx", label: "XLSX Parser" },
-                                  { value: "html", label: "HTML Parser" },
+                                  { value: "true", label: "True" },
+                                  { value: "false", label: "False" },
                                 ]}
-                                defaultValue={parserType || "pdf"}
-                                onChange={(value) => {
-                                  setParserType(value);
-                                  console.log("Selected parser type:", value);
-                                }}
+                                defaultValue="true"
+                                onChange={(value) =>
+                                  console.log("File Size:", value)
+                                }
                               />
                             </ConfigField>
                           ),
                         },
-                        ...(parsingMode === "custom_parser" && parserType
-                          ? [
-                              {
-                                id: "parser_tool",
-                                children: (
-                                  <ConfigField label="Parser Tool">
-                                    <CustomDropdown
-                                      options={
-                                        parserType === "pdf"
-                                          ? [{ value: "none", label: "None" }]
-                                          : parserType === "docx" ||
-                                              parserType === "xlsx" ||
-                                              parserType === "html"
-                                            ? [
-                                                {
-                                                  value: "markitdown",
-                                                  label: "Markitdown",
-                                                },
-                                                {
-                                                  value: "docling",
-                                                  label: "Docling",
-                                                },
-                                                {
-                                                  value: "llamaparse",
-                                                  label: "LlamaParse",
-                                                },
-                                              ]
-                                            : [{ value: "none", label: "None" }]
-                                      }
-                                      defaultValue={
-                                        parserTool ||
-                                        (parserType === "pdf"
-                                          ? "none"
-                                          : "markitdown")
-                                      }
-                                      onChange={(value) => {
-                                        setParserTool(value);
-                                        console.log(
-                                          "Selected parser tool:",
-                                          value
-                                        );
-                                      }}
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
-                          : []),
-                        ...(parsingMode === "custom_parser" && !parserType
-                          ? [
-                              {
-                                id: "parser_tool_placeholder",
-                                children: (
-                                  <ConfigField label="Parser Tool">
-                                    <div
-                                      style={{
-                                        color: "#808080",
-                                        fontSize: "14px",
-                                      }}
-                                    >
-                                      Select a parser type first
-                                    </div>
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
-                          : []),
-                        ...(parsingMode === "auto_parser"
-                          ? [
-                              {
-                                id: "language",
-                                children: (
-                                  <ConfigField label="Language">
-                                    <CustomDropdown
-                                      options={[
-                                        { value: "en", label: "English" },
-                                        { value: "es", label: "Spanish" },
-                                        { value: "fr", label: "French" },
-                                      ]}
-                                      defaultValue="en"
-                                      onChange={(value) =>
-                                        console.log("Selected language:", value)
-                                      }
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
-                          : []),
+                        {
+                          id: "file_type_detection",
+                          children: (
+                            <ConfigField label="File Type Detection">
+                              <CustomDropdown
+                                options={[
+                                  { value: "true", label: "True" },
+                                  { value: "false", label: "False" },
+                                ]}
+                                defaultValue="true"
+                                onChange={(value) =>
+                                  console.log("File Type Detection:", value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
                       ]}
                     />
                   </div>
@@ -935,176 +896,100 @@ export default function Home(): JSX.Element {
                       containerClassName="config-grid-container"
                       options={[
                         {
-                          id: "chunking_strategy",
+                          id: "video_quadrants",
                           children: (
-                            <ConfigField label="Chunking Strategy">
+                            <ConfigField label="Video Processing - Quadrants">
                               <CustomDropdown
                                 options={[
-                                  {
-                                    value: "semantic_chunking",
-                                    label: "Semantic Chunking",
-                                  },
-                                  {
-                                    value: "mdstructure",
-                                    label: "Markdown Structure",
-                                  },
-                                  {
-                                    value: "recursive_chunking",
-                                    label: "Recursive Chunking",
-                                  },
-                                  {
-                                    value: "sentence_chunking",
-                                    label: "Sentence Chunking",
-                                  },
+                                  { value: "true", label: "True" },
+                                  { value: "false", label: "False" },
                                 ]}
-                                defaultValue={chunkingStrategy}
-                                onChange={(value) => {
-                                  setChunkingStrategy(value);
-                                  console.log(
-                                    "Selected chunking strategy:",
-                                    value
-                                  );
-                                }}
+                                defaultValue="true"
+                                onChange={(value) =>
+                                  console.log("Video Quadrants:", value)
+                                }
                               />
                             </ConfigField>
                           ),
                         },
                         {
-                          id: "chunk_size",
+                          id: "frame_skip_intervals",
                           children: (
-                            <ConfigField label="Chunk Size">
-                              <CustomNumberInput
-                                min={100}
-                                max={2000}
-                                step={50}
-                                defaultValue={chunkSize}
-                                onChange={(value) => {
-                                  setChunkSize(value);
-                                  console.log("Selected chunk size:", value);
-                                }}
+                            <ConfigField label="Frame Skip Intervals">
+                              <CustomInput
+                                type="text"
+                                placeholder="Auto or enter number (e.g., 5, 10)"
+                                defaultValue="Auto"
                               />
                             </ConfigField>
                           ),
                         },
                         {
-                          id: "chunk_overlap",
+                          id: "video_scale_percent",
                           children: (
-                            <ConfigField label="Chunk Overlap">
+                            <ConfigField label="Video Scale Percent for Resizing">
                               <CustomNumberInput
-                                min={0}
-                                max={500}
-                                step={10}
-                                defaultValue={chunkOverlap}
-                                onChange={(value) => {
-                                  setChunkOverlap(value);
-                                  console.log("Selected chunk overlap:", value);
-                                }}
+                                defaultValue={50}
+                                min={10}
+                                max={100}
+                                step={5}
+                                onChange={(value) =>
+                                  console.log("Video Scale:", value)
+                                }
                               />
                             </ConfigField>
                           ),
                         },
-                        ...(chunkingStrategy === "semantic_chunking"
-                          ? [
-                              {
-                                id: "semantic_model",
-                                children: (
-                                  <ConfigField label="Semantic Model">
-                                    <CustomDropdown
-                                      options={[
-                                        {
-                                          value: "openai",
-                                          label: "OpenAI",
-                                        },
-                                        {
-                                          value: "cohere",
-                                          label: "Cohere",
-                                        },
-                                        {
-                                          value: "huggingface",
-                                          label: "HuggingFace",
-                                        },
-                                      ]}
-                                      defaultValue="openai"
-                                      onChange={(value) =>
-                                        console.log(
-                                          "Selected semantic model:",
-                                          value
-                                        )
-                                      }
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "threshold_type",
-                                children: (
-                                  <ConfigField label="Threshold Type">
-                                    <CustomDropdown
-                                      options={[
-                                        {
-                                          value: "percentile",
-                                          label: "Percentile",
-                                        },
-                                        { value: "fixed", label: "Fixed" },
-                                      ]}
-                                      defaultValue={thresholdType}
-                                      onChange={(value) => {
-                                        setThresholdType(value);
-                                        console.log(
-                                          "Threshold type changed:",
-                                          value
-                                        );
-                                      }}
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "threshold_amount",
-                                children: (
-                                  <ConfigField label="Threshold Amount">
-                                    <CustomNumberInput
-                                      defaultValue={thresholdAmount}
-                                      min={1}
-                                      max={100}
-                                      step={1}
-                                      onChange={(value) => {
-                                        setThresholdAmount(value);
-                                        console.log(
-                                          "Threshold amount changed:",
-                                          value
-                                        );
-                                      }}
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
-                          : []),
-                        ...(chunkingStrategy === "sentence_chunking"
-                          ? [
-                              {
-                                id: "max_chunk_size",
-                                children: (
-                                  <ConfigField label="Max Chunk Size">
-                                    <CustomNumberInput
-                                      defaultValue={maxChunkSize}
-                                      min={100}
-                                      max={5000}
-                                      step={100}
-                                      onChange={(value) => {
-                                        setMaxChunkSize(value);
-                                        console.log(
-                                          "Max chunk size changed:",
-                                          value
-                                        );
-                                      }}
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
-                          : []),
+                        {
+                          id: "histogram_similarity_threshold",
+                          children: (
+                            <ConfigField label="Histogram Similarity Threshold">
+                              <CustomNumberInput
+                                defaultValue={0.8}
+                                min={0.0}
+                                max={1.0}
+                                step={0.1}
+                                onChange={(value) =>
+                                  console.log("Histogram Threshold:", value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "image_scale_percent",
+                          children: (
+                            <ConfigField label="Image Scale Percent for Resizing %">
+                              <CustomNumberInput
+                                defaultValue={75}
+                                min={10}
+                                max={100}
+                                step={5}
+                                onChange={(value) =>
+                                  console.log("Image Scale:", value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "image_format_conversion",
+                          children: (
+                            <ConfigField label="Image Format Conversion Settings">
+                              <CustomDropdown
+                                options={[
+                                  { value: "jpg", label: "JPG" },
+                                  { value: "png", label: "PNG" },
+                                  { value: "webp", label: "WebP" },
+                                ]}
+                                defaultValue="jpg"
+                                onChange={(value) =>
+                                  console.log("Image Format:", value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
                       ]}
                     />
                   </div>
@@ -1116,142 +1001,227 @@ export default function Home(): JSX.Element {
                       containerClassName="config-grid-container"
                       options={[
                         {
-                          id: "embedding_provider",
+                          id: "video_model_selection",
                           children: (
-                            <ConfigField label="Embedding Provider">
+                            <ConfigField label="Video Model Selection">
                               <CustomDropdown
                                 options={[
-                                  { value: "openai", label: "OpenAI" },
-                                  { value: "cohere", label: "Cohere" },
                                   {
-                                    value: "local",
-                                    label: "Local (Sentence Transformers)",
+                                    value: "gpt-4o-mini",
+                                    label: "GPT-4o Mini",
                                   },
+                                  { value: "gpt-4o", label: "GPT-4o" },
                                   {
-                                    value: "amazon_bedrock",
-                                    label: "Amazon Bedrock",
+                                    value: "gpt-4-turbo",
+                                    label: "GPT-4 Turbo",
                                   },
                                 ]}
-                                defaultValue={embeddingProvider}
-                                onChange={(value) => {
-                                  setEmbeddingProvider(value);
-                                  console.log(
-                                    "Selected embedding provider:",
-                                    value
-                                  );
-                                }}
+                                defaultValue="gpt-4o-mini"
+                                onChange={(value) =>
+                                  console.log("Video Model:", value)
+                                }
                               />
                             </ConfigField>
                           ),
                         },
                         {
-                          id: "embedding_model",
+                          id: "video_max_tokens",
                           children: (
-                            <ConfigField label="Embedding Model">
-                              <CustomDropdown
-                                options={
-                                  embeddingProvider === "openai"
-                                    ? [
-                                        {
-                                          value: "text-embedding-ada-002",
-                                          label:
-                                            "text-embedding-ada-002 (1536 dim)",
-                                        },
-                                        {
-                                          value: "text-embedding-3-small",
-                                          label:
-                                            "text-embedding-3-small (1536 dim)",
-                                        },
-                                        {
-                                          value: "text-embedding-3-large",
-                                          label:
-                                            "text-embedding-3-large (3072 dim)",
-                                        },
-                                      ]
-                                    : embeddingProvider === "cohere"
-                                      ? [
-                                          {
-                                            value: "embed-english-light-v3.0",
-                                            label:
-                                              "embed-english-light-v3.0 (1024 dim)",
-                                          },
-                                          {
-                                            value: "embed-english-v3.0",
-                                            label:
-                                              "embed-english-v3.0 (1024 dim)",
-                                          },
-                                          {
-                                            value: "embed-multilingual-v3.0",
-                                            label:
-                                              "embed-multilingual-v3.0 (1024 dim)",
-                                          },
-                                        ]
-                                      : embeddingProvider === "local"
-                                        ? [
-                                            {
-                                              value: "all-MiniLM-L6-v2",
-                                              label:
-                                                "all-MiniLM-L6-v2 (384 dim)",
-                                            },
-                                            {
-                                              value: "all-mpnet-base-v2",
-                                              label:
-                                                "all-mpnet-base-v2 (768 dim)",
-                                            },
-                                          ]
-                                        : embeddingProvider === "amazon_bedrock"
-                                          ? [
-                                              {
-                                                value: "titan-embed-text-v1",
-                                                label: "Titan Embed Text v1",
-                                              },
-                                            ]
-                                          : [{ value: "none", label: "None" }]
+                            <ConfigField label="Video Max Output Tokens Setting">
+                              <CustomNumberInput
+                                defaultValue={600}
+                                min={100}
+                                max={4000}
+                                step={50}
+                                onChange={(value) =>
+                                  console.log("Video Max Tokens:", value)
                                 }
-                                defaultValue={embeddingModel}
-                                onChange={(value) => {
-                                  setEmbeddingModel(value);
-                                  console.log(
-                                    "Selected embedding model:",
-                                    value
-                                  );
-                                }}
                               />
                             </ConfigField>
                           ),
                         },
-                        ...(embeddingProvider === "openai" ||
-                        embeddingProvider === "cohere"
-                          ? [
-                              {
-                                id: "api_key",
-                                children: (
-                                  <ConfigField label="API Key">
-                                    <CustomInput
-                                      type="password"
-                                      placeholder="Enter API key"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
-                          : []),
-                        ...(embeddingProvider === "amazon_bedrock"
-                          ? [
-                              {
-                                id: "aws_region",
-                                children: (
-                                  <ConfigField label="AWS Region">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="e.g., us-east-1"
-                                      defaultValue="us-east-2"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
-                          : []),
+                        {
+                          id: "video_output_structure",
+                          children: (
+                            <ConfigField label="Video Output Structure">
+                              <CustomDropdown
+                                options={[
+                                  { value: "json", label: "JSON" },
+                                  { value: "txt", label: "Text" },
+                                  { value: "xml", label: "XML" },
+                                  { value: "yaml", label: "YAML" },
+                                ]}
+                                defaultValue="json"
+                                onChange={(value) =>
+                                  console.log("Video Output Format:", value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "video_temperature",
+                          children: (
+                            <ConfigField label="Video Temperature (Creativity)">
+                              <CustomNumberInput
+                                defaultValue={0.3}
+                                min={0.0}
+                                max={1.0}
+                                step={0.1}
+                                onChange={(value) =>
+                                  console.log("Video Temperature:", value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "video_prompt_1",
+                          children: (
+                            <ConfigField label="Video Prompt 1 (Initial Analysis)">
+                              <textarea
+                                className="custom-textarea"
+                                rows={5}
+                                defaultValue={`Given the provided image(s), extract and fill in the following information using <tags>:
+<Start_Date>: Extract Start Date from Folder Name: {campaign_folder}. Example 1: SVT_ChurchillDowns_US_Twinspires_01-26-24-01-27-24_JourneyAd extract 01-26-2024 Example 2:Evidens De Beaute_10/04 extract 10-04-2024
+<End_Date>: Extract End Date from Folder Name: {campaign_folder}. Example 1: SVT_ChurchillDowns_US_Twinspires_01-26-24-01-27-24_JourneyAd extract 01-27-24 Example 2:Evidens De Beaute_10/04 extract NULL
+<industry>: Identify the industry (e.g., Animation, Food & Beverage).
+<Brand_Logo_Present>: yes or no.
+<Brand_Logo_Size>: small, medium, or large.
+<Brand_Logo_Location>: upper-left, middle, bottom-right, etc.
+<Does_Brand_Name_Appear>: yes or no.
+<Does_Product_Name_Appear>: yes or no.
+<Is_Product_Description_In_Text>: yes or no.
+<Colors_Background>: List colors with percentages (e.g., [brown: 50%, beige: 30%]).
+<Text_Locations>: Where text appears (e.g., bottom, middle).
+<Text_Details>: Extract text with color and size (e.g., <text> "Be bold, Sam." <text_color> "white" <text_size> "medium").
+
+Use the <tags> to structure your answers. If any data is unavailable, mark it as NULL or leave it blank.`}
+                                placeholder="Enter initial analysis prompt template..."
+                                onChange={(e) =>
+                                  console.log("Video Prompt 1:", e.target.value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "video_prompt_2",
+                          children: (
+                            <ConfigField label="Video Prompt 2 (Quadrant Results Merging)">
+                              <textarea
+                                className="custom-textarea"
+                                rows={5}
+                                defaultValue={`Based on the results from the four quadrants, summarize the following using <tags>:
+<industry>:[Industry of brand/product]
+<Brand_Logo_Present>: "yes" if present in any quadrant, otherwise "no".
+<Brand_Logo_Location>: Specify where the brand logo appeared.
+<Brand_Logo_When>: Specify the quadrant(s) that the brand logo appeared.
+<Brand_Logo_Size>: The size of the brand logo (choose one size if it varies).
+<Does_Brand_Name_Appear> "yes" if the brand name appears in any quadrant, otherwise "no".
+<Does_Product_Name_Appear>: "yes" if the product name appears in any quadrant, otherwise "no".
+<Is_Product_Description_In_Text>: "yes" if product description appears in any quadrant, otherwise "no".
+<Colors_Background>: Mention the background colors which were used as a string (comma separated). eg.light blue(30%), black(50%).
+<Text_Extracted>: Include the text from the four quadrants.
+<Text_Locations>: Include the most used text locations as a string (comma separated)
+<Text_JSON>: JSON object of all the text with respective colors and sizes. eg. [{"text": "Be bold,","text_color": "red","text_size": "large"},{"text": "Hello","text_color": "green","text_size": "large"}]`}
+                                placeholder="Enter quadrant merging prompt template..."
+                                onChange={(e) =>
+                                  console.log("Video Prompt 2:", e.target.value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "image_model_selection",
+                          children: (
+                            <ConfigField label="Image Model Selection">
+                              <CustomDropdown
+                                options={[
+                                  {
+                                    value: "gpt-4o-mini",
+                                    label: "GPT-4o Mini",
+                                  },
+                                  { value: "gpt-4o", label: "GPT-4o" },
+                                  {
+                                    value: "gpt-4-turbo",
+                                    label: "GPT-4 Turbo",
+                                  },
+                                ]}
+                                defaultValue="gpt-4o-mini"
+                                onChange={(value) =>
+                                  console.log("Image Model:", value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "image_max_tokens",
+                          children: (
+                            <ConfigField label="Image Max Output Tokens Setting">
+                              <CustomNumberInput
+                                defaultValue={600}
+                                min={100}
+                                max={4000}
+                                step={50}
+                                onChange={(value) =>
+                                  console.log("Image Max Tokens:", value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "image_prompt_1",
+                          children: (
+                            <ConfigField label="Image Prompt 1 (Analysis)">
+                              <textarea
+                                className="custom-textarea"
+                                rows={5}
+                                defaultValue={`Given the provided image(s), extract and fill in the following information using <tags>:
+<Start_Date>: Extract Start Date from Folder Name: {campaign_folder}. Example 1: SVT_ChurchillDowns_US_Twinspires_01-26-24-01-27-24_JourneyAd extract 01-26-2024 Example 2:Evidens De Beaute_10/04 extract 10-04-2024
+<End_Date>: Extract End Date from Folder Name: {campaign_folder}. Example 1: SVT_ChurchillDowns_US_Twinspires_01-26-24-01-27-24_JourneyAd extract 01-27-24 Example 2:Evidens De Beaute_10/04 extract NULL
+<industry>: Identify the industry (e.g., Animation, Food & Beverage).
+<Brand_Logo_Present>: yes or no.
+<Brand_Logo_Size>: small, medium, or large.
+<Brand_Logo_Location>: upper-left, middle, bottom-right, etc.
+<Does_Brand_Name_Appear>: yes or no.
+<Does_Product_Name_Appear>: yes or no.
+<Is_Product_Description_In_Text>: yes or no.
+<Colors_Background>: List colors with percentages (e.g., [brown: 50%, beige: 30%]).
+<Text_Locations>: Where text appears (e.g., bottom, middle).
+<Text_Details>: Extract text with color and size (e.g., <text> "Be bold, Sam." <text_color> "white" <text_size> "medium").
+
+Use the <tags> to structure your answers. If any data is unavailable, mark it as NULL or leave it blank.`}
+                                placeholder="Enter image analysis prompt template..."
+                                onChange={(e) =>
+                                  console.log("Image Prompt 1:", e.target.value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "image_output_structure",
+                          children: (
+                            <ConfigField label="Image Output Structure">
+                              <CustomDropdown
+                                options={[
+                                  { value: "json", label: "JSON" },
+                                  { value: "txt", label: "Text" },
+                                  { value: "xml", label: "XML" },
+                                  { value: "yaml", label: "YAML" },
+                                ]}
+                                defaultValue="json"
+                                onChange={(value) =>
+                                  console.log("Image Output Format:", value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
                       ]}
                     />
                   </div>
@@ -1263,172 +1233,84 @@ export default function Home(): JSX.Element {
                       containerClassName="config-grid-container"
                       options={[
                         {
-                          id: "vector_database",
+                          id: "database_meta_data",
                           children: (
-                            <ConfigField label="Vector Database">
+                            <ConfigField label="Database for Meta Data">
                               <CustomDropdown
                                 options={[
-                                  { value: "pinecone", label: "Pinecone" },
-                                  { value: "qdrant", label: "Qdrant" },
-                                  { value: "chroma", label: "Chroma" },
+                                  { value: "postgres", label: "Postgres" },
+                                  { value: "mysql", label: "MySQL" },
+                                  { value: "mongodb", label: "MongoDB" },
+                                  { value: "sqlite", label: "SQLite" },
                                 ]}
-                                defaultValue={vectorDb}
-                                onChange={(value) => {
-                                  setVectorDb(value);
-                                  console.log(
-                                    "Selected vector database:",
-                                    value
-                                  );
-                                }}
+                                defaultValue="postgres"
+                                onChange={(value) =>
+                                  console.log("Meta Database:", value)
+                                }
                               />
                             </ConfigField>
                           ),
                         },
-                        ...(vectorDb === "pinecone"
-                          ? [
-                              {
-                                id: "pinecone_api_key",
-                                children: (
-                                  <ConfigField label="API Key">
-                                    <CustomInput
-                                      type="password"
-                                      placeholder="Enter Pinecone API key"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "pinecone_cloud",
-                                children: (
-                                  <ConfigField label="Cloud">
-                                    <CustomDropdown
-                                      options={[
-                                        { value: "aws", label: "AWS" },
-                                        { value: "gcp", label: "GCP" },
-                                        { value: "azure", label: "Azure" },
-                                      ]}
-                                      defaultValue="aws"
-                                      onChange={(value) =>
-                                        console.log("Selected cloud:", value)
-                                      }
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "pinecone_region",
-                                children: (
-                                  <ConfigField label="Region">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="e.g., us-east-1"
-                                      defaultValue="us-east-1"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "pinecone_index",
-                                children: (
-                                  <ConfigField label="Index Name">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter index name"
-                                      defaultValue="kb-final10"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "pinecone_dimension",
-                                children: (
-                                  <ConfigField label="Dimension">
-                                    <CustomNumberInput
-                                      defaultValue={1536}
-                                      min={1}
-                                      max={4096}
-                                      step={1}
-                                      onChange={(value) =>
-                                        console.log("Dimension changed:", value)
-                                      }
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
-                          : []),
-                        ...(vectorDb === "qdrant"
-                          ? [
-                              {
-                                id: "qdrant_host",
-                                children: (
-                                  <ConfigField label="Host">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter host URL"
-                                      defaultValue="http://localhost"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "qdrant_port",
-                                children: (
-                                  <ConfigField label="Port">
-                                    <CustomNumberInput
-                                      defaultValue={5333}
-                                      min={1}
-                                      max={65535}
-                                      step={1}
-                                      onChange={(value) =>
-                                        console.log("Port changed:", value)
-                                      }
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "qdrant_collection",
-                                children: (
-                                  <ConfigField label="Collection Name">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter collection name"
-                                      defaultValue="toshiba_pdf_7"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
-                          : []),
-                        ...(vectorDb === "chroma"
-                          ? [
-                              {
-                                id: "chroma_db_path",
-                                children: (
-                                  <ConfigField label="Database Path">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter database path"
-                                      defaultValue="data/chroma_db"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "chroma_collection",
-                                children: (
-                                  <ConfigField label="Collection Name">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter collection name"
-                                      defaultValue="kb-chroma"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
-                          : []),
+                        {
+                          id: "embedding_model",
+                          children: (
+                            <ConfigField label="Embedding Model">
+                              <CustomDropdown
+                                options={[
+                                  { value: "text-ada", label: "Text Ada" },
+                                  {
+                                    value: "text-embedding-3-small",
+                                    label: "text-embedding-3-small",
+                                  },
+                                  {
+                                    value: "text-embedding-3-large",
+                                    label: "text-embedding-3-large",
+                                  },
+                                  {
+                                    value: "all-MiniLM-L6-v2",
+                                    label: "all-MiniLM-L6-v2",
+                                  },
+                                ]}
+                                defaultValue="text-ada"
+                                onChange={(value) =>
+                                  console.log("Embedding Model:", value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "vector_db",
+                          children: (
+                            <ConfigField label="Vector DB">
+                              <CustomDropdown
+                                options={[
+                                  { value: "qdrant", label: "Qdrant" },
+                                  { value: "pinecone", label: "Pinecone" },
+                                  { value: "weaviate", label: "Weaviate" },
+                                  { value: "milvus", label: "Milvus" },
+                                  { value: "chroma", label: "Chroma" },
+                                ]}
+                                defaultValue="qdrant"
+                                onChange={(value) =>
+                                  console.log("Vector DB:", value)
+                                }
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "collection_name",
+                          children: (
+                            <ConfigField label="Collection Name">
+                              <CustomInput
+                                type="text"
+                                placeholder="creative-insights-collection"
+                                defaultValue="creative-insights-collection"
+                              />
+                            </ConfigField>
+                          ),
+                        },
                       ]}
                     />
                   </div>

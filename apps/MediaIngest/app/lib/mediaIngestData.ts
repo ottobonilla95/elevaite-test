@@ -112,33 +112,7 @@ export const mediaIngestSteps: MediaIngestStep[] = [
         output: "OCR-processed text with confidence scores",
       },
     ],
-    configOptions: [
-      {
-        id: "parsing_mode",
-        label: "Parsing Mode",
-        type: "select",
-        options: ["auto_parser", "custom_parser"],
-        default: "auto_parser",
-        description:
-          "Choose between automatic parser selection or custom parser",
-      },
-      {
-        id: "file_type",
-        label: "File Type",
-        type: "select",
-        options: ["pdf", "docx", "txt", "html", "url"],
-        default: "pdf",
-        description: "Select the type of document to parse",
-      },
-      {
-        id: "ocr_enabled",
-        label: "Enable OCR",
-        type: "checkbox",
-        default: true,
-        description:
-          "Enable Optical Character Recognition for scanned documents",
-      },
-    ],
+    configOptions: [],
     providers: {
       sagemaker: {
         supported: true,
@@ -177,33 +151,7 @@ export const mediaIngestSteps: MediaIngestStep[] = [
         output: "OCR-processed text with confidence scores",
       },
     ],
-    configOptions: [
-      {
-        id: "parsing_mode",
-        label: "Parsing Mode",
-        type: "select",
-        options: ["auto_parser", "custom_parser"],
-        default: "auto_parser",
-        description:
-          "Choose between automatic parser selection or custom parser",
-      },
-      {
-        id: "file_type",
-        label: "File Type",
-        type: "select",
-        options: ["pdf", "docx", "txt", "html", "url"],
-        default: "pdf",
-        description: "Select the type of document to parse",
-      },
-      {
-        id: "ocr_enabled",
-        label: "Enable OCR",
-        type: "checkbox",
-        default: true,
-        description:
-          "Enable Optical Character Recognition for scanned documents",
-      },
-    ],
+    configOptions: [],
     providers: {
       sagemaker: {
         supported: true,
@@ -242,45 +190,7 @@ export const mediaIngestSteps: MediaIngestStep[] = [
         output: "Chunks that preserve code block integrity",
       },
     ],
-    configOptions: [
-      {
-        id: "chunking_strategy",
-        label: "Chunking Strategy",
-        type: "select",
-        options: [
-          "semantic_chunking",
-          "recursive_chunking",
-          "sentence_chunking",
-          "mdstructure",
-        ],
-        default: "semantic_chunking",
-        description: "Select the strategy for dividing documents into chunks",
-      },
-      {
-        id: "chunk_size",
-        label: "Chunk Size",
-        type: "number",
-        default: 500,
-        description:
-          "Target size of chunks in tokens (for fixed-size strategies)",
-      },
-      {
-        id: "chunk_overlap",
-        label: "Chunk Overlap",
-        type: "number",
-        default: 50,
-        description: "Number of tokens to overlap between chunks",
-      },
-      {
-        id: "breakpoint_threshold_type",
-        label: "Breakpoint Threshold Type",
-        type: "select",
-        options: ["percentile", "absolute"],
-        default: "percentile",
-        description:
-          "Method for determining chunk boundaries in semantic chunking",
-      },
-    ],
+    configOptions: [],
     providers: {
       sagemaker: {
         supported: true,
@@ -319,31 +229,7 @@ export const mediaIngestSteps: MediaIngestStep[] = [
         output: "Context-aware vector representation",
       },
     ],
-    configOptions: [
-      {
-        id: "embedding_model",
-        label: "Embedding Model",
-        type: "select",
-        options: ["openai", "huggingface", "cohere", "custom"],
-        default: "openai",
-        description: "Select the model to use for generating embeddings",
-      },
-      {
-        id: "embedding_dimensions",
-        label: "Embedding Dimensions",
-        type: "select",
-        options: ["768", "1024", "1536", "3072"],
-        default: "1536",
-        description: "Number of dimensions in the embedding vectors",
-      },
-      {
-        id: "batch_size",
-        label: "Batch Size",
-        type: "number",
-        default: 32,
-        description: "Number of chunks to process in a single batch",
-      },
-    ],
+    configOptions: [],
     providers: {
       sagemaker: {
         supported: true,
@@ -382,39 +268,7 @@ export const mediaIngestSteps: MediaIngestStep[] = [
         output: "Updated index with new vectors and metadata",
       },
     ],
-    configOptions: [
-      {
-        id: "vector_db",
-        label: "Vector Database",
-        type: "select",
-        options: ["pinecone", "qdrant", "weaviate", "milvus", "faiss"],
-        default: "pinecone",
-        description: "Select the vector database for storing embeddings",
-      },
-      {
-        id: "index_algorithm",
-        label: "Indexing Algorithm",
-        type: "select",
-        options: ["hnsw", "ivf", "flat"],
-        default: "hnsw",
-        description: "Algorithm used for vector indexing",
-      },
-      {
-        id: "distance_metric",
-        label: "Distance Metric",
-        type: "select",
-        options: ["cosine", "euclidean", "dot_product"],
-        default: "cosine",
-        description: "Metric used to measure similarity between vectors",
-      },
-      {
-        id: "index_name",
-        label: "Index Name",
-        type: "text",
-        default: "default-index",
-        description: "Name of the vector index",
-      },
-    ],
+    configOptions: [],
     providers: {
       sagemaker: {
         supported: true,
