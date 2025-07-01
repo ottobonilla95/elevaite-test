@@ -22,4 +22,4 @@ COPY . .
 EXPOSE 8007
 
 # Set the command to run the application
-CMD ["python", "generate_response_v2.py"]
+CMD ["python", "generate_response_v3.py"]

@@ -35,6 +35,7 @@ RUN npm ci
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 RUN NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL NEXT_PUBLIC_AUTH_API_URL=$NEXT_PUBLIC_AUTH_API_URL NEXT_PUBLIC_AUTH_TENANT_ID=$NEXT_PUBLIC_AUTH_TENANT_ID npx --yes turbo run build --filter=toshiba...
+
 FROM base AS runner
 WORKDIR /app
 

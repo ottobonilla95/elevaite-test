@@ -191,7 +191,7 @@ export async function getImageUrl(
     _url.searchParams.set("filename", filename);
     return _url.toString();
   } catch (error) {
-    // Fail silently
+    console.error('Error fetching image:', error);
   }
 }
 

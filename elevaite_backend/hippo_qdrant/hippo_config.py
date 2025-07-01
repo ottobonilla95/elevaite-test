@@ -39,13 +39,13 @@ class HippoRAGConfig:
         self.qdrant_client = QdrantClient(url=self.QDRANT_HOST, port=self.QDRANT_PORT)
         
         # Collection names
-        self.PASSAGES_COLLECTION = "hipporag_passages"
+        self.PASSAGES_COLLECTION = "toshiba_sr_6_12_nov_2024"
         self.ENTITIES_COLLECTION = "hipporag_entities"
         self.FACTS_COLLECTION = "hipporag_facts"
         
         # File paths
         self.TRIPLET_CSV = "/Users/dheeraj/Desktop/vscode_check/elevaite_ingestion/stage/retrieval_stage/triplets_deduped.csv"
-        self.GRAPH_FILE = "knowledge_graph.pkl"
+        self.GRAPH_FILE = "knowledge_graph_sr_6_12_nov_2024.pkl"
         self.PASSAGES_FILE = "passages.json"
         
         logger.info("HippoRAG configuration initialized successfully")
