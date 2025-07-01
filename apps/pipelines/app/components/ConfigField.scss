@@ -1,16 +1,49 @@
 .config-field {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: clamp(8px, 2vw, 10px); // Responsive gap
   width: 100%;
-  
+  min-height: fit-content;
+
   .config-field-label {
-    font-size: 14px;
+    font-size: clamp(12px, 2.5vw, 14px); // Responsive font size
     color: #808080;
     font-weight: 600;
+    line-height: 1.2;
+    word-break: break-word; // Prevent overflow on long labels
   }
-  
+
   .config-field-content {
     width: 100%;
+    min-height: fit-content;
+    display: flex;
+    flex-direction: column;
+
+    // Ensure all child elements scale properly
+    > * {
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
+}
+
+// Responsive adjustments for smaller screens
+@media (max-width: 768px) {
+  .config-field {
+    gap: 8px;
+
+    .config-field-label {
+      font-size: 12px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .config-field {
+    gap: 6px;
+
+    .config-field-label {
+      font-size: 11px;
+    }
   }
 }

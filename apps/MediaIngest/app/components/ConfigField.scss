@@ -1,42 +1,49 @@
 .config-field {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: clamp(8px, 2vw, 10px); // Responsive gap
   width: 100%;
+  min-height: fit-content;
 
   .config-field-label-container {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: clamp(6px, 1.5vw, 8px); // Responsive gap
+    flex-wrap: wrap; // Allow wrapping on very small screens
   }
 
   .config-field-label {
-    font-size: 14px;
+    font-size: clamp(12px, 2.5vw, 14px); // Responsive font size
     color: #808080;
     font-weight: 600;
+    line-height: 1.2;
+    word-break: break-word; // Prevent overflow on long labels
   }
 
   .tooltip-container {
     position: relative;
     display: inline-block;
+    flex-shrink: 0; // Prevent tooltip from shrinking
 
     .tooltip-icon {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 16px;
-      height: 16px;
+      width: clamp(14px, 3vw, 16px); // Responsive size
+      height: clamp(14px, 3vw, 16px); // Responsive size
       background-color: transparent;
       color: #999;
       border: 1px solid #999;
       border-radius: 50%;
-      font-size: 10px;
+      font-size: clamp(8px, 2vw, 10px); // Responsive font size
       font-weight: bold;
       cursor: help;
+      transition: all 0.2s ease;
 
       &:hover {
         color: #e75f33;
         border-color: #e75f33;
+        transform: scale(1.1);
       }
     }
 
@@ -93,5 +100,45 @@
 
   .config-field-content {
     width: 100%;
+    min-height: fit-content;
+    display: flex;
+    flex-direction: column;
+
+    // Ensure all child elements scale properly
+    > * {
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
+}
+
+// Responsive adjustments for smaller screens
+@media (max-width: 768px) {
+  .config-field {
+    gap: 8px;
+
+    .config-field-label {
+      font-size: 12px;
+    }
+
+    .tooltip-container .tooltip-icon {
+      width: 14px;
+      height: 14px;
+      font-size: 8px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .config-field {
+    gap: 6px;
+
+    .config-field-label {
+      font-size: 11px;
+    }
+
+    .config-field-label-container {
+      gap: 6px;
+    }
   }
 }

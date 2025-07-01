@@ -1,0 +1,196 @@
+.custom-slider-container {
+  width: 100%;
+  max-width: 100%; // Prevent overflow
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 60px; // Ensure consistent height for grid layout
+  box-sizing: border-box;
+  overflow: hidden; // Prevent any overflow
+
+  .slider-value-display {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 16px;
+    width: 100%;
+    overflow: hidden; // Prevent text overflow
+
+    .current-value {
+      font-size: clamp(10px, 2.5vw, 12px); // Responsive font size
+      color: #666;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+  }
+
+  .custom-slider {
+    width: 100%;
+    max-width: 100%; // Ensure slider doesn't exceed container
+    height: 6px;
+    border-radius: 3px;
+    background: #333;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    margin: 4px 0;
+    box-sizing: border-box;
+
+    // Webkit browsers (Chrome, Safari, Edge)
+    &::-webkit-slider-thumb {
+      appearance: none;
+      -webkit-appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: #e75f33;
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s ease;
+
+      &:hover {
+        transform: scale(1.1);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    &::-webkit-slider-track {
+      width: 100%;
+      height: 6px;
+      cursor: pointer;
+      background: #333;
+      border-radius: 3px;
+    }
+
+    // Firefox
+    &::-moz-range-thumb {
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: #e75f33;
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s ease;
+
+      &:hover {
+        transform: scale(1.1);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    &::-moz-range-track {
+      width: 100%;
+      height: 6px;
+      cursor: pointer;
+      background: #333;
+      border-radius: 3px;
+      border: none;
+    }
+
+    // Focus states
+    &:focus {
+      outline: none;
+
+      &::-webkit-slider-thumb {
+        box-shadow: 0 0 0 3px rgba(231, 95, 51, 0.3);
+      }
+
+      &::-moz-range-thumb {
+        box-shadow: 0 0 0 3px rgba(231, 95, 51, 0.3);
+      }
+    }
+  }
+
+  .slider-range-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 14px;
+    width: 100%;
+    overflow: hidden; // Prevent overflow
+
+    .min-value,
+    .max-value {
+      font-size: clamp(9px, 2vw, 11px); // Responsive font size
+      color: #666;
+      font-weight: 400;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 1; // Allow shrinking if needed
+      max-width: 45%; // Prevent labels from taking too much space
+    }
+  }
+}
+
+// Responsive adjustments for smaller containers
+@media (max-width: 768px) {
+  .custom-slider-container {
+    gap: 6px;
+    min-height: 55px;
+
+    .slider-value-display .current-value {
+      font-size: 10px;
+    }
+
+    .slider-range-labels {
+      .min-value,
+      .max-value {
+        font-size: 9px;
+      }
+    }
+
+    .custom-slider {
+      height: 5px;
+
+      &::-webkit-slider-thumb {
+        height: 16px;
+        width: 16px;
+      }
+
+      &::-moz-range-thumb {
+        height: 16px;
+        width: 16px;
+      }
+    }
+  }
+}
+
+// Extra small containers (for very tight grid layouts)
+@container (max-width: 200px) {
+  .custom-slider-container {
+    gap: 4px;
+    min-height: 50px;
+
+    .slider-value-display .current-value {
+      font-size: 9px;
+    }
+
+    .slider-range-labels {
+      .min-value,
+      .max-value {
+        font-size: 8px;
+      }
+    }
+
+    .custom-slider {
+      height: 4px;
+
+      &::-webkit-slider-thumb {
+        height: 14px;
+        width: 14px;
+      }
+
+      &::-moz-range-thumb {
+        height: 14px;
+        width: 14px;
+      }
+    }
+  }
+}

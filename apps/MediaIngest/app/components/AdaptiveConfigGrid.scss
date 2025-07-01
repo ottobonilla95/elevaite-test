@@ -5,48 +5,131 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  container-type: inline-size; // Enable container queries
 
   .adaptive-config-grid {
     display: grid;
-    gap: 24px;
+    gap: clamp(16px, 3vw, 24px); // Responsive gap
     width: 100%;
     flex: 1;
-    grid-auto-rows: 1fr;
+    grid-auto-rows: minmax(auto, 1fr); // Allow rows to size based on content
     min-height: 0;
     height: 100%;
 
     .config-column {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: clamp(12px, 2vw, 16px); // Responsive gap
       background-color: rgba(0, 0, 0, 0.2);
       border-radius: 8px;
       border: 2px solid #3f3f41;
-      padding: 16px;
+      padding: clamp(12px, 2.5vw, 16px); // Responsive padding
       height: 100%;
-      min-height: 100%;
-      overflow-y: hidden;
+      min-height: fit-content; // Allow content to determine minimum height
+      overflow-y: auto; // Allow scrolling if content overflows
       justify-content: flex-start;
       align-items: stretch;
+      container-type: inline-size; // Enable container queries for column content
     }
 
     .config-option {
       width: 100%;
+      max-width: 100%; // Prevent overflow
       position: relative;
-      margin-bottom: 8px;
+      margin-bottom: clamp(6px, 1.5vw, 8px); // Responsive margin
+      flex-shrink: 0; // Prevent shrinking of individual options
+      box-sizing: border-box;
+      overflow: hidden; // Prevent content overflow
 
       // Ensure all dropdown containers have consistent height
       & > div {
         width: 100%;
+        max-width: 100%; // Prevent overflow
         background-color: transparent;
         border: none;
         border-radius: 0;
         padding: 0;
+        box-sizing: border-box;
       }
 
       & div[style*="position: relative"] {
         overflow: visible !important;
       }
+
+      // Special handling for slider containers
+      .custom-slider-container {
+        min-height: auto; // Override fixed height for better grid fit
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+      }
+
+      // Ensure ConfigField doesn't overflow
+      .config-field {
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+
+        .config-field-content {
+          width: 100%;
+          max-width: 100%;
+          overflow: hidden;
+        }
+      }
+    }
+  }
+}
+
+// Responsive breakpoints for grid layout
+@media (max-width: 1200px) {
+  .adaptive-config-container .adaptive-config-grid {
+    gap: 16px;
+
+    .config-column {
+      padding: 12px;
+      gap: 12px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .adaptive-config-container .adaptive-config-grid {
+    gap: 12px;
+
+    .config-column {
+      padding: 10px;
+      gap: 10px;
+    }
+
+    .config-option {
+      margin-bottom: 6px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .adaptive-config-container .adaptive-config-grid {
+    gap: 8px;
+
+    .config-column {
+      padding: 8px;
+      gap: 8px;
+    }
+
+    .config-option {
+      margin-bottom: 4px;
+    }
+  }
+}
+
+// Container queries for fine-grained control
+@container (max-width: 300px) {
+  .config-column {
+    padding: 8px !important;
+    gap: 8px !important;
+
+    .config-option {
+      margin-bottom: 4px !important;
     }
   }
 }
@@ -58,19 +141,26 @@ body {
 
   div[style*="position: relative"]
     > div[style*="display: flex"][style*="justify-content: space-between"] {
-    height: 40px !important;
+    height: clamp(36px, 8vw, 40px) !important; // Responsive height
     box-sizing: border-box !important;
   }
 
-  /* Ensure consistent height for all form elements */
+  /* Ensure consistent height for all form elements with responsive sizing */
   .config-field-content {
     input[type="text"],
     input[type="password"],
     input[type="number"],
     .custom-number-input,
     .custom-dropdown {
-      height: 40px !important;
+      height: clamp(36px, 8vw, 40px) !important; // Responsive height
       box-sizing: border-box !important;
+      font-size: clamp(12px, 2.5vw, 14px) !important; // Responsive font size
+    }
+
+    // Special handling for sliders to not force height
+    .custom-slider-container {
+      height: auto !important;
+      min-height: clamp(50px, 12vw, 60px) !important;
     }
   }
 }
