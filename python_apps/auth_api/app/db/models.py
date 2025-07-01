@@ -60,9 +60,16 @@ class User(Base, TimestampMixin):
     application_admin: Mapped[bool] = mapped_column(default=False, nullable=False)
     is_password_temporary: Mapped[bool] = mapped_column(default=False, nullable=False)
 
-    # 2FA
+    # Contact info
+    phone_number: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+
+    # 2FA/MFA
     mfa_enabled: Mapped[bool] = mapped_column(default=False, nullable=False)
-    mfa_secret: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    mfa_secret: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True
+    )  # TOTP secret
+    sms_mfa_enabled: Mapped[bool] = mapped_column(default=False, nullable=False)
+    phone_verified: Mapped[bool] = mapped_column(default=False, nullable=False)
 
     # Password reset
     password_reset_token: Mapped[Optional[str]] = mapped_column(
