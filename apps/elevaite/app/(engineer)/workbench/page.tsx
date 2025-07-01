@@ -5,16 +5,16 @@ import { Tab, TabList, TabPanel, Tabs } from "react-tabs";
 import { useWorkbench } from "../../lib/contexts/WorkbenchContext";
 import "./page.scss";
 
-
-
-
 export default function Page(): JSX.Element {
   const workbenchContext = useWorkbench();
   const themesContext = useThemes();
 
-
   return (
-    <div className={["applications-page-container", themesContext.type].filter(Boolean).join(" ")}>
+    <div
+      className={["applications-page-container", themesContext.type]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <Tabs>
         <TabList>
           <Tab>INGEST</Tab>
@@ -24,16 +24,29 @@ export default function Page(): JSX.Element {
         </TabList>
         <TabPanel>
           <div className="tab-panel-contents ingest">
-            <Section separator>Data Retrieval Applications</Section>
+            <Section separator>Pipelines</Section>
 
-            { workbenchContext.loading.applications === undefined ? null
-            : workbenchContext.loading.applications ? 
-              <Section><div className="loading-box"><ElevaiteIcons.SVGSpinner/><span>Loading Applications. Please wait...</span></div></Section>
-            : workbenchContext.errors.applications ? 
-              <Section><span>There has been an error loading the applications. Please try again later.</span></Section>
-            :  workbenchContext.ingestList.length === 0 ?
-              <Section>There are no data retrieval applications to display.</Section>
-            : workbenchContext.ingestList.map((app) => (
+            {workbenchContext.loading.applications ===
+            undefined ? null : workbenchContext.loading.applications ? (
+              <Section>
+                <div className="loading-box">
+                  <ElevaiteIcons.SVGSpinner />
+                  <span>Loading Applications. Please wait...</span>
+                </div>
+              </Section>
+            ) : workbenchContext.errors.applications ? (
+              <Section>
+                <span>
+                  There has been an error loading the applications. Please try
+                  again later.
+                </span>
+              </Section>
+            ) : workbenchContext.ingestList.length === 0 ? (
+              <Section>
+                There are no data retrieval applications to display.
+              </Section>
+            ) : (
+              workbenchContext.ingestList.map((app) => (
                 <Card
                   key={app.id}
                   id={app.id}
@@ -47,18 +60,29 @@ export default function Page(): JSX.Element {
                   url={app.url ?? "/application"}
                 />
               ))
-            }
+            )}
 
-            <Section separator>Preprocess Applications</Section>
+            <Section separator>Notebooks</Section>
 
-            { workbenchContext.loading.applications === undefined ? null
-            : workbenchContext.loading.applications ? 
-              <Section><div className="loading-box"><ElevaiteIcons.SVGSpinner/><span>Loading Applications. Please wait...</span></div></Section>
-            : workbenchContext.errors.applications ? 
-              <Section><span>There has been an error loading the applications. Please try again later.</span></Section>
-            :  workbenchContext.preProcessingList.length === 0 ?
-              <Section>There are no preprocessing applications to display.</Section>
-            : workbenchContext.preProcessingList.map((app) => (
+            {workbenchContext.loading.applications ===
+            undefined ? null : workbenchContext.loading.applications ? (
+              <Section>
+                <div className="loading-box">
+                  <ElevaiteIcons.SVGSpinner />
+                  <span>Loading Applications. Please wait...</span>
+                </div>
+              </Section>
+            ) : workbenchContext.errors.applications ? (
+              <Section>
+                <span>
+                  There has been an error loading the applications. Please try
+                  again later.
+                </span>
+              </Section>
+            ) : workbenchContext.preProcessingList.length === 0 ? (
+              <Section>There are no notebook applications to display.</Section>
+            ) : (
+              workbenchContext.preProcessingList.map((app) => (
                 <Card
                   key={app.id}
                   id={app.id}
@@ -72,8 +96,7 @@ export default function Page(): JSX.Element {
                   url={app.url ?? "/application"}
                 />
               ))
-            }
-
+            )}
           </div>
         </TabPanel>
         {/* <TabPanel>
@@ -129,15 +152,18 @@ export default function Page(): JSX.Element {
   );
 }
 
-
-
-function Section(props: { separator?: boolean, children?: React.ReactNode }): JSX.Element {
+function Section(props: {
+  separator?: boolean;
+  children?: React.ReactNode;
+}): JSX.Element {
   return (
-    <div className={["app-section", !props.separator ? "info" : undefined].filter(Boolean).join(" ")}>
+    <div
+      className={["app-section", !props.separator ? "info" : undefined]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <span>{props.children}</span>
-      {!props.separator ? null :
-        <div className="separator"/>
-      }
+      {!props.separator ? null : <div className="separator" />}
     </div>
   );
 }
