@@ -460,6 +460,7 @@ async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
         is_verified=False,
         verification_token=verification_token,
         is_password_temporary=is_password_temporary,
+        application_admin=user_data.application_admin,
     )
     session.add(new_user)
     await session.commit()

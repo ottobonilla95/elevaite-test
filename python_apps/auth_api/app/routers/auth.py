@@ -520,9 +520,19 @@ async def verify_email(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Verify user email with token."""
+    try:
+        import uuid
+
+        token_uuid = uuid.UUID(verification_data.token)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid token format",
+        )
+
     # Find user with this verification token
     result = await session.execute(
-        async_select(User).where(User.verification_token == verification_data.token)
+        async_select(User).where(User.verification_token == token_uuid)
     )
     user = result.scalars().first()
 
@@ -1542,6 +1552,7 @@ async def get_users(session: AsyncSession = Depends(get_async_session)):
             "status": "active" if user.status == "active" else "inactive",
             "is_verified": user.is_verified,
             "is_superuser": user.is_superuser,
+            "application_admin": user.application_admin,
             "created_at": user.created_at.isoformat() if user.created_at else None,
         }
         user_list.append(user_dict)

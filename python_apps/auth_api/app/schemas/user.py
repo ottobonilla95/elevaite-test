@@ -20,6 +20,7 @@ class UserCreate(UserBase):
 
     password: str = Field(..., min_length=9)
     is_one_time_password: bool = Field(default=False)
+    application_admin: bool = Field(default=False)
 
     @field_validator("password")
     @classmethod
@@ -120,6 +121,7 @@ class UserDetail(UserResponse):
     last_login: Optional[datetime] = None
     is_password_temporary: bool
     is_superuser: bool
+    application_admin: bool
 
 
 class Token(BaseModel):
@@ -190,7 +192,7 @@ class PasswordResetConfirm(BaseModel):
 class EmailVerificationRequest(BaseModel):
     """Email verification request schema."""
 
-    token: UUID
+    token: str
 
 
 class MfaSetupResponse(BaseModel):

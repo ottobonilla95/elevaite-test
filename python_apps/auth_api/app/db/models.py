@@ -57,6 +57,7 @@ class User(Base, TimestampMixin):
     )
     is_verified: Mapped[bool] = mapped_column(default=False, nullable=False)
     is_superuser: Mapped[bool] = mapped_column(default=False, nullable=False)
+    application_admin: Mapped[bool] = mapped_column(default=False, nullable=False)
     is_password_temporary: Mapped[bool] = mapped_column(default=False, nullable=False)
 
     # 2FA
