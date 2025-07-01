@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { X, Plus, Save, Check } from "lucide-react";
-import { AgentType } from "../type";
-import { AgentNodeData } from "../../lib/interfaces";
+import { type AgentType, type AgentNodeData } from "../../lib/interfaces";
 
 interface ModalProps {
     isOpen: boolean;
@@ -12,15 +11,15 @@ interface ModalProps {
     onSave: (id: string, name: string, prompt: string, description: string, tags: string[]) => void;
 }
 
-const AgentConfigModal: React.FC<ModalProps> = ({
+function AgentConfigModal({
     isOpen,
     nodeData,
     onClose,
     onSave
-}) => {
+}: ModalProps): JSX.Element | null {
     const [name, setName] = useState("");
     const [prompt, setPrompt] = useState("");
-    const [description, setDescription] = useState(nodeData?.agent.description || "");
+    const [description, setDescription] = useState(nodeData?.agent.description ?? "");
     const [tags, setTags] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState("prompt");
     const maxLength = 2000;
@@ -40,11 +39,11 @@ const AgentConfigModal: React.FC<ModalProps> = ({
     // Reset state when node data changes
     useEffect(() => {
         if (nodeData) {
-            setName(nodeData.name || "");
-            setPrompt(nodeData.prompt || "");
-            setDescription(nodeData.description || "");
+            setName(nodeData.name ?? "");
+            setPrompt(nodeData.prompt ?? "");
+            setDescription(nodeData.description ?? "");
             // Initialize tags with the node's type as default if no tags exist
-            setTags(nodeData.tags || [nodeData.type]);
+            setTags(nodeData.tags ?? [nodeData.type]);
         }
     }, [nodeData]);
 
@@ -104,6 +103,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                     <button
                         onClick={onClose}
                         className="text-gray-400 hover:text-gray-600 transition-colors"
+                        type="button"
                     >
                         <X size={18} />
                     </button>
@@ -117,7 +117,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                 ? "text-orange-500 border-b-2 border-orange-500"
                                 : "text-gray-500 hover:text-gray-700"
                                 }`}
-                            onClick={() => setActiveTab("prompt")}
+                            onClick={() => { setActiveTab("prompt"); }}
                         >
                             Prompt
                         </button>
@@ -126,7 +126,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                 ? "text-orange-500 border-b-2 border-orange-500"
                                 : "text-gray-500 hover:text-gray-700"
                                 }`}
-                            onClick={() => setActiveTab("parameters")}
+                            onClick={() => { setActiveTab("parameters"); }}
                         >
                             Parameters
                         </button>
@@ -135,7 +135,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                 ? "text-orange-500 border-b-2 border-orange-500"
                                 : "text-gray-500 hover:text-gray-700"
                                 }`}
-                            onClick={() => setActiveTab("testing")}
+                            onClick={() => { setActiveTab("testing"); }}
                         >
                             Testing
                         </button>
@@ -149,35 +149,38 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                             {/* Prompt Name and Parameters */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Prompt Name</label>
-                                    <input
-                                        type="text"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
-                                    />
+                                    <label className="block text-sm font-medium mb-1">Prompt Name
+                                        <input
+                                            type="text"
+                                            value={name}
+                                            onChange={(e) => { setName(e.target.value); }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
+                                        />
+                                    </label>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Parameters</label>
+                                    <span className="block text-sm font-medium mb-1">Parameters</span>
                                     <div className="flex space-x-2">
                                         <div className="w-1/2">
-                                            <label className="block text-xs text-gray-500 mb-1">Max Tokens</label>
-                                            <input
-                                                type="number"
-                                                defaultValue={1000}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
-                                            />
+                                            <label className="block text-xs text-gray-500 mb-1">Max Tokens
+                                                <input
+                                                    type="number"
+                                                    defaultValue={1000}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
+                                                />
+                                            </label>
                                         </div>
                                         <div className="w-1/2">
-                                            <label className="block text-xs text-gray-500 mb-1">Temp</label>
-                                            <input
-                                                type="number"
-                                                defaultValue={0.7}
-                                                step={0.1}
-                                                min={0}
-                                                max={1}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
-                                            />
+                                            <label className="block text-xs text-gray-500 mb-1">Temp
+                                                <input
+                                                    type="number"
+                                                    defaultValue={0.7}
+                                                    step={0.1}
+                                                    min={0}
+                                                    max={1}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
+                                                />
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
@@ -186,20 +189,21 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                             {/* Tags and Dataset */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Tags</label>
+                                    <span className="block text-sm font-medium mb-1">Tags</span>
                                     <div className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow bg-white">
                                         <div className="flex flex-wrap mb-1">
                                             {/* Selected tags */}
                                             {tags.length > 0 && (
                                                 <div className="flex flex-wrap gap-1 mb-1">
                                                     {tags.map(tag => {
-                                                        const tagLabel = availableTags.find(t => t.value === tag)?.label || tag;
+                                                        const tagLabel = availableTags.find(t => t.value === tag)?.label ?? tag;
                                                         return (
                                                             <div key={tag} className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full flex items-center">
                                                                 {tagLabel}
                                                                 <button
                                                                     className="ml-1 text-orange-600 hover:text-orange-800"
-                                                                    onClick={() => toggleTag(tag)}
+                                                                    onClick={() => { toggleTag(tag); }}
+                                                                    type="button"
                                                                 >
                                                                     <X size={12} />
                                                                 </button>
@@ -215,8 +219,9 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                             <div className="text-xs text-gray-500 mb-1">Select tags:</div>
                                             <div className="grid grid-cols-2 gap-1">
                                                 {availableTags.map(tag => (
-                                                    <div
+                                                    <button
                                                         key={tag.value}
+                                                        type="button"
                                                         className={`
                                                             cursor-pointer text-sm px-2 py-1 rounded 
                                                             ${tags.includes(tag.value)
@@ -224,7 +229,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                                                 : 'hover:bg-gray-100 text-gray-700'
                                                             }
                                                         `}
-                                                        onClick={() => toggleTag(tag.value)}
+                                                        onClick={() => { toggleTag(tag.value); }}
                                                     >
                                                         <div className="flex items-center">
                                                             {tags.includes(tag.value) && (
@@ -232,14 +237,14 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                                             )}
                                                             <span>{tag.label}</span>
                                                         </div>
-                                                    </div>
+                                                    </button>
                                                 ))}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Dataset</label>
+                                    <span className="block text-sm font-medium mb-1">Dataset</span>
                                     <select
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
                                         defaultValue="arlo"
@@ -255,42 +260,45 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                             {/* Description and Model */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Description</label>
-                                    <input
-                                        type="text"
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                        placeholder="Describe what this agent does"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
-                                    />
+                                    <label className="block text-sm font-medium mb-1">Description
+                                        <input
+                                            type="text"
+                                            value={description}
+                                            onChange={(e) => { setDescription(e.target.value); }}
+                                            placeholder="Describe what this agent does"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
+                                        />
+                                    </label>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Model</label>
-                                    <select
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
-                                        defaultValue={nodeData.config?.model || "claude"}
-                                    >
-                                        <option value="claude">Claude 3</option>
-                                        <option value="gpt4o">GPT-4o</option>
-                                        <option value="GPT-4o-mini">GPT-4o-mini</option>
-                                        <option value="gpt35">GPT-3.5</option>
-                                        <option value="mixtral">Mixtral</option>
-                                        <option value="llama3">Llama 3</option>
-                                    </select>
+                                    <label className="block text-sm font-medium mb-1">Model
+                                        <select
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
+                                            defaultValue={nodeData.config?.model ?? "claude"}
+                                        >
+                                            <option value="claude">Claude 3</option>
+                                            <option value="gpt4o">GPT-4o</option>
+                                            <option value="GPT-4o-mini">GPT-4o-mini</option>
+                                            <option value="gpt35">GPT-3.5</option>
+                                            <option value="mixtral">Mixtral</option>
+                                            <option value="llama3">Llama 3</option>
+                                        </select>
+                                    </label>
                                 </div>
                             </div>
 
                             {/* System Message */}
                             <div>
                                 <div className="flex justify-between items-center mb-1">
-                                    <label className="block text-sm font-medium">System Message</label>
-                                    <span className="text-xs text-gray-500">
-                                        {currentLength}/{maxLength} characters
-                                    </span>
+                                    <label className="block text-sm font-medium">System Message
+                                        <span className="text-xs text-gray-500">
+                                            {currentLength}/{maxLength} characters
+                                        </span>
+                                    </label>
                                 </div>
                                 <textarea
                                     value={prompt}
-                                    onChange={(e) => setPrompt(e.target.value)}
+                                    onChange={(e) => { setPrompt(e.target.value); }}
                                     placeholder={placeholderText(nodeData.type)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md h-40 focus:outline-none focus:ring-1 focus:ring-orange-500 transition-shadow"
                                     maxLength={maxLength}
@@ -306,15 +314,16 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-1">Temperature</label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="1"
-                                    step="0.1"
-                                    defaultValue="0.7"
-                                    className="w-full"
-                                />
+                                <label className="block text-sm font-medium mb-1">Temperature
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.1"
+                                        defaultValue="0.7"
+                                        className="w-full"
+                                    />
+                                </label>
                                 <div className="flex justify-between text-xs text-gray-500 mt-1">
                                     <span>0 - Precise</span>
                                     <span>0.7</span>
@@ -326,59 +335,63 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-1">Max Tokens</label>
-                                <input
-                                    type="number"
-                                    defaultValue={1000}
-                                    min={1}
-                                    max={4096}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md transition-shadow"
-                                />
+                                <label className="block text-sm font-medium mb-1">Max Tokens
+                                    <input
+                                        type="number"
+                                        defaultValue={1000}
+                                        min={1}
+                                        max={4096}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md transition-shadow"
+                                    />
+                                </label>
                                 <div className="text-xs text-gray-500 mt-1">
                                     Maximum number of tokens in the response. Higher values allow for longer outputs.
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-1">Top P</label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="1"
-                                    step="0.05"
-                                    defaultValue="0.95"
-                                    className="w-full"
-                                />
+                                <label className="block text-sm font-medium mb-1">Top P
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.05"
+                                        defaultValue="0.95"
+                                        className="w-full"
+                                    />
+                                </label>
                                 <div className="text-xs text-gray-500 mt-1">
                                     Controls diversity via nucleus sampling. Lower values make output more focused.
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-1">Frequency Penalty</label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="2"
-                                    step="0.1"
-                                    defaultValue="0"
-                                    className="w-full"
-                                />
+                                <label className="block text-sm font-medium mb-1">Frequency Penalty
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="2"
+                                        step="0.1"
+                                        defaultValue="0"
+                                        className="w-full"
+                                    />
+                                </label>
                                 <div className="text-xs text-gray-500 mt-1">
                                     Reduces repetition by penalizing tokens that have already appeared. Higher values reduce repetition.
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-1">Presence Penalty</label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="2"
-                                    step="0.1"
-                                    defaultValue="0"
-                                    className="w-full"
-                                />
+                                <label className="block text-sm font-medium mb-1">Presence Penalty
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="2"
+                                        step="0.1"
+                                        defaultValue="0"
+                                        className="w-full"
+                                    />
+                                </label>
                                 <div className="text-xs text-gray-500 mt-1">
                                     Increases diversity by penalizing tokens that have appeared at all. Higher values encourage more diverse topics.
                                 </div>
@@ -394,7 +407,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
 
                             {/* Testing Console */}
                             <div>
-                                <label className="block text-sm font-medium mb-1">Testing Console</label>
+                                <span className="block text-sm font-medium mb-1">Testing Console</span>
                                 <div className="border border-gray-300 rounded-md p-3 bg-gray-50">
                                     <div className="border-b border-gray-200 pb-2 mb-2">
                                         <div className="text-xs text-gray-500 mb-1">Input 1</div>
@@ -405,11 +418,11 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                                         />
                                     </div>
                                     <div className="flex justify-between">
-                                        <button className="text-orange-500 hover:text-orange-700 transition-colors text-xs flex items-center">
+                                        <button className="text-orange-500 hover:text-orange-700 transition-colors text-xs flex items-center" type="button">
                                             <Plus className="w-3.5 h-3.5 mr-1" />
                                             Add Input
                                         </button>
-                                        <button className="bg-orange-500 hover:bg-orange-600 transition-colors text-white px-3 py-1 rounded text-xs">
+                                        <button className="bg-orange-500 hover:bg-orange-600 transition-colors text-white px-3 py-1 rounded text-xs" type="button">
                                             Run Test
                                         </button>
                                     </div>
@@ -417,7 +430,7 @@ const AgentConfigModal: React.FC<ModalProps> = ({
 
                                 {/* Test Results */}
                                 <div className="mt-4">
-                                    <label className="block text-sm font-medium mb-1">Results</label>
+                                    <span className="block text-sm font-medium mb-1">Results</span>
                                     <div className="border border-gray-300 rounded-md p-3 bg-white h-40 overflow-y-auto">
                                         <div className="text-gray-400 text-sm italic">
                                             Test results will appear here...
@@ -434,12 +447,14 @@ const AgentConfigModal: React.FC<ModalProps> = ({
                     <button
                         onClick={onClose}
                         className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors"
+                        type="button"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
                         className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md text-sm transition-colors flex items-center"
+                        type="button"
                     >
                         <Save size={16} className="mr-2" />
                         Save Changes

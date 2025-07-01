@@ -9,9 +9,9 @@ import {
 import TabHeader, { type Tab } from "../TabHeader";
 import { type AgentNodeData, type AgentConfigData, type AgentType, type ChatCompletionToolParam } from "../../lib/interfaces";
 import { fetchToolSchemasAsArray } from "../../lib/toolActions";
+import { usePrompts } from "../../ui/contexts/PromptsContext";
 import { getAgentIcon } from "./iconUtils";
 import { ConfigurationTab, ToolsTab, getAgentTypeDisplay, getModelProviders, getModels } from "./config";
-import { usePrompts } from "../../ui/contexts/PromptsContext";
 import "./ConfigPanel.scss";
 
 

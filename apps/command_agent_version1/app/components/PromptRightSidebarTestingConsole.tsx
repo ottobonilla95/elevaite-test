@@ -7,7 +7,7 @@ import { PromptTestingConsoleInputTab } from '../lib/interfaces';
 import { SimpleTextarea } from '@repo/ui/components';
 
 
-const PromptRightSidebarTestingConsole = () => {
+function PromptRightSidebarTestingConsole(): JSX.Element {
 	const promptsContext = usePrompt();
 	const [height, setHeight] = useState(64);
 	const resizing = useRef(false);
@@ -40,8 +40,8 @@ const PromptRightSidebarTestingConsole = () => {
 	}
 
 	const handleTabValueChange = (index: number, newValue: string) => {
-        setTabs(prev => prev.map((tab, i) => i === index ? { ...tab, value: newValue } : tab));
-    };
+		setTabs(prev => prev.map((tab, i) => i === index ? { ...tab, value: newValue } : tab));
+	};
 
 	useEffect(() => {
 		window.addEventListener('mousemove', handleMouseMove);
@@ -58,7 +58,7 @@ const PromptRightSidebarTestingConsole = () => {
 			<div className="p-4 flex items-center justify-between bg-white sticky top-0 z-10">
 				<div className="font-medium select-none">Testing Console</div>
 				<div className="flex gap-4 items-center">
-					<button onClick={() => promptsContext.setShowFileUploadModal(true)}>
+					<button onClick={() => { promptsContext.setShowFileUploadModal(true); }}>
 						<svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 							<g opacity="0.8">
 								<path d="M14.4018 7.26622L8.39138 13.2766C7.02454 14.6435 4.80847 14.6435 3.44163 13.2766C2.0748 11.9098 2.0748 9.69372 3.44163 8.32688L9.45204 2.31647C10.3633 1.40525 11.8406 1.40525 12.7519 2.31647C13.6631 3.2277 13.6631 4.70508 12.7519 5.61631L6.97716 11.391C6.52155 11.8466 5.78286 11.8466 5.32725 11.391C4.87164 10.9354 4.87164 10.1967 5.32725 9.74109L10.3948 4.6735" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -81,7 +81,7 @@ const PromptRightSidebarTestingConsole = () => {
 					<button className="font-medium text-sm px-4 py-3 flex items-center gap-2" onClick={handleAddTab}>
 						<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 							<g opacity="0.56">
-								<path d="M8.00016 3.33301V12.6663M3.3335 7.99967H12.6668" stroke="#212124" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+								<path d="M8.00016 3.33301V12.6663M3.3335 7.99967H12.6668" stroke="#212124" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
 							</g>
 						</svg>
 						Add input
@@ -92,7 +92,7 @@ const PromptRightSidebarTestingConsole = () => {
 						<div key={tab.id} className={`tab-link-panel ${activeTab === index ? "active" : ""}`} style={{ display: activeTab === index ? "block" : "none" }}>
 							{!promptsContext.file && (
 								<div className="prompt-input-container prompt-textarea-container p-[5px] no-margin">
-									<SimpleTextarea style={{ height: `${height - 122}px` }} className="textarea-in-tab" useCommonStyling value={tab.value} onChange={value => handleTabValueChange(index, value)} placeholder='{ "video_url": "https://example.com/tutorial.mp4" }'/>
+									<SimpleTextarea style={{ height: `${height - 122}px` }} className="textarea-in-tab" useCommonStyling value={tab.value} onChange={value => handleTabValueChange(index, value)} placeholder='{ "video_url": "https://example.com/tutorial.mp4" }' />
 								</div>
 							)}
 							{promptsContext.file && (
@@ -130,9 +130,7 @@ const PromptRightSidebarTestingConsole = () => {
 					))}
 				</div>
 			</div>
-			{promptsContext.showFileUploadModal && (
-				<PromptFileUploadModal />
-			)}
+			{promptsContext.showFileUploadModal ? <PromptFileUploadModal /> : null}
 		</div>
 	)
 }

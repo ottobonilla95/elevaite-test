@@ -16,8 +16,8 @@ import type { ChatCompletionToolParam } from "../interfaces/common";
 import { BACKEND_URL } from "../constants";
 
 export async function fetchAllAgents(
-  skip: number = 0,
-  limit: number = 100,
+  skip = 0,
+  limit = 100,
   deployed?: boolean
 ): Promise<AgentResponse[]> {
   const url = new URL(`${BACKEND_URL ?? ""}api/agents/`);

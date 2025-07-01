@@ -2,9 +2,6 @@
   "extends": [
     "@repo/eslint-config/next.js"
   ],
-  "ignorePatterns": [ // TODO: Re-enable linting
-    "*"
-  ],
   "rules": {
     "no-alert": "warn",
     "@typescript-eslint/no-floating-promises": "warn",

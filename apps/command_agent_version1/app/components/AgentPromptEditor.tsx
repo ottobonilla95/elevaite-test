@@ -45,8 +45,9 @@ const AgentPromptEditor: React.FC<AgentPromptEditorProps> = ({
                 <div className="space-y-4">
                     {/* Basic information */}
                     <div>
-                        <label className="block text-sm font-medium mb-1">Prompt Name</label>
+                        <label htmlFor="prompt-name" className="block text-sm font-medium mb-1">Prompt Name</label>
                         <input
+                            id="prompt-name"
                             type="text"
                             defaultValue={name}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
@@ -55,8 +56,9 @@ const AgentPromptEditor: React.FC<AgentPromptEditorProps> = ({
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1">Type</label>
+                        <label htmlFor="prompt-type" className="block text-sm font-medium mb-1">Type</label>
                         <select
+                            id="prompt-type"
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
                             defaultValue={type}
                         >
@@ -69,8 +71,9 @@ const AgentPromptEditor: React.FC<AgentPromptEditorProps> = ({
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1">Description</label>
+                        <label htmlFor="prompt-description" className="block text-sm font-medium mb-1">Description</label>
                         <input
+                            id="prompt-description"
                             type="text"
                             defaultValue={description}
                             placeholder="Describe what this agent does"
@@ -80,8 +83,9 @@ const AgentPromptEditor: React.FC<AgentPromptEditorProps> = ({
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1">Dataset</label>
+                            <label htmlFor="prompt-dataset" className="block text-sm font-medium mb-1">Dataset</label>
                             <select
+                                id="prompt-dataset"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
                                 defaultValue="arlo"
                             >
@@ -92,8 +96,9 @@ const AgentPromptEditor: React.FC<AgentPromptEditorProps> = ({
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">Model</label>
+                            <label htmlFor="prompt-model" className="block text-sm font-medium mb-1">Model</label>
                             <select
+                                id="prompt-model"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
                                 defaultValue="claude"
                             >
@@ -128,12 +133,12 @@ const AgentPromptEditor: React.FC<AgentPromptEditorProps> = ({
                     {/* Preview of the prompt */}
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <label className="block text-sm font-medium">System Message Preview</label>
+                            <label htmlFor="system-message-preview" className="block text-sm font-medium">System Message Preview</label>
                             <span className="text-xs text-gray-500">
                                 {prompt.length}/1000 characters
                             </span>
                         </div>
-                        <div className="w-full px-3 py-2 border border-gray-300 rounded-md h-32 bg-gray-50 overflow-y-auto text-sm">
+                        <div id="system-message-preview" className="w-full px-3 py-2 border border-gray-300 rounded-md h-32 bg-gray-50 overflow-y-auto text-sm">
                             {prompt || `Define how this ${type} should process queries...`}
                         </div>
                     </div>

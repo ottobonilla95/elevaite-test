@@ -9,8 +9,8 @@ export interface Tool {
   tool_type: "local" | "remote" | "mcp";
   execution_type: string;
 
-  parameters_schema: Record<string, any>;
-  return_schema?: Record<string, any>;
+  parameters_schema: Record<string, unknown>;
+  return_schema?: Record<string, unknown>;
 
   module_path?: string;
   function_name?: string;
@@ -76,7 +76,7 @@ export interface MCPServer {
   protocol: string; // "http" or "https"
   endpoint?: string;
   auth_type?: string;
-  auth_config?: Record<string, any>;
+  auth_config?: Record<string, unknown>;
   version?: string;
   capabilities?: string[];
   tags?: string[];
@@ -97,7 +97,7 @@ export interface MCPServerCreate {
   protocol?: string; // defaults to "http"
   endpoint?: string;
   auth_type?: string;
-  auth_config?: Record<string, any>;
+  auth_config?: Record<string, unknown>;
   version?: string;
   capabilities?: string[];
   tags?: string[];
@@ -112,7 +112,7 @@ export interface MCPServerUpdate {
   protocol?: string;
   endpoint?: string;
   auth_type?: string;
-  auth_config?: Record<string, any>;
+  auth_config?: Record<string, unknown>;
   status?: string;
   version?: string;
   capabilities?: string[];
@@ -122,7 +122,7 @@ export interface MCPServerUpdate {
 
 export interface ToolExecutionRequest {
   tool_id: string; // UUID as string
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   session_id?: string;
   user_id?: string;
   timeout_override?: number;
@@ -130,7 +130,7 @@ export interface ToolExecutionRequest {
 
 export interface ToolExecutionResponse {
   status: string; // "success", "error", "timeout"
-  result?: any;
+  result?: unknown;
   error_message?: string;
   execution_time_ms: number;
   tool_id: string; // UUID as string

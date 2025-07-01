@@ -3,9 +3,10 @@ import React, { useRef } from 'react';
 import { FileUploader } from "react-drag-drop-files";
 import { toast } from 'react-toastify';
 import { LoadingKeys, usePrompt } from '../ui/contexts/PromptContext';
+import { PromptInputTypes } from '../lib/interfaces';
 import PromptLoading from './PromptLoading';
 
-const PromptToast = ({ data }) => (
+const PromptToast = ({ data }: { data: { num_pages: number } }) => (
 	<div className="prompt-toast rounded-md font-bold text-sm flex items-center justify-between w-full">
 		PDF loaded successfully. Total {data.num_pages} {data.num_pages > 1 ? 'pages' : 'page'} extracted.
 	</div>
@@ -15,8 +16,9 @@ function PromptFileUploadModal() {
 	const fileTypes = ["PDF", "JPG", "PNG"];
 	const promptsContext = usePrompt();
 
-	const handleChange = (newFile: File) => {
-		promptsContext.setFile(newFile[0]);
+	const handleChange = (newFile: File | File[]) => {
+		const file = Array.isArray(newFile) ? newFile[0] : newFile;
+		promptsContext.setFile(file);
 	};
 
 	let isImage = false;
@@ -41,13 +43,13 @@ function PromptFileUploadModal() {
 			promptsContext.setPromptInputs(
 				promptsContext.defaultPromptInputs.map(input => {
 					console.log(input)
-					if (input.type == 'documentHeader') {
+					if (input.type === PromptInputTypes.DocumentHeader) {
 						return {
 							...input,
 							values: finalData.document_headers,
 							//id: crypto.randomUUID().toString(),
 						}
-					} else if (input.type == 'lineItemHeader') {
+					} else if (input.type === PromptInputTypes.LineItemHeader) {
 						return {
 							...input,
 							values: finalData.line_item_headers,
@@ -100,8 +102,9 @@ function PromptFileUploadModal() {
 							handleChange={handleChange}
 							name="file"
 							types={fileTypes}
-							children={<Dropzone />}
-						/>
+						>
+							<Dropzone />
+						</FileUploader>
 					</div>
 
 					{promptsContext.file && (

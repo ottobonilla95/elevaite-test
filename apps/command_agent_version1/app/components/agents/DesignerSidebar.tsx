@@ -20,8 +20,8 @@ import { type AgentResponse, type SavedWorkflow, type Tool, type AgentType } fro
 import { useTools } from "../../ui/contexts/ToolsContext";
 import { fetchAllAgents } from "../../lib/actions";
 import { isValidAgentType } from "../../lib/discriminators";
-import WorkflowsTab from "./WorkflowsTab";
 import TabHeader, { type Tab } from "../TabHeader";
+import WorkflowsTab from "./WorkflowsTab";
 import "./DesignerSidebar.scss";
 
 // SidebarSection component for collapsible sections

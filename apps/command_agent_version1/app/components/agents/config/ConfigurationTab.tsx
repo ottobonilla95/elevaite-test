@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
+import { AGENT_TYPE, type AgentType } from "../../../lib/interfaces";
 import Pill from "../../ui/Pill";
 import { getModelProviders, getModels, OUTPUT_FORMATS, getAgentTypeDisplay } from "./configUtils";
 import { type ConfigurationTabProps } from "./types";
-import { AGENT_TYPE, type AgentType } from "../../../lib/interfaces";
 
 function ConfigurationTab({
     agent,

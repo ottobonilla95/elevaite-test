@@ -126,7 +126,9 @@ export async function createWorkflow(
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return await response.json();
+    const data: unknown = await response.json();
+    if (isWorkflowResponse(data)) return data;
+    throw new Error("Invalid data type - expected workflow response");
   } catch (error) {
     console.error("Error creating workflow:", error);
     throw error;

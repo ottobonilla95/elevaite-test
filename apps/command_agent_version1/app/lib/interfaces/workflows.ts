@@ -1,4 +1,4 @@
-import { AgentResponse } from "./agents";
+import { type AgentResponse } from "./agents";
 
 export interface WorkflowPosition {
   x: number;
@@ -50,7 +50,7 @@ export interface WorkflowAgent {
   position_x?: number;
   position_y?: number;
   node_id: string;
-  agent_config?: Record<string, any>;
+  agent_config?: Record<string, unknown>;
   id: number;
   added_at: string;
   agent: AgentResponse;
@@ -61,7 +61,7 @@ export interface WorkflowConnection {
   source_agent_id: string;
   target_agent_id: string;
   connection_type: string;
-  conditions?: Record<string, any>;
+  conditions?: Record<string, unknown>;
   priority: number;
   source_handle?: string;
   target_handle?: string;
@@ -76,7 +76,7 @@ export interface WorkflowDeployment {
   environment: string;
   deployment_name: string;
   deployed_by?: string;
-  runtime_config?: Record<string, any>;
+  runtime_config?: Record<string, unknown>;
   id: number;
   deployment_id: string;
   status: "active" | "inactive" | "failed";
@@ -93,7 +93,7 @@ export interface WorkflowResponse {
   name: string;
   description?: string;
   version: string;
-  configuration: Record<string, any>;
+  configuration: Record<string, unknown>;
   created_by?: string;
   is_active: boolean;
   tags?: string[];
@@ -113,21 +113,21 @@ export interface WorkflowCreateRequest {
   description?: string;
   version?: string;
   configuration: {
-    agents: Array<{
+    agents: {
       agent_type: string;
       agent_id?: string;
       position?: { x: number; y: number };
-      config?: Record<string, any>;
-    }>;
-    connections: Array<{
+      config?: Record<string, unknown>;
+    }[];
+    connections: {
       source_agent_id: string;
       target_agent_id: string;
       connection_type?: string;
-      conditions?: Record<string, any>;
+      conditions?: Record<string, unknown>;
       priority?: number;
       source_handle?: string;
       target_handle?: string;
-    }>;
+    }[];
   };
   created_by?: string;
   is_active?: boolean;
@@ -138,15 +138,15 @@ export interface WorkflowDeploymentRequest {
   environment?: string;
   deployment_name: string;
   deployed_by?: string;
-  runtime_config?: Record<string, any>;
+  runtime_config?: Record<string, unknown>;
 }
 
 export interface NewWorkflowExecutionRequest {
   workflow_id?: string;
   deployment_name?: string;
   query: string;
-  chat_history?: Array<{ actor: string; content: string }>;
-  runtime_overrides?: Record<string, any>;
+  chat_history?: { actor: string; content: string }[];
+  runtime_overrides?: Record<string, unknown>;
 }
 
 export interface SavedWorkflow {

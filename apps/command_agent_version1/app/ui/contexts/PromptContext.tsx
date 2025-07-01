@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/require-await -- Placeholder functions*/
 "use client";
-import { ChangeEvent, createContext, SetStateAction, useContext, useEffect, useState } from "react";
-import { deploy, nextPage, previousPage, processCurrentPage, reRun, run, uploadFile } from "../../lib/actionsPrompt";
-import { PageChangeResponseObject, ProcessCurrentPageResponseObject, PromptInputItem, PromptInputTypes, PromptInputVariableEngineerItem, regenerateResponseObject, type UploadFileResponseObject } from "../../lib/interfaces";
+import { type ChangeEvent, createContext, type SetStateAction, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { deploy, nextPage, previousPage, processCurrentPage, reRun, run, uploadFile } from "../../lib/actionsPrompt";
+import { type PageChangeResponseObject, type ProcessCurrentPageResponseObject, type PromptInputItem, PromptInputTypes, PromptInputVariableEngineerItem, type regenerateResponseObject, type UploadFileResponseObject } from "../../lib/interfaces";
 import { usePathname } from "next/navigation";
 
 
@@ -45,14 +46,14 @@ export interface PromptContextStructure {
   processCurrentPage: () => Promise<ProcessCurrentPageResponseObject | null>;
   showFileUploadModal: boolean,
   setShowFileUploadModal: (show: boolean) => void;
-  invoiceImage: String | null;
-  setInvoiceImage: (image: String | null) => void;
+  invoiceImage: string | null;
+  setInvoiceImage: (image: string | null) => void;
   invoiceNumPages: number | null,
   setInvoiceNumPages: (totalPages: number) => void,
   file: File | null;
   setFile: (file: File | null) => void;
-  testingConsoleActiveClass: String,
-  setTestingConsoleActiveClass: (activeClass: String) => void;
+  testingConsoleActiveClass: string,
+  setTestingConsoleActiveClass: (activeClass: string) => void;
   // Add any additional properties or methods needed for the prompt context
   promptInputs: PromptInputItem[];
   setPromptInputs: (promptInputs: PromptInputItem[]) => void;
@@ -69,7 +70,7 @@ export interface PromptContextStructure {
   setOutputVersions: React.Dispatch<React.SetStateAction<regenerateResponseObject[]>>;
   handleReset: () => void,
   turnToJSON: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
-  jsonOutput: String,
+  jsonOutput: string,
   setJsonOutput: (output: string) => void,
   defaultPromptInputs: PromptInputItem[],
   actionRunOnSelectedPages: (pages: number[]) => void,
@@ -148,10 +149,10 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   const [currentPage, setCurrentPage] = useState<number | null>(defaultPageValue);
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [showFileUploadModal, setShowFileUploadModal] = useState<boolean>(false);
-  const [invoiceImage, setInvoiceImage] = useState<String | null>(null);
+  const [invoiceImage, setInvoiceImage] = useState<string | null>(null);
   const [invoiceNumPages, setInvoiceNumPages] = useState<number | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [testingConsoleActiveClass, setTestingConsoleActiveClass] = useState<String>('');
+  const [testingConsoleActiveClass, setTestingConsoleActiveClass] = useState<string>('');
   const [promptInputs, setPromptInputs] = useState<PromptInputItem[]>(defaultPromptInputs);
   const [output, setOutput] = useState<regenerateResponseObject | null>(null);
   const [isRightColExpanded, setIsRightColExpanded] = useState<boolean>(!isEngineerPage);
@@ -174,7 +175,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
       required: true,
       json: true,
       definition: "",
-	  values: []
+      values: []
     }
 
     setPromptInputVariablesEngineer(current => {
@@ -182,8 +183,8 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     });
   }
 
-  function savePromptInputVariableEngineer(id: string, updates: Partial<PromptInputVariableEngineerItem> ) {
-	setPromptInputVariablesEngineer((current) =>
+  function savePromptInputVariableEngineer(id: string, updates: Partial<PromptInputVariableEngineerItem>) {
+    setPromptInputVariablesEngineer((current) =>
       current.map(input => (input.id === id ? { ...input, ...updates } : input))
     );
   }
@@ -237,7 +238,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
       expectedOutput?: string;
     } = {};
 
-    for (var input of promptInputs) {
+    for (const input of promptInputs) {
       switch (input.type) {
         case PromptInputTypes.DocumentHeader:
           const joinedDocumentHeaderValues = Array.isArray(input.values) ? input.values.join(",") : input.values;
@@ -251,10 +252,10 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
           options.userFeedback = options.userFeedback ? options.userFeedback + "\n" + input.prompt : input.prompt;
           break;
         case PromptInputTypes.LineItems:
-          options.lineItems = options.lineItems ? options.lineItems + "\n" + input.prompt : input.prompt;
+          options.lineItems = options.lineItems ? `${options.lineItems}\n${input.prompt}` : input.prompt;
           break;
         case PromptInputTypes.ExpectedOutput:
-          options.expectedOutput = options.expectedOutput ? options.expectedOutput + "\n" + input.prompt : input.prompt;
+          options.expectedOutput = options.expectedOutput ? `${options.expectedOutput}\n${input.prompt}` : input.prompt;
           break;
       }
     }

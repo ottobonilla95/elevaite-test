@@ -1,4 +1,4 @@
-import { Tool } from './interfaces';
+import { type Tool } from './interfaces';
 
 // Simple in-memory cache for tools
 let toolsCache: Tool[] | null = null;

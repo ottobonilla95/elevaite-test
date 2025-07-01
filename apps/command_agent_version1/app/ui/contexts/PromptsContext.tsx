@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { type PromptResponse } from "../../lib/interfaces";
+import { type PromptResponse, type PromptCreate, type PromptUpdate } from "../../lib/interfaces";
 import { fetchAllPrompts, fetchAgentPrompts, fetchPrompt, createPrompt, updatePrompt, deletePrompt } from "../../lib/actions";
 
 // Context interface
@@ -19,10 +19,10 @@ interface PromptsContextType {
   selectPrompt: (promptId: string) => Promise<void>;
   clearSelectedPrompt: () => void;
   refreshPrompts: () => Promise<void>;
-  createNewPrompt: (promptData: any) => Promise<PromptResponse | null>;
-  updateExistingPrompt: (promptId: string, promptData: any) => Promise<PromptResponse | null>;
+  createNewPrompt: (promptData: PromptCreate) => Promise<PromptResponse | null>;
+  updateExistingPrompt: (promptId: string, promptData: PromptUpdate) => Promise<PromptResponse | null>;
   deleteExistingPrompt: (promptId: string) => Promise<boolean>;
-  
+
   // Utility functions
   getPromptById: (promptId: string) => PromptResponse | undefined;
   getPromptsByLabel: (label: string) => PromptResponse[];
@@ -108,7 +108,7 @@ export function PromptsProvider({ children }: PromptsProviderProps): JSX.Element
   }, [loadAllPrompts, loadAgentPrompts]);
 
   // Create a new prompt
-  const createNewPrompt = useCallback(async (promptData: any): Promise<PromptResponse | null> => {
+  const createNewPrompt = useCallback(async (promptData: PromptCreate): Promise<PromptResponse | null> => {
     setIsLoading(true);
     setError(null);
     try {
@@ -127,7 +127,7 @@ export function PromptsProvider({ children }: PromptsProviderProps): JSX.Element
   }, [refreshPrompts]);
 
   // Update an existing prompt
-  const updateExistingPrompt = useCallback(async (promptId: string, promptData: any): Promise<PromptResponse | null> => {
+  const updateExistingPrompt = useCallback(async (promptId: string, promptData: PromptUpdate): Promise<PromptResponse | null> => {
     setIsLoading(true);
     setError(null);
     try {
@@ -176,13 +176,13 @@ export function PromptsProvider({ children }: PromptsProviderProps): JSX.Element
 
   // Utility: Get prompt by ID from current state
   const getPromptById = useCallback((promptId: string): PromptResponse | undefined => {
-    return prompts.find(prompt => prompt.pid === promptId) || 
-           agentPrompts.find(prompt => prompt.pid === promptId);
+    return prompts.find(prompt => prompt.pid === promptId) ??
+      agentPrompts.find(prompt => prompt.pid === promptId);
   }, [prompts, agentPrompts]);
 
   // Utility: Get prompts by label
   const getPromptsByLabel = useCallback((label: string): PromptResponse[] => {
-    return prompts.filter(prompt => 
+    return prompts.filter(prompt =>
       prompt.prompt_label.toLowerCase().includes(label.toLowerCase())
     );
   }, [prompts]);
@@ -190,11 +190,11 @@ export function PromptsProvider({ children }: PromptsProviderProps): JSX.Element
   // Utility: Search prompts by query
   const searchPrompts = useCallback((query: string): PromptResponse[] => {
     const lowercaseQuery = query.toLowerCase();
-    return prompts.filter(prompt => 
+    return prompts.filter(prompt =>
       prompt.prompt_label.toLowerCase().includes(lowercaseQuery) ||
       prompt.prompt.toLowerCase().includes(lowercaseQuery) ||
       prompt.unique_label.toLowerCase().includes(lowercaseQuery) ||
-      (prompt.tags && prompt.tags.some(tag => tag.toLowerCase().includes(lowercaseQuery)))
+      (prompt.tags?.some(tag => tag.toLowerCase().includes(lowercaseQuery)))
     );
   }, [prompts]);
 

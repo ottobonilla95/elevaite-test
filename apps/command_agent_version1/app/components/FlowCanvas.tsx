@@ -8,21 +8,33 @@ import ReactFlow, {
     MiniMap,
     addEdge,
     MarkerType,
-    Node,
-    Edge,
-    Connection,
-    OnConnectStartParams,
-    NodeChange,
-    EdgeChange,
+    type Node as ReactFlowNode,
+    type Edge as ReactFlowEdge,
+    type Connection,
+    type OnConnectStartParams,
+    type NodeChange,
+    type EdgeChange,
     ConnectionLineType,
     BackgroundVariant,
-    ReactFlowInstance
-} from "react-flow-renderer";
+    type ReactFlowInstance
+} from "reactflow";
+import { type Edge, type Node } from "../lib/interfaces";
 import { X } from "lucide-react";
-import AgentNode from "./AgentNode";
+import AgentNode from "./agents/AgentNode";
 
 // Custom edge component with improved UI and delete option
-const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, style = {}, markerEnd, source, target, sourcePosition, targetPosition }) => {
+interface CustomEdgeProps {
+    id: string;
+    sourceX: number;
+    sourceY: number;
+    targetX: number;
+    targetY: number;
+    data?: { actionType?: string };
+    style?: React.CSSProperties;
+    markerEnd?: string;
+}
+
+function CustomEdge({ id, sourceX, sourceY, targetX, targetY, data, style = {}, markerEnd }: CustomEdgeProps): JSX.Element {
     // Create a curved path between source and target
     const edgePath = `M ${sourceX} ${sourceY} C ${sourceX} ${sourceY + 50} ${targetX} ${targetY - 50} ${targetX} ${targetY}`;
 
@@ -31,7 +43,7 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, style = {}, 
     const centerY = (sourceY + targetY) / 2;
 
     // Default to "Action" if not specified
-    const actionType = data?.actionType || "Action";
+    const actionType = data?.actionType ?? "Action";
 
     // Set color based on action type
     let bgColor = "#4CAF50"; // Default green for "Action"
@@ -44,7 +56,7 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, style = {}, 
     }
 
     // Function to remove label (will be passed to edge click handler)
-    const removeLabel = (event) => {
+    const removeLabel = (event: React.MouseEvent) => {
         event.stopPropagation();
         const customEvent = new CustomEvent('remove-edge-label', {
             detail: { id }
@@ -91,6 +103,7 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, data, style = {}, 
                         {actionType === "Action" ? "+ Action" : actionType}
                     </span>
                     <button
+                        type="button"
                         onClick={removeLabel}
                         style={{
                             background: 'rgba(255,255,255,0.2)',
@@ -134,7 +147,7 @@ interface FlowCanvasProps {
     onInit?: (instance: ReactFlowInstance) => void;
 }
 
-const FlowCanvas: React.FC<FlowCanvasProps> = ({
+function FlowCanvas({
     nodes,
     edges,
     setNodes,
@@ -143,7 +156,7 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
     onDragOver,
     onNodeSelect,
     onInit
-}) => {
+}: FlowCanvasProps): JSX.Element {
     // State for tracking active connections and selections
     const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
 
@@ -156,17 +169,17 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
 
     // Add event listener for edge label removal
     useEffect(() => {
-        const handleRemoveEdgeLabel = (event) => {
+        const handleRemoveEdgeLabel = (event: CustomEvent<{ id: string }>) => {
             const { id } = event.detail;
 
             // Remove the action type data but keep the edge
             setEdges(prevEdges =>
                 prevEdges.map(edge => {
                     if (edge.id === id) {
-                        // Remove the action type by setting it to null
+                        // Remove the action type by setting it to undefined
                         return {
                             ...edge,
-                            data: null
+                            data: undefined
                         };
                     }
                     return edge;
@@ -198,7 +211,7 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
     };
 
     // Helper function for snap-to-grid
-    const snapToGrid = (position, gridSize = 15) => {
+    const snapToGrid = (position: { x: number; y: number }, gridSize = 15) => {
         return {
             x: Math.round(position.x / gridSize) * gridSize,
             y: Math.round(position.y / gridSize) * gridSize,
@@ -281,7 +294,7 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
 
     // Handle clicking on a node
     const onNodeClick = useCallback(
-        (event, node) => {
+        (event: React.MouseEvent, node: Node) => {
             event.stopPropagation(); // Prevent event bubbling
             if (onNodeSelect) {
                 onNodeSelect(node);
@@ -292,16 +305,16 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
 
     // Handle clicking on an edge to change action type
     const onEdgeClick = useCallback(
-        (event, edge) => {
+        (_event: React.MouseEvent, edge: Edge) => {
             // If the edge doesn't have a label, don't do anything
             if (!edge.data) return;
 
             // Cycle through action types
             const actionTypes = ["Action", "Conditional", "Notification", "Delay"];
-            const currentType = edge.data?.actionType || "Action";
-            const currentIndex = actionTypes.indexOf(currentType);
+            const currentType = edge.data?.actionType ?? "Action";
+            const currentIndex = actionTypes.indexOf(currentType as string);
             const nextIndex = (currentIndex + 1) % actionTypes.length;
-            const nextType = actionTypes[nextIndex];
+            const nextType = actionTypes[nextIndex] as string;
 
             // Update the edge data
             setEdges(eds =>
@@ -311,7 +324,7 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
                             ...e,
                             data: {
                                 ...e.data,
-                                actionType: nextType
+                                actionType: nextType as "Action" | "Conditional" | "Notification" | "Delay"
                             }
                         };
                     }
@@ -323,7 +336,7 @@ const FlowCanvas: React.FC<FlowCanvasProps> = ({
     );
 
     // Handle flow initialization
-    const onLoad = useCallback((instance) => {
+    const onLoad = useCallback((instance: ReactFlowInstance) => {
         setReactFlowInstance(instance);
     }, []);
 

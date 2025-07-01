@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 // eslint-disable-next-line import/named -- Seems to be a problem with eslint
 import { v4 as uuidv4 } from "uuid";
-import { ReactFlowProvider, type ReactFlowInstance } from "react-flow-renderer";
+import { ReactFlowProvider, type ReactFlowInstance } from "reactflow";
 import { type AgentConfigData, type AgentNodeData, type AgentResponse, type AgentCreate, type AgentUpdate, type AgentFunction, type ChatCompletionToolParam, type Edge, type Node, SavedWorkflow, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowResponse } from "../lib/interfaces";
 import { createWorkflow, deployWorkflowModern, createAgent, updateAgent } from "../lib/actions";
 import { isAgentResponse } from "../lib/discriminators";
@@ -61,8 +61,8 @@ function convertConfigToAgentCreate(
 
   return {
     name: agentName,
-    agent_type: configData.agentType || "router",
-    description: configData.description || "",
+    agent_type: configData.agentType ?? "router",
+    description: configData.description ?? "",
     parent_agent_id: null,
     system_prompt_id: selectedPromptId,
     persona: null,

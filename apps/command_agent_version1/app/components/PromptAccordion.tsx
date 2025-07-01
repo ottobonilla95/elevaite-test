@@ -8,7 +8,7 @@ interface PromptAccordionProps {
 }
 
 const PromptAccordion = ({ title, text, active }: PromptAccordionProps): JSX.Element => {
-	const [isOpen, setIsOpen] = React.useState(!!active);
+	const [isOpen, setIsOpen] = React.useState(Boolean(active));
 	return (
 		<div className="accordion rounded-xl bg-white mb-4">
 			<div className="accordion-title flex items-center justify-between">

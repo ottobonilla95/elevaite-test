@@ -1,9 +1,9 @@
-import { CommonSelect, SimpleInput, SimpleTextarea } from "@repo/ui/components";
-import { PromptInputItem, PromptInputTypes } from "../lib/interfaces";
-import "./PromptInput.scss";
 import { useState } from "react";
+import { CommonSelect, SimpleInput, SimpleTextarea } from "@repo/ui/components";
+import { type PromptInputItem, PromptInputTypes } from "../lib/interfaces";
 import { usePrompt } from "../ui/contexts/PromptContext";
 import PromptMultiTagInputs from "./PromptMultiTagInputs";
+import "./PromptInput.scss";
 
 
 const promptInputTypeLabels: Record<PromptInputTypes, string> = {

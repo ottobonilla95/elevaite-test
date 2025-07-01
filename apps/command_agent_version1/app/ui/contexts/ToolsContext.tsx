@@ -1,8 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { fetchAvailableTools, fetchToolCategories } from '../../lib/toolActions';
-import { Tool, ToolCategory } from '../../lib/interfaces';
+import { type Tool, type ToolCategory } from '../../lib/interfaces';
 
 interface ToolsContextType {
   tools: Tool[];

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { X } from "lucide-react";
-import { EdgeProps, getMarkerEnd } from "react-flow-renderer";
+import { type EdgeProps, getMarkerEnd } from "reactflow";
 import "./CustomEdge.scss";
 
 interface CustomEdgeData {
@@ -33,7 +33,7 @@ function CustomEdge({
     const centerY = (sourceY + targetY) / 2;
 
     // Basic edge without a label - when no data or actionType is provided
-    if (!data || !data.actionType) {
+    if (!data?.actionType) {
         return (
             <path
                 id={id}

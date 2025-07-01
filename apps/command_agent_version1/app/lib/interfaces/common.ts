@@ -3,7 +3,7 @@ export interface ChatCompletionToolParam {
   function: {
     name: string;
     description?: string;
-    parameters?: Record<string, any>;
+    parameters?: Record<string, unknown>;
   };
 }
 

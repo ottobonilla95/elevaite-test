@@ -7,7 +7,7 @@ interface PromptMultiTagInputsProps {
   disabled?: boolean;
 }
 
-const PromptMultiTagInputs = ({placeholder, values, onChange, disabled}: PromptMultiTagInputsProps) => {
+const PromptMultiTagInputs = ({ placeholder, values, onChange, disabled }: PromptMultiTagInputsProps) => {
   const [inputs, setInputs] = useState<string[]>(values || []);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -50,36 +50,36 @@ const PromptMultiTagInputs = ({placeholder, values, onChange, disabled}: PromptM
   };
 
   return (
-	<div className="prompt-multi-tag-inputs p-4">
-		<div className="inner flex flex-wrap items-start gap-2 border rounded-lg p-4 min-h-[40px] bg-white overflow-auto">
-			{inputs.map((item, index) => (
-				<span
-				key={item}
-				className="tag flex items-center bg-gray-200 rounded px-2 py-1 text-sm"
-				>
-					{item}
-					<button
-						type="button"
-						className="ml-1 text-gray-500 hover:text-red-500"
-						onClick={() => removeInput(index)}
-						aria-label="Remove"
-					>
-						&times;
-					</button>
-				</span>
-			))}
-			<input
-				ref={inputRef}
-				className="flex-1 min-w-[80px] border-none outline-none bg-transparent text-sm"
-				type="text"
-				value={inputValue}
-				onChange={handleInputChange}
-				onKeyDown={handleInputKeyDown}
-				placeholder={inputs.length === 0 ? placeholder : ""}
-				disabled={disabled}
-			/>
-		</div>
-	</div>
+    <div className="prompt-multi-tag-inputs p-4">
+      <div className="inner flex flex-wrap items-start gap-2 border rounded-lg p-4 min-h-[40px] bg-white overflow-auto">
+        {inputs.map((item, index) => (
+          <span
+            key={item}
+            className="tag flex items-center bg-gray-200 rounded px-2 py-1 text-sm"
+          >
+            {item}
+            <button
+              type="button"
+              className="ml-1 text-gray-500 hover:text-red-500"
+              onClick={() => removeInput(index)}
+              aria-label="Remove"
+            >
+              &times;
+            </button>
+          </span>
+        ))}
+        <input
+          ref={inputRef}
+          className="flex-1 min-w-[80px] border-none outline-none bg-transparent text-sm"
+          type="text"
+          value={inputValue}
+          onChange={handleInputChange}
+          onKeyDown={handleInputKeyDown}
+          placeholder={inputs.length === 0 ? placeholder : ""}
+          disabled={disabled}
+        />
+      </div>
+    </div>
   );
 }
 
