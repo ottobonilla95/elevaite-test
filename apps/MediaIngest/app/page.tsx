@@ -671,29 +671,37 @@ export default function Home(): JSX.Element {
                       containerClassName="config-grid-container"
                       options={[
                         {
-                          id: "campaign_format",
+                          id: "source_s3_bucket",
                           children: (
-                            <ConfigField label="Campaign Format">
-                              <CustomDropdown
-                                options={[
-                                  { value: "video", label: "Video Campaign" },
-                                  { value: "image", label: "Image Campaign" },
-                                  {
-                                    value: "mixed",
-                                    label: "Mixed Media Campaign",
-                                  },
-                                  { value: "display", label: "Display Ads" },
-                                  {
-                                    value: "social",
-                                    label: "Social Media Campaign",
-                                  },
-                                ]}
-                                defaultValue={campaignFormat}
-                                onChange={(value) => {
-                                  setCampaignFormat(value);
+                            <ConfigField label="Campaign S3 Bucket">
+                              <CustomInput
+                                type="text"
+                                placeholder="e.g., creative-assets-source"
+                                defaultValue={sourceS3Bucket}
+                                onChange={(e) => {
+                                  setSourceS3Bucket(e.target.value);
                                   console.log(
-                                    "Selected campaign format:",
-                                    value
+                                    "Campaign S3 bucket:",
+                                    e.target.value
+                                  );
+                                }}
+                              />
+                            </ConfigField>
+                          ),
+                        },
+                        {
+                          id: "destination_s3_bucket",
+                          children: (
+                            <ConfigField label="Creative S3 Bucket">
+                              <CustomInput
+                                type="text"
+                                placeholder="e.g., processed-creative-insights"
+                                defaultValue={destinationS3Bucket}
+                                onChange={(e) => {
+                                  setDestinationS3Bucket(e.target.value);
+                                  console.log(
+                                    "Creative Insights S3 bucket:",
+                                    e.target.value
                                   );
                                 }}
                               />
@@ -703,7 +711,7 @@ export default function Home(): JSX.Element {
                         {
                           id: "location",
                           children: (
-                            <ConfigField label="Campaign Location">
+                            <ConfigField label="S3 Location">
                               <CustomDropdown
                                 options={[
                                   { value: "us-east", label: "US East Coast" },
@@ -729,39 +737,33 @@ export default function Home(): JSX.Element {
                           ),
                         },
                         {
-                          id: "source_s3_bucket",
+                          id: "checkpoint_file_folder",
                           children: (
-                            <ConfigField label="Source S3 Bucket">
+                            <ConfigField label="Checkpoint File Folder">
                               <CustomInput
                                 type="text"
-                                placeholder="e.g., creative-assets-source"
-                                defaultValue={sourceS3Bucket}
-                                onChange={(e) => {
-                                  setSourceS3Bucket(e.target.value);
-                                  console.log(
-                                    "Source S3 bucket:",
-                                    e.target.value
-                                  );
-                                }}
+                                placeholder="/data/checkpoints"
+                                defaultValue="/data/checkpoints"
                               />
                             </ConfigField>
                           ),
                         },
                         {
-                          id: "destination_s3_bucket",
+                          id: "checkpoint_frequency",
                           children: (
-                            <ConfigField label="Destination S3 Bucket">
-                              <CustomInput
-                                type="text"
-                                placeholder="e.g., processed-creative-insights"
-                                defaultValue={destinationS3Bucket}
-                                onChange={(e) => {
-                                  setDestinationS3Bucket(e.target.value);
-                                  console.log(
-                                    "Destination S3 bucket:",
-                                    e.target.value
-                                  );
-                                }}
+                            <ConfigField label="Checkpoint Frequency">
+                              <CustomDropdown
+                                options={[
+                                  { value: "5%", label: "5% of campaigns" },
+                                  { value: "10%", label: "10% of campaigns" },
+                                  { value: "15%", label: "15% of campaigns" },
+                                  { value: "20%", label: "20% of campaigns" },
+                                  { value: "25%", label: "25% of campaigns" },
+                                ]}
+                                defaultValue="10%"
+                                onChange={(value) =>
+                                  console.log("Checkpoint frequency:", value)
+                                }
                               />
                             </ConfigField>
                           ),
@@ -796,38 +798,6 @@ export default function Home(): JSX.Element {
                                 type="text"
                                 placeholder="/data/creatives"
                                 defaultValue="/data/creatives"
-                              />
-                            </ConfigField>
-                          ),
-                        },
-                        {
-                          id: "checkpoint_file_folder",
-                          children: (
-                            <ConfigField label="Checkpoint File Folder">
-                              <CustomInput
-                                type="text"
-                                placeholder="/data/checkpoints"
-                                defaultValue="/data/checkpoints"
-                              />
-                            </ConfigField>
-                          ),
-                        },
-                        {
-                          id: "checkpoint_frequency",
-                          children: (
-                            <ConfigField label="Checkpoint Frequency">
-                              <CustomDropdown
-                                options={[
-                                  { value: "5%", label: "5% of campaigns" },
-                                  { value: "10%", label: "10% of campaigns" },
-                                  { value: "15%", label: "15% of campaigns" },
-                                  { value: "20%", label: "20% of campaigns" },
-                                  { value: "25%", label: "25% of campaigns" },
-                                ]}
-                                defaultValue="10%"
-                                onChange={(value) =>
-                                  console.log("Checkpoint frequency:", value)
-                                }
                               />
                             </ConfigField>
                           ),
@@ -1011,7 +981,7 @@ export default function Home(): JSX.Element {
                         {
                           id: "video_model_selection",
                           children: (
-                            <ConfigField label="Video Model Selection">
+                            <ConfigField label="Models">
                               <CustomDropdown
                                 options={[
                                   {
@@ -1035,7 +1005,7 @@ export default function Home(): JSX.Element {
                         {
                           id: "video_max_tokens",
                           children: (
-                            <ConfigField label="Video Max Output Tokens Setting">
+                            <ConfigField label="Max Output Tokens">
                               <CustomNumberInput
                                 defaultValue={600}
                                 min={100}
@@ -1051,7 +1021,7 @@ export default function Home(): JSX.Element {
                         {
                           id: "video_output_structure",
                           children: (
-                            <ConfigField label="Video Output Structure">
+                            <ConfigField label="Response Type">
                               <CustomDropdown
                                 options={[
                                   { value: "json", label: "JSON" },
@@ -1070,7 +1040,7 @@ export default function Home(): JSX.Element {
                         {
                           id: "video_temperature",
                           children: (
-                            <ConfigField label="Video Temperature (Creativity)">
+                            <ConfigField label="Temperature">
                               <CustomNumberInput
                                 defaultValue={0.3}
                                 min={0.0}
