@@ -6,6 +6,7 @@ import { ElevaiteIcons } from "../../../packages/ui/src/components/icons/elevait
 import { AdaptiveConfigGrid } from "./components/AdaptiveConfigGrid";
 import { ConfigField } from "./components/ConfigField";
 import { CustomInput } from "./components/CustomInput";
+import { CustomSlider } from "./components/CustomSlider";
 import "./page.scss";
 import "./components/CustomNumberInput.scss";
 import "./components/CustomDropdown.scss";
@@ -33,22 +34,7 @@ export default function Home(): JSX.Element {
     "processed-creative-insights"
   );
 
-  const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([
-    {
-      id: "1",
-      name: "document1.pdf",
-      size: "5 MB",
-      progress: 60,
-      completed: false,
-    },
-    {
-      id: "2",
-      name: "report.docx",
-      size: "2.3 MB",
-      progress: 100,
-      completed: true,
-    },
-  ]);
+  const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   // Keeping router for future use
   const router = useRouter(); // eslint-disable-line no-unused-vars
@@ -407,7 +393,13 @@ export default function Home(): JSX.Element {
       case "loading":
         return (
           <div className="step-icon">
-            <ElevaiteIcons.SVGSpinner size={26} />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
+            </svg>
           </div>
         );
       case "datainput":
@@ -678,12 +670,9 @@ export default function Home(): JSX.Element {
                                 type="text"
                                 placeholder="e.g., creative-assets-source"
                                 defaultValue={sourceS3Bucket}
-                                onChange={(e) => {
-                                  setSourceS3Bucket(e.target.value);
-                                  console.log(
-                                    "Campaign S3 bucket:",
-                                    e.target.value
-                                  );
+                                onChange={(value) => {
+                                  setSourceS3Bucket(value);
+                                  console.log("Campaign S3 bucket:", value);
                                 }}
                               />
                             </ConfigField>
@@ -697,11 +686,11 @@ export default function Home(): JSX.Element {
                                 type="text"
                                 placeholder="e.g., processed-creative-insights"
                                 defaultValue={destinationS3Bucket}
-                                onChange={(e) => {
-                                  setDestinationS3Bucket(e.target.value);
+                                onChange={(value) => {
+                                  setDestinationS3Bucket(value);
                                   console.log(
                                     "Creative Insights S3 bucket:",
-                                    e.target.value
+                                    value
                                   );
                                 }}
                               />
@@ -1040,8 +1029,11 @@ export default function Home(): JSX.Element {
                         {
                           id: "video_temperature",
                           children: (
-                            <ConfigField label="Temperature">
-                              <CustomNumberInput
+                            <ConfigField
+                              label="Temperature"
+                              tooltip="0 is least creative, 1 is most creative"
+                            >
+                              <CustomSlider
                                 defaultValue={0.3}
                                 min={0.0}
                                 max={1.0}
