@@ -1464,7 +1464,6 @@ async def validate_session(
         payload = verify_token(token, "access")
         user_id = int(payload["sub"])
 
-        print("HELLO! DEBUG")
         print(f"Payload - {payload}")
 
         # Get user from database
@@ -1554,7 +1553,76 @@ async def get_users(session: AsyncSession = Depends(get_async_session)):
             "is_superuser": user.is_superuser,
             "application_admin": user.application_admin,
             "created_at": user.created_at.isoformat() if user.created_at else None,
+            "failed_login_attempts": user.failed_login_attempts,
+            "locked_until": (
+                user.locked_until.isoformat() if user.locked_until else None
+            ),
         }
         user_list.append(user_dict)
 
     return user_list
+
+
+@router.post("/admin/unlock-account")
+async def admin_unlock_account(
+    request: Request,
+    email: str,
+    current_user: User = Depends(get_current_superuser),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Unlock a user account and reset failed login attempts (admin only)."""
+    logger.info(
+        f"Admin user {current_user.email} (ID: {current_user.id}) is unlocking account for {email}"
+    )
+
+    # Find user by email
+    result = await session.execute(async_select(User).where(User.email == email))
+    user = result.scalars().first()
+
+    if not user:
+        logger.warning(
+            f"Admin user {current_user.email} attempted to unlock non-existent user: {email}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    # Reset failed login attempts and unlock account
+    now = datetime.now(timezone.utc)
+    stmt = (
+        update(User)
+        .where(User.id == user.id)
+        .values(
+            failed_login_attempts=0,
+            locked_until=None,
+            updated_at=now,
+        )
+    )
+    await session.execute(stmt)
+    await session.commit()
+
+    # Log activity
+    details = {
+        "admin_user_id": current_user.id,
+        "admin_email": current_user.email,
+        "unlocked_user_email": email,
+        "previous_failed_attempts": user.failed_login_attempts,
+        "was_locked_until": (
+            user.locked_until.isoformat() if user.locked_until else None
+        ),
+    }
+
+    await log_user_activity(
+        session,
+        current_user.id,
+        "account_unlocked_by_admin",
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        details=details,
+    )
+
+    logger.info(f"Account {email} successfully unlocked by admin {current_user.email}")
+    return {
+        "message": f"Account {email} has been unlocked and failed login attempts reset"
+    }
