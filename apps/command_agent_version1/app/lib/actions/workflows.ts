@@ -268,16 +268,16 @@ export async function getActiveDeployments(): Promise<WorkflowDeployment[]> {
 
 export async function getWorkflowDeploymentStatus(
   workflowId: string
-): Promise<WorkflowDeployment | null> {
+): Promise<WorkflowDeployment | undefined> {
   try {
     const activeDeployments = await getActiveDeployments();
     const deployment = activeDeployments.find(
       (d) => d.workflow_id === workflowId && d.status === "active"
     );
-    return deployment || null;
+    return deployment ?? undefined;
   } catch (error) {
     console.error("Error checking workflow deployment status:", error);
-    return null;
+    return undefined;
   }
 }
 
