@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import TabHeader, { type Tab } from "../TabHeader";
-import { type AgentNodeData, type AgentConfigData, type AgentType, type ChatCompletionToolParam } from "../../lib/interfaces";
+import { type AgentNodeData, type AgentConfigData, type AgentType, type ChatCompletionToolParam, type PromptResponse } from "../../lib/interfaces";
 import { fetchToolSchemasAsArray } from "../../lib/toolActions";
 import { usePrompts } from "../../ui/contexts/PromptsContext";
 import { getAgentIcon } from "./iconUtils";
 import { ConfigurationTab, ToolsTab, getAgentTypeDisplay, getModelProviders, getModels } from "./config";
+import PromptDetailView from "./config/PromptDetailView";
 import "./ConfigPanel.scss";
 
 
@@ -51,6 +52,10 @@ function ConfigPanel({
     const [model, setModel] = useState("Llama-3.1-8B-Instruct");
     const [outputFormat, setOutputFormat] = useState("JSON");
     const [activeTab, setActiveTab] = useState("config");
+
+    // State for sidebar view mode
+    const [sidebarView, setSidebarView] = useState<"config" | "prompt">("config");
+    const [selectedPromptForView, setSelectedPromptForView] = useState<PromptResponse | null>(null);
 
     // State for selected tools (now as ChatCompletionToolParam array)
     const [selectedFunctions, setSelectedFunctions] = useState<ChatCompletionToolParam[]>(currentFunctions);
@@ -234,6 +239,18 @@ function ConfigPanel({
         }
     };
 
+    // Handle prompt click to view details
+    const handlePromptClick = (prompt: PromptResponse): void => {
+        setSelectedPromptForView(prompt);
+        setSidebarView("prompt");
+    };
+
+    // Handle back to config view
+    const handleBackToConfig = (): void => {
+        setSidebarView("config");
+        setSelectedPromptForView(null);
+    };
+
     return (
         <div className="config-panel">
             {/* Header with close button and editable name */}
@@ -309,44 +326,58 @@ function ConfigPanel({
             </div>
             <div className="flex flex-col justify-between flex-1">
                 <div>
-                    {/* Navigation Tabs */}
-                    <TabHeader
-                        tabs={sidebarTabs}
-                        activeTab={activeTab}
-                        onTabChange={setActiveTab}
-                        innerClassName="sidebar-header-tabs-inner p-1 rounded-lg flex items-center w-full"
-                    />
+                    {sidebarView === "config" ? (
+                        <>
+                            {/* Navigation Tabs */}
+                            <TabHeader
+                                tabs={sidebarTabs}
+                                activeTab={activeTab}
+                                onTabChange={setActiveTab}
+                                innerClassName="sidebar-header-tabs-inner p-1 rounded-lg flex items-center w-full"
+                            />
 
-                    {/* Tab Content */}
-                    {activeTab === "config" && (
-                        <ConfigurationTab
-                            agent={agent}
-                            agentType={editedAgentType}
-                            deploymentType={deploymentType}
-                            setDeploymentType={setDeploymentType}
-                            modelProvider={modelProvider}
-                            setModelProvider={setModelProvider}
-                            model={model}
-                            setModel={setModel}
-                            outputFormat={outputFormat}
-                            setOutputFormat={setOutputFormat}
-                            disabledFields={disabledFields}
-                            setAgentType={setEditedAgentType}
-                            tags={editedTags}
-                            setTags={setEditedTags}
-                        />
-                    )}
+                            {/* Tab Content */}
+                            {activeTab === "config" && (
+                                <ConfigurationTab
+                                    agent={agent}
+                                    agentType={editedAgentType}
+                                    deploymentType={deploymentType}
+                                    setDeploymentType={setDeploymentType}
+                                    modelProvider={modelProvider}
+                                    setModelProvider={setModelProvider}
+                                    model={model}
+                                    setModel={setModel}
+                                    outputFormat={outputFormat}
+                                    setOutputFormat={setOutputFormat}
+                                    disabledFields={disabledFields}
+                                    setAgentType={setEditedAgentType}
+                                    tags={editedTags}
+                                    setTags={setEditedTags}
+                                />
+                            )}
 
-                    {activeTab === "tools" && (
-                        <ToolsTab
-                            selectedFunctions={selectedFunctions}
-                            handleToolSelect={handleToolSelect}
-                            handlePromptSelect={handlePromptSelect}
-                            selectedPromptId={selectedPromptId}
-                            disabledFields={disabledFields}
-                            onEditPrompt={onEditPrompt}
-                            agent={agent}
-                        />
+                            {activeTab === "tools" && (
+                                <ToolsTab
+                                    selectedFunctions={selectedFunctions}
+                                    handleToolSelect={handleToolSelect}
+                                    handlePromptSelect={handlePromptSelect}
+                                    selectedPromptId={selectedPromptId}
+                                    disabledFields={disabledFields}
+                                    onEditPrompt={onEditPrompt}
+                                    agent={agent}
+                                    onPromptClick={handlePromptClick}
+                                />
+                            )}
+                        </>
+                    ) : (
+                        /* Prompt Detail View */
+                        selectedPromptForView && (
+                            <PromptDetailView
+                                prompt={selectedPromptForView}
+                                onBack={handleBackToConfig}
+                                disabledFields={disabledFields}
+                            />
+                        )
                     )}
                 </div>
 

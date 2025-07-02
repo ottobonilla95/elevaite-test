@@ -5,6 +5,7 @@ import {
   isWorkflowExecutionResponse,
   isWorkflowResponse,
   isWorkflowResponseArray,
+  isWorkflowDeployment,
 } from "../discriminators/workflows";
 import { isDeploymentOperationResponse } from "../discriminators/common";
 import type {
@@ -135,10 +136,36 @@ export async function createWorkflow(
   }
 }
 
+export async function updateWorkflow(
+  workflowId: string,
+  workflowRequest: WorkflowCreateRequest
+): Promise<WorkflowResponse> {
+  try {
+    const response = await fetch(`${BACKEND_URL}api/workflows/${workflowId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(workflowRequest),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data: unknown = await response.json();
+    if (isWorkflowResponse(data)) return data;
+    throw new Error("Invalid data type - expected workflow response");
+  } catch (error) {
+    console.error("Error updating workflow:", error);
+    throw error;
+  }
+}
+
 export async function deployWorkflowModern(
   workflowId: string,
   deploymentRequest: WorkflowDeploymentRequest
-): Promise<WorkflowDeployResponse> {
+): Promise<WorkflowDeployment> {
   try {
     const response = await fetch(
       `${BACKEND_URL}api/workflows/${workflowId}/deploy`,
@@ -156,8 +183,9 @@ export async function deployWorkflowModern(
     }
 
     const data: unknown = await response.json();
-    if (isWorkflowDeployResponse(data)) return data;
-    throw new Error("Invalid data type - expected workflow deploy response");
+    // The backend returns a WorkflowDeployment object, not WorkflowDeployResponse
+    if (isWorkflowDeployment(data)) return data;
+    throw new Error("Invalid data type - expected workflow deployment response");
   } catch (error) {
     console.error("Error deploying workflow:", error);
     throw error;

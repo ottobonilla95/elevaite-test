@@ -338,7 +338,9 @@ def execute_workflow(execution_request: schemas.WorkflowExecutionRequest, db: Se
 
     elif execution_request.workflow_id:
         # Find by workflow ID - get the latest active deployment
-        deployment = crud.get_workflow_deployment_by_name(db, f"workflow_{execution_request.workflow_id}", "production")
+        deployment = crud.workflows.get_workflow_deployment_by_name(
+            db, f"workflow_{execution_request.workflow_id}", "production"
+        )
         if not deployment or deployment.status != "active":
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active deployment found for this workflow")
 

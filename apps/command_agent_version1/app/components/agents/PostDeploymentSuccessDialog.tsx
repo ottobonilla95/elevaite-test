@@ -33,7 +33,7 @@ function PostDeploymentSuccessDialog({
         try {
             await navigator.clipboard.writeText(inferenceUrl);
             setCopiedUrl(true);
-            setTimeout(() => setCopiedUrl(false), 2000);
+            setTimeout(() => { setCopiedUrl(false); }, 2000);
         } catch (error) {
             console.error("Failed to copy URL:", error);
         }
@@ -77,15 +77,13 @@ function PostDeploymentSuccessDialog({
                             </div>
                         </div>
 
-                        {deployment.deployed_by && (
-                            <div className="detail-item">
-                                <User size={16} className="detail-icon" />
-                                <div className="detail-content">
-                                    <span className="detail-label">Deployed By</span>
-                                    <span className="detail-value">{deployment.deployed_by}</span>
-                                </div>
+                        {deployment.deployed_by ? <div className="detail-item">
+                            <User size={16} className="detail-icon" />
+                            <div className="detail-content">
+                                <span className="detail-label">Deployed By</span>
+                                <span className="detail-value">{deployment.deployed_by}</span>
                             </div>
-                        )}
+                        </div> : null}
 
                         <div className="detail-item">
                             <ExternalLink size={16} className="detail-icon" />
@@ -103,11 +101,11 @@ function PostDeploymentSuccessDialog({
                     <div className="workflow-summary">
                         <div className="summary-item">
                             <span className="summary-label">Agents:</span>
-                            <span className="summary-value">{workflow.workflow_agents?.length || 0}</span>
+                            <span className="summary-value">{workflow.workflow_agents.length || 0}</span>
                         </div>
                         <div className="summary-item">
                             <span className="summary-label">Connections:</span>
-                            <span className="summary-value">{workflow.workflow_connections?.length || 0}</span>
+                            <span className="summary-value">{workflow.workflow_connections.length || 0}</span>
                         </div>
                         <div className="summary-item">
                             <span className="summary-label">Version:</span>
@@ -115,12 +113,10 @@ function PostDeploymentSuccessDialog({
                         </div>
                     </div>
 
-                    {workflow.description && (
-                        <div className="workflow-description">
-                            <span className="description-label">Description:</span>
-                            <p className="description-text">{workflow.description}</p>
-                        </div>
-                    )}
+                    {workflow.description ? <div className="workflow-description">
+                        <span className="description-label">Description:</span>
+                        <p className="description-text">{workflow.description}</p>
+                    </div> : null}
                 </div>
 
                 {/* Tools Information */}
@@ -134,9 +130,7 @@ function PostDeploymentSuccessDialog({
                             {tools.slice(0, 6).map((tool, index) => (
                                 <div key={index} className="tool-item">
                                     <span className="tool-name">{tool.function.name}</span>
-                                    {tool.function.description && (
-                                        <span className="tool-description">{tool.function.description}</span>
-                                    )}
+                                    {tool.function.description ? <span className="tool-description">{tool.function.description}</span> : null}
                                 </div>
                             ))}
                             {tools.length > 6 && (

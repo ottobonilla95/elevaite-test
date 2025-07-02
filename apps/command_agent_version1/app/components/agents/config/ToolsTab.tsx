@@ -15,7 +15,8 @@ function ToolsTab({
     handleToolSelect,
     handlePromptSelect,
     selectedPromptId,
-    agent
+    agent,
+    onPromptClick
 }: ToolsTabProps): JSX.Element {
     const [toolsOpen, setToolsOpen] = useState(true);
     const [promptsOpen, setPromptsOpen] = useState(true);
@@ -202,11 +203,19 @@ function ToolsTab({
                 {promptsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
             {promptsOpen ? <div className="flex flex-col gap-3 p-2">
-                {selectedPrompt ? <div className="flex flex-col border rounded-[10px] px-4 py-3">
-                    <div className="flex justify-between border-l-2 border-orange-500 pl-3">
-                        <span className="text-sm font-medium">{selectedPrompt.prompt_label}</span>
-                    </div>
-                </div> : "No prompt"}
+                {selectedPrompt ? (
+                    <button
+                        onClick={() => onPromptClick?.(selectedPrompt)}
+                        className="flex flex-col border rounded-[10px] px-4 py-3 hover:bg-gray-50 transition-colors text-left w-full"
+                        type="button"
+                    >
+                        <div className="flex justify-between border-l-2 border-orange-500 pl-3">
+                            <span className="text-sm font-medium">{selectedPrompt.prompt_label}</span>
+                        </div>
+                    </button>
+                ) : (
+                    "No prompt"
+                )}
 
                 {/* Add Prompt Button or Search Interface */}
                 {!disabledFields && !showPromptSearch && (

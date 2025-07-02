@@ -1,4 +1,4 @@
-import { type AgentType, type ChatCompletionToolParam, type AgentNodeData } from "../../../lib/interfaces";
+import { type AgentType, type ChatCompletionToolParam, type AgentNodeData, type PromptResponse } from "../../../lib/interfaces";
 
 export interface ConfigurationTabProps {
     agentType: AgentType;
@@ -25,4 +25,5 @@ export interface ToolsTabProps {
     handlePromptSelect?: (promptId: string) => void;
     selectedPromptId?: string | null;
     agent: AgentNodeData;
+    onPromptClick?: (prompt: PromptResponse) => void;
 }

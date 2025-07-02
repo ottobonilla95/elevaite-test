@@ -30,11 +30,6 @@ WORKDIR /elevaite/python_apps/agent_studio
 # Install dependencies using uv (this will create venv automatically)
 RUN uv sync
 
-# Debug: Check the structure and what was installed
-RUN find /elevaite/python_apps/agent_studio -name "python*" -type f
-RUN find /elevaite/python_apps/agent_studio -name "uvicorn*" -type f
-RUN uv run python -c "import uvicorn; print('uvicorn works with uv run')" || echo "uvicorn not available"
-
 FROM python:3.11-slim-buster AS runtime
 
 # Install uv in runtime stage
@@ -50,9 +45,6 @@ COPY --from=builder /elevaite /elevaite
 
 # Set working directory
 WORKDIR /elevaite/python_apps/agent_studio
-
-# Verify uv and dependencies are working
-RUN uv run python -c "import uvicorn; print('uvicorn available in runtime')"
 
 # Expose the port
 EXPOSE 9004

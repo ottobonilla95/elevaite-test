@@ -3,6 +3,7 @@ import type {
   WorkflowExecutionResponse,
   WorkflowResponse,
   SavedWorkflow,
+  WorkflowDeployment,
 } from "../interfaces/workflows";
 import { isObject } from "./common";
 
@@ -28,6 +29,10 @@ export function isWorkflowResponseArray(
   return (
     Array.isArray(data) && data.every((item) => isWorkflowResponseObject(item))
   );
+}
+
+export function isWorkflowDeployment(data: unknown): data is WorkflowDeployment {
+  return isWorkflowDeploymentObject(data);
 }
 
 export function isSavedWorkflow(data: unknown): data is SavedWorkflow {
@@ -139,5 +144,47 @@ function isSavedWorkflowObject(item: unknown): item is SavedWorkflow {
     (!("connection_count" in item) ||
       item.connection_count === null ||
       typeof item.connection_count === "number")
+  );
+}
+
+function isWorkflowDeploymentObject(item: unknown): item is WorkflowDeployment {
+  return (
+    isObject(item) &&
+    "workflow_id" in item &&
+    "environment" in item &&
+    "deployment_name" in item &&
+    "id" in item &&
+    "deployment_id" in item &&
+    "status" in item &&
+    "deployed_at" in item &&
+    "execution_count" in item &&
+    "error_count" in item &&
+    "workflow" in item &&
+    typeof item.workflow_id === "string" &&
+    typeof item.environment === "string" &&
+    typeof item.deployment_name === "string" &&
+    typeof item.id === "number" &&
+    typeof item.deployment_id === "string" &&
+    typeof item.status === "string" &&
+    ["active", "inactive", "failed"].includes(item.status) &&
+    typeof item.deployed_at === "string" &&
+    typeof item.execution_count === "number" &&
+    typeof item.error_count === "number" &&
+    typeof item.workflow === "object" &&
+    (!("deployed_by" in item) ||
+      item.deployed_by === null ||
+      typeof item.deployed_by === "string") &&
+    (!("runtime_config" in item) ||
+      item.runtime_config === null ||
+      typeof item.runtime_config === "object") &&
+    (!("stopped_at" in item) ||
+      item.stopped_at === null ||
+      typeof item.stopped_at === "string") &&
+    (!("last_executed" in item) ||
+      item.last_executed === null ||
+      typeof item.last_executed === "string") &&
+    (!("last_error" in item) ||
+      item.last_error === null ||
+      typeof item.last_error === "string")
   );
 }
