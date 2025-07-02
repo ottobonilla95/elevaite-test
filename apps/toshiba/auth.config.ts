@@ -8,7 +8,6 @@ export const authConfig = {
   },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
-      // if (process.env.NODE_ENV === "development") return true;
       const isLoggedIn = Boolean(auth?.user);
 
       // If the user is already logged in and trying to access the login page,
@@ -44,6 +43,10 @@ export const authConfig = {
         stockSession.user.is_superuser = token.is_superuser;
       }
 
+      if (token.application_admin !== undefined) {
+        stockSession.user.application_admin = token.application_admin;
+      }
+
       return stockSession;
     },
     // Override the JWT callback to include the needsPasswordReset property
@@ -73,6 +76,9 @@ export const authConfig = {
           if (user?.is_superuser !== undefined) {
             token.is_superuser = user.is_superuser;
           }
+          if (user?.application_admin !== undefined) {
+            token.application_admin = user.application_admin;
+          }
           return token;
         }
 
@@ -90,6 +96,9 @@ export const authConfig = {
           }
           if (user?.is_superuser !== undefined) {
             newToken.is_superuser = user.is_superuser;
+          }
+          if (user?.application_admin !== undefined) {
+            newToken.application_admin = user.application_admin;
           }
 
           return newToken;

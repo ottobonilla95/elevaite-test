@@ -10,6 +10,7 @@ declare module "next-auth" {
     user?: {
       needsPasswordReset?: boolean;
       is_superuser?: boolean;
+      application_admin?: boolean;
     } & DefaultSession["user"];
   }
 
@@ -18,6 +19,7 @@ declare module "next-auth" {
     refreshToken?: string;
     needsPasswordReset?: boolean;
     is_superuser?: boolean;
+    application_admin?: boolean;
   }
 }
 
@@ -25,5 +27,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     needsPasswordReset?: boolean;
     is_superuser?: boolean;
+    application_admin?: boolean;
   }
 }

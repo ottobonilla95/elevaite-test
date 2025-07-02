@@ -6,7 +6,7 @@ import { authConfig } from "./auth.config";
 import { AuthApiClient } from "./app/lib/authApiClient";
 
 const authApiUrl =
-  process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:8004";
+  process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://127.0.0.1:8004";
 
 const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
 
@@ -60,6 +60,7 @@ export const authOptions: NextAuthConfig = {
               refreshToken: tokenResponse.refresh_token,
               needsPasswordReset,
               is_superuser: userDetails.is_superuser,
+              application_admin: userDetails.application_admin,
             } satisfies User;
 
             return userObject;

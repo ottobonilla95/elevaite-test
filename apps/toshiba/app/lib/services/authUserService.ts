@@ -10,6 +10,7 @@ interface AuthApiUser {
   email: string;
   full_name?: string;
   is_superuser: boolean;
+  application_admin?: boolean;
   status?: string;
 }
 
@@ -70,10 +71,13 @@ export async function fetchAuthUsers(): Promise<ExtendedUserObject[]> {
       lastname: user.full_name?.split(" ").slice(1).join(" ") ?? "",
       displayRoles: user.is_superuser
         ? [{ roleLabel: "Admin" }]
-        : [{ roleLabel: "User" }],
+        : user.application_admin
+          ? [{ roleLabel: "Application Admin" }]
+          : [{ roleLabel: "User" }],
       status: user.status ?? "active",
       organization_id: "default",
       is_superadmin: user.is_superuser,
+      application_admin: user.application_admin,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }));

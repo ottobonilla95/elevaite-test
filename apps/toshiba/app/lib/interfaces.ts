@@ -53,6 +53,7 @@ export interface UserObject {
   lastname?: string;
   email: string;
   is_superadmin: boolean;
+  application_admin?: boolean;
   created_at: string;
   updated_at: string;
   is_account_admin?: boolean;

@@ -8,16 +8,15 @@ import { redirect } from "next/navigation";
 export default async function Page(): Promise<JSX.Element | never> {
   const session = await auth();
 
-  const isAdmin = (session?.user as any)?.is_superuser === true;
+  const isSuperAdmin = (session?.user as any)?.is_superuser === true;
+  const isApplicationAdmin = (session?.user as any)?.application_admin === true;
+  const isAnyAdmin = isSuperAdmin || isApplicationAdmin;
 
-  if (!isAdmin) {
+  if (!isAnyAdmin) {
     redirect("/chatbot");
   }
 
-  const applications = getApplications(
-    process.env.NODE_ENV,
-    session?.user?.accountMemberships
-  );
+  const applications = getApplications(session?.user?.accountMemberships);
 
   return (
     <div className="card-holders-container">

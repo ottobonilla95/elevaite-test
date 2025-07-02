@@ -19,7 +19,7 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
   },
 };
 
-const sidebarIcons: SidebarIconObject[] = [
+const baseSidebarIcons: SidebarIconObject[] = [
   {
     icon: <ElevaiteIcons.SVGAccess />,
     link: "/access",
@@ -62,12 +62,15 @@ export function LayoutWrapper({ children }: LayoutWrapperProps): JSX.Element {
     checkStyles();
   }, []);
 
-  // Check if user is admin
-  const isAdmin = (session?.user as any)?.is_superuser === true;
+  const isSuperAdmin = (session?.user as any)?.is_superuser === true;
+  const isApplicationAdmin = (session?.user as any)?.application_admin === true;
+  const isAnyAdmin = isSuperAdmin || isApplicationAdmin;
+
+  const shouldShowSidebar = isSuperAdmin;
 
   // Check if we're on a page that should show admin layout
   const shouldShowAdminLayout =
-    isAdmin &&
+    isAnyAdmin &&
     (pathname === "/" ||
       pathname.startsWith("/access") ||
       pathname.startsWith("/(admin)"));
@@ -96,7 +99,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps): JSX.Element {
         <ColorContextProvider>
           <ClientAppLayout
             breadcrumbLabels={breadcrumbLabels}
-            sidebarIcons={sidebarIcons}
+            sidebarIcons={shouldShowSidebar ? baseSidebarIcons : []}
           >
             {children}
           </ClientAppLayout>

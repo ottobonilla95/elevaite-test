@@ -48,6 +48,7 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
   const [userEmail, setUserEmail] = useState("");
   const [userPassword, setUserPassword] = useState(generateClientPassword());
   const [isOneTimePassword, setIsOneTimePassword] = useState(true);
+  const [isApplicationAdmin, setIsApplicationAdmin] = useState(false);
   const [showPassword, setShowPassword] = useState(false); // Hide password by default
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -132,6 +133,7 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
         email: userEmail,
         password: userPassword,
         isOneTimePassword,
+        isApplicationAdmin,
       });
 
       if (result.success) {
@@ -248,6 +250,12 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
           defaultTrue={isOneTimePassword}
           onChange={setIsOneTimePassword}
           info="If checked, user will be required to change password on first login"
+        />
+        <CommonCheckbox
+          label="Toshiba Admin"
+          defaultTrue={isApplicationAdmin}
+          onChange={setIsApplicationAdmin}
+          info="Make the user an application admin?"
         />
 
         {apiError ? <div className="api-error-message">{apiError}</div> : null}

@@ -10,19 +10,11 @@ const ApplicationIcons = {
   },
 };
 
-const appLinks: Record<
-  string,
-  { development: string; production: string; test: string }
-> = {
-  supportBot: {
-    development: "/chatbot",
-    production: "/chatbot",
-    test: "/chatbot",
-  },
+const appLinks: Record<string, string> = {
+  supportBot: "/chatbot",
 };
 
 export function getApplications(
-  env: "development" | "production" | "test",
   _accountMemberships?: UserAccountMembershipObject[]
 ): { title: string; key: string; cards: CardProps[] }[] {
   return [
@@ -36,7 +28,7 @@ export function getApplications(
             "Please feel free to ask me anything. I'll do my best to provide helpful answers.",
           iconAlt: ApplicationIcons.applications.supportBot.alt,
           title: "Chatbot",
-          link: appLinks.supportBot[env],
+          link: appLinks.supportBot,
           id: "supportBot",
           miscLabel: "Version 2.0",
           subtitle: "By Toshiba",

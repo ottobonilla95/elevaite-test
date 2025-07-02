@@ -9,13 +9,21 @@ interface CreateUserParams {
   email: string;
   password: string;
   isOneTimePassword: boolean;
+  isApplicationAdmin: boolean;
 }
 
 export async function createUser(
   params: CreateUserParams
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const { firstName, lastName, email, password, isOneTimePassword } = params;
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      isOneTimePassword,
+      isApplicationAdmin,
+    } = params;
     const fullName = `${firstName} ${lastName}`.trim();
 
     const session = await auth();
@@ -51,6 +59,7 @@ export async function createUser(
       full_name: fullName,
       password: "***",
       is_one_time_password: isOneTimePassword,
+      application_admin: isApplicationAdmin,
     });
 
     const response = await fetch(`${apiUrl}/api/auth/admin/create-user`, {
@@ -65,6 +74,7 @@ export async function createUser(
         full_name: fullName,
         password,
         is_one_time_password: isOneTimePassword,
+        application_admin: isApplicationAdmin,
       }),
     });
 

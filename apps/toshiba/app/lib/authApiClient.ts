@@ -25,6 +25,7 @@ export interface UserDetailResponse extends UserResponse {
   status: string;
   last_login: string | null;
   is_superuser: boolean;
+  application_admin: boolean;
   is_password_temporary: boolean;
 }
 
