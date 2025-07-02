@@ -5,15 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useThemes } from "../../contexts/ColorContext";
-import { type CommonMenuItem, CommonButton, CommonDialog, CommonMenu } from "../common";
+import {
+  type CommonMenuItem,
+  CommonButton,
+  CommonDialog,
+  CommonMenu,
+} from "../common";
 import { ElevaiteIcons } from "../icons";
 import SVGHelp from "../icons/svgHelp";
 import { Searchbar } from "../search/Searchbar";
 import type { BreadcrumbItem } from "./Breadcrumbs";
 import { Breadcrumbs } from "./Breadcrumbs";
 import "./Navbar.scss";
-
-
 
 interface NavbarMenuItem {
   label: string;
@@ -29,6 +32,7 @@ interface NavBarProps {
   searchResults: { key: string; link: string; label: string }[];
   logOut: () => void;
   children?: React.ReactNode;
+  additionalMenuItems?: CommonMenuItem<NavbarMenuItem>[];
 }
 
 export function NavBar(props: NavBarProps): JSX.Element {
@@ -37,9 +41,9 @@ export function NavBar(props: NavBarProps): JSX.Element {
   const [breadcrumbItems, setBreadcrumbItems] = useState<BreadcrumbItem[]>([]);
   const [isHelpActive, setIsHelpActive] = useState(false);
   const [isLogoutRequestOpen, setIsLogoutRequestOpen] = useState(false);
-  const [userMenu, setUserMenu] = useState<CommonMenuItem<NavbarMenuItem>[]>([{ label: "Logout", onClick: handleLogoutRequest }]);
-
-
+  const [userMenu, setUserMenu] = useState<CommonMenuItem<NavbarMenuItem>[]>([
+    { label: "Logout", onClick: handleLogoutRequest },
+  ]);
 
   useEffect(() => {
     setBreadcrumbItems(pathToBreadcrumbs(pathname));
@@ -47,14 +51,28 @@ export function NavBar(props: NavBarProps): JSX.Element {
 
   useEffect(() => {
     if (themesContext.themesList.length === 0) return;
-    const themesList: CommonMenuItem<NavbarMenuItem>[] = themesContext.themesList.map(item => { return {
-      label: item.label,
-      onClick: (_: NavbarMenuItem) => { handleThemeClick(item.id) }
-    }});
-    themesList.push({ label: "Logout", onClick: () => { handleLogoutRequest(); } });
-    setUserMenu(themesList);
-  }, [themesContext.themesList]);
+    const themesList: CommonMenuItem<NavbarMenuItem>[] =
+      themesContext.themesList.map((item) => {
+        return {
+          label: item.label,
+          onClick: (_: NavbarMenuItem) => {
+            handleThemeClick(item.id);
+          },
+        };
+      });
 
+    if (props.additionalMenuItems) {
+      themesList.push(...props.additionalMenuItems);
+    }
+
+    themesList.push({
+      label: "Logout",
+      onClick: () => {
+        handleLogoutRequest();
+      },
+    });
+    setUserMenu(themesList);
+  }, [themesContext.themesList, props.additionalMenuItems]);
 
   function handleThemeClick(themeId: string): void {
     themesContext.changeTheme(themeId);
@@ -71,46 +89,47 @@ export function NavBar(props: NavBarProps): JSX.Element {
   function handleLogout(): void {
     props.logOut();
   }
-  
+
   function pathToBreadcrumbs(path: string): BreadcrumbItem[] {
     if (!props.breadcrumbLabels) return [];
     if (pathname === "/") return [props.breadcrumbLabels.home];
     const runningPath = path.split("/").filter((str) => str !== "");
     return runningPath.map((str, index) => {
-      const breadcrumb: { label: string; link: string } | undefined = props.breadcrumbLabels?.[str];
+      const breadcrumb: { label: string; link: string } | undefined =
+        props.breadcrumbLabels?.[str];
       return {
         label: breadcrumb ? breadcrumb.label : str,
-        link: index < runningPath.length - 1 && breadcrumb ? breadcrumb.link : "",
+        link:
+          index < runningPath.length - 1 && breadcrumb ? breadcrumb.link : "",
       };
     });
   }
 
-
-
   return (
     <div className="navbar-container">
-
-      {!isLogoutRequestOpen ? undefined :
+      {!isLogoutRequestOpen ? undefined : (
         <CommonDialog
           title="Are you sure you want to log out?"
           onConfirm={handleLogout}
-          onCancel={() => { setIsLogoutRequestOpen(false); }}
+          onCancel={() => {
+            setIsLogoutRequestOpen(false);
+          }}
         />
-      }
+      )}
 
       <div className="navbar-holder">
-
         <div className="navbar-left">
           <Link href="/">
             <ElevaiteIcons.SVGNavbarLogo />
           </Link>
-          {props.hideBreadcrumbs ? undefined : 
-            props.customBreadcrumbs ? props.customBreadcrumbs : 
-            <Breadcrumbs items={breadcrumbItems} />}
+          {props.hideBreadcrumbs ? undefined : props.customBreadcrumbs ? (
+            props.customBreadcrumbs
+          ) : (
+            <Breadcrumbs items={breadcrumbItems} />
+          )}
         </div>
 
         <div className="navbar-right">
-
           <Searchbar
             handleInput={props.handleSearchInput}
             isJump
@@ -119,13 +138,15 @@ export function NavBar(props: NavBarProps): JSX.Element {
           />
 
           <CommonButton
-            className={["help-button", isHelpActive ? "active" : undefined].filter(Boolean).join(" ")}
+            className={["help-button", isHelpActive ? "active" : undefined]
+              .filter(Boolean)
+              .join(" ")}
             onClick={handleHelpClick}
           >
-            <SVGHelp/>
+            <SVGHelp />
           </CommonButton>
 
-          <div className="separator"/>
+          <div className="separator" />
 
           {props.user?.name}
 
@@ -135,17 +156,22 @@ export function NavBar(props: NavBarProps): JSX.Element {
             sideCover
             menuIcon={
               <div className="icon-container">
-              {!props.user?.image ? <ElevaiteIcons.SVGMenuDots/> :
-                <Image alt="User Image" height={40} width={40} src={props.user.image} />
-              }
+                {!props.user?.image ? (
+                  <ElevaiteIcons.SVGMenuDots />
+                ) : (
+                  <Image
+                    alt="User Image"
+                    height={40}
+                    width={40}
+                    src={props.user.image}
+                  />
+                )}
               </div>
             }
           />
-
         </div>
       </div>
       {props.children}
     </div>
   );
 }
-
