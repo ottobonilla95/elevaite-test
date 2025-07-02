@@ -545,6 +545,9 @@ async def verify_email(
             detail="Invalid verification token",
         )
 
+    if user.is_verified:
+        return {"message": "Email already verified"}
+
     # Mark user as verified and active
     stmt = (
         update(User)
@@ -553,6 +556,32 @@ async def verify_email(
     )
     await session.execute(stmt)
     await session.commit()
+
+    if user.is_password_temporary:
+        from app.services.email_service import send_welcome_email_with_temp_password
+        from app.core.security import get_password_hash
+        from app.core.password_utils import generate_secure_password
+
+        name = user.full_name.split()[0] if user.full_name else ""
+
+        temp_password = generate_secure_password()
+
+        update_stmt = (
+            update(User)
+            .where(User.id == user.id)
+            .values(
+                temporary_hashed_password=get_password_hash(temp_password),
+                temporary_password_expiry=datetime.now(timezone.utc)
+                + timedelta(hours=48),
+            )
+        )
+        await session.execute(update_stmt)
+        await session.commit()
+
+        try:
+            await send_welcome_email_with_temp_password(user.email, name, temp_password)
+        except Exception as e:
+            print(f"Error sending welcome email after verification: {e}")
 
     # Log activity
     try:

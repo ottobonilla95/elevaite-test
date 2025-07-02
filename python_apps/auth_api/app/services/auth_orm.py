@@ -485,12 +485,6 @@ async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
     name = new_user.full_name.split()[0] if new_user.full_name else ""
     await send_verification_email(new_user.email, name, str(verification_token))
 
-    # Send welcome email with temporary password if generated
-    if is_password_temporary:
-        from app.services.email_service import send_welcome_email_with_temp_password
-
-        await send_welcome_email_with_temp_password(new_user.email, name, password)
-
     return new_user
 
 
