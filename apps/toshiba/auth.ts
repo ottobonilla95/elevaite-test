@@ -8,10 +8,12 @@ import { AuthApiClient } from "./app/lib/authApiClient";
 const authApiUrl =
   process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:8004";
 
+const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
+
 const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
 
 // Create an instance of the Auth API client with the tenant ID
-const authApiClient = new AuthApiClient(authApiUrl, tenantId);
+const authApiClient = new AuthApiClient(apiUrl, tenantId);
 
 // eslint-disable-next-line @typescript-eslint/require-await -- Temporary
 export async function logoutUser(): Promise<void> {

@@ -80,6 +80,7 @@ export function useSessionValidation(): {
 
       const authApiUrl =
         process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8004";
+      const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
       const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID || "default";
 
       const headers: Record<string, string> = {
@@ -93,7 +94,7 @@ export function useSessionValidation(): {
         headers["X-Refresh-Token"] = refreshToken;
       }
 
-      const response = await fetch(`${authApiUrl}/api/auth/validate-session`, {
+      const response = await fetch(`${apiUrl}/api/auth/validate-session`, {
         method: "POST",
         headers,
       });
