@@ -21,8 +21,14 @@ export async function SessionWrapper({
         accountMemberships: [
           {
             account_id: "dev-account-id",
-            role_id: "dev-role-id",
             account_name: "Development Account",
+            is_admin: false,
+            roles: [
+              {
+                id: "dev-role-id",
+                name: "Developer",
+              },
+            ],
           },
         ],
       },

@@ -10,8 +10,14 @@ export default async function Page(): Promise<JSX.Element> {
     const mockMemberships = [
       {
         account_id: "dev-account-id",
-        role_id: "dev-role-id",
         account_name: "Development Account",
+        is_admin: false,
+        roles: [
+          {
+            id: "dev-role-id",
+            name: "Developer",
+          },
+        ],
       },
     ];
     const applications = getApplications(process.env.NODE_ENV, mockMemberships);
