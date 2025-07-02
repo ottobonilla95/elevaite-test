@@ -15,8 +15,11 @@ export default function VerifyEmailPage() {
   const [verificationResult, setVerificationResult] =
     useState<VerificationResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasVerified, setHasVerified] = useState(false);
 
   useEffect(() => {
+    if (hasVerified) return;
+
     const token = searchParams.get("token");
 
     if (!token) {
@@ -27,11 +30,13 @@ export default function VerifyEmailPage() {
       return;
     }
 
+    setHasVerified(true);
+
     // Decode the token in case it was URL encoded
     const decodedToken = decodeURIComponent(token);
 
     verifyEmail(decodedToken);
-  }, [searchParams]);
+  }, [searchParams, hasVerified]);
 
   const verifyEmail = async (token: string) => {
     try {
@@ -62,15 +67,22 @@ export default function VerifyEmailPage() {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        await response.json(); // Consume the response
         setVerificationResult({
           success: true,
         });
       } else {
         const errorData = await response.json();
-        setVerificationResult({
-          success: false,
-        });
+        // Check if it's just already verified (which should be treated as success)
+        if (errorData.message === "Email already verified") {
+          setVerificationResult({
+            success: true,
+          });
+        } else {
+          setVerificationResult({
+            success: false,
+          });
+        }
       }
     } catch (error) {
       console.error("Email verification error:", error);
@@ -119,8 +131,8 @@ export default function VerifyEmailPage() {
                       Email Verified Successfully!
                     </h3>
                     <p className="ui-text-sm ui-text-gray-500 ui-mb-4">
-                      Your account is now active. You can log in to access your
-                      account.
+                      Your account is now active. You should receive a welcome
+                      email with your login credentials shortly.
                     </p>
                     <Link
                       href="/login"
