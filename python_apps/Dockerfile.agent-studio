@@ -27,33 +27,32 @@ COPY python_apps/agent_studio ./python_apps/agent_studio
 # Install dependencies using uv in the agent-studio directory
 WORKDIR /elevaite/python_apps/agent_studio
 
-# Create virtual environment explicitly and install dependencies
-RUN uv venv .venv && uv sync
+# Install dependencies using uv (this will create venv automatically)
+RUN uv sync
 
-# Debug: Check where the venv was created and what's in it
-RUN ls -la /elevaite/python_apps/agent_studio/
-RUN ls -la /elevaite/python_apps/agent_studio/.venv/
+# Debug: Check the structure and what was installed
+RUN find /elevaite/python_apps/agent_studio -name "python*" -type f
+RUN find /elevaite/python_apps/agent_studio -name "uvicorn*" -type f
+RUN uv run python -c "import uvicorn; print('uvicorn works with uv run')" || echo "uvicorn not available"
 
 FROM python:3.11-slim-buster AS runtime
 
-# Set up environment variables for the virtual environment
-ENV VIRTUAL_ENV=/elevaite/python_apps/agent_studio/.venv \
-    PATH="/elevaite/python_apps/agent_studio/.venv/bin:$PATH"
+# Install uv in runtime stage
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && \
+    curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy the virtual environment from builder
-COPY --from=builder /elevaite/python_apps/agent_studio/.venv ${VIRTUAL_ENV}
+# Ensure the installed binary is on the `PATH`
+ENV PATH="/root/.local/bin/:$PATH"
+
+# Copy the entire project structure from builder (including .venv and uv.lock)
+COPY --from=builder /elevaite /elevaite
 
 # Set working directory
-WORKDIR /elevaite
+WORKDIR /elevaite/python_apps/agent_studio
 
-# Copy workspace configuration
-COPY pyproject.toml ./
-
-# Copy the fastapi-logger package (workspace dependency)
-COPY python_packages/fastapi-logger ./python_packages/fastapi-logger
-
-# Copy agent-studio application code
-COPY python_apps/agent_studio ./python_apps/agent_studio
+# Verify uv and dependencies are working
+RUN uv run python -c "import uvicorn; print('uvicorn available in runtime')"
 
 # Expose the port
 EXPOSE 9004
@@ -61,6 +60,6 @@ EXPOSE 9004
 # Set environment variable for port
 ENV PORT=9004
 
-# Change to the agent-studio directory and run the application
+# Change to the agent-studio directory and run the application using uv
 WORKDIR /elevaite/python_apps/agent_studio/agent-studio
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "9004"]
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "9004"]
