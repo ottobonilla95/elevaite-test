@@ -199,7 +199,7 @@ jobs:
       - name: Comment on PR
         if: success() && steps.get_pr_number.outputs.number
         run: |
-          gh pr comment ${{ steps.get_pr_number.outputs.number }} --body "
+          gh pr comment ${{ steps.get_pr_number.outputs.number }} --body-file - <<EOF
           ✅ **Deployment to Staging Complete**
 
           🔁 **Changes Deployed**:
@@ -213,7 +213,9 @@ jobs:
           \`\`\`
 
           🌐 [Test the changes here](https://tgcs-staging.iopex.ai)
-          "
+
+          EOF
+
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
