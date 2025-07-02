@@ -103,7 +103,8 @@ async function refreshAuthApiToken(token: JWT): Promise<JWT> {
   if (!AUTH_API_URL) {
     throw new Error("NEXT_PUBLIC_AUTH_API_URL is not defined in environment");
   }
-  const AUTH_API_REFRESH_ENDPOINT = `${AUTH_API_URL}/api/auth/refresh`;
+  const apiUrl = AUTH_API_URL.replace("localhost", "127.0.0.1");
+  const AUTH_API_REFRESH_ENDPOINT = `${apiUrl}/api/auth/refresh`;
 
   // Get tenant ID from environment or use default
   const TENANT_ID = process.env.AUTH_TENANT_ID ?? "default";
