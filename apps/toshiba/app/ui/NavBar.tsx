@@ -2,7 +2,7 @@
 import { type User } from "next-auth";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import "./Navbar.scss";
 import { useThemes } from "@repo/ui/contexts";
@@ -33,6 +33,7 @@ interface NavBarProps {
 
 export function NavBar(props: NavBarProps): JSX.Element {
   const pathname = usePathname();
+  const router = useRouter();
   const themesContext = useThemes();
   const [breadcrumbItems, setBreadcrumbItems] = useState<BreadcrumbItem[]>([]);
   const [isHelpActive, setIsHelpActive] = useState(false);
@@ -56,6 +57,15 @@ export function NavBar(props: NavBarProps): JSX.Element {
           },
         };
       });
+
+    // Add change password option
+    themesList.push({
+      label: "Change Password",
+      onClick: () => {
+        router.push("/change-password");
+      },
+    });
+
     themesList.push({
       label: "Logout",
       onClick: () => {
@@ -63,7 +73,7 @@ export function NavBar(props: NavBarProps): JSX.Element {
       },
     });
     setUserMenu(themesList);
-  }, [themesContext.themesList]);
+  }, [themesContext.themesList, router]);
 
   function handleThemeClick(themeId: string): void {
     themesContext.changeTheme(themeId);
