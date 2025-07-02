@@ -1,11 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import {
-    X,
-    Check,
-    Edit,
-} from "lucide-react";
 import TabHeader, { type Tab } from "../TabHeader";
 import { type AgentNodeData, type AgentConfigData, type AgentType, type ChatCompletionToolParam } from "../../lib/interfaces";
 import { fetchToolSchemasAsArray } from "../../lib/toolActions";
@@ -44,8 +39,6 @@ function ConfigPanel({
     description,
     onEditPrompt,
     onSave,
-    onClose,
-    onNameChange,
     toggleSidebar,
     sidebarOpen,
     currentFunctions = [],
@@ -70,9 +63,7 @@ function ConfigPanel({
     // Note: We're now using tool schemas directly instead of the tools context
 
     // State for agent name editing
-    const [isEditingName, setIsEditingName] = useState(false);
     const [editedName, setEditedName] = useState(agentName);
-    const nameInputRef = useRef<HTMLInputElement>(null);
     const [disabledFields, setDisabledFields] = useState(true);
 
     // State for editable agent type and tags
@@ -95,13 +86,6 @@ function ConfigPanel({
 
     // Get prompts context
     const { getPromptById } = usePrompts();
-
-    // Effect to focus input when editing starts
-    useEffect(() => {
-        if (isEditingName && nameInputRef.current) {
-            nameInputRef.current.focus();
-        }
-    }, [isEditingName]);
 
     // Update local state when agentName prop changes
     useEffect(() => {
@@ -186,20 +170,6 @@ function ConfigPanel({
         }
     };
 
-    // Handle name editing
-    const startEditingName = (): void => {
-        setIsEditingName(true);
-    };
-
-    const saveEditedName = (): void => {
-        if (editedName.trim() === '') {
-            setEditedName(agentName); // Restore original name if empty
-        } else if (onNameChange && editedName !== agentName) {
-            onNameChange(editedName);
-        }
-        setIsEditingName(false);
-    };
-
     // Handle save button click
     const handleSave = useCallback((): void => {
         console.log("Current selectedPromptId in handleSave:", selectedPromptId)
@@ -264,21 +234,11 @@ function ConfigPanel({
         }
     };
 
-    // Handle keydown event for name input
-    const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-        if (e.key === 'Enter') {
-            saveEditedName();
-        } else if (e.key === 'Escape') {
-            setEditedName(agentName); // Restore original name
-            setIsEditingName(false);
-        }
-    };
-
     return (
         <div className="config-panel">
             {/* Header with close button and editable name */}
             <div className="config-panel-header">
-                <div className="flex flex-1 items-center">
+                <div className="flex flex-1 items-center pr-4">
                     {!disabledFields ? (
                         <div className="flex flex-col gap-3 flex-1">
                             <div className="flex flex-col gap-1">
@@ -306,49 +266,15 @@ function ConfigPanel({
                                 />
                             </div>
                         </div>
-                    ) : isEditingName ? (
-                        <div className="agent-name-edit-container">
-                            <input
-                                ref={nameInputRef}
-                                type="text"
-                                value={editedName}
-                                onChange={(e) => { setEditedName(e.target.value); }}
-                                onBlur={saveEditedName}
-                                onKeyDown={handleNameKeyDown}
-                                className="agent-name-input"
-                                placeholder="Enter agent name"
-                            />
-                            <button
-                                onClick={saveEditedName}
-                                className="save-name-button"
-                                type="button"
-                            >
-                                <Check size={16} />
-                            </button>
-                        </div>
                     ) : (
                         <div className="agent-name-display">
-                            <div className="agent-icon">
+                            <div className="agent-icon flex-shrink-0">
                                 {getAgentIcon(agentType)}
                             </div>
                             <div className="agent-title">
                                 <p className="agent-name">{editedName}</p>
-                                <p className="agent-type">{editedDescription}</p>
+                                <p className="agent-description">{editedDescription}</p>
                             </div>
-                            <button
-                                onClick={startEditingName}
-                                className="edit-name-button"
-                                type="button"
-                            >
-                                <Edit size={16} />
-                            </button>
-                            {onClose ? <button
-                                onClick={onClose}
-                                className="close-button"
-                                type="button"
-                            >
-                                <X size={18} />
-                            </button> : null}
                             <button className="activate-fields" type="button" onClick={() => { setDisabledFields(!disabledFields); }}>
                                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <g opacity="0.8" clipPath="url(#clip0_255_10554)">
@@ -365,7 +291,7 @@ function ConfigPanel({
                     )}
                 </div>
 
-                <button type="button" onClick={toggleSidebar}>
+                <button type="button" onClick={toggleSidebar} className="flex flex-shrink-0 items-center">
                     {
                         sidebarOpen
                             ?
@@ -381,11 +307,6 @@ function ConfigPanel({
                     }
                 </button>
             </div>
-
-            {/* Agent Description - only show when not editing */}
-            {disabledFields ? <p className="agent-description">
-                {editedDescription || `This ${getAgentTypeDisplay(agentType)} agent processes and routes queries.`}
-            </p> : null}
             <div className="flex flex-col justify-between flex-1">
                 <div>
                     {/* Navigation Tabs */}

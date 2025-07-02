@@ -2,7 +2,7 @@
 
 import React from "react";
 import { X } from "lucide-react";
-import { type EdgeProps, getMarkerEnd } from "reactflow";
+import { type EdgeProps, getMarkerEnd } from "react-flow-renderer";
 import "./CustomEdge.scss";
 
 interface CustomEdgeData {

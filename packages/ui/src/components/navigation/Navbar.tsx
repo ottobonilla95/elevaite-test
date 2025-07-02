@@ -36,6 +36,7 @@ interface NavBarProps {
   logOut: () => void;
   children?: React.ReactNode;
   additionalMenuItems?: CommonMenuItem<NavbarMenuItem>[];
+  hideSearchbar?: boolean;
 }
 
 export function NavBar(props: NavBarProps): JSX.Element {
@@ -123,9 +124,7 @@ export function NavBar(props: NavBarProps): JSX.Element {
       <div className="navbar-holder">
         <div className="navbar-left">
           <Link href="/">
-            {props.customLogo ?? 
-              <ElevaiteIcons.SVGNavbarLogo />
-            }
+            {props.customLogo ?? <ElevaiteIcons.SVGNavbarLogo />}
           </Link>
           {props.hideBreadcrumbs ? undefined : props.customBreadcrumbs ? (
             props.customBreadcrumbs
@@ -135,16 +134,16 @@ export function NavBar(props: NavBarProps): JSX.Element {
         </div>
 
         <div className="navbar-right">
-          {!props.handleSearchInput || !props.searchResults ? undefined :
+          {!props.handleSearchInput || !props.searchResults ? undefined : (
             <Searchbar
               handleInput={props.handleSearchInput}
               isJump
               results={props.searchResults}
               resultsTopOffset="70px"
             />
-          }
+          )}
 
-          {props.hideHelp ? undefined :
+          {props.hideHelp ? undefined : (
             <CommonButton
               className={["help-button", isHelpActive ? "active" : undefined]
                 .filter(Boolean)
@@ -153,7 +152,7 @@ export function NavBar(props: NavBarProps): JSX.Element {
             >
               <SVGHelp />
             </CommonButton>
-          }
+          )}
 
           {props.customRightSide}
 

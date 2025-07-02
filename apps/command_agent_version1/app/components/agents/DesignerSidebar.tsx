@@ -86,11 +86,7 @@ function SidebarItem({ icon, label, subLabel, onClick, draggable, onDragStart }:
 }
 
 interface DesignerSidebarProps {
-	workflowName: string;
-	workflowDescription?: string;
 	handleDragStart: (event: React.DragEvent<HTMLButtonElement>, agent: AgentResponse) => void;
-	handleDeployWorkflow: () => void;
-	handleSaveWorkflow: () => void;
 	handleCreateNewWorkflow: () => void;
 	handleLoadWorkflow: (workflow: SavedWorkflow) => void;
 	handleCreateNewAgent: () => void;
@@ -100,11 +96,7 @@ interface DesignerSidebarProps {
 }
 
 function DesignerSidebar({
-	workflowName,
-	workflowDescription = "Analyze and process agent workflows",
 	handleDragStart,
-	handleDeployWorkflow,
-	handleSaveWorkflow,
 	handleCreateNewWorkflow,
 	handleLoadWorkflow,
 	handleCreateNewAgent,

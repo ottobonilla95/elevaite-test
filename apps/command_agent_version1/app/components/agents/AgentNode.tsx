@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo } from "react";
-import { Handle, Position } from "reactflow";
+import { Handle, Position } from "react-flow-renderer";
 import { PenLine, Trash2, EllipsisVertical, GripHorizontal } from "lucide-react";
 import "./AgentNode.scss";
 import { type AgentNodeData, type ChatCompletionToolParam } from "../../lib/interfaces";

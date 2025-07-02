@@ -11,7 +11,7 @@ import ReactFlow, {
 	type EdgeChange,
 	ConnectionLineType,
 	type ReactFlowInstance
-} from "reactflow";
+} from "react-flow-renderer";
 import { type Edge, type Node } from "../../lib/interfaces";
 import CustomEdge from "./CustomEdge";
 import AgentNode from "./AgentNode";

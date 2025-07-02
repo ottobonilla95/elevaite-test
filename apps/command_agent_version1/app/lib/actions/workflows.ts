@@ -265,3 +265,56 @@ export async function getActiveDeployments(): Promise<WorkflowDeployment[]> {
     throw error;
   }
 }
+
+export async function getWorkflowDeploymentStatus(
+  workflowId: string
+): Promise<WorkflowDeployment | null> {
+  try {
+    const activeDeployments = await getActiveDeployments();
+    const deployment = activeDeployments.find(
+      (d) => d.workflow_id === workflowId && d.status === "active"
+    );
+    return deployment || null;
+  } catch (error) {
+    console.error("Error checking workflow deployment status:", error);
+    return null;
+  }
+}
+
+export async function isWorkflowDeployed(workflowId: string): Promise<boolean> {
+  try {
+    const deployment = await getWorkflowDeploymentStatus(workflowId);
+    return deployment !== null;
+  } catch (error) {
+    console.error("Error checking if workflow is deployed:", error);
+    return false;
+  }
+}
+
+export async function getWorkflowDeploymentDetails(
+  workflowId: string
+): Promise<{
+  isDeployed: boolean;
+  deployment?: WorkflowDeployment;
+  inferenceUrl?: string;
+}> {
+  try {
+    const deployment = await getWorkflowDeploymentStatus(workflowId);
+    const isDeployed = deployment !== null;
+
+    let inferenceUrl: string | undefined;
+    if (deployment) {
+      // Generate inference URL based on deployment name
+      inferenceUrl = `${BACKEND_URL}api/workflows/execute`;
+    }
+
+    return {
+      isDeployed,
+      deployment,
+      inferenceUrl,
+    };
+  } catch (error) {
+    console.error("Error getting workflow deployment details:", error);
+    return { isDeployed: false };
+  }
+}

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ChevronUp, ChevronDown, Trash2, Plus, Search, X } from "lucide-react";
 import { getToolIcon } from "../iconUtils";
 import { useTools } from "../../../ui/contexts/ToolsContext";
 import { usePrompts } from "../../../ui/contexts/PromptsContext";
 import { type ToolsTabProps } from "./types";
+import { PromptResponse } from "../../../lib/interfaces";
 
 function ToolsTab({
     selectedFunctions,
@@ -22,6 +23,7 @@ function ToolsTab({
     const [searchQuery, setSearchQuery] = useState("");
     const [showPromptSearch, setShowPromptSearch] = useState(false);
     const [promptSearchQuery, setPromptSearchQuery] = useState("");
+    const [selectedPrompt, setSelectedPrompt] = useState<PromptResponse | null>(null);
 
     // Get tools from context
     const { tools: availableTools, isLoading: isLoadingTools } = useTools();
@@ -29,8 +31,9 @@ function ToolsTab({
     // Get prompts from context
     const { agentPrompts: availablePrompts, isLoading: isLoadingPrompts, getPromptById } = usePrompts();
 
-    // Get the current prompt to display (either selected or original)
-    const currentPrompt = selectedPromptId ? getPromptById(selectedPromptId) : agent.agent.system_prompt;
+    useEffect(() => {
+        setSelectedPrompt(agent.agent.system_prompt);
+    }, [agent]);
 
     // Filter tools based on search query
     const filteredTools = availableTools.filter(tool =>
@@ -199,9 +202,9 @@ function ToolsTab({
                 {promptsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
             {promptsOpen ? <div className="flex flex-col gap-3 p-2">
-                {currentPrompt ? <div className="flex flex-col border rounded-[10px] px-4 py-3">
+                {selectedPrompt ? <div className="flex flex-col border rounded-[10px] px-4 py-3">
                     <div className="flex justify-between border-l-2 border-orange-500 pl-3">
-                        <span className="text-sm font-medium">{currentPrompt.prompt_label}</span>
+                        <span className="text-sm font-medium">{selectedPrompt.prompt_label}</span>
                     </div>
                 </div> : "No prompt"}
 
@@ -218,76 +221,72 @@ function ToolsTab({
                 )}
 
                 {/* Prompt Search Interface */}
-                {!disabledFields && showPromptSearch && (
-                    <div className="flex flex-col gap-3">
-                        {/* Close Button */}
-                        <button
-                            onClick={() => {
-                                setShowPromptSearch(false);
-                                setPromptSearchQuery("");
-                            }}
-                            className="flex items-center gap-2 text-[#FF681F] text-xs justify-start hover:text-[#E55A1A]"
-                            type="button"
-                        >
-                            <X size={16} />
-                            Close
-                        </button>
+                {!disabledFields && showPromptSearch ? <div className="flex flex-col gap-3">
+                    {/* Close Button */}
+                    <button
+                        onClick={() => {
+                            setShowPromptSearch(false);
+                            setPromptSearchQuery("");
+                        }}
+                        className="flex items-center gap-2 text-[#FF681F] text-xs justify-start hover:text-[#E55A1A]"
+                        type="button"
+                    >
+                        <X size={16} />
+                        Close
+                    </button>
 
-                        {/* Search Bar */}
-                        <div className="flex items-center border border-gray-300 rounded-md px-3 py-2">
-                            <Search size={16} className="text-gray-400 mr-2" />
-                            <input
-                                type="text"
-                                placeholder="Search prompts..."
-                                value={promptSearchQuery}
-                                onChange={(e) => { setPromptSearchQuery(e.target.value); }}
-                                className="flex-1 outline-none text-sm"
-                            />
-                        </div>
+                    {/* Search Bar */}
+                    <div className="flex items-center border border-gray-300 rounded-md px-3 py-2">
+                        <Search size={16} className="text-gray-400 mr-2" />
+                        <input
+                            type="text"
+                            placeholder="Search prompts..."
+                            value={promptSearchQuery}
+                            onChange={(e) => { setPromptSearchQuery(e.target.value); }}
+                            className="flex-1 outline-none text-sm"
+                        />
+                    </div>
 
-                        {/* Loading State */}
-                        {isLoadingPrompts && (
-                            <div className="text-center text-gray-500 text-sm py-4">
-                                Loading prompts...
-                            </div>
-                        )}
+                    {/* Loading State */}
+                    {isLoadingPrompts ? <div className="text-center text-gray-500 text-sm py-4">
+                        Loading prompts...
+                    </div> : null}
 
-                        {/* Search Results */}
-                        {!isLoadingPrompts && (
-                            <div className="max-h-60 overflow-y-auto">
-                                {filteredPrompts.length > 0 ? (
-                                    <div className="flex flex-col gap-2">
-                                        {filteredPrompts.map(prompt => (
-                                            <button
-                                                key={prompt.pid}
-                                                onClick={() => { handleAddPrompt(prompt.pid); }}
-                                                className="flex items-start gap-2 p-2 border border-gray-200 rounded-md hover:bg-gray-50 text-left"
-                                                type="button"
-                                            >
-                                                <div className="flex items-center gap-2 flex-1">
-                                                    <div className="w-4 h-4 flex-shrink-0">
-                                                        <div className="w-4 h-4 bg-blue-100 rounded flex items-center justify-center">
-                                                            <span className="text-blue-600 text-xs">P</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-sm font-medium">{prompt.prompt_label}</span>
-                                                        <span className="text-xs text-gray-600">{prompt.unique_label}</span>
+                    {/* Search Results */}
+                    {!isLoadingPrompts && (
+                        <div className="max-h-60 overflow-y-auto">
+                            {filteredPrompts.length > 0 ? (
+                                <div className="flex flex-col gap-2">
+                                    {filteredPrompts.map(prompt => (
+                                        <button
+                                            key={prompt.pid}
+                                            onClick={() => { handleAddPrompt(prompt.pid); }}
+                                            className="flex items-start gap-2 p-2 border border-gray-200 rounded-md hover:bg-gray-50 text-left"
+                                            type="button"
+                                        >
+                                            <div className="flex items-center gap-2 flex-1">
+                                                <div className="w-4 h-4 flex-shrink-0">
+                                                    <div className="w-4 h-4 bg-blue-100 rounded flex items-center justify-center">
+                                                        <span className="text-blue-600 text-xs">P</span>
                                                     </div>
                                                 </div>
-                                                <Plus size={14} className="text-[#FF681F] mt-1 self-center" />
-                                            </button>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center text-gray-500 text-sm py-4">
-                                        {promptSearchQuery ? "No prompts found matching your search." : "No prompts available."}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )}
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-medium">{prompt.prompt_label}</span>
+                                                    <span className="text-xs text-gray-600">{prompt.unique_label}</span>
+                                                </div>
+                                            </div>
+                                            <Plus size={14} className="text-[#FF681F] mt-1 self-center" />
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center text-gray-500 text-sm py-4">
+                                    {promptSearchQuery ? "No prompts found matching your search." : "No prompts available."}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div> : null}
             </div> : null}
         </div >
     );

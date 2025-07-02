@@ -123,7 +123,7 @@ function ConfigurationTab({
                         </label>
                     )}
                 </div>
-                <div className="parameter-item">
+                {/* <div className="parameter-item">
                     {disabledFields ? (
                         <div className="flex flex-col gap-1">
                             <span className="parameter-label">Model Charge Type</span>
@@ -148,7 +148,7 @@ function ConfigurationTab({
                             </select>
                         </label>
                     )}
-                </div>
+                </div> */}
                 <div className="parameter-item">
                     {disabledFields ? (
                         <div className="flex flex-col gap-1">

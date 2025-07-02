@@ -25,7 +25,7 @@ def create_workflow(workflow: schemas.WorkflowCreate, db: Session = Depends(get_
     """Create a new workflow with agents and connections"""
     try:
         # Check if workflow with same name and version already exists
-        existing = crud.get_workflow_by_name(db, workflow.name, workflow.version)
+        existing = crud.workflows.get_workflow_by_name(db, workflow.name, workflow.version)
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

@@ -3,9 +3,9 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 // eslint-disable-next-line import/named -- Seems to be a problem with eslint
 import { v4 as uuidv4 } from "uuid";
-import { ReactFlowProvider, type ReactFlowInstance } from "reactflow";
-import { type AgentConfigData, type AgentNodeData, type AgentResponse, type AgentCreate, type AgentUpdate, type AgentFunction, type ChatCompletionToolParam, type Edge, type Node, SavedWorkflow, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowResponse } from "../lib/interfaces";
-import { createWorkflow, deployWorkflowModern, createAgent, updateAgent } from "../lib/actions";
+import { ReactFlowProvider, type ReactFlowInstance } from "react-flow-renderer";
+import { type AgentConfigData, type AgentNodeData, type AgentResponse, type AgentCreate, type AgentUpdate, type AgentFunction, type ChatCompletionToolParam, type Edge, type Node, SavedWorkflow, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowResponse, type WorkflowDeployment } from "../lib/interfaces";
+import { createWorkflow, deployWorkflowModern, createAgent, updateAgent, getWorkflowDeploymentDetails, isWorkflowDeployed } from "../lib/actions";
 import { isAgentResponse } from "../lib/discriminators";
 import DesignerSidebar from "./agents/DesignerSidebar";
 import DesignerCanvas from "./agents/DesignerCanvas";
@@ -113,6 +113,17 @@ function AgentConfigForm(): JSX.Element {
   const [activeTab, setActiveTab] = useState("actions");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  // Workflow state management
+  const [isExistingWorkflow, setIsExistingWorkflow] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSavedState, setLastSavedState] = useState<string>("");
+  const [currentWorkflowData, setCurrentWorkflowData] = useState<WorkflowResponse | null>(null);
+  const [deploymentStatus, setDeploymentStatus] = useState<{
+    isDeployed: boolean;
+    deployment?: WorkflowDeployment;
+    inferenceUrl?: string;
+  }>({ isDeployed: false });
+
   // Store flow instance when it's ready
   const onInit = (instance: ReactFlowInstance) => {
     reactFlowInstanceRef.current = instance;
@@ -126,6 +137,66 @@ function AgentConfigForm(): JSX.Element {
     }
     setMounted(true);
   }, []);
+
+  // Workflow state management functions
+  const getCurrentWorkflowState = useCallback(() => {
+    return JSON.stringify({
+      name: workflowName,
+      nodes: nodes.map(node => ({
+        id: node.id,
+        position: node.position,
+        data: {
+          agent: node.data.agent,
+          prompt: node.data.prompt,
+          tools: node.data.tools,
+          tags: node.data.tags
+        }
+      })),
+      edges: edges.map(edge => ({
+        source: edge.source,
+        target: edge.target
+      }))
+    });
+  }, [workflowName, nodes, edges]);
+
+  const checkForChanges = useCallback(() => {
+    const currentState = getCurrentWorkflowState();
+    const hasChanges = currentState !== lastSavedState;
+    setHasUnsavedChanges(hasChanges);
+    return hasChanges;
+  }, [getCurrentWorkflowState, lastSavedState]);
+
+  const updateLastSavedState = useCallback(() => {
+    const currentState = getCurrentWorkflowState();
+    setLastSavedState(currentState);
+    setHasUnsavedChanges(false);
+  }, [getCurrentWorkflowState]);
+
+  const checkDeploymentStatus = useCallback(async () => {
+    if (!workflowIdRef.current) return;
+
+    try {
+      const details = await getWorkflowDeploymentDetails(workflowIdRef.current);
+      setDeploymentStatus(details);
+    } catch (error) {
+      console.error("Error checking deployment status:", error);
+      setDeploymentStatus({ isDeployed: false });
+    }
+  }, []);
+
+  // Track changes to workflow state
+  useEffect(() => {
+    if (mounted) {
+      checkForChanges();
+    }
+  }, [mounted, checkForChanges]);
+
+  // Check deployment status when workflow ID changes
+  useEffect(() => {
+    if (mounted && workflowIdRef.current) {
+      void checkDeploymentStatus();
+    }
+  }, [mounted, checkDeploymentStatus]);
 
   // Node operations
   const handleDeleteNode = useCallback((nodeId: string) => {
@@ -395,25 +466,61 @@ function AgentConfigForm(): JSX.Element {
       return;
     }
 
-    // Log router check
-    const routerNode = nodes.find(node =>
-      node.data.tags?.includes('router') ?? node.data.type === 'router'
-    );
-    console.log("Router node found:", routerNode);
+    setIsLoading(true);
 
-    if (!routerNode) {
-      alert("Your workflow must include a Router Agent.");
-      return;
-    }
-
-    // If we get here, just try to switch to chat mode directly
     try {
-      const res = await deployWorkflowModern(workflowIdRef.current, {
-        deployment_name: "test-deployment",
+      // First save the workflow if it hasn't been saved yet or has changes
+      let workflowData = currentWorkflowData;
+      if (!workflowData || hasUnsavedChanges) {
+        const workflow: WorkflowCreateRequest = {
+          name: workflowName,
+          configuration: {
+            agents: nodes.map(node => ({
+              agent_id: node.data.agent.agent_id,
+              agent_type: node.data.agent.agent_type as string,
+              prompt: node.data.prompt,
+              tools: node.data.tools,
+              tags: node.data.tags,
+              position: node.position
+            })),
+            connections: edges.map(edge => {
+              const sourceNode = nodes.find(node => node.id === edge.source);
+              const targetNode = nodes.find(node => node.id === edge.target);
+
+              if (!sourceNode?.data.agent.agent_id || !targetNode?.data.agent.agent_id) {
+                console.warn(`Missing agent ID for connection: ${edge.source} -> ${edge.target}`);
+                return null;
+              }
+
+              return {
+                source_agent_id: sourceNode.data.agent.agent_id,
+                target_agent_id: targetNode.data.agent.agent_id
+              };
+            }).filter((conn): conn is NonNullable<typeof conn> => conn !== null)
+          }
+        };
+
+        workflowData = await createWorkflow(workflow);
+        setCurrentWorkflowData(workflowData);
+        setIsExistingWorkflow(true);
+        workflowIdRef.current = workflowData.workflow_id;
+        updateLastSavedState();
+      }
+
+      // Deploy the workflow
+      const deploymentResponse = await deployWorkflowModern(workflowData.workflow_id, {
+        deployment_name: `${workflowName.toLowerCase().replace(/\s+/g, '-')}-deployment`,
         environment: "production",
-        deployed_by: "test-user",
+        deployed_by: "user",
         runtime_config: {}
       });
+
+      // Update deployment status
+      await checkDeploymentStatus();
+
+      setIsLoading(false);
+
+      // Switch to chat mode for now (this can be removed later if not needed)
       setIsChatMode(true);
       setShowConfigPanel(false);
       setChatMessages([{
@@ -421,9 +528,11 @@ function AgentConfigForm(): JSX.Element {
         text: "Workflow deployed successfully. You can now ask questions.",
         sender: "bot"
       }]);
+
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error deploying workflow:", error);
       alert(`Error: ${(error as Error).message}`);
+      setIsLoading(false);
     }
   };
   // Save workflow
@@ -446,10 +555,20 @@ function AgentConfigForm(): JSX.Element {
           position: node.position
         })),
 
-        connections: edges.map(edge => ({
-          source_agent_id: edge.source,
-          target_agent_id: edge.target
-        }))
+        connections: edges.map(edge => {
+          const sourceNode = nodes.find(node => node.id === edge.source);
+          const targetNode = nodes.find(node => node.id === edge.target);
+
+          if (!sourceNode?.data.agent.agent_id || !targetNode?.data.agent.agent_id) {
+            console.warn(`Missing agent ID for connection: ${edge.source} -> ${edge.target}`);
+            return null;
+          }
+
+          return {
+            source_agent_id: sourceNode.data.agent.agent_id,
+            target_agent_id: targetNode.data.agent.agent_id
+          };
+        }).filter((conn): conn is NonNullable<typeof conn> => conn !== null)
       }
     };
 
@@ -803,7 +922,39 @@ function AgentConfigForm(): JSX.Element {
       <HeaderBottom
         workflowName={workflowName}
         isLoading={isLoading}
-        handleDeployWorkflow={handleDeployWorkflow}
+        onSaveWorkflow={(name: string, _description: string) => {
+          // Update workflow name and description, then save
+          setWorkflowName(name);
+          handleSaveWorkflow();
+          updateLastSavedState();
+        }}
+        onDeployWorkflow={(name: string, _description: string) => {
+          // Update workflow name and description, then deploy
+          setWorkflowName(name);
+          void handleDeployWorkflow();
+        }}
+        // New props for advanced deployment flow
+        isExistingWorkflow={isExistingWorkflow}
+        hasUnsavedChanges={hasUnsavedChanges}
+        deploymentStatus={deploymentStatus}
+        currentWorkflowData={currentWorkflowData}
+        tools={nodes.flatMap(node => node.data.tools || [])}
+        onUpdateExistingWorkflow={() => {
+          // Update existing workflow and deploy
+          if (hasUnsavedChanges) {
+            handleSaveWorkflow();
+            updateLastSavedState();
+          }
+          void handleDeployWorkflow();
+        }}
+        onCreateNewWorkflow={() => {
+          // Reset to new workflow state and open save modal
+          setIsExistingWorkflow(false);
+          setCurrentWorkflowData(null);
+          workflowIdRef.current = uuidv4();
+          // This will trigger the save modal to open for new workflow
+          void handleDeployWorkflow();
+        }}
       />
       <ReactFlowProvider>
         <div className="agent-config-form" ref={reactFlowWrapper}>
@@ -812,10 +963,7 @@ function AgentConfigForm(): JSX.Element {
             <>
               {/* Designer Sidebar */}
               <DesignerSidebar
-                workflowName={workflowName}
                 handleDragStart={handleDragStart}
-                handleDeployWorkflow={handleDeployWorkflow}
-                handleSaveWorkflow={handleSaveWorkflow}
                 handleCreateNewWorkflow={handleCreateNewWorkflow}
                 handleLoadWorkflow={handleLoadWorkflow}
                 handleCreateNewAgent={handleCreateNewAgent}
