@@ -520,14 +520,17 @@ async def verify_email(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Verify user email with token."""
-    try:
-        import uuid
+    import uuid
 
+    test_uuid = uuid.uuid4()
+    test_uuid_str = str(test_uuid)
+
+    try:
         token_uuid = uuid.UUID(verification_data.token)
-    except ValueError:
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid token format",
+            detail=f"Invalid token format: {str(e)}",
         )
 
     # Find user with this verification token
@@ -602,7 +605,8 @@ async def resend_verification_email(
     from app.services.email_service import send_verification_email
 
     name = user.full_name.split()[0] if user.full_name else ""
-    await send_verification_email(user.email, name, str(user.verification_token))
+    token_str = str(user.verification_token)
+    await send_verification_email(user.email, name, token_str)
 
     try:
         await log_user_activity(

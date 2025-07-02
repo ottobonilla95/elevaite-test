@@ -129,6 +129,7 @@ async function refreshAuthApiToken(token: JWT): Promise<JWT> {
     access_token: string;
     refresh_token: string;
     token_type: string;
+    password_change_required?: boolean;
   }
 
   const tokensOrError = (await response.json()) as AuthApiTokenResponse;
@@ -141,14 +142,21 @@ async function refreshAuthApiToken(token: JWT): Promise<JWT> {
     );
   }
 
-  return {
+  const refreshedToken = {
     ...token,
     access_token: tokensOrError.access_token,
     // Default token expiration to 1 hour (3600 seconds)
     expires_at: Math.floor(Date.now() / 1000 + 3600),
     refresh_token: tokensOrError.refresh_token,
     provider: "credentials" as const,
-  };
+  } as JWT & { needsPasswordReset?: boolean };
+
+  // Preserve or update the needsPasswordReset flag from refresh response
+  if (tokensOrError.password_change_required !== undefined) {
+    refreshedToken.needsPasswordReset = tokensOrError.password_change_required;
+  }
+
+  return refreshedToken;
 }
 
 const _config = {

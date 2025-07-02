@@ -131,15 +131,24 @@ export const authConfig = {
             access_token: string;
             refresh_token: string;
             token_type: string;
+            password_change_required?: boolean;
           };
 
-          return {
+          const refreshedToken = {
             ...token,
             access_token: tokensOrError.access_token,
             expires_at: Math.floor(Date.now() / 1000 + 3600),
             refresh_token: tokensOrError.refresh_token,
             provider: "credentials" as const,
           };
+
+          // Preserve or update the needsPasswordReset flag from refresh response
+          if (tokensOrError.password_change_required !== undefined) {
+            refreshedToken.needsPasswordReset =
+              tokensOrError.password_change_required;
+          }
+
+          return refreshedToken;
         }
         throw new Error("Unknown provider");
       } catch (error) {

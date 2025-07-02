@@ -27,7 +27,10 @@ export default function VerifyEmailPage() {
       return;
     }
 
-    verifyEmail(token);
+    // Decode the token in case it was URL encoded
+    const decodedToken = decodeURIComponent(token);
+
+    verifyEmail(decodedToken);
   }, [searchParams]);
 
   const verifyEmail = async (token: string) => {
@@ -45,15 +48,17 @@ export default function VerifyEmailPage() {
 
       const apiUrl = backendUrl.replace("localhost", "127.0.0.1");
 
+      const requestBody = JSON.stringify({
+        token: token,
+      });
+
       const response = await fetch(`${apiUrl}/api/auth/verify-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Tenant-ID": tenantId,
         },
-        body: JSON.stringify({
-          token: token,
-        }),
+        body: requestBody,
       });
 
       if (response.ok) {

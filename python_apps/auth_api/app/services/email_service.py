@@ -64,7 +64,9 @@ async def send_email(
         else:
             # Use SSL
             context = ssl.create_default_context()
-            with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, context=context) as server:
+            with smtplib.SMTP_SSL(
+                settings.SMTP_HOST, settings.SMTP_PORT, context=context
+            ) as server:
                 # Login if credentials are provided
                 if settings.SMTP_USER and settings.SMTP_PASSWORD:
                     server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
@@ -98,7 +100,9 @@ async def send_email(
         return False
 
 
-async def send_verification_email(email: str, name: str, verification_token: str) -> bool:
+async def send_verification_email(
+    email: str, name: str, verification_token: str
+) -> bool:
     """
     Send email verification link to a new user.
 
@@ -110,8 +114,9 @@ async def send_verification_email(email: str, name: str, verification_token: str
     Returns:
         bool: True if email was sent successfully, False otherwise
     """
-    verification_url = f"{settings.FRONTEND_URI}/verify-email?token={verification_token}"
-
+    verification_url = (
+        f"{settings.FRONTEND_URI}/verify-email?token={verification_token}"
+    )
     subject = "Verify your email address"
 
     text_body = f"""
@@ -204,7 +209,9 @@ async def send_password_reset_email(email: str, name: str, reset_token: str) -> 
     return await send_email(email, subject, text_body, html_body)
 
 
-async def send_welcome_email_with_temp_password(email: str, name: str, temp_password: str) -> bool:
+async def send_welcome_email_with_temp_password(
+    email: str, name: str, temp_password: str
+) -> bool:
     """
     Send welcome email with temporary password to a new user.
 
@@ -252,7 +259,9 @@ async def send_welcome_email_with_temp_password(email: str, name: str, temp_pass
     return await send_email(email, subject, text_body, html_body)
 
 
-async def send_password_reset_email_with_new_password(email: str, name: str, new_password: str) -> bool:
+async def send_password_reset_email_with_new_password(
+    email: str, name: str, new_password: str
+) -> bool:
     """
     Send password reset email with a new randomized password.
 
