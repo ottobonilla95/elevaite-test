@@ -326,6 +326,11 @@ async def authenticate_user(
                     print(f"Error verifying temporary password: {e}")
                     # Continue to regular password check
 
+        # Check if account is locked BEFORE attempting password verification
+        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+            print(f"Account is locked for user: {email}")
+            return None, False
+
         # If we get here, check the regular password
         try:
             if not verify_password(password, user.hashed_password):
@@ -356,11 +361,6 @@ async def authenticate_user(
                 return None, False
         except Exception as e:
             print(f"Error verifying password: {e}")
-            return None, False
-
-        # Check if account is locked
-        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
-            print(f"Account is locked for user: {email}")
             return None, False
 
         # Check if account is active
