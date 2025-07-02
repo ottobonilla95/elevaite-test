@@ -108,6 +108,10 @@ export default function ChangePassword(): JSX.Element {
     router.push("/");
   };
 
+  const handleBackToHomepage = (): void => {
+    router.push("/");
+  };
+
   return (
     <div className="reset-password-page-container">
       <div className="auth-fluff-container">
@@ -231,13 +235,22 @@ export default function ChangePassword(): JSX.Element {
 
                 {error ? <div className="error-message">{error}</div> : null}
 
-                <button
-                  className="reset-button"
-                  disabled={isSubmitting}
-                  type="submit"
-                >
-                  {isSubmitting ? "Changing..." : "Change Password"}
-                </button>
+                <div className="button-group">
+                  <button
+                    className="back-button"
+                    type="button"
+                    onClick={handleBackToHomepage}
+                  >
+                    Back to Homepage
+                  </button>
+                  <button
+                    className="reset-button"
+                    disabled={isSubmitting}
+                    type="submit"
+                  >
+                    {isSubmitting ? "Changing..." : "Change Password"}
+                  </button>
+                </div>
               </form>
             </div>
           )}
