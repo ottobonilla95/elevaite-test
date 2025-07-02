@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str = secrets.token_urlsafe(32)
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 90
     ALGORITHM: str = "HS256"
 
     # 32-bytes key for HMAC operations (e.g., CSRF token)
@@ -49,7 +49,7 @@ class Settings(BaseSettings):
         return v
 
     # Trusted hosts
-    ALLOWED_HOSTS: Union[str, List[str]]= ["localhost", "127.0.0.1"]
+    ALLOWED_HOSTS: Union[str, List[str]] = ["localhost", "127.0.0.1"]
 
     @validator("ALLOWED_HOSTS", pre=True)
     def parse_allowed_hosts(cls, v):
