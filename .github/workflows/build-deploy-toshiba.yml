@@ -12,6 +12,7 @@ jobs:
       toshiba_ui_changed: ${{ steps.check.outputs.toshiba_ui_changed }}
       toshiba_backend_changed: ${{ steps.check.outputs.toshiba_backend_changed }}
       toshiba_auth_changed: ${{ steps.check.outputs.toshiba_auth_changed }}
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -20,12 +21,19 @@ jobs:
 
       - name: Fetch develop branch
         run: |
-          git fetch origin develop --depth=2
+          git fetch origin develop --depth=20
 
       - name: Detect Changes
         id: check
         run: |
-          git diff --name-only origin/develop...HEAD > changed_files.txt
+          if git merge-base --is-ancestor origin/develop HEAD; then
+            echo "Using three-dot diff against develop branch..."
+            git diff --name-only origin/develop...HEAD > changed_files.txt            
+          else
+            echo "No common ancestor found. Using full HEAD diff."
+            git diff --name-only HEAD > changed_files.txt
+          fi
+          
           echo "Changed Files:"
           cat changed_files.txt
 
@@ -47,8 +55,11 @@ jobs:
           echo "toshiba_backend_changed=${BACKEND_CHANGED}" >> $GITHUB_OUTPUT
           echo "toshiba_auth_changed=${AUTH_CHANGED}" >> $GITHUB_OUTPUT
 
+          SHOULD_DEPLOY=$([[ "${UI_CHANGED}" == "true" || "${BACKEND_CHANGED}" == "true" || "${AUTH_CHANGED}" == "true" ]] && echo "true" || echo "false")
+          echo "should_deploy=${SHOULD_DEPLOY}" >> $GITHUB_OUTPUT
 
   build-and-push:
+    if: needs.check-changes.outputs.should_deploy == 'true'
     needs: check-changes
     runs-on: ubuntu-latest
     outputs:
@@ -84,8 +95,8 @@ jobs:
             IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-ui"
             docker build \
                 --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
-                --build-arg NEXT_PUBLIC_AUTH_API_URL=https://elevaite-staging.iopex.ai \
-                --build-arg NEXT_PUBLIC_BACKEND_URL=https://elevaite-staging.iopex.ai/api/core/ \
+                --build-arg NEXT_PUBLIC_AUTH_API_URL=https://tgcs-staging.iopex.ai \
+                --build-arg NEXT_PUBLIC_BACKEND_URL=https://tgcs-staging.iopex.ai/api/core/ \
                 -f apps/toshiba/Dockerfile \
                 -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \
                 -t ${IMAGE}:latest \
@@ -138,8 +149,9 @@ jobs:
           TOSHIBA_AUTH_CHANGED: ${{ needs.check-changes.outputs.toshiba_auth_changed }}
 
   deploy-toshiba:
+    if: needs.check-changes.outputs.should_deploy == 'true'
     name: Deploy Toshiba
-    needs: build-and-push
+    needs: [build-and-push, check-changes]
     uses: iopexses/elev8s/.github/workflows/deploy-stage.yaml@reusable-action
     with:
       environment: staging
@@ -154,9 +166,9 @@ jobs:
       ELEV8S_READ_TOKEN: ${{ secrets.ELEV8S_READ_TOKEN }}
 
   comment-pr:
-    needs: deploy-toshiba
+    if: needs.check-changes.outputs.should_deploy == 'true' && github.event_name == 'push'
+    needs: [deploy-toshiba, check-changes]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -200,7 +212,7 @@ jobs:
           ${{ steps.changes.outputs.commit_log }}
           \`\`\`
 
-          🌐 [Test the changes here](https://elevaite-staging.iopex.ai)
+          🌐 [Test the changes here](https://tgcs-staging.iopex.ai)
           "
 
         env:
