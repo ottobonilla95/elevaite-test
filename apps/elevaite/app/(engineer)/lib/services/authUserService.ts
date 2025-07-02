@@ -24,9 +24,10 @@ interface ErrorResponse {
  */
 export async function fetchAuthUsers(): Promise<ExtendedUserObject[]> {
   try {
-    // Use the local auth API
-    const backendUrl = "http://localhost:8000";
-    const response = await fetch(`${backendUrl}/api/auth/users`, {
+    const backendUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
+    const apiUrl = backendUrl.replace("localhost", "127.0.0.1");
+    const response = await fetch(`${apiUrl}/api/auth/users`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -124,10 +125,12 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
     }
 
     // Use environment variable for backend URL with fallback
-    const backendUrl = process.env.NEXT_PUBLIC_NATIVEAUTH_URL;
+    const backendUrl =
+      process.env.NEXT_PUBLIC_NATIVEAUTH_URL ?? "http://localhost:8000";
+    const apiUrl = backendUrl.replace("localhost", "127.0.0.1");
 
     // Call the API to check if the user is an admin
-    const response = await fetch(`${backendUrl}/api/auth/me`, {
+    const response = await fetch(`${apiUrl}/api/auth/me`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${authToken}`,
@@ -191,23 +194,21 @@ export async function resetUserPassword(
     // Use environment variable for backend URL with fallback
     const backendUrl =
       process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
+    const apiUrl = backendUrl.replace("localhost", "127.0.0.1");
 
     // Call the admin password reset endpoint with admin token
-    const response = await fetch(
-      `${backendUrl}/api/auth/admin/reset-password`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({
-          email,
-          new_password: password,
-          is_one_time_password: isOneTimePassword,
-        }),
-      }
-    );
+    const response = await fetch(`${apiUrl}/api/auth/admin/reset-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({
+        email,
+        new_password: password,
+        is_one_time_password: isOneTimePassword,
+      }),
+    });
 
     if (!response.ok) {
       const statusCode = response.status.toString();
