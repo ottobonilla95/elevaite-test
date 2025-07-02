@@ -24,7 +24,7 @@ function PreDeploymentDialog({
     isExistingWorkflow,
     hasChanges
 }: PreDeploymentDialogProps): JSX.Element | null {
-    
+
     if (!isOpen) return null;
 
     // For new workflows, skip this dialog
@@ -53,9 +53,9 @@ function PreDeploymentDialog({
         >
             <div className="pre-deployment-dialog-content">
                 <div className="workflow-info">
-                    <h3 className="workflow-name">"{workflowName}"</h3>
+                    <h3 className="workflow-name">&quot;{workflowName}&quot;</h3>
                     <p className="workflow-status">
-                        {hasChanges 
+                        {hasChanges
                             ? "This workflow has been modified since it was last saved."
                             : "This workflow already exists in your workspace."
                         }
@@ -69,7 +69,7 @@ function PreDeploymentDialog({
                             <h4>Update Existing Workflow</h4>
                         </div>
                         <p className="option-description">
-                            {hasChanges 
+                            {hasChanges
                                 ? "Save your changes and deploy the updated workflow. This will replace the current version."
                                 : "Deploy the existing workflow as-is. No changes will be made to the workflow configuration."
                             }
@@ -105,7 +105,7 @@ function PreDeploymentDialog({
 
                 <div className="dialog-note">
                     <p className="note-text">
-                        💡 <strong>Tip:</strong> If you're experimenting with changes, creating a new workflow 
+                        💡 <strong>Tip:</strong> If you&apos;re experimenting with changes, creating a new workflow
                         allows you to keep both versions for comparison.
                     </p>
                 </div>

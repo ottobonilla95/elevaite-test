@@ -938,7 +938,7 @@ function AgentConfigForm(): JSX.Element {
         hasUnsavedChanges={hasUnsavedChanges}
         deploymentStatus={deploymentStatus}
         currentWorkflowData={currentWorkflowData}
-        tools={nodes.flatMap(node => node.data.tools || [])}
+        tools={nodes.flatMap(node => node.data.tools ?? [])}
         onUpdateExistingWorkflow={() => {
           // Update existing workflow and deploy
           if (hasUnsavedChanges) {

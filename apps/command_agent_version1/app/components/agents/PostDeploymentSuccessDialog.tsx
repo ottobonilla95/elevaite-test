@@ -24,7 +24,7 @@ function PostDeploymentSuccessDialog({
     inferenceUrl,
     tools = []
 }: PostDeploymentSuccessDialogProps): JSX.Element | null {
-    
+
     const [copiedUrl, setCopiedUrl] = useState(false);
 
     if (!isOpen) return null;
@@ -60,7 +60,7 @@ function PostDeploymentSuccessDialog({
                 {/* Success Message */}
                 <div className="success-message">
                     <p className="success-text">
-                        Your workflow <strong>"{workflow.name}"</strong> has been successfully deployed 
+                        Your workflow <strong>&quot;{workflow.name}&quot;</strong> has been successfully deployed
                         and is now available for chat interactions.
                     </p>
                 </div>
@@ -76,7 +76,7 @@ function PostDeploymentSuccessDialog({
                                 <span className="detail-value">{formatDate(deployment.deployed_at)}</span>
                             </div>
                         </div>
-                        
+
                         {deployment.deployed_by && (
                             <div className="detail-item">
                                 <User size={16} className="detail-icon" />
@@ -86,7 +86,7 @@ function PostDeploymentSuccessDialog({
                                 </div>
                             </div>
                         )}
-                        
+
                         <div className="detail-item">
                             <ExternalLink size={16} className="detail-icon" />
                             <div className="detail-content">
@@ -114,7 +114,7 @@ function PostDeploymentSuccessDialog({
                             <span className="summary-value">{workflow.version}</span>
                         </div>
                     </div>
-                    
+
                     {workflow.description && (
                         <div className="workflow-description">
                             <span className="description-label">Description:</span>
