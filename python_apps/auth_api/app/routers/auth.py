@@ -852,6 +852,15 @@ async def reset_password(
         print(f"Error logging password reset activity: {e}")
         # Continue even if we couldn't log the activity
 
+    # Send password change notification
+    try:
+        from app.services.email_service import send_password_changed_notification
+
+        name = user.full_name.split()[0] if user.full_name else ""
+        await send_password_changed_notification(user.email, name)
+    except Exception as e:
+        print(f"Error sending password change notification: {e}")
+
     return {"message": "Password successfully reset"}
 
 
@@ -1141,6 +1150,15 @@ async def change_password(
     except Exception as log_error:
         print(f"Error logging password change activity: {log_error}")
 
+    # Send password change notification
+    try:
+        from app.services.email_service import send_password_changed_notification
+
+        name = current_user.full_name.split()[0] if current_user.full_name else ""
+        await send_password_changed_notification(current_user.email, name)
+    except Exception as e:
+        print(f"Error sending password change notification: {e}")
+
     # Always return success to the user, even if some operations failed
     # The frontend relies on this to continue the flow
     return {"message": "Password successfully changed"}
@@ -1207,6 +1225,16 @@ async def change_password_user(
         )
 
         logger.info(f"Password successfully changed for user {user_email}")
+
+        # Send password change notification
+        try:
+            from app.services.email_service import send_password_changed_notification
+
+            name = current_user.full_name.split()[0] if current_user.full_name else ""
+            await send_password_changed_notification(current_user.email, name)
+        except Exception as e:
+            logger.error(f"Error sending password change notification: {e}")
+
         return {"message": "Password successfully changed"}
 
     except Exception as e:
@@ -1513,6 +1541,15 @@ async def admin_reset_password(
     await send_password_reset_email_with_new_password(
         user.email, name, reset_data.new_password
     )
+
+    # Send password change notification (only for permanent password changes)
+    if not reset_data.is_one_time_password:
+        try:
+            from app.services.email_service import send_password_changed_notification
+
+            await send_password_changed_notification(user.email, name)
+        except Exception as e:
+            logger.error(f"Error sending password change notification: {e}")
 
     user_dict = dict(user.__dict__)
     user_id_value = user_dict["id"]

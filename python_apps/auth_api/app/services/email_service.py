@@ -74,17 +74,17 @@ async def send_email(
                 # Send email
                 server.sendmail(sender_email, recipient, message.as_string())
 
-            logger.info(
-                f"Email sent to {recipient}: {subject}",
-                extra={
-                    "recipient": recipient,
-                    "subject": subject,
-                    "sender": sender_email,
-                    "smtp_host": settings.SMTP_HOST,
-                    "smtp_port": settings.SMTP_PORT,
-                },
-            )
-            return True
+        logger.info(
+            f"Email sent to {recipient}: {subject}",
+            extra={
+                "recipient": recipient,
+                "subject": subject,
+                "sender": sender_email,
+                "smtp_host": settings.SMTP_HOST,
+                "smtp_port": settings.SMTP_PORT,
+            },
+        )
+        return True
     except Exception as e:
         logger.error(
             f"Failed to send email to {recipient}: {str(e)}",
@@ -301,6 +301,49 @@ The iOPEX Team"""
     <p>Here is your temporary password: <strong><code>{escaped_password}</code></strong></p>
     <p>Please <a href="{login_url}">log in</a> with this temporary password. You will be prompted to change your password after your first login.</p>
     <p>If you did not request a password reset, please ignore this email.</p>
+    <p>Best regards,<br>The iOPEX Team</p>
+</body>
+</html>"""
+
+    return await send_email(email, subject, text_body, html_body)
+
+
+async def send_password_changed_notification(email: str, name: str) -> bool:
+    """
+    Send password change notification to a user.
+
+    Args:
+        email: User's email address
+        name: User's name (first name or full name)
+
+    Returns:
+        bool: True if email was sent successfully, False otherwise
+    """
+    reset_url = f"{settings.FRONTEND_URI}/forgot-password"
+
+    subject = "Your ElevAIte Password Has Been Changed"
+
+    text_body = f"""Hello {name},
+
+Your password for ElevAIte has been successfully changed.
+
+If you did not make this change, please reset your password immediately and contact support.
+
+You can reset your password at: {reset_url}
+
+For support, please contact us at support@iopex.com
+
+Best regards,
+The iOPEX Team"""
+
+    html_body = f"""<html>
+<body>
+    <h2>Your ElevAIte Password Has Been Changed</h2>
+    <p>Hello {name},</p>
+    <p>Your password for ElevAIte has been successfully changed.</p>
+    <p><strong>If you did not make this change, please reset your password immediately and contact support.</strong></p>
+    <p>You can <a href="{reset_url}">reset your password here</a> if this change was not authorized.</p>
+    <p>For support, please contact us at <a href="mailto:support@iopex.com">support@iopex.com</a></p>
     <p>Best regards,<br>The iOPEX Team</p>
 </body>
 </html>"""
