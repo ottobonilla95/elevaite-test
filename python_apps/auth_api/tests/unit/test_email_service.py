@@ -12,6 +12,7 @@ from app.services.email_service import (
     send_verification_email,
     send_welcome_email_with_temp_password,
     send_password_reset_email_with_new_password,
+    send_password_changed_notification,
 )
 
 
@@ -175,6 +176,40 @@ class TestEmailFunctions:
         assert "NewPass123!" in call_args[0][2]
         # Fourth argument is the HTML body
         assert "NewPass123!" in call_args[0][3]
+
+        # Verify result
+        assert result is True
+
+    @patch("app.services.email_service.send_email")
+    async def test_send_password_changed_notification(self, mock_send_email):
+        """Test sending a password change notification."""
+        # Setup mock
+        mock_send_email.return_value = True
+
+        # Call function
+        result = await send_password_changed_notification(
+            email="user@example.com", name="Test User"
+        )
+
+        # Verify send_email was called
+        assert mock_send_email.called
+
+        # Check arguments
+        call_args = mock_send_email.call_args
+        # First argument is the recipient email
+        assert call_args[0][0] == "user@example.com"
+        # Second argument is the subject
+        assert call_args[0][1] == "Your ElevAIte Password Has Been Changed"
+        # Third argument is the text body
+        assert (
+            "Your password for ElevAIte has been successfully changed"
+            in call_args[0][2]
+        )
+        # Fourth argument is the HTML body
+        assert (
+            "Your password for ElevAIte has been successfully changed"
+            in call_args[0][3]
+        )
 
         # Verify result
         assert result is True
