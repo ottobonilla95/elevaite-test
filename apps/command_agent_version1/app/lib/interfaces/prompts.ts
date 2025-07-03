@@ -1,9 +1,11 @@
 export enum PromptInputTypes {
-  DocumentHeader = "documentHeader",
+/*   DocumentHeader = "documentHeader",
   LineItemHeader = "lineItemHeader",
   UserFeedback = "userFeedback",
   LineItems = "lineItems",
-  ExpectedOutput = "expectedOutput",
+  ExpectedOutput = "expectedOutput", */
+  System = "system",
+  UserInstructions = "userInstructions",
 }
 
 export interface UploadFileResponseObject {
@@ -40,13 +42,13 @@ export type DeployResponse = "Done";
 
 export interface PromptInputItem {
   id: string;
-  type: PromptInputTypes;
+  type?: PromptInputTypes | string;
   label?: string;
   prompt: string;
   values: string[];
 }
 
-export type PromptInputVariableEngineerType = "String" | "Text" | "Textarea";
+export type PromptInputVariableEngineerType = "String" | "Array of Strings" | "JSON" | "JSON to HTML" | "Markdown to HTML";
 
 export interface PromptInputVariableEngineerItem {
   id: string;
@@ -55,7 +57,8 @@ export interface PromptInputVariableEngineerItem {
   type: PromptInputVariableEngineerType;
   required: boolean;
   json: boolean;
-  definition: string;
+  definition?: string;
+  values: string[];
   saved?: boolean,
 }
 

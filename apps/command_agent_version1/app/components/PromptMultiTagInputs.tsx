@@ -4,9 +4,10 @@ interface PromptMultiTagInputsProps {
   placeholder?: string;
   values?: string[];
   onChange?: (values: string[]) => void;
+  disabled?: boolean;
 }
 
-const PromptMultiTagInputs = ({placeholder, values, onChange}: PromptMultiTagInputsProps) => {
+const PromptMultiTagInputs = ({placeholder, values, onChange, disabled}: PromptMultiTagInputsProps) => {
   const [inputs, setInputs] = useState<string[]>(values || []);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -75,6 +76,7 @@ const PromptMultiTagInputs = ({placeholder, values, onChange}: PromptMultiTagInp
 				onChange={handleInputChange}
 				onKeyDown={handleInputKeyDown}
 				placeholder={inputs.length === 0 ? placeholder : ""}
+				disabled={disabled}
 			/>
 		</div>
 	</div>

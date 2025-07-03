@@ -2,32 +2,58 @@ import { CommonCheckbox, CommonSelect, CommonSelectOption, SimpleInput, SimpleTe
 import { usePrompt } from "../ui/contexts/PromptContext";
 import { PromptInputVariableEngineerItem, PromptInputVariableEngineerType } from "../lib/interfaces";
 import { useEffect, useState } from "react";
+import PromptMultiTagInputs from "./PromptMultiTagInputs";
 
 type PromptInputVariableEngineerProps = PromptInputVariableEngineerItem;
 
 const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) => {
 	const [name, setName] = useState("");
 	const [displayName, setDisplayName] = useState("");
-	const [type, setType] = useState<PromptInputVariableEngineerType>("Text");
+	const [type, setType] = useState<PromptInputVariableEngineerType>("String");
 	const [required, setRequired] = useState(true);
 	const [json, setJson] = useState(true);
 	const [definition, setDefinition] = useState("");
-	const allFilled = name && displayName && definition;
+	const [values, setValues] = useState<string[]>([]);
+	const allFilled = name && displayName;
 	const [edit, setEdit] = useState(false);
+
+	const promptContext = usePrompt();
 
 	useEffect(() => {
 		console.log('Required: ', required, 'JSON: ', json);
 	}, [required, json]);
 
-	const promptContext = usePrompt();
+	useEffect(() => {
+		if (!edit) {
+			const selectedVariable = promptContext.promptInputVariablesEngineer.find(variable => variable.id === props.id);
+			setName(selectedVariable?.name || "");
+			setDisplayName(selectedVariable?.displayName || "");
+			setType(selectedVariable?.type || "String");
+			setRequired(selectedVariable?.required ?? true);
+			setJson(selectedVariable?.json ?? true);
+			setDefinition(selectedVariable?.definition || "");
+			setValues(selectedVariable?.values || []);
+		}
+	}, [promptContext.promptInputVariablesEngineer]);
 
 	const variableTypes: CommonSelectOption[] = [
 		{ value: 'String'},
-		{ value: 'Text'},
-		{ value: 'TeaxtArea'},
+		{ value: 'Array of Strings'},
+		{ value : 'JSON' },
+		{ value : 'JSON to HTML' },
+		{ value : 'Markdown to HTML' }
 	];
 
 	const handleSaveVariable = () => {
+		let updatedDefinition = definition;
+    	let updatedValues = values;
+
+		if (type === "Array of Strings") {
+			updatedDefinition = "";
+		} else if (type === "String") {
+			updatedValues = [];
+		}
+
 		const updates: PromptInputVariableEngineerItem = {
 			id: props.id,
 			name,
@@ -35,10 +61,14 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 			type,
 			required,
 			json,
-			definition,
+			definition: updatedDefinition,
+        	values: updatedValues,
 			saved: true,
 		}
 		promptContext.savePromptInputVariableEngineer(props.id, updates);
+
+		setDefinition(updatedDefinition);
+    	setValues(updatedValues);
 	}
 
 	const handleEditVariable = () => {
@@ -50,22 +80,13 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 		const selectedVariable = promptContext.promptInputVariablesEngineer.find(variable => variable.id === props.id);
 		setName(selectedVariable?.name || "");
 		setDisplayName(selectedVariable?.displayName || "");
-		setType(selectedVariable?.type || "Text");
+		setType(selectedVariable?.type || "String");
 		setRequired(selectedVariable?.required ?? true);
 		setJson(selectedVariable?.json ?? true);
 		setDefinition(selectedVariable?.definition || "");
+		setValues(selectedVariable?.values || []);
 
-		const updates: PromptInputVariableEngineerItem = {
-			id: props.id,
-			name: selectedVariable?.name || "",
-			displayName: selectedVariable?.displayName || "",
-			type: selectedVariable?.type || "Text",
-			required: selectedVariable?.required ?? true,
-			json: selectedVariable?.json ?? true,
-			definition: selectedVariable?.definition || "",
-			saved: true,
-		}
-		promptContext.savePromptInputVariableEngineer(props.id, updates);
+		promptContext.savePromptInputVariableEngineer(props.id, { saved: true });
 	}
 
 	const handleRemoveVariable = () => {
@@ -117,7 +138,12 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 						</svg>
 					</button>
 				</div>
-				<SimpleTextarea disabled wrapperClassName="prompt-input" value={definition} placeholder="{header / Customer / Product /Quantity / Invoice Amount}" useCommonStyling onChange={() => console.log("")} style={{filter: "none"}}></SimpleTextarea>
+				{type === "String" && (
+					<SimpleTextarea disabled wrapperClassName="prompt-input" value={definition} placeholder="{header / Customer / Product /Quantity / Invoice Amount}" useCommonStyling onChange={() => console.log("")} style={{filter: "none"}}></SimpleTextarea>
+				)}
+				{type === "Array of Strings" && (
+					<PromptMultiTagInputs disabled values={values} onChange={setValues}/>
+				)}
 			</div>
 		) : (
 			<div className="card-variable card-variable-new rounded-xl" style={{border: '1px solid #E2E8ED'}}>
@@ -184,9 +210,16 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 							</div>
 							<div>
 								<label className="inline-block text-sm font-medium mb-2" htmlFor="variable-define-variable">Define Variable</label>
-								<div className="prompt-input-container prompt-textarea-container no-margin">
-									<SimpleTextarea wrapperClassName="prompt-input" value={definition} placeholder="{header / Customer / Product /Quantity / Invoice Amount}" useCommonStyling onChange={handleDefinitionChange}></SimpleTextarea>
-								</div>
+								{type === "String" && (
+									<div className="prompt-input-container prompt-textarea-container no-margin">
+										<SimpleTextarea wrapperClassName="prompt-input" value={definition} placeholder="{header / Customer / Product /Quantity / Invoice Amount}" useCommonStyling onChange={handleDefinitionChange}></SimpleTextarea>
+									</div>
+								)}
+								{type === "Array of Strings" && (
+									<div className="prompt-input-container prompt-multi-tag-container no-margin rounded-md">
+										<PromptMultiTagInputs values={values} onChange={setValues}/>
+									</div>
+								)}
 							</div>
 						</div>
 					</div>

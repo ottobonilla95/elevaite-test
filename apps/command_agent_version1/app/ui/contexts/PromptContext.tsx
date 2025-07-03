@@ -21,7 +21,7 @@ export enum LoadingKeys {
 // STATICS
 
 const defaultPageValue: number | null = null;
-const defaultPromptInputs: PromptInputItem[] = Object.values(PromptInputTypes).slice(0, 3).map((type) => ({
+const defaultPromptInputs: PromptInputItem[] = Object.values(PromptInputTypes)/* .slice(0, 2) */.map((type) => ({
   id: crypto.randomUUID().toString(),
   type: type as PromptInputTypes,
   prompt: "",
@@ -77,7 +77,7 @@ export interface PromptContextStructure {
   promptInputVariablesEngineer: PromptInputVariableEngineerItem[],
   setPromptInputVariablesEngineer: (variables: PromptInputVariableEngineerItem[]) => void,
   addPromptInputVariableEngineer: () => void,
-  savePromptInputVariableEngineer: (id: string, updates: PromptInputVariableEngineerItem) => void,
+  savePromptInputVariableEngineer: (id: string, updates: Partial<PromptInputVariableEngineerItem>) => void,
   editPromptInputVariableEngineer: (id: string) => void,
   removePromptInputVariableEngineer: (id: string) => void
 }
@@ -181,11 +181,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     });
   }
 
-  useEffect(() => {
-	console.log("Prompt Input Variables Engineer", promptInputVariablesEngineer);
-  }, [promptInputVariablesEngineer]);
-
-  function savePromptInputVariableEngineer(id: string, updates: PromptInputVariableEngineerItem ) {
+  function savePromptInputVariableEngineer(id: string, updates: Partial<PromptInputVariableEngineerItem> ) {
 	setPromptInputVariablesEngineer((current) =>
       current.map(input => (input.id === id ? { ...input, ...updates } : input))
     );
@@ -204,7 +200,6 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   function addPromptInput(): void {
     const newPromptInput = {
       id: crypto.randomUUID().toString(),
-      type: PromptInputTypes.DocumentHeader,
       prompt: "",
       values: []
     }

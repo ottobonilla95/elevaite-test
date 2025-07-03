@@ -12,17 +12,23 @@ const PromptToast = ({ data }) => (
 );
 
 function PromptFileUploadModal() {
-	const fileTypes = ["PDF"];
+	const fileTypes = ["PDF", "JPG", "PNG"];
 	const promptsContext = usePrompt();
 
 	const handleChange = (newFile: File) => {
 		promptsContext.setFile(newFile[0]);
 	};
 
+	let isImage = false;
+
 	const handleUpload = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
 		e.preventDefault();
 
-		const data = await promptsContext.fileUpload(true, promptsContext.file as File, false);
+		if (promptsContext.file && promptsContext.file.type !== "application/pdf") {
+			isImage = true;
+		}
+
+		const data = await promptsContext.fileUpload(true, promptsContext.file as File, isImage);
 		const finalData = await promptsContext.processCurrentPage();
 		console.log("File uploaded:", data);
 		console.log("Processed Current Page:", finalData);

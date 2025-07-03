@@ -6,6 +6,7 @@ import { PromptInput } from "./PromptInput";
 import PromptLoading from "./PromptLoading";
 import PromptRightColToggleVisilityStatus from "./PromptRightColToggleVisilityStatus";
 import PromptInputVariableEngineer from "./PromptInputVariableEngineer";
+import { PromptInputEngineer } from "./PromptInputEngineer";
 
 function PromptRightSidebarEngineer() {
 	const [activeTab, setActiveTab] = useState("tab1"); //variables
@@ -121,11 +122,11 @@ function PromptRightSidebarEngineer() {
 								<PromptRightColToggleVisilityStatus isColExpanded={promptContext.isRightColPromptInputsColExpanded} toggleColStatus={promptContext.setIsRightColPromptInputsColExpanded} />
 							</div>
 						</div>
-						<div className="tab-panels flex flex-1 text-sm w-full rounded-b-xl overflow-auto">
+						<div className="tab-panels flex flex-1 text-sm w-full rounded-b-xl">
 							{activeTab === "tab1" && (
 								<div className="tab-panel flex flex-col flex-grow">
 									<div className="tab-content p-4">
-										{promptContext.promptInputs.map(item => <PromptInput key={item.id} {...item} /> )}
+										{promptContext.promptInputs.map(item => <PromptInputEngineer key={item.id} {...item} /> )}
 									</div>
 								</div>
 							)}
