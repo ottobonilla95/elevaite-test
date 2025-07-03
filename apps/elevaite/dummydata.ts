@@ -333,7 +333,7 @@ export function getApplications(
           icon: ApplicationIcons.applications.analytics.src,
           description: "Gain actionable insights and feedback analytics to monitor Media Plan Co-pilot effectiveness and drive performance optimization.",
           iconAlt: ApplicationIcons.applications.analytics.alt,
-          title: "Agentic AI Session Analytics Dashboard",
+          title: "Agentic AI Session Analytics",
           link: appLinks.mediaAnalytics[env],
           id: "mediaAnalytics",
           miscLabel: "Version 1.0",
