@@ -122,7 +122,7 @@ async def send_verification_email(
     text_body = f"""
     Hello {name},
 
-    Thank you for registering with elevAIte. Please verify your email address by clicking the link below:
+    Thank you for registering with ElevAIte. Please verify your email address by clicking the link below:
 
     {verification_url}
 
@@ -137,9 +137,9 @@ async def send_verification_email(
     html_body = f"""
     <html>
     <body>
-        <h2>Welcome to elevAIte!</h2>
+        <h2>Welcome to ElevAIte!</h2>
         <p>Hello {name},</p>
-        <p>Thank you for registering with elevAIte. Please verify your email address by clicking the button below:</p>
+        <p>Thank you for registering with ElevAIte. Please verify your email address by clicking the button below:</p>
         <p>
             <a href="{verification_url}" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">
                 Verify Email
@@ -225,12 +225,12 @@ async def send_welcome_email_with_temp_password(
     """
     login_url = f"{settings.FRONTEND_URI}/login"
 
-    subject = "Welcome to elevAIte - Your Temporary Password"
+    subject = "Welcome to ElevAIte - Your Temporary Password"
 
     text_body = f"""
     Hello {name},
 
-    Welcome to elevAIte! Your account has been created successfully.
+    Welcome to ElevAIte! Your account has been created successfully.
 
     Here is your temporary password: {temp_password}
 
@@ -246,7 +246,7 @@ async def send_welcome_email_with_temp_password(
     html_body = f"""
     <html>
     <body>
-        <h2>Welcome to elevAIte!</h2>
+        <h2>Welcome to ElevAIte!</h2>
         <p>Hello {name},</p>
         <p>Your account has been created successfully.</p>
         <p>Here is your temporary password: <strong><code>{escaped_password}</code></strong></p>
@@ -275,40 +275,34 @@ async def send_password_reset_email_with_new_password(
     """
     login_url = f"{settings.FRONTEND_URI}/login"
 
-    subject = "Your Password Has Been Reset"
+    subject = "Your New Password to ElevAIte"
 
-    text_body = f"""
-    Hello {name},
+    text_body = f"""Hello {name},
 
-    Your password has been reset as requested. Here is your new temporary password:
+You requested a new password for your ElevAIte account.
 
-    {new_password}
+Here is your temporary password: {new_password}
 
-    Please log in at {login_url} with this temporary password. You will be prompted to change your password after your first login.
+Please log in at {login_url} with this temporary password. You will be prompted to change your password after your first login.
 
-    If you did not request a password reset, please contact support immediately.
+If you did not request a password reset, please ignore this email.
 
-    Best regards,
-    The iOPEX Team
-    """
+Best regards,
+The iOPEX Team"""
 
     # Escape the password for HTML to prevent rendering issues
     escaped_password = html.escape(new_password)
 
-    html_body = f"""
-    <html>
-    <body>
-        <h2>Password Reset Completed</h2>
-        <p>Hello {name},</p>
-        <p>Your password has been reset as requested. Here is your new temporary password:</p>
-        <p style="background-color: #f5f5f5; padding: 10px; font-family: monospace; font-size: 16px; border: 1px solid #ddd; border-radius: 4px;">
-            <code>{escaped_password}</code>
-        </p>
-        <p>Please <a href="{login_url}">log in</a> with this temporary password. You will be prompted to change your password after your first login.</p>
-        <p>If you did not request a password reset, please contact support immediately.</p>
-        <p>Best regards,<br>The iOPEX Team</p>
-    </body>
-    </html>
-    """
+    html_body = f"""<html>
+<body>
+    <h2>Your New Password to ElevAIte</h2>
+    <p>Hello {name},</p>
+    <p>You requested a new password for your ElevAIte account.</p>
+    <p>Here is your temporary password: <strong><code>{escaped_password}</code></strong></p>
+    <p>Please <a href="{login_url}">log in</a> with this temporary password. You will be prompted to change your password after your first login.</p>
+    <p>If you did not request a password reset, please ignore this email.</p>
+    <p>Best regards,<br>The iOPEX Team</p>
+</body>
+</html>"""
 
     return await send_email(email, subject, text_body, html_body)
