@@ -13,8 +13,7 @@ import type {
 	ChatCompletionToolParam,
 } from "./interfaces";
 import { toolToOpenAISchema } from "./utils";
-
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8000/";
+import { BACKEND_URL } from "./constants";
 
 // Comprehensive tools API
 export async function fetchAllToolsNew(

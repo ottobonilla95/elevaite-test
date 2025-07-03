@@ -1,6 +1,5 @@
 import { type PromptResponse, type PromptCreate, type PromptUpdate } from "../interfaces";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { BACKEND_URL } from "../constants";
 
 // Type guards for prompt responses
 function isPromptResponse(data: unknown): data is PromptResponse {
