@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
-import { redirect } from "next/navigation";
+import { logout } from "../lib/actions";
 
 // Define a global variable to store the timeout ID
 declare global {
@@ -102,7 +102,7 @@ export function useSessionValidation(): {
       if (!response.ok) {
         // Only log out if we get a 401 Unauthorized
         if (response.status === 401) {
-          redirect("/login");
+          await logout();
           return false;
         }
         return true; // For other errors, assume valid to prevent excessive logouts
@@ -122,7 +122,7 @@ export function useSessionValidation(): {
           data.reason === "user_not_found" ||
           data.reason === "user_inactive"
         ) {
-          redirect("/login");
+          await logout();
           return false;
         }
         return true; // For other reasons, assume valid to prevent excessive logouts

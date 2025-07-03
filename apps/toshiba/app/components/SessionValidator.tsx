@@ -2,8 +2,8 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { redirect } from "next/navigation";
 import { useSessionValidation } from "../hooks/useSessionValidation";
+import { logout } from "../lib/actions";
 
 export function SessionValidator({
   children,
@@ -40,8 +40,7 @@ export function SessionValidator({
         const isValid = await checkSession();
 
         if (!isValid) {
-          // Use signOut to clear the session and redirect to login
-          redirect("/login");
+          await logout();
         }
       } catch (error) {
         // Fail silently
