@@ -37,12 +37,12 @@ function WorkflowSaveModal({
             setDescription(initialDescription);
             setErrors({});
         }
-    }, [isOpen, initialName, initialDescription]);
+    }, [initialName, initialDescription]);
 
     // Validation
     const validateForm = (): boolean => {
         const newErrors: { name?: string; description?: string } = {};
-        
+
         if (!name.trim()) {
             newErrors.name = "Workflow name is required";
         } else if (name.trim().length < 3) {
@@ -61,6 +61,7 @@ function WorkflowSaveModal({
 
     const handleSave = (): void => {
         if (!validateForm()) return;
+        console.log("AND THE NAME IS: ", name.trim());
         onSave(name.trim(), description.trim());
     };
 
@@ -90,11 +91,11 @@ function WorkflowSaveModal({
                             {mode === "save" ? "Save Workflow" : mode === "deploy" ? "Deploy Workflow" : "Save & Deploy Workflow"}
                         </h2>
                         <p className="modal-subtitle">
-                            {mode === "save" 
-                                ? "Save your workflow for later use" 
-                                : mode === "deploy" 
-                                ? "Deploy your workflow to make it available for chat"
-                                : "Save your workflow and optionally deploy it"
+                            {mode === "save"
+                                ? "Save your workflow for later use"
+                                : mode === "deploy"
+                                    ? "Deploy your workflow to make it available for chat"
+                                    : "Save your workflow and optionally deploy it"
                             }
                         </p>
                     </div>
@@ -118,13 +119,13 @@ function WorkflowSaveModal({
                             id="workflow-name"
                             type="text"
                             value={name}
-                            onChange={(e) => setName(e.target.value)}
+                            onChange={(e) => { setName(e.target.value) }}
                             placeholder="Enter workflow name..."
                             className={`form-input ${errors.name ? 'error' : ''}`}
                             disabled={isLoading}
                             maxLength={50}
                         />
-                        {errors.name && <span className="error-message">{errors.name}</span>}
+                        {errors.name ? <span className="error-message">{errors.name}</span> : null}
                         <div className="character-count">
                             {name.length}/50
                         </div>
@@ -161,7 +162,7 @@ function WorkflowSaveModal({
                     >
                         Cancel
                     </button>
-                    
+
                     <div className="action-buttons">
                         {(mode === "save" || mode === "both") && (
                             <button
@@ -174,7 +175,7 @@ function WorkflowSaveModal({
                                 {isLoading ? "Saving..." : "Save"}
                             </button>
                         )}
-                        
+
                         {(mode === "deploy" || mode === "both") && (
                             <button
                                 onClick={handleDeploy}

@@ -553,7 +553,7 @@ function AgentConfigForm(): JSX.Element {
 		}
 	};
 	// Save workflow
-	const handleSaveWorkflow = () => {
+	const handleSaveWorkflow = (_workflowName?: string, _description?: string) => {
 		if (nodes.length === 0) {
 			alert("Please add at least one agent to your workflow before saving.");
 			return;
@@ -561,7 +561,8 @@ function AgentConfigForm(): JSX.Element {
 
 		const workflow: WorkflowCreateRequest = {
 			// workflowId: workflowIdRef.current,
-			name: workflowName,
+			name: _workflowName ?? workflowName,
+			description: _description ?? "",
 			configuration: {
 				agents: nodes.map(node => ({
 					agent_id: node.data.agent.agent_id,
@@ -947,7 +948,7 @@ function AgentConfigForm(): JSX.Element {
 				onSaveWorkflow={(name: string, _description: string) => {
 					// Update workflow name and description, then save
 					setWorkflowName(name);
-					handleSaveWorkflow();
+					handleSaveWorkflow(name, _description);
 					updateLastSavedState();
 				}}
 				onDeployWorkflow={(name: string, _description: string) => {
