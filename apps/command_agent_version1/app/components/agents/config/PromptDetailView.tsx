@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, Save, Copy } from "lucide-react";
+import { ArrowLeft, PenLine } from "lucide-react";
 import { type PromptResponse, type PromptUpdate, type PromptCreate } from "../../../lib/interfaces";
 import { usePrompts } from "../../../ui/contexts/PromptsContext";
 
@@ -9,6 +9,7 @@ interface PromptDetailViewProps {
     prompt: PromptResponse;
     onBack: () => void;
     disabledFields: boolean;
+    setDisabledFields: (disabled: boolean) => void;
 }
 
 function PromptDetailView({ prompt, onBack, disabledFields }: PromptDetailViewProps): JSX.Element {

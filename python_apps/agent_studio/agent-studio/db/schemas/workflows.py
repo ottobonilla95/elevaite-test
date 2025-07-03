@@ -1,11 +1,20 @@
-
 import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Literal, Any
+from enum import Enum
 
 from pydantic import BaseModel, ConfigDict
 
 from .agents import AgentResponse
+
+
+class ConnectionType(str, Enum):
+    DEFAULT = "default"
+    CONDITIONAL = "conditional"
+    NOTIFICATION = "notification"
+    DELAY = "delay"
+    ACTION = "action"
+
 
 class WorkflowBase(BaseModel):
     name: str
@@ -16,8 +25,10 @@ class WorkflowBase(BaseModel):
     is_active: bool = True
     tags: Optional[List[str]] = None
 
+
 class WorkflowCreate(WorkflowBase):
     pass
+
 
 class WorkflowUpdate(BaseModel):
     name: Optional[str] = None
@@ -26,6 +37,7 @@ class WorkflowUpdate(BaseModel):
     configuration: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
     tags: Optional[List[str]] = None
+
 
 class WorkflowInDB(WorkflowBase):
     model_config = ConfigDict(from_attributes=True)
@@ -37,10 +49,12 @@ class WorkflowInDB(WorkflowBase):
     is_deployed: bool
     deployed_at: Optional[datetime] = None
 
+
 class WorkflowResponse(WorkflowInDB):
     workflow_agents: List["WorkflowAgentResponse"] = []
     workflow_connections: List["WorkflowConnectionResponse"] = []
     workflow_deployments: List["WorkflowDeploymentResponse"] = []
+
 
 class WorkflowAgentBase(BaseModel):
     workflow_id: uuid.UUID
@@ -50,8 +64,10 @@ class WorkflowAgentBase(BaseModel):
     node_id: str
     agent_config: Optional[Dict[str, Any]] = None
 
+
 class WorkflowAgentCreate(WorkflowAgentBase):
     pass
+
 
 class WorkflowAgentUpdate(BaseModel):
     position_x: Optional[int] = None
@@ -59,34 +75,40 @@ class WorkflowAgentUpdate(BaseModel):
     node_id: Optional[str] = None
     agent_config: Optional[Dict[str, Any]] = None
 
+
 class WorkflowAgentInDB(WorkflowAgentBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     added_at: datetime
 
+
 class WorkflowAgentResponse(WorkflowAgentInDB):
     agent: AgentResponse
+
 
 class WorkflowConnectionBase(BaseModel):
     workflow_id: uuid.UUID
     source_agent_id: uuid.UUID
     target_agent_id: uuid.UUID
-    connection_type: str = "default"
+    connection_type: ConnectionType = ConnectionType.DEFAULT
     conditions: Optional[Dict[str, Any]] = None
     priority: int = 0
     source_handle: Optional[str] = None
     target_handle: Optional[str] = None
 
+
 class WorkflowConnectionCreate(WorkflowConnectionBase):
     pass
 
+
 class WorkflowConnectionUpdate(BaseModel):
-    connection_type: Optional[str] = None
+    connection_type: Optional[ConnectionType] = None
     conditions: Optional[Dict[str, Any]] = None
     priority: Optional[int] = None
     source_handle: Optional[str] = None
     target_handle: Optional[str] = None
+
 
 class WorkflowConnectionInDB(WorkflowConnectionBase):
     model_config = ConfigDict(from_attributes=True)
@@ -94,9 +116,11 @@ class WorkflowConnectionInDB(WorkflowConnectionBase):
     id: int
     created_at: datetime
 
+
 class WorkflowConnectionResponse(WorkflowConnectionInDB):
     source_agent: AgentResponse
     target_agent: AgentResponse
+
 
 class WorkflowDeploymentBase(BaseModel):
     workflow_id: uuid.UUID
@@ -105,20 +129,23 @@ class WorkflowDeploymentBase(BaseModel):
     deployed_by: Optional[str] = None
     runtime_config: Optional[Dict[str, Any]] = None
 
+
 class WorkflowDeploymentCreate(WorkflowDeploymentBase):
     pass
 
-class WorkflowDeploymentRequest(BaseModel):
 
+class WorkflowDeploymentRequest(BaseModel):
     environment: str = "production"
     deployment_name: str
     deployed_by: Optional[str] = None
     runtime_config: Optional[Dict[str, Any]] = None
 
+
 class WorkflowDeploymentUpdate(BaseModel):
     status: Optional[Literal["active", "inactive", "failed"]] = None
     runtime_config: Optional[Dict[str, Any]] = None
     last_error: Optional[str] = None
+
 
 class WorkflowDeploymentInDB(WorkflowDeploymentBase):
     id: int
@@ -133,8 +160,10 @@ class WorkflowDeploymentInDB(WorkflowDeploymentBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class WorkflowDeploymentResponse(WorkflowDeploymentInDB):
     workflow: WorkflowInDB
+
 
 class WorkflowExecutionRequest(BaseModel):
     workflow_id: Optional[uuid.UUID] = None
@@ -143,11 +172,13 @@ class WorkflowExecutionRequest(BaseModel):
     chat_history: Optional[List[Dict[str, str]]] = None
     runtime_overrides: Optional[Dict[str, Any]] = None
 
+
 class WorkflowStreamExecutionRequest(BaseModel):
     deployment_name: str
     query: str
     chat_history: Optional[List[Dict[str, str]]] = None
     runtime_overrides: Optional[Dict[str, Any]] = None
+
 
 class WorkflowExecutionResponse(BaseModel):
     status: str

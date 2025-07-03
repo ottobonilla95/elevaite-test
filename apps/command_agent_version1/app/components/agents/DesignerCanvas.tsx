@@ -154,6 +154,18 @@ function DesignerCanvas({
 		[setNodes]
 	);
 
+	// Debug: Monitor edge data changes
+	useEffect(() => {
+		console.log("Current edges with data:", edges.map(edge => ({
+			id: edge.id,
+			source: edge.source,
+			target: edge.target,
+			actionType: edge.data?.actionType,
+			type: edge.type,
+			fullData: edge.data
+		})));
+	}, [edges]);
+
 	// Handle edge changes
 	const onEdgesChange = useCallback(
 		(changes: EdgeChange[]) => {
@@ -212,15 +224,79 @@ function DesignerCanvas({
 		[onNodeSelect]
 	);
 
-	// Handle clicking on an edge to change action type
+	// Handle right-clicking on an edge for context menu
+	const onEdgeContextMenu = useCallback(
+		(event: React.MouseEvent, edge: Edge): void => {
+			event.preventDefault();
+
+			// If edge has no label, show "Add Label" option
+			if (!edge.data?.actionType) {
+				// You could implement a context menu here
+				// For now, just add the label directly
+				setEdges(eds =>
+					eds.map(e => {
+						if (e.id === edge.id) {
+							return {
+								...e,
+								data: {
+									...e.data,
+									actionType: "Action"
+								}
+							};
+						}
+						return e;
+					})
+				);
+			}
+		},
+		[setEdges]
+	);
+
+	// Handle clicking on an edge to change action type or add label
 	const onEdgeClick = useCallback(
 		(_event: React.MouseEvent, edge: Edge): void => {
-			// If the edge doesn't have a label, don't do anything
-			if (!edge.data) return;
+			// If the edge doesn't have data or actionType, add a label
+			if (!edge.data?.actionType) {
+				setEdges(eds =>
+					eds.map(e => {
+						if (e.id === edge.id) {
+							return {
+								...e,
+								data: {
+									...e.data,
+									actionType: "Action" // Default to "Action" when adding a label
+								}
+							};
+						}
+						return e;
+					})
+				);
+				return;
+			}
 
-			// Cycle through action types
+			// Cycle through action types for labeled edges
 			const actionTypes = ["Action", "Conditional", "Notification", "Delay"] as const;
-			const currentType = edge.data.actionType ?? "Action";
+			const currentType = edge.data.actionType;
+
+			// Handle "None" case by starting from "Action"
+			if (currentType === "None") {
+				setEdges(eds =>
+					eds.map(e => {
+						if (e.id === edge.id) {
+							return {
+								...e,
+								data: {
+									...e.data,
+									actionType: "Action"
+								}
+							};
+						}
+						return e;
+					})
+				);
+				return;
+			}
+
 			const currentIndex = actionTypes.indexOf(currentType);
 			const nextIndex = (currentIndex + 1) % actionTypes.length;
 			const nextType = actionTypes[nextIndex];
@@ -259,6 +335,7 @@ function DesignerCanvas({
 				onConnect={onConnect}
 				onNodeClick={onNodeClick}
 				onEdgeClick={onEdgeClick}
+				onEdgeContextMenu={onEdgeContextMenu}
 				nodeTypes={nodeTypes}
 				edgeTypes={edgeTypes}
 				onInit={onLoad}

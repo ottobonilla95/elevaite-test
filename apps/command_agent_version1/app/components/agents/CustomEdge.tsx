@@ -4,10 +4,8 @@ import React from "react";
 import { X } from "lucide-react";
 import { type EdgeProps, getMarkerEnd } from "react-flow-renderer";
 import "./CustomEdge.scss";
+import { type CustomEdgeData } from "../../lib/interfaces";
 
-interface CustomEdgeData {
-    actionType?: "Action" | "Conditional" | "Notification" | "Delay";
-}
 
 interface CustomEdgeProps extends EdgeProps {
     data?: CustomEdgeData;
@@ -88,7 +86,7 @@ function CustomEdge({
                 className="edge-label-container"
                 requiredExtensions="http://www.w3.org/1999/xhtml"
             >
-                <div
+                {actionType !== "None" && <div
                     className="edge-label"
                     style={{ backgroundColor: bgColor }}
                 >
@@ -98,10 +96,11 @@ function CustomEdge({
                     <button
                         onClick={removeLabelOnly}
                         className="edge-label-button"
+                        type="button"
                     >
                         <X size={12} />
                     </button>
-                </div>
+                </div>}
             </foreignObject>
         </>
     );

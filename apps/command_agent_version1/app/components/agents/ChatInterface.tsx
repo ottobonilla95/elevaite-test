@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, AlertCircle } from "lucide-react";
+import { Send, Bot, AlertCircle, User } from "lucide-react";
 import "./ChatInterface.scss";
 import { executeWorkflowModern } from "../../lib/actions";
 import type { NewWorkflowExecutionRequest } from "../../lib/interfaces";
@@ -129,22 +129,7 @@ function ChatInterface({
 	const renderUserAvatar = () => {
 		return (
 			<div className="message-avatar">
-				<svg
-					width="16"
-					height="16"
-					viewBox="0 0 24 24"
-					fill="none"
-					xmlns="http://www.w3.org/2000/svg"
-				>
-					<path
-						d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z"
-						fill="currentColor"
-					/>
-					<path
-						d="M12 13C8.13401 13 5 16.134 5 20V21H19V20C19 16.134 15.866 13 12 13Z"
-						fill="currentColor"
-					/>
-				</svg>
+				<User size={16} />
 			</div>
 		);
 	};

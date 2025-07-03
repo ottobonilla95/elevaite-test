@@ -1,5 +1,26 @@
 import { type AgentResponse } from "./agents";
 
+// Mapping functions between frontend actionType and backend connection_type
+export const mapActionTypeToConnectionType = (actionType: string): "default" | "conditional" | "notification" | "delay" => {
+  switch (actionType) {
+    case "Action": return "default";
+    case "Conditional": return "conditional";
+    case "Notification": return "notification";
+    case "Delay": return "delay";
+    default: return "default";
+  }
+};
+
+export const mapConnectionTypeToActionType = (connectionType: string): "Action" | "Conditional" | "Notification" | "Delay" | "None" => {
+  switch (connectionType) {
+    case "action": return "Action";
+    case "conditional": return "Conditional";
+    case "notification": return "Notification";
+    case "delay": return "Delay";
+    default: return "None";
+  }
+};
+
 export interface WorkflowPosition {
   x: number;
   y: number;
@@ -13,7 +34,7 @@ export interface WorkflowAgentData {
 export interface WorkflowConnectionData {
   source_agent_id: string;
   target_agent_id: string;
-  connection_type?: "default" | "conditional" | "parallel";
+  connection_type?: "default" | "conditional" | "notification" | "delay";
 }
 
 export interface WorkflowDeployRequest {

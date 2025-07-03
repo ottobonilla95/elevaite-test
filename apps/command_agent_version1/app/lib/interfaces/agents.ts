@@ -200,7 +200,7 @@ export interface AgentStreamExecutionRequest {
 
 
 export interface CustomEdgeData {
-	actionType?: "Action" | "Conditional" | "Notification" | "Delay";
+	actionType?: "Action" | "Conditional" | "Notification" | "Delay" | "None";
 }
 
 export type Edge = ReactFlowEdge<CustomEdgeData>
