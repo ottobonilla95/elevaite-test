@@ -1630,8 +1630,6 @@ async def validate_session(
         payload = verify_token(token, "access")
         user_id = int(payload["sub"])
 
-        print(f"Payload - {payload}")
-
         # Get user from database
         from sqlalchemy.future import select as async_select
         from app.db.models import UserStatus
@@ -1640,13 +1638,19 @@ async def validate_session(
         user = result.scalars().first()
 
         if not user:
-            print(f"User not found for ID: {user_id}")
-            return {"valid": False, "reason": "user_not_found"}
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="user_not_found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
         # Check if user is active
         if user.status != UserStatus.ACTIVE.value:
-            print(f"User is not active: {user.email}, status: {user.status}")
-            return {"valid": False, "reason": "user_inactive"}
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="user_inactive",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
         # Get the refresh token from the header
         refresh_token = request.headers.get("X-Refresh-Token")
@@ -1665,8 +1669,11 @@ async def validate_session(
         active_sessions = result.scalars().all()
 
         if not active_sessions:
-            print(f"No active sessions found for user: {user.email}")
-            return {"valid": False, "reason": "session_invalidated"}
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="session_invalidated",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
         # If a specific refresh token was provided, check if it's valid
         if refresh_token:
@@ -1683,22 +1690,28 @@ async def validate_session(
             user_session = result.scalars().first()
 
             if not user_session:
-                print(
-                    f"Session with provided refresh token is not valid for user: {user.email}"
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="session_invalidated",
+                    headers={"WWW-Authenticate": "Bearer"},
                 )
-                return {"valid": False, "reason": "session_invalidated"}
 
         # Session is valid
-        print(f"Session is valid for user: {user.email}")
         return {
             "valid": True,
             "user_id": user.id,
             "email": user.email,
             "is_password_temporary": user.is_password_temporary,
         }
+    except HTTPException:
+        # Re-raise HTTPExceptions (like 401 Unauthorized) without modification
+        raise
     except Exception as e:
         print(f"Error validating session: {e}")
-        return {"valid": False, "reason": "server_error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="server_error",
+        )
 
 
 @router.get("/users")
