@@ -28,7 +28,10 @@ class TestEmailFunctions:
 
         # Call function
         result = await send_email(
-            recipient="user@example.com", subject="Test Subject", text_body="Test plain text", html_body="<p>Test HTML</p>"
+            recipient="user@example.com",
+            subject="Test Subject",
+            text_body="Test plain text",
+            html_body="<p>Test HTML</p>",
         )
 
         # Verify result
@@ -47,11 +50,17 @@ class TestEmailFunctions:
         """Test sending an email with failure."""
         # Setup mock SMTP to raise exception
         mock_smtp_instance = MagicMock()
-        mock_smtp_instance.sendmail.side_effect = smtplib.SMTPException("Failed to send")
+        mock_smtp_instance.sendmail.side_effect = smtplib.SMTPException(
+            "Failed to send"
+        )
         mock_smtp.return_value.__enter__.return_value = mock_smtp_instance
 
         # Call function
-        result = await send_email(recipient="user@example.com", subject="Test Subject", text_body="Test plain text")
+        result = await send_email(
+            recipient="user@example.com",
+            subject="Test Subject",
+            text_body="Test plain text",
+        )
 
         # Verify result
         assert result is False
@@ -63,7 +72,9 @@ class TestEmailFunctions:
         mock_send_email.return_value = True
 
         # Call function
-        result = await send_password_reset_email(email="user@example.com", name="Test User", reset_token="reset-token")
+        result = await send_password_reset_email(
+            email="user@example.com", name="Test User", reset_token="reset-token"
+        )
 
         # Verify send_email was called
         assert mock_send_email.called
@@ -89,7 +100,11 @@ class TestEmailFunctions:
         mock_send_email.return_value = True
 
         # Call function
-        result = await send_verification_email(email="user@example.com", name="Test User", verification_token="verify-token")
+        result = await send_verification_email(
+            email="user@example.com",
+            name="Test User",
+            verification_token="verify-token",
+        )
 
         # Verify send_email was called
         assert mock_send_email.called
@@ -127,7 +142,7 @@ class TestEmailFunctions:
         # First argument is the recipient email
         assert call_args[0][0] == "user@example.com"
         # Second argument is the subject
-        assert call_args[0][1] == "Welcome to elevAIte - Your Temporary Password"
+        assert call_args[0][1] == "Welcome to ElevAIte - Your Temporary Password"
         # Third argument is the text body
         assert "TempPass123!" in call_args[0][2]
         # Fourth argument is the HTML body
@@ -155,7 +170,7 @@ class TestEmailFunctions:
         # First argument is the recipient email
         assert call_args[0][0] == "user@example.com"
         # Second argument is the subject
-        assert call_args[0][1] == "Your Password Has Been Reset"
+        assert call_args[0][1] == "Your New Password to ElevAIte"
         # Third argument is the text body
         assert "NewPass123!" in call_args[0][2]
         # Fourth argument is the HTML body
