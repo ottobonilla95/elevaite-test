@@ -32,15 +32,23 @@ export const authOptions: NextAuthConfig = {
     Credentials({
       async authorize(credentials) {
         const parsedCredentials = z
-          .object({ email: z.string().email(), password: z.string().min(6) })
+          .object({
+            email: z.string().email(),
+            password: z.string().min(6),
+            totp_code: z.string().optional(),
+          })
           .safeParse(credentials);
 
         if (parsedCredentials.success) {
-          const { email, password } = parsedCredentials.data;
+          const { email, password, totp_code } = parsedCredentials.data;
 
           try {
-            // Call the Auth API to login
-            const tokenResponse = await authApiClient.login(email, password);
+            // Call the Auth API to login with optional TOTP code
+            const tokenResponse = await authApiClient.login(
+              email,
+              password,
+              totp_code
+            );
 
             // Get user details using the access token
             const userDetails = await authApiClient.getCurrentUser(
@@ -69,11 +77,33 @@ export const authOptions: NextAuthConfig = {
 
             return userObject;
           } catch (error) {
-            // Provide more detailed error message for specific errors
             if (error instanceof Error) {
               // Check for email verification error
               if (error.message === "email_not_verified") {
                 throw new Error("email_not_verified");
+              }
+
+              // For MFA challenges, throw with a specific format that we can catch
+              if (error.message === "TOTP code required") {
+                console.log("Throwing TOTP challenge");
+                throw new Error("MFA_REQUIRED_TOTP");
+              }
+
+              if (
+                error.message === "SMS code required" ||
+                error.message.includes("SMS code required")
+              ) {
+                console.log("Throwing SMS challenge");
+                throw new Error("MFA_REQUIRED_SMS");
+              }
+
+              // Check for invalid MFA codes
+              if (
+                error.message === "Invalid MFA code" ||
+                error.message === "invalid_totp"
+              ) {
+                console.log("Throwing Invalid MFA code error");
+                throw new Error("Invalid MFA code");
               }
 
               // Check for connection issues

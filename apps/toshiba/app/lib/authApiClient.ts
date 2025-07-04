@@ -27,10 +27,36 @@ export interface UserDetailResponse extends UserResponse {
   is_superuser: boolean;
   application_admin: boolean;
   is_password_temporary: boolean;
+  sms_mfa_enabled?: boolean;
+  phone_verified?: boolean;
+  phone_number?: string;
 }
 
 export interface RefreshTokenRequest {
   refresh_token: string;
+}
+
+// MFA-related interfaces
+export interface MfaSetupResponse {
+  secret: string;
+  qr_code_uri: string;
+}
+
+export interface MfaVerifyRequest {
+  totp_code: string;
+}
+
+export interface SMSMFASetupRequest {
+  phone_number: string;
+}
+
+export interface SMSMFAVerifyRequest {
+  mfa_code: string;
+}
+
+export interface SMSMFAResponse {
+  message: string;
+  message_id?: string;
 }
 
 /**
@@ -67,9 +93,13 @@ export class AuthApiClient {
   }
 
   /**
-   * Login with email and password
+   * Login with email and password, optionally with TOTP code
    */
-  async login(email: string, password: string): Promise<TokenResponse> {
+  async login(
+    email: string,
+    password: string,
+    totpCode?: string
+  ): Promise<TokenResponse> {
     // Create AbortController for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -77,10 +107,15 @@ export class AuthApiClient {
     }, 5000); // 5 second timeout
 
     try {
+      const loginData: LoginRequest = { email, password };
+      if (totpCode) {
+        loginData.totp_code = totpCode;
+      }
+
       const response = await fetch(`${this.baseUrl}/api/auth/login`, {
         method: "POST",
         headers: this.getHeaders(),
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(loginData),
         signal: controller.signal,
       });
 
@@ -88,12 +123,46 @@ export class AuthApiClient {
 
       if (!response.ok) {
         const errorData = (await response.json()) as { detail?: string };
+        console.log(
+          "AuthApiClient error response:",
+          response.status,
+          errorData
+        );
 
         if (
           response.status === 403 &&
           errorData.detail === "email_not_verified"
         ) {
           throw new Error("email_not_verified");
+        }
+
+        if (
+          response.status === 400 &&
+          errorData.detail === "TOTP code required"
+        ) {
+          throw new Error("TOTP code required");
+        }
+
+        if (
+          response.status === 400 &&
+          (errorData.detail === "SMS code required" ||
+            errorData.detail?.includes("SMS code required"))
+        ) {
+          throw new Error("SMS code required");
+        }
+
+        if (
+          response.status === 400 &&
+          errorData.detail === "Invalid TOTP code"
+        ) {
+          throw new Error("invalid_totp");
+        }
+
+        if (
+          response.status === 400 &&
+          errorData.detail === "Invalid MFA code"
+        ) {
+          throw new Error("Invalid MFA code");
         }
 
         throw new Error(errorData.detail ?? "Login failed");
@@ -199,5 +268,114 @@ export class AuthApiClient {
     }
 
     return response.json() as Promise<UserResponse>;
+  }
+
+  // MFA-related methods
+
+  /**
+   * Set up TOTP MFA for the current user
+   */
+  async setupMFA(accessToken: string): Promise<MfaSetupResponse> {
+    const response = await fetch(`${this.baseUrl}/api/auth/mfa/setup`, {
+      method: "POST",
+      headers: this.getHeaders({
+        Authorization: `Bearer ${accessToken}`,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as { detail?: string };
+      throw new Error(errorData.detail ?? "MFA setup failed");
+    }
+
+    return response.json() as Promise<MfaSetupResponse>;
+  }
+
+  /**
+   * Activate TOTP MFA after verification
+   */
+  async activateMFA(
+    accessToken: string,
+    totpCode: string
+  ): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseUrl}/api/auth/mfa/activate`, {
+      method: "POST",
+      headers: this.getHeaders({
+        Authorization: `Bearer ${accessToken}`,
+      }),
+      body: JSON.stringify({ totp_code: totpCode }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as { detail?: string };
+      throw new Error(errorData.detail ?? "MFA activation failed");
+    }
+
+    return response.json() as Promise<{ message: string }>;
+  }
+
+  /**
+   * Set up SMS MFA for the current user
+   */
+  async setupSMSMFA(
+    accessToken: string,
+    phoneNumber: string
+  ): Promise<SMSMFAResponse> {
+    const response = await fetch(`${this.baseUrl}/api/sms-mfa/setup`, {
+      method: "POST",
+      headers: this.getHeaders({
+        Authorization: `Bearer ${accessToken}`,
+      }),
+      body: JSON.stringify({ phone_number: phoneNumber }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as { detail?: string };
+      throw new Error(errorData.detail ?? "SMS MFA setup failed");
+    }
+
+    return response.json() as Promise<SMSMFAResponse>;
+  }
+
+  /**
+   * Send SMS MFA code to the user's phone
+   */
+  async sendSMSMFACode(accessToken: string): Promise<SMSMFAResponse> {
+    const response = await fetch(`${this.baseUrl}/api/sms-mfa/send-code`, {
+      method: "POST",
+      headers: this.getHeaders({
+        Authorization: `Bearer ${accessToken}`,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as { detail?: string };
+      throw new Error(errorData.detail ?? "Failed to send SMS MFA code");
+    }
+
+    return response.json() as Promise<SMSMFAResponse>;
+  }
+
+  /**
+   * Verify SMS MFA code
+   */
+  async verifySMSMFA(
+    accessToken: string,
+    mfaCode: string
+  ): Promise<SMSMFAResponse> {
+    const response = await fetch(`${this.baseUrl}/api/sms-mfa/verify`, {
+      method: "POST",
+      headers: this.getHeaders({
+        Authorization: `Bearer ${accessToken}`,
+      }),
+      body: JSON.stringify({ mfa_code: mfaCode }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as { detail?: string };
+      throw new Error(errorData.detail ?? "SMS MFA verification failed");
+    }
+
+    return response.json() as Promise<SMSMFAResponse>;
   }
 }

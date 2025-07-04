@@ -22,12 +22,14 @@ const FRONTEND_URL =
 
 export async function authenticate(
   _prevState: string | undefined,
-  formData: Record<"email" | "password", string>
+  formData: Record<"email" | "password", string> & { totp_code?: string }
 ): Promise<
   | "Invalid credentials."
   | "Email not verified."
   | "Admin access required."
   | "Something went wrong."
+  | "MFA_REQUIRED_TOTP"
+  | "MFA_REQUIRED_SMS"
   | undefined
 > {
   try {
@@ -35,8 +37,34 @@ export async function authenticate(
     return undefined;
   } catch (error) {
     if (error instanceof AuthError) {
+      if (error.cause instanceof Error) {
+        if (error.cause.message === "MFA_REQUIRED_TOTP") {
+          return "MFA_REQUIRED_TOTP";
+        }
+        if (error.cause.message === "MFA_REQUIRED_SMS") {
+          return "MFA_REQUIRED_SMS";
+        }
+      }
+
       switch (error.type) {
         case "CredentialsSignin":
+          return "Invalid credentials.";
+        case "CallbackRouteError":
+          if (
+            error.cause &&
+            typeof error.cause === "object" &&
+            "err" in error.cause
+          ) {
+            const causeError = error.cause.err;
+            if (causeError instanceof Error) {
+              if (causeError.message === "MFA_REQUIRED_TOTP") {
+                return "MFA_REQUIRED_TOTP";
+              }
+              if (causeError.message === "MFA_REQUIRED_SMS") {
+                return "MFA_REQUIRED_SMS";
+              }
+            }
+          }
           return "Invalid credentials.";
         default:
           // Check if this is an email verification error
@@ -50,10 +78,20 @@ export async function authenticate(
           return "Something went wrong.";
       }
     }
+
     // Check for custom errors
-    if (error instanceof Error && error.message === "email_not_verified") {
-      return "Email not verified.";
+    if (error instanceof Error) {
+      if (error.message === "email_not_verified") {
+        return "Email not verified.";
+      }
+      if (error.message === "MFA_REQUIRED_TOTP") {
+        return "MFA_REQUIRED_TOTP";
+      }
+      if (error.message === "MFA_REQUIRED_SMS") {
+        return "MFA_REQUIRED_SMS";
+      }
     }
+
     throw error;
   }
 }
@@ -191,7 +229,7 @@ export async function getImageUrl(
     _url.searchParams.set("filename", filename);
     return _url.toString();
   } catch (error) {
-    console.error('Error fetching image:', error);
+    console.error("Error fetching image:", error);
   }
 }
 

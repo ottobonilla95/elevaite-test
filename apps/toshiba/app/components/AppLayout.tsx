@@ -42,6 +42,12 @@ export function AppLayout({
         router.push("/change-password");
       },
     },
+    {
+      label: "Multi-Factor Authentication",
+      onClick: () => {
+        router.push("/settings/mfa");
+      },
+    },
   ];
 
   return (
