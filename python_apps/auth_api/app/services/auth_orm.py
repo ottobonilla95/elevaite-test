@@ -62,6 +62,8 @@ async def authenticate_user(
 
     # First check for known test accounts
     is_test_account, message = is_password_temporary(email, password)
+    temp_password_detected = False
+
     if is_test_account:
         try:
             # Find the user by email
@@ -76,7 +78,8 @@ async def authenticate_user(
                     return user, False
                 else:
                     print(f"Test account detected for user {email}: {message}")
-                    return user, True
+                    temp_password_detected = True
+                    # Don't return early - continue to check MFA
         except Exception as e:
             print(f"Error checking for test account: {e}")
             # Continue with normal authentication
@@ -378,23 +381,54 @@ async def authenticate_user(
                 detail="email_not_verified",
             )
 
-        # Check MFA if enabled
-        if user.mfa_enabled and not totp_code:
-            raise HTTPException(
-                status_code=http_status.HTTP_400_BAD_REQUEST,
-                detail="TOTP code required",
-            )
+        # Check MFA if enabled (TOTP or SMS)
+        has_totp_mfa = user.mfa_enabled and user.mfa_secret
+        has_sms_mfa = user.sms_mfa_enabled and user.phone_verified
 
-        if (
-            user.mfa_enabled
-            and totp_code
-            and user.mfa_secret
-            and not verify_totp(totp_code, user.mfa_secret)
-        ):
-            raise HTTPException(
-                status_code=http_status.HTTP_400_BAD_REQUEST,
-                detail="Invalid TOTP code",
-            )
+        if (has_totp_mfa or has_sms_mfa) and not totp_code:
+            # Determine which MFA methods are available
+            if has_totp_mfa and has_sms_mfa:
+                raise HTTPException(
+                    status_code=http_status.HTTP_400_BAD_REQUEST,
+                    detail="MFA code required (TOTP or SMS)",
+                )
+            elif has_totp_mfa:
+                raise HTTPException(
+                    status_code=http_status.HTTP_400_BAD_REQUEST,
+                    detail="TOTP code required",
+                )
+            elif has_sms_mfa:
+                raise HTTPException(
+                    status_code=http_status.HTTP_400_BAD_REQUEST,
+                    detail="SMS code required",
+                )
+
+        # Verify MFA code if provided
+        if totp_code:
+            mfa_valid = False
+
+            # Try TOTP verification first
+            if has_totp_mfa and verify_totp(totp_code, user.mfa_secret):
+                mfa_valid = True
+
+            # Try SMS verification if TOTP failed or not available
+            if not mfa_valid and has_sms_mfa:
+                # Import SMS MFA service to verify code
+                from app.services.sms_mfa import sms_mfa_service
+
+                try:
+                    # Verify SMS MFA code
+                    await sms_mfa_service.verify_mfa_code(user, totp_code, session)
+                    mfa_valid = True
+                except HTTPException:
+                    # SMS verification failed
+                    pass
+
+            if not mfa_valid:
+                raise HTTPException(
+                    status_code=http_status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid MFA code",
+                )
 
         try:
             # Reset failed login attempts and update last login
@@ -420,9 +454,13 @@ async def authenticate_user(
                 print(f"Error during rollback: {rollback_error}")
 
         # Check if password is temporary and needs to be changed
-        password_change_required = getattr(user, "is_password_temporary", False)
+        password_change_required = (
+            getattr(user, "is_password_temporary", False) or temp_password_detected
+        )
 
         return user, password_change_required
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Unexpected error in authenticate_user: {e}")
         return None, False

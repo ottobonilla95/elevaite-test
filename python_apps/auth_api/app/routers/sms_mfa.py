@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.logging import logger
 from app.core.deps import get_current_user
-from app.db.database import get_db
+from app.db.orm import get_async_session
 from app.services.sms_mfa import sms_mfa_service
 from app.schemas.mfa import SMSMFASetupRequest, SMSMFAVerifyRequest, SMSMFAResponse
 from app.db.models import User
@@ -21,7 +21,7 @@ async def setup_sms_mfa(
     request: Request,
     mfa_data: SMSMFASetupRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_session),
 ):
     logger.info(f"SMS MFA setup request for user {current_user.id}")
 
@@ -69,7 +69,7 @@ async def verify_mfa_code(
     request: Request,
     verify_data: SMSMFAVerifyRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_session),
 ):
     logger.info(f"SMS MFA verification request for user {current_user.id}")
 
@@ -93,7 +93,7 @@ async def verify_mfa_code(
 async def disable_sms_mfa(
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_session),
 ):
     logger.info(f"SMS MFA disable request for user {current_user.id}")
 

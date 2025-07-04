@@ -43,6 +43,7 @@ from app.services.auth_orm import (
     authenticate_user,
     create_user,
     create_user_session,
+    get_user_by_email,
     invalidate_session,
     invalidate_all_sessions,
     setup_mfa,
@@ -301,6 +302,29 @@ async def login(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="email_not_verified",
                 headers={"X-Error-Type": "email_not_verified"},
+            )
+        elif (
+            http_exc.status_code == status.HTTP_400_BAD_REQUEST
+            and "SMS code required" in http_exc.detail
+        ):
+            # SMS MFA is required - send SMS code automatically
+            try:
+                from app.services.sms_mfa import sms_mfa_service
+
+                user = await get_user_by_email(session, login_data.email)
+                if user and user.sms_mfa_enabled:
+                    await sms_mfa_service.send_mfa_code(user)
+                    logger.info(
+                        f"SMS MFA code sent for login attempt: {login_data.email}"
+                    )
+            except Exception as sms_error:
+                logger.error(f"Failed to send SMS code during login: {sms_error}")
+
+            # Return the MFA challenge response
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="SMS code required - code sent to your phone",
+                headers={"X-MFA-Type": "SMS"},
             )
         raise
     except Exception as e:
