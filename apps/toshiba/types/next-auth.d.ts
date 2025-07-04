@@ -11,6 +11,10 @@ declare module "next-auth" {
       needsPasswordReset?: boolean;
       is_superuser?: boolean;
       application_admin?: boolean;
+      mfa_enabled?: boolean;
+      sms_mfa_enabled?: boolean;
+      phone_verified?: boolean;
+      phone_number?: string;
     } & DefaultSession["user"];
   }
 
@@ -20,6 +24,10 @@ declare module "next-auth" {
     needsPasswordReset?: boolean;
     is_superuser?: boolean;
     application_admin?: boolean;
+    mfa_enabled?: boolean;
+    sms_mfa_enabled?: boolean;
+    phone_verified?: boolean;
+    phone_number?: string;
   }
 }
 
@@ -28,5 +36,9 @@ declare module "next-auth/jwt" {
     needsPasswordReset?: boolean;
     is_superuser?: boolean;
     application_admin?: boolean;
+    mfa_enabled?: boolean;
+    sms_mfa_enabled?: boolean;
+    phone_verified?: boolean;
+    phone_number?: string;
   }
 }

@@ -41,9 +41,7 @@ export default async function LoginPage(): Promise<JSX.Element> {
             <span className="main">Sign in to Toshiba</span>
             <span>Enter your login details below.</span>
           </div>
-          <CustomLoginForm
-            authenticate={authenticate}
-          />
+          <CustomLoginForm authenticate={authenticate} />
         </div>
 
         <div className="copyright">
