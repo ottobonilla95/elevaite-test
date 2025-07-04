@@ -54,9 +54,4 @@ def is_password_temporary(email: str, password: str) -> Tuple[bool, str]:
     Returns:
         Tuple[bool, str]: (is_temporary, message)
     """
-    # Check for test credentials that should trigger password reset flow
-    # ONLY exact matches for known test accounts should return True
-    # if email == "panagiotis.v@iopex.com" and password == "password123":
-    #     return True, "Test account detected. Redirecting to password reset flow."
-
     return False, ""
