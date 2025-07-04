@@ -37,6 +37,8 @@ export async function GET(req: NextRequest) {
     // Explicitly use IPv4 address instead of localhost to avoid IPv6 issues
     const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
 
+    const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID || "default";
+
     // Call the validate-session endpoint with a timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
@@ -49,6 +51,7 @@ export async function GET(req: NextRequest) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
           "X-Refresh-Token": refreshToken || "",
+          "X-Tenant-ID": tenantId,
         },
         signal: controller.signal,
       });
