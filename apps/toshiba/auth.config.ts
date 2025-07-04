@@ -7,18 +7,6 @@ export const authConfig = {
     signIn: "/login",
   },
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = Boolean(auth?.user);
-
-      // If the user is already logged in and trying to access the login page,
-      // redirect them to the home page
-      if (isLoggedIn && nextUrl.pathname === "/login") {
-        return Response.redirect(new URL("/", nextUrl));
-      }
-
-      if (isLoggedIn) return true;
-      return false; // Redirect unauthenticated users to login page
-    },
     ...stockConfig.callbacks,
     // Override the session callback to include the needsPasswordReset property
     async session({ session, token, user }) {

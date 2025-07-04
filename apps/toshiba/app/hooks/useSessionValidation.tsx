@@ -22,6 +22,18 @@ export function useSessionValidation(): {
       return true;
     }
 
+    // Don't validate on auth pages
+    const pathname = window.location.pathname;
+    if (
+      pathname === "/login" ||
+      pathname === "/forgot-password" ||
+      pathname === "/reset-password" ||
+      pathname === "/verify-email" ||
+      pathname === "/resend-verification"
+    ) {
+      return true;
+    }
+
     const now = Date.now();
     if (
       window.lastSessionValidation &&
@@ -49,8 +61,21 @@ export function useSessionValidation(): {
     }
   }, []);
 
-  // Periodic session validation
+  // Session validation on page load and periodic checks
   useEffect(() => {
+    // Check session immediately on page load (but not on auth pages)
+    const pathname = window.location.pathname;
+    if (
+      pathname !== "/login" &&
+      pathname !== "/forgot-password" &&
+      pathname !== "/reset-password" &&
+      pathname !== "/verify-email" &&
+      pathname !== "/resend-verification"
+    ) {
+      void checkSession();
+    }
+
+    // Set up periodic validation
     const intervalId = setInterval(() => {
       void checkSession();
     }, 300000); // 5 minutes
