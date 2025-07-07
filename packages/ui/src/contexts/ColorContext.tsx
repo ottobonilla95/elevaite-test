@@ -1,22 +1,9 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
-import { type ColorScheme, DarkTheme, LightTheme } from "../themes";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { type ColorScheme, DarkTheme, LightTheme, type ThemeObject, ThemeType } from "./themes";
 
 
 
-
-// ENUMS and INTERFACES
-
-enum ThemeType {
-  DARK = "dark",
-  LIGHT = "light",
-}
-interface ThemeObject {
-  id: string;
-  label: string;  
-  type: ThemeType;
-  colors: ColorScheme;
-}
 
 
 
@@ -82,23 +69,22 @@ function setThemePropertiesToBody(theme: ColorScheme): void {
 
 interface ColorContextProviderProps {
   children: React.ReactNode;
+  themes?: ThemeObject[];
 }
 
-export function ColorContextProvider(props: ColorContextProviderProps): React.ReactElement {
-  const [themesList] = useState<ThemeObject[]>(defaultThemeList);
-  const [selectedTheme, setSelectedTheme] = useState<ThemeObject>(defaultThemeList[0]);
-
+export function ColorContextProvider({ children, themes }: ColorContextProviderProps): React.ReactElement {
+  const combinedThemes = [...(themes ?? []), ...defaultThemeList];
+  const themesList = useMemo(() => combinedThemes, [combinedThemes]);
+  const [selectedTheme, setSelectedTheme] = useState<ThemeObject>(combinedThemes[0]);
 
   useEffect(() => {
     const themeId = localStorage.getItem(LOCAL_STORAGE_THEME);
     if (themeId) changeTheme(themeId);
   }, []);
 
-
   useEffect(() => {
     setThemePropertiesToBody(selectedTheme.colors);
   }, [selectedTheme]);
-
 
   function changeTheme(themeId: string): void {
     const foundTheme = themesList.find(item => item.id === themeId);
@@ -107,17 +93,15 @@ export function ColorContextProvider(props: ColorContextProviderProps): React.Re
     setSelectedTheme(foundTheme);
   }
 
-
-
   return (
     <ColorContext.Provider
-      value={ {
+      value={{
         ...selectedTheme.colors,
         themesList,
         changeTheme,
-      } }
+      }}
     >
-      { props.children}
+      {children}
     </ColorContext.Provider>
   );
 }

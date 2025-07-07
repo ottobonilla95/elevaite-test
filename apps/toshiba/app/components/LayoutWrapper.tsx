@@ -1,10 +1,10 @@
 "use client";
 
+import { ElevaiteIcons, type SidebarIconObject } from "@repo/ui/components";
+import { ColorContextProvider, ThemeObject } from "@repo/ui/contexts";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ElevaiteIcons, type SidebarIconObject } from "@repo/ui/components";
-import { ColorContextProvider } from "@repo/ui/contexts";
 import { RolesContextProvider } from "../lib/contexts/RolesContext";
 import { ClientAppLayout } from "../ui/ClientAppLayout";
 
@@ -33,10 +33,12 @@ const baseSidebarIcons: SidebarIconObject[] = [
 ];
 
 interface LayoutWrapperProps {
+  customThemes?: ThemeObject[];
   children: React.ReactNode;
 }
 
-export function LayoutWrapper({ children }: LayoutWrapperProps): JSX.Element {
+export function LayoutWrapper({ children, customThemes }: LayoutWrapperProps): JSX.Element {
+  console.log("[LayoutWrapper] received themes:", customThemes);
   const { data: session } = useSession();
   const pathname = usePathname();
   const [isStylesLoaded, setIsStylesLoaded] = useState(false);
@@ -46,9 +48,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps): JSX.Element {
     // Check if critical CSS variables are available
     const checkStyles = () => {
       const computedStyle = getComputedStyle(document.documentElement);
-      const hasEvColors = computedStyle.getPropertyValue(
-        "--ev-colors-background"
-      );
+      const hasEvColors = computedStyle.getPropertyValue("--ev-colors-background");
       const hasNavbarHeight = computedStyle.getPropertyValue("--navbar-height");
 
       if (hasEvColors && hasNavbarHeight) {
@@ -93,21 +93,21 @@ export function LayoutWrapper({ children }: LayoutWrapperProps): JSX.Element {
     );
   }
 
-  if (shouldShowAdminLayout) {
-    return (
-      <RolesContextProvider>
-        <ColorContextProvider>
+  return (
+    <ColorContextProvider themes={customThemes}>
+      {shouldShowAdminLayout ? (
+        <RolesContextProvider>
           <ClientAppLayout
             breadcrumbLabels={breadcrumbLabels}
             sidebarIcons={shouldShowSidebar ? baseSidebarIcons : []}
           >
             {children}
           </ClientAppLayout>
-        </ColorContextProvider>
-      </RolesContextProvider>
-    );
-  }
-
-  // For non-admin users or non-admin pages, return children directly
-  return <>{children}</>;
+        </RolesContextProvider>
+      ) : (
+        children
+      )}
+    </ColorContextProvider>
+  );
+  
 }

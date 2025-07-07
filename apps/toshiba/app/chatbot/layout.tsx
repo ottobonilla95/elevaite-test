@@ -1,4 +1,3 @@
-import { ColorContextProvider } from "@repo/ui/contexts";
 import { ChatContextProvider } from "../ui/contexts/ChatContext";
 import { AppLayout } from "../components/AppLayout";
 import { SessionProvider } from "next-auth/react";
@@ -17,15 +16,13 @@ export default async function RootLayout({
 
   return (
     <SessionProvider session={session}>
-      <ColorContextProvider>
-        {session ? (
-          <ChatContextProvider session={session}>
-            <AppLayout breadcrumbs={breadcrumbs}>{children}</AppLayout>
-          </ChatContextProvider>
-        ) : (
+      {session ? (
+        <ChatContextProvider session={session}>
           <AppLayout breadcrumbs={breadcrumbs}>{children}</AppLayout>
-        )}
-      </ColorContextProvider>
+        </ChatContextProvider>
+      ) : (
+        <AppLayout breadcrumbs={breadcrumbs}>{children}</AppLayout>
+      )}
     </SessionProvider>
   );
 }

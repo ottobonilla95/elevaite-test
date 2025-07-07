@@ -1,9 +1,9 @@
 "use client";
-import { NavBar } from "@repo/ui/components";
+import { Logos, NavBar } from "@repo/ui/components";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { logout } from "../lib/actions";
 import "./AppLayout.scss";
 
@@ -47,6 +47,7 @@ export function AppLayout({
   return (
     <div className="chatbot-layout-container">
       <NavBar
+        customLogo={<Logos.Toshiba/>}
         breadcrumbLabels={breadcrumbs}
         handleSearchInput={handleSearchInput}
         logOut={logout}

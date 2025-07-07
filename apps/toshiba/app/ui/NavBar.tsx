@@ -13,6 +13,7 @@ import {
   CommonMenu,
   ElevaiteIcons,
   HelpIcon,
+  Logos,
   type BreadcrumbItem,
   type CommonMenuItem,
 } from "@repo/ui/components";
@@ -121,7 +122,8 @@ export function NavBar(props: NavBarProps): JSX.Element {
       <div className="navbar-holder">
         <div className="navbar-left">
           <Link href="/">
-            <ElevaiteIcons.SVGNavbarLogo />
+            {/* <ElevaiteIcons.SVGNavbarLogo /> */}
+            <Logos.Toshiba />
           </Link>
           {props.hideBreadcrumbs ? undefined : props.customBreadcrumbs ? (
             props.customBreadcrumbs

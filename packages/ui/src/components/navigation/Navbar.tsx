@@ -27,6 +27,7 @@ interface NavBarProps {
   breadcrumbLabels?: Record<string, { label: string; link: string }>;
   hideBreadcrumbs?: boolean;
   customBreadcrumbs?: React.ReactNode;
+  customLogo?: React.ReactElement;
   user?: User;
   handleSearchInput: (term: string) => void;
   searchResults: { key: string; link: string; label: string }[];
@@ -55,7 +56,7 @@ export function NavBar(props: NavBarProps): JSX.Element {
       themesContext.themesList.map((item) => {
         return {
           label: item.label,
-          onClick: (_: NavbarMenuItem) => {
+          onClick: () => {
             handleThemeClick(item.id);
           },
         };
@@ -120,7 +121,9 @@ export function NavBar(props: NavBarProps): JSX.Element {
       <div className="navbar-holder">
         <div className="navbar-left">
           <Link href="/">
-            <ElevaiteIcons.SVGNavbarLogo />
+            {props.customLogo ?? 
+              <ElevaiteIcons.SVGNavbarLogo />
+            }
           </Link>
           {props.hideBreadcrumbs ? undefined : props.customBreadcrumbs ? (
             props.customBreadcrumbs

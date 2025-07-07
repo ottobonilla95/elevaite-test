@@ -1,16 +1,22 @@
+import { ThemeObject, ThemeType, ToshibaDark, ToshibaLight } from "@repo/ui/contexts";
+import "@repo/ui/styles.css";
 import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
 import { Inter } from "next/font/google";
-import "@repo/ui/styles.css";
-import "./ui/globals.css";
 import { auth } from "../auth";
-import { SessionValidator } from "./components/SessionValidator";
 import { LayoutWrapper } from "./components/LayoutWrapper";
+import { SessionValidator } from "./components/SessionValidator";
+import "./ui/globals.css";
 
 // Force dynamic rendering for all pages
 export const dynamic = "force-dynamic";
 
 const inter = Inter({ subsets: ["latin"] });
+
+const toshibaThemes: ThemeObject[] = [
+  { id: "toshibaDarkTheme01", label: "Toshiba Dark Theme", type: ThemeType.DARK, colors: ToshibaDark },
+  { id: "toshibaLightTheme01", label: "Toshiba Light Theme", type: ThemeType.LIGHT, colors: ToshibaLight },
+]
 
 export const metadata: Metadata = {
   title: "ElevAIte Chat",
@@ -57,7 +63,9 @@ export default async function RootLayout({
       <body className={inter.className}>
         <SessionProvider session={session}>
           <SessionValidator>
-            <LayoutWrapper>{children}</LayoutWrapper>
+            <LayoutWrapper customThemes={toshibaThemes}>
+              {children}
+            </LayoutWrapper>
           </SessionValidator>
         </SessionProvider>
       </body>
