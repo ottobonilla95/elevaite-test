@@ -95,8 +95,8 @@ jobs:
             IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-ui"
             docker build \
                 --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
-                --build-arg NEXT_PUBLIC_AUTH_API_URL=https://tgcs-staging.iopex.ai \
-                --build-arg NEXT_PUBLIC_BACKEND_URL=https://tgcs-staging.iopex.ai/api/core/ \
+                --build-arg NEXT_PUBLIC_AUTH_API_URL=https://tgcs-testing.iopex.ai \
+                --build-arg NEXT_PUBLIC_BACKEND_URL=https://tgcs-testing.iopex.ai/api/core/ \
                 -f apps/toshiba/Dockerfile \
                 -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \
                 -t ${IMAGE}:latest \
@@ -152,9 +152,9 @@ jobs:
     if: needs.check-changes.outputs.should_deploy == 'true'
     name: Deploy Toshiba
     needs: [build-and-push, check-changes]
-    uses: iopexses/elev8s/.github/workflows/deploy-stage.yaml@reusable-action
+    uses: iopexses/elev8s/.github/workflows/deploy-stage.yaml@main
     with:
-      environment: staging
+      environment: testing
       toshiba_ui_tag: ${{ needs.build-and-push.outputs.toshiba_ui_tag || 'latest'}}
       toshiba_api_tag: ${{ needs.build-and-push.outputs.toshiba_backend_tag || 'latest'}}
       toshiba_auth_tag: ${{ needs.build-and-push.outputs.toshiba_auth_tag || 'latest'}}
@@ -200,7 +200,7 @@ jobs:
         if: success() && steps.get_pr_number.outputs.number
         run: |
           gh pr comment ${{ steps.get_pr_number.outputs.number }} --body-file - <<EOF
-          ✅ **Deployment to Staging Complete**
+          ✅ **Deployment to Testing Complete**
 
           🔁 **Changes Deployed**:
           \`\`\`
@@ -212,7 +212,7 @@ jobs:
           ${{ steps.changes.outputs.commit_log }}
           \`\`\`
 
-          🌐 [Test the changes here](https://tgcs-staging.iopex.ai)
+          🌐 [Test the changes here](https://tgcs-testing.iopex.ai)
 
           EOF
 
