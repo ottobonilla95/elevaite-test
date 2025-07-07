@@ -265,12 +265,7 @@ export function CustomLoginForm({
           mfaType={mfaState.selectedMethod}
           onVerify={handleMfaVerify}
           onCancel={handleMfaCancel}
-          onBackToMethodSelection={
-            // Only show back to method selection if multiple methods are available
-            mfaState.availableMethods.totp && mfaState.availableMethods.sms
-              ? handleBackToMethodSelection
-              : undefined
-          }
+          onBackToMethodSelection={handleBackToMethodSelection}
           onSendSMSCode={
             mfaState.selectedMethod === "sms" ? handleSMSResend : undefined
           }

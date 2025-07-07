@@ -93,8 +93,8 @@ export function MFACodeInput({
   };
 
   return (
-    <div className="ui-flex ui-flex-col ui-gap-2">
-      <div className="ui-flex ui-gap-2 ui-justify-center">
+    <div className="ui-flex ui-flex-col ui-gap-4">
+      <div className="ui-flex ui-gap-3 ui-justify-start">
         {code.map((digit, index) => (
           <input
             key={index}
@@ -109,18 +109,27 @@ export function MFACodeInput({
             onKeyDown={(e) => handleKeyDown(index, e)}
             onPaste={handlePaste}
             disabled={disabled}
+            style={{
+              border: "2px solid var(--ev-colors-highlight)",
+              width: "60px",
+              height: "96px",
+              textAlign: "center",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
             className={`
-              ui-w-12 ui-h-12 ui-text-center ui-text-lg ui-font-mono
-              ui-border ui-rounded-lg ui-bg-[#161616] ui-text-white
+              ui-text-2xl ui-font-mono ui-font-semibold
+              ui-rounded-lg ui-bg-[#161616] ui-text-white
               focus:ui-outline-none focus:ui-ring-2 focus:ui-ring-[var(--ev-colors-highlight)]
-              ${error ? "ui-border-red-500" : "ui-border-[var(--ev-colors-highlight)]"}
+              ${error ? "ui-border-red-500" : ""}
               ${disabled ? "ui-opacity-50 ui-cursor-not-allowed" : ""}
             `}
           />
         ))}
       </div>
       {error && (
-        <p className="ui-text-sm ui-text-red-500 ui-text-center">{error}</p>
+        <p className="ui-text-sm ui-text-red-500 ui-text-left">{error}</p>
       )}
     </div>
   );

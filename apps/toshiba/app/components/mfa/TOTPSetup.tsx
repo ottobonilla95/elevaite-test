@@ -113,7 +113,7 @@ export function TOTPSetup({
               Enter Verification Code
             </h3>
             <p className="ui-text-gray-400 ui-text-sm">
-              Enter the 6-digit code from your authenticator app
+              Enter the 6-digit code from your authenticator app.
             </p>
           </div>
 
