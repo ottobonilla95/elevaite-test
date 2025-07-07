@@ -138,9 +138,36 @@ export class AuthApiClient {
 
         if (
           response.status === 400 &&
+          errorData.detail?.includes("MFA code required")
+        ) {
+          const mfaType = response.headers.get("X-MFA-Type");
+          const mfaMethods = response.headers.get("X-MFA-Methods");
+          const maskedPhone = response.headers.get("X-Phone-Masked");
+
+          if (mfaType === "BOTH" && mfaMethods === "TOTP,SMS") {
+            const error = new Error("MFA_REQUIRED_BOTH");
+            (error as any).maskedPhone = maskedPhone;
+            throw error;
+          } else if (
+            mfaType === "TOTP" ||
+            errorData.detail === "TOTP code required"
+          ) {
+            throw new Error("MFA_REQUIRED_TOTP");
+          } else if (
+            mfaType === "SMS" ||
+            errorData.detail?.includes("SMS code required")
+          ) {
+            const error = new Error("MFA_REQUIRED_SMS");
+            (error as any).maskedPhone = maskedPhone;
+            throw error;
+          }
+        }
+
+        if (
+          response.status === 400 &&
           errorData.detail === "TOTP code required"
         ) {
-          throw new Error("TOTP code required");
+          throw new Error("MFA_REQUIRED_TOTP");
         }
 
         if (
@@ -148,7 +175,7 @@ export class AuthApiClient {
           (errorData.detail === "SMS code required" ||
             errorData.detail?.includes("SMS code required"))
         ) {
-          throw new Error("SMS code required");
+          throw new Error("MFA_REQUIRED_SMS");
         }
 
         if (
@@ -377,5 +404,26 @@ export class AuthApiClient {
     }
 
     return response.json() as Promise<SMSMFAResponse>;
+  }
+
+  /**
+   * Resend SMS MFA code during login flow
+   */
+  async resendSMSCodeForLogin(
+    email: string,
+    password: string
+  ): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseUrl}/api/auth/resend-sms-code`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as { detail?: string };
+      throw new Error(errorData.detail ?? "Failed to resend SMS code");
+    }
+
+    return response.json() as Promise<{ message: string }>;
   }
 }
