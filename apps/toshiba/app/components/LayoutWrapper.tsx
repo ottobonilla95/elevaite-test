@@ -30,6 +30,11 @@ const baseSidebarIcons: SidebarIconObject[] = [
     link: "/",
     description: "Applications",
   },
+  {
+    icon: <ElevaiteIcons.SVGSettings />,
+    link: "/settings",
+    description: "Settings",
+  },
 ];
 
 interface LayoutWrapperProps {

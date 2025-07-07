@@ -59,7 +59,13 @@ export function NavBar(props: NavBarProps): JSX.Element {
         };
       });
 
-    // Add change password option
+    themesList.push({
+      label: "Settings",
+      onClick: () => {
+        router.push("/settings");
+      },
+    });
+
     themesList.push({
       label: "Change Password",
       onClick: () => {

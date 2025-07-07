@@ -37,6 +37,12 @@ export function AppLayout({
 
   const additionalMenuItems = [
     {
+      label: "Settings",
+      onClick: () => {
+        router.push("/settings");
+      },
+    },
+    {
       label: "Change Password",
       onClick: () => {
         router.push("/change-password");
