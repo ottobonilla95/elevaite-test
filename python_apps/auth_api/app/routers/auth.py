@@ -305,27 +305,77 @@ async def login(
             )
         elif (
             http_exc.status_code == status.HTTP_400_BAD_REQUEST
-            and "SMS code required" in http_exc.detail
+            and "MFA code required" in http_exc.detail
         ):
-            # SMS MFA is required - send SMS code automatically
-            try:
-                from app.services.sms_mfa import sms_mfa_service
+            if "TOTP or SMS" in http_exc.detail:
+                # Both MFA methods are available
+                try:
+                    from app.services.sms_mfa import sms_mfa_service
 
-                user = await get_user_by_email(session, login_data.email)
-                if user and user.sms_mfa_enabled:
-                    await sms_mfa_service.send_mfa_code(user)
-                    logger.info(
-                        f"SMS MFA code sent for login attempt: {login_data.email}"
-                    )
-            except Exception as sms_error:
-                logger.error(f"Failed to send SMS code during login: {sms_error}")
+                    user = await get_user_by_email(session, login_data.email)
+                    if user and user.sms_mfa_enabled:
+                        await sms_mfa_service.send_mfa_code(user)
+                        logger.info(
+                            f"SMS MFA code sent for login attempt (both methods available): {login_data.email}"
+                        )
+                except Exception as sms_error:
+                    logger.error(f"Failed to send SMS code during login: {sms_error}")
 
-            # Return the MFA challenge response
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="SMS code required - code sent to your phone",
-                headers={"X-MFA-Type": "SMS"},
-            )
+                # Get masked phone number for display
+                masked_phone = ""
+                if user and user.phone_number:
+                    # Mask the phone number, showing only last 4 digits
+                    cleaned = "".join(filter(str.isdigit, user.phone_number))
+                    if len(cleaned) >= 4:
+                        masked_phone = f"***-***-{cleaned[-4:]}"
+
+                headers = {"X-MFA-Type": "BOTH", "X-MFA-Methods": "TOTP,SMS"}
+                if masked_phone:
+                    headers["X-Phone-Masked"] = masked_phone
+
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="MFA code required - choose your preferred method",
+                    headers=headers,
+                )
+            elif "SMS code required" in http_exc.detail:
+                # SMS MFA only
+                try:
+                    from app.services.sms_mfa import sms_mfa_service
+
+                    user = await get_user_by_email(session, login_data.email)
+                    if user and user.sms_mfa_enabled:
+                        await sms_mfa_service.send_mfa_code(user)
+                        logger.info(
+                            f"SMS MFA code sent for login attempt: {login_data.email}"
+                        )
+                except Exception as sms_error:
+                    logger.error(f"Failed to send SMS code during login: {sms_error}")
+
+                # Get masked phone number for display
+                masked_phone = ""
+                if user and user.phone_number:
+                    # Mask the phone number, showing only last 4 digits
+                    cleaned = "".join(filter(str.isdigit, user.phone_number))
+                    if len(cleaned) >= 4:
+                        masked_phone = f"***-***-{cleaned[-4:]}"
+
+                headers = {"X-MFA-Type": "SMS"}
+                if masked_phone:
+                    headers["X-Phone-Masked"] = masked_phone
+
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="SMS code required - code sent to your phone",
+                    headers=headers,
+                )
+            elif "TOTP code required" in http_exc.detail:
+                # TOTP MFA only
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="TOTP code required",
+                    headers={"X-MFA-Type": "TOTP"},
+                )
         raise
     except Exception as e:
         print(f"Error during authentication: {e}")
