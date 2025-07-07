@@ -629,6 +629,57 @@ class ResendVerificationRequest(BaseModel):
     email: str
 
 
+@router.post("/resend-sms-code")
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def resend_sms_code_for_login(
+    request: Request,
+    login_data: LoginRequest,
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Resend SMS MFA code during login flow."""
+    try:
+        # Verify user credentials first
+        user = await get_user_by_email(session, login_data.email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid credentials",
+            )
+
+        # Verify password
+        from app.core.password_utils import verify_password
+
+        if not verify_password(login_data.password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid credentials",
+            )
+
+        # Check if SMS MFA is enabled
+        if not user.sms_mfa_enabled or not user.phone_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="SMS MFA is not enabled for this user",
+            )
+
+        # Send SMS code
+        from app.services.sms_mfa import sms_mfa_service
+
+        await sms_mfa_service.send_mfa_code(user)
+
+        logger.info(f"SMS MFA code resent for login: {login_data.email}")
+        return {"message": "SMS code sent successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error resending SMS code for login: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send SMS code",
+        )
+
+
 @router.post("/resend-verification")
 @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
 async def resend_verification_email(
