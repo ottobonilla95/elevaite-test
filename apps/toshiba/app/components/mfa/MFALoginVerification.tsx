@@ -9,6 +9,7 @@ interface MFALoginVerificationProps {
   mfaType: "totp" | "sms";
   onVerify: (code: string) => Promise<void>;
   onCancel: () => void;
+  onBackToMethodSelection?: () => void;
   onSendSMSCode?: () => Promise<void>;
   isLoading?: boolean;
   error?: string;
@@ -20,6 +21,7 @@ export function MFALoginVerification({
   mfaType,
   onVerify,
   onCancel,
+  onBackToMethodSelection,
   onSendSMSCode,
   isLoading = false,
   error,
@@ -52,7 +54,7 @@ export function MFALoginVerification({
   };
 
   const getTitle = () => {
-    return mfaType === "totp" ? "Enter Authenticator Code" : "Enter SMS Code";
+    return "Enter verification code";
   };
 
   const getDescription = () => {
@@ -69,7 +71,7 @@ export function MFALoginVerification({
     <div className="ui-max-w-md ui-mx-auto ui-p-6 ui-bg-[#1a1a1a] ui-rounded-lg ui-border ui-border-gray-700">
       <div className="ui-text-center ui-mb-6">
         <div className="ui-flex ui-justify-center ui-mb-4">
-          <div className="ui-p-3 ui-bg-[#E75F33] ui-rounded-full">
+          <div className="ui-p-3 ui-bg-[var(--ev-colors-highlight)] ui-rounded-full">
             {getIcon()}
           </div>
         </div>
@@ -96,17 +98,33 @@ export function MFALoginVerification({
           </div>
         )}
 
-        {mfaType === "sms" && onSendSMSCode && (
-          <div className="ui-text-center">
-            <button
-              onClick={handleSendCode}
-              disabled={isSendingCode || isVerifying || isLoading}
-              className="ui-text-sm ui-text-[#E75F33] hover:ui-text-[#d54d26] ui-transition-colors disabled:ui-opacity-50"
-            >
-              {isSendingCode ? "Sending..." : "Didn't receive the code? Resend"}
-            </button>
-          </div>
-        )}
+        <div className="ui-space-y-3">
+          {mfaType === "sms" && onSendSMSCode && (
+            <div className="ui-text-center ui-text-sm ui-text-gray-400">
+              Didn&apos;t receive a sign-in request?{" "}
+              <button
+                onClick={handleSendCode}
+                disabled={isSendingCode || isVerifying || isLoading}
+                className="ui-text-[var(--ev-colors-highlight)] hover:ui-text-[var(--ev-colors-highlight)]/80 ui-transition-colors disabled:ui-opacity-50 ui-underline"
+              >
+                {isSendingCode ? "Sending..." : "Resend request"}
+              </button>
+              .
+            </div>
+          )}
+
+          {onBackToMethodSelection && (
+            <div className="ui-text-center ui-text-sm ui-text-gray-400">
+              <button
+                onClick={onBackToMethodSelection}
+                disabled={isVerifying || isLoading}
+                className="ui-text-[var(--ev-colors-highlight)] hover:ui-text-[var(--ev-colors-highlight)]/80 ui-transition-colors disabled:ui-opacity-50 ui-underline"
+              >
+                I can&apos;t use my phone right now.
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="ui-flex ui-gap-3">
           <button

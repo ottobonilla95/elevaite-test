@@ -112,8 +112,8 @@ export function MFACodeInput({
             className={`
               ui-w-12 ui-h-12 ui-text-center ui-text-lg ui-font-mono
               ui-border ui-rounded-lg ui-bg-[#161616] ui-text-white
-              focus:ui-outline-none focus:ui-ring-2 focus:ui-ring-[#E75F33]
-              ${error ? "ui-border-red-500" : "ui-border-gray-600"}
+              focus:ui-outline-none focus:ui-ring-2 focus:ui-ring-[var(--ev-colors-highlight)]
+              ${error ? "ui-border-red-500" : "ui-border-[var(--ev-colors-highlight)]"}
               ${disabled ? "ui-opacity-50 ui-cursor-not-allowed" : ""}
             `}
           />

@@ -84,17 +84,30 @@ export const authOptions: NextAuthConfig = {
               }
 
               // For MFA challenges, throw with a specific format that we can catch
-              if (error.message === "TOTP code required") {
+              if (error.message === "MFA_REQUIRED_BOTH") {
+                console.log("Throwing Both MFA methods challenge");
+                const mfaError = new Error("MFA_REQUIRED_BOTH");
+                (mfaError as any).maskedPhone = (error as any).maskedPhone;
+                throw mfaError;
+              }
+
+              if (
+                error.message === "MFA_REQUIRED_TOTP" ||
+                error.message === "TOTP code required"
+              ) {
                 console.log("Throwing TOTP challenge");
                 throw new Error("MFA_REQUIRED_TOTP");
               }
 
               if (
+                error.message === "MFA_REQUIRED_SMS" ||
                 error.message === "SMS code required" ||
                 error.message.includes("SMS code required")
               ) {
                 console.log("Throwing SMS challenge");
-                throw new Error("MFA_REQUIRED_SMS");
+                const mfaError = new Error("MFA_REQUIRED_SMS");
+                (mfaError as any).maskedPhone = (error as any).maskedPhone;
+                throw mfaError;
               }
 
               // Check for invalid MFA codes

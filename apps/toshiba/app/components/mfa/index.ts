@@ -5,3 +5,4 @@ export { MFAStatusIndicator } from "./MFAStatusIndicator";
 export { TOTPSetup } from "./TOTPSetup";
 export { SMSMFASetup } from "./SMSMFASetup";
 export { MFALoginVerification } from "./MFALoginVerification";
+export { MFAMethodSelection } from "./MFAMethodSelection";
