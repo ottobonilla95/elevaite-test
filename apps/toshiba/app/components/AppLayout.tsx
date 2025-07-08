@@ -35,26 +35,7 @@ export function AppLayout({
     setResults(getResults(term));
   }
 
-  const additionalMenuItems = [
-    {
-      label: "Settings",
-      onClick: () => {
-        router.push("/settings");
-      },
-    },
-    {
-      label: "Change Password",
-      onClick: () => {
-        router.push("/change-password");
-      },
-    },
-    {
-      label: "Multi-Factor Authentication",
-      onClick: () => {
-        router.push("/settings/mfa");
-      },
-    },
-  ];
+  const additionalMenuItems: never[] = [];
 
   return (
     <div className="chatbot-layout-container">

@@ -60,20 +60,6 @@ export function NavBar(props: NavBarProps): JSX.Element {
       });
 
     themesList.push({
-      label: "Settings",
-      onClick: () => {
-        router.push("/settings");
-      },
-    });
-
-    themesList.push({
-      label: "Change Password",
-      onClick: () => {
-        router.push("/change-password");
-      },
-    });
-
-    themesList.push({
       label: "Logout",
       onClick: () => {
         handleLogoutRequest();
