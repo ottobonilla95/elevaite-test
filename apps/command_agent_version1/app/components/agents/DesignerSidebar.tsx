@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { CommonModal } from "@repo/ui/components";
 import { type AgentResponse, type SavedWorkflow, type AgentType } from "../../lib/interfaces";
-import { fetchAllAgents } from "../../lib/actions";
+import { useAgents } from "../../ui/contexts/AgentsContext";
 import { isValidAgentType } from "../../lib/discriminators";
 import { RouterAgentIcon } from "../icons";
 import TabHeader, { type Tab } from "../TabHeader";
@@ -76,10 +76,19 @@ function DesignerSidebar({
 	activeTab,
 	setActiveTab
 }: DesignerSidebarProps): JSX.Element {
-	// State for agents and search
-	const [agents, setAgents] = useState<AgentResponse[]>([]);
+	// State for search and modal
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showAllAgentsModal, setShowAllAgentsModal] = useState(false);
+
+	// Use agents context
+	const {
+		agents,
+		isLoading: agentsLoading,
+		error: agentsError,
+		refreshAgents,
+		filteredAgents: contextFilteredAgents,
+		setSearchQuery: setContextSearchQuery
+	} = useAgents();
 
 	// Define tabs for TabHeader component
 	const sidebarTabs: Tab[] = [
@@ -87,28 +96,16 @@ function DesignerSidebar({
 		{ id: "workflows", label: "Workflows" }
 	];
 
+	// Update context search when local search changes
 	useEffect(() => {
-		const fetchAgents = async (): Promise<void> => {
-			try {
-				const _agents = await fetchAllAgents();
-				setAgents(_agents);
-			} catch (error) {
-				console.error("Error fetching agents:", error);
-			}
-		};
-		void fetchAgents();
-	}, []);
+		setContextSearchQuery(searchQuery);
+	}, [searchQuery, setContextSearchQuery]);
 
-	// Filter agents based on search query
-	const filteredAgents = agents.filter((agent): agent is AgentResponse & { agent_type: AgentType } =>
+	// Filter agents based on search query and agent types
+	const filteredAgents = contextFilteredAgents.filter((agent): agent is AgentResponse & { agent_type: AgentType } =>
 		isValidAgentType(agent.agent_type) &&
-		['router', 'web_search', 'api', 'data', 'toshiba'].includes(agent.agent_type) &&
-		(agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			(agent.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false))
+		['router', 'web_search', 'api', 'data', 'toshiba'].includes(agent.agent_type)
 	);
-
-	// Get limited agents for sidebar display (first 5)
-	const displayedAgents = filteredAgents.slice(0, 5);
 
 	const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -156,7 +153,22 @@ function DesignerSidebar({
 				<div className="actions-tab flex flex-grow flex-col">
 					{/* Agents Header */}
 					<div className="mx-2">
-						<h2 className="font-medium text-black py-4">Agents</h2>
+						<div className="flex items-center justify-between py-4">
+							<h2 className="font-medium text-black">Agents</h2>
+							{agentsLoading ? <div className="text-xs text-gray-500">Loading...</div> : null}
+						</div>
+
+						{/* Error State */}
+						{agentsError ? <div className="text-xs text-red-500 mb-3 p-2 bg-red-50 rounded">
+							{agentsError}
+							<button
+								onClick={() => void refreshAgents()}
+								className="ml-2 underline hover:no-underline"
+								type="button"
+							>
+								Retry
+							</button>
+						</div> : null}
 
 						{/* Search Bar */}
 						<div className="flex items-center border border-gray-300 rounded-md px-3 py-2 mb-3">
@@ -183,7 +195,7 @@ function DesignerSidebar({
 
 						{/* Agents List */}
 						<div className="section-content">
-							{displayedAgents.map((agent) => (
+							{filteredAgents.map((agent) => (
 								<SidebarItem
 									key={agent.agent_id}
 									icon={

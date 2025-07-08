@@ -1,0 +1,118 @@
+.pre-deployment-modal {
+    .pre-deployment-dialog-content {
+        width: 600px;
+        max-width: 90vw;
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px 0 24px;
+            margin-bottom: 16px;
+
+            .modal-title {
+                font-size: 18px;
+                font-weight: 600;
+                color: #1f2937;
+                margin: 0;
+            }
+
+            .close-button {
+                background: none;
+                border: none;
+                color: #6b7280;
+                cursor: pointer;
+                padding: 4px;
+                border-radius: 4px;
+                transition: all 0.2s ease;
+
+                &:hover {
+                    background-color: #f3f4f6;
+                    color: #374151;
+                }
+            }
+        }
+
+        .modal-body {
+            padding: 0 24px 20px 24px;
+
+            .deployment-message {
+                font-size: 14px;
+                color: #6b7280;
+                line-height: 1.5;
+                margin: 0;
+                text-align: left;
+            }
+        }
+
+        .modal-footer {
+            padding: 20px 24px 24px 24px;
+            border-top: 1px solid #e5e7eb;
+
+            .deployment-actions {
+                display: flex;
+                gap: 12px;
+                justify-content: flex-end;
+
+                .btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 8px 12px;
+                    font-size: 14px;
+                    font-weight: 400;
+                    border-radius: 6px;
+                    transition: all 0.2s ease;
+                    border: 1px solid;
+                    cursor: pointer;
+                    min-width: 100px;
+                    text-align: center;
+                    border-radius: 6px;
+
+                    &.btn-outline {
+                        background-color: transparent;
+                        border-color: #E3E8EF;
+                        color: #1f2937;
+                    }
+
+                    &.btn-primary {
+                        background-color: #FF681F;
+                        border-color: #FF681F;
+                        color: white;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Responsive design
+@media (max-width: 640px) {
+    .pre-deployment-modal {
+        .pre-deployment-dialog-content {
+            width: 100%;
+            margin: 20px;
+
+            .modal-header {
+                padding: 16px 20px 0 20px;
+            }
+
+            .modal-body {
+                padding: 0 20px 16px 20px;
+            }
+
+            .modal-footer {
+                padding: 16px 20px 20px 20px;
+
+                .deployment-actions {
+                    flex-direction: column;
+
+                    .btn {
+                        min-width: auto;
+                        width: 100%;
+                    }
+                }
+            }
+        }
+    }
+}

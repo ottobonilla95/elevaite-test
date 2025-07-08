@@ -24,7 +24,6 @@ import { BACKEND_URL } from "../constants";
 
 export async function getWorkflows(): Promise<WorkflowResponse[]> {
   const url = new URL(`${BACKEND_URL ?? ""}api/workflows/`);
-  console.log(url);
 
   const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to fetch workflows");

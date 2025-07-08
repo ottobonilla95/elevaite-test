@@ -14,6 +14,7 @@ interface WorkflowSaveModalProps {
     initialDescription?: string;
     isLoading?: boolean;
     mode?: "save" | "deploy" | "both";
+    isCreatingNew?: boolean;
 }
 
 function WorkflowSaveModal({
@@ -24,7 +25,8 @@ function WorkflowSaveModal({
     initialName = "",
     initialDescription = "",
     isLoading = false,
-    mode = "both"
+    mode = "both",
+    isCreatingNew = false
 }: WorkflowSaveModalProps): JSX.Element | null {
     const [name, setName] = useState(initialName);
     const [description, setDescription] = useState(initialDescription);
@@ -88,14 +90,19 @@ function WorkflowSaveModal({
                 <div className="modal-header">
                     <div className="header-content">
                         <h2 className="modal-title">
-                            {mode === "save" ? "Save Workflow" : mode === "deploy" ? "Deploy Workflow" : "Save & Deploy Workflow"}
+                            {isCreatingNew
+                                ? "Create New Workflow"
+                                : mode === "save" ? "Save Workflow" : mode === "deploy" ? "Deploy Workflow" : "Save & Deploy Workflow"
+                            }
                         </h2>
                         <p className="modal-subtitle">
-                            {mode === "save"
-                                ? "Save your workflow for later use"
-                                : mode === "deploy"
-                                    ? "Deploy your workflow to make it available for chat"
-                                    : "Save your workflow and optionally deploy it"
+                            {isCreatingNew
+                                ? "Create a new workflow with a different name. The original workflow will remain unchanged."
+                                : mode === "save"
+                                    ? "Save your workflow for later use"
+                                    : mode === "deploy"
+                                        ? "Deploy your workflow to make it available for chat"
+                                        : "Save your workflow and optionally deploy it"
                             }
                         </p>
                     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
     Play,
     Trash2,
@@ -12,27 +12,12 @@ import {
     Download,
     RefreshCw
 } from "lucide-react";
-import { getWorkflows, getWorkflowDetails, deleteWorkflow } from "../../lib/actions";
-import { type SavedWorkflow, type WorkflowResponse } from "../../lib/interfaces"
+import { useWorkflows } from "../../ui/contexts/WorkflowsContext";
+import { type SavedWorkflow } from "../../lib/interfaces"
 
 import "./WorkflowsTab.scss";
 
-// Transform workflow data to match our interface
-function transformWorkflowData(workflows: WorkflowResponse[]): SavedWorkflow[] {
-    return workflows.map((workflow) => ({
-        workflow_id: workflow.workflow_id,
-        name: workflow.name,
-        description: workflow.description,
-        created_at: workflow.created_at,
-        created_by: workflow.created_by,
-        is_active: workflow.is_active,
-        is_deployed: workflow.is_deployed,
-        deployed_at: workflow.deployed_at,
-        version: workflow.version,
-        agent_count: workflow.workflow_agents.length || 0,
-        connection_count: workflow.workflow_connections.length || 0
-    }));
-}
+// Transform function moved to WorkflowsContext
 
 interface WorkflowsTabProps {
     onCreateNewWorkflow: () => void;
@@ -43,32 +28,17 @@ function WorkflowsTab({
     onCreateNewWorkflow,
     onLoadWorkflow
 }: WorkflowsTabProps): JSX.Element {
-    const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflow[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    // Use workflows context
+    const {
+        workflows: savedWorkflows,
+        isLoading,
+        error,
+        refreshWorkflows,
+        deleteWorkflowAndRefresh,
+        getWorkflowDetails
+    } = useWorkflows();
 
-    // Load workflows from API
-    const loadWorkflows = async (): Promise<void> => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const workflows = await getWorkflows();
-            const transformedWorkflows = transformWorkflowData(workflows);
-            setSavedWorkflows(transformedWorkflows);
-        } catch (error) {
-            console.error('Error loading workflows:', error);
-            setError('Failed to load workflows. Please try again.');
-            // Fallback to empty array
-            setSavedWorkflows([]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // Load workflows on component mount
-    useEffect(() => {
-        void loadWorkflows();
-    }, []);
+    // No longer need local loading function - handled by context
 
 
 
@@ -77,21 +47,16 @@ function WorkflowsTab({
             return;
         }
 
-        setIsLoading(true);
         try {
-            await deleteWorkflow(workflowId);
-            setSavedWorkflows(prev => prev.filter(w => w.workflow_id !== workflowId));
+            await deleteWorkflowAndRefresh(workflowId);
             alert("Workflow deleted successfully.");
         } catch (error) {
             console.error('Error deleting workflow:', error);
             alert("Failed to delete workflow. Please try again.");
-        } finally {
-            setIsLoading(false);
         }
     };
 
     const handleLoadWorkflow = async (workflow: SavedWorkflow) => {
-        setIsLoading(true);
         try {
             // Get full workflow details including agents and connections
             const workflowDetails = await getWorkflowDetails(workflow.workflow_id);
@@ -100,13 +65,9 @@ function WorkflowsTab({
 
             // Call the parent component's load function with the full details
             onLoadWorkflow(workflowDetails);
-
-            // alert(`Loaded workflow: ${workflow.name}`);
         } catch (error) {
             console.error('Error loading workflow:', error);
             alert("Failed to load workflow. Please try again.");
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -127,25 +88,6 @@ function WorkflowsTab({
                 <div>
                     <h3 className="text-lg font-semibold text-gray-800">Saved Workflows</h3>
                     <p className="text-sm text-gray-500">Manage and deploy your agent workflows</p>
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={loadWorkflows}
-                        className="px-3 py-2 bg-gray-500 text-white rounded-md text-sm font-medium hover:bg-gray-600 transition-colors flex items-center"
-                        disabled={isLoading}
-                        type="button"
-                    >
-                        <RefreshCw size={16} className={`mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                        Refresh
-                    </button>
-                    <button
-                        onClick={onCreateNewWorkflow}
-                        className="px-3 py-2 bg-green-500 text-white rounded-md text-sm font-medium hover:bg-green-600 transition-colors flex items-center"
-                        type="button"
-                    >
-                        <Plus size={16} className="mr-2" />
-                        New Workflow
-                    </button>
                 </div>
             </div>
 
@@ -179,12 +121,36 @@ function WorkflowsTab({
                     savedWorkflows.map((workflow) => (
                         <div
                             key={workflow.workflow_id}
-                            className="workflow-item border border-gray-200 rounded-lg p-4 hover:border-orange-300 transition-colors"
+                            className="workflow-item border border-gray-200 rounded-lg p-4 hover:border-orange-300 transition-colors flex w-full cursor-pointer"
+                            onClick={() => void handleLoadWorkflow(workflow)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    void handleLoadWorkflow(workflow);
+                                }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Load workflow: ${workflow.name}`}
                         >
                             {/* Title Section */}
-                            <div className="workflow-title-section mb-3">
-                                <h4 className="font-medium text-gray-800 text-base leading-tight">{workflow.name}</h4>
-                                <p className="text-sm text-gray-600 mt-1">{workflow.description ?? "No description"}</p>
+                            <div className="flex justify-between items-center pb-3">
+                                <div className="workflow-title-section mb-3 flex justify-start items-start flex-col">
+                                    <h4 className="text-sm font-medium text-gray-800 leading-tight">{workflow.name}</h4>
+                                    <p className="text-xs text-gray-600 mt-1">{workflow.description ?? "No description"}</p>
+                                </div>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleDeleteWorkflow(workflow.workflow_id);
+                                    }}
+                                    className="px-2 py-2 flex items-center justify-center hover:border"
+                                    disabled={isLoading}
+                                    type="button"
+                                >
+                                    <Trash2 size={16} className="mr-1" />
+                                </button>
+
                             </div>
 
                             {/* Status Pills Section */}
@@ -204,7 +170,7 @@ function WorkflowsTab({
                             </div>
 
                             {/* Meta Information */}
-                            <div className="workflow-meta-section mb-4">
+                            {/* <div className="workflow-meta-section mb-4">
                                 <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
                                     <div className="flex items-center gap-1">
                                         <User size={12} />
@@ -225,30 +191,11 @@ function WorkflowsTab({
                                         </div>
                                     ) : null}
                                 </div>
-                            </div>
+                            </div> */}
 
                             {/* Action Buttons Section */}
                             <div className="workflow-actions-section">
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => handleLoadWorkflow(workflow)}
-                                        className="px-3 py-2 bg-blue-500 text-white rounded text-xs font-medium hover:bg-blue-600 transition-colors flex-1 flex items-center justify-center"
-                                        disabled={isLoading}
-                                        type="button"
-                                    >
-                                        <Download size={12} className="mr-1" />
-                                        Load
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteWorkflow(workflow.workflow_id)}
-                                        className="px-3 py-2 bg-red-500 text-white rounded text-xs font-medium hover:bg-red-600 transition-colors flex items-center justify-center"
-                                        disabled={isLoading}
-                                        type="button"
-                                    >
-                                        <Trash2 size={12} className="mr-1" />
-                                        Delete
-                                    </button>
-                                </div>
+                                <div className="flex gap-2" />
                             </div>
                         </div>
                     ))

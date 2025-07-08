@@ -2,12 +2,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileText } from "lucide-react";
-import WorkflowSaveModal from "./WorkflowSaveModal";
-import PreDeploymentDialog from "./PreDeploymentDialog";
-import PostDeploymentSuccessDialog from "./PostDeploymentSuccessDialog";
+import { FileText, LayoutGrid } from "lucide-react";
 import type { WorkflowDeployment, WorkflowResponse } from "../../lib/interfaces/workflows";
 import type { ChatCompletionToolParam } from "../../lib/interfaces/common";
+import WorkflowSaveModal from "./WorkflowSaveModal";
+import PreDeploymentModal from "./PreDeploymentModal";
+import PostDeploymentSuccessDialog from "./PostDeploymentSuccessDialog";
 import "./HeaderBottom.scss";
 
 interface HeaderBottomProps {
@@ -27,58 +27,49 @@ interface HeaderBottomProps {
 	currentWorkflowData?: WorkflowResponse | null;
 	tools?: ChatCompletionToolParam[];
 	onUpdateExistingWorkflow: () => void;
-	onCreateNewWorkflow: () => void;
-	onShowPostDeploymentSuccess?: (
-		deployment: WorkflowDeployment,
-		workflow: WorkflowResponse,
-		inferenceUrl: string
-	) => void;
+	onCreateNewWorkflow: (name: string, description: string) => void;
+	// New props for deployment result handling
+	deploymentResult?: {
+		deployment: WorkflowDeployment;
+		workflow: WorkflowResponse;
+		inferenceUrl: string;
+	} | null;
+	onClearDeploymentResult?: () => void;
 }
 
 function HeaderBottom({
 	workflowName,
-	workflowDescription = "Analyze and process invoice documents",
+	workflowDescription = "",
 	onSaveWorkflow,
 	onDeployWorkflow,
 	isLoading,
 	isExistingWorkflow,
 	hasUnsavedChanges,
-	deploymentStatus,
-	currentWorkflowData,
+	deploymentStatus: _deploymentStatus,
+	currentWorkflowData: _currentWorkflowData,
 	tools = [],
 	onUpdateExistingWorkflow,
 	onCreateNewWorkflow,
+	deploymentResult,
+	onClearDeploymentResult,
 }: HeaderBottomProps): JSX.Element {
 
 	const [activeBtnAction, setActiveBtnAction] = useState("workflow-creation");
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [isPreDeploymentDialogOpen, setIsPreDeploymentDialogOpen] = useState(false);
-	const [isPostDeploymentDialogOpen, setIsPostDeploymentDialogOpen] = useState(false);
-	const [deploymentResult, setDeploymentResult] = useState<{
-		deployment: WorkflowDeployment;
-		workflow: WorkflowResponse;
-		inferenceUrl: string;
-	} | null>(null);
+	const [isCreatingNewWorkflow, setIsCreatingNewWorkflow] = useState(false);
 
 	// Function to handle deploy button click - starts the advanced deployment flow
 	const handleDeployClick = (): void => {
 		// Check if this is an existing workflow and if there are changes
 		if (isExistingWorkflow) {
-			// For existing workflows, check if already deployed and unchanged
-			if (deploymentStatus.isDeployed && !hasUnsavedChanges) {
-				// Already deployed and no changes - show success dialog directly
-				if (deploymentStatus.deployment && currentWorkflowData && deploymentStatus.inferenceUrl) {
-					setDeploymentResult({
-						deployment: deploymentStatus.deployment,
-						workflow: currentWorkflowData,
-						inferenceUrl: deploymentStatus.inferenceUrl
-					});
-					setIsPostDeploymentDialogOpen(true);
-				}
-				return;
+			// If there are unsaved changes, show the pre-deployment dialog to choose save vs save-as
+			if (hasUnsavedChanges) {
+				setIsPreDeploymentDialogOpen(true);
+			} else {
+				// No unsaved changes - deploy directly
+				onUpdateExistingWorkflow();
 			}
-			// Show pre-deployment dialog for existing workflows
-			setIsPreDeploymentDialogOpen(true);
 		} else {
 			// For new workflows, go directly to save/deploy modal
 			setIsModalOpen(true);
@@ -88,27 +79,37 @@ function HeaderBottom({
 	// Function to close modals
 	const handleCloseModal = (): void => {
 		setIsModalOpen(false);
+		setIsCreatingNewWorkflow(false);
 	};
 
 	const handleClosePreDeploymentDialog = (): void => {
 		setIsPreDeploymentDialogOpen(false);
 	};
 
-	const handleClosePostDeploymentDialog = (): void => {
-		setIsPostDeploymentDialogOpen(false);
-		setDeploymentResult(null);
-	};
-
 	// Handle save workflow
 	const handleSave = (name: string, description: string): void => {
-		onSaveWorkflow(name, description);
+		if (isCreatingNewWorkflow) {
+			// We're creating a new workflow, so call the create new handler with the new name
+			onCreateNewWorkflow(name, description);
+		} else {
+			// Regular save workflow
+			onSaveWorkflow(name, description);
+		}
 		setIsModalOpen(false);
+		setIsCreatingNewWorkflow(false);
 	};
 
 	// Handle deploy workflow - this will be called after successful deployment
 	const handleDeploy = (name: string, description: string): void => {
-		onDeployWorkflow(name, description);
+		if (isCreatingNewWorkflow) {
+			// We're creating a new workflow, so call the create new handler with the new name
+			onCreateNewWorkflow(name, description);
+		} else {
+			// Regular deploy workflow
+			onDeployWorkflow(name, description);
+		}
 		setIsModalOpen(false);
+		setIsCreatingNewWorkflow(false);
 	};
 
 	// Handle updating existing workflow
@@ -117,20 +118,12 @@ function HeaderBottom({
 		onUpdateExistingWorkflow();
 	};
 
-	// Handle creating new workflow
+	// Handle creating new workflow - open save modal for new workflow
 	const handleCreateNew = (): void => {
 		setIsPreDeploymentDialogOpen(false);
-		onCreateNewWorkflow();
-	};
-
-	// Function to show post-deployment success dialog
-	const showPostDeploymentSuccess = (
-		deployment: WorkflowDeployment,
-		workflow: WorkflowResponse,
-		inferenceUrl: string
-	): void => {
-		setDeploymentResult({ deployment, workflow, inferenceUrl });
-		setIsPostDeploymentDialogOpen(true);
+		setIsCreatingNewWorkflow(true);
+		// Open the save modal to let user specify new workflow name and description
+		setIsModalOpen(true);
 	};
 
 	return (
@@ -141,12 +134,7 @@ function HeaderBottom({
 			</div>
 			<div className="actions">
 				<button className={`btn-workflow-creation${activeBtnAction === 'workflow-creation' ? ' active' : ''}`} type="button" onClick={() => { setActiveBtnAction("workflow-creation"); }}>
-					<svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M8.78613 13.4455V9.34021C8.78613 9.10565 8.97625 8.91553 9.21082 8.91553H13.3161C13.5507 8.91553 13.7408 9.10565 13.7408 9.34021V13.4455C13.7408 13.6801 13.5507 13.8702 13.3161 13.8702H9.21082C8.97625 13.8702 8.78613 13.6801 8.78613 13.4455Z" stroke="#1E1E1E" strokeWidth="1.06171" />
-						<path d="M1 13.4455V9.34021C1 9.10565 1.19014 8.91553 1.42469 8.91553H5.52998C5.76453 8.91553 5.95466 9.10565 5.95466 9.34021V13.4455C5.95466 13.6801 5.76453 13.8702 5.52998 13.8702H1.42469C1.19014 13.8702 1 13.6801 1 13.4455Z" stroke="#1E1E1E" strokeWidth="1.06171" />
-						<path d="M8.78613 5.65962V1.55432C8.78613 1.31978 8.97625 1.12964 9.21082 1.12964H13.3161C13.5507 1.12964 13.7408 1.31978 13.7408 1.55432V5.65962C13.7408 5.89416 13.5507 6.0843 13.3161 6.0843H9.21082C8.97625 6.0843 8.78613 5.89416 8.78613 5.65962Z" stroke="#1E1E1E" strokeWidth="1.06171" />
-						<path d="M1 5.65962V1.55432C1 1.31978 1.19014 1.12964 1.42469 1.12964H5.52998C5.76453 1.12964 5.95466 1.31978 5.95466 1.55432V5.65962C5.95466 5.89416 5.76453 6.0843 5.52998 6.0843H1.42469C1.19014 6.0843 1 5.89416 1 5.65962Z" stroke="#1E1E1E" strokeWidth="1.06171" />
-					</svg>
+					<LayoutGrid />
 				</button>
 				<button className={`btn-workflow-testing${activeBtnAction === 'workflow-testing' ? ' active' : ''}`} type="button" onClick={() => { setActiveBtnAction("workflow-testing"); }}>
 					<FileText size={17} />
@@ -164,14 +152,15 @@ function HeaderBottom({
 				onClose={handleCloseModal}
 				onSave={handleSave}
 				onDeploy={handleDeploy}
-				initialName={workflowName}
+				initialName={isCreatingNewWorkflow ? `${workflowName} (Copy)` : workflowName}
 				initialDescription={workflowDescription}
 				isLoading={isLoading}
 				mode="both"
+				isCreatingNew={isCreatingNewWorkflow}
 			/>
 
-			{/* Pre-Deployment Dialog */}
-			<PreDeploymentDialog
+			{/* Pre-Deployment Modal */}
+			<PreDeploymentModal
 				isOpen={isPreDeploymentDialogOpen}
 				onClose={handleClosePreDeploymentDialog}
 				onUpdateExisting={handleUpdateExisting}
@@ -182,16 +171,16 @@ function HeaderBottom({
 			/>
 
 			{/* Post-Deployment Success Dialog */}
-			{deploymentResult && (
+			{deploymentResult && onClearDeploymentResult ? (
 				<PostDeploymentSuccessDialog
-					isOpen={isPostDeploymentDialogOpen}
-					onClose={handleClosePostDeploymentDialog}
+					isOpen
+					onClose={onClearDeploymentResult}
 					deployment={deploymentResult.deployment}
 					workflow={deploymentResult.workflow}
 					inferenceUrl={deploymentResult.inferenceUrl}
 					tools={tools}
 				/>
-			)}
+			) : null}
 		</div>
 	);
 }
