@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 import { ProjectSidebar } from "../components/advanced/ProjectSidebar";
+import { TOTPSetup, SMSMFASetup } from "../components/mfa";
+import { UserDetailResponse, MfaSetupResponse } from "../lib/authApiClient";
 import "./page.scss";
 
 const LockIcon = ({ size = 14 }: { size?: number }) => (
@@ -87,6 +89,149 @@ export default function Settings(): JSX.Element {
   // MFA toggle state
   const [totpEnabled, setTotpEnabled] = useState(false);
   const [smsEnabled, setSmsEnabled] = useState(false);
+
+  // MFA modal and setup state
+  const [showTOTPModal, setShowTOTPModal] = useState(false);
+  const [showSMSModal, setShowSMSModal] = useState(false);
+  const [userDetails, setUserDetails] = useState<UserDetailResponse | null>(
+    null
+  );
+  const [totpSetupData, setTotpSetupData] = useState<MfaSetupResponse | null>(
+    null
+  );
+  const [mfaError, setMfaError] = useState<string>("");
+  const [isLoadingMFA, setIsLoadingMFA] = useState(false);
+
+  // Load user details on component mount
+  useEffect(() => {
+    loadUserDetails();
+  }, []);
+
+  // Load user details from API
+  const loadUserDetails = async () => {
+    try {
+      setIsLoadingMFA(true);
+      const response = await fetch("/api/auth/me");
+
+      if (!response.ok) {
+        throw new Error("Failed to load user details");
+      }
+
+      const data = await response.json();
+      setUserDetails(data);
+      setTotpEnabled(data.mfa_enabled || false);
+      setSmsEnabled(data.sms_mfa_enabled || false);
+    } catch (error) {
+      setMfaError(
+        error instanceof Error ? error.message : "Failed to load user details"
+      );
+    } finally {
+      setIsLoadingMFA(false);
+    }
+  };
+
+  // TOTP MFA setup functions
+  const handleSetupTOTP = async () => {
+    try {
+      setMfaError("");
+      const response = await fetch("/api/auth/mfa/setup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to setup TOTP MFA");
+      }
+
+      const data = await response.json();
+      setTotpSetupData(data);
+      setShowTOTPModal(true);
+    } catch (error) {
+      setMfaError(
+        error instanceof Error ? error.message : "Failed to setup TOTP MFA"
+      );
+      setTotpEnabled(false); // Reset toggle on error
+    }
+  };
+
+  const handleVerifyTOTP = async (code: string) => {
+    try {
+      setMfaError("");
+      const response = await fetch("/api/auth/mfa/activate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ totp_code: code }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to verify TOTP code");
+      }
+
+      setShowTOTPModal(false);
+      await loadUserDetails();
+    } catch (error) {
+      setMfaError(
+        error instanceof Error ? error.message : "Failed to verify TOTP code"
+      );
+      throw error;
+    }
+  };
+
+  // SMS MFA setup functions
+  const handleSetupSMS = async (phoneNumber: string) => {
+    try {
+      setMfaError("");
+      const response = await fetch("/api/sms-mfa/setup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ phone_number: phoneNumber }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to setup SMS MFA");
+      }
+    } catch (error) {
+      setMfaError(
+        error instanceof Error ? error.message : "Failed to setup SMS MFA"
+      );
+      throw error;
+    }
+  };
+
+  const handleVerifySMS = async (code: string) => {
+    try {
+      setMfaError("");
+      const response = await fetch("/api/sms-mfa/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ mfa_code: code }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to verify SMS code");
+      }
+
+      setShowSMSModal(false);
+      await loadUserDetails();
+    } catch (error) {
+      setMfaError(
+        error instanceof Error ? error.message : "Failed to verify SMS code"
+      );
+      throw error;
+    }
+  };
 
   const handleChangePassword = async (): Promise<void> => {
     if (!currentPassword) {
@@ -346,7 +491,16 @@ export default function Settings(): JSX.Element {
                   <input
                     type="checkbox"
                     checked={totpEnabled}
-                    onChange={(e) => setTotpEnabled(e.target.checked)}
+                    onChange={(e) => {
+                      const isEnabled = e.target.checked;
+                      if (isEnabled && !totpEnabled) {
+                        // Switching from disabled to enabled - show modal
+                        handleSetupTOTP();
+                      } else {
+                        // Just update the visual state for now
+                        setTotpEnabled(isEnabled);
+                      }
+                    }}
                   />
                   <span className="mfa-toggle-slider"></span>
                 </label>
@@ -360,8 +514,8 @@ export default function Settings(): JSX.Element {
                 <div className="mfa-method-info">
                   <h3>SMS Authentication</h3>
                   <p>
-                    {smsEnabled
-                      ? "Send an SMS code to ***-***-5499"
+                    {smsEnabled && userDetails?.phone_number
+                      ? `Send an SMS code to ${userDetails.phone_number.replace(/(\d{3})(\d{3})(\d{4})/, "***-***-$3")}`
                       : "Use your phone number to receive SMS codes."}
                   </p>
                 </div>
@@ -369,7 +523,17 @@ export default function Settings(): JSX.Element {
                   <input
                     type="checkbox"
                     checked={smsEnabled}
-                    onChange={(e) => setSmsEnabled(e.target.checked)}
+                    onChange={(e) => {
+                      const isEnabled = e.target.checked;
+                      if (isEnabled && !smsEnabled) {
+                        // Switching from disabled to enabled - show modal
+                        setSmsEnabled(true); // Set visual state first
+                        setShowSMSModal(true);
+                      } else {
+                        // Just update the visual state for now
+                        setSmsEnabled(isEnabled);
+                      }
+                    }}
                   />
                   <span className="mfa-toggle-slider"></span>
                 </label>
@@ -384,79 +548,150 @@ export default function Settings(): JSX.Element {
     return null;
   };
 
-  return (
-    <main
-      className={`settings-advanced-container ${isExpanded ? "sidebar-expanded" : "sidebar-collapsed"}`}
-    >
-      <ProjectSidebar isExpanded={isExpanded} setIsExpanded={setIsExpanded} />
-      <div className="settings-main-area">
-        <div className="settings-header">
-          <span>Settings</span>
-        </div>
-        <div className="settings-content">
-          <div className="settings-layout">
-            <div className="settings-left-column">
-              <div className="category-navigation">
-                {/* Profile Category */}
-                <CommonButton
-                  className={`category-button ${selectedCategory === "profile" ? "selected" : ""}`}
-                  onClick={() => handleCategoryClick("profile")}
-                  noBackground
-                >
-                  <span>Profile</span>
-                  <ElevaiteIcons.SVGChevron className="accordion-arrow" />
-                </CommonButton>
-
-                {/* Account Category */}
-                <CommonButton
-                  className={`category-button ${selectedCategory === "account" ? "selected" : ""}`}
-                  onClick={() => handleCategoryClick("account")}
-                  noBackground
-                >
-                  <span>Account</span>
-                  <ElevaiteIcons.SVGChevron className="accordion-arrow" />
-                </CommonButton>
-
-                {/* Security Category */}
-                <CommonButton
-                  className={`category-button ${selectedCategory === "security" ? "selected" : ""} ${selectedCategory === "security" ? "expanded" : ""}`}
-                  onClick={() => handleCategoryClick("security")}
-                  noBackground
-                >
-                  <span>Security</span>
-                  <ElevaiteIcons.SVGChevron className="accordion-arrow" />
-                </CommonButton>
-
-                {/* Security Subcategories */}
-                {selectedCategory === "security" && (
-                  <div className="subcategory-list">
-                    <CommonButton
-                      className={`subcategory-button ${selectedSubcategory === "change-password" ? "selected" : ""}`}
-                      onClick={() => handleSubcategoryClick("change-password")}
-                      noBackground
-                    >
-                      <LockIcon size={14} />
-                      <span>Change Password</span>
-                    </CommonButton>
-                    <CommonButton
-                      className={`subcategory-button ${selectedSubcategory === "multi-factor-auth" ? "selected" : ""}`}
-                      onClick={() =>
-                        handleSubcategoryClick("multi-factor-auth")
-                      }
-                      noBackground
-                    >
-                      <KeyIcon size={14} />
-                      <span>Multi-Factor Authentication</span>
-                    </CommonButton>
-                  </div>
-                )}
-              </div>
+  // Modal components
+  const renderModals = () => {
+    return (
+      <>
+        {/* TOTP Setup Modal */}
+        {showTOTPModal && totpSetupData && (
+          <div
+            className="mfa-modal-overlay"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowTOTPModal(false);
+                setTotpEnabled(false); // Reset toggle on cancel
+                setMfaError("");
+              }
+            }}
+          >
+            <div className="mfa-modal-content">
+              <TOTPSetup
+                secret={totpSetupData.secret}
+                qrCodeUri={totpSetupData.qr_code_uri}
+                onVerify={handleVerifyTOTP}
+                onCancel={() => {
+                  setShowTOTPModal(false);
+                  setTotpEnabled(false); // Reset toggle on cancel
+                  setMfaError("");
+                }}
+                error={mfaError}
+                isLoading={isLoadingMFA}
+              />
             </div>
+          </div>
+        )}
 
-            <div className="settings-right-column">{renderContent()}</div>
+        {/* SMS Setup Modal */}
+        {showSMSModal && (
+          <div
+            className="mfa-modal-overlay"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowSMSModal(false);
+                setSmsEnabled(false); // Reset toggle on cancel
+                setMfaError("");
+              }
+            }}
+          >
+            <div className="mfa-modal-content">
+              <SMSMFASetup
+                onSetup={handleSetupSMS}
+                onVerify={handleVerifySMS}
+                onCancel={() => {
+                  setShowSMSModal(false);
+                  setSmsEnabled(false); // Reset toggle on cancel
+                  setMfaError("");
+                }}
+                error={mfaError}
+                initialPhoneNumber={userDetails?.phone_number || ""}
+              />
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  return (
+    <>
+      <main
+        className={`settings-advanced-container ${isExpanded ? "sidebar-expanded" : "sidebar-collapsed"}`}
+      >
+        <ProjectSidebar isExpanded={isExpanded} setIsExpanded={setIsExpanded} />
+        <div className="settings-main-area">
+          <div className="settings-header">
+            <span>Settings</span>
+          </div>
+          <div className="settings-content">
+            <div className="settings-layout">
+              <div className="settings-left-column">
+                <div className="category-navigation">
+                  {/* Profile Category */}
+                  <CommonButton
+                    className={`category-button ${selectedCategory === "profile" ? "selected" : ""}`}
+                    onClick={() => handleCategoryClick("profile")}
+                    noBackground
+                  >
+                    <span>Profile</span>
+                    <ElevaiteIcons.SVGChevron className="accordion-arrow" />
+                  </CommonButton>
+
+                  {/* Account Category */}
+                  <CommonButton
+                    className={`category-button ${selectedCategory === "account" ? "selected" : ""}`}
+                    onClick={() => handleCategoryClick("account")}
+                    noBackground
+                  >
+                    <span>Account</span>
+                    <ElevaiteIcons.SVGChevron className="accordion-arrow" />
+                  </CommonButton>
+
+                  {/* Security Category */}
+                  <CommonButton
+                    className={`category-button ${selectedCategory === "security" ? "selected" : ""} ${selectedCategory === "security" ? "expanded" : ""}`}
+                    onClick={() => handleCategoryClick("security")}
+                    noBackground
+                  >
+                    <span>Security</span>
+                    <ElevaiteIcons.SVGChevron className="accordion-arrow" />
+                  </CommonButton>
+
+                  {/* Security Subcategories */}
+                  {selectedCategory === "security" && (
+                    <div className="subcategory-list">
+                      <CommonButton
+                        className={`subcategory-button ${selectedSubcategory === "change-password" ? "selected" : ""}`}
+                        onClick={() =>
+                          handleSubcategoryClick("change-password")
+                        }
+                        noBackground
+                      >
+                        <LockIcon size={14} />
+                        <span>Change Password</span>
+                      </CommonButton>
+                      <CommonButton
+                        className={`subcategory-button ${selectedSubcategory === "multi-factor-auth" ? "selected" : ""}`}
+                        onClick={() =>
+                          handleSubcategoryClick("multi-factor-auth")
+                        }
+                        noBackground
+                      >
+                        <KeyIcon size={14} />
+                        <span>Multi-Factor Authentication</span>
+                      </CommonButton>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="settings-right-column">{renderContent()}</div>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+
+      {/* Render MFA Modals */}
+      {renderModals()}
+    </>
   );
 }

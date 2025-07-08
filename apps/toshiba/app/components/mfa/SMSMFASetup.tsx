@@ -59,52 +59,63 @@ export function SMSMFASetup({
   };
 
   return (
-    <div className="ui-max-w-md ui-mx-auto ui-p-6 ui-bg-[#1a1a1a] ui-rounded-lg ui-border ui-border-gray-700">
+    <div
+      className="ui-max-w-md ui-mx-auto ui-p-6 ui-bg-[#1a1a1a] ui-rounded-lg"
+      style={{ border: "none", textAlign: "center" }}
+    >
       <div className="ui-text-center ui-mb-6">
         <h2 className="ui-text-2xl ui-font-bold ui-text-white ui-mb-2">
-          Set up SMS Authentication
+          {step === "phone"
+            ? "Set up SMS Authentication"
+            : "Enter Verification Code"}
         </h2>
         <p className="ui-text-gray-400">
           {step === "phone"
-            ? "Enter your phone number to receive verification codes"
-            : "Enter the verification code sent to your phone"}
+            ? "Enter your phone number to receive verification codes."
+            : "Enter the 6-digit code sent to your phone."}
         </p>
       </div>
 
       {step === "phone" && (
         <form onSubmit={handlePhoneSubmit} className="ui-space-y-6">
-          <PhoneNumberInput
-            value={phoneNumber}
-            onChange={setPhoneNumber}
-            error={error}
-            disabled={isSettingUp || isLoading}
-            placeholder="Enter your phone number"
-          />
-
-          <div className="ui-space-y-2">
-            <h3 className="ui-text-sm ui-font-medium ui-text-gray-300">
-              How it works:
-            </h3>
-            <ul className="ui-text-sm ui-text-gray-400 ui-space-y-1 ui-list-disc ui-list-inside">
-              <li>We'll send a 6-digit code to your phone</li>
-              <li>Enter the code to verify your phone number</li>
-              <li>You'll receive codes for future logins</li>
-            </ul>
+          <div style={{ marginTop: "32px" }}>
+            <PhoneNumberInput
+              value={phoneNumber}
+              onChange={setPhoneNumber}
+              error={error}
+              disabled={isSettingUp || isLoading}
+              placeholder="Enter your phone number"
+            />
           </div>
 
-          <div className="ui-flex ui-gap-3">
+          <div
+            className="ui-space-y-2"
+            style={{ textAlign: "center", marginTop: "32px" }}
+          >
+            <div className="ui-text-sm ui-text-gray-400 ui-space-y-2">
+              <div>1. We'll send a 6-digit code to your phone</div>
+              <div>2. Enter the code to verify your phone number</div>
+              <div>3. You'll receive codes for future logins</div>
+            </div>
+          </div>
+
+          <div
+            style={{ marginTop: "32px", position: "relative", height: "48px" }}
+          >
             <button
               type="button"
               onClick={onCancel}
               disabled={isSettingUp || isLoading}
-              className="ui-flex-1 ui-py-3 ui-px-4 ui-border ui-border-gray-600 ui-text-gray-300 ui-rounded-lg ui-font-medium hover:ui-bg-gray-700 ui-transition-colors disabled:ui-opacity-50"
+              className="ui-py-3 ui-px-4 ui-bg-[#E75F33] ui-text-white ui-rounded-lg ui-font-medium hover:ui-bg-[#d54d26] ui-transition-colors disabled:ui-opacity-50"
+              style={{ position: "absolute", left: "0" }}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!isPhoneValid() || isSettingUp || isLoading}
-              className="ui-flex-1 ui-py-3 ui-px-4 ui-bg-[#E75F33] ui-text-white ui-rounded-lg ui-font-medium hover:ui-bg-[#d54d26] ui-transition-colors disabled:ui-opacity-50 disabled:ui-bg-gray-600"
+              className="ui-py-3 ui-px-4 ui-bg-[#E75F33] ui-text-white ui-rounded-lg ui-font-medium hover:ui-bg-[#d54d26] ui-transition-colors disabled:ui-opacity-50"
+              style={{ position: "absolute", right: "0" }}
             >
               {isSettingUp ? "Setting up..." : "Send Code"}
             </button>
@@ -123,11 +134,13 @@ export function SMSMFASetup({
             </p>
           </div>
 
-          <MFACodeInput
-            onComplete={handleCodeComplete}
-            error={error}
-            disabled={isVerifying || isLoading}
-          />
+          <div style={{ marginTop: "32px" }}>
+            <MFACodeInput
+              onComplete={handleCodeComplete}
+              error={error}
+              disabled={isVerifying || isLoading}
+            />
+          </div>
 
           {isVerifying && (
             <div className="ui-text-center ui-text-sm ui-text-gray-400">
@@ -135,18 +148,14 @@ export function SMSMFASetup({
             </div>
           )}
 
-          <div className="ui-flex ui-gap-3">
-            <button
-              onClick={() => setStep("phone")}
-              disabled={isVerifying || isLoading}
-              className="ui-flex-1 ui-py-3 ui-px-4 ui-border ui-border-gray-600 ui-text-gray-300 ui-rounded-lg ui-font-medium hover:ui-bg-gray-700 ui-transition-colors disabled:ui-opacity-50"
-            >
-              Back
-            </button>
+          <div
+            className="ui-flex ui-justify-center"
+            style={{ marginTop: "32px" }}
+          >
             <button
               onClick={onCancel}
               disabled={isVerifying || isLoading}
-              className="ui-flex-1 ui-py-3 ui-px-4 ui-border ui-border-gray-600 ui-text-gray-300 ui-rounded-lg ui-font-medium hover:ui-bg-gray-700 ui-transition-colors disabled:ui-opacity-50"
+              className="ui-py-3 ui-px-4 ui-bg-[#E75F33] ui-text-white ui-rounded-lg ui-font-medium hover:ui-bg-[#d54d26] ui-transition-colors disabled:ui-opacity-50"
             >
               Cancel
             </button>

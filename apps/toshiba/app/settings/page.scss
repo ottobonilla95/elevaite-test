@@ -471,3 +471,198 @@
     }
   }
 }
+
+// MFA Modal Styling
+.mfa-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.mfa-modal-content {
+  background: var(--ev-colors-background);
+  border: 2px solid var(--ev-colors-highlight);
+  border-radius: 16px;
+  position: relative;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease;
+  padding: 32px;
+
+  // Target the main modal container and center its contents
+  :global(
+      .ui-max-w-md.ui-mx-auto.ui-p-6.ui-bg-\[#1a1a1a\].ui-rounded-lg.ui-border.ui-border-gray-700
+    ) {
+    text-align: center !important;
+    border: none !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+
+    & > * {
+      text-align: center !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+    }
+  }
+
+  // Remove border from gray-700 elements
+  :global(.ui-border-gray-700) {
+    border: none !important;
+  }
+
+  :global(.ui-text-white) {
+    color: var(--ev-colors-text) !important;
+  }
+
+  :global(.ui-text-gray-400) {
+    color: var(--ev-colors-secondaryText) !important;
+  }
+
+  :global(.ui-bg-\[#E75F33\]) {
+    background-color: var(--ev-colors-highlight) !important;
+  }
+
+  :global(.hover\:ui-bg-\[#d54d26\]:hover) {
+    background-color: var(--ev-colors-highlightHover) !important;
+  }
+
+  :global(.ui-bg-\[#161616\]) {
+    background-color: var(--ev-colors-primary) !important;
+  }
+
+  // Input field borders with highlight color
+  :global(.ui-border-gray-600) {
+    border-color: var(--ev-colors-highlight) !important;
+  }
+
+  :global(.ui-border) {
+    border-color: var(--ev-colors-highlight) !important;
+  }
+
+  :global(.ui-text-gray-300) {
+    color: var(--ev-colors-text) !important;
+  }
+
+  :global(.hover\:ui-bg-gray-700:hover) {
+    background-color: var(--ev-colors-secondary) !important;
+  }
+
+  // Improve spacing for modal content
+  :global(.ui-space-y-6 > *:not(:first-child)) {
+    margin-top: 32px !important;
+  }
+
+  :global(.ui-space-y-2 > *:not(:first-child)) {
+    margin-top: 16px !important;
+  }
+
+  :global(.ui-mb-6) {
+    margin-bottom: 32px !important;
+  }
+
+  :global(.ui-mb-4) {
+    margin-bottom: 24px !important;
+  }
+
+  :global(.ui-mb-2) {
+    margin-bottom: 16px !important;
+  }
+
+  :global(.ui-p-6) {
+    padding: 0 !important;
+  }
+
+  :global(.ui-max-w-md) {
+    max-width: none !important;
+  }
+
+  :global(.ui-mx-auto) {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  // Fix the copy button container with highlight border
+  :global(.ui-flex.ui-items-center.ui-gap-2) {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    margin: 16px auto !important;
+
+    :global(.ui-flex-1) {
+      border-color: var(--ev-colors-highlight) !important;
+      padding-right: 48px !important;
+      position: relative !important;
+    }
+
+    :global(button) {
+      position: absolute !important;
+      right: 8px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      background: transparent !important;
+      border: none !important;
+      color: var(--ev-colors-secondaryText) !important;
+      cursor: pointer !important;
+      padding: 6px !important;
+      border-radius: 4px !important;
+      transition: all 0.2s !important;
+      width: 28px !important;
+      height: 28px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+
+      &:hover {
+        color: var(--ev-colors-text) !important;
+        background-color: var(--ev-colors-secondary) !important;
+      }
+    }
+  }
+
+  // Input field improvements
+  :global(.ui-p-2) {
+    padding: 12px 16px !important;
+  }
+
+  // Button spacing improvements
+  :global(.ui-flex.ui-gap-3) {
+    gap: 16px !important;
+    margin-top: 32px !important;
+    justify-content: center !important;
+  }
+
+  :global(.ui-py-3) {
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+  }
+
+  // Center form elements
+  :global(.ui-space-y-6 > *),
+  :global(.ui-space-y-2 > *) {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    text-align: center !important;
+  }
+
+  // Center labels
+  :global(.ui-block) {
+    text-align: center !important;
+    margin: 0 auto 16px auto !important;
+  }
+
+  // Center instructions
+  :global(.ui-list-decimal) {
+    text-align: left !important;
+    display: inline-block !important;
+    margin: 0 auto !important;
+  }
+}

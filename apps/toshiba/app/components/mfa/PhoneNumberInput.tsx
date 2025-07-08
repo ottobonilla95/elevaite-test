@@ -79,7 +79,7 @@ export function PhoneNumberInput({
 
   return (
     <div className="ui-flex ui-flex-col ui-gap-2">
-      <div className="ui-relative">
+      <div style={{ position: "relative" }}>
         <input
           type="tel"
           value={value}
@@ -89,21 +89,35 @@ export function PhoneNumberInput({
           disabled={disabled}
           placeholder={placeholder}
           className={`
-            ui-w-full ui-py-3 ui-px-4 ui-rounded-lg ui-bg-[#161616] ui-text-white
+            ui-w-full ui-py-3 ui-rounded-lg ui-bg-[#161616] ui-text-white
             ui-border focus:ui-outline-none focus:ui-ring-2 focus:ui-ring-[#E75F33]
             ${displayError ? "ui-border-red-500" : "ui-border-gray-600"}
             ${disabled ? "ui-opacity-50 ui-cursor-not-allowed" : ""}
             ${focused ? "ui-ring-2 ui-ring-[#E75F33]" : ""}
           `}
+          style={{
+            borderColor: "var(--ev-colors-highlight)",
+            paddingLeft: "48px",
+            paddingRight: "16px",
+          }}
         />
-        <div className="ui-absolute ui-right-3 ui-top-1/2 ui-transform -ui-translate-y-1/2">
+        <div
+          style={{
+            position: "absolute",
+            left: "12px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            pointerEvents: "none",
+            color: "var(--ev-colors-secondaryText)",
+          }}
+        >
           <PhoneIcon />
         </div>
       </div>
       {displayError && (
         <p className="ui-text-sm ui-text-red-500">{displayError}</p>
       )}
-      <p className="ui-text-xs ui-text-gray-400">
+      <p className="ui-text-xs ui-text-gray-400" style={{ marginTop: "8px" }}>
         Enter your phone number with country code (e.g., +1 for US)
       </p>
     </div>
