@@ -208,6 +208,9 @@ export default function Settings(): JSX.Element {
                   <div className="form-field">
                     <label htmlFor="currentPassword">Current Password</label>
                     <div className="password-input-container">
+                      <div className="password-lock-icon">
+                        <LockIcon size={16} />
+                      </div>
                       <input
                         id="currentPassword"
                         type={showCurrentPassword ? "text" : "password"}
@@ -236,6 +239,9 @@ export default function Settings(): JSX.Element {
                   <div className="form-field">
                     <label htmlFor="newPassword">New Password</label>
                     <div className="password-input-container">
+                      <div className="password-lock-icon">
+                        <LockIcon size={16} />
+                      </div>
                       <input
                         id="newPassword"
                         type={showNewPassword ? "text" : "password"}
@@ -264,6 +270,9 @@ export default function Settings(): JSX.Element {
                       Confirm New Password
                     </label>
                     <div className="password-input-container">
+                      <div className="password-lock-icon">
+                        <LockIcon size={16} />
+                      </div>
                       <input
                         id="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
