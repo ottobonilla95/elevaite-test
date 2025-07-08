@@ -36,10 +36,119 @@ const KeyIcon = ({ size = 14 }: { size?: number }) => (
   </svg>
 );
 
+const EyeIcon = ({ size = 16 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const EyeOffIcon = ({ size = 16 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 11 8 11 8a13.16 13.16 0 0 1-1.67 2.68" />
+    <path d="M6.61 6.61A13.526 13.526 0 0 0 1 12s4 8 11 8a9.74 9.74 0 0 0 5.39-1.61" />
+    <line x1="2" y1="2" x2="22" y2="22" />
+  </svg>
+);
+
 export default function Settings(): JSX.Element {
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("profile");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("");
+
+  // Password change form state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  // Password visibility state
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const handleChangePassword = async (): Promise<void> => {
+    if (!currentPassword) {
+      setError("Current password is required");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("New passwords don't match");
+      return;
+    }
+
+    if (newPassword.length < 9) {
+      setError("New password must be at least 9 characters");
+      return;
+    }
+
+    const hasUppercase = /[A-Z]/.test(newPassword);
+    const hasLowercase = /[a-z]/.test(newPassword);
+    const hasNumber = /[0-9]/.test(newPassword);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
+
+    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
+      setError(
+        "New password must include uppercase, lowercase, numbers, and special characters"
+      );
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      setError("New password must be different from current password");
+      return;
+    }
+
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/auth/change-password-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsSuccess(true);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        setError(data.detail || "Failed to change password. Please try again.");
+      }
+    } catch (err) {
+      console.error("Change password error:", err);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleCategoryClick = (category: string) => {
     if (selectedCategory === category) {
@@ -70,6 +179,131 @@ export default function Settings(): JSX.Element {
             uppercase letters, lowercase letters, numbers, and special
             characters.
           </p>
+
+          <div className="password-change-form-container">
+            {isSuccess ? (
+              <div className="success-message">
+                <h3>Password Changed Successfully</h3>
+                <p>
+                  Your password has been successfully updated. You can continue
+                  using the system with your new password.
+                </p>
+                <button
+                  className="continue-button"
+                  onClick={() => setIsSuccess(false)}
+                  type="button"
+                >
+                  Continue
+                </button>
+              </div>
+            ) : (
+              <form
+                className="password-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void handleChangePassword();
+                }}
+              >
+                <div className="form-fields">
+                  <div className="form-field">
+                    <label htmlFor="currentPassword">Current Password</label>
+                    <div className="password-input-container">
+                      <input
+                        id="currentPassword"
+                        type={showCurrentPassword ? "text" : "password"}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            document.getElementById("newPassword")?.focus();
+                            e.preventDefault();
+                          }
+                        }}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() =>
+                          setShowCurrentPassword(!showCurrentPassword)
+                        }
+                      >
+                        {showCurrentPassword ? <EyeIcon /> : <EyeOffIcon />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="form-field">
+                    <label htmlFor="newPassword">New Password</label>
+                    <div className="password-input-container">
+                      <input
+                        id="newPassword"
+                        type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            document.getElementById("confirmPassword")?.focus();
+                            e.preventDefault();
+                          }
+                        }}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                      >
+                        {showNewPassword ? <EyeIcon /> : <EyeOffIcon />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="form-field">
+                    <label htmlFor="confirmPassword">
+                      Confirm New Password
+                    </label>
+                    <div className="password-input-container">
+                      <input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            void handleChangePassword();
+                            e.preventDefault();
+                          }
+                        }}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                      >
+                        {showConfirmPassword ? <EyeIcon /> : <EyeOffIcon />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {error ? <div className="error-message">{error}</div> : null}
+
+                  <div className="button-group">
+                    <button
+                      className="submit-button"
+                      disabled={isSubmitting}
+                      type="submit"
+                    >
+                      {isSubmitting ? "Changing..." : "Change Password"}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       );
     }
