@@ -100,15 +100,19 @@
                 text-align: left;
               }
 
-              & .accordion-arrow {
+              .accordion-arrow {
                 width: 16px;
                 height: 16px;
                 transition: transform 0.2s ease;
-                transform: rotate(180deg);
+                transform: rotate(0deg) !important;
               }
 
-              &.expanded .accordion-arrow {
-                transform: rotate(0deg);
+              &.selected .accordion-arrow {
+                transform: rotate(180deg) !important;
+              }
+
+              &.category-button.selected .accordion-arrow {
+                transform: rotate(180deg) !important;
               }
 
               &.selected {
