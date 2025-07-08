@@ -176,10 +176,10 @@ function ForgotPassword(): JSX.Element {
           <span>•</span>
           <a
             target="_blank"
-            href="https://www.iopex.com/"
+            href="https://www.toshiba.com/"
             rel="noopener noreferrer"
           >
-            iOPEX Technologies
+            Toshiba Corporation
           </a>
         </div>
       </div>
