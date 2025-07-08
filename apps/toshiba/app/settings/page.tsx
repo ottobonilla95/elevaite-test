@@ -84,6 +84,10 @@ export default function Settings(): JSX.Element {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // MFA toggle state
+  const [totpEnabled, setTotpEnabled] = useState(false);
+  const [smsEnabled, setSmsEnabled] = useState(false);
+
   const handleChangePassword = async (): Promise<void> => {
     if (!currentPassword) {
       setError("Current password is required");
@@ -312,6 +316,65 @@ export default function Settings(): JSX.Element {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      );
+    }
+
+    if (
+      selectedCategory === "security" &&
+      selectedSubcategory === "multi-factor-auth"
+    ) {
+      return (
+        <div className="settings-content-display">
+          <h2>Multi-Factor Authentication</h2>
+          <p className="hint-text">
+            Secure your account with an additional layer of protection.
+          </p>
+
+          <div className="mfa-form-container">
+            <div className="mfa-method-section">
+              <div className="mfa-method-header">
+                <div className="mfa-method-info">
+                  <h3>Authenticator App (TOTP)</h3>
+                  <p>
+                    Use an authenticator app like Google Authenticator or Authy
+                    to generate codes.
+                  </p>
+                </div>
+                <label className="mfa-toggle">
+                  <input
+                    type="checkbox"
+                    checked={totpEnabled}
+                    onChange={(e) => setTotpEnabled(e.target.checked)}
+                  />
+                  <span className="mfa-toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div className="mfa-separator"></div>
+
+            <div className="mfa-method-section">
+              <div className="mfa-method-header">
+                <div className="mfa-method-info">
+                  <h3>SMS Authentication</h3>
+                  <p>
+                    {smsEnabled
+                      ? "Send an SMS code to ***-***-5499"
+                      : "Use your phone number to receive SMS codes."}
+                  </p>
+                </div>
+                <label className="mfa-toggle">
+                  <input
+                    type="checkbox"
+                    checked={smsEnabled}
+                    onChange={(e) => setSmsEnabled(e.target.checked)}
+                  />
+                  <span className="mfa-toggle-slider"></span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
       );

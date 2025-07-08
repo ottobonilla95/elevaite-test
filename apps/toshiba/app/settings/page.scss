@@ -185,13 +185,14 @@
           & .settings-content-display {
             width: 100%;
             max-width: 600px;
-            text-align: center;
+            text-align: left;
 
             & h2 {
               font-size: 24px;
               font-weight: 600;
               color: var(--ev-colors-text);
               margin-bottom: 16px;
+              text-align: center;
             }
 
             & .hint-text {
@@ -199,6 +200,7 @@
               color: var(--ev-colors-secondaryText);
               line-height: 1.5;
               margin-bottom: 24px;
+              text-align: center;
             }
 
             & .password-change-form-container {
@@ -366,6 +368,101 @@
                     }
                   }
                 }
+              }
+            }
+
+            & .mfa-form-container {
+              border: 1px solid var(--ev-colors-borderColor);
+              border-radius: 8px;
+              padding: 24px;
+              margin: 16px auto 0 auto;
+              background-color: var(--ev-colors-background);
+              display: table;
+              max-width: 90%;
+
+              & .mfa-method-section {
+                & .mfa-method-header {
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  gap: 25px;
+
+                  & .mfa-method-info {
+                    flex: 1;
+                    text-align: left;
+
+                    & h3 {
+                      font-size: 16px;
+                      font-weight: 600;
+                      color: var(--ev-colors-text);
+                      margin-bottom: 8px;
+                      text-align: left;
+                      white-space: nowrap;
+                    }
+
+                    & p {
+                      font-size: 14px;
+                      color: var(--ev-colors-secondaryText);
+                      line-height: 1.5;
+                      margin: 0;
+                      text-align: left;
+                      white-space: nowrap;
+                    }
+                  }
+
+                  & .mfa-toggle {
+                    position: relative;
+                    display: inline-block;
+                    width: 50px;
+                    height: 24px;
+                    flex-shrink: 0;
+
+                    & input {
+                      opacity: 0;
+                      width: 0;
+                      height: 0;
+
+                      &:checked + .mfa-toggle-slider {
+                        background-color: var(--ev-colors-highlight);
+
+                        &:before {
+                          transform: translateX(26px);
+                        }
+                      }
+                    }
+
+                    & .mfa-toggle-slider {
+                      position: absolute;
+                      cursor: pointer;
+                      top: 0;
+                      left: 0;
+                      right: 0;
+                      bottom: 0;
+                      background-color: var(--ev-colors-secondary);
+                      transition: 0.3s;
+                      border-radius: 24px;
+
+                      &:before {
+                        position: absolute;
+                        content: "";
+                        height: 18px;
+                        width: 18px;
+                        left: 3px;
+                        bottom: 3px;
+                        background-color: white;
+                        transition: 0.3s;
+                        border-radius: 50%;
+                      }
+                    }
+                  }
+                }
+              }
+
+              & .mfa-separator {
+                width: 90%;
+                height: 1px;
+                background-color: var(--ev-colors-borderColor);
+                margin: 24px auto;
               }
             }
           }
