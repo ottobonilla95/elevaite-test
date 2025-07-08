@@ -29,7 +29,7 @@
 
   & .settings-main-area {
     grid-area: main;
-    margin: 2.5%;
+    margin: 20px;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -39,7 +39,6 @@
     background-color: var(--ev-colors-primary);
     border: 1px solid var(--ev-colors-borderColor);
     border-radius: 8px;
-    height: calc(100% - 5%);
 
     & .settings-header {
       display: flex;
