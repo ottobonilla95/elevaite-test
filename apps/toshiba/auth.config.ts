@@ -22,7 +22,7 @@ export const authConfig = {
         stockSession.user = {};
       }
 
-      stockSession.authToken = token.access_token;
+      Object.assign(stockSession, { authToken: token.access_token });
 
       if (token.needsPasswordReset !== undefined) {
         stockSession.user.needsPasswordReset = token.needsPasswordReset;
