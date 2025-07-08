@@ -101,7 +101,7 @@ function ForgotPassword(): JSX.Element {
           <div className="forgot-password-form ui-w-full ui-max-w-xl">
             {message ? (
               <div
-                className="ui-w-full ui-p-4 ui-mb-4 ui-rounded-lg"
+                className="ui-w-full ui-mb-6 ui-rounded-lg"
                 style={{
                   backgroundColor:
                     message.type === "success"
@@ -111,6 +111,9 @@ function ForgotPassword(): JSX.Element {
                     message.type === "success"
                       ? "var(--ev-colors-success-text, #166534)"
                       : "var(--ev-colors-error-text, #991b1b)",
+                  paddingLeft: "5%",
+                  paddingTop: "1%",
+                  paddingBottom: "1%",
                 }}
               >
                 {message.text}
