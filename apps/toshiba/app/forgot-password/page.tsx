@@ -85,7 +85,10 @@ function ForgotPassword(): JSX.Element {
         <div className="center-block">
           <div className="title">
             <span className="main">Forgot Password</span>
-            <span className="ui-w-full ui-max-w-xl ui-text-center">
+            <span
+              className="ui-w-full ui-max-w-xl ui-text-center"
+              style={{ color: "var(--ev-colors-secondaryText)" }}
+            >
               Enter the email address you used when you joined and we&apos;ll
               send you instructions to reset your password.
               <br />
