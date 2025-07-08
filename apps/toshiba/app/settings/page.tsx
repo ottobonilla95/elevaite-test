@@ -626,25 +626,25 @@ export default function Settings(): JSX.Element {
             <div className="settings-layout">
               <div className="settings-left-column">
                 <div className="category-navigation">
-                  {/* Profile Category */}
-                  <CommonButton
+                  {/* Profile Category - Hidden */}
+                  {/* <CommonButton
                     className={`category-button ${selectedCategory === "profile" ? "selected" : ""}`}
                     onClick={() => handleCategoryClick("profile")}
                     noBackground
                   >
                     <span>Profile</span>
                     <ElevaiteIcons.SVGChevron className="accordion-arrow" />
-                  </CommonButton>
+                  </CommonButton> */}
 
-                  {/* Account Category */}
-                  <CommonButton
+                  {/* Account Category - Hidden */}
+                  {/* <CommonButton
                     className={`category-button ${selectedCategory === "account" ? "selected" : ""}`}
                     onClick={() => handleCategoryClick("account")}
                     noBackground
                   >
                     <span>Account</span>
                     <ElevaiteIcons.SVGChevron className="accordion-arrow" />
-                  </CommonButton>
+                  </CommonButton> */}
 
                   {/* Security Category */}
                   <CommonButton
