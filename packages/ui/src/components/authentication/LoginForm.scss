@@ -9,13 +9,42 @@
 
     & > input {
       padding-left: 60px;
+      padding-right: 50px; /* Add right padding for password toggle */
     }
-    & > svg {
+    & > svg:not(.password-toggle svg) {
       position: absolute;
       top: 0;
       bottom: 0;
       left: 20px;
       margin: auto;
+    }
+
+    & .password-toggle {
+      position: absolute;
+      right: 20px;
+      top: 0;
+      bottom: 0;
+      margin: auto;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--ev-colors-secondaryText, #808080);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      width: 16px;
+      height: 16px;
+      transition: color 0.2s;
+
+      &:hover {
+        color: var(--ev-colors-text, #ffffff);
+      }
+
+      & svg {
+        width: 16px;
+        height: 16px;
+      }
     }
   }
 
