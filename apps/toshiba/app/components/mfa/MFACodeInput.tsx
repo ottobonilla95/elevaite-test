@@ -109,15 +109,19 @@ export function MFACodeInput({
             onKeyDown={(e) => handleKeyDown(index, e)}
             onPaste={handlePaste}
             disabled={disabled}
-            style={{
-              border: "2px solid var(--ev-colors-highlight)",
-              width: "60px",
-              height: "96px",
-              textAlign: "center",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            style={
+              {
+                border: "2px solid var(--ev-colors-highlight)",
+                width: "60px",
+                height: "96px",
+                textAlign: "center",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "var(--ev-colors-inputBackground, #161616)",
+                "--tw-ring-color": "var(--ev-colors-highlight)",
+              } as React.CSSProperties
+            }
             className={`
               ui-text-2xl ui-font-mono ui-font-semibold
               ui-rounded-lg ui-text-white
@@ -125,12 +129,6 @@ export function MFACodeInput({
               ${error ? "ui-border-red-500" : ""}
               ${disabled ? "ui-opacity-50 ui-cursor-not-allowed" : ""}
             `}
-            style={
-              {
-                backgroundColor: "var(--ev-colors-inputBackground, #161616)",
-                "--tw-ring-color": "var(--ev-colors-highlight)",
-              } as React.CSSProperties
-            }
           />
         ))}
       </div>
