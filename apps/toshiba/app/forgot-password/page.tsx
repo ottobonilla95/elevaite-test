@@ -101,11 +101,17 @@ function ForgotPassword(): JSX.Element {
           <div className="forgot-password-form ui-w-full ui-max-w-xl">
             {message ? (
               <div
-                className={`ui-w-full ui-p-4 ui-mb-4 ui-rounded-lg ${
-                  message.type === "success"
-                    ? "ui-bg-green-100 ui-text-green-800"
-                    : "ui-bg-red-100 ui-text-red-800"
-                }`}
+                className="ui-w-full ui-p-4 ui-mb-4 ui-rounded-lg"
+                style={{
+                  backgroundColor:
+                    message.type === "success"
+                      ? "var(--ev-colors-success-background, #dcfce7)"
+                      : "var(--ev-colors-error-background, #fef2f2)",
+                  color:
+                    message.type === "success"
+                      ? "var(--ev-colors-success-text, #166534)"
+                      : "var(--ev-colors-error-text, #991b1b)",
+                }}
               >
                 {message.text}
               </div>
@@ -120,7 +126,11 @@ function ForgotPassword(): JSX.Element {
                   type="email"
                   id="email"
                   placeholder="Email Address"
-                  className="ui-w-full ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-rounded-lg ui-border-none ui-outline-none"
+                  className="ui-w-full ui-py-[13px] ui-px-5 ui-rounded-lg ui-border-none ui-outline-none"
+                  style={{
+                    backgroundColor:
+                      "var(--ev-colors-inputBackground, #161616)",
+                  }}
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -133,7 +143,8 @@ function ForgotPassword(): JSX.Element {
 
               <div className="ui-w-full ui-flex ui-justify-end">
                 <button
-                  className="ui-py-2 ui-px-5 ui-bg-orange-500 ui-rounded-lg ui-w-32 ui-text-xs ui-font-medium disabled:ui-opacity-50"
+                  className="ui-py-2 ui-px-5 ui-rounded-lg ui-w-32 ui-text-xs ui-font-medium disabled:ui-opacity-50"
+                  style={{ backgroundColor: "var(--ev-colors-highlight)" }}
                   type="submit"
                   disabled={isSubmitting}
                 >
@@ -142,11 +153,15 @@ function ForgotPassword(): JSX.Element {
               </div>
 
               <div className="ui-flex ui-justify-start ui-w-full ui-mt-4">
-                <span className="ui-text-sm ui-text-gray-400">
+                <span
+                  className="ui-text-sm"
+                  style={{ color: "var(--ev-colors-secondaryText)" }}
+                >
                   Remember your password?{" "}
                   <Link
                     href="/login"
-                    className="ui-text-[#E75F33] hover:ui-underline"
+                    className="hover:ui-underline"
+                    style={{ color: "var(--ev-colors-highlight)" }}
                   >
                     Sign in
                   </Link>

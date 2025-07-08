@@ -120,7 +120,11 @@ export default function ResendVerificationPage() {
                   type="email"
                   id="email"
                   placeholder="Email Address"
-                  className="ui-w-full ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-rounded-lg ui-border-none ui-outline-none"
+                  className="ui-w-full ui-py-[13px] ui-px-5 ui-rounded-lg ui-border-none ui-outline-none"
+                  style={{
+                    backgroundColor:
+                      "var(--ev-colors-inputBackground, #161616)",
+                  }}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -132,7 +136,8 @@ export default function ResendVerificationPage() {
 
               <div className="ui-w-full ui-flex ui-justify-end">
                 <button
-                  className="ui-py-2 ui-px-5 ui-bg-orange-500 ui-rounded-lg ui-w-32 ui-text-xs ui-font-medium disabled:ui-opacity-50"
+                  className="ui-py-2 ui-px-5 ui-rounded-lg ui-w-32 ui-text-xs ui-font-medium disabled:ui-opacity-50"
+                  style={{ backgroundColor: "var(--ev-colors-highlight)" }}
                   type="submit"
                   disabled={isLoading}
                 >

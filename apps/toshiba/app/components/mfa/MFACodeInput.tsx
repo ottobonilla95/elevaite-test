@@ -120,11 +120,17 @@ export function MFACodeInput({
             }}
             className={`
               ui-text-2xl ui-font-mono ui-font-semibold
-              ui-rounded-lg ui-bg-[#161616] ui-text-white
-              focus:ui-outline-none focus:ui-ring-2 focus:ui-ring-[var(--ev-colors-highlight)]
+              ui-rounded-lg ui-text-white
+              focus:ui-outline-none focus:ui-ring-2
               ${error ? "ui-border-red-500" : ""}
               ${disabled ? "ui-opacity-50 ui-cursor-not-allowed" : ""}
             `}
+            style={
+              {
+                backgroundColor: "var(--ev-colors-inputBackground, #161616)",
+                "--tw-ring-color": "var(--ev-colors-highlight)",
+              } as React.CSSProperties
+            }
           />
         ))}
       </div>

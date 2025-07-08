@@ -89,17 +89,20 @@ export function PhoneNumberInput({
           disabled={disabled}
           placeholder={placeholder}
           className={`
-            ui-w-full ui-py-3 ui-rounded-lg ui-bg-[#161616] ui-text-white
-            ui-border focus:ui-outline-none focus:ui-ring-2 focus:ui-ring-[#E75F33]
+            ui-w-full ui-py-3 ui-rounded-lg ui-text-white
+            ui-border focus:ui-outline-none focus:ui-ring-2
             ${displayError ? "ui-border-red-500" : "ui-border-gray-600"}
             ${disabled ? "ui-opacity-50 ui-cursor-not-allowed" : ""}
-            ${focused ? "ui-ring-2 ui-ring-[#E75F33]" : ""}
           `}
-          style={{
-            borderColor: "var(--ev-colors-highlight)",
-            paddingLeft: "48px",
-            paddingRight: "16px",
-          }}
+          style={
+            {
+              backgroundColor: "var(--ev-colors-inputBackground, #161616)",
+              borderColor: "var(--ev-colors-highlight)",
+              paddingLeft: "48px",
+              paddingRight: "16px",
+              "--tw-ring-color": "var(--ev-colors-highlight)",
+            } as React.CSSProperties
+          }
         />
         <div
           style={{

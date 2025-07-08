@@ -136,7 +136,8 @@ export default function VerifyEmailPage() {
                     </p>
                     <Link
                       href="/login"
-                      className="ui-py-2 ui-px-5 ui-bg-orange-500 ui-rounded-lg ui-w-32 ui-text-xs ui-font-medium ui-text-center ui-block"
+                      className="ui-py-2 ui-px-5 ui-rounded-lg ui-w-32 ui-text-xs ui-font-medium ui-text-center ui-block"
+                      style={{ backgroundColor: "var(--ev-colors-highlight)" }}
                     >
                       Go to Login
                     </Link>
@@ -150,15 +151,22 @@ export default function VerifyEmailPage() {
                     <div className="ui-flex ui-flex-col ui-gap-3 ui-items-center">
                       <Link
                         href="/resend-verification"
-                        className="ui-py-2 ui-px-5 ui-bg-orange-500 ui-rounded-lg ui-text-xs ui-font-medium"
+                        className="ui-py-2 ui-px-5 ui-rounded-lg ui-text-xs ui-font-medium"
+                        style={{
+                          backgroundColor: "var(--ev-colors-highlight)",
+                        }}
                       >
                         Resend Verification Email
                       </Link>
-                      <span className="ui-text-sm ui-text-gray-400">
+                      <span
+                        className="ui-text-sm"
+                        style={{ color: "var(--ev-colors-secondaryText)" }}
+                      >
                         Remember your password?{" "}
                         <Link
                           href="/login"
-                          className="ui-text-[#E75F33] hover:ui-underline"
+                          className="hover:ui-underline"
+                          style={{ color: "var(--ev-colors-highlight)" }}
                         >
                           Sign in
                         </Link>
