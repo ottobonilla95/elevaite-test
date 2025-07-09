@@ -117,6 +117,7 @@ export interface WorkflowResponse {
   configuration: Record<string, unknown>;
   created_by?: string;
   is_active: boolean;
+  is_editable: boolean;
   tags?: string[];
   id: number;
   workflow_id: string;
@@ -152,6 +153,7 @@ export interface WorkflowCreateRequest {
   };
   created_by?: string;
   is_active?: boolean;
+  is_editable?: boolean;
   tags?: string[];
 }
 
@@ -179,7 +181,9 @@ export interface SavedWorkflow {
   is_active: boolean;
   is_deployed: boolean;
   deployed_at?: string;
+  is_editable: boolean;
   version: string;
+  tags?: string[];
   agent_count?: number;
   connection_count?: number;
 }

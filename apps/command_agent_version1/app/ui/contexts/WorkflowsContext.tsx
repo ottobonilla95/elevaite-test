@@ -46,7 +46,9 @@ function transformWorkflowData(workflows: WorkflowResponse[]): SavedWorkflow[] {
 		is_active: workflow.is_active,
 		is_deployed: workflow.is_deployed,
 		deployed_at: workflow.deployed_at,
+		is_editable: workflow.is_editable,
 		version: workflow.version,
+		tags: workflow.tags,
 		agent_count: workflow.workflow_agents?.length || 0,
 		connection_count: workflow.workflow_connections?.length || 0,
 	}));
@@ -101,7 +103,9 @@ export function WorkflowsProvider({
 				is_active: newWorkflow.is_active,
 				is_deployed: newWorkflow.is_deployed,
 				deployed_at: newWorkflow.deployed_at,
+				is_editable: newWorkflow.is_editable,
 				version: newWorkflow.version,
+				tags: newWorkflow.tags,
 				agent_count: newWorkflow.workflow_agents?.length || 0,
 				connection_count: newWorkflow.workflow_connections?.length || 0,
 			};
@@ -129,7 +133,9 @@ export function WorkflowsProvider({
 				is_active: updatedWorkflow.is_active,
 				is_deployed: updatedWorkflow.is_deployed,
 				deployed_at: updatedWorkflow.deployed_at,
+				is_editable: updatedWorkflow.is_editable,
 				version: updatedWorkflow.version,
+				tags: updatedWorkflow.tags,
 				agent_count: updatedWorkflow.workflow_agents?.length || 0,
 				connection_count: updatedWorkflow.workflow_connections?.length || 0,
 			};

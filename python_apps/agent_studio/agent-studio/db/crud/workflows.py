@@ -25,6 +25,7 @@ def create_workflow(db: Session, workflow: WorkflowCreate) -> Workflow:
         configuration=workflow.configuration,
         created_by=workflow.created_by,
         is_active=workflow.is_active,
+        is_editable=workflow.is_editable,
         tags=workflow.tags,
     )
     db.add(db_workflow)

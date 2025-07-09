@@ -1,15 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
-    Play,
     Trash2,
-    Plus,
     FileText,
-    Calendar,
-    User,
-    Settings,
-    Download,
     RefreshCw
 } from "lucide-react";
 import { useWorkflows } from "../../ui/contexts/WorkflowsContext";
@@ -30,13 +24,20 @@ function WorkflowsTab({
 }: WorkflowsTabProps): JSX.Element {
     // Use workflows context
     const {
-        workflows: savedWorkflows,
+        workflows: allWorkflows,
         isLoading,
         error,
-        refreshWorkflows,
         deleteWorkflowAndRefresh,
         getWorkflowDetails
     } = useWorkflows();
+
+    // State for template toggle
+    const [showMyTemplates, setShowMyTemplates] = useState(true);
+
+    // Filter workflows based on toggle state
+    const savedWorkflows = showMyTemplates
+        ? allWorkflows // Show all workflows when toggle is on
+        : allWorkflows.filter(workflow => !workflow.is_editable); // Show only non-editable (system templates) when toggle is off
 
     // No longer need local loading function - handled by context
 
@@ -71,23 +72,35 @@ function WorkflowsTab({
         }
     };
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
+
 
     return (
         <div className="workflows-tab p-4 w-full">
             {/* Header */}
-            <div className="flex flex-col gap-2 justify-between items-center mb-6">
+            <div className="flex flex-col gap-4 justify-between items-center mb-6">
                 <div>
                     <h3 className="text-lg font-semibold text-gray-800">Saved Workflows</h3>
                     <p className="text-sm text-gray-500">Manage and deploy your agent workflows</p>
+                </div>
+
+                {/* Template Toggle */}
+                <div className="flex w-full items-center justify-end gap-3">
+                    <label className="flex self-end gap-3 cursor-pointer">
+                        <span className="text-sm text-gray-700">My Templates</span>
+                        <div className="relative">
+                            <input
+                                type="checkbox"
+                                checked={showMyTemplates}
+                                onChange={(e) => { setShowMyTemplates(e.target.checked); }}
+                                className="sr-only"
+                            />
+                            <div className={`transition-colors duration-200 ease-in-out ${showMyTemplates ? 'bg-orange-500' : 'bg-gray-300'
+                                } flex items-center `} style={{ width: '40px', height: '20px', borderRadius: '12px' }}>
+                                <div className={`bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${showMyTemplates ? 'translate-x-6' : 'translate-x-1'
+                                    } flex items-center justify-center`} style={{ width: '13.75px', height: '13.75px' }} />
+                            </div>
+                        </div>
+                    </label>
                 </div>
             </div>
 
@@ -139,7 +152,8 @@ function WorkflowsTab({
                                     <h4 className="text-sm font-medium text-gray-800 leading-tight">{workflow.name}</h4>
                                     <p className="text-xs text-gray-600 mt-1">{workflow.description ?? "No description"}</p>
                                 </div>
-                                <button
+                                {/* Only show delete button for editable workflows */}
+                                {workflow.is_editable ? <button
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         void handleDeleteWorkflow(workflow.workflow_id);
@@ -149,22 +163,26 @@ function WorkflowsTab({
                                     type="button"
                                 >
                                     <Trash2 size={16} className="mr-1" />
-                                </button>
-
+                                </button> : null}
                             </div>
 
-                            {/* Status Pills Section */}
-                            <div className="workflow-status-section mb-3">
+                            {/* Tags Section */}
+                            <div className="workflow-tags-section mb-3">
                                 <div className="flex gap-2 flex-wrap">
-                                    {workflow.is_deployed ? (
-                                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full whitespace-nowrap">
-                                            Deployed
+                                    {!workflow.is_editable && (
+                                        <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full whitespace-nowrap">
+                                            System Template
                                         </span>
-                                    ) : null}
-                                    {workflow.is_active ? (
-                                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full whitespace-nowrap">
-                                            Active
-                                        </span>
+                                    )}
+                                    {workflow.tags && workflow.tags.length > 0 ? (
+                                        workflow.tags.map((tag: string) => (
+                                            <span
+                                                key={tag}
+                                                className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full whitespace-nowrap"
+                                            >
+                                                {tag}
+                                            </span>
+                                        ))
                                     ) : null}
                                 </div>
                             </div>

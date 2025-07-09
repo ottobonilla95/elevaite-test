@@ -1,4 +1,3 @@
-
 import uuid
 from datetime import datetime
 from typing import List, Optional, Dict, Any
@@ -15,6 +14,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, get_utc_datetime
+
 
 class Workflow(Base):
     __tablename__ = "workflows"
@@ -35,6 +35,7 @@ class Workflow(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_deployed: Mapped[bool] = mapped_column(Boolean, default=False)
     deployed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    is_editable: Mapped[bool] = mapped_column(Boolean, default=True)
 
     tags: Mapped[Optional[List[str]]] = mapped_column(JSONB, nullable=True)
 
@@ -43,6 +44,7 @@ class Workflow(Base):
     workflow_deployments = relationship("WorkflowDeployment", back_populates="workflow")
 
     __table_args__ = (UniqueConstraint("name", "version", name="uix_workflow_name_version"),)
+
 
 class WorkflowAgent(Base):
     __tablename__ = "workflow_agents"
@@ -67,6 +69,7 @@ class WorkflowAgent(Base):
         UniqueConstraint("workflow_id", "agent_id", name="uix_workflow_agent"),
         UniqueConstraint("workflow_id", "node_id", name="uix_workflow_node_id"),
     )
+
 
 class WorkflowConnection(Base):
     __tablename__ = "workflow_connections"
@@ -98,6 +101,7 @@ class WorkflowConnection(Base):
             name="uix_workflow_connection",
         ),
     )
+
 
 class WorkflowDeployment(Base):
     __tablename__ = "workflow_deployments"

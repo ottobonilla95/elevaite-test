@@ -117,7 +117,7 @@ function AgentConfigForm(): JSX.Element {
 	const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
 
 	// State for UI
-	const [workflowName, setWorkflowName] = useState("My Agent Workflow");
+	const [workflowName, setWorkflowName] = useState("");
 	const [isChatMode, setIsChatMode] = useState(false);
 	const [chatInput, setChatInput] = useState("");
 	const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);

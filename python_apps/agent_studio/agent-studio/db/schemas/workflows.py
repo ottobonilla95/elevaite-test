@@ -23,6 +23,7 @@ class WorkflowBase(BaseModel):
     configuration: Dict[str, Any]
     created_by: Optional[str] = None
     is_active: bool = True
+    is_editable: bool = True
     tags: Optional[List[str]] = None
 
 
@@ -36,6 +37,7 @@ class WorkflowUpdate(BaseModel):
     version: Optional[str] = None
     configuration: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
+    is_editable: Optional[bool] = None
     tags: Optional[List[str]] = None
 
 

@@ -2,10 +2,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileText, LayoutGrid } from "lucide-react";
+import { FileText, LayoutGrid, PenLine } from "lucide-react";
 import type { WorkflowDeployment, WorkflowResponse } from "../../lib/interfaces/workflows";
 import type { ChatCompletionToolParam } from "../../lib/interfaces/common";
 import WorkflowSaveModal from "./WorkflowSaveModal";
+import WorkflowEditModal from "./WorkflowEditModal";
 import PreDeploymentModal from "./PreDeploymentModal";
 import PostDeploymentSuccessDialog from "./PostDeploymentSuccessDialog";
 import "./HeaderBottom.scss";
@@ -35,6 +36,8 @@ interface HeaderBottomProps {
 		inferenceUrl: string;
 	} | null;
 	onClearDeploymentResult?: () => void;
+	// New props for workflow editing
+	onEditWorkflow?: (name: string, description: string, tags: string[]) => void;
 }
 
 function HeaderBottom({
@@ -46,16 +49,18 @@ function HeaderBottom({
 	isExistingWorkflow,
 	hasUnsavedChanges,
 	deploymentStatus: _deploymentStatus,
-	currentWorkflowData: _currentWorkflowData,
+	currentWorkflowData,
 	tools = [],
 	onUpdateExistingWorkflow,
 	onCreateNewWorkflow,
 	deploymentResult,
 	onClearDeploymentResult,
+	onEditWorkflow,
 }: HeaderBottomProps): JSX.Element {
 
 	const [activeBtnAction, setActiveBtnAction] = useState("workflow-creation");
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [isPreDeploymentDialogOpen, setIsPreDeploymentDialogOpen] = useState(false);
 	const [isCreatingNewWorkflow, setIsCreatingNewWorkflow] = useState(false);
 
@@ -126,12 +131,40 @@ function HeaderBottom({
 		setIsModalOpen(true);
 	};
 
+	// Handle edit workflow button click
+	const handleEditClick = (): void => {
+		setIsEditModalOpen(true);
+	};
+
+	// Handle edit modal close
+	const handleCloseEditModal = (): void => {
+		setIsEditModalOpen(false);
+	};
+
+	// Handle edit workflow save
+	const handleEditSave = (name: string, description: string, tags: string[]): void => {
+		if (onEditWorkflow) {
+			onEditWorkflow(name, description, tags);
+		}
+		setIsEditModalOpen(false);
+	};
+
+	// Determine display name and description
+	const displayName = workflowName || "Unsaved Workflow";
+	const displayDescription = workflowDescription || "";
+	const isUnsaved = !workflowName;
+
 	return (
 		<div className="header-bottom">
-			<div>
-				<h2 className="text-sm font-semibold mb-1">{workflowName}</h2>
-				<p className="text-xs font-medium text-gray-500">{workflowDescription}</p>
-			</div>
+			<button type="button" className="flex items-center gap-2" onClick={handleEditClick}>
+				<PenLine size={16} />
+				<div>
+					<h2 className={`text-sm font-semibold mb-1 ${isUnsaved ? 'text-gray-400' : ''}`}>
+						{displayName}
+					</h2>
+					<p className="text-xs font-medium text-gray-500">{displayDescription}</p>
+				</div>
+			</button>
 			<div className="actions">
 				<button className={`btn-workflow-creation${activeBtnAction === 'workflow-creation' ? ' active' : ''}`} type="button" onClick={() => { setActiveBtnAction("workflow-creation"); }}>
 					<LayoutGrid />
@@ -168,6 +201,17 @@ function HeaderBottom({
 				workflowName={workflowName}
 				isExistingWorkflow={isExistingWorkflow}
 				hasChanges={hasUnsavedChanges}
+			/>
+
+			{/* Workflow Edit Modal */}
+			<WorkflowEditModal
+				isOpen={isEditModalOpen}
+				onClose={handleCloseEditModal}
+				onSave={handleEditSave}
+				initialName={workflowName}
+				initialDescription={workflowDescription}
+				initialTags={currentWorkflowData?.tags ?? []}
+				isLoading={isLoading}
 			/>
 
 			{/* Post-Deployment Success Dialog */}
