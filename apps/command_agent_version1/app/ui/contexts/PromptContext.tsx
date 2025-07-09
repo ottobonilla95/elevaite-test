@@ -170,10 +170,11 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
       id: crypto.randomUUID().toString(),
       name: "",
       displayName: "",
-      type: "Text",
+      type: "String",
       required: true,
       json: true,
       definition: "",
+	  values: []
     }
 
     setPromptInputVariablesEngineer(current => {
