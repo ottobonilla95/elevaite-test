@@ -43,32 +43,38 @@ function WorkflowsTab({
 
 
 
-    const handleDeleteWorkflow = async (workflowId: string) => {
-        if (!confirm("Are you sure you want to delete this workflow?")) {
+    const handleDeleteWorkflow = async (workflowId: string): Promise<void> => {
+        if (!window.confirm("Are you sure you want to delete this workflow?")) {
             return;
         }
 
         try {
             await deleteWorkflowAndRefresh(workflowId);
-            alert("Workflow deleted successfully.");
-        } catch (error) {
-            console.error('Error deleting workflow:', error);
-            alert("Failed to delete workflow. Please try again.");
+            // TODO: Replace with proper toast notification
+            window.alert("Workflow deleted successfully.");
+        } catch (deleteError) {
+            // eslint-disable-next-line no-console -- Error logging is acceptable
+            console.error('Error deleting workflow:', deleteError);
+            // TODO: Replace with proper toast notification
+            window.alert("Failed to delete workflow. Please try again.");
         }
     };
 
-    const handleLoadWorkflow = async (workflow: SavedWorkflow) => {
+    const handleLoadWorkflow = async (workflow: SavedWorkflow): Promise<void> => {
         try {
             // Get full workflow details including agents and connections
             const workflowDetails = await getWorkflowDetails(workflow.workflow_id);
 
+            // eslint-disable-next-line no-console -- Debug logging is acceptable
             console.log("Workflow details:", workflowDetails);
 
             // Call the parent component's load function with the full details
             onLoadWorkflow(workflowDetails);
-        } catch (error) {
-            console.error('Error loading workflow:', error);
-            alert("Failed to load workflow. Please try again.");
+        } catch (loadError) {
+            // eslint-disable-next-line no-console -- Error logging is acceptable
+            console.error('Error loading workflow:', loadError);
+            // TODO: Replace with proper toast notification
+            window.alert("Failed to load workflow. Please try again.");
         }
     };
 

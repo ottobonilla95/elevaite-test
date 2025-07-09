@@ -98,6 +98,16 @@ function ConfigPanel({
         setEditedName(agentName);
     }, [agentName]);
 
+    // Update all agent-related state when agent prop changes
+    useEffect(() => {
+        setEditedAgentType(agent.agent.agent_type ?? (agentType === "custom" ? "router" : agentType));
+        setEditedDescription(agent.agent.description ?? description);
+        setEditedTags(agent.agent.system_prompt.tags?.join(", ") ?? "");
+        // Set selectedPromptId to null if it's a placeholder prompt, otherwise use the actual pid
+        const isPlaceholderPrompt = agent.agent.system_prompt?.pid === "placeholder";
+        setSelectedPromptId(isPlaceholderPrompt ? null : (agent.agent.system_prompt?.pid ?? null));
+    }, [agent, agentType, description]);
+
     // Update selected functions when currentFunctions prop changes
     useEffect(() => {
         setSelectedFunctions(currentFunctions);

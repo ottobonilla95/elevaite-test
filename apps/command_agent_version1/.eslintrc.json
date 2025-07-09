@@ -6,6 +6,9 @@
     "no-alert": "warn",
     "@typescript-eslint/no-floating-promises": "warn",
     "@typescript-eslint/no-confusing-void-expression": "warn",
+    // "@typescript-eslint/explicit-function-return-type": "warn",
+    // "@typescript-eslint/no-unused-vars": "warn",
+    // "@typescript-eslint/no-shadow": "warn",
     "jsx-a11y/click-events-have-key-events": "warn",
     "jsx-a11y/no-static-element-interactions": "warn"
   }

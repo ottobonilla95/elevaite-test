@@ -36,6 +36,19 @@ function ToolsTab({
         setSelectedPrompt(agent.agent.system_prompt);
     }, [agent]);
 
+    // Update selectedPrompt when selectedPromptId changes
+    useEffect(() => {
+        if (selectedPromptId) {
+            const prompt = getPromptById(selectedPromptId);
+            if (prompt) {
+                setSelectedPrompt(prompt);
+            }
+        } else {
+            // No prompt selected, clear the selected prompt
+            setSelectedPrompt(null);
+        }
+    }, [selectedPromptId, getPromptById]);
+
     // Filter tools based on search query
     const filteredTools = availableTools.filter(tool =>
         tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

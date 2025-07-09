@@ -9,15 +9,15 @@ interface AgentStatsProps {
 }
 
 function AgentStats({ className = "" }: AgentStatsProps): JSX.Element {
-  const { 
-    agents, 
-    isLoading, 
-    error, 
-    getAgentCount, 
-    getDeployedAgents, 
+  const {
+    agents,
+    isLoading,
+    error,
+    getAgentCount,
+    getDeployedAgents,
     getActiveAgents,
     getAgentsByType,
-    lastUpdated 
+    lastUpdated
   } = useAgents();
 
   if (isLoading && agents.length === 0) {
@@ -87,20 +87,18 @@ function AgentStats({ className = "" }: AgentStatsProps): JSX.Element {
     <div className={`bg-white rounded-lg border border-gray-200 p-4 ${className}`}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-gray-900">Agent Statistics</h3>
-        {lastUpdated && (
-          <span className="text-xs text-gray-500">
-            Updated {lastUpdated.toLocaleTimeString()}
-          </span>
-        )}
+        {lastUpdated ? <span className="text-xs text-gray-500">
+          Updated {lastUpdated.toLocaleTimeString()}
+        </span> : null}
       </div>
-      
+
       <div className="grid grid-cols-2 gap-3">
         {stats.map((stat, index) => (
           <div
             key={index}
             className={`${stat.bgColor} rounded-lg p-3 flex items-center space-x-2`}
           >
-            <div className={`${stat.color}`}>
+            <div className={stat.color}>
               {stat.icon}
             </div>
             <div>
@@ -112,7 +110,7 @@ function AgentStats({ className = "" }: AgentStatsProps): JSX.Element {
           </div>
         ))}
       </div>
-      
+
       {totalAgents > 0 && (
         <div className="mt-4 pt-3 border-t border-gray-100">
           <div className="flex justify-between text-xs text-gray-500">
@@ -120,10 +118,10 @@ function AgentStats({ className = "" }: AgentStatsProps): JSX.Element {
             <span>{Math.round((deployedAgents.length / totalAgents) * 100)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-            <div 
-              className="bg-green-600 h-1.5 rounded-full transition-all duration-300" 
+            <div
+              className="bg-green-600 h-1.5 rounded-full transition-all duration-300"
               style={{ width: `${(deployedAgents.length / totalAgents) * 100}%` }}
-            ></div>
+            />
           </div>
         </div>
       )}

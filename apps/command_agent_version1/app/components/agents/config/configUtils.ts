@@ -10,7 +10,7 @@ export const DEPLOYMENT_TYPES = [
 
 export const OUTPUT_FORMATS = [
     "JSON",
-    "Text", 
+    "Text",
     "CSV",
     "HTML",
     "Markdown",
@@ -52,30 +52,34 @@ export const getModelProviders = (deployType: string): string[] => {
 
 // Get models based on deployment type and model provider
 export const getModels = (deployType: string, provider: string): string[] => {
-    if (deployType === "Elevaite") {
-        switch (provider) {
-            case "meta":
-                return ["Llama-3.1-8B-Instruct"];
-            case "openbmb":
-                return ["MiniCPM-V-2_6"];
-            case "OpenAI":
-                return ["GPT-4o", "GPT-4o mini", "GPT-3.5", "o3-mini"];
-            default:
-                return ["Llama-3.1-8B-Instruct"];
-        }
-    } else if (deployType === "Enterprise" || deployType === "Cloud") {
-        switch (provider) {
-            case "OpenAI":
-                return ["GPT-4o", "GPT-4o mini", "GPT-3.5", "o3-mini"];
-            case "Gemini":
-                return ["2.5 Pro", "2.5 Flash", "2.0 Flash"];
-            case "Bedrock":
-                return ["Claude 3.5", "Claude 3.5 Sonnet", "Claude 3.5 Haiku", "Llama 3.1 8B Instruct"];
-            case "Azure":
-                return ["GPT-4o", "GPT-4o mini", "GPT-3.5"];
-            default:
-                return ["GPT-4o"];
-        }
-    }
+    // Currently only supporting GPT-4o
     return ["GPT-4o"];
+
+    // Original code commented out - multiple model support
+    // if (deployType === "Elevaite") {
+    //     switch (provider) {
+    //         case "meta":
+    //             return ["Llama-3.1-8B-Instruct"];
+    //         case "openbmb":
+    //             return ["MiniCPM-V-2_6"];
+    //         case "OpenAI":
+    //             return ["GPT-4o", "GPT-4o mini", "GPT-3.5", "o3-mini"];
+    //         default:
+    //             return ["Llama-3.1-8B-Instruct"];
+    //     }
+    // } else if (deployType === "Enterprise" || deployType === "Cloud") {
+    //     switch (provider) {
+    //         case "OpenAI":
+    //             return ["GPT-4o", "GPT-4o mini", "GPT-3.5", "o3-mini"];
+    //         case "Gemini":
+    //             return ["2.5 Pro", "2.5 Flash", "2.0 Flash"];
+    //         case "Bedrock":
+    //             return ["Claude 3.5", "Claude 3.5 Sonnet", "Claude 3.5 Haiku", "Llama 3.1 8B Instruct"];
+    //         case "Azure":
+    //             return ["GPT-4o", "GPT-4o mini", "GPT-3.5"];
+    //         default:
+    //             return ["GPT-4o"];
+    //     }
+    // }
+    // return ["GPT-4o"];
 };

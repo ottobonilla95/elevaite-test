@@ -20,11 +20,12 @@ import ChatInterface from "./agents/ChatInterface";
 import "./AgentConfigForm.scss";
 import HeaderBottom from "./agents/HeaderBottom.tsx";
 
-interface ChatMessage {
-	id: number;
-	text: string;
-	sender: "user" | "bot";
-}
+// TODO: Implement chat functionality
+// interface ChatMessage {
+// 	id: number;
+// 	text: string;
+// 	sender: "user" | "bot";
+// }
 
 // Helper function to convert ChatCompletionToolParam to AgentFunction
 function convertToolsToAgentFunctions(tools: ChatCompletionToolParam[]): AgentFunction[] {
@@ -119,8 +120,9 @@ function AgentConfigForm(): JSX.Element {
 	// State for UI
 	const [workflowName, setWorkflowName] = useState("");
 	const [isChatMode, setIsChatMode] = useState(false);
-	const [chatInput, setChatInput] = useState("");
-	const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+	// TODO: Implement chat functionality
+	// const [chatInput, setChatInput] = useState("");
+	// const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [showConfigPanel, setShowConfigPanel] = useState(false);
 	const [activeTab, setActiveTab] = useState("actions");
@@ -196,6 +198,7 @@ function AgentConfigForm(): JSX.Element {
 			const details = await getWorkflowDeploymentDetails(workflowIdRef.current);
 			setDeploymentStatus(details);
 		} catch (error) {
+			// eslint-disable-next-line no-console -- Error logging is acceptable
 			console.error("Error checking deployment status:", error);
 			setDeploymentStatus({ isDeployed: false });
 		}
@@ -631,7 +634,7 @@ function AgentConfigForm(): JSX.Element {
 		setNodes([]);
 		setEdges([]);
 		setIsChatMode(false);
-		setChatMessages([]);
+		// setChatMessages([]);
 		setSelectedNode(null);
 		setShowConfigPanel(false);
 	};
@@ -655,18 +658,18 @@ function AgentConfigForm(): JSX.Element {
 			description: "A new agent ready to be configured",
 			agent_type: "router",
 			system_prompt: {
-				prompt_label: "new-agent-prompt",
+				prompt_label: "No Prompt Selected",
 				prompt: "",
-				unique_label: `new-agent-${agentId.slice(0, 8)}`,
+				unique_label: `placeholder-${agentId.slice(0, 8)}`,
 				app_name: "agent-studio",
 				version: "1.0.0",
 				ai_model_provider: "openai",
 				ai_model_name: "gpt-4",
-				tags: ["new"],
+				tags: ["placeholder"],
 				hyper_parameters: null,
 				variables: null,
 				id: parseInt(agentId.slice(0, 8), 16),
-				pid: agentId,
+				pid: "placeholder", // Use placeholder ID that won't match any real prompt
 				sha_hash: "",
 				is_deployed: false,
 				created_time: new Date().toISOString(),
@@ -809,7 +812,7 @@ function AgentConfigForm(): JSX.Element {
 			setNodes(loadedNodes);
 			setEdges(loadedEdges);
 			setIsChatMode(false);
-			setChatMessages([]);
+			// setChatMessages([]);
 			setSelectedNode(null);
 			setShowConfigPanel(false);
 

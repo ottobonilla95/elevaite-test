@@ -167,7 +167,7 @@ function HeaderBottom({
 			</button>
 			<div className="actions">
 				<button className={`btn-workflow-creation${activeBtnAction === 'workflow-creation' ? ' active' : ''}`} type="button" onClick={() => { setActiveBtnAction("workflow-creation"); }}>
-					<LayoutGrid />
+					<LayoutGrid size={16} />
 				</button>
 				<button className={`btn-workflow-testing${activeBtnAction === 'workflow-testing' ? ' active' : ''}`} type="button" onClick={() => { setActiveBtnAction("workflow-testing"); }}>
 					<FileText size={17} />
