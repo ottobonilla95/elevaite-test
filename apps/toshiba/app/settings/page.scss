@@ -117,7 +117,7 @@
               &.selected {
                 background-color: var(--ev-colors-background);
                 border: 2px solid var(--ev-colors-highlight);
-                color: white;
+                color: var(--ev-colors-text);
               }
 
               &:not(.selected) {
@@ -125,7 +125,7 @@
                 border: 1px solid transparent;
 
                 &:hover {
-                  background-color: rgba(255, 255, 255, 0.05);
+                  background-color: var(--ev-colors-uiHover);
                 }
               }
             }
@@ -161,7 +161,7 @@
                 &.selected {
                   background-color: var(--ev-colors-background);
                   border: 2px solid var(--ev-colors-highlight);
-                  color: white;
+                  color: var(--ev-colors-text);
                 }
 
                 &:not(.selected) {
@@ -169,7 +169,7 @@
                   border: 1px solid transparent;
 
                   &:hover {
-                    background-color: rgba(255, 255, 255, 0.05);
+                    background-color: var(--ev-colors-uiHover);
                     color: var(--ev-colors-text);
                   }
                 }
@@ -235,7 +235,7 @@
                 & .continue-button {
                   margin-top: 16px;
                   background-color: var(--ev-colors-highlight);
-                  color: white;
+                  color: var(--ev-colors-uiText);
                   font-weight: 500;
                   border-radius: 4px;
                   padding: 10px 16px;
@@ -340,7 +340,7 @@
                   }
 
                   & .error-message {
-                    color: #ef4444;
+                    color: var(--ev-colors-danger);
                     font-size: 14px;
                     margin-top: 8px;
                   }
@@ -352,7 +352,7 @@
 
                     & .submit-button {
                       background-color: var(--ev-colors-highlight);
-                      color: white;
+                      color: var(--ev-colors-uiText);
                       font-weight: 500;
                       border-radius: 8px;
                       padding: 10px 16px;
@@ -452,7 +452,7 @@
                         width: 18px;
                         left: 3px;
                         bottom: 3px;
-                        background-color: white;
+                        background-color: var(--ev-colors-uiText);
                         transition: 0.3s;
                         border-radius: 50%;
                       }
@@ -482,7 +482,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--ev-colors-backgroundHighContrast);
+  background-opacity: 0.8;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -497,7 +498,7 @@
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px var(--ev-colors-borderColor);
   transition: transform 0.3s ease;
   padding: 32px;
 

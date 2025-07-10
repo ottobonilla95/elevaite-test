@@ -100,18 +100,18 @@ $open-space: 300px;
       & .create {
         justify-content: center;
         background-color: var(--ev-colors-highlight);
-        color: white;
+        color: var(--ev-colors-uiText);
       }
 
       & .settings-toggle {
         justify-content: center;
         background-color: transparent;
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: var(--ev-colors-uiText);
+        border: 1px solid var(--ev-colors-uiBorder);
         gap: 8px;
 
         &:hover {
-          background-color: rgba(255, 255, 255, 0.1);
+          background-color: var(--ev-colors-uiHover);
         }
       }
     }
@@ -198,11 +198,11 @@ $open-space: 300px;
           gap: 10px;
 
           &:hover {
-            background-color: rgba(var(--ev-colors-highlight-rgb), 0.05);
+            background-color: var(--ev-colors-uiHover);
           }
 
           &.active {
-            background-color: rgba(var(--ev-colors-highlight-rgb), 0.1);
+            background-color: var(--ev-colors-uiHover);
             border-left: 3px solid var(--ev-colors-highlight);
             padding-left: 7px; /* Compensate for the border */
           }
@@ -236,7 +236,7 @@ $open-space: 300px;
 
             & .session-preview {
               font-size: 12px;
-              color: "#fff";
+              color: var(--ev-colors-secondaryText);
               overflow: hidden;
               text-overflow: ellipsis;
               white-space: nowrap;
