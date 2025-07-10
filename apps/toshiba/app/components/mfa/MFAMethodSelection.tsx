@@ -66,8 +66,9 @@ export function MFAMethodSelection({
           <MFAMethodButton
             onClick={() => handleMethodClick("totp")}
             disabled={isLoading}
-            icon={<AppIcon width={40} height={40} />}
-            text="Use a verification code"
+            icon={<AppIcon width={50} height={50} />}
+            title="Authenticator App"
+            hint="Get a code from your authenticator app."
           />
         )}
 
@@ -75,8 +76,9 @@ export function MFAMethodSelection({
           <MFAMethodButton
             onClick={() => handleMethodClick("sms")}
             disabled={isLoading}
-            icon={<SMSIcon width={40} height={40} />}
-            text={`Text ${getMaskedPhoneNumber()}`}
+            icon={<SMSIcon width={50} height={50} />}
+            title="Text Message (SMS)"
+            hint={`We'll send a code to your phone ${getMaskedPhoneNumber()} (you can view this at the settings page for change password)`}
           />
         )}
       </div>
@@ -88,14 +90,16 @@ interface MFAMethodButtonProps {
   onClick: () => void;
   disabled: boolean;
   icon: JSX.Element;
-  text: string;
+  title: string;
+  hint: string;
 }
 
 function MFAMethodButton({
   onClick,
   disabled,
   icon,
-  text,
+  title,
+  hint,
 }: MFAMethodButtonProps): JSX.Element {
   return (
     <button
@@ -104,7 +108,7 @@ function MFAMethodButton({
       style={{
         border: "2px solid #6b7280",
         width: "75%",
-        height: "75px",
+        height: "90px",
       }}
       className={`
         ui-py-12 ui-px-6 ui-flex ui-items-center ui-gap-6 ui-text-left ui-transition-all
@@ -121,8 +125,19 @@ function MFAMethodButton({
       >
         {icon}
       </div>
-      <div className="ui-flex-1">
-        <h3 className="ui-text-white ui-font-semibold ui-text-lg">{text}</h3>
+      <div className="ui-flex-1" style={{ textAlign: "left" }}>
+        <h3
+          className="ui-text-white ui-font-semibold ui-text-lg ui-mb-1"
+          style={{ textAlign: "left" }}
+        >
+          {title}
+        </h3>
+        <p
+          className="ui-text-gray-400 ui-text-sm"
+          style={{ textAlign: "left" }}
+        >
+          {hint}
+        </p>
       </div>
     </button>
   );
