@@ -39,7 +39,7 @@ function ForgotPassword(): JSX.Element {
       if (response.ok) {
         setMessage({
           type: "success",
-          text: "If your email exists in our system, you will receive password reset instructions shortly.",
+          text: "If this email exists in our system, we've sent a temporary password. Check your inbox and spam folder, then return to log in.",
         });
         setEmail("");
       } else {
@@ -86,22 +86,22 @@ function ForgotPassword(): JSX.Element {
           <div className="title">
             <span className="main">Forgot Password</span>
             <span
-              className="ui-w-full ui-max-w-xl ui-text-center"
+              className="ui-w-full ui-max-w-xl ui-text-center ui-text-sm"
               style={{ color: "var(--ev-colors-secondaryText)" }}
             >
-              Enter the email address you used when you joined and we&apos;ll
-              send you instructions to reset your password.
-              <br />
-              <br />
-              For security reasons, we do NOT store your password. So rest
-              assured that we will never send your password via email.
+              Enter your email address, and we&apos;ll send a temporary password
+              if an account is associated with it.{" "}
+              <em>
+                We don&apos;t store your password and will never send it via
+                email.
+              </em>
             </span>
           </div>
 
           <div className="forgot-password-form ui-w-full ui-max-w-xl">
             {message ? (
               <div
-                className="ui-w-full ui-mb-6 ui-rounded-lg"
+                className="ui-w-full ui-mb-6 ui-rounded-lg mb-5 ui-text-sm"
                 style={{
                   backgroundColor:
                     message.type === "success"
@@ -160,14 +160,15 @@ function ForgotPassword(): JSX.Element {
                   className="ui-text-sm"
                   style={{ color: "var(--ev-colors-secondaryText)" }}
                 >
-                  Remember your password?{" "}
+                  Received your temporary password?{" "}
                   <Link
                     href="/login"
                     className="hover:ui-underline"
                     style={{ color: "var(--ev-colors-highlight)" }}
                   >
                     Sign in
-                  </Link>
+                  </Link>{" "}
+                  to continue.
                 </span>
               </div>
             </form>
