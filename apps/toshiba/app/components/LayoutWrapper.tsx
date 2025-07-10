@@ -4,7 +4,6 @@ import { ElevaiteIcons, type SidebarIconObject } from "@repo/ui/components";
 import { ColorContextProvider, ThemeObject } from "@repo/ui/contexts";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import { RolesContextProvider } from "../lib/contexts/RolesContext";
 import { ClientAppLayout } from "../ui/ClientAppLayout";
 
@@ -42,30 +41,13 @@ interface LayoutWrapperProps {
   children: React.ReactNode;
 }
 
-export function LayoutWrapper({ children, customThemes }: LayoutWrapperProps): JSX.Element {
+export function LayoutWrapper({
+  children,
+  customThemes,
+}: LayoutWrapperProps): JSX.Element {
   console.log("[LayoutWrapper] received themes:", customThemes);
   const { data: session } = useSession();
   const pathname = usePathname();
-  const [isStylesLoaded, setIsStylesLoaded] = useState(false);
-
-  // Ensure styles are loaded before rendering to prevent FOUC
-  useEffect(() => {
-    // Check if critical CSS variables are available
-    const checkStyles = () => {
-      const computedStyle = getComputedStyle(document.documentElement);
-      const hasEvColors = computedStyle.getPropertyValue("--ev-colors-background");
-      const hasNavbarHeight = computedStyle.getPropertyValue("--navbar-height");
-
-      if (hasEvColors && hasNavbarHeight) {
-        setIsStylesLoaded(true);
-      } else {
-        // Retry after a short delay
-        setTimeout(checkStyles, 50);
-      }
-    };
-
-    checkStyles();
-  }, []);
 
   const isSuperAdmin = (session?.user as any)?.is_superuser === true;
   const isApplicationAdmin = (session?.user as any)?.application_admin === true;
@@ -79,24 +61,6 @@ export function LayoutWrapper({ children, customThemes }: LayoutWrapperProps): J
     (pathname === "/" ||
       pathname.startsWith("/access") ||
       pathname.startsWith("/(admin)"));
-
-  // Show loading state until styles are ready
-  if (!isStylesLoaded) {
-    return (
-      <div
-        style={{
-          backgroundColor: "#161616",
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "#ffffff",
-        }}
-      >
-        Loading...
-      </div>
-    );
-  }
 
   return (
     <ColorContextProvider themes={customThemes}>
@@ -114,5 +78,4 @@ export function LayoutWrapper({ children, customThemes }: LayoutWrapperProps): J
       )}
     </ColorContextProvider>
   );
-  
 }
