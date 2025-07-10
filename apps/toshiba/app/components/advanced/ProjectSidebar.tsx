@@ -136,6 +136,11 @@ export function ProjectSidebar({
   }
 
   function handleCreate(): void {
+    if (pathname !== "/chatbot") {
+      router.push("/chatbot");
+      return;
+    }
+
     // console.log("Create new chat");
     // Add a new session to the context
     chatContext.addNewSession();
