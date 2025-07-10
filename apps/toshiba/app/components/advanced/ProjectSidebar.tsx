@@ -10,7 +10,7 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import isBetween from "dayjs/plugin/isBetween";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useChat } from "../../ui/contexts/ChatContext";
 import "./ProjectSidebar.scss";
 import { WindowGrid } from "../../lib/interfaces";
@@ -114,6 +114,7 @@ export function ProjectSidebar({
 }): JSX.Element {
   const chatContext = useChat();
   const router = useRouter();
+  const pathname = usePathname();
   // const [isExpanded, setIsExpanded] = useState(false);
   const [displayFolders, setDisplayFolders] = useState<ProjectFolder[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -231,80 +232,82 @@ export function ProjectSidebar({
                 </div> */}
 
         {/* Chat Sessions Container */}
-        <div className="chat-sessions-container">
-          <div className="sessions-list">
-            {chatContext.sessions.length === 0 ? (
-              <div className="empty-sessions">
-                {chatContext.recentChatsMessage}
-              </div>
-            ) : (
-              <>
-                <div style={{ fontWeight: 600, fontSize: "12px" }}>
-                  Recent Chats
+        {pathname !== "/settings" && (
+          <div className="chat-sessions-container">
+            <div className="sessions-list">
+              {chatContext.sessions.length === 0 ? (
+                <div className="empty-sessions">
+                  {chatContext.recentChatsMessage}
                 </div>
-                {[...chatContext.sessions]
-                  .filter((session) => session.messages.length > 0)
-                  .sort(
-                    (a, b) =>
-                      new Date(b.creationDate).getTime() -
-                      new Date(a.creationDate).getTime()
-                  )
-                  .map((session) => {
-                    const formattedDate = dayjs(session.creationDate).format(
-                      "YYYY-MM-DD"
-                    );
-                    const timeWithSpace = dayjs(session.creationDate).format(
-                      "HH:mm"
-                    );
-                    const offset = dayjs(session.creationDate).format("Z");
-                    return (
-                      <div key={session.id} className="session-container">
-                        <CommonButton
-                          className={[
-                            "session-button",
-                            chatContext.selectedSession?.id === session.id
-                              ? "active"
-                              : undefined,
-                          ]
-                            .filter(Boolean)
-                            .join(" ")}
-                          noBackground
-                          onClick={() => {
-                            handleSessionClick(session.id);
-                          }}
-                        >
-                          <div className="session-icon">
-                            {/* Fix for SVGComment error - use a different icon that exists */}
-                            <ChatbotIcons.SVGClipboard />
-                          </div>
-                          <div className="session-details">
-                            {/* <span className="session-title">{session.label || "Chat session"}</span> */}
-                            <span className="session-preview">
-                              {session.label
-                                ? session.label
-                                : session.messages.length > 0
-                                  ? getMessagePreview(
-                                      session.messages[
-                                        session.messages.length - 1
-                                      ].text
-                                    )
-                                  : "New conversation"}
-                            </span>
-                            <span className="session-date">
-                              {/* {session.creationDate
+              ) : (
+                <>
+                  <div style={{ fontWeight: 600, fontSize: "12px" }}>
+                    Recent Chats
+                  </div>
+                  {[...chatContext.sessions]
+                    .filter((session) => session.messages.length > 0)
+                    .sort(
+                      (a, b) =>
+                        new Date(b.creationDate).getTime() -
+                        new Date(a.creationDate).getTime()
+                    )
+                    .map((session) => {
+                      const formattedDate = dayjs(session.creationDate).format(
+                        "YYYY-MM-DD"
+                      );
+                      const timeWithSpace = dayjs(session.creationDate).format(
+                        "HH:mm"
+                      );
+                      const offset = dayjs(session.creationDate).format("Z");
+                      return (
+                        <div key={session.id} className="session-container">
+                          <CommonButton
+                            className={[
+                              "session-button",
+                              chatContext.selectedSession?.id === session.id
+                                ? "active"
+                                : undefined,
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                            noBackground
+                            onClick={() => {
+                              handleSessionClick(session.id);
+                            }}
+                          >
+                            <div className="session-icon">
+                              {/* Fix for SVGComment error - use a different icon that exists */}
+                              <ChatbotIcons.SVGClipboard />
+                            </div>
+                            <div className="session-details">
+                              {/* <span className="session-title">{session.label || "Chat session"}</span> */}
+                              <span className="session-preview">
+                                {session.label
+                                  ? session.label
+                                  : session.messages.length > 0
+                                    ? getMessagePreview(
+                                        session.messages[
+                                          session.messages.length - 1
+                                        ].text
+                                      )
+                                    : "New conversation"}
+                              </span>
+                              <span className="session-date">
+                                {/* {session.creationDate
                                                                 ? ({ formattedDate } {timeWithSpace} GMT{offset})
                                                             : ""} */}
-                              {formattedDate} | {timeWithSpace} | GMT{offset}
-                            </span>
-                          </div>
-                        </CommonButton>
-                      </div>
-                    );
-                  })}
-              </>
-            )}
+                                {formattedDate} | {timeWithSpace} | GMT{offset}
+                              </span>
+                            </div>
+                          </CommonButton>
+                        </div>
+                      );
+                    })}
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Projects Container - Kept but hidden by default */}
         <div className="projects-label-container" style={{ display: "none" }}>
