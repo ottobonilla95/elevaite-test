@@ -111,7 +111,7 @@ function ForgotPassword(): JSX.Element {
                     message.type === "success"
                       ? "var(--ev-colors-success-text, #166534)"
                       : "var(--ev-colors-error-text, #991b1b)",
-                  paddingLeft: "5%",
+                  paddingLeft: "3%",
                   paddingTop: "1%",
                   paddingBottom: "1%",
                 }}
