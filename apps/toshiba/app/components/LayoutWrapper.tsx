@@ -3,6 +3,7 @@
 import { ElevaiteIcons, type SidebarIconObject } from "@repo/ui/components";
 import { ColorContextProvider, ThemeObject } from "@repo/ui/contexts";
 import { useSession } from "next-auth/react";
+import type { Session } from "next-auth";
 import { usePathname } from "next/navigation";
 import { RolesContextProvider } from "../lib/contexts/RolesContext";
 import { ClientAppLayout } from "../ui/ClientAppLayout";
@@ -39,18 +40,22 @@ const baseSidebarIcons: SidebarIconObject[] = [
 interface LayoutWrapperProps {
   customThemes?: ThemeObject[];
   children: React.ReactNode;
+  initialSession?: Session | null;
 }
 
 export function LayoutWrapper({
   children,
   customThemes,
+  initialSession,
 }: LayoutWrapperProps): JSX.Element {
-  console.log("[LayoutWrapper] received themes:", customThemes);
   const { data: session } = useSession();
   const pathname = usePathname();
 
-  const isSuperAdmin = (session?.user as any)?.is_superuser === true;
-  const isApplicationAdmin = (session?.user as any)?.application_admin === true;
+  const effectiveSession = initialSession || session;
+
+  const isSuperAdmin = (effectiveSession?.user as any)?.is_superuser === true;
+  const isApplicationAdmin =
+    (effectiveSession?.user as any)?.application_admin === true;
   const isAnyAdmin = isSuperAdmin || isApplicationAdmin;
 
   const shouldShowSidebar = isSuperAdmin;
@@ -62,9 +67,11 @@ export function LayoutWrapper({
       pathname.startsWith("/access") ||
       pathname.startsWith("/(admin)"));
 
+  const shouldRenderAdminLayout = shouldShowAdminLayout;
+
   return (
     <ColorContextProvider themes={customThemes}>
-      {shouldShowAdminLayout ? (
+      {shouldRenderAdminLayout ? (
         <RolesContextProvider>
           <ClientAppLayout
             breadcrumbLabels={breadcrumbLabels}

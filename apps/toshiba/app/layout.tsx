@@ -107,7 +107,10 @@ export default async function RootLayout({
       <body className={inter.className}>
         <SessionProvider session={session}>
           <SessionValidator>
-            <LayoutWrapper customThemes={toshibaThemes}>
+            <LayoutWrapper
+              customThemes={toshibaThemes}
+              initialSession={session}
+            >
               {children}
             </LayoutWrapper>
           </SessionValidator>
