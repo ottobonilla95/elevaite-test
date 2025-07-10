@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AppIcon, SMSIcon } from "../icons";
 
 interface MFAMethodSelectionProps {
   email: string;
@@ -65,7 +66,7 @@ export function MFAMethodSelection({
           <MFAMethodButton
             onClick={() => handleMethodClick("totp")}
             disabled={isLoading}
-            icon={<AuthenticatorIcon />}
+            icon={<AppIcon width={40} height={40} />}
             text="Use a verification code"
           />
         )}
@@ -74,40 +75,12 @@ export function MFAMethodSelection({
           <MFAMethodButton
             onClick={() => handleMethodClick("sms")}
             disabled={isLoading}
-            icon={<SMSIcon />}
+            icon={<SMSIcon width={40} height={40} />}
             text={`Text ${getMaskedPhoneNumber()}`}
           />
         )}
       </div>
     </div>
-  );
-}
-
-function AuthenticatorIcon(): JSX.Element {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={28}
-      height={28}
-      fill="white"
-      viewBox="0 0 24 24"
-    >
-      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zM12 7c1.4 0 2.8 1.1 2.8 2.5V11c.6 0 1.2.6 1.2 1.2v3.5c0 .7-.6 1.3-1.2 1.3H9.2c-.6 0-1.2-.6-1.2-1.3v-3.5c0-.6.6-1.2 1.2-1.2V9.5C9.2 8.1 10.6 7 12 7zm0 1.2c-.8 0-1.5.7-1.5 1.5V11h3V9.7c0-.8-.7-1.5-1.5-1.5z" />
-    </svg>
-  );
-}
-
-function SMSIcon(): JSX.Element {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={28}
-      height={28}
-      fill="white"
-      viewBox="0 0 24 24"
-    >
-      <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 11H7V9h2v2zm4 0h-2V9h2v2zm4 0h-2V9h2v2z" />
-    </svg>
   );
 }
 
@@ -143,7 +116,6 @@ function MFAMethodButton({
       <div
         className="ui-p-3 ui-rounded-lg ui-flex-shrink-0"
         style={{
-          backgroundColor: "var(--ev-colors-highlight)",
           marginLeft: "16px",
         }}
       >
