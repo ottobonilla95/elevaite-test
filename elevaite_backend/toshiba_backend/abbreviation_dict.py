@@ -987,7 +987,7 @@ abbreviations = {
     "SQD": "Supplier Quality Document",
     "SQMS2": "Supplier Quality Management System 2",
     "SQR": "Supplier Quality Requirements",
-    "SR": "Supply Request",
+    "SR": "Service Request",
     "SR_num2": "Service Request (as in SR Ticket for an IT issue/question)",
     "SRF": "Sourcing Request Form - refers to the SharePoint tool / Custom Form develop to operationalize the PRF",
     "SRM": "Supplier Relationship Management",

@@ -34,17 +34,21 @@ function getS3Client(): S3Client {
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME;
+    console.log("AWS_BUCKET_NAME: ", AWS_BUCKET_NAME);
     if (!AWS_BUCKET_NAME) {
       throw new Error("AWS Bucket Name is not present in the environment");
     }
 
     const searchParams = req.nextUrl.searchParams;
+    console.log("searchParams: ", searchParams);
     const filename = searchParams.get("filename") ?? "";
+    console.log("filename: ", filename);
     const command = new GetObjectCommand({
       Bucket: AWS_BUCKET_NAME,
       // Key: `toshiba_pdf_img/${filename}`,
       Key: `toshiba_6800_6200/${filename}`,
     });
+    console.log("command: ", command);
 
     const s3 = getS3Client();
     const url = await getSignedUrl(s3, command);

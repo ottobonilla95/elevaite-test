@@ -62,7 +62,10 @@ def extract_part_numbers(text: str) -> List[str]:
     patterns = [
         # r'\b\d[A-Z][A-Z]?\d{8}\b',
         # r'\b\d[A-Z]{2}\d{7}\b',
-        r'(?=.*?[0-9])(?=.*?[A-Za-z]).+'
+        # r'(?=.*?[0-9])(?=.*?[A-Za-z]).+'
+        r'^(?=.*[0-9])(?=.*[a-zA-Z])[a-zA-Z0-9]{11}$',
+        r'^(?=.*[0-9])(?=.*[a-zA-Z])[a-zA-Z0-9]{8}$',
+        r'^[mM][sS]\d{3}$',
     ]
     all_matches = []
     words = text.split()

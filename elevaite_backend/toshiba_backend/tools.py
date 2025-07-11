@@ -180,6 +180,7 @@ def walgreens_query_retriever(query: str) -> list:
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
     Example: query="Client Advocates list"
+    Example: query="What is the password for Bosch pin pad"
 
     Essentially, if the user asks "Walgreens <question>" then the query should be "<question>"
 
@@ -262,6 +263,7 @@ def kroger_query_retriever(query: str) -> list:
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
     Example: query="Client Advocates list"
+    Example: query="What is the password for Bosch pin pad"
 
     Essentially, if the user asks "Kroger <question>" then the query should be "<question>"
 
@@ -344,6 +346,7 @@ def tractor_query_retriever(query: str) -> list:
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
     Example: query="Client Advocates list"
+    Example: query="What is the password for Bosch pin pad"
 
     Essentially, if the user asks "Tractor Supply <question>" then the query should be "<question>"
 
@@ -426,6 +429,7 @@ def sams_club_query_retriever(query: str) -> list:
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
     Example: query="Client Advocates list"
+    Example: query="What is the password for Bosch pin pad"
 
     Essentially, if the user asks "Sam's Club <question>" then the query should be "<question>"
 
@@ -507,6 +511,7 @@ def dollar_general_query_retriever(query: str) -> list:
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
     Example: query="Client Advocates list"
+    Example: query="What is the password for Bosch pin pad"
 
     Essentially, if the user asks "Dollar General <question>" then the query should be "<question>"
 
@@ -588,6 +593,7 @@ def wegmans_query_retriever(query: str) -> list:
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
     Example: query="Client Advocates list"
+    Example: query="What is the password for Bosch pin pad"
 
     Essentially, if the user asks "Wegmans <question>" then the query should be "<question>"
 
@@ -669,6 +675,7 @@ def ross_query_retriever(query: str) -> list:
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
     Example: query="Client Advocates list"
+    Example: query="What is the password for Bosch pin pad"
 
     Essentially, if the user asks "Ross <question>" then the query should be "<question>"
 
@@ -750,6 +757,7 @@ def costco_query_retriever(query: str) -> list:
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
     Example: query="Client Advocates list"
+    Example: query="What is the password for Bosch pin pad"
 
     Essentially, if the user asks "Costco <question>" then the query should be "<question>"
 
@@ -831,6 +839,7 @@ def whole_foods_query_retriever(query: str) -> list:
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
     Example: query="Client Advocates list"
+    Example: query="What is the password for Bosch pin pad"
 
     Essentially, if the user asks "Whole Foods <question>" then the query should be "<question>"
 
@@ -912,6 +921,7 @@ def bjs_query_retriever(query: str) -> list:
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
     Example: query="Client Advocates list"
+    Example: query="What is the password for Bosch pin pad"
 
     Essentially, if the user asks "BJs <question>" then the query should be "<question>"
 
@@ -993,6 +1003,7 @@ def alex_lee_query_retriever(query: str) -> list:
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
     Example: query="Client Advocates list"
+    Example: query="What is the password for Bosch pin pad"
 
     Essentially, if the user asks "Alex Lee <question>" then the query should be "<question>"
 
@@ -1074,6 +1085,7 @@ def badger_query_retriever(query: str) -> list:
     Example: query="assembly name for part number 3AC01548000"
     Example: query="TAL parts list"
     Example: query="Client Advocates list"
+    Example: query="What is the password for Bosch pin pad"
 
     Essentially, if the user asks "Badger <question>" then the query should be "<question>"
 
@@ -1141,9 +1153,10 @@ def badger_query_retriever(query: str) -> list:
     return [res+first_response+second_response, sources+second_sources]
 
 @function_schema
-def sr_database(query: str) -> list:
+def kg_database(query: str) -> list:
     """"
-    SERVICE REQUEST DATABASE TOOL
+    KG Knowledge Graph DATABASE TOOL
+    Any query that has "KG: <question>" should use this tool.
 
     Use this tool to query the Toshiba Service Request database.
     Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
@@ -1154,7 +1167,7 @@ def sr_database(query: str) -> list:
     query = "Which SRs closed in Florida and who handled them?"
     query = "What tickets were handled by Jason Hechler?"
     """
-    st_url = os.getenv("SR_DATABASE_URL")+"/query-sr"
+    st_url = os.getenv("KG_RETRIEVER_URL")+"/query-sr"
     params = {
         "query": query
     }
@@ -1164,6 +1177,36 @@ def sr_database(query: str) -> list:
         response = requests.post(st_url, params=params)
         print(response.json())
         res = response.json()["answer"]
+        return [res, []]
+    except Exception as e:
+        print(f"Failed to call SR database: {e}")
+        return []
+
+@function_schema
+def sql_database(query: str) -> list:
+    """"
+    SQL DATABASE TOOL
+    Any query that has "SQL: <question>" should use this tool.
+
+    Use this tool to query the Toshiba SQL database.
+    Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
+
+    EXAMPLES:
+    query = "What are the SR tickets closed on 2024-11-06 and who resolved them?"
+    query = "Which SRs were resolved between 2024-11-05 and 2024-11-07?"
+    query = "Which SRs closed in Florida and who handled them?"
+    query = "What tickets were handled by Jason Hechler?"
+    """
+    st_url = os.getenv("SQL_RETRIEVER_URL")+"/query"
+    params = {
+        "query": query
+    }
+    try:
+        print(st_url)
+        print(params)
+        response = requests.post(st_url, params=params)
+        print(response.json())
+        res = response.json()["response"]
         return [res, []]
     except Exception as e:
         print(f"Failed to call SR database: {e}")
@@ -1183,7 +1226,8 @@ tool_store = {
     "bjs_query_retriever": bjs_query_retriever,
     "alex_lee_query_retriever": alex_lee_query_retriever,
     "badger_query_retriever": badger_query_retriever,
-    "sr_database": sr_database,
+    "kg_database": kg_database,
+    "sql_database": sql_database,
 }
 
 
@@ -1201,7 +1245,8 @@ tool_schemas = {
     "bjs_query_retriever": bjs_query_retriever.openai_schema,
     "alex_lee_query_retriever": alex_lee_query_retriever.openai_schema,
     "badger_query_retriever": badger_query_retriever.openai_schema,
-    "sr_database": sr_database.openai_schema,
+    "kg_database": kg_database.openai_schema,
+    "sql_database": sql_database.openai_schema,
 }
 
 # for key in query_retriever.openai_schema["function"]:

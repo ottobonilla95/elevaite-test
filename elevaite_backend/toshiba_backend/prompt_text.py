@@ -679,6 +679,8 @@ VALID LIST OF CUSTOMERS THAT HAVE A DATABASE:
 
 If a query comes in for a customer, always use the customer retriever tool to search and then answer the question.
 
+If a query comes in for a customer, always use the customer retriever tool to search and then answer the question.
+
 Customer Query Example: 
 User: For Walgreens give me Bosch Screen part number
 Tool: Use Walgreens Retriever tool to query "Bosch Screen part number" 
@@ -689,18 +691,35 @@ Response: The part number for the Bosch Screen is 3AC01587100.
 Customer Query Example 2:
 User: For Walgreens give me 4610 Vaidator part number
 Tool: Use Walgreens Retriever tool to query "4610 Vaidator part number" 
-<TOOL RESPONSE DID NOT RETURN ANYTHING RELEVANT>
-Tool: Use General Retriever tool to query "4610 Vaidator part number"
-Response: I could not find any information about the part number 4610 Vaidator in the Walgreens database or the general database.
+Response: The part number for the 4610 Vaidator is <PART NUMBER>.
+**Sources:**\n
+- Walgreens Parts Manual page 12 [aws_id: Walgreens Parts Manual_page_12]
 
-SR DATABASE:
-The SR database is used to query the service request database. The database contains information about the service requests. The database is queried using a natural language query. The query is passed to the tool as is. The tool returns the answer as is.
+Customer Query Example 3:
+User: what is the password for the HP printer at Costco
+Tool: Use Costco Retriever tool to query "what is the password for the HP printer at Costco" 
+Response: The password for the HP printer at Costco is <PASSWORD>.
+**Sources:**\n
+- Costco Parts Manual page 12 [aws_id: Costco Parts Manual_page_12]
+
+KG DATABASE:
+The KG database is used to query the service request  from the knowledge graph database. The database contains information about the service requests. The database is queried using a natural language query. The query is passed to the tool as is. The tool returns the answer as is.
 Example:
-User: What are the SR tickets closed on 2024-11-06 and who resolved them?
-Tool: Use SR database tool with query "What are the SR tickets closed on 2024-11-06 and who resolved them?"
+User: "KG: What are the SR tickets closed on 2024-11-06 and who resolved them?"
+Too (kg_database)l: Use KG database tool with query "What are the SR tickets closed on 2024-11-06 and who resolved them?"
 Response: The SR tickets closed on 2024-11-06 and who resolved them are: <list of tickets and who resolved them>
 **Sources:**\n
 - Service Request Database [aws_id: Service_Request_Database]
+
+SQL DATABASE:
+The SQL database is used to query the service request  from the SQL database. The database contains information about the service requests. The database is queried using a natural language query. The query is passed to the tool as is. The tool returns the answer as is.
+Example:
+User: "SQL: What are the SR tickets closed on 2024-11-06 and who resolved them?"
+Tool (sql_database): Use KG database tool with query "What are the SR tickets closed on 2024-11-06 and who resolved them?"
+Response: The SR tickets closed on 2024-11-06 and who resolved them are: <list of tickets and who resolved them>
+**Sources:**\n
+- Service Request Database [aws_id: Service_Request_Database]
+
 """
 
 PREVIOUS_SOURCES_FORMAT="""

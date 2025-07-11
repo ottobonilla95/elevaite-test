@@ -226,7 +226,9 @@ export async function getImageUrl(
 
   try {
     const _url = new URL(`${headerUrl.origin}/api/images`);
+    console.log("URL: ", _url);
     _url.searchParams.set("filename", filename);
+    console.log("URL: ", _url);
     return _url.toString();
   } catch (error) {
     console.error("Error fetching image:", error);

@@ -127,7 +127,7 @@ $profile-backdrop-bot: #FFFFFF;
             height: 30px;
             width: 30px;
             border-radius: 50%;
-            background-color: $profile-backdrop-user;
+            background-color: var(--ev-colors-highlight);
             &.bot { 
                 background-color: #FFFFFF !important;
                 border: 2px solid #FF681F; /* This will help you see if the element is there */

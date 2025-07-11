@@ -387,7 +387,7 @@ toshiba_agent = ToshibaAgent(name="ToshibaAgent",
                            tool_schemas["wegmans_query_retriever"], tool_schemas["ross_query_retriever"],\
                            tool_schemas["costco_query_retriever"], tool_schemas["whole_foods_query_retriever"], \
                            tool_schemas["bjs_query_retriever"], tool_schemas["alex_lee_query_retriever"], \
-                           tool_schemas["badger_query_retriever"], tool_schemas["sr_database"]],
+                           tool_schemas["badger_query_retriever"], tool_schemas["kg_database"], tool_schemas["sql_database"]],
                 routing_options={"ask": "If you think you need to ask more information or context from the user to answer the question.",
                                  "continue": "If you think you have the answer, you can stop here.",
                                  "give_up": "If you think you can't answer the query, you can give up and let the user know."

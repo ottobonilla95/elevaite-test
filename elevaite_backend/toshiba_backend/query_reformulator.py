@@ -105,6 +105,10 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
     Original Query: "{original_query}"
 
     Chat History: {chat_history}
+    
+    IMPORTANT:
+    - If the query begins with "KG:" or "SQL:", do not rewrite it. These are special queries that should be passed through exactly.
+    - For example, if the query is "KG: What are the SR tickets closed on 2024-11-06 and who resolved them?", do not rewrite it.
 
     Rewrite the query as follows:
     - Expand abbreviations and machine codes inline, using this format: "<Full Name> (<Abbreviation>)"

@@ -840,6 +840,7 @@ export function ChatContextProvider(
           ...placeholderBotMessage,
           text: final_text,
           isStreaming: false, // Mark as no longer streaming
+          sources: sources,
         };
 
         // Update the session with the complete message
