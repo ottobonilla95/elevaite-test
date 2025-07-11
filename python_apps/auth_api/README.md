@@ -115,9 +115,9 @@ EMAILS_FROM_EMAIL="noreply@yourdomain.com"
 FRONTEND_URL="http://localhost:3002"
 ```
 
-## AWS Cognito Integration
+## SMS MFA with AWS SNS
 
-For detailed information about the AWS Cognito integration, see [COGNITO_INTEGRATION.md](./COGNITO_INTEGRATION.md).
+SMS MFA uses AWS SNS to send verification codes. See [AWS SMS Setup Guide](docs/AWS_SMS_SETUP.md) for configuration details.
 
 ### Quick Setup
 

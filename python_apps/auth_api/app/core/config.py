@@ -90,17 +90,9 @@ class Settings(BaseSettings):
     EMAILS_FROM_EMAIL: str = os.environ.get("EMAILS_FROM_EMAIL", "")
     EMAILS_FROM_NAME: str = os.environ.get("EMAILS_FROM_NAME", "")
 
-    # AWS Cognito Configuration
+    # AWS Configuration for SMS
     AWS_REGION: str = os.environ.get("AWS_REGION", "us-east-1")
-    COGNITO_USER_POOL_ID: str = os.environ.get("COGNITO_USER_POOL_ID", "")
-    COGNITO_CLIENT_ID: str = os.environ.get("COGNITO_CLIENT_ID", "")
-    COGNITO_CLIENT_SECRET: str = os.environ.get("COGNITO_CLIENT_SECRET", "")
-    COGNITO_DOMAIN: str = os.environ.get("COGNITO_DOMAIN", "")
-
-    # Authentication Provider Selection
-    AUTH_PROVIDER: str = os.environ.get(
-        "AUTH_PROVIDER", "native"
-    )  # Options: "native", "cognito", "both"
+    SMS_SENDER_ID: str = os.environ.get("SMS_SENDER_ID", "")
 
     @field_validator("CORS_ORIGINS")
     @classmethod
@@ -111,25 +103,6 @@ class Settings(BaseSettings):
         if isinstance(v, list):
             return v
         raise ValueError("CORS_ORIGINS should be a comma-separated string or a list")
-
-    @field_validator("AUTH_PROVIDER")
-    @classmethod
-    def validate_auth_provider(cls, v: str) -> str:
-        """Validate authentication provider selection."""
-        valid_providers = ["native", "cognito", "both"]
-        if v not in valid_providers:
-            raise ValueError(f"AUTH_PROVIDER must be one of: {valid_providers}")
-        return v
-
-    @property
-    def is_cognito_enabled(self) -> bool:
-        """Check if Cognito authentication is enabled."""
-        return self.AUTH_PROVIDER in ["cognito", "both"]
-
-    @property
-    def is_native_enabled(self) -> bool:
-        """Check if native authentication is enabled."""
-        return self.AUTH_PROVIDER in ["native", "both"]
 
 
 settings = Settings()
