@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 // eslint-disable-next-line import/named -- Seems to be a problem with eslint
 import { v4 as uuidv4 } from "uuid";
 import { ReactFlowProvider, type ReactFlowInstance } from "react-flow-renderer";
@@ -119,7 +119,11 @@ function AgentConfigForm(): JSX.Element {
 
 	// State for UI
 	const [workflowName, setWorkflowName] = useState("");
+	const [workflowDescription, setWorkflowDescription] = useState("");
+	const [workflowTags, setWorkflowTags] = useState<string[]>([]);
 	const [isChatMode, setIsChatMode] = useState(false);
+
+
 	// TODO: Implement chat functionality
 	// const [chatInput, setChatInput] = useState("");
 	// const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -266,7 +270,6 @@ function AgentConfigForm(): JSX.Element {
 
 			try {
 				const agentData = JSON.parse(agentDataJson) as unknown;
-				console.log("Dropped agent data:", agentData);
 				if (!agentData || !isAgentResponse(agentData)) {
 					throw new Error("Invalid agent data");
 				}
@@ -356,7 +359,6 @@ function AgentConfigForm(): JSX.Element {
 	const handleDragStart = useCallback((event: React.DragEvent<HTMLButtonElement>, agent: AgentResponse) => {
 		// Ensure the agent has all required properties
 		const dragData = agent;
-		console.log("Dragging agent:", dragData);
 
 		// Set the data transfer
 		event.dataTransfer.setData("application/reactflow", JSON.stringify(dragData));
@@ -489,8 +491,6 @@ function AgentConfigForm(): JSX.Element {
 
 	// Deploy workflow
 	const handleDeployWorkflow = async (nameOverride?: string) => {
-		console.log("Deploy button clicked");
-		console.log("Current nodes:", nodes);
 
 		// Check for nodes
 		if (nodes.length === 0) {
@@ -507,6 +507,8 @@ function AgentConfigForm(): JSX.Element {
 			const finalWorkflowName = nameOverride ?? workflowName;
 			const workflowPayload: WorkflowCreateRequest = {
 				name: finalWorkflowName,
+				description: workflowDescription,
+				tags: workflowTags,
 				configuration: {
 					agents: nodes.map(node => ({
 						agent_id: node.data.agent.agent_id,
@@ -536,7 +538,6 @@ function AgentConfigForm(): JSX.Element {
 
 			if (!workflowData) {
 				// Create new workflow
-				console.log("Creating new workflow:", workflowPayload);
 				workflowData = await createWorkflowAndRefresh(workflowPayload);
 				setCurrentWorkflowData(workflowData);
 				setIsExistingWorkflow(true);
@@ -544,7 +545,6 @@ function AgentConfigForm(): JSX.Element {
 				updateLastSavedState();
 			} else if (hasUnsavedChanges) {
 				// Update existing workflow
-				console.log("Updating existing workflow:", workflowData.workflow_id, workflowPayload);
 				workflowData = await updateWorkflowAndRefresh(workflowData.workflow_id, workflowPayload);
 				setCurrentWorkflowData(workflowData);
 				updateLastSavedState();
@@ -570,7 +570,7 @@ function AgentConfigForm(): JSX.Element {
 
 			// Show post-deployment success dialog
 			if (deploymentResponse && workflowData) {
-				const inferenceUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000'}api/workflows/execute`;
+				const inferenceUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000'}api/workflows/${workflowData.workflow_id}/execute`;
 				setDeploymentResult({
 					deployment: deploymentResponse,
 					workflow: workflowData,
@@ -623,7 +623,6 @@ function AgentConfigForm(): JSX.Element {
 			}
 		};
 
-		console.log("Saving workflow:", workflow);
 		void createWorkflowAndRefresh(workflow);
 	};
 
@@ -631,6 +630,8 @@ function AgentConfigForm(): JSX.Element {
 	const handleCreateNewWorkflow = () => {
 		workflowIdRef.current = uuidv4();
 		setWorkflowName("My Agent Workflow");
+		setWorkflowDescription("");
+		setWorkflowTags([]);
 		setNodes([]);
 		setEdges([]);
 		setIsChatMode(false);
@@ -638,6 +639,59 @@ function AgentConfigForm(): JSX.Element {
 		setSelectedNode(null);
 		setShowConfigPanel(false);
 	};
+
+	// Handle editing workflow properties (name, description, tags)
+	const handleEditWorkflow = (name: string, description: string, tags: string[]) => {
+		// Only update local state - no backend calls
+		// Changes will be persisted when the workflow is saved/deployed via Deploy button
+		setWorkflowName(name);
+		setWorkflowDescription(description);
+		setWorkflowTags(tags);
+	};
+
+	// Memoized callback functions to prevent re-renders
+	const handleSaveWorkflowCallback = useCallback((name: string, _description: string, tags: string[]) => {
+		// Update workflow name, description, and tags, then save
+		setWorkflowName(name);
+		setWorkflowDescription(_description);
+		setWorkflowTags(tags);
+		handleSaveWorkflow(name, _description);
+		updateLastSavedState();
+	}, [handleSaveWorkflow, updateLastSavedState]);
+
+	const handleDeployWorkflowCallback = useCallback((name: string, _description: string, tags: string[]) => {
+		// Update workflow name, description, and tags, then deploy
+		setWorkflowName(name);
+		setWorkflowDescription(_description);
+		setWorkflowTags(tags);
+		void handleDeployWorkflow(name);
+	}, [handleDeployWorkflow]);
+
+	const handleUpdateExistingWorkflowCallback = useCallback(() => {
+		// Update existing workflow and deploy
+		void handleDeployWorkflow();
+	}, [handleDeployWorkflow]);
+
+	const handleCreateNewWorkflowCallback = useCallback((name: string, _description: string, tags: string[]) => {
+		// Reset to new workflow state and deploy with new name
+		setIsExistingWorkflow(false);
+		setCurrentWorkflowData(null);
+		workflowIdRef.current = uuidv4();
+		setWorkflowName(name);
+		setWorkflowDescription(_description);
+		setWorkflowTags(tags);
+		// Deploy the workflow with the new name
+		void handleDeployWorkflow(name);
+	}, [handleDeployWorkflow]);
+
+	const handleClearDeploymentResultCallback = useCallback(() => {
+		setDeploymentResult(null);
+	}, []);
+
+	// Memoized tools array to prevent re-renders
+	const memoizedTools = useMemo(() => {
+		return nodes.flatMap(node => node.data.tools ?? []);
+	}, [nodes]);
 
 	// Create a new empty agent on the canvas
 	const handleCreateNewAgent = () => {
@@ -750,15 +804,15 @@ function AgentConfigForm(): JSX.Element {
 			// Set workflow metadata
 			workflowIdRef.current = workflowDetails.workflow_id;
 			setWorkflowName(workflowDetails.name);
+			setWorkflowDescription(workflowDetails.description ?? "");
+			setWorkflowTags(workflowDetails.tags ?? []);
 
 			// Convert workflow agents to nodes
 			const loadedNodes: Node[] = [];
-			console.log("Workflow agents:", workflowDetails.workflow_agents);
 			if (workflowDetails.workflow_agents) {
 				workflowDetails.workflow_agents.forEach((workflowAgent: WorkflowAgent) => {
 					const agent = workflowAgent.agent;
 					const nodeId = workflowAgent.node_id || workflowAgent.agent_id;
-					console.log("Dropped agent data:", agent);
 
 					const newNode: Node = {
 						id: nodeId,
@@ -788,7 +842,6 @@ function AgentConfigForm(): JSX.Element {
 
 			// Convert workflow connections to edges
 			const loadedEdges: Edge[] = [];
-			console.log(workflowDetails.workflow_connections)
 			if (workflowDetails.workflow_connections.length > 0) {
 				workflowDetails.workflow_connections.forEach(
 					(connection, index: number) => {
@@ -824,10 +877,7 @@ function AgentConfigForm(): JSX.Element {
 			// Check deployment status for the loaded workflow
 			void checkDeploymentStatus();
 
-			console.log(`Loaded workflow: ${workflowDetails.name}`, {
-				nodes: loadedNodes,
-				edges: loadedEdges,
-			});
+
 		} catch (error) {
 			console.error("Error loading workflow:", error);
 			alert("Error loading workflow. Please try again.");
@@ -841,16 +891,12 @@ function AgentConfigForm(): JSX.Element {
 		agentName: string
 	): Promise<void> => {
 		const selectedPromptId = configData.selectedPromptId;
-		console.log("Config Data being saved: ", configData);
 
 		if (!selectedPromptId) {
 			throw new Error("A prompt must be selected to create an agent");
 		}
 
 		const agentCreateData = convertConfigToAgentCreate(configData, tools, agentName, selectedPromptId);
-
-		// Log the data being sent to help debug 422 errors
-		console.log("Creating agent with data:", JSON.stringify(agentCreateData, null, 2));
 
 		const newAgent = await createAgentAndRefresh(agentCreateData);
 
@@ -917,8 +963,6 @@ function AgentConfigForm(): JSX.Element {
 	const handleSaveAgentConfig = async (configData: AgentConfigData) => {
 		if (!selectedNode) return;
 
-		console.log("Saving agent configuration:", configData);
-
 		// Saving agent configuration
 
 		try {
@@ -984,39 +1028,24 @@ function AgentConfigForm(): JSX.Element {
 		<>
 			<HeaderBottom
 				workflowName={workflowName}
+				workflowDescription={workflowDescription}
+				workflowTags={workflowTags}
 				isLoading={isLoading}
-				onSaveWorkflow={(name: string, _description: string) => {
-					// Update workflow name and description, then save
-					setWorkflowName(name);
-					handleSaveWorkflow(name, _description);
-					updateLastSavedState();
-				}}
-				onDeployWorkflow={(name: string, _description: string) => {
-					// Deploy workflow with the updated name
-					void handleDeployWorkflow(name);
-				}}
+				onSaveWorkflow={handleSaveWorkflowCallback}
+				onDeployWorkflow={handleDeployWorkflowCallback}
 				// New props for advanced deployment flow
 				isExistingWorkflow={isExistingWorkflow}
 				hasUnsavedChanges={hasUnsavedChanges}
 				deploymentStatus={deploymentStatus}
 				currentWorkflowData={currentWorkflowData}
-				tools={nodes.flatMap(node => node.data.tools ?? [])}
-				onUpdateExistingWorkflow={() => {
-					// Update existing workflow and deploy
-					void handleDeployWorkflow();
-				}}
-				onCreateNewWorkflow={(name: string, _description: string) => {
-					// Reset to new workflow state and deploy with new name
-					setIsExistingWorkflow(false);
-					setCurrentWorkflowData(null);
-					workflowIdRef.current = uuidv4();
-					setWorkflowName(name);
-					// Deploy the workflow with the new name
-					void handleDeployWorkflow(name);
-				}}
+				tools={memoizedTools}
+				onUpdateExistingWorkflow={handleUpdateExistingWorkflowCallback}
+				onCreateNewWorkflow={handleCreateNewWorkflowCallback}
 				// New props for deployment result handling
 				deploymentResult={deploymentResult}
-				onClearDeploymentResult={() => setDeploymentResult(null)}
+				onClearDeploymentResult={handleClearDeploymentResultCallback}
+				// Edit workflow handler
+				onEditWorkflow={handleEditWorkflow}
 			/>
 			<ReactFlowProvider>
 				<div className="agent-config-form" ref={reactFlowWrapper}>

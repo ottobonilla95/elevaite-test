@@ -8,10 +8,11 @@ import "./WorkflowSaveModal.scss";
 interface WorkflowSaveModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (name: string, description: string) => void;
-    onDeploy: (name: string, description: string) => void;
+    onSave: (name: string, description: string, tags: string[]) => void;
+    onDeploy: (name: string, description: string, tags: string[]) => void;
     initialName?: string;
     initialDescription?: string;
+    initialTags?: string[];
     isLoading?: boolean;
     mode?: "save" | "deploy" | "both";
     isCreatingNew?: boolean;
@@ -24,12 +25,14 @@ function WorkflowSaveModal({
     onDeploy,
     initialName = "",
     initialDescription = "",
+    initialTags = [],
     isLoading = false,
     mode = "both",
     isCreatingNew = false
 }: WorkflowSaveModalProps): JSX.Element | null {
     const [name, setName] = useState(initialName);
     const [description, setDescription] = useState(initialDescription);
+    const [tagsInput, setTagsInput] = useState("");
     const [errors, setErrors] = useState<{ name?: string; description?: string }>({});
 
     // Reset form when modal opens/closes
@@ -37,9 +40,10 @@ function WorkflowSaveModal({
         if (isOpen) {
             setName(initialName);
             setDescription(initialDescription);
+            setTagsInput(initialTags.join(", "));
             setErrors({});
         }
-    }, [initialName, initialDescription]);
+    }, [isOpen, initialName, initialDescription, initialTags]);
 
     // Validation
     const validateForm = (): boolean => {
@@ -63,13 +67,22 @@ function WorkflowSaveModal({
 
     const handleSave = (): void => {
         if (!validateForm()) return;
-        console.log("AND THE NAME IS: ", name.trim());
-        onSave(name.trim(), description.trim());
+        // Parse comma-separated tags
+        const parsedTags = tagsInput
+            .split(",")
+            .map(tag => tag.trim())
+            .filter(tag => tag.length > 0);
+        onSave(name.trim(), description.trim(), parsedTags);
     };
 
     const handleDeploy = (): void => {
         if (!validateForm()) return;
-        onDeploy(name.trim(), description.trim());
+        // Parse comma-separated tags
+        const parsedTags = tagsInput
+            .split(",")
+            .map(tag => tag.trim())
+            .filter(tag => tag.length > 0);
+        onDeploy(name.trim(), description.trim(), parsedTags);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent): void => {
@@ -156,6 +169,25 @@ function WorkflowSaveModal({
                         <div className="character-count">
                             {description.length}/200
                         </div>
+                    </div>
+
+                    {/* Tags */}
+                    <div className="form-group">
+                        <label htmlFor="workflow-tags" className="form-label">
+                            Tags <span className="optional">(optional)</span>
+                        </label>
+                        <input
+                            id="workflow-tags"
+                            type="text"
+                            value={tagsInput}
+                            onChange={(e) => setTagsInput(e.target.value)}
+                            className="form-input"
+                            placeholder="Enter tags separated by commas (e.g., automation, data-processing, customer-service)"
+                            disabled={isLoading}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            Separate multiple tags with commas
+                        </p>
                     </div>
                 </div>
 

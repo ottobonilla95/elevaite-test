@@ -14,9 +14,10 @@ import "./HeaderBottom.scss";
 interface HeaderBottomProps {
 	workflowName: string;
 	workflowDescription?: string;
+	workflowTags?: string[];
 	isLoading: boolean;
-	onSaveWorkflow: (name: string, description: string) => void;
-	onDeployWorkflow: (name: string, description: string) => void;
+	onSaveWorkflow: (name: string, description: string, tags: string[]) => void;
+	onDeployWorkflow: (name: string, description: string, tags: string[]) => void;
 	// New props for advanced deployment flow
 	isExistingWorkflow: boolean;
 	hasUnsavedChanges: boolean;
@@ -28,7 +29,7 @@ interface HeaderBottomProps {
 	currentWorkflowData?: WorkflowResponse | null;
 	tools?: ChatCompletionToolParam[];
 	onUpdateExistingWorkflow: () => void;
-	onCreateNewWorkflow: (name: string, description: string) => void;
+	onCreateNewWorkflow: (name: string, description: string, tags: string[]) => void;
 	// New props for deployment result handling
 	deploymentResult?: {
 		deployment: WorkflowDeployment;
@@ -43,6 +44,7 @@ interface HeaderBottomProps {
 function HeaderBottom({
 	workflowName,
 	workflowDescription = "",
+	workflowTags = [],
 	onSaveWorkflow,
 	onDeployWorkflow,
 	isLoading,
@@ -92,26 +94,26 @@ function HeaderBottom({
 	};
 
 	// Handle save workflow
-	const handleSave = (name: string, description: string): void => {
+	const handleSave = (name: string, description: string, tags: string[]): void => {
 		if (isCreatingNewWorkflow) {
 			// We're creating a new workflow, so call the create new handler with the new name
-			onCreateNewWorkflow(name, description);
+			onCreateNewWorkflow(name, description, tags);
 		} else {
 			// Regular save workflow
-			onSaveWorkflow(name, description);
+			onSaveWorkflow(name, description, tags);
 		}
 		setIsModalOpen(false);
 		setIsCreatingNewWorkflow(false);
 	};
 
 	// Handle deploy workflow - this will be called after successful deployment
-	const handleDeploy = (name: string, description: string): void => {
+	const handleDeploy = (name: string, description: string, tags: string[]): void => {
 		if (isCreatingNewWorkflow) {
 			// We're creating a new workflow, so call the create new handler with the new name
-			onCreateNewWorkflow(name, description);
+			onCreateNewWorkflow(name, description, tags);
 		} else {
 			// Regular deploy workflow
-			onDeployWorkflow(name, description);
+			onDeployWorkflow(name, description, tags);
 		}
 		setIsModalOpen(false);
 		setIsCreatingNewWorkflow(false);
@@ -187,6 +189,7 @@ function HeaderBottom({
 				onDeploy={handleDeploy}
 				initialName={isCreatingNewWorkflow ? `${workflowName} (Copy)` : workflowName}
 				initialDescription={workflowDescription}
+				initialTags={workflowTags}
 				isLoading={isLoading}
 				mode="both"
 				isCreatingNew={isCreatingNewWorkflow}
@@ -210,7 +213,7 @@ function HeaderBottom({
 				onSave={handleEditSave}
 				initialName={workflowName}
 				initialDescription={workflowDescription}
-				initialTags={currentWorkflowData?.tags ?? []}
+				initialTags={workflowTags}
 				isLoading={isLoading}
 			/>
 
