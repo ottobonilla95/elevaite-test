@@ -5,7 +5,7 @@ import { Handle, Position } from "react-flow-renderer";
 import { PenLine, Trash2, EllipsisVertical, GripHorizontal } from "lucide-react";
 import "./AgentNode.scss";
 import { type AgentNodeData, type ChatCompletionToolParam } from "../../lib/interfaces";
-import { getAgentIcon, getSubtitle, getToolIcon } from "./iconUtils";
+import { getAgentIcon, getToolIcon } from "./iconUtils";
 
 interface NodeProps {
     id: string;
@@ -69,9 +69,10 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
                         <Trash2 size={16} />
                     </button>
                     <button
-                        onClick={handleDelete}
-                        className="control-button delete-button"
+                        onClick={(e) => { e.stopPropagation(); }}
+                        className="control-button disabled-button"
                         type="button"
+                        disabled
                     >
                         <EllipsisVertical size={16} />
                     </button>

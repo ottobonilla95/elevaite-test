@@ -78,6 +78,15 @@
           &.delete-button:hover {
             color: #ef4444; // red-500
           }
+
+          &.disabled-button {
+            opacity: 0.5;
+            cursor: not-allowed;
+
+            &:hover {
+              color: #212124; // Keep original color, no hover effect
+            }
+          }
         }
       }
     }
