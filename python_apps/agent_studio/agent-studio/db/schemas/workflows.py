@@ -168,15 +168,12 @@ class WorkflowDeploymentResponse(WorkflowDeploymentInDB):
 
 
 class WorkflowExecutionRequest(BaseModel):
-    workflow_id: Optional[uuid.UUID] = None
-    deployment_name: Optional[str] = None
     query: str
     chat_history: Optional[List[Dict[str, str]]] = None
     runtime_overrides: Optional[Dict[str, Any]] = None
 
 
 class WorkflowStreamExecutionRequest(BaseModel):
-    deployment_name: str
     query: str
     chat_history: Optional[List[Dict[str, str]]] = None
     runtime_overrides: Optional[Dict[str, Any]] = None
@@ -187,4 +184,5 @@ class WorkflowExecutionResponse(BaseModel):
     response: Optional[str] = None
     execution_id: Optional[str] = None
     workflow_id: Optional[str] = None
-    timestamp: str
+    deployment_id: Optional[str] = None
+    timestamp: Optional[str] = None

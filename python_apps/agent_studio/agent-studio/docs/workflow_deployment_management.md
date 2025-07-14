@@ -256,10 +256,10 @@ curl -X POST "http://localhost:8000/api/workflows/deployments/my_deployment/stop
 After stopping/deleting deployments, verify they're removed from memory by attempting execution:
 
 ```bash
-# This should return 404 for stopped/deleted deployments
-curl -X POST "http://localhost:8000/api/workflows/execute" \
+# This should return 404 for stopped/deleted deployments (replace {workflow_id} with actual workflow ID)
+curl -X POST "http://localhost:8000/api/workflows/{workflow_id}/execute" \
   -H "Content-Type: application/json" \
-  -d '{"deployment_name": "stopped_deployment", "query": "test"}'
+  -d '{"query": "test"}'
 ```
 
 The undeploy functionality provides flexible deployment management while maintaining system integrity and performance! 🎉

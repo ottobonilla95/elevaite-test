@@ -3,11 +3,11 @@ from unittest.mock import Mock, patch
 import uuid
 
 from db.schemas import AgentBase, AgentUpdate
+from db.crud.workflows import get_active_workflow_deployment_by_workflow_id
 
 
 @pytest.mark.unit
 class TestEnhancedWorkflowManagement:
-
     def test_agent_base_schema_includes_toshiba_type(self):
         agent_data = {
             "name": "ToshibaAgent",
@@ -38,17 +38,12 @@ class TestEnhancedWorkflowManagement:
     def test_default_agents_includes_toshiba_agent(self):
         from db.fixtures.default_data import DEFAULT_AGENTS
 
-        toshiba_agents = [
-            agent for agent in DEFAULT_AGENTS if agent.name == "ToshibaAgent"
-        ]
+        toshiba_agents = [agent for agent in DEFAULT_AGENTS if agent.name == "ToshibaAgent"]
         assert len(toshiba_agents) > 0
 
         toshiba_agent = toshiba_agents[0]
         assert toshiba_agent.agent_type == "toshiba"
-        assert (
-            toshiba_agent.description is not None
-            and "Toshiba" in toshiba_agent.description
-        )
+        assert toshiba_agent.description is not None and "Toshiba" in toshiba_agent.description
 
     @patch("agents.get_agent_schemas")
     def test_agent_schemas_includes_toshiba_agent(self, mock_get_agent_schemas):
@@ -126,16 +121,12 @@ class TestEnhancedWorkflowManagement:
         assert len(workflow_config["agents"]) == 2
         assert len(workflow_config["connections"]) == 1
 
-        toshiba_agents = [
-            a for a in workflow_config["agents"] if a["agent_type"] == "toshiba"
-        ]
+        toshiba_agents = [a for a in workflow_config["agents"] if a["agent_type"] == "toshiba"]
         assert len(toshiba_agents) == 1
         assert toshiba_agents[0]["name"] == "ToshibaAgent"
 
     @patch("db.crud.create_workflow_agent")
-    def test_workflow_agents_population_during_creation(
-        self, mock_create_workflow_agent
-    ):
+    def test_workflow_agents_population_during_creation(self, mock_create_workflow_agent):
         workflow_id = str(uuid.uuid4())
         agents_config = [
             {"agent_type": "toshiba", "name": "ToshibaAgent", "deployment_code": "t"},
@@ -194,9 +185,7 @@ class TestEnhancedWorkflowManagement:
         assert len(existing_workflow["agents"]) == 2
         assert len(existing_workflow["connections"]) == 1
 
-        toshiba_agents = [
-            a for a in existing_workflow["agents"] if a["agent_type"] == "toshiba"
-        ]
+        toshiba_agents = [a for a in existing_workflow["agents"] if a["agent_type"] == "toshiba"]
         assert len(toshiba_agents) == 0
 
     def test_deployment_code_mapping_includes_toshiba(self):
@@ -240,3 +229,36 @@ class TestEnhancedWorkflowManagement:
 
         nonexistent = get_deployment_by_name("nonexistent", "development")
         assert nonexistent is None
+
+    @patch("db.crud.workflows.db")
+    def test_get_active_workflow_deployment_by_workflow_id(self, mock_db_session):
+        """Test the new function to get active deployment by workflow_id"""
+        mock_db = Mock()
+        workflow_id = uuid.uuid4()
+
+        # Mock deployment object
+        mock_deployment = Mock()
+        mock_deployment.workflow_id = workflow_id
+        mock_deployment.environment = "production"
+        mock_deployment.status = "active"
+
+        # Mock the query chain
+        mock_query = Mock()
+        mock_query.filter.return_value = mock_query
+        mock_query.order_by.return_value = mock_query
+        mock_query.first.return_value = mock_deployment
+        mock_db.query.return_value = mock_query
+
+        # Test the function
+        result = get_active_workflow_deployment_by_workflow_id(mock_db, workflow_id, "production")
+
+        # Verify the result
+        assert result == mock_deployment
+        assert result.workflow_id == workflow_id
+        assert result.status == "active"
+
+        # Verify the query was called correctly
+        mock_db.query.assert_called_once()
+        mock_query.filter.assert_called_once()
+        mock_query.order_by.assert_called_once()
+        mock_query.first.assert_called_once()

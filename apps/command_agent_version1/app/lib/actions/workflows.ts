@@ -192,10 +192,11 @@ export async function deployWorkflowModern(
 }
 
 export async function executeWorkflowModern(
+  workflowId: string,
   executionRequest: NewWorkflowExecutionRequest
 ): Promise<WorkflowExecutionResponse> {
   try {
-    const response = await fetch(`${BACKEND_URL}api/workflows/execute`, {
+    const response = await fetch(`${BACKEND_URL}api/workflows/${workflowId}/execute`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -212,6 +213,30 @@ export async function executeWorkflowModern(
     throw new Error("Invalid data type - expected workflow execution response");
   } catch (error) {
     console.error("Error executing workflow:", error);
+    throw error;
+  }
+}
+
+export async function executeWorkflowStream(
+  workflowId: string,
+  executionRequest: NewWorkflowExecutionRequest
+): Promise<ReadableStream<Uint8Array> | null> {
+  try {
+    const response = await fetch(`${BACKEND_URL}api/workflows/${workflowId}/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(executionRequest),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.body;
+  } catch (error) {
+    console.error("Error executing workflow stream:", error);
     throw error;
   }
 }
@@ -331,8 +356,8 @@ export async function getWorkflowDeploymentDetails(
 
     let inferenceUrl: string | undefined;
     if (deployment) {
-      // Generate inference URL based on deployment name
-      inferenceUrl = `${BACKEND_URL}api/workflows/execute`;
+      // Generate inference URL based on workflow ID (webhook-style)
+      inferenceUrl = `${BACKEND_URL}api/workflows/${workflowId}/execute`;
     }
 
     return {

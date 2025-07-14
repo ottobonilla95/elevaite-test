@@ -242,8 +242,27 @@ def get_workflow_deployments(
     return query.all()
 
 
-def get_active_workflow_deployments(db: Session) -> List[WorkflowDeployment]:
-    return db.query(WorkflowDeployment).filter(WorkflowDeployment.status == "active").all()
+def get_active_workflow_deployments(db: Session, workflow_id: Optional[uuid.UUID] = None) -> List[WorkflowDeployment]:
+    query = db.query(WorkflowDeployment).filter(WorkflowDeployment.status == "active")
+    if workflow_id:
+        query = query.filter(WorkflowDeployment.workflow_id == workflow_id)
+    return query.all()
+
+
+def get_active_workflow_deployment_by_workflow_id(
+    db: Session, workflow_id: uuid.UUID, environment: str = "production"
+) -> Optional[WorkflowDeployment]:
+    """Get the latest active deployment for a specific workflow ID and environment"""
+    return (
+        db.query(WorkflowDeployment)
+        .filter(
+            WorkflowDeployment.workflow_id == workflow_id,
+            WorkflowDeployment.environment == environment,
+            WorkflowDeployment.status == "active",
+        )
+        .order_by(WorkflowDeployment.deployed_at.desc())
+        .first()
+    )
 
 
 def update_workflow_deployment(

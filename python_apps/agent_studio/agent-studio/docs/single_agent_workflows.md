@@ -182,11 +182,10 @@ curl -X POST "http://localhost:8000/api/workflows/{workflow_id}/deploy" \
     "deployed_by": "admin"
   }'
 
-# Execute with streaming
-curl -X POST "http://localhost:8000/api/workflows/execute/stream" \
+# Execute with streaming (replace {workflow_id} with actual workflow ID)
+curl -X POST "http://localhost:8000/api/workflows/{workflow_id}/stream" \
   -H "Content-Type: application/json" \
   -d '{
-    "deployment_name": "toshiba_support",
     "query": "What is the part number for module 6800?",
     "chat_history": []
   }'

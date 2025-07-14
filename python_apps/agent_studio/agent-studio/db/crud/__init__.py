@@ -43,6 +43,7 @@ from .workflows import (
     create_workflow_deployment,
     get_workflow_deployment,
     get_workflow_deployments,
+    get_active_workflow_deployment_by_workflow_id,
     update_workflow_deployment,
     delete_workflow_deployment,
 )

@@ -19,13 +19,12 @@ The async streaming functionality allows you to execute workflows and receive re
 ### Streaming Execution Endpoint
 
 ```
-POST /api/workflows/execute/stream
+POST /api/workflows/{workflow_id}/stream
 ```
 
 **Request Body:**
 ```json
 {
-  "deployment_name": "my_workflow_deployment",
   "query": "Your query here",
   "chat_history": [
     {"actor": "user", "content": "Previous message"},
@@ -62,10 +61,9 @@ Each chunk is a JSON object with the following structure:
 import requests
 import json
 
-def stream_workflow_execution(deployment_name, query, chat_history=None):
-    url = "http://localhost:8000/api/workflows/execute/stream"
+def stream_workflow_execution(workflow_id, query, chat_history=None):
+    url = f"http://localhost:8000/api/workflows/{workflow_id}/stream"
     data = {
-        "deployment_name": deployment_name,
         "query": query,
         "chat_history": chat_history or []
     }
@@ -91,7 +89,7 @@ def stream_workflow_execution(deployment_name, query, chat_history=None):
 
 # Usage
 stream_workflow_execution(
-    deployment_name="my_deployment",
+    workflow_id="550e8400-e29b-41d4-a716-446655440000",
     query="What is the weather today?",
     chat_history=[
         {"actor": "user", "content": "Hello"},
@@ -103,14 +101,13 @@ stream_workflow_execution(
 ### JavaScript/Frontend Example
 
 ```javascript
-async function streamWorkflowExecution(deploymentName, query, chatHistory = []) {
-    const response = await fetch('/api/workflows/execute/stream', {
+async function streamWorkflowExecution(workflowId, query, chatHistory = []) {
+    const response = await fetch(`/api/workflows/${workflowId}/stream`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            deployment_name: deploymentName,
             query: query,
             chat_history: chatHistory
         })

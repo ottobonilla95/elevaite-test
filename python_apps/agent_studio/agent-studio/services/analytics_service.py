@@ -24,9 +24,7 @@ class AnalyticsService:
         try:
             if db:
                 existing_session = (
-                    db.query(models.SessionMetrics)
-                    .filter(models.SessionMetrics.session_id == session_id)
-                    .first()
+                    db.query(models.SessionMetrics).filter(models.SessionMetrics.session_id == session_id).first()
                 )
 
                 if not existing_session:
@@ -69,9 +67,7 @@ class AnalyticsService:
             }
 
             self.current_executions[execution_id] = execution_data
-            self.logger.info(
-                f"Started tracking execution: {execution_id} for agent: {agent_name}"
-            )
+            self.logger.info(f"Started tracking execution: {execution_id} for agent: {agent_name}")
 
         except Exception as e:
             self.logger.error(f"Error starting agent execution tracking: {e}")
@@ -86,16 +82,12 @@ class AnalyticsService:
     ) -> None:
         try:
             if execution_id not in self.current_executions:
-                self.logger.warning(
-                    f"Execution {execution_id} not found in current executions"
-                )
+                self.logger.warning(f"Execution {execution_id} not found in current executions")
                 return
 
             execution_data = self.current_executions[execution_id]
             end_time = datetime.now()
-            duration_ms = int(
-                (end_time - execution_data["start_time"]).total_seconds() * 1000
-            )
+            duration_ms = int((end_time - execution_data["start_time"]).total_seconds() * 1000)
 
             if db:
                 metrics = models.AgentExecutionMetrics(
@@ -110,6 +102,7 @@ class AnalyticsService:
                     tool_count=tool_count or execution_data.get("tool_count", 0),
                     session_id=execution_data.get("session_id"),
                     user_id=execution_data.get("user_id"),
+                    agent_id=execution_data.get("agent_id"),
                 )
                 db.add(metrics)
                 db.commit()
@@ -141,9 +134,7 @@ class AnalyticsService:
             if execution_id in self.current_executions:
                 self.current_executions[execution_id]["tool_count"] += 1
 
-            self.logger.info(
-                f"Started tracking tool usage: {usage_id} for tool: {tool_name}"
-            )
+            self.logger.info(f"Started tracking tool usage: {usage_id} for tool: {tool_name}")
 
         except Exception as e:
             self.logger.error(f"Error starting tool usage tracking: {e}")
@@ -162,9 +153,7 @@ class AnalyticsService:
 
             tool_data = self.current_tools[usage_id]
             end_time = datetime.now()
-            duration_ms = int(
-                (end_time - tool_data["start_time"]).total_seconds() * 1000
-            )
+            duration_ms = int((end_time - tool_data["start_time"]).total_seconds() * 1000)
 
             if db:
                 metrics = models.ToolUsageMetrics(
@@ -207,9 +196,7 @@ class AnalyticsService:
             }
 
             self.current_workflows[workflow_id] = workflow_data
-            self.logger.info(
-                f"Started tracking workflow: {workflow_id} of type: {workflow_type}"
-            )
+            self.logger.info(f"Started tracking workflow: {workflow_id} of type: {workflow_type}")
 
         except Exception as e:
             self.logger.error(f"Error starting workflow tracking: {e}")
@@ -222,16 +209,12 @@ class AnalyticsService:
     ) -> None:
         try:
             if workflow_id not in self.current_workflows:
-                self.logger.warning(
-                    f"Workflow {workflow_id} not found in current workflows"
-                )
+                self.logger.warning(f"Workflow {workflow_id} not found in current workflows")
                 return
 
             workflow_data = self.current_workflows[workflow_id]
             end_time = datetime.now()
-            duration_ms = int(
-                (end_time - workflow_data["start_time"]).total_seconds() * 1000
-            )
+            duration_ms = int((end_time - workflow_data["start_time"]).total_seconds() * 1000)
 
             if db:
                 metrics = models.WorkflowMetrics(
@@ -268,9 +251,7 @@ class AnalyticsService:
                     tool_data["output_data"] = output_data
                 self.logger.debug(f"Updated tool metrics for usage_id: {usage_id}")
             else:
-                self.logger.warning(
-                    f"Tool usage {usage_id} not found for metrics update"
-                )
+                self.logger.warning(f"Tool usage {usage_id} not found for metrics update")
 
         except Exception as e:
             self.logger.error(f"Error updating tool metrics: {e}")
@@ -299,13 +280,9 @@ class AnalyticsService:
                 if api_calls_count is not None:
                     execution_data["api_calls_count"] = api_calls_count
 
-                self.logger.debug(
-                    f"Updated execution metrics for execution_id: {execution_id}"
-                )
+                self.logger.debug(f"Updated execution metrics for execution_id: {execution_id}")
             else:
-                self.logger.warning(
-                    f"Execution {execution_id} not found for metrics update"
-                )
+                self.logger.warning(f"Execution {execution_id} not found for metrics update")
 
         except Exception as e:
             self.logger.error(f"Error updating execution metrics: {e}")

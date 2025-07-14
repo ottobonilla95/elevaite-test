@@ -165,8 +165,6 @@ export interface WorkflowDeploymentRequest {
 }
 
 export interface NewWorkflowExecutionRequest {
-  workflow_id?: string;
-  deployment_name?: string;
   query: string;
   chat_history?: { actor: string; content: string }[];
   runtime_overrides?: Record<string, unknown>;

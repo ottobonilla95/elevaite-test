@@ -225,6 +225,10 @@ def deploy_workflow(
         # Create deployment record
         db_deployment = crud.create_workflow_deployment(db, deployment_data)
 
+        # Update workflow's is_deployed flag and deployed_at timestamp
+        workflow_update = schemas.WorkflowUpdate(is_deployed=True, deployed_at=db_deployment.deployed_at)
+        crud.update_workflow(db, workflow_id, workflow_update)
+
         # Build and store the CommandAgent for this deployment
         command_agent = _build_command_agent_from_workflow(db, workflow)
         ACTIVE_WORKFLOWS[deployment_request.deployment_name] = {
@@ -269,6 +273,13 @@ def stop_workflow_deployment(deployment_name: str, db: Session = Depends(get_db)
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to update deployment '{deployment_name}'"
             )
 
+        # Check if there are any other active deployments for this workflow
+        active_deployments = crud.workflows.get_active_workflow_deployments(db, deployment.workflow_id)
+        if not active_deployments:
+            # No more active deployments, update workflow's is_deployed flag
+            workflow_update = schemas.WorkflowUpdate(is_deployed=False)
+            crud.update_workflow(db, deployment.workflow_id, workflow_update)
+
         # Remove from active workflows memory
         if deployment_name in ACTIVE_WORKFLOWS:
             del ACTIVE_WORKFLOWS[deployment_name]
@@ -301,6 +312,7 @@ def delete_workflow_deployment_by_name(deployment_name: str, db: Session = Depen
             )
 
         deployment_id = deployment.deployment_id
+        workflow_id = deployment.workflow_id
 
         # Remove from active workflows memory first
         if deployment_name in ACTIVE_WORKFLOWS:
@@ -314,46 +326,45 @@ def delete_workflow_deployment_by_name(deployment_name: str, db: Session = Depen
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to delete deployment '{deployment_name}'"
             )
 
+        # Check if there are any other active deployments for this workflow
+        active_deployments = crud.workflows.get_active_workflow_deployments(db, workflow_id)
+        if not active_deployments:
+            # No more active deployments, update workflow's is_deployed flag
+            workflow_update = schemas.WorkflowUpdate(is_deployed=False)
+            crud.update_workflow(db, workflow_id, workflow_update)
+
         return {"message": f"Deployment '{deployment_name}' deleted successfully", "deployment_id": str(deployment_id)}
 
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error deleting deployment: {str(e)}")
 
 
-@router.post("/execute", response_model=schemas.WorkflowExecutionResponse)
-def execute_workflow(execution_request: schemas.WorkflowExecutionRequest, db: Session = Depends(get_db)):
-    """Execute a deployed workflow"""
-    deployment = None
+@router.post("/{workflow_id}/execute", response_model=schemas.WorkflowExecutionResponse)
+def execute_workflow(
+    workflow_id: uuid.UUID, execution_request: schemas.WorkflowExecutionRequest, db: Session = Depends(get_db)
+):
+    """Execute a deployed workflow by workflow ID"""
+    # Verify workflow exists
+    workflow = crud.get_workflow(db, workflow_id)
+    if not workflow:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
 
-    if execution_request.deployment_name:
-        # Find by deployment name
-        if execution_request.deployment_name not in ACTIVE_WORKFLOWS:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No active deployment found with name '{execution_request.deployment_name}'",
-            )
-        deployment_info = ACTIVE_WORKFLOWS[execution_request.deployment_name]
-        command_agent = deployment_info["command_agent"]
-        deployment = deployment_info["deployment"]
-
-    elif execution_request.workflow_id:
-        # Find by workflow ID - get the latest active deployment
-        deployment = crud.workflows.get_workflow_deployment_by_name(
-            db, f"workflow_{execution_request.workflow_id}", "production"
-        )
-        if not deployment or deployment.status != "active":
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active deployment found for this workflow")
-
-        # Build command agent if not in memory
-        workflow = crud.get_workflow(db, execution_request.workflow_id)
-        command_agent = _build_command_agent_from_workflow(db, workflow)
-
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Either workflow_id or deployment_name must be provided"
-        )
+    # Find the latest active deployment for this workflow
+    deployment = crud.get_active_workflow_deployment_by_workflow_id(db, workflow_id, "production")
+    if not deployment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active deployment found for this workflow")
 
     try:
+        # Check if workflow is in memory (ACTIVE_WORKFLOWS) using deployment name
+        deployment_name = deployment.deployment_name
+        if deployment_name in ACTIVE_WORKFLOWS:
+            # Use in-memory deployment
+            deployment_info = ACTIVE_WORKFLOWS[deployment_name]
+            command_agent = deployment_info["command_agent"]
+        else:
+            # Build command agent on-demand from database
+            command_agent = _build_command_agent_from_workflow(db, workflow)
+
         # Execute the workflow
         result = command_agent.execute(query=execution_request.query)
 
@@ -363,7 +374,11 @@ def execute_workflow(execution_request: schemas.WorkflowExecutionRequest, db: Se
         db.commit()
 
         return schemas.WorkflowExecutionResponse(
-            status="success", response=result, workflow_id=deployment.workflow_id, deployment_id=deployment.deployment_id
+            status="success",
+            response=result,
+            workflow_id=str(deployment.workflow_id),
+            deployment_id=str(deployment.deployment_id),
+            timestamp=datetime.now().isoformat(),
         )
 
     except Exception as e:
@@ -375,26 +390,36 @@ def execute_workflow(execution_request: schemas.WorkflowExecutionRequest, db: Se
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error executing workflow: {str(e)}")
 
 
-@router.post("/execute/stream")
-async def execute_workflow_stream(execution_request: schemas.WorkflowStreamExecutionRequest, db: Session = Depends(get_db)):
-    """Execute a deployed workflow with streaming responses"""
+@router.post("/{workflow_id}/stream")
+async def execute_workflow_stream(
+    workflow_id: uuid.UUID, execution_request: schemas.WorkflowStreamExecutionRequest, db: Session = Depends(get_db)
+):
+    """Execute a deployed workflow with streaming responses by workflow ID"""
+    # Verify workflow exists
+    workflow = crud.get_workflow(db, workflow_id)
+    if not workflow:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
 
-    # Validate deployment exists
-    if execution_request.deployment_name not in ACTIVE_WORKFLOWS:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No active deployment found with name '{execution_request.deployment_name}'",
-        )
+    # Find the latest active deployment for this workflow
+    deployment = crud.get_active_workflow_deployment_by_workflow_id(db, workflow_id, "production")
+    if not deployment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active deployment found for this workflow")
 
-    deployment_info = ACTIVE_WORKFLOWS[execution_request.deployment_name]
-    command_agent = deployment_info["command_agent"]
-    deployment = deployment_info["deployment"]
+    # Check if workflow is in memory (ACTIVE_WORKFLOWS) using deployment name
+    deployment_name = deployment.deployment_name
+    if deployment_name in ACTIVE_WORKFLOWS:
+        # Use in-memory deployment
+        deployment_info = ACTIVE_WORKFLOWS[deployment_name]
+        command_agent = deployment_info["command_agent"]
+    else:
+        # Build command agent on-demand from database
+        command_agent = _build_command_agent_from_workflow(db, workflow)
 
     async def stream_generator():
         """Generate streaming response chunks"""
         try:
             # Send initial status
-            yield f"data: {json.dumps({'status': 'started', 'deployment_name': execution_request.deployment_name, 'workflow_id': str(deployment.workflow_id), 'timestamp': datetime.now().isoformat()})}\n"
+            yield f"data: {json.dumps({'status': 'started', 'workflow_id': str(deployment.workflow_id), 'timestamp': datetime.now().isoformat()})}\n"
 
             # Execute the workflow with streaming
             if execution_request.chat_history:
@@ -413,14 +438,14 @@ async def execute_workflow_stream(execution_request: schemas.WorkflowStreamExecu
                 yield f"data: {json.dumps({'type': 'content', 'data': result, 'timestamp': datetime.now().isoformat()})}\n"
 
             # Send completion status
-            yield f"data: {json.dumps({'status': 'completed', 'deployment_name': execution_request.deployment_name, 'workflow_id': str(deployment.workflow_id), 'timestamp': datetime.now().isoformat()})}\n"
+            yield f"data: {json.dumps({'status': 'completed', 'workflow_id': str(deployment.workflow_id), 'timestamp': datetime.now().isoformat()})}\n"
 
         except Exception as e:
             # Send error as final chunk
             error_chunk = {
                 "status": "error",
                 "error": str(e),
-                "deployment_name": execution_request.deployment_name,
+                "workflow_id": str(deployment.workflow_id),
                 "timestamp": datetime.now().isoformat(),
             }
             yield f"data: {json.dumps(error_chunk)}\n\n"
