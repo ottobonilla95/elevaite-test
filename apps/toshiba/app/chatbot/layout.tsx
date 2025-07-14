@@ -12,6 +12,10 @@ export default async function RootLayout({
       label: "Ask Toshiba",
       link: "/",
     },
+    chatbot: {
+      label: "Toshiba Field Service Assistant",
+      link: "/chatbot",
+    },
   };
 
   return (

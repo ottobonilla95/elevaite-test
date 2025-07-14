@@ -46,14 +46,14 @@ export default async function LoginPage(): Promise<JSX.Element> {
         </div>
 
         <div className="copyright">
-          <span>Copyright 2023-2025</span>
-          <span>•</span>
+          <span>Toshiba Global Commerce Solutions Field Service Assistant ©2025</span>
+          {/*<span>•</span>*/}
           <a
             target="_blank"
-            href="https://www.toshiba.com/"
+            href="https://www.iopex.com/"
             rel="noopener noreferrer"
           >
-            Toshiba Corporation
+            Powered by iOPEX
           </a>
         </div>
       </div>

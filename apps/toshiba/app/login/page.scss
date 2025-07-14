@@ -88,9 +88,11 @@
 
     & .copyright {
       display: flex;
+      flex-direction: column;
       gap: 5px;
       font-size: 13px;
       align-self: center;
+      text-align: center;
       & > a {
         color: var(--ev-colors-highlight);
       }
