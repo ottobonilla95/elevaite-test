@@ -46,6 +46,7 @@
   max-height: 100%; /* Ensure sidebar doesn't overflow */
   border-radius: 16px;
   padding: 8px;
+  @include scrollbar(#71717366, #71717326);
 }
 
 .sidebar-header {

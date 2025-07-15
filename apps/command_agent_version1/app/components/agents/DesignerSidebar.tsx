@@ -22,7 +22,7 @@ import { RouterAgentIcon } from "../icons";
 import TabHeader, { type Tab } from "../TabHeader";
 import WorkflowsTab from "./WorkflowsTab";
 import "./DesignerSidebar.scss";
-
+import { mockupAgents } from "../../lib/mockup";
 
 
 // SidebarItem component for draggable items
@@ -87,13 +87,14 @@ function DesignerSidebar({
 		error: agentsError,
 		refreshAgents,
 		filteredAgents: contextFilteredAgents,
-		setSearchQuery: setContextSearchQuery
+		setSearchQuery: setContextSearchQuery,
+		setAgents
 	} = useAgents();
 
 	// Define tabs for TabHeader component
 	const sidebarTabs: Tab[] = [
 		{ id: "actions", label: "Actions" },
-		{ id: "workflows", label: "Workflows" }
+		{ id: "workflows", label: "Templates" }
 	];
 
 	// Update context search when local search changes
@@ -102,10 +103,17 @@ function DesignerSidebar({
 	}, [searchQuery, setContextSearchQuery]);
 
 	// Filter agents based on search query and agent types
-	const filteredAgents = contextFilteredAgents.filter((agent): agent is AgentResponse & { agent_type: AgentType } =>
+	/* const filteredAgents = contextFilteredAgents.filter((agent): agent is AgentResponse & { agent_type: AgentType } =>
 		isValidAgentType(agent.agent_type) &&
 		['router', 'web_search', 'api', 'data', 'toshiba'].includes(agent.agent_type)
-	);
+	); */
+
+	/*Testing*/
+	useEffect(() => {
+		setAgents(mockupAgents)
+	}, []);
+	const filteredAgents = agents;
+	/*Testing*/
 
 	const [sidebarOpen, setSidebarOpen] = useState(true);
 

@@ -12,6 +12,7 @@ interface PromptsContextType {
   selectedPrompt: PromptResponse | null;
   isLoading: boolean;
   error: string | null;
+  isEditingPrompt: boolean;
 
   // Actions
   loadAllPrompts: (appName?: string) => Promise<void>;
@@ -22,6 +23,7 @@ interface PromptsContextType {
   createNewPrompt: (promptData: PromptCreate) => Promise<PromptResponse | null>;
   updateExistingPrompt: (promptId: string, promptData: PromptUpdate) => Promise<PromptResponse | null>;
   deleteExistingPrompt: (promptId: string) => Promise<boolean>;
+  setIsEditingPrompt: (isEditing: boolean) => void;
 
   // Utility functions
   getPromptById: (promptId: string) => PromptResponse | undefined;
@@ -45,6 +47,7 @@ export function PromptsProvider({ children }: PromptsProviderProps): JSX.Element
   const [selectedPrompt, setSelectedPrompt] = useState<PromptResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
 
   // Load all prompts with optional app filtering
   const loadAllPrompts = useCallback(async (appName?: string): Promise<void> => {
@@ -211,6 +214,7 @@ export function PromptsProvider({ children }: PromptsProviderProps): JSX.Element
     selectedPrompt,
     isLoading,
     error,
+	isEditingPrompt,
 
     // Actions
     loadAllPrompts,
@@ -221,6 +225,7 @@ export function PromptsProvider({ children }: PromptsProviderProps): JSX.Element
     createNewPrompt,
     updateExistingPrompt,
     deleteExistingPrompt,
+	setIsEditingPrompt,
 
     // Utilities
     getPromptById,

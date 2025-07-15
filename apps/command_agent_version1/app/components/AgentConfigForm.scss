@@ -43,6 +43,11 @@
     //box-shadow: $shadow-md;
 	border: 1px solid #E2E8ED;
 	border-radius: 16px;
+	@include scrollbar(#71717366, #71717326);
+
+	&.editing {
+		width: 840px;
+	}
 
 	&.shrinked {
 		width: 40px;
@@ -54,13 +59,30 @@
 		.agent-name-display,
 		.close-button,
 		.activate-fields,
-		.config-panel-header ~ * {
+		.config-panel-header ~ *,
+		.config-panel-header > .pr-3,
+		.left,
+		.right button:not(.btn-toggle) {
 			display: none;
+		}
+
+		.right {
+			width: 100%;
 		}
 
 		.config-panel-header {
 			justify-content: center;
 		}
+	}
+
+	.icon-container {
+		width: 56px;
+		height: 56px;
+		border-radius: 6px;
+		border: 1px solid #e5e7eb;
+		background-color: #f9fafb;
+		display: grid;
+		place-items: center;;
 	}
   }
 
@@ -108,4 +130,23 @@
       border-top: 1px solid $gray-200;
     }
   }
+}
+
+.badge {
+	display: inline-block;
+	padding: 4px 10px;
+	font-size: 0.75rem;
+	font-weight: 500;
+	border-radius: 6px;
+	background-color: #6C82711F; // gray-100
+	color: #6C8271; // gray-600
+}
+
+
+.tabs {
+	&-inner {
+		background: #F1F4F8;
+		border: 1px solid #E6EBF0;
+		border-radius: 6px;
+	}
 }

@@ -39,6 +39,8 @@ interface HeaderBottomProps {
 	onClearDeploymentResult?: () => void;
 	// New props for workflow editing
 	onEditWorkflow?: (name: string, description: string, tags: string[]) => void;
+	showTestingSidebar: boolean,
+	setShowTestingSidebar: (showSidebar: boolean) => void
 }
 
 function HeaderBottom({
@@ -58,6 +60,8 @@ function HeaderBottom({
 	deploymentResult,
 	onClearDeploymentResult,
 	onEditWorkflow,
+	showTestingSidebar,
+	setShowTestingSidebar
 }: HeaderBottomProps): JSX.Element {
 
 	const [activeBtnAction, setActiveBtnAction] = useState("workflow-creation");
@@ -171,7 +175,7 @@ function HeaderBottom({
 				<button className={`btn-workflow-creation${activeBtnAction === 'workflow-creation' ? ' active' : ''}`} type="button" onClick={() => { setActiveBtnAction("workflow-creation"); }}>
 					<LayoutGrid size={16} />
 				</button>
-				<button className={`btn-workflow-testing${activeBtnAction === 'workflow-testing' ? ' active' : ''}`} type="button" onClick={() => { setActiveBtnAction("workflow-testing"); }}>
+				<button className={`btn-workflow-testing${activeBtnAction === 'workflow-testing' ? ' active' : ''}`} type="button" onClick={() => { setShowTestingSidebar(!showTestingSidebar); setActiveBtnAction("workflow-testing"); }}>
 					<FileText size={17} />
 				</button>
 			</div>

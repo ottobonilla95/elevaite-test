@@ -197,11 +197,9 @@
 		font-size: 14px;
 	}
 
-
-	.common-button {
+	.common-button,
+	.common-button.not-overriden {
 		border-radius: 0;
-
-
 	}
 
 	button + button {

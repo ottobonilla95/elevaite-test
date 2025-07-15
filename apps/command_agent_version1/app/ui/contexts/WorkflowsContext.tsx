@@ -26,6 +26,10 @@ interface WorkflowsContextType {
 	setStatusFilter: (status: "all" | "active" | "deployed" | "inactive") => void;
 	setSortBy: (sortBy: "name" | "created_at" | "updated_at" | "agent_count") => void;
 	setSortOrder: (order: "asc" | "desc") => void;
+
+	expandChat: boolean;
+	setExpandChat: (expand: boolean) => void;
+	setWorkflows: (workflows: SavedWorkflow[]) => void;
 }
 
 const WorkflowsContext = createContext<WorkflowsContextType | undefined>(undefined);
@@ -69,6 +73,8 @@ export function WorkflowsProvider({
 	const [statusFilter, setStatusFilter] = useState<"all" | "active" | "deployed" | "inactive">("all");
 	const [sortBy, setSortBy] = useState<"name" | "created_at" | "updated_at" | "agent_count">("created_at");
 	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+	const [expandChat, setExpandChat] = useState(false);
 
 	// Fetch workflows function
 	const refreshWorkflows = useCallback(async () => {
@@ -281,6 +287,7 @@ export function WorkflowsProvider({
 		isLoading,
 		error,
 		lastUpdated,
+		expandChat,
 
 		// Actions
 		refreshWorkflows,
@@ -297,6 +304,8 @@ export function WorkflowsProvider({
 		setStatusFilter,
 		setSortBy,
 		setSortOrder,
+		setExpandChat,
+		setWorkflows
 	};
 
 	return (

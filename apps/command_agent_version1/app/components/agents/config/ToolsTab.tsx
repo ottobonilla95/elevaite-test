@@ -7,6 +7,7 @@ import { useTools } from "../../../ui/contexts/ToolsContext";
 import { usePrompts } from "../../../ui/contexts/PromptsContext";
 import { type ToolsTabProps } from "./types";
 import { PromptResponse } from "../../../lib/interfaces";
+import { MockupTools } from "../../../lib/mockupComponents";
 
 function ToolsTab({
     selectedFunctions,
@@ -90,7 +91,7 @@ function ToolsTab({
         <div className="tools-tab">
             {/* Tools Section */}
             <button
-                className="flex justify-between items-center w-full py-1 pr-[10px] pl-2"
+                className="flex justify-between items-center w-full font-medium text-sm mt-4 mb-3"
                 onClick={() => { setToolsOpen(!toolsOpen); }}
                 type="button"
             >
@@ -98,7 +99,9 @@ function ToolsTab({
                 {toolsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
 
-            {toolsOpen ? <div className="flex flex-col gap-3 p-2">
+            {toolsOpen ? <div>
+
+				<MockupTools />
 
                 {/* Selected Tools */}
                 {selectedFunctions.length > 0 && (
@@ -208,23 +211,30 @@ function ToolsTab({
 
             {/* Prompt Section */}
             <button
-                className="flex justify-between items-center w-full py-1 pr-[10px] pl-2 border-t-[1px] border-gray-200"
+                className="flex justify-between items-center w-full font-medium text-sm mt-4 mb-3"
                 onClick={() => { setPromptsOpen(!promptsOpen); }}
                 type="button"
             >
                 <h3 className="section-title">Prompt</h3>
                 {promptsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
-            {promptsOpen ? <div className="flex flex-col gap-3 p-2">
+            {promptsOpen ? <div className="flex flex-col gap-2">
                 {selectedPrompt ? (
                     <button
                         onClick={() => onPromptClick?.(selectedPrompt)}
                         className="flex flex-col border rounded-[10px] px-4 py-3 hover:bg-gray-50 transition-colors text-left w-full"
                         type="button"
                     >
-                        <div className="flex justify-between border-l-2 border-orange-500 pl-3">
-                            <span className="text-sm font-medium">{selectedPrompt.prompt_label}</span>
-                        </div>
+                        <div className="flex items-center justify-between gap-2">
+							<div className="flex justify-between border-l-2 border-orange-500 pl-3">
+								<span className="text-sm font-medium">{selectedPrompt.prompt_label}</span>
+							</div>
+							<svg width="4" height="18" viewBox="0 0 4 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+								<path d="M2 10C2.55228 10 3 9.55228 3 9C3 8.44772 2.55228 8 2 8C1.44772 8 1 8.44772 1 9C1 9.55228 1.44772 10 2 10Z" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+								<path d="M2 3C2.55228 3 3 2.55228 3 2C3 1.44772 2.55228 1 2 1C1.44772 1 1 1.44772 1 2C1 2.55228 1.44772 3 2 3Z" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+								<path d="M2 17C2.55228 17 3 16.5523 3 16C3 15.4477 2.55228 15 2 15C1.44772 15 1 15.4477 1 16C1 16.5523 1.44772 17 2 17Z" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+							</svg>
+						</div>
                     </button>
                 ) : (
                     "No prompt"

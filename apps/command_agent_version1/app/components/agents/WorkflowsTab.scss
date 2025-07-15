@@ -1,16 +1,13 @@
 .workflows-tab {
     height: 100%;
     overflow-y: auto;
-    
+	@include scrollbar(#71717366, #71717326);
+
     .workflow-item {
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 16px;
+        border: 1px solid #E2E8ED;
         margin-bottom: 12px;
         transition: all 0.2s ease;
         background: white;
-        display: flex;
-        flex-direction: column;
 
         &:hover {
             border-color: #f97316;
@@ -89,38 +86,38 @@
             }
         }
     }
-    
+
     .status-badge {
         padding: 4px 8px;
         border-radius: 12px;
         font-size: 11px;
         font-weight: 500;
-        
+
         &.deployed {
             background-color: #dcfce7;
             color: #166534;
         }
-        
+
         &.draft {
             background-color: #fef3c7;
             color: #92400e;
         }
     }
-    
+
     .empty-state {
         text-align: center;
         padding: 48px 16px;
-        
+
         .empty-icon {
             margin: 0 auto 16px;
             color: #d1d5db;
         }
-        
+
         .empty-message {
             color: #6b7280;
             margin-bottom: 16px;
         }
-        
+
         .create-btn {
             background-color: #f97316;
             color: white;
@@ -131,13 +128,13 @@
             border: none;
             cursor: pointer;
             transition: background-color 0.2s ease;
-            
+
             &:hover {
                 background-color: #ea580c;
             }
         }
     }
-    
+
     .save-dialog {
         position: fixed;
         top: 0;
@@ -149,24 +146,24 @@
         align-items: center;
         justify-content: center;
         z-index: 1000;
-        
+
         .dialog-content {
             background: white;
             border-radius: 8px;
             padding: 24px;
             width: 400px;
             max-width: 90vw;
-            
+
             .dialog-title {
                 font-size: 18px;
                 font-weight: 600;
                 margin-bottom: 16px;
                 color: #1f2937;
             }
-            
+
             .form-group {
                 margin-bottom: 16px;
-                
+
                 label {
                     display: block;
                     font-size: 14px;
@@ -174,7 +171,7 @@
                     color: #374151;
                     margin-bottom: 4px;
                 }
-                
+
                 input, textarea {
                     width: 100%;
                     padding: 8px 12px;
@@ -182,26 +179,26 @@
                     border-radius: 6px;
                     font-size: 14px;
                     transition: border-color 0.2s ease;
-                    
+
                     &:focus {
                         outline: none;
                         border-color: #f97316;
                         box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
                     }
                 }
-                
+
                 textarea {
                     resize: vertical;
                     min-height: 80px;
                 }
             }
-            
+
             .dialog-actions {
                 display: flex;
                 justify-content: flex-end;
                 gap: 12px;
                 margin-top: 24px;
-                
+
                 button {
                     padding: 8px 16px;
                     border-radius: 6px;
@@ -210,24 +207,24 @@
                     border: none;
                     cursor: pointer;
                     transition: all 0.2s ease;
-                    
+
                     &.cancel-btn {
                         background: transparent;
                         color: #6b7280;
-                        
+
                         &:hover {
                             color: #374151;
                         }
                     }
-                    
+
                     &.save-btn {
                         background-color: #f97316;
                         color: white;
-                        
+
                         &:hover {
                             background-color: #ea580c;
                         }
-                        
+
                         &:disabled {
                             background-color: #d1d5db;
                             cursor: not-allowed;
@@ -244,7 +241,7 @@
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 24px;
-    
+
     .header-info {
         h3 {
             font-size: 18px;
@@ -252,17 +249,17 @@
             color: #1f2937;
             margin-bottom: 4px;
         }
-        
+
         p {
             color: #6b7280;
             font-size: 14px;
         }
     }
-    
+
     .header-actions {
         display: flex;
         gap: 8px;
-        
+
         button {
             padding: 8px 12px;
             border-radius: 6px;
@@ -274,20 +271,20 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            
+
             &.save-current-btn {
                 background-color: #3b82f6;
                 color: white;
-                
+
                 &:hover {
                     background-color: #2563eb;
                 }
             }
-            
+
             &.new-workflow-btn {
                 background-color: #10b981;
                 color: white;
-                
+
                 &:hover {
                     background-color: #059669;
                 }

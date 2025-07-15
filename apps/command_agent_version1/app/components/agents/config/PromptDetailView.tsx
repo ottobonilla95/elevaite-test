@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, PenLine } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight, ArrowLeft, PenLine } from "lucide-react";
 import { type PromptResponse, type PromptUpdate, type PromptCreate } from "../../../lib/interfaces";
 import { usePrompts } from "../../../ui/contexts/PromptsContext";
+import { useAgents } from "../../../ui/contexts/AgentsContext";
+import PromptDetailEditingForm from "./PromptDetailEditingForm";
+import PromptDetailTestingConsole from "./PromptDetailTestingConsole";
 
 interface PromptDetailViewProps {
     prompt: PromptResponse;
@@ -17,9 +20,13 @@ function PromptDetailView({ prompt, onBack, disabledFields }: PromptDetailViewPr
     const [isEditing, setIsEditing] = useState(false);
     const [editedPrompt, setEditedPrompt] = useState<PromptResponse>(prompt);
     const [hasChanges, setHasChanges] = useState(false);
+	const [activeTab, setActiveTab] = useState("tab1");
+	const [parametersOpen, setParametersOpen] = useState(false);
 
     // Prompts context for save operations
-    const { updateExistingPrompt, createNewPrompt } = usePrompts();
+    const { updateExistingPrompt, createNewPrompt, isEditingPrompt, setIsEditingPrompt } = usePrompts();
+
+	const { sidebarRightOpen, setSidebarRightOpen } = useAgents();
 
     // Update local state when prompt prop changes
     useEffect(() => {
@@ -111,6 +118,125 @@ function PromptDetailView({ prompt, onBack, disabledFields }: PromptDetailViewPr
         setIsEditing(false);
         setHasChanges(false);
     };
+
+	return(
+		<div>
+			<div className="prompt-details config-panel-header">
+				<div className="flex flex-1 items-center justify-between">
+					<div className="left flex items-center justify-between gap-2">
+						<div className="icon-container">
+							<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+								<path d="M11 20.7412C16.3799 20.7412 20.7412 16.3799 20.7412 11C20.7412 5.62008 16.3799 1.25879 11 1.25879C5.62008 1.25879 1.25879 5.62008 1.25879 11C1.25879 12.7743 1.73316 14.4378 2.56199 15.8706L1.74585 20.2542L6.1294 19.4381C7.56221 20.2668 9.22575 20.7412 11 20.7412Z" stroke="#FE854B" stroke-width="1.46118" stroke-linecap="round" stroke-linejoin="round"/>
+							</svg>
+						</div>
+						<div>
+							<div className="font-semibold">Data Analyser</div>
+							<div className="font-medium text-xs" style={{ opacity: 0.65 }}>Extract Data</div>
+						</div>
+					</div>
+					<div className="right flex items-center justify-center flex-shrink-0 gap-3">
+						<button onClick={() => setIsEditingPrompt(!isEditingPrompt)}>
+							<PenLine size={20}/>
+						</button>
+						<button>
+							<svg width="4" height="18" viewBox="0 0 4 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+								<path d="M2 10C2.55228 10 3 9.55228 3 9C3 8.44772 2.55228 8 2 8C1.44772 8 1 8.44772 1 9C1 9.55228 1.44772 10 2 10Z" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+								<path d="M2 3C2.55228 3 3 2.55228 3 2C3 1.44772 2.55228 1 2 1C1.44772 1 1 1.44772 1 2C1 2.55228 1.44772 3 2 3Z" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+								<path d="M2 17C2.55228 17 3 16.5523 3 16C3 15.4477 2.55228 15 2 15C1.44772 15 1 15.4477 1 16C1 16.5523 1.44772 17 2 17Z" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+							</svg>
+						</button>
+						<button className="btn-toggle" onClick={ () => setSidebarRightOpen(!sidebarRightOpen) }>
+							{sidebarRightOpen ? <ChevronsRight /> : <ChevronsLeft />}
+						</button>
+					</div>
+				</div>
+			</div>
+			{isEditingPrompt ? (
+				<div className="tabs-wrapper flex flex-col w-full bg-white">
+					<div className="tabs flex my-1 text-xs text-gray-500 font-medium h-[34px]">
+						<div className="tabs-inner p-1 flex flex-1">
+							<button className={`tab rounded-sm px-2 flex-1${ 'tab1' == activeTab ? ' tab-active text-orange-500 bg-white' : '' }`} onClick={() => setActiveTab("tab1")}>
+								Configuration
+							</button>
+							<button className={`tab rounded-sm px-2 flex-1${ 'tab2' == activeTab ? ' tab-active text-orange-500 bg-white' : '' }`} onClick={() => setActiveTab("tab2")}>
+								Prompt
+							</button>
+						</div>
+					</div>
+					<div className="tab-panels flex flex-1 w-full rounded-b-xl">
+						{activeTab === "tab1" && (
+							<div className="tab-panel mt-4 flex flex-col flex-grow">
+								<div className="tab-content">
+									<PromptDetailEditingForm />
+								</div>
+							</div>
+						)}
+						{activeTab === "tab2" && (
+							<div className="tab-panel mt-4 flex-col flex-grow">
+								<div className="tab-content">
+									{/* <PromptDetailTestingConsole /> */}
+									content here
+								</div>
+							</div>
+						)}
+					</div>
+				</div>
+			) : (
+				<div>
+					<div className="text-sm mb-3">
+						Nulla faucibus tristique quis felis gravida. Faucibus turpis at quis non elementum est. In sed accumsan eu sociis aliquam vitae morbi.
+					</div>
+					<div className="grid grid-cols-2 gap-3">
+						<div>
+							<div className="font-medium text-xs mb-1">Status:</div>
+							<div className="badge">Deployed</div>
+						</div>
+						<div>
+							<div className="font-medium text-xs mb-1">Version:</div>
+							<div className="badge">V2</div>
+						</div>
+					</div>
+					<div className="mt-3">
+						<button className="flex justify-between items-center w-full font-medium text-sm" onClick={() => setParametersOpen(!parametersOpen)}>
+							Parameters:
+							{parametersOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+						</button>
+						{parametersOpen && (
+							<div className="flex flex-wrap gap-2 mt-1">
+								<div className="badge">Max Tokens: 2,500</div>
+								<div className="badge">Temp: 56</div>
+								<div className="badge">Hosted</div>
+								<div className="badge">JSON</div>
+							</div>
+						)}
+					</div>
+					<div className="mt-3">
+						<div className="font-medium text-xs mb-1">Dataset:</div>
+						<div className="badge">Arlo Knowledge Base</div>
+					</div>
+					<div className="mt-3">
+						<div className="font-medium text-xs mb-1">Model:</div>
+						<div className="badge">Chat GPT-4</div>
+					</div>
+					<hr className="my-4" />
+					<div className="details flex flex-col gap-3">
+						<div className="detail flex items-center justify-between gap-2">
+							<div className="opacity-75 text-sm">Hallucination Risk</div>
+							<div className="tag-blue">Low</div>
+						</div>
+						<div className="detail flex items-center justify-between gap-2">
+							<div className="opacity-75 text-sm">Avg. Latency</div>
+							<div className="tag-blue">Normal (2.3s)</div>
+						</div>
+						<div className="detail flex items-center justify-between gap-2">
+							<div className="opacity-75 text-sm">Avg. Score</div>
+							<div className="tag-blue">8/10</div>
+						</div>
+					</div>
+				</div>
+			)}
+		</div>
+	)
 
     return (
         <div className="prompt-detail-view flex flex-col h-full">

@@ -1,0 +1,42 @@
+.agent-testing-panel {
+	width: 700px;
+	top: 16px;
+	right: 16px;
+	height: calc(100vh - 143px);
+	overflow: hidden;
+	border: 1px solid #E2E8ED;
+
+	&.is-expanded {
+		width: calc(100% - 32px);
+	}
+
+	.chat-bubble {
+		& + .chat-bubble {
+			margin-top: 10px;
+		}
+	}
+
+	.top {
+		@include scrollbar(#71717366, #71717326);
+	}
+
+	.bottom {
+		input {
+			padding: 0 24px;
+
+			&::placeholder {
+				font-size: 14px;
+				color: rgba(0, 0, 0, 0.5);
+			}
+		}
+	}
+}
+
+.tag-blue {
+	display: inline-block;
+	font-size: 12px;
+	border-radius: 4px;
+	color: #0950C3;
+	padding: 1px 6px;
+	background: #EBF2FE;
+}

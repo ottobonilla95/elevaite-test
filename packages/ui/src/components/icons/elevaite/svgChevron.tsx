@@ -11,7 +11,7 @@ function ChevronDown(props: SVGProps<SVGSVGElement>): JSX.Element {
       {...props}
     >
       <path
-        d="m4 9.5 4-4 4 4"
+        d="m4 6.5 4 4 4-4"
         stroke={props.color ? props.color : "currentColor"}
         strokeLinecap="round"
         strokeLinejoin="round"

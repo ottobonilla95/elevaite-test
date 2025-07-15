@@ -10,6 +10,7 @@ interface AgentsContextType {
 	isLoading: boolean;
 	error: string | null;
 	lastUpdated: Date | null;
+	sidebarRightOpen: boolean;
 
 	// Actions
 	refreshAgents: () => Promise<void>;
@@ -27,6 +28,8 @@ interface AgentsContextType {
 	setSearchQuery: (query: string) => void;
 	setTypeFilter: (types: string[]) => void;
 	setDeployedFilter: (deployed?: boolean) => void;
+	setAgents: (agents: AgentResponse[]) => void;
+	setSidebarRightOpen: (open: boolean) => void;
 }
 
 const AgentsContext = createContext<AgentsContextType | undefined>(undefined);
@@ -45,6 +48,7 @@ export function AgentsProvider({
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+	const [sidebarRightOpen, setSidebarRightOpen] = useState(true);
 
 	// Filter state
 	const [searchQuery, setSearchQuery] = useState("");
@@ -170,6 +174,7 @@ export function AgentsProvider({
 		isLoading,
 		error,
 		lastUpdated,
+		sidebarRightOpen,
 
 		// Actions
 		refreshAgents,
@@ -187,6 +192,8 @@ export function AgentsProvider({
 		setSearchQuery,
 		setTypeFilter,
 		setDeployedFilter,
+		setAgents,
+		setSidebarRightOpen,
 	};
 
 	return (

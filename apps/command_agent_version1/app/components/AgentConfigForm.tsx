@@ -19,6 +19,8 @@ import ChatInterface from "./agents/ChatInterface";
 // Import styles
 import "./AgentConfigForm.scss";
 import HeaderBottom from "./agents/HeaderBottom.tsx";
+import AgentTestingPanel from "./AgentTestingPanel.tsx";
+import { usePrompts } from "../ui/contexts/PromptsContext.tsx";
 
 // TODO: Implement chat functionality
 // interface ChatMessage {
@@ -102,7 +104,9 @@ function AgentConfigForm(): JSX.Element {
 	} = useWorkflows();
 
 	// Use agents context
-	const { createAgentAndRefresh, updateAgentAndRefresh } = useAgents();
+	const { createAgentAndRefresh, updateAgentAndRefresh, sidebarRightOpen, setSidebarRightOpen } = useAgents();
+	const { isEditingPrompt } = usePrompts();
+
 
 	// Use refs for values that need to be stable across renders
 	const workflowIdRef = useRef("");
@@ -131,6 +135,7 @@ function AgentConfigForm(): JSX.Element {
 	const [showConfigPanel, setShowConfigPanel] = useState(false);
 	const [activeTab, setActiveTab] = useState("actions");
 	const [sidebarOpen, setSidebarOpen] = useState(true);
+	const [showTestingSidebar, setShowTestingSidebar] = useState(false);
 
 	// Workflow state management
 	const [isExistingWorkflow, setIsExistingWorkflow] = useState(false);
@@ -1046,6 +1051,8 @@ function AgentConfigForm(): JSX.Element {
 				onClearDeploymentResult={handleClearDeploymentResultCallback}
 				// Edit workflow handler
 				onEditWorkflow={handleEditWorkflow}
+				showTestingSidebar={showTestingSidebar}
+				setShowTestingSidebar={setShowTestingSidebar}
 			/>
 			<ReactFlowProvider>
 				<div className="agent-config-form" ref={reactFlowWrapper}>
@@ -1077,7 +1084,7 @@ function AgentConfigForm(): JSX.Element {
 								/>
 
 								{/* Configuration Panel - shown when a node is selected */}
-								{showConfigPanel && selectedNode ? <div className={`config-panel-container${!sidebarOpen ? ' shrinked' : ''}`}>
+								{showConfigPanel && selectedNode ? <div className={`config-panel-container${!sidebarRightOpen ? ' shrinked' : ''}${isEditingPrompt ? ' editing' : ''}`}>
 									<ConfigPanel
 										agent={selectedNode.data}
 										agentConfig={selectedNode.data.config}
@@ -1088,8 +1095,8 @@ function AgentConfigForm(): JSX.Element {
 										onSave={handleSaveAgentConfig}
 										onClose={() => { setShowConfigPanel(false); }}
 										onNameChange={(newName) => { handleAgentNameChange(selectedNode.id, newName); }}
-										toggleSidebar={() => { setSidebarOpen(!sidebarOpen); }}
-										sidebarOpen={sidebarOpen}
+										toggleSidebar={() => { setSidebarRightOpen(!sidebarRightOpen); }}
+										sidebarOpen={sidebarRightOpen}
 										currentFunctions={selectedNode.data.tools ?? []}
 										onFunctionsChange={(functions) => {
 											// Update the node's tools when functions change
@@ -1142,6 +1149,9 @@ function AgentConfigForm(): JSX.Element {
 								/>
 							</div>
 						</>
+					)}
+					{showTestingSidebar && (
+						<AgentTestingPanel />
 					)}
 				</div>
 			</ReactFlowProvider>
