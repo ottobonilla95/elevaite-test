@@ -37,6 +37,7 @@ export interface ChatMessage {
     id: number;
     text: string;
     sender: "user" | "bot";
+	error?: boolean;
 }
 
 export interface WorkflowConfig {

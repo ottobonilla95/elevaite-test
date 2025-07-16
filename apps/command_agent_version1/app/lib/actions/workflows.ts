@@ -23,29 +23,6 @@ import type {
 import type { DeploymentOperationResponse } from "../interfaces/common";
 import { BACKEND_URL } from "../constants";
 
-export async function getChatDetails(workflowId: string): Promise<WorkflowExecuteResponseObject>{
-  const url = new URL(`${BACKEND_URL}api/workflows/${workflowId}/execute`);
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query: "what is this workflow about?",
-      chat_history: [],
-      runtime_overrides: {}
-    }),
-  });
-
-  if (!response.ok) throw new Error("Failed to execute workflow");
-
-  const data = await response.json();
-  return data;
-  //throw new Error("Invalid data type - expected workflow execution response");
-  //if (isWorkflowResponseArray(data)) return data;
-  //throw new Error("Invalid data type - expected array of workflows");
-}
-
 export async function getWorkflows(): Promise<WorkflowResponse[]> {
   const url = new URL(`${BACKEND_URL ?? ""}api/workflows/`);
 
@@ -233,7 +210,7 @@ export async function executeWorkflowModern(
     }
 
     const data: unknown = await response.json();
-    if (isWorkflowExecutionResponse(data)) return data;
+	if (isWorkflowExecutionResponse(data)) return data;
     throw new Error("Invalid data type - expected workflow execution response");
   } catch (error) {
     console.error("Error executing workflow:", error);

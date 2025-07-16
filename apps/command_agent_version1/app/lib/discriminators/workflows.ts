@@ -68,9 +68,12 @@ function isWorkflowExecutionResponseObject(
     isObject(item) &&
     "status" in item &&
     typeof item.status === "string" &&
-    ["ok", "error"].includes(item.status) &&
+    ["success", "error"].includes(item.status) &&
     (!("response" in item) || typeof item.response === "string") &&
-    (!("message" in item) || typeof item.message === "string")
+    (!("execution_id" in item) ||  item.execution_id === null || typeof item.execution_id === "string") &&
+	(!("workflow_id" in item) || typeof item.workflow_id === "string") &&
+	(!("deployment_id" in item) || typeof item.deployment_id === "string") &&
+	(!("timestamp" in item) || typeof item.timestamp === "string")
   );
 }
 

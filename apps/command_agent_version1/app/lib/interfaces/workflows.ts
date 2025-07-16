@@ -60,9 +60,12 @@ export interface WorkflowExecutionRequest {
 }
 
 export interface WorkflowExecutionResponse {
-  status: "ok" | "error";
+  status: "success" | "error";
   response?: string;
-  message?: string;
+  execution_id?: string,
+  workflow_id?: string,
+  deployment_id?: string,
+  timestamp?: string
 }
 
 export interface WorkflowAgent {

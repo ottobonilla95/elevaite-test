@@ -11,6 +11,7 @@ import PreDeploymentModal from "./PreDeploymentModal";
 import PostDeploymentSuccessDialog from "./PostDeploymentSuccessDialog";
 import "./HeaderBottom.scss";
 import { useWorkflows } from "@/ui/contexts/WorkflowsContext";
+import { executeWorkflowModern } from "@/lib/actions";
 
 interface HeaderBottomProps {
 	workflowName: string;
@@ -70,8 +71,6 @@ function HeaderBottom({
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [isPreDeploymentDialogOpen, setIsPreDeploymentDialogOpen] = useState(false);
 	const [isCreatingNewWorkflow, setIsCreatingNewWorkflow] = useState(false);
-
-	const { executeWorkflowToGetChatDetails } = useWorkflows();
 
 	// Function to handle deploy button click - starts the advanced deployment flow
 	const handleDeployClick = (): void => {
@@ -158,12 +157,6 @@ function HeaderBottom({
 		setIsEditModalOpen(false);
 	};
 
-	// execute workflow to get chat details
-	const handleChatDetails = async () => {
-		const data = await executeWorkflowToGetChatDetails("730d2e95-20a7-45a1-bb51-ee378cf1039e");
-		console.log("Chat Details Data:", data);
-	}
-
 	// Determine display name and description
 	const displayName = workflowName || "Unsaved Workflow";
 	const displayDescription = workflowDescription || "";
@@ -184,7 +177,7 @@ function HeaderBottom({
 				<button className={`btn-workflow-creation${activeBtnAction === 'workflow-creation' ? ' active' : ''}`} type="button" onClick={() => { setShowTestingSidebar(false); setActiveBtnAction("workflow-creation"); }}>
 					<LayoutGrid size={16} />
 				</button>
-				<button className={`btn-workflow-testing${activeBtnAction === 'workflow-testing' ? ' active' : ''}`} type="button" onClick={() => { handleChatDetails(); setShowTestingSidebar(true); setActiveBtnAction("workflow-testing"); }}>
+				<button className={`btn-workflow-testing${activeBtnAction === 'workflow-testing' ? ' active' : ''}`} type="button" onClick={() => { setShowTestingSidebar(true); setActiveBtnAction("workflow-testing"); }}>
 					<FileText size={17} />
 				</button>
 			</div>
