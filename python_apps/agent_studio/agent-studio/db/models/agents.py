@@ -1,4 +1,3 @@
-
 import uuid
 from datetime import datetime
 from typing import List, Optional
@@ -15,22 +14,30 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship, remote, foreign
 
 from .base import Base
+from .prompts import Prompt
+
 
 class Agent(Base):
     __tablename__ = "agents"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    agent_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
+    agent_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4
+    )
 
     name: Mapped[str] = mapped_column(String, nullable=False)
     agent_type: Mapped[Optional[str]] = mapped_column(
         String, nullable=True
     )  # router, web_search, data, troubleshooting, api, etc.
-    description: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Description of what the agent does
+    description: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )  # Description of what the agent does
     parent_agent_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("agents.agent_id"), nullable=True
     )
-    system_prompt_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("prompts.pid"), nullable=False)
+    system_prompt_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("prompts.pid"), nullable=False
+    )
     persona: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     functions: Mapped[List[dict]] = mapped_column(JSONB, nullable=False)
@@ -50,15 +57,19 @@ class Agent(Base):
     priority: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     available_for_deployment: Mapped[bool] = mapped_column(Boolean, default=True)
-    deployment_code: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Short code for deployment (e.g., "w", "h")
+    deployment_code: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )  # Short code for deployment (e.g., "w", "h")
 
-    failure_strategies: Mapped[Optional[List[str]]] = mapped_column(JSONB, nullable=True)
+    failure_strategies: Mapped[Optional[List[str]]] = mapped_column(
+        JSONB, nullable=True
+    )
 
     session_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     last_active: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     collaboration_mode: Mapped[str] = mapped_column(String, default="single")
 
-    system_prompt = relationship("Prompt", back_populates="agents")
+    system_prompt: Mapped[Prompt] = relationship(Prompt, back_populates="agents")
 
     child_agents = relationship(
         "Agent",
@@ -66,4 +77,6 @@ class Agent(Base):
         primaryjoin=remote(parent_agent_id) == foreign(agent_id),
     )
 
-    __table_args__ = (UniqueConstraint("name", "system_prompt_id", name="uix_agent_name_prompt"),)
+    __table_args__ = (
+        UniqueConstraint("name", "system_prompt_id", name="uix_agent_name_prompt"),
+    )

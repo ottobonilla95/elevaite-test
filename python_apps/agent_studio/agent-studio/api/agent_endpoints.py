@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
+from ..data_classes import PromptObject
 
 # Add the parent directory to the Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -63,7 +64,24 @@ def _create_agent_instance_from_db(db: Session, db_agent: models.Agent):
         else "single"
     )
 
-    system_prompt = crud.get_prompt(db, db_agent.system_prompt_id)
+    system_prompt = PromptObject(
+        appName="",
+        createdTime=db_agent.system_prompt.created_time,
+        prompt=db_agent.system_prompt.prompt,
+        uniqueLabel=db_agent.system_prompt.unique_label,
+        pid=db_agent.system_prompt.pid,
+        last_deployed=db_agent.system_prompt.last_deployed,
+        deployedTime=db_agent.system_prompt.deployed_time,
+        isDeployed=db_agent.system_prompt.is_deployed,
+        modelProvider=db_agent.system_prompt.ai_model_provider,
+        modelName=db_agent.system_prompt.ai_model_name,
+        sha_hash=db_agent.system_prompt.sha_hash,
+        tags=db_agent.system_prompt.tags,
+        version=db_agent.system_prompt.version,
+        variables=db_agent.system_prompt.variables,
+        hyper_parameters=db_agent.system_prompt.hyper_parameters,
+        prompt_label=db_agent.system_prompt.prompt_label,
+    )
 
     return Agent(
         name=db_agent.name,
