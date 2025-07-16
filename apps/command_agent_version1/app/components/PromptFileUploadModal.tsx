@@ -40,7 +40,7 @@ function PromptFileUploadModal() {
 			promptsContext.setInvoiceImage(data.image as string);
 			promptsContext.setInvoiceNumPages(data.num_pages as number);
 			promptsContext.setShowFileUploadModal(false);
-			promptsContext.setPromptInputs(
+/* 			promptsContext.setPromptInputs(
 				promptsContext.defaultPromptInputs.map(input => {
 					console.log(input)
 					if (input.type === PromptInputTypes.DocumentHeader) {
@@ -60,7 +60,7 @@ function PromptFileUploadModal() {
 						return input;
 					}
 				})
-			);
+			); */
 
 			promptsContext.setCurrentPage(1);
 			toast.success(
