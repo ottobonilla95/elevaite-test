@@ -3,6 +3,7 @@ import { LogInForm } from "@repo/ui/components";
 import type { JSX } from "react";
 import { useEffect, useState } from "react";
 import { MFALoginVerification, MFAMethodSelection } from "./mfa";
+import { getMFAConfig } from "../lib/mfaConfig";
 
 interface CustomLoginFormProps {
   authenticate: (
@@ -15,7 +16,9 @@ interface CustomLoginFormProps {
     | "Something went wrong."
     | "MFA_REQUIRED_TOTP"
     | "MFA_REQUIRED_SMS"
-    | "MFA_REQUIRED_BOTH"
+    | "MFA_REQUIRED_EMAIL"
+    | "MFA_REQUIRED_MULTIPLE"
+    | { type: "MFA_ERROR"; error: any }
     | undefined
   >;
 }
@@ -26,13 +29,82 @@ export function CustomLoginForm({
   const [mounted, setMounted] = useState(false);
   const [mfaState, setMfaState] = useState<{
     stage: "method_selection" | "verification";
-    availableMethods: { totp: boolean; sms: boolean };
-    selectedMethod?: "totp" | "sms";
+    availableMethods: { totp: boolean; sms: boolean; email: boolean };
+    selectedMethod?: "totp" | "sms" | "email";
     email: string;
     password: string;
     maskedPhone?: string;
+    maskedEmail?: string;
   } | null>(null);
   const [error, setError] = useState<string>("");
+
+  const mfaConfig = getMFAConfig();
+
+  const filterAvailableMethods = (methods: {
+    totp: boolean;
+    sms: boolean;
+    email: boolean;
+  }) => ({
+    totp: methods.totp && mfaConfig.totp,
+    sms: methods.sms && mfaConfig.sms,
+    email: methods.email && mfaConfig.email,
+  });
+
+  // Helper function to determine if auto-selection should occur
+  const shouldAutoSelectMethod = (availableMethods: {
+    totp: boolean;
+    sms: boolean;
+    email: boolean;
+  }) => {
+    const enabledCount = Object.values(availableMethods).filter(Boolean).length;
+    return enabledCount === 1;
+  };
+
+  // Helper function to get the single enabled method
+  const getSingleEnabledMethod = (availableMethods: {
+    totp: boolean;
+    sms: boolean;
+    email: boolean;
+  }): "totp" | "sms" | "email" | null => {
+    if (availableMethods.totp) return "totp";
+    if (availableMethods.sms) return "sms";
+    if (availableMethods.email) return "email";
+    return null;
+  };
+
+  // Helper function to create MFA state with auto-selection logic
+  const createMfaState = (
+    availableMethods: { totp: boolean; sms: boolean; email: boolean },
+    email: string,
+    password: string,
+    maskedPhone?: string,
+    maskedEmail?: string
+  ) => {
+    const filteredMethods = filterAvailableMethods(availableMethods);
+
+    if (shouldAutoSelectMethod(filteredMethods)) {
+      const singleMethod = getSingleEnabledMethod(filteredMethods);
+      if (singleMethod) {
+        return {
+          stage: "verification" as const,
+          availableMethods: filteredMethods,
+          selectedMethod: singleMethod,
+          email,
+          password,
+          maskedPhone,
+          maskedEmail,
+        };
+      }
+    }
+    return {
+      stage: "method_selection" as const,
+      availableMethods: filteredMethods,
+      email,
+      password,
+      maskedPhone,
+      maskedEmail,
+    };
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -82,35 +154,101 @@ export function CustomLoginForm({
         password: formData.password,
       });
 
+      if (result && typeof result === "object" && result.type === "MFA_ERROR") {
+        const error = result.error;
+
+        if (error.message === "MFA_REQUIRED_MULTIPLE") {
+          const availableMethods = error.availableMethods || [];
+          const methodsObj = {
+            totp: availableMethods.includes("TOTP"),
+            sms: availableMethods.includes("SMS"),
+            email: availableMethods.includes("Email"),
+          };
+
+          setMfaState(
+            createMfaState(
+              methodsObj,
+              formData.email,
+              formData.password,
+              error.maskedPhone,
+              error.maskedEmail
+            )
+          );
+          return undefined;
+        }
+
+        if (error.message === "MFA_REQUIRED_TOTP") {
+          setMfaState(
+            createMfaState(
+              { totp: true, sms: false, email: false },
+              formData.email,
+              formData.password
+            )
+          );
+          return undefined;
+        }
+
+        if (error.message === "MFA_REQUIRED_SMS") {
+          setMfaState(
+            createMfaState(
+              { totp: false, sms: true, email: false },
+              formData.email,
+              formData.password,
+              error.maskedPhone
+            )
+          );
+          return undefined;
+        }
+
+        if (error.message === "MFA_REQUIRED_EMAIL") {
+          setMfaState(
+            createMfaState(
+              { totp: false, sms: false, email: true },
+              formData.email,
+              formData.password,
+              undefined,
+              error.maskedEmail
+            )
+          );
+          return undefined;
+        }
+      }
+
       if (result === "MFA_REQUIRED_TOTP") {
-        setMfaState({
-          stage: "method_selection",
-          availableMethods: { totp: true, sms: false },
-          email: formData.email,
-          password: formData.password,
-        });
+        setMfaState(
+          createMfaState(
+            { totp: true, sms: false, email: false },
+            formData.email,
+            formData.password
+          )
+        );
         return undefined; // Don't show error, show MFA form instead
       }
 
       if (result === "MFA_REQUIRED_SMS") {
-        setMfaState({
-          stage: "method_selection",
-          availableMethods: { totp: false, sms: true },
-          email: formData.email,
-          password: formData.password,
-        });
+        setMfaState(
+          createMfaState(
+            { totp: false, sms: true, email: false },
+            formData.email,
+            formData.password
+          )
+        );
         return undefined; // Don't show error, show MFA form instead
       }
 
-      // Handle case where both MFA methods are available
-      if (result === "MFA_REQUIRED_BOTH") {
-        setMfaState({
-          stage: "method_selection",
-          availableMethods: { totp: true, sms: true },
-          email: formData.email,
-          password: formData.password,
-        });
+      if (result === "MFA_REQUIRED_EMAIL") {
+        setMfaState(
+          createMfaState(
+            { totp: false, sms: false, email: true },
+            formData.email,
+            formData.password
+          )
+        );
         return undefined; // Don't show error, show MFA form instead
+      }
+
+      if (result === "MFA_REQUIRED_MULTIPLE") {
+        return undefined;
       }
 
       // Filter out "Admin access required." since LogInForm doesn't support it
@@ -118,38 +256,64 @@ export function CustomLoginForm({
         return "Something went wrong.";
       }
 
-      return result;
+      return typeof result === "string" ? result : "Something went wrong.";
     } catch (error: any) {
-      // Handle MFA errors with masked phone number
-      if (error.message === "MFA_REQUIRED_BOTH") {
-        setMfaState({
-          stage: "method_selection",
-          availableMethods: { totp: true, sms: true },
-          email: formData.email,
-          password: formData.password,
-          maskedPhone: error.maskedPhone,
-        });
+      // Handle MFA errors with masked phone number and email
+      if (error.message === "MFA_REQUIRED_MULTIPLE") {
+        // Parse available methods from error
+        const availableMethods = error.availableMethods || [];
+
+        const methodsObj = {
+          totp: availableMethods.includes("TOTP"),
+          sms: availableMethods.includes("SMS"),
+          email: availableMethods.includes("Email"),
+        };
+
+        setMfaState(
+          createMfaState(
+            methodsObj,
+            formData.email,
+            formData.password,
+            error.maskedPhone,
+            error.maskedEmail
+          )
+        );
         return undefined;
       }
 
       if (error.message === "MFA_REQUIRED_SMS") {
-        setMfaState({
-          stage: "method_selection",
-          availableMethods: { totp: false, sms: true },
-          email: formData.email,
-          password: formData.password,
-          maskedPhone: error.maskedPhone,
-        });
+        setMfaState(
+          createMfaState(
+            { totp: false, sms: true, email: false },
+            formData.email,
+            formData.password,
+            error.maskedPhone
+          )
+        );
+        return undefined;
+      }
+
+      if (error.message === "MFA_REQUIRED_EMAIL") {
+        setMfaState(
+          createMfaState(
+            { totp: false, sms: false, email: true },
+            formData.email,
+            formData.password,
+            undefined,
+            error.maskedEmail
+          )
+        );
         return undefined;
       }
 
       if (error.message === "MFA_REQUIRED_TOTP") {
-        setMfaState({
-          stage: "method_selection",
-          availableMethods: { totp: true, sms: false },
-          email: formData.email,
-          password: formData.password,
-        });
+        setMfaState(
+          createMfaState(
+            { totp: true, sms: false, email: false },
+            formData.email,
+            formData.password
+          )
+        );
         return undefined;
       }
 
@@ -159,7 +323,7 @@ export function CustomLoginForm({
   };
 
   // Handle MFA method selection
-  const handleMethodSelect = (method: "totp" | "sms") => {
+  const handleMethodSelect = async (method: "totp" | "sms" | "email") => {
     if (!mfaState) return;
 
     setMfaState({
@@ -181,7 +345,11 @@ export function CustomLoginForm({
     });
 
     if (result) {
-      setError(result);
+      if (typeof result === "string") {
+        setError(result);
+      } else {
+        setError("Something went wrong.");
+      }
     } else {
       // Success - clear MFA state
       setMfaState(null);
@@ -226,10 +394,45 @@ export function CustomLoginForm({
         throw new Error(errorData.detail ?? "Failed to resend SMS code");
       }
 
-      // Success - no need to show a message, the user will receive the SMS
-    } catch (error) {
-      console.error("Failed to resend SMS code:", error);
-      setError("Failed to resend SMS code. Please try again.");
+      // Success - code was resent
+    } catch (error: any) {
+      setError(error.message ?? "Failed to resend SMS code");
+    }
+  };
+
+  // Handle Email code resend
+  const handleEmailResend = async () => {
+    if (!mfaState) return;
+
+    try {
+      // For email MFA during login, we need to trigger the login again
+      // which will automatically send the email code
+      const result = await authenticate("", {
+        email: mfaState.email,
+        password: mfaState.password,
+      });
+
+      // If we get MFA_REQUIRED_EMAIL again, that means the code was sent
+      if (result === "MFA_REQUIRED_EMAIL") {
+        // Code was resent successfully, no need to update state
+        return;
+      }
+
+      // If we get a different result, handle it appropriately
+      if (result) {
+        if (typeof result === "string") {
+          setError(result);
+        } else {
+          setError("Something went wrong.");
+        }
+      }
+
+      // Success - no need to show a message, the user will receive the email
+    } catch (error: any) {
+      console.error("Failed to resend email code:", error);
+      setError(
+        error.message ?? "Failed to resend email code. Please try again."
+      );
     }
   };
 
@@ -255,6 +458,7 @@ export function CustomLoginForm({
           onMethodSelect={handleMethodSelect}
           onCancel={handleMfaCancel}
           phoneNumber={mfaState.maskedPhone}
+          userEmail={mfaState.maskedEmail || mfaState.email}
         />
       );
     } else if (mfaState.stage === "verification" && mfaState.selectedMethod) {
@@ -263,11 +467,15 @@ export function CustomLoginForm({
           email={mfaState.email}
           password={mfaState.password}
           mfaType={mfaState.selectedMethod}
+          availableMethods={mfaState.availableMethods}
           onVerify={handleMfaVerify}
           onCancel={handleMfaCancel}
           onBackToMethodSelection={handleBackToMethodSelection}
           onSendSMSCode={
             mfaState.selectedMethod === "sms" ? handleSMSResend : undefined
+          }
+          onSendEmailCode={
+            mfaState.selectedMethod === "email" ? handleEmailResend : undefined
           }
           error={error}
         />

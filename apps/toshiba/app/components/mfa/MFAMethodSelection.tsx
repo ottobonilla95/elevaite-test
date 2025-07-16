@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { AppIcon, SMSIcon } from "../icons";
+import { AppIcon, SMSIcon, EmailIcon } from "../icons";
+import { getMFAConfig } from "../../lib/mfaConfig";
 
 interface MFAMethodSelectionProps {
   email: string;
@@ -9,10 +10,12 @@ interface MFAMethodSelectionProps {
   availableMethods: {
     totp: boolean;
     sms: boolean;
+    email: boolean;
   };
-  onMethodSelect: (method: "totp" | "sms") => void;
+  onMethodSelect: (method: "totp" | "sms" | "email") => void;
   onCancel: () => void;
   phoneNumber?: string;
+  userEmail?: string;
   isLoading?: boolean;
 }
 
@@ -23,13 +26,22 @@ export function MFAMethodSelection({
   onMethodSelect,
   onCancel,
   phoneNumber,
+  userEmail,
   isLoading = false,
 }: MFAMethodSelectionProps): JSX.Element {
-  const [selectedMethod, setSelectedMethod] = useState<"totp" | "sms" | null>(
-    null
-  );
+  const [selectedMethod, setSelectedMethod] = useState<
+    "totp" | "sms" | "email" | null
+  >(null);
 
-  const handleMethodClick = (method: "totp" | "sms") => {
+  const mfaConfig = getMFAConfig();
+
+  const filteredMethods = {
+    totp: availableMethods.totp && mfaConfig.totp,
+    sms: availableMethods.sms && mfaConfig.sms,
+    email: availableMethods.email && mfaConfig.email,
+  };
+
+  const handleMethodClick = (method: "totp" | "sms" | "email") => {
     if (isLoading) return;
     setSelectedMethod(method);
     onMethodSelect(method);
@@ -48,6 +60,21 @@ export function MFAMethodSelection({
     return "***-***-5499";
   };
 
+  // Get email for Email display
+  const getMaskedEmail = () => {
+    const emailToMask = userEmail || email;
+    if (!emailToMask) return "***@***.com";
+
+    const [username, domain] = emailToMask.split("@");
+    if (!username || !domain) return emailToMask;
+
+    if (username.length <= 2) {
+      return `${"*".repeat(username.length)}@${domain}`;
+    }
+
+    return `${username.slice(0, 2)}${"*".repeat(username.length - 2)}@${domain}`;
+  };
+
   return (
     <div className="ui-w-full ui-max-w-md ui-mx-auto">
       {/* Header */}
@@ -61,8 +88,18 @@ export function MFAMethodSelection({
       </div>
 
       {/* MFA Method Options with reduced top gap and left alignment */}
-      <div style={{ marginTop: "25px" }} className="ui-space-y-4">
-        {availableMethods.totp && (
+      <div className="ui-space-y-4">
+        {filteredMethods.email && (
+          <MFAMethodButton
+            onClick={() => handleMethodClick("email")}
+            disabled={isLoading}
+            icon={<EmailIcon width={50} height={50} />}
+            title="Email"
+            hint={`We'll send a code to your email ${getMaskedEmail()}`}
+          />
+        )}
+
+        {filteredMethods.totp && (
           <MFAMethodButton
             onClick={() => handleMethodClick("totp")}
             disabled={isLoading}
@@ -72,7 +109,7 @@ export function MFAMethodSelection({
           />
         )}
 
-        {availableMethods.sms && (
+        {filteredMethods.sms && (
           <MFAMethodButton
             onClick={() => handleMethodClick("sms")}
             disabled={isLoading}
@@ -109,6 +146,7 @@ function MFAMethodButton({
         border: "2px solid #6b7280",
         width: "75%",
         height: "90px",
+        marginTop: "25px",
       }}
       className={`
         ui-py-12 ui-px-6 ui-flex ui-items-center ui-gap-6 ui-text-left ui-transition-all

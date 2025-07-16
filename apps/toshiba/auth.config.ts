@@ -6,6 +6,29 @@ export const authConfig = {
   pages: {
     signIn: "/login",
   },
+  // Suppress NextAuth debug logs during normal MFA flow
+  debug: false,
+  logger: {
+    error: (error) => {
+      // Only log actual errors, not expected MFA flow errors
+      const errorMessage = error.message || String(error);
+      if (
+        (!errorMessage.includes("MFA_REQUIRED") &&
+          !errorMessage.includes("CallbackRouteError")) ||
+        process.env.NODE_ENV === "production"
+      ) {
+        console.error(`[auth][error]`, error);
+      }
+    },
+    warn: (code) => {
+      if (process.env.NODE_ENV === "production") {
+        console.warn(`[auth][warn] ${code}`);
+      }
+    },
+    debug: () => {
+      // Suppress debug logs in development to reduce console clutter
+    },
+  },
   callbacks: {
     ...stockConfig.callbacks,
     async session({ session, token, user }) {
@@ -50,6 +73,14 @@ export const authConfig = {
 
       if (token.phone_number !== undefined) {
         stockSession.user.phone_number = token.phone_number;
+      }
+
+      if (token.email_mfa_enabled !== undefined) {
+        stockSession.user.email_mfa_enabled = token.email_mfa_enabled;
+      }
+
+      if (token.grace_period !== undefined) {
+        stockSession.user.grace_period = token.grace_period;
       }
 
       if (token.refresh_token) {
@@ -100,6 +131,12 @@ export const authConfig = {
           if (user?.phone_number !== undefined) {
             token.phone_number = user.phone_number;
           }
+          if (user?.email_mfa_enabled !== undefined) {
+            token.email_mfa_enabled = user.email_mfa_enabled;
+          }
+          if (user?.grace_period !== undefined) {
+            token.grace_period = user.grace_period;
+          }
           return token;
         }
 
@@ -132,6 +169,12 @@ export const authConfig = {
           }
           if (user?.phone_number !== undefined) {
             newToken.phone_number = user.phone_number;
+          }
+          if (user?.email_mfa_enabled !== undefined) {
+            newToken.email_mfa_enabled = user.email_mfa_enabled;
+          }
+          if (user?.grace_period !== undefined) {
+            newToken.grace_period = user.grace_period;
           }
 
           return newToken;

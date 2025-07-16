@@ -7,6 +7,7 @@ import type { Session } from "next-auth";
 import { usePathname } from "next/navigation";
 import { RolesContextProvider } from "../lib/contexts/RolesContext";
 import { ClientAppLayout } from "../ui/ClientAppLayout";
+import { MfaGracePeriodToast } from "./MfaGracePeriodToast";
 
 const breadcrumbLabels: Record<string, { label: string; link: string }> = {
   access: {
@@ -83,6 +84,7 @@ export function LayoutWrapper({
       ) : (
         children
       )}
+      <MfaGracePeriodToast />
     </ColorContextProvider>
   );
 }

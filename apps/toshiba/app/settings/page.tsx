@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 import { ProjectSidebar } from "../components/advanced/ProjectSidebar";
-import { TOTPSetup, SMSMFASetup } from "../components/mfa";
+import { TOTPSetup, SMSMFASetup, EmailMFASetup } from "../components/mfa";
 import { UserDetailResponse, MfaSetupResponse } from "../lib/authApiClient";
+import { getMFAConfig, isMFADisableAllowed } from "../lib/mfaConfig";
 import "./page.scss";
 
 const LockIcon = ({ size = 14 }: { size?: number }) => (
@@ -70,8 +71,27 @@ const EyeOffIcon = ({ size = 16 }: { size?: number }) => (
 
 export default function Settings(): JSX.Element {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>("profile");
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("");
+  // FIXME: Remove this when there are more categories in /settings - currently defaulting to security/change-password since it's the only active category
+  const [selectedCategory, setSelectedCategory] = useState<string>("security");
+  const [selectedSubcategory, setSelectedSubcategory] =
+    useState<string>("change-password");
+
+  const mfaConfig = getMFAConfig();
+  const allowDisableAll = isMFADisableAllowed();
+
+  const getEnabledMFACount = () => {
+    let count = 0;
+    if (emailEnabled) count++;
+    if (smsEnabled) count++;
+    if (totpEnabled) count++;
+    return count;
+  };
+
+  const shouldDisableToggle = (currentMethodEnabled: boolean) => {
+    if (allowDisableAll) return false;
+    const enabledCount = getEnabledMFACount();
+    return currentMethodEnabled && enabledCount === 1;
+  };
 
   // Password change form state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -80,6 +100,7 @@ export default function Settings(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   // Password visibility state
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -89,10 +110,12 @@ export default function Settings(): JSX.Element {
   // MFA toggle state
   const [totpEnabled, setTotpEnabled] = useState(false);
   const [smsEnabled, setSmsEnabled] = useState(false);
+  const [emailEnabled, setEmailEnabled] = useState(false);
 
   // MFA modal and setup state
   const [showTOTPModal, setShowTOTPModal] = useState(false);
   const [showSMSModal, setShowSMSModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [userDetails, setUserDetails] = useState<UserDetailResponse | null>(
     null
   );
@@ -105,6 +128,44 @@ export default function Settings(): JSX.Element {
   // Load user details on component mount
   useEffect(() => {
     loadUserDetails();
+  }, []);
+
+  // Handle hash navigation to MFA section
+  useEffect(() => {
+    const hash = window.location.hash;
+
+    if (hash === "#mfa") {
+      // Set the correct category and subcategory to show MFA section
+      setSelectedCategory("security");
+      setSelectedSubcategory("multi-factor-auth");
+
+      // Wait for the component to render, then scroll to MFA section
+      setTimeout(() => {
+        const mfaSection = document.getElementById("mfa-section");
+        if (mfaSection) {
+          mfaSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 100);
+    }
+    // FIXME: Remove this when there are more categories in /settings - currently all hashes default to security category
+    else if (hash === "#change-password") {
+      // Set the correct category and subcategory to show change password section
+      setSelectedCategory("security");
+      setSelectedSubcategory("change-password");
+
+      // Wait for the component to render, then scroll to change password section
+      setTimeout(() => {
+        const changePasswordSection = document.querySelector(
+          ".settings-content-display"
+        );
+        if (changePasswordSection) {
+          changePasswordSection.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      }, 100);
+    }
   }, []);
 
   // Load user details from API
@@ -121,6 +182,7 @@ export default function Settings(): JSX.Element {
       setUserDetails(data);
       setTotpEnabled(data.mfa_enabled || false);
       setSmsEnabled(data.sms_mfa_enabled || false);
+      setEmailEnabled(data.email_mfa_enabled || false);
     } catch (error) {
       setMfaError(
         error instanceof Error ? error.message : "Failed to load user details"
@@ -233,7 +295,71 @@ export default function Settings(): JSX.Element {
     }
   };
 
+  // Email MFA setup functions
+  const handleSetupEmail = async () => {
+    try {
+      setMfaError("");
+      const response = await fetch("/api/email-mfa/setup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to setup Email MFA");
+      }
+    } catch (error) {
+      setMfaError(
+        error instanceof Error ? error.message : "Failed to setup Email MFA"
+      );
+      throw error;
+    }
+  };
+
+  const handleVerifyEmail = async (code: string) => {
+    try {
+      setMfaError("");
+      console.log("Verifying email MFA code:", code);
+
+      const response = await fetch("/api/email-mfa/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ mfa_code: code }),
+      });
+
+      console.log("Email MFA verify response status:", response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Email MFA verify error:", errorData);
+        throw new Error(errorData.detail || "Failed to verify Email code");
+      }
+
+      const responseData = await response.json();
+      console.log("Email MFA verify success:", responseData);
+
+      setShowEmailModal(false);
+      await loadUserDetails();
+    } catch (error) {
+      console.error("Email MFA verification error:", error);
+      setMfaError(
+        error instanceof Error ? error.message : "Failed to verify Email code"
+      );
+      throw error;
+    }
+  };
+
   const handleChangePassword = async (): Promise<void> => {
+    // Prevent double submissions
+    if (isSubmittingRef.current) {
+      return;
+    }
+
     if (!currentPassword) {
       setError("Current password is required");
       return;
@@ -268,6 +394,7 @@ export default function Settings(): JSX.Element {
 
     setError(null);
     setIsSubmitting(true);
+    isSubmittingRef.current = true; // Set immediately to prevent double calls
 
     try {
       const response = await fetch("/api/auth/change-password-user", {
@@ -290,10 +417,12 @@ export default function Settings(): JSX.Element {
         setConfirmPassword("");
       } else {
         setError(data.detail || "Failed to change password. Please try again.");
+        isSubmittingRef.current = false; // Reset on error to allow retry
       }
     } catch (err) {
       console.error("Change password error:", err);
       setError("An unexpected error occurred. Please try again.");
+      isSubmittingRef.current = false; // Reset on error to allow retry
     } finally {
       setIsSubmitting(false);
     }
@@ -339,7 +468,10 @@ export default function Settings(): JSX.Element {
                 </p>
                 <button
                   className="continue-button"
-                  onClick={() => setIsSuccess(false)}
+                  onClick={() => {
+                    setIsSuccess(false);
+                    isSubmittingRef.current = false; // Reset ref when continuing
+                  }}
                   type="button"
                 >
                   Continue
@@ -471,74 +603,145 @@ export default function Settings(): JSX.Element {
       selectedSubcategory === "multi-factor-auth"
     ) {
       return (
-        <div className="settings-content-display">
+        <div className="settings-content-display" id="mfa-section">
           <h2>Multi-Factor Authentication</h2>
           <p className="hint-text">
             Secure your account with an additional layer of protection.
           </p>
 
           <div className="mfa-form-container">
-            <div className="mfa-method-section">
-              <div className="mfa-method-header">
-                <div className="mfa-method-info">
-                  <h3>Authenticator App (TOTP)</h3>
-                  <p>
-                    Use an authenticator app like Google Authenticator or Authy
-                    to generate codes.
-                  </p>
-                </div>
-                <label className="mfa-toggle">
-                  <input
-                    type="checkbox"
-                    checked={totpEnabled}
-                    onChange={(e) => {
-                      const isEnabled = e.target.checked;
-                      if (isEnabled && !totpEnabled) {
-                        // Switching from disabled to enabled - show modal
-                        handleSetupTOTP();
-                      } else {
-                        // Just update the visual state for now
-                        setTotpEnabled(isEnabled);
+            {mfaConfig.email && (
+              <>
+                <div className="mfa-method-section">
+                  <div className="mfa-method-header">
+                    <div className="mfa-method-info">
+                      <h3>Email Authentication</h3>
+                      <p>
+                        {emailEnabled && userDetails?.email
+                          ? `Send a code to ${userDetails.email.replace(/(.{2})(.*)(@.*)/, "$1***$3")}`
+                          : "Use your email address to receive verification codes."}
+                      </p>
+                    </div>
+                    <label
+                      className="mfa-toggle"
+                      title={
+                        shouldDisableToggle(emailEnabled)
+                          ? "Disabling MFA is not supported. At least one MFA method must remain enabled."
+                          : ""
                       }
-                    }}
-                  />
-                  <span className="mfa-toggle-slider"></span>
-                </label>
-              </div>
-            </div>
-
-            <div className="mfa-separator"></div>
-
-            <div className="mfa-method-section">
-              <div className="mfa-method-header">
-                <div className="mfa-method-info">
-                  <h3>SMS Authentication</h3>
-                  <p>
-                    {smsEnabled && userDetails?.phone_number
-                      ? `Send an SMS code to ${userDetails.phone_number.replace(/(\d{3})(\d{3})(\d{4})/, "***-***-$3")}`
-                      : "Use your phone number to receive SMS codes."}
-                  </p>
+                    >
+                      <input
+                        type="checkbox"
+                        checked={emailEnabled}
+                        disabled={shouldDisableToggle(emailEnabled)}
+                        onChange={(e) => {
+                          const isEnabled = e.target.checked;
+                          if (isEnabled && !emailEnabled) {
+                            setEmailEnabled(true);
+                            setShowEmailModal(true);
+                          } else {
+                            setEmailEnabled(isEnabled);
+                          }
+                        }}
+                      />
+                      <span
+                        className={`mfa-toggle-slider ${shouldDisableToggle(emailEnabled) ? "disabled" : ""}`}
+                      ></span>
+                    </label>
+                  </div>
                 </div>
-                <label className="mfa-toggle">
-                  <input
-                    type="checkbox"
-                    checked={smsEnabled}
-                    onChange={(e) => {
-                      const isEnabled = e.target.checked;
-                      if (isEnabled && !smsEnabled) {
-                        // Switching from disabled to enabled - show modal
-                        setSmsEnabled(true); // Set visual state first
-                        setShowSMSModal(true);
-                      } else {
-                        // Just update the visual state for now
-                        setSmsEnabled(isEnabled);
+                {(mfaConfig.totp || mfaConfig.sms) && (
+                  <div className="mfa-separator"></div>
+                )}
+              </>
+            )}
+
+            {mfaConfig.totp && (
+              <>
+                <div className="mfa-method-section">
+                  <div className="mfa-method-header">
+                    <div className="mfa-method-info">
+                      <h3>Authenticator App (TOTP)</h3>
+                      <p>
+                        Use an authenticator app like Google Authenticator or
+                        Authy to generate codes.
+                      </p>
+                    </div>
+                    <label
+                      className="mfa-toggle"
+                      title={
+                        shouldDisableToggle(totpEnabled)
+                          ? "Disabling MFA is not supported. At least one MFA method must remain enabled."
+                          : ""
                       }
-                    }}
-                  />
-                  <span className="mfa-toggle-slider"></span>
-                </label>
+                    >
+                      <input
+                        type="checkbox"
+                        checked={totpEnabled}
+                        disabled={shouldDisableToggle(totpEnabled)}
+                        onChange={(e) => {
+                          const isEnabled = e.target.checked;
+                          if (isEnabled && !totpEnabled) {
+                            // Switching from disabled to enabled - show modal
+                            handleSetupTOTP();
+                          } else {
+                            // Just update the visual state for now
+                            setTotpEnabled(isEnabled);
+                          }
+                        }}
+                      />
+                      <span
+                        className={`mfa-toggle-slider ${shouldDisableToggle(totpEnabled) ? "disabled" : ""}`}
+                      ></span>
+                    </label>
+                  </div>
+                </div>
+                {mfaConfig.sms && <div className="mfa-separator"></div>}
+              </>
+            )}
+
+            {mfaConfig.sms && (
+              <div className="mfa-method-section">
+                <div className="mfa-method-header">
+                  <div className="mfa-method-info">
+                    <h3>SMS Authentication</h3>
+                    <p>
+                      {smsEnabled && userDetails?.phone_number
+                        ? `Send an SMS code to ${userDetails.phone_number.replace(/(\d{3})(\d{3})(\d{4})/, "***-***-$3")}`
+                        : "Use your phone number to receive SMS codes."}
+                    </p>
+                  </div>
+                  <label
+                    className="mfa-toggle"
+                    title={
+                      shouldDisableToggle(smsEnabled)
+                        ? "Disabling MFA is not supported. At least one MFA method must remain enabled."
+                        : ""
+                    }
+                  >
+                    <input
+                      type="checkbox"
+                      checked={smsEnabled}
+                      disabled={shouldDisableToggle(smsEnabled)}
+                      onChange={(e) => {
+                        const isEnabled = e.target.checked;
+                        if (isEnabled && !smsEnabled) {
+                          // Switching from disabled to enabled - show modal
+                          setSmsEnabled(true); // Set visual state first
+                          setShowSMSModal(true);
+                        } else {
+                          // Just update the visual state for now
+                          setSmsEnabled(isEnabled);
+                        }
+                      }}
+                    />
+                    <span
+                      className={`mfa-toggle-slider ${shouldDisableToggle(smsEnabled) ? "disabled" : ""}`}
+                    ></span>
+                  </label>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       );
@@ -553,7 +756,7 @@ export default function Settings(): JSX.Element {
     return (
       <>
         {/* TOTP Setup Modal */}
-        {showTOTPModal && totpSetupData && (
+        {mfaConfig.totp && showTOTPModal && totpSetupData && (
           <div
             className="mfa-modal-overlay"
             onClick={(e) => {
@@ -582,7 +785,7 @@ export default function Settings(): JSX.Element {
         )}
 
         {/* SMS Setup Modal */}
-        {showSMSModal && (
+        {mfaConfig.sms && showSMSModal && (
           <div
             className="mfa-modal-overlay"
             onClick={(e) => {
@@ -604,6 +807,34 @@ export default function Settings(): JSX.Element {
                 }}
                 error={mfaError}
                 initialPhoneNumber={userDetails?.phone_number || ""}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Email MFA Setup Modal */}
+        {mfaConfig.email && showEmailModal && (
+          <div
+            className="mfa-modal-overlay"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowEmailModal(false);
+                setEmailEnabled(false); // Reset toggle on cancel
+                setMfaError("");
+              }
+            }}
+          >
+            <div className="mfa-modal-content">
+              <EmailMFASetup
+                onSetup={handleSetupEmail}
+                onVerify={handleVerifyEmail}
+                onCancel={() => {
+                  setShowEmailModal(false);
+                  setEmailEnabled(false); // Reset toggle on cancel
+                  setMfaError("");
+                }}
+                error={mfaError}
+                userEmail={userDetails?.email || ""}
               />
             </div>
           </div>

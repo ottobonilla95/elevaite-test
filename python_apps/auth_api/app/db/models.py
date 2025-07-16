@@ -70,6 +70,13 @@ class User(Base, TimestampMixin):
     )  # TOTP secret
     sms_mfa_enabled: Mapped[bool] = mapped_column(default=False, nullable=False)
     phone_verified: Mapped[bool] = mapped_column(default=False, nullable=False)
+    email_mfa_enabled: Mapped[bool] = mapped_column(default=False, nullable=False)
+    email_mfa_code: Mapped[Optional[str]] = mapped_column(
+        String(10), nullable=True
+    )  # Current email MFA code for verification
+    email_mfa_code_expires: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )  # Email MFA code expiration
 
     # Password reset
     password_reset_token: Mapped[Optional[str]] = mapped_column(

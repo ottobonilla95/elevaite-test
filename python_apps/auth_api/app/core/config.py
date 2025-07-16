@@ -28,7 +28,9 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str = secrets.token_urlsafe(32)
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 90
+    REFRESH_TOKEN_EXPIRE_DAYS: int = int(
+        os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS", "90")
+    )
     ALGORITHM: str = "HS256"
 
     # 32-bytes key for HMAC operations (e.g., CSRF token)
@@ -41,9 +43,29 @@ class Settings(BaseSettings):
     # Rate limiting
     RATE_LIMIT_PER_MINUTE: int = 60
 
-    # 2FA
-    MFA_ISSUER: str = "AuthAPI"
+    # MFA - Authenticator App
+    MFA_ISSUER: str = os.environ.get("BRANDING_NAME", "ElevAIte")
     MFA_ENABLED: bool = True
+
+    # MFA - Email
+    EMAIL_MFA_GRACE_PERIOD_DAYS: int = int(
+        os.environ.get("EMAIL_MFA_GRACE_PERIOD_DAYS", "30")
+    )
+
+    # MFA Auto-Enable Configuration
+    # Specifies which MFA method to auto-enable after grace period expires
+    # Options: "email", "sms", "totp", "none"
+    MFA_AUTO_ENABLE_METHOD: str = os.environ.get("MFA_AUTO_ENABLE_METHOD", "email")
+
+    # MFA Email Theme Configuration
+    MFA_EMAIL_PRIMARY_COLOR: str = os.environ.get("MFA_EMAIL_PRIMARY_COLOR", "e75f33")
+
+    # Branding Configuration
+    BRANDING_NAME: str = os.environ.get("BRANDING_NAME", "ElevAIte")
+    BRANDING_ORG: str = os.environ.get("BRANDING_ORG", "ElevAIte")
+    BRANDING_SUPPORT_EMAIL: str = os.environ.get(
+        "BRANDING_SUPPORT_EMAIL", "ElevAIte"
+    ).lower()
 
     # CORS
     CORS_ORIGINS: Union[str, List[str]] = []

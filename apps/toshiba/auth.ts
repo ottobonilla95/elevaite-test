@@ -73,6 +73,8 @@ export const authOptions: NextAuthConfig = {
               sms_mfa_enabled: userDetails.sms_mfa_enabled,
               phone_verified: userDetails.phone_verified,
               phone_number: userDetails.phone_number,
+              email_mfa_enabled: userDetails.email_mfa_enabled,
+              grace_period: tokenResponse.grace_period,
             } satisfies User;
 
             return userObject;
@@ -84,10 +86,13 @@ export const authOptions: NextAuthConfig = {
               }
 
               // For MFA challenges, throw with a specific format that we can catch
-              if (error.message === "MFA_REQUIRED_BOTH") {
-                console.log("Throwing Both MFA methods challenge");
-                const mfaError = new Error("MFA_REQUIRED_BOTH");
+              if (error.message === "MFA_REQUIRED_MULTIPLE") {
+                const mfaError = new Error("MFA_REQUIRED_MULTIPLE");
+                (mfaError as any).availableMethods = (
+                  error as any
+                ).availableMethods;
                 (mfaError as any).maskedPhone = (error as any).maskedPhone;
+                (mfaError as any).maskedEmail = (error as any).maskedEmail;
                 throw mfaError;
               }
 
@@ -95,7 +100,6 @@ export const authOptions: NextAuthConfig = {
                 error.message === "MFA_REQUIRED_TOTP" ||
                 error.message === "TOTP code required"
               ) {
-                console.log("Throwing TOTP challenge");
                 throw new Error("MFA_REQUIRED_TOTP");
               }
 
@@ -104,9 +108,18 @@ export const authOptions: NextAuthConfig = {
                 error.message === "SMS code required" ||
                 error.message.includes("SMS code required")
               ) {
-                console.log("Throwing SMS challenge");
                 const mfaError = new Error("MFA_REQUIRED_SMS");
                 (mfaError as any).maskedPhone = (error as any).maskedPhone;
+                throw mfaError;
+              }
+
+              if (
+                error.message === "MFA_REQUIRED_EMAIL" ||
+                error.message === "Email code required" ||
+                error.message.includes("Email code required")
+              ) {
+                const mfaError = new Error("MFA_REQUIRED_EMAIL");
+                (mfaError as any).maskedEmail = (error as any).maskedEmail;
                 throw mfaError;
               }
 
@@ -115,7 +128,6 @@ export const authOptions: NextAuthConfig = {
                 error.message === "Invalid MFA code" ||
                 error.message === "invalid_totp"
               ) {
-                console.log("Throwing Invalid MFA code error");
                 throw new Error("Invalid MFA code");
               }
 

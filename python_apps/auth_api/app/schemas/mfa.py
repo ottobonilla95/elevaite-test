@@ -46,3 +46,25 @@ class SMSMFAVerifyRequest(BaseModel):
 class SMSMFAResponse(BaseModel):
     message: str = Field(..., description="Response message")
     message_id: Optional[str] = Field(None, description="SMS message ID if applicable")
+
+
+class EmailMFASetupRequest(BaseModel):
+    pass
+
+
+class EmailMFAVerifyRequest(BaseModel):
+    mfa_code: str = Field(
+        ..., description="6-digit MFA code", min_length=6, max_length=6
+    )
+
+    @field_validator("mfa_code")
+    @classmethod
+    def validate_mfa_code(cls, v: str) -> str:
+        if not v.isdigit():
+            raise ValueError("MFA code must contain only digits")
+        return v
+
+
+class EmailMFAResponse(BaseModel):
+    message: str = Field(..., description="Response message")
+    email: Optional[str] = Field(None, description="Email address if applicable")

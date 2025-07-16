@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.config import settings
+from app.core.logging import logger
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -126,73 +127,24 @@ async def authenticate_user(
                 # Check if the provided password matches the temporary password
                 try:
                     if verify_password(password, user.temporary_hashed_password):
-                        print(f"Temporary password used successfully for user: {email}")
-
-                        # Get the user ID as a plain integer for the update
                         user_id = user.id
-
-                        # IMPORTANT: If the user is logging in with a temporary password,
-                        # we ALWAYS want to set is_password_temporary to TRUE to force them
-                        # to change their password, regardless of the current value.
-                        # The only exception is if they've explicitly changed their password before.
-
-                        # CRITICAL: If the user is logging in with a temporary password,
-                        # we MUST set is_password_temporary to TRUE regardless of its current value.
-                        # We should NOT respect is_password_temporary=False when using a temporary password.
-                        print(
-                            f"User {email} is logging in with a temporary password, setting is_password_temporary=TRUE"
-                        )
-
-                        # NEVER return here - we must ALWAYS set is_password_temporary to TRUE
-                        # when the user logs in with a temporary password
-
-                        # CRITICAL: Set is_password_temporary to TRUE in the user object
-                        # This ensures that the flag is set even if the database update fails
                         user.is_password_temporary = True
-
-                        # Log that we're setting is_password_temporary to TRUE
-                        print(
-                            f"Setting is_password_temporary=TRUE for user {email} in the user object"
-                        )
-
-                        # Also log the user object structure for debugging
-                        # CRITICAL: Only log information that won't trigger a database query
-                        print(f"User object type: {type(user)}")
-                        # Don't use dir() as it might trigger attribute access
-                        # Only access __dict__ directly
-                        user_dict = getattr(user, "__dict__", {})
-                        print(f"User object __dict__ keys: {list(user_dict.keys())}")
-                        # Log specific attributes we care about
-                        print(f"User ID: {user_dict.get('id', 'N/A')}")
-                        print(f"User email: {user_dict.get('email', 'N/A')}")
-                        print(
-                            f"User is_password_temporary: {user_dict.get('is_password_temporary', 'N/A')}"
-                        )
-
-                        # If we get here, the user is logging in with a temporary password
-                        # and has not explicitly changed their password before, so we should
-                        # set is_password_temporary to TRUE to force them to change it
-
-                        # Set is_password_temporary to trigger frontend password reset
-                        # Use a direct SQL update to ensure it's applied
                         from sqlalchemy import text
 
                         # Use raw SQL with explicit schema to avoid any ORM caching issues
-                        # CRITICAL: This is where we set is_password_temporary to TRUE in the database
-                        # when a user logs in with a temporary password
                         update_sql = text(
                             """
                             UPDATE users
                             SET temporary_hashed_password = NULL,
                                 temporary_password_expiry = NULL,
                                 is_password_temporary = TRUE,
+                                is_verified = TRUE,
                                 updated_at = :now
                             WHERE id = :user_id
                         """
                         )
 
                         try:
-                            # Execute the update with explicit parameters
                             result = await session.execute(
                                 update_sql, {"now": now, "user_id": user_id}
                             )
@@ -381,16 +333,40 @@ async def authenticate_user(
                 detail="email_not_verified",
             )
 
-        # Check MFA if enabled (TOTP or SMS)
+        # Check for auto-enabling MFA based on grace period
+        from app.services.email_mfa import email_mfa_service
+
+        try:
+            await email_mfa_service.check_and_auto_enable_mfa(user, session)
+        except Exception as e:
+            logger.error(
+                f"Error during auto-enable MFA check for user {user.id}: {str(e)}"
+            )
+
+        # Check MFA if enabled (TOTP, SMS, or Email)
         has_totp_mfa = user.mfa_enabled and user.mfa_secret
         has_sms_mfa = user.sms_mfa_enabled and user.phone_verified
+        has_email_mfa = user.email_mfa_enabled
 
-        if (has_totp_mfa or has_sms_mfa) and not totp_code:
-            # Determine which MFA methods are available
-            if has_totp_mfa and has_sms_mfa:
+        logger.info(
+            f"MFA check for user {user.id}: TOTP={has_totp_mfa}, SMS={has_sms_mfa}, Email={has_email_mfa}"
+        )
+
+        if (has_totp_mfa or has_sms_mfa or has_email_mfa) and not totp_code:
+            # Determine which MFA methods are available and build appropriate message
+            available_methods = []
+            if has_totp_mfa:
+                available_methods.append("TOTP")
+            if has_sms_mfa:
+                available_methods.append("SMS")
+            if has_email_mfa:
+                available_methods.append("Email")
+
+            if len(available_methods) > 1:
+                methods_str = " or ".join(available_methods)
                 raise HTTPException(
                     status_code=http_status.HTTP_400_BAD_REQUEST,
-                    detail="MFA code required (TOTP or SMS)",
+                    detail=f"MFA code required ({methods_str})",
                 )
             elif has_totp_mfa:
                 raise HTTPException(
@@ -402,13 +378,22 @@ async def authenticate_user(
                     status_code=http_status.HTTP_400_BAD_REQUEST,
                     detail="SMS code required",
                 )
+            elif has_email_mfa:
+                raise HTTPException(
+                    status_code=http_status.HTTP_400_BAD_REQUEST,
+                    detail="Email code required",
+                )
 
         # Verify MFA code if provided
         if totp_code:
             mfa_valid = False
 
             # Try TOTP verification first
-            if has_totp_mfa and verify_totp(totp_code, user.mfa_secret):
+            if (
+                has_totp_mfa
+                and user.mfa_secret
+                and verify_totp(totp_code, user.mfa_secret)
+            ):
                 mfa_valid = True
 
             # Try SMS verification if TOTP failed or not available
@@ -422,6 +407,16 @@ async def authenticate_user(
                     mfa_valid = True
                 except HTTPException:
                     # SMS verification failed
+                    pass
+
+            # Try Email verification if TOTP and SMS failed or not available
+            if not mfa_valid and has_email_mfa:
+                try:
+                    # Verify Email MFA code
+                    await email_mfa_service.verify_mfa_code(user, totp_code, session)
+                    mfa_valid = True
+                except HTTPException:
+                    # Email verification failed
                     pass
 
             if not mfa_valid:
@@ -516,12 +511,48 @@ async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
         if found_user is not None:
             new_user = found_user
 
-    # Send verification email
-    from app.services.email_service import send_verification_email
+    # Disabled verification step
+    # from app.services.email_service import send_verification_email
+
+    # # Extract name from full_name or use empty string
+    # name = new_user.full_name.split()[0] if new_user.full_name else ""
+
+    # Make sure to make this the last line before return if re-enabling
+    # await send_verification_email(new_user.email, name, str(verification_token))
+
+    # Send welcome email with temporary password instead of verification email
+    from app.services.email_service import send_welcome_email_with_temp_password
+    from datetime import datetime, timezone, timedelta
 
     # Extract name from full_name or use empty string
     name = new_user.full_name.split()[0] if new_user.full_name else ""
-    await send_verification_email(new_user.email, name, str(verification_token))
+
+    # Set up temporary password fields and send welcome email
+    # Update user with temporary password fields
+    temp_password_hash = get_password_hash(password)
+    temp_password_expiry = datetime.now(timezone.utc) + timedelta(hours=48)
+
+    # Update the user with temporary password fields
+    from sqlalchemy import update
+
+    update_stmt = (
+        update(User)
+        .where(User.id == new_user.id)
+        .values(
+            temporary_hashed_password=temp_password_hash,
+            temporary_password_expiry=temp_password_expiry,
+            is_password_temporary=True,
+        )
+    )
+    await session.execute(update_stmt)
+    await session.commit()
+
+    # Send welcome email with temporary password
+    try:
+        await send_welcome_email_with_temp_password(new_user.email, name, password)
+        print(f"Welcome email with temporary password sent to {new_user.email}")
+    except Exception as e:
+        print(f"Error sending welcome email to {new_user.email}: {e}")
 
     return new_user
 

@@ -122,6 +122,10 @@ class UserDetail(UserResponse):
     is_password_temporary: bool
     is_superuser: bool
     application_admin: bool
+    sms_mfa_enabled: bool = False
+    phone_verified: bool = False
+    phone_number: Optional[str] = None
+    email_mfa_enabled: bool = False
 
 
 class Token(BaseModel):

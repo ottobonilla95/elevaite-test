@@ -382,6 +382,7 @@
               background-color: var(--ev-colors-background);
               display: table;
               max-width: 90%;
+              min-width: 90%;
 
               & .mfa-method-section {
                 & .mfa-method-header {
@@ -432,6 +433,15 @@
                           transform: translateX(26px);
                         }
                       }
+
+                      &:disabled + .mfa-toggle-slider {
+                        opacity: 0.5;
+                        cursor: not-allowed;
+
+                        &:before {
+                          opacity: 0.7;
+                        }
+                      }
                     }
 
                     & .mfa-toggle-slider {
@@ -455,6 +465,15 @@
                         background-color: var(--ev-colors-uiText);
                         transition: 0.3s;
                         border-radius: 50%;
+                      }
+
+                      &.disabled {
+                        opacity: 0.5;
+                        cursor: not-allowed;
+
+                        &:before {
+                          opacity: 0.7;
+                        }
                       }
                     }
                   }

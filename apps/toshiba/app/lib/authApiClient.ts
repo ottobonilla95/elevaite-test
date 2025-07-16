@@ -9,6 +9,15 @@ export interface TokenResponse {
   refresh_token: string;
   token_type: string;
   password_change_required?: boolean;
+  grace_period?: {
+    in_grace_period: boolean;
+    days_remaining: number;
+    grace_period_days: number;
+    expires_at?: string;
+    auto_enable_at?: string;
+    auto_enable_method: string;
+    error?: string;
+  };
 }
 
 export interface UserResponse {
@@ -30,6 +39,7 @@ export interface UserDetailResponse extends UserResponse {
   sms_mfa_enabled?: boolean;
   phone_verified?: boolean;
   phone_number?: string;
+  email_mfa_enabled?: boolean;
 }
 
 export interface RefreshTokenRequest {
@@ -57,6 +67,19 @@ export interface SMSMFAVerifyRequest {
 export interface SMSMFAResponse {
   message: string;
   message_id?: string;
+}
+
+export interface EmailMFASetupRequest {
+  // No additional fields needed as email is from user account
+}
+
+export interface EmailMFAVerifyRequest {
+  mfa_code: string;
+}
+
+export interface EmailMFAResponse {
+  message: string;
+  email?: string;
 }
 
 /**
@@ -123,11 +146,18 @@ export class AuthApiClient {
 
       if (!response.ok) {
         const errorData = (await response.json()) as { detail?: string };
-        console.log(
-          "AuthApiClient error response:",
-          response.status,
-          errorData
-        );
+
+        // Only log non-MFA errors to avoid cluttering console during normal MFA flow
+        if (
+          response.status !== 400 ||
+          !errorData.detail?.includes("code required")
+        ) {
+          console.log(
+            "AuthApiClient error response:",
+            response.status,
+            errorData
+          );
+        }
 
         if (
           response.status === 403 &&
@@ -143,12 +173,18 @@ export class AuthApiClient {
           const mfaType = response.headers.get("X-MFA-Type");
           const mfaMethods = response.headers.get("X-MFA-Methods");
           const maskedPhone = response.headers.get("X-Phone-Masked");
+          const maskedEmail = response.headers.get("X-Email-Masked");
 
-          if (mfaType === "BOTH" && mfaMethods === "TOTP,SMS") {
-            const error = new Error("MFA_REQUIRED_BOTH");
+          if (mfaType === "MULTIPLE" && mfaMethods) {
+            const methods = mfaMethods.split(",");
+            const error = new Error("MFA_REQUIRED_MULTIPLE");
+            (error as any).availableMethods = methods;
             (error as any).maskedPhone = maskedPhone;
+            (error as any).maskedEmail = maskedEmail;
             throw error;
-          } else if (
+          }
+          // Single method cases
+          else if (
             mfaType === "TOTP" ||
             errorData.detail === "TOTP code required"
           ) {
@@ -159,6 +195,13 @@ export class AuthApiClient {
           ) {
             const error = new Error("MFA_REQUIRED_SMS");
             (error as any).maskedPhone = maskedPhone;
+            throw error;
+          } else if (
+            mfaType === "EMAIL" ||
+            errorData.detail?.includes("Email code required")
+          ) {
+            const error = new Error("MFA_REQUIRED_EMAIL");
+            (error as any).maskedEmail = maskedEmail;
             throw error;
           }
         }
@@ -425,5 +468,107 @@ export class AuthApiClient {
     }
 
     return response.json() as Promise<{ message: string }>;
+  }
+
+  // Email MFA methods
+
+  /**
+   * Set up Email MFA for the current user
+   */
+  async setupEmailMFA(accessToken: string): Promise<EmailMFAResponse> {
+    const response = await fetch(`${this.baseUrl}/api/email-mfa/setup`, {
+      method: "POST",
+      headers: this.getHeaders({
+        Authorization: `Bearer ${accessToken}`,
+      }),
+      body: JSON.stringify({}),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as { detail?: string };
+      throw new Error(errorData.detail ?? "Email MFA setup failed");
+    }
+
+    return response.json() as Promise<EmailMFAResponse>;
+  }
+
+  /**
+   * Send Email MFA code to the user's email
+   */
+  async sendEmailMFACode(accessToken: string): Promise<EmailMFAResponse> {
+    const response = await fetch(`${this.baseUrl}/api/email-mfa/send-code`, {
+      method: "POST",
+      headers: this.getHeaders({
+        Authorization: `Bearer ${accessToken}`,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as { detail?: string };
+      throw new Error(errorData.detail ?? "Failed to send Email MFA code");
+    }
+
+    return response.json() as Promise<EmailMFAResponse>;
+  }
+
+  /**
+   * Verify Email MFA code
+   */
+  async verifyEmailMFA(
+    accessToken: string,
+    mfaCode: string
+  ): Promise<EmailMFAResponse> {
+    const response = await fetch(`${this.baseUrl}/api/email-mfa/verify`, {
+      method: "POST",
+      headers: this.getHeaders({
+        Authorization: `Bearer ${accessToken}`,
+      }),
+      body: JSON.stringify({ mfa_code: mfaCode }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as { detail?: string };
+      throw new Error(errorData.detail ?? "Email MFA verification failed");
+    }
+
+    return response.json() as Promise<EmailMFAResponse>;
+  }
+
+  /**
+   * Get Email MFA status for the current user
+   */
+  async getEmailMFAStatus(accessToken: string): Promise<EmailMFAResponse> {
+    const response = await fetch(`${this.baseUrl}/api/email-mfa/status`, {
+      method: "GET",
+      headers: this.getHeaders({
+        Authorization: `Bearer ${accessToken}`,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as { detail?: string };
+      throw new Error(errorData.detail ?? "Failed to get Email MFA status");
+    }
+
+    return response.json() as Promise<EmailMFAResponse>;
+  }
+
+  /**
+   * Disable Email MFA for the current user
+   */
+  async disableEmailMFA(accessToken: string): Promise<EmailMFAResponse> {
+    const response = await fetch(`${this.baseUrl}/api/email-mfa/disable`, {
+      method: "POST",
+      headers: this.getHeaders({
+        Authorization: `Bearer ${accessToken}`,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as { detail?: string };
+      throw new Error(errorData.detail ?? "Failed to disable Email MFA");
+    }
+
+    return response.json() as Promise<EmailMFAResponse>;
   }
 }

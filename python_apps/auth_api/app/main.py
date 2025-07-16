@@ -75,6 +75,11 @@ from app.routers import sms_mfa
 
 app.include_router(sms_mfa.router, prefix="/api/sms-mfa", tags=["sms-mfa"])
 
+# Include Email MFA router
+from app.routers import email_mfa
+
+app.include_router(email_mfa.router, prefix="/api/email-mfa", tags=["email-mfa"])
+
 
 @app.get("/api/health", tags=["health"])
 def health_check():

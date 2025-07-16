@@ -15,6 +15,16 @@ declare module "next-auth" {
       sms_mfa_enabled?: boolean;
       phone_verified?: boolean;
       phone_number?: string;
+      email_mfa_enabled?: boolean;
+      grace_period?: {
+        in_grace_period: boolean;
+        days_remaining: number;
+        grace_period_days: number;
+        expires_at?: string;
+        auto_enable_at?: string;
+        auto_enable_method: string;
+        error?: string;
+      };
     } & DefaultSession["user"];
   }
 
@@ -28,6 +38,16 @@ declare module "next-auth" {
     sms_mfa_enabled?: boolean;
     phone_verified?: boolean;
     phone_number?: string;
+    email_mfa_enabled?: boolean;
+    grace_period?: {
+      in_grace_period: boolean;
+      days_remaining: number;
+      grace_period_days: number;
+      expires_at?: string;
+      auto_enable_at?: string;
+      auto_enable_method: string;
+      error?: string;
+    };
   }
 }
 
@@ -40,5 +60,15 @@ declare module "next-auth/jwt" {
     sms_mfa_enabled?: boolean;
     phone_verified?: boolean;
     phone_number?: string;
+    email_mfa_enabled?: boolean;
+    grace_period?: {
+      in_grace_period: boolean;
+      days_remaining: number;
+      grace_period_days: number;
+      expires_at?: string;
+      auto_enable_at?: string;
+      auto_enable_method: string;
+      error?: string;
+    };
   }
 }

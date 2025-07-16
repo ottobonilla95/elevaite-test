@@ -30,6 +30,9 @@ export async function authenticate(
   | "Something went wrong."
   | "MFA_REQUIRED_TOTP"
   | "MFA_REQUIRED_SMS"
+  | "MFA_REQUIRED_EMAIL"
+  | "MFA_REQUIRED_MULTIPLE"
+  | { type: "MFA_ERROR"; error: any }
   | undefined
 > {
   try {
@@ -39,13 +42,50 @@ export async function authenticate(
     if (error instanceof AuthError) {
       if (error.cause instanceof Error) {
         if (error.cause.message === "MFA_REQUIRED_TOTP") {
-          return "MFA_REQUIRED_TOTP";
+          return {
+            type: "MFA_ERROR",
+            error: {
+              message: error.cause.message,
+              availableMethods: (error.cause as any).availableMethods,
+              maskedPhone: (error.cause as any).maskedPhone,
+              maskedEmail: (error.cause as any).maskedEmail,
+            },
+          };
         }
         if (error.cause.message === "MFA_REQUIRED_SMS") {
-          return "MFA_REQUIRED_SMS";
+          return {
+            type: "MFA_ERROR",
+            error: {
+              message: error.cause.message,
+              availableMethods: (error.cause as any).availableMethods,
+              maskedPhone: (error.cause as any).maskedPhone,
+              maskedEmail: (error.cause as any).maskedEmail,
+            },
+          };
+        }
+        if (error.cause.message === "MFA_REQUIRED_EMAIL") {
+          return {
+            type: "MFA_ERROR",
+            error: {
+              message: error.cause.message,
+              availableMethods: (error.cause as any).availableMethods,
+              maskedPhone: (error.cause as any).maskedPhone,
+              maskedEmail: (error.cause as any).maskedEmail,
+            },
+          };
+        }
+        if (error.cause.message === "MFA_REQUIRED_MULTIPLE") {
+          return {
+            type: "MFA_ERROR",
+            error: {
+              message: error.cause.message,
+              availableMethods: (error.cause as any).availableMethods,
+              maskedPhone: (error.cause as any).maskedPhone,
+              maskedEmail: (error.cause as any).maskedEmail,
+            },
+          };
         }
       }
-
       switch (error.type) {
         case "CredentialsSignin":
           return "Invalid credentials.";
@@ -58,12 +98,54 @@ export async function authenticate(
             const causeError = error.cause.err;
             if (causeError instanceof Error) {
               if (causeError.message === "MFA_REQUIRED_TOTP") {
-                return "MFA_REQUIRED_TOTP";
+                return {
+                  type: "MFA_ERROR",
+                  error: {
+                    message: causeError.message,
+                    availableMethods: (causeError as any).availableMethods,
+                    maskedPhone: (causeError as any).maskedPhone,
+                    maskedEmail: (causeError as any).maskedEmail,
+                  },
+                };
               }
               if (causeError.message === "MFA_REQUIRED_SMS") {
-                return "MFA_REQUIRED_SMS";
+                return {
+                  type: "MFA_ERROR",
+                  error: {
+                    message: causeError.message,
+                    availableMethods: (causeError as any).availableMethods,
+                    maskedPhone: (causeError as any).maskedPhone,
+                    maskedEmail: (causeError as any).maskedEmail,
+                  },
+                };
+              }
+              if (causeError.message === "MFA_REQUIRED_EMAIL") {
+                return {
+                  type: "MFA_ERROR",
+                  error: {
+                    message: causeError.message,
+                    availableMethods: (causeError as any).availableMethods,
+                    maskedPhone: (causeError as any).maskedPhone,
+                    maskedEmail: (causeError as any).maskedEmail,
+                  },
+                };
+              }
+              if (causeError.message === "MFA_REQUIRED_MULTIPLE") {
+                return {
+                  type: "MFA_ERROR",
+                  error: {
+                    message: causeError.message,
+                    availableMethods: (causeError as any).availableMethods,
+                    maskedPhone: (causeError as any).maskedPhone,
+                    maskedEmail: (causeError as any).maskedEmail,
+                  },
+                };
               }
             }
+          }
+          // Check if this is an email verification error
+          if (error.message?.includes("email_not_verified")) {
+            return "Email not verified.";
           }
           return "Invalid credentials.";
         default:
@@ -72,7 +154,7 @@ export async function authenticate(
             return "Email not verified.";
           }
           // Check if this is an admin access required error
-          if (error.message.includes("admin_access_required")) {
+          if (error.message?.includes("admin_access_required")) {
             return "Admin access required.";
           }
           return "Something went wrong.";
@@ -89,6 +171,9 @@ export async function authenticate(
       }
       if (error.message === "MFA_REQUIRED_SMS") {
         return "MFA_REQUIRED_SMS";
+      }
+      if (error.message === "MFA_REQUIRED_EMAIL") {
+        return "MFA_REQUIRED_EMAIL";
       }
     }
 

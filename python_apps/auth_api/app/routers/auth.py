@@ -307,37 +307,61 @@ async def login(
             http_exc.status_code == status.HTTP_400_BAD_REQUEST
             and "MFA code required" in http_exc.detail
         ):
-            if "TOTP or SMS" in http_exc.detail:
-                # Both MFA methods are available
-                try:
-                    from app.services.sms_mfa import sms_mfa_service
+            # Handle multiple MFA methods
+            user = await get_user_by_email(session, login_data.email)
+            if user:
+                # Determine available methods and send codes where applicable
+                available_methods = []
+                headers = {}
 
-                    user = await get_user_by_email(session, login_data.email)
-                    if user and user.sms_mfa_enabled:
+                if user.mfa_enabled and user.mfa_secret:
+                    available_methods.append("TOTP")
+
+                if user.sms_mfa_enabled and user.phone_verified:
+                    available_methods.append("SMS")
+                    try:
+                        from app.services.sms_mfa import sms_mfa_service
+
                         await sms_mfa_service.send_mfa_code(user)
                         logger.info(
-                            f"SMS MFA code sent for login attempt (both methods available): {login_data.email}"
+                            f"SMS MFA code sent for login attempt: {login_data.email}"
                         )
-                except Exception as sms_error:
-                    logger.error(f"Failed to send SMS code during login: {sms_error}")
 
-                # Get masked phone number for display
-                masked_phone = ""
-                if user and user.phone_number:
-                    # Mask the phone number, showing only last 4 digits
-                    cleaned = "".join(filter(str.isdigit, user.phone_number))
-                    if len(cleaned) >= 4:
-                        masked_phone = f"***-***-{cleaned[-4:]}"
+                        # Get masked phone number for display
+                        if user.phone_number:
+                            cleaned = "".join(filter(str.isdigit, user.phone_number))
+                            if len(cleaned) >= 4:
+                                headers["X-Phone-Masked"] = f"***-***-{cleaned[-4:]}"
+                    except Exception as sms_error:
+                        logger.error(
+                            f"Failed to send SMS code during login: {sms_error}"
+                        )
 
-                headers = {"X-MFA-Type": "BOTH", "X-MFA-Methods": "TOTP,SMS"}
-                if masked_phone:
-                    headers["X-Phone-Masked"] = masked_phone
+                if user.email_mfa_enabled:
+                    available_methods.append("Email")
 
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="MFA code required - choose your preferred method",
-                    headers=headers,
-                )
+                    # Get masked email for display (but don't send code yet)
+                    if user.email:
+                        email_parts = user.email.split("@")
+                        if len(email_parts) == 2:
+                            username, domain = email_parts
+                            if len(username) > 2:
+                                masked_username = username[:2] + "*" * (
+                                    len(username) - 2
+                                )
+                            else:
+                                masked_username = "*" * len(username)
+                            headers["X-Email-Masked"] = f"{masked_username}@{domain}"
+
+                if len(available_methods) > 1:
+                    headers["X-MFA-Type"] = "MULTIPLE"
+                    headers["X-MFA-Methods"] = ",".join(available_methods)
+
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="MFA code required - choose your preferred method",
+                        headers=headers,
+                    )
             elif "SMS code required" in http_exc.detail:
                 # SMS MFA only
                 try:
@@ -375,6 +399,31 @@ async def login(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="TOTP code required",
                     headers={"X-MFA-Type": "TOTP"},
+                )
+            elif "Email code required" in http_exc.detail:
+                # Email MFA only
+                user = await get_user_by_email(session, login_data.email)
+
+                # Get masked email for display (but don't send code yet)
+                masked_email = ""
+                if user and user.email:
+                    email_parts = user.email.split("@")
+                    if len(email_parts) == 2:
+                        username, domain = email_parts
+                        if len(username) > 2:
+                            masked_username = username[:2] + "*" * (len(username) - 2)
+                        else:
+                            masked_username = "*" * len(username)
+                        masked_email = f"{masked_username}@{domain}"
+
+                headers = {"X-MFA-Type": "EMAIL"}
+                if masked_email:
+                    headers["X-Email-Masked"] = masked_email
+
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email code required",
+                    headers=headers,
                 )
         raise
     except Exception as e:
@@ -441,6 +490,15 @@ async def login(
         except Exception:
             pass
 
+    # Get grace period information
+    grace_period_info = None
+    try:
+        from app.services.email_mfa import email_mfa_service
+
+        grace_period_info = email_mfa_service.get_grace_period_info(user)
+    except Exception as e:
+        logger.error(f"Error getting grace period info for user {user.id}: {str(e)}")
+
     # Build and return response
     response = {
         "access_token": access_token,
@@ -453,6 +511,10 @@ async def login(
     if password_change_required or is_test_account:
         response = {**response, "password_change_required": True}
         logger.info(f"Password change required for user {login_data.email}")
+
+    # Add grace period information to response
+    if grace_period_info:
+        response["grace_period"] = grace_period_info
 
     return response
 
@@ -525,6 +587,18 @@ async def refresh_token(
             f"WARNING: Session is None in refresh_token endpoint for user ID {user_id}"
         )
 
+    # Get grace period information if user is available
+    grace_period_info = None
+    if user:
+        try:
+            from app.services.email_mfa import email_mfa_service
+
+            grace_period_info = email_mfa_service.get_grace_period_info(user)
+        except Exception as e:
+            logger.error(
+                f"Error getting grace period info for user {user.id}: {str(e)}"
+            )
+
     response = {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -547,6 +621,10 @@ async def refresh_token(
             "password_change_required": True,
             "message": "Your password is temporary and must be changed.",
         }
+
+    # Add grace period information to response
+    if grace_period_info:
+        response["grace_period"] = grace_period_info  # type: ignore
 
     return response
 
@@ -587,90 +665,91 @@ async def logout(
     return {"message": "Successfully logged out"}
 
 
-@router.post("/verify-email")
-async def verify_email(
-    verification_data: EmailVerificationRequest,
-    request: Request,
-    session: AsyncSession = Depends(get_async_session),
-):
-    """Verify user email with token."""
-    import uuid
+# Users are now automatically verified on first temp password use
+# @router.post("/verify-email")
+# async def verify_email(
+#     verification_data: EmailVerificationRequest,
+#     request: Request,
+#     session: AsyncSession = Depends(get_async_session),
+# ):
+#     """Verify user email with token."""
+#     import uuid
 
-    test_uuid = uuid.uuid4()
-    test_uuid_str = str(test_uuid)
+#     test_uuid = uuid.uuid4()
+#     test_uuid_str = str(test_uuid)
 
-    try:
-        token_uuid = uuid.UUID(verification_data.token)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid token format: {str(e)}",
-        )
+#     try:
+#         token_uuid = uuid.UUID(verification_data.token)
+#     except ValueError as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail=f"Invalid token format: {str(e)}",
+#         )
 
-    # Find user with this verification token
-    result = await session.execute(
-        async_select(User).where(User.verification_token == token_uuid)
-    )
-    user = result.scalars().first()
+#     # Find user with this verification token
+#     result = await session.execute(
+#         async_select(User).where(User.verification_token == token_uuid)
+#     )
+#     user = result.scalars().first()
 
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid verification token",
-        )
+#     if not user:
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail="Invalid verification token",
+#         )
 
-    if user.is_verified:
-        return {"message": "Email already verified"}
+#     if user.is_verified:
+#         return {"message": "Email already verified"}
 
-    # Mark user as verified and active
-    stmt = (
-        update(User)
-        .where(User.id == user.id)
-        .values(is_verified=True, status="active", verification_token=None)
-    )
-    await session.execute(stmt)
-    await session.commit()
+#     # Mark user as verified and active
+#     stmt = (
+#         update(User)
+#         .where(User.id == user.id)
+#         .values(is_verified=True, status="active", verification_token=None)
+#     )
+#     await session.execute(stmt)
+#     await session.commit()
 
-    if user.is_password_temporary:
-        from app.services.email_service import send_welcome_email_with_temp_password
-        from app.core.security import get_password_hash
-        from app.core.password_utils import generate_secure_password
+#     if user.is_password_temporary:
+#         from app.services.email_service import send_welcome_email_with_temp_password
+#         from app.core.security import get_password_hash
+#         from app.core.password_utils import generate_secure_password
 
-        name = user.full_name.split()[0] if user.full_name else ""
+#         name = user.full_name.split()[0] if user.full_name else ""
 
-        temp_password = generate_secure_password()
+#         temp_password = generate_secure_password()
 
-        update_stmt = (
-            update(User)
-            .where(User.id == user.id)
-            .values(
-                temporary_hashed_password=get_password_hash(temp_password),
-                temporary_password_expiry=datetime.now(timezone.utc)
-                + timedelta(hours=48),
-            )
-        )
-        await session.execute(update_stmt)
-        await session.commit()
+#         update_stmt = (
+#             update(User)
+#             .where(User.id == user.id)
+#             .values(
+#                 temporary_hashed_password=get_password_hash(temp_password),
+#                 temporary_password_expiry=datetime.now(timezone.utc)
+#                 + timedelta(hours=48),
+#             )
+#         )
+#         await session.execute(update_stmt)
+#         await session.commit()
 
-        try:
-            await send_welcome_email_with_temp_password(user.email, name, temp_password)
-        except Exception as e:
-            print(f"Error sending welcome email after verification: {e}")
+#         try:
+#             await send_welcome_email_with_temp_password(user.email, name, temp_password)
+#         except Exception as e:
+#             print(f"Error sending welcome email after verification: {e}")
 
-    # Log activity
-    try:
-        await log_user_activity(
-            session,
-            user.id,
-            "email_verified",
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
-        )
-    except Exception as e:
-        print(f"Error logging email verification activity: {e}")
-        # Continue even if we couldn't log the activity
+#     # Log activity
+#     try:
+#         await log_user_activity(
+#             session,
+#             user.id,
+#             "email_verified",
+#             ip_address=request.client.host if request.client else None,
+#             user_agent=request.headers.get("user-agent"),
+#         )
+#     except Exception as e:
+#         print(f"Error logging email verification activity: {e}")
+#         # Continue even if we couldn't log the activity
 
-    return {"message": "Email successfully verified"}
+#     return {"message": "Email successfully verified"}
 
 
 class ResendVerificationRequest(BaseModel):
@@ -730,52 +809,53 @@ async def resend_sms_code_for_login(
         )
 
 
-@router.post("/resend-verification")
-@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
-async def resend_verification_email(
-    request: Request,
-    data: ResendVerificationRequest,
-    session: AsyncSession = Depends(get_async_session),
-):
-    result = await session.execute(async_select(User).where(User.email == data.email))
-    user = result.scalars().first()
+# COMMENTED OUT: Resend verification endpoint - users are now automatically verified on first temp password use
+# @router.post("/resend-verification")
+# @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+# async def resend_verification_email(
+#     request: Request,
+#     data: ResendVerificationRequest,
+#     session: AsyncSession = Depends(get_async_session),
+# ):
+#     result = await session.execute(async_select(User).where(User.email == data.email))
+#     user = result.scalars().first()
 
-    if not user:
-        return {
-            "message": "If your email exists in our system, a verification email will be sent."
-        }
+#     if not user:
+#         return {
+#             "message": "If your email exists in our system, a verification email will be sent."
+#         }
 
-    if user.is_verified:
-        return {"message": "Your email is already verified. You can log in now."}
+#     if user.is_verified:
+#         return {"message": "Your email is already verified. You can log in now."}
 
-    if not user.verification_token:
-        import uuid as uuid_module
+#     if not user.verification_token:
+#         import uuid as uuid_module
 
-        user.verification_token = uuid_module.uuid4()
-        session.add(user)
-        await session.commit()
-        await session.refresh(user)
+#         user.verification_token = uuid_module.uuid4()
+#         session.add(user)
+#         await session.commit()
+#         await session.refresh(user)
 
-    from app.services.email_service import send_verification_email
+#     from app.services.email_service import send_verification_email
 
-    name = user.full_name.split()[0] if user.full_name else ""
-    token_str = str(user.verification_token)
-    await send_verification_email(user.email, name, token_str)
+#     name = user.full_name.split()[0] if user.full_name else ""
+#     token_str = str(user.verification_token)
+#     await send_verification_email(user.email, name, token_str)
 
-    try:
-        await log_user_activity(
-            session,
-            user.id,
-            "verification_email_sent",
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
-        )
-    except Exception as e:
-        print(f"Error logging verification email activity: {e}")
+#     try:
+#         await log_user_activity(
+#             session,
+#             user.id,
+#             "verification_email_sent",
+#             ip_address=request.client.host if request.client else None,
+#             user_agent=request.headers.get("user-agent"),
+#         )
+#     except Exception as e:
+#         print(f"Error logging verification email activity: {e}")
 
-    return {
-        "message": "If your email exists in our system, a verification email will be sent."
-    }
+#     return {
+#         "message": "If your email exists in our system, a verification email will be sent."
+#     }
 
 
 @router.post("/forgot-password")
