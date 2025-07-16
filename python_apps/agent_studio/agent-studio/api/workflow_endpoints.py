@@ -25,7 +25,9 @@ def create_workflow(workflow: schemas.WorkflowCreate, db: Session = Depends(get_
     """Create a new workflow with agents and connections"""
     try:
         # Check if workflow with same name and version already exists
-        existing = crud.workflows.get_workflow_by_name(db, workflow.name, workflow.version)
+        existing = crud.workflows.get_workflow_by_name(
+            db, workflow.name, workflow.version
+        )
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -88,7 +90,9 @@ def create_workflow(workflow: schemas.WorkflowCreate, db: Session = Depends(get_
                         workflow_id=db_workflow.workflow_id,
                         source_agent_id=uuid.UUID(source_agent_id),
                         target_agent_id=uuid.UUID(target_agent_id),
-                        connection_type=connection_config.get("connection_type", "default"),
+                        connection_type=connection_config.get(
+                            "connection_type", "default"
+                        ),
                         conditions=connection_config.get("conditions"),
                         priority=connection_config.get("priority", 0),
                         source_handle=connection_config.get("source_handle"),
@@ -103,7 +107,10 @@ def create_workflow(workflow: schemas.WorkflowCreate, db: Session = Depends(get_
         return get_workflow(db_workflow.workflow_id, db)
 
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error creating workflow: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creating workflow: {str(e)}",
+        )
 
 
 @router.get("/", response_model=List[schemas.WorkflowResponse])
@@ -115,7 +122,9 @@ def list_workflows(
     db: Session = Depends(get_db),
 ):
     """List all workflows with optional filters"""
-    workflows = crud.get_workflows(db, skip=skip, limit=limit, is_active=is_active, is_deployed=is_deployed)
+    workflows = crud.get_workflows(
+        db, skip=skip, limit=limit, is_active=is_active, is_deployed=is_deployed
+    )
     return workflows
 
 
@@ -124,7 +133,9 @@ def get_workflow(workflow_id: uuid.UUID, db: Session = Depends(get_db)):
     """Get a specific workflow by ID with all related data"""
     workflow = crud.get_workflow(db, workflow_id)
     if not workflow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
+        )
 
     # Load related data
     workflow_agents = crud.get_workflow_agents(db, workflow_id)
@@ -142,11 +153,17 @@ def get_workflow(workflow_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.put("/{workflow_id}", response_model=schemas.WorkflowResponse)
-def update_workflow(workflow_id: uuid.UUID, workflow_update: schemas.WorkflowUpdate, db: Session = Depends(get_db)):
+def update_workflow(
+    workflow_id: uuid.UUID,
+    workflow_update: schemas.WorkflowUpdate,
+    db: Session = Depends(get_db),
+):
     """Update a workflow"""
     workflow = crud.update_workflow(db, workflow_id, workflow_update)
     if not workflow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
+        )
     return workflow
 
 
@@ -155,22 +172,32 @@ def delete_workflow(workflow_id: uuid.UUID, db: Session = Depends(get_db)):
     """Delete a workflow"""
     success = crud.delete_workflow(db, workflow_id)
     if not success:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
+        )
     return {"message": "Workflow deleted successfully"}
 
 
 @router.post("/{workflow_id}/agents", response_model=schemas.WorkflowAgentResponse)
-def add_agent_to_workflow(workflow_id: uuid.UUID, workflow_agent: schemas.WorkflowAgentCreate, db: Session = Depends(get_db)):
+def add_agent_to_workflow(
+    workflow_id: uuid.UUID,
+    workflow_agent: schemas.WorkflowAgentCreate,
+    db: Session = Depends(get_db),
+):
     """Add an agent to a workflow"""
     # Verify workflow exists
     workflow = crud.get_workflow(db, workflow_id)
     if not workflow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
+        )
 
     # Verify agent exists
     agent = crud.get_agent(db, workflow_agent.agent_id)
     if not agent:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found"
+        )
 
     # Set workflow_id
     workflow_agent.workflow_id = workflow_id
@@ -179,18 +206,27 @@ def add_agent_to_workflow(workflow_id: uuid.UUID, workflow_agent: schemas.Workfl
         db_workflow_agent = crud.create_workflow_agent(db, workflow_agent)
         return db_workflow_agent
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Error adding agent to workflow: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error adding agent to workflow: {str(e)}",
+        )
 
 
-@router.post("/{workflow_id}/connections", response_model=schemas.WorkflowConnectionResponse)
+@router.post(
+    "/{workflow_id}/connections", response_model=schemas.WorkflowConnectionResponse
+)
 def add_connection_to_workflow(
-    workflow_id: uuid.UUID, connection: schemas.WorkflowConnectionCreate, db: Session = Depends(get_db)
+    workflow_id: uuid.UUID,
+    connection: schemas.WorkflowConnectionCreate,
+    db: Session = Depends(get_db),
 ):
     """Add a connection between agents in a workflow"""
     # Verify workflow exists
     workflow = crud.get_workflow(db, workflow_id)
     if not workflow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
+        )
 
     # Set workflow_id
     connection.workflow_id = workflow_id
@@ -199,18 +235,25 @@ def add_connection_to_workflow(
         db_connection = crud.create_workflow_connection(db, connection)
         return db_connection
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Error adding connection to workflow: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error adding connection to workflow: {str(e)}",
+        )
 
 
 @router.post("/{workflow_id}/deploy", response_model=schemas.WorkflowDeploymentResponse)
 def deploy_workflow(
-    workflow_id: uuid.UUID, deployment_request: schemas.WorkflowDeploymentRequest, db: Session = Depends(get_db)
+    workflow_id: uuid.UUID,
+    deployment_request: schemas.WorkflowDeploymentRequest,
+    db: Session = Depends(get_db),
 ):
     """Deploy a workflow"""
     # Verify workflow exists
     workflow = crud.get_workflow(db, workflow_id)
     if not workflow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
+        )
 
     # Create deployment data with workflow_id
     deployment_data = schemas.WorkflowDeploymentCreate(
@@ -226,7 +269,9 @@ def deploy_workflow(
         db_deployment = crud.create_workflow_deployment(db, deployment_data)
 
         # Update workflow's is_deployed flag and deployed_at timestamp
-        workflow_update = schemas.WorkflowUpdate(is_deployed=True, deployed_at=db_deployment.deployed_at)
+        workflow_update = schemas.WorkflowUpdate(
+            is_deployed=True, deployed_at=db_deployment.deployed_at
+        )
         crud.update_workflow(db, workflow_id, workflow_update)
 
         # Build and store the CommandAgent for this deployment
@@ -239,10 +284,15 @@ def deploy_workflow(
 
         return db_deployment
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error deploying workflow: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deploying workflow: {str(e)}",
+        )
 
 
-@router.get("/deployments/active", response_model=List[schemas.WorkflowDeploymentResponse])
+@router.get(
+    "/deployments/active", response_model=List[schemas.WorkflowDeploymentResponse]
+)
 def list_active_deployments(db: Session = Depends(get_db)):
     """List all active workflow deployments"""
     deployments = crud.workflows.get_active_workflow_deployments(db)
@@ -254,9 +304,13 @@ def stop_workflow_deployment(deployment_name: str, db: Session = Depends(get_db)
     """Stop/undeploy a workflow deployment by name"""
     try:
         # Find the deployment by name (try development first, then production)
-        deployment = crud.workflows.get_workflow_deployment_by_name(db, deployment_name, "development")
+        deployment = crud.workflows.get_workflow_deployment_by_name(
+            db, deployment_name, "development"
+        )
         if not deployment:
-            deployment = crud.workflows.get_workflow_deployment_by_name(db, deployment_name, "production")
+            deployment = crud.workflows.get_workflow_deployment_by_name(
+                db, deployment_name, "production"
+            )
 
         if not deployment:
             raise HTTPException(
@@ -266,15 +320,20 @@ def stop_workflow_deployment(deployment_name: str, db: Session = Depends(get_db)
 
         # Update deployment status to inactive
         deployment_update = schemas.WorkflowDeploymentUpdate(status="inactive")
-        updated_deployment = crud.update_workflow_deployment(db, deployment.deployment_id, deployment_update)
+        updated_deployment = crud.update_workflow_deployment(
+            db, deployment.deployment_id, deployment_update
+        )
 
         if not updated_deployment:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to update deployment '{deployment_name}'"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to update deployment '{deployment_name}'",
             )
 
         # Check if there are any other active deployments for this workflow
-        active_deployments = crud.workflows.get_active_workflow_deployments(db, deployment.workflow_id)
+        active_deployments = crud.workflows.get_active_workflow_deployments(
+            db, deployment.workflow_id
+        )
         if not active_deployments:
             # No more active deployments, update workflow's is_deployed flag
             workflow_update = schemas.WorkflowUpdate(is_deployed=False)
@@ -289,21 +348,34 @@ def stop_workflow_deployment(deployment_name: str, db: Session = Depends(get_db)
             "message": f"Deployment '{deployment_name}' stopped successfully",
             "deployment_id": str(updated_deployment.deployment_id),
             "status": updated_deployment.status,
-            "stopped_at": updated_deployment.stopped_at.isoformat() if updated_deployment.stopped_at else None,
+            "stopped_at": (
+                updated_deployment.stopped_at.isoformat()
+                if updated_deployment.stopped_at
+                else None
+            ),
         }
 
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error stopping deployment: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error stopping deployment: {str(e)}",
+        )
 
 
 @router.delete("/deployments/{deployment_name}")
-def delete_workflow_deployment_by_name(deployment_name: str, db: Session = Depends(get_db)):
+def delete_workflow_deployment_by_name(
+    deployment_name: str, db: Session = Depends(get_db)
+):
     """Completely delete a workflow deployment by name"""
     try:
         # Find the deployment by name (try development first, then production)
-        deployment = crud.get_workflow_deployment_by_name(db, deployment_name, "development")
+        deployment = crud.get_workflow_deployment_by_name(
+            db, deployment_name, "development"
+        )
         if not deployment:
-            deployment = crud.get_workflow_deployment_by_name(db, deployment_name, "production")
+            deployment = crud.get_workflow_deployment_by_name(
+                db, deployment_name, "production"
+            )
 
         if not deployment:
             raise HTTPException(
@@ -323,129 +395,179 @@ def delete_workflow_deployment_by_name(deployment_name: str, db: Session = Depen
         success = crud.delete_workflow_deployment(db, deployment_id)
         if not success:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to delete deployment '{deployment_name}'"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to delete deployment '{deployment_name}'",
             )
 
         # Check if there are any other active deployments for this workflow
-        active_deployments = crud.workflows.get_active_workflow_deployments(db, workflow_id)
+        active_deployments = crud.workflows.get_active_workflow_deployments(
+            db, workflow_id
+        )
         if not active_deployments:
             # No more active deployments, update workflow's is_deployed flag
             workflow_update = schemas.WorkflowUpdate(is_deployed=False)
             crud.update_workflow(db, workflow_id, workflow_update)
 
-        return {"message": f"Deployment '{deployment_name}' deleted successfully", "deployment_id": str(deployment_id)}
+        return {
+            "message": f"Deployment '{deployment_name}' deleted successfully",
+            "deployment_id": str(deployment_id),
+        }
 
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error deleting deployment: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting deployment: {str(e)}",
+        )
 
 
 @router.post("/{workflow_id}/execute", response_model=schemas.WorkflowExecutionResponse)
 def execute_workflow(
-    workflow_id: uuid.UUID, execution_request: schemas.WorkflowExecutionRequest, db: Session = Depends(get_db)
+    workflow_id: uuid.UUID,
+    execution_request: schemas.WorkflowExecutionRequest,
+    db: Session = Depends(get_db),
 ):
-    """Execute a deployed workflow by workflow ID"""
+    """Execute a workflow by workflow ID (supports both single and multi-agent workflows)"""
     # Verify workflow exists
     workflow = crud.get_workflow(db, workflow_id)
     if not workflow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
-
-    # Find the latest active deployment for this workflow
-    deployment = crud.get_active_workflow_deployment_by_workflow_id(db, workflow_id, "production")
-    if not deployment:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active deployment found for this workflow")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
+        )
 
     try:
-        # Check if workflow is in memory (ACTIVE_WORKFLOWS) using deployment name
-        deployment_name = deployment.deployment_name
-        if deployment_name in ACTIVE_WORKFLOWS:
-            # Use in-memory deployment
-            deployment_info = ACTIVE_WORKFLOWS[deployment_name]
-            command_agent = deployment_info["command_agent"]
+        # Determine if this is a single-agent or multi-agent workflow
+        agents = workflow.configuration.get("agents", [])
+        is_single_agent = len(agents) == 1
+
+        if is_single_agent:
+            # Single-agent workflow - execute agent directly with its own prompt
+            agent_config = agents[0]
+            agent_type = agent_config.get("agent_type", "CommandAgent")
+
+            if agent_type == "ToshibaAgent":
+                # Build ToshibaAgent directly
+                agent = _build_toshiba_agent_from_workflow(db, workflow, agent_config)
+            else:
+                # Build other single agents directly
+                agent = _build_single_agent_from_workflow(db, workflow, agent_config)
+
+            # Execute the agent directly (preserves agent's own prompt)
+            result = agent.execute(
+                query=execution_request.query,
+                chat_history=execution_request.chat_history,
+            )
         else:
-            # Build command agent on-demand from database
+            # Multi-agent workflow - use CommandAgent for orchestration
             command_agent = _build_command_agent_from_workflow(db, workflow)
 
-        # Execute the workflow
-        result = command_agent.execute(query=execution_request.query)
-
-        # Update deployment statistics
-        deployment.execution_count += 1
-        deployment.last_executed = datetime.now()
-        db.commit()
+            # Execute via CommandAgent
+            if execution_request.chat_history:
+                result = command_agent.execute_stream(
+                    execution_request.query, execution_request.chat_history
+                )
+            else:
+                result = command_agent.execute(query=execution_request.query)
 
         return schemas.WorkflowExecutionResponse(
             status="success",
             response=result,
-            workflow_id=str(deployment.workflow_id),
-            deployment_id=str(deployment.deployment_id),
+            workflow_id=str(workflow_id),
+            deployment_id=None,  # No deployment check for now
             timestamp=datetime.now().isoformat(),
         )
 
     except Exception as e:
-        # Update error statistics
-        deployment.error_count += 1
-        deployment.last_error = str(e)
-        db.commit()
-
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error executing workflow: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error executing workflow: {str(e)}",
+        )
 
 
 @router.post("/{workflow_id}/stream")
 async def execute_workflow_stream(
-    workflow_id: uuid.UUID, execution_request: schemas.WorkflowStreamExecutionRequest, db: Session = Depends(get_db)
+    workflow_id: uuid.UUID,
+    execution_request: schemas.WorkflowStreamExecutionRequest,
+    db: Session = Depends(get_db),
 ):
-    """Execute a deployed workflow with streaming responses by workflow ID"""
+    """Execute a workflow with streaming responses by workflow ID (supports both single and multi-agent workflows)"""
     # Verify workflow exists
     workflow = crud.get_workflow(db, workflow_id)
     if not workflow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
-
-    # Find the latest active deployment for this workflow
-    deployment = crud.get_active_workflow_deployment_by_workflow_id(db, workflow_id, "production")
-    if not deployment:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active deployment found for this workflow")
-
-    # Check if workflow is in memory (ACTIVE_WORKFLOWS) using deployment name
-    deployment_name = deployment.deployment_name
-    if deployment_name in ACTIVE_WORKFLOWS:
-        # Use in-memory deployment
-        deployment_info = ACTIVE_WORKFLOWS[deployment_name]
-        command_agent = deployment_info["command_agent"]
-    else:
-        # Build command agent on-demand from database
-        command_agent = _build_command_agent_from_workflow(db, workflow)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
+        )
 
     async def stream_generator():
         """Generate streaming response chunks"""
         try:
             # Send initial status
-            yield f"data: {json.dumps({'status': 'started', 'workflow_id': str(deployment.workflow_id), 'timestamp': datetime.now().isoformat()})}\n"
+            yield f"data: {json.dumps({'status': 'started', 'workflow_id': str(workflow_id), 'timestamp': datetime.now().isoformat()})}\n\n"
 
-            # Execute the workflow with streaming
-            if execution_request.chat_history:
-                # Use streaming execution with chat history
-                for chunk in command_agent.execute_stream(execution_request.query, execution_request.chat_history):
-                    if chunk:
-                        # Wrap each chunk in a structured format
-                        yield f"data: {json.dumps({'type': 'content', 'data': chunk, 'timestamp': datetime.now().isoformat()})}\n"
-                        # Small delay to prevent overwhelming the client
-                        await asyncio.sleep(0.01)
+            # Determine if this is a single-agent or multi-agent workflow
+            agents = workflow.configuration.get("agents", [])
+            is_single_agent = len(agents) == 1
+
+            if is_single_agent:
+                # Single-agent workflow - execute agent directly with its own prompt
+                agent_config = agents[0]
+                agent_type = agent_config.get("agent_type", "CommandAgent")
+
+                if agent_type == "ToshibaAgent":
+                    # Build ToshibaAgent directly
+                    agent = _build_toshiba_agent_from_workflow(
+                        db, workflow, agent_config
+                    )
+                else:
+                    # Build other single agents directly
+                    agent = _build_single_agent_from_workflow(
+                        db, workflow, agent_config
+                    )
+
+                # Check if agent has streaming capability
+                if hasattr(agent, "execute_stream") and callable(
+                    getattr(agent, "execute_stream")
+                ):
+                    # Use agent's streaming execution
+                    for chunk in agent.execute_stream(
+                        execution_request.query, execution_request.chat_history
+                    ):
+                        if chunk:
+                            yield f"data: {json.dumps({'type': 'content', 'data': chunk, 'timestamp': datetime.now().isoformat()})}\n\n"
+                            await asyncio.sleep(0.01)
+                else:
+                    # Fallback to regular execution
+                    result = agent.execute(
+                        query=execution_request.query,
+                        chat_history=execution_request.chat_history,
+                    )
+                    yield f"data: {json.dumps({'type': 'content', 'data': result, 'timestamp': datetime.now().isoformat()})}\n\n"
             else:
-                # For non-streaming execution, we'll simulate streaming by chunking the response
-                result = command_agent.execute(query=execution_request.query)
+                # Multi-agent workflow - use CommandAgent for orchestration
+                command_agent = _build_command_agent_from_workflow(db, workflow)
 
-                # Send the result as a single chunk
-                yield f"data: {json.dumps({'type': 'content', 'data': result, 'timestamp': datetime.now().isoformat()})}\n"
+                # Execute with streaming
+                if execution_request.chat_history:
+                    # Use streaming execution with chat history
+                    for chunk in command_agent.execute_stream(
+                        execution_request.query, execution_request.chat_history
+                    ):
+                        if chunk:
+                            yield f"data: {json.dumps({'type': 'content', 'data': chunk, 'timestamp': datetime.now().isoformat()})}\n\n"
+                            await asyncio.sleep(0.01)
+                else:
+                    # For non-streaming execution, simulate streaming by chunking the response
+                    result = command_agent.execute(query=execution_request.query)
+                    yield f"data: {json.dumps({'type': 'content', 'data': result, 'timestamp': datetime.now().isoformat()})}\n\n"
 
             # Send completion status
-            yield f"data: {json.dumps({'status': 'completed', 'workflow_id': str(deployment.workflow_id), 'timestamp': datetime.now().isoformat()})}\n"
+            yield f"data: {json.dumps({'status': 'completed', 'workflow_id': str(workflow_id), 'timestamp': datetime.now().isoformat()})}\n\n"
 
         except Exception as e:
             # Send error as final chunk
             error_chunk = {
                 "status": "error",
                 "error": str(e),
-                "workflow_id": str(deployment.workflow_id),
+                "workflow_id": str(workflow_id),
                 "timestamp": datetime.now().isoformat(),
             }
             yield f"data: {json.dumps(error_chunk)}\n\n"
@@ -460,6 +582,31 @@ async def execute_workflow_stream(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+def _build_toshiba_agent_from_workflow(db: Session, workflow, agent_config):
+    """Build ToshibaAgent from workflow configuration"""
+    from agents.toshiba_agent import create_toshiba_agent
+    from prompts import toshiba_agent_system_prompt
+    from agents.tools import tool_schemas
+
+    # Get ToshibaAgent-specific configuration
+    functions = (
+        [tool_schemas.get("query_retriever2")]
+        if "query_retriever2" in tool_schemas
+        else []
+    )
+
+    return create_toshiba_agent(
+        system_prompt=toshiba_agent_system_prompt, functions=functions
+    )
+
+
+def _build_single_agent_from_workflow(db: Session, workflow, agent_config):
+    """Build a single agent from workflow configuration"""
+    # For now, fall back to CommandAgent for other single-agent types
+    # This can be extended for other specific agent types
+    return _build_command_agent_from_workflow(db, workflow)
 
 
 def _build_command_agent_from_workflow(db: Session, workflow) -> CommandAgent:
