@@ -1,10 +1,10 @@
+import { executeWorkflowModern } from "@/lib/actions";
+import { AlertCircle, Bot, User } from "lucide-react";
 import React, { useState } from "react";
+import { useWorkflows } from "../ui/contexts/WorkflowsContext";
 import "./AgentTestingPanel.scss";
 import AgentWorkflowDetailsModal from "./AgentWorkflowDetailsModal";
-import { useWorkflows } from "../ui/contexts/WorkflowsContext";
-import { executeWorkflowModern } from "@/lib/actions";
-import { ChatMessage } from "./type";
-import { AlertCircle, Bot, User } from "lucide-react";
+import { type ChatMessage } from "./type";
 
 const rows = [
 	{
@@ -39,7 +39,7 @@ const rows = [
 	},
 ]
 
-const AgentTestingPanel = ({ workflowId } : { workflowId: string }) => {
+function AgentTestingPanel({ workflowId } : { workflowId: string }) {
 	const { expandChat, setExpandChat } = useWorkflows();
 	const [showAgentWorkflowModal, setShowAgentWorkflowModal] = useState(false);
 	const [showAgentWorkflowDetails, setShowAgentWorkflowDetails] = useState(true);
@@ -170,10 +170,12 @@ const AgentTestingPanel = ({ workflowId } : { workflowId: string }) => {
 								{expandChat ? (
 									<svg width="17" height="18" viewBox="0 0 17 18" fill="none" xmlns="http://www.w3.org/2000/svg">
 										<path d="M2.83773 10.417H7.08773M7.08773 10.417V14.667M7.08773 10.417L2.12939 15.3753M14.1711 7.58364H9.92106M9.92106 7.58364V3.33364M9.92106 7.58364L14.8794 2.62531" stroke="#4D4D50" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+										<path d="M2.83773 10.417H7.08773M7.08773 10.417V14.667M7.08773 10.417L2.12939 15.3753M14.1711 7.58364H9.92106M9.92106 7.58364V3.33364M9.92106 7.58364L14.8794 2.62531" stroke="#4D4D50" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
 									</svg>
 								) : (
 									<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 										<g opacity="0.8">
+											<path d="M10.6667 5.33333L14 2M14 2H10.6667M14 2V5.33333M5.33333 5.33333L2 2M2 2L2 5.33333M2 2L5.33333 2M5.33333 10.6667L2 14M2 14H5.33333M2 14L2 10.6667M10.6667 10.6667L14 14M14 14V10.6667M14 14H10.6667" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 											<path d="M10.6667 5.33333L14 2M14 2H10.6667M14 2V5.33333M5.33333 5.33333L2 2M2 2L2 5.33333M2 2L5.33333 2M5.33333 10.6667L2 14M2 14H5.33333M2 14L2 10.6667M10.6667 10.6667L14 14M14 14V10.6667M14 14H10.6667" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 										</g>
 									</svg>
@@ -207,7 +209,7 @@ const AgentTestingPanel = ({ workflowId } : { workflowId: string }) => {
 								<button onClick={() => setShowAgentWorkflowDetails(!showAgentWorkflowDetails)}>
 									<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 										<g opacity="0.8">
-											<path d="M4 6L8 10L12 6" stroke="#212124" stroke-width="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+											<path d="M4 6L8 10L12 6" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 										</g>
 									</svg>
 								</button>
@@ -246,6 +248,7 @@ const AgentTestingPanel = ({ workflowId } : { workflowId: string }) => {
 						<div className="actions flex items-center gap-2 absolute right-6 top-1/2 -translate-y-1/2">
 							<button>
 								<svg width="11" height="18" viewBox="0 0 11 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+									<path d="M9.31548 3.64493L9.67967 12.8244C9.72434 13.949 9.3204 15.0452 8.55677 15.8719C7.79314 16.6987 6.73236 17.1882 5.60778 17.2328C4.48324 17.2774 3.38701 16.8735 2.56027 16.1098C1.73353 15.3462 1.24405 14.2854 1.19941 13.1608L0.835202 3.98139C0.805476 3.23167 1.07478 2.50085 1.58384 1.94972C2.09295 1.39854 2.80014 1.07219 3.54981 1.04248C4.29954 1.01272 5.03037 1.28199 5.58152 1.79107C6.13268 2.30016 6.459 3.00737 6.48873 3.75709L6.84814 12.9417C6.86302 13.3166 6.72835 13.682 6.47381 13.9576C6.21927 14.2331 5.86569 14.3963 5.49083 14.4112C5.11597 14.4261 4.75061 14.2915 4.47499 14.0369C4.19943 13.7823 4.03626 13.4287 4.02137 13.0539L3.6901 4.57843" stroke="#FF681F" strokeWidth="1.06028" strokeLinecap="round" strokeLinejoin="round"/>
 									<path d="M9.31548 3.64493L9.67967 12.8244C9.72434 13.949 9.3204 15.0452 8.55677 15.8719C7.79314 16.6987 6.73236 17.1882 5.60778 17.2328C4.48324 17.2774 3.38701 16.8735 2.56027 16.1098C1.73353 15.3462 1.24405 14.2854 1.19941 13.1608L0.835202 3.98139C0.805476 3.23167 1.07478 2.50085 1.58384 1.94972C2.09295 1.39854 2.80014 1.07219 3.54981 1.04248C4.29954 1.01272 5.03037 1.28199 5.58152 1.79107C6.13268 2.30016 6.459 3.00737 6.48873 3.75709L6.84814 12.9417C6.86302 13.3166 6.72835 13.682 6.47381 13.9576C6.21927 14.2331 5.86569 14.3963 5.49083 14.4112C5.11597 14.4261 4.75061 14.2915 4.47499 14.0369C4.19943 13.7823 4.03626 13.4287 4.02137 13.0539L3.6901 4.57843" stroke="#FF681F" strokeWidth="1.06028" strokeLinecap="round" strokeLinejoin="round"/>
 								</svg>
 							</button>

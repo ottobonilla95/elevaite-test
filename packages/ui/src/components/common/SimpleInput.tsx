@@ -21,7 +21,7 @@ interface SimpleInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEleme
     onKeyDown?: (key: string, event: KeyboardEvent<HTMLInputElement>) => void;
 }
 
-export function SimpleInput({ autoSize, wrapperClassName, useCommonStyling, leftIcon, hideLeftIcon, rightIcon, bottomRightIcon, inlinePrompts, hideRightIcon, passedRef, value, onChange, onKeyDown, ...props }: SimpleInputProps): JSX.Element {
+export function SimpleInput({ autoSize, wrapperClassName, useCommonStyling, leftIcon, hideLeftIcon, rightIcon, inlinePrompts, hideRightIcon, passedRef, value, onChange, onKeyDown, ...props }: SimpleInputProps): JSX.Element {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const textMeasureRef = useRef<HTMLSpanElement | null>(null);
     const [inputWidth, setInputWidth] = useState<string | undefined>(undefined);
@@ -48,8 +48,6 @@ export function SimpleInput({ autoSize, wrapperClassName, useCommonStyling, left
     }
 
 
-
-    console.log("values", value, value.length)
 
 
     return (
