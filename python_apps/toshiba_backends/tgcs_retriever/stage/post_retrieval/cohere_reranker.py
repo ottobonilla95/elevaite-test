@@ -235,7 +235,7 @@ def dynamic_keyword_boost(query: str, final_chunks: List[Dict], final_scores: Li
             boosted_scores.append(score)
     return boosted_scores
 
-def rerank_separately_then_merge(query: str, top_k: int = 30, machine_types: Optional[List[str]] = None) -> Tuple[List[Dict], List[float]]:
+def rerank_separately_then_merge(query: str, top_k: int = 30, machine_types: Optional[List[str]] = None, collection_id: Optional[str] = None) -> Tuple[List[Dict], List[float]]:
     """
     1. Semantic retrieval + rerank
     2. Exact match retrieval + rerank
@@ -246,7 +246,7 @@ def rerank_separately_then_merge(query: str, top_k: int = 30, machine_types: Opt
     final_chunks: List[Dict] = []
     final_scores: List[float] = []
 
-    semantic_chunks = retrieve_chunks_semantic(query, top_k=top_k, machine_types=machine_types)
+    semantic_chunks = retrieve_chunks_semantic(query, top_k=top_k, machine_types=machine_types, collection_id=collection_id)
     semantic_texts = [c["chunk_text"] for c in semantic_chunks]
     _, semantic_values = rerank_text_chunks(query, semantic_texts)
 
@@ -262,7 +262,7 @@ def rerank_separately_then_merge(query: str, top_k: int = 30, machine_types: Opt
     if part_numbers:
         payload_chunks = []
         for pn in part_numbers:
-            payload_chunks.extend(retrieve_by_payload(pn, top_k=top_k, machine_types=machine_types))
+            payload_chunks.extend(retrieve_by_payload(pn, top_k=top_k, machine_types=machine_types, collection_id=collection_id))
 
         payload_chunks = [c for c in payload_chunks if c["chunk_id"] not in seen_ids]
         payload_texts = [c["chunk_text"] for c in payload_chunks]
@@ -279,7 +279,7 @@ def rerank_separately_then_merge(query: str, top_k: int = 30, machine_types: Opt
     #3 ---
     keywords = extract_keywords(query)
     if keywords:
-        sparse_chunks = retrieve_by_keywords(keywords, top_k=30, machine_types=machine_types)
+        sparse_chunks = retrieve_by_keywords(keywords, top_k=30, machine_types=machine_types, collection_id=collection_id)
         sparse_chunks = [c for c in sparse_chunks if c["chunk_id"] not in seen_ids]
         sparse_texts = [c["chunk_text"] for c in sparse_chunks]
 
@@ -297,7 +297,7 @@ def rerank_separately_then_merge(query: str, top_k: int = 30, machine_types: Opt
     if mtm_numbers:
         payload_chunks = []
         for pn in mtm_numbers:
-            payload_chunks.extend(retrieve_by_payload(pn, top_k=top_k, machine_types=machine_types))
+            payload_chunks.extend(retrieve_by_payload(pn, top_k=top_k, machine_types=machine_types, collection_id=collection_id))
 
         payload_chunks = [c for c in payload_chunks if c["chunk_id"] not in seen_ids]
         payload_texts = [c["chunk_text"] for c in payload_chunks]

@@ -17,9 +17,9 @@ import openai
 
 STOPWORDS = set(nltk.corpus.stopwords.words('english'))
 
-load_dotenv("stage/.env")
+# load_dotenv("stage/.env")
 # TBD - REMOVE BELOW LINE AFTER TESTING THE FUNCTION
-# load_dotenv(".env")
+load_dotenv(".env")
 # load_dotenv("../.env")
 api_key = os.getenv("OPENAI_API_KEY")
 
@@ -47,16 +47,7 @@ def get_embedding(text: str) -> List[float]:
 # qdrant_port = qdrant_config.get("port")
 # collection_name = qdrant_config.get("collection_name")
 
-qdrant_url = "http://3.101.65.253"
-qdrant_port = 5333
-collection_name = "toshiba_demo_4"
 
-
-# qdrant_url = "http://3.101.65.253"
-# qdrant_port = 5333
-# collection_name = "toshiba_walgreen"
-
-client = QdrantClient(url=qdrant_url, port=qdrant_port, timeout=300.0, check_compatibility=False)
 
 def extract_part_numbers(text: str) -> List[str]:
     patterns = [
@@ -115,7 +106,13 @@ def process_match(match) -> Dict:
         "matched_image_path": image_path
     }
 
-def retrieve_chunks_semantic(query: str, top_k: int = 30, machine_types: Optional[List[str]] = None) -> List[Dict]:
+def retrieve_chunks_semantic(query: str, top_k: int = 30, machine_types: Optional[List[str]] = None, collection_id: Optional[str] = None) -> List[Dict]:
+    qdrant_url = "http://3.101.65.253"
+    qdrant_port = 5333
+    collection_name = "toshiba_demo_4" if not collection_id else collection_id
+    print("Collection id in semantic: ",collection_id)
+
+    client = QdrantClient(url=qdrant_url, port=qdrant_port, timeout=300.0, check_compatibility=False)
     try:
         query_embedding = get_embedding(query)
 
@@ -202,7 +199,13 @@ def retrieve_chunks_semantic(query: str, top_k: int = 30, machine_types: Optiona
 #         # logger.error(f"Semantic search failed: {str(e)}")
 #         return []
 
-def retrieve_by_payload(part_number: str, top_k: int = 20, machine_types: Optional[List[str]] = None) -> List[Dict]:
+def retrieve_by_payload(part_number: str, top_k: int = 20, machine_types: Optional[List[str]] = None, collection_id: Optional[str] = None) -> List[Dict]:
+    qdrant_url = "http://3.101.65.253"
+    qdrant_port = 5333
+    collection_name = "toshiba_demo_4" if not collection_id else collection_id
+    print("Collection id in payload: ", collection_id)
+
+    client = QdrantClient(url=qdrant_url, port=qdrant_port, timeout=300.0, check_compatibility=False)
     if machine_types:
         filters = models.Filter(should=[
             models.Filter(must=[
@@ -316,9 +319,16 @@ def retrieve_by_payload(part_number: str, top_k: int = 20, machine_types: Option
 #     except Exception as e:
 #         # logger.error(f"Sparse keyword retrieval failed: {str(e)}")
 #         return []
-def retrieve_by_keywords(keywords: List[str], top_k: int = 20, machine_types: Optional[List[str]] = None) -> List[Dict]:
+def retrieve_by_keywords(keywords: List[str], top_k: int = 20, machine_types: Optional[List[str]] = None, collection_id: Optional[str] = None) -> List[Dict]:
     if not keywords:
         return []
+
+    qdrant_url = "http://3.101.65.253"
+    qdrant_port = 5333
+    collection_name = "toshiba_demo_4" if not collection_id else collection_id
+    print("Collection id in keyword: ", collection_id)
+
+    client = QdrantClient(url=qdrant_url, port=qdrant_port, timeout=300.0, check_compatibility=False)
 
     # print("Keywords: ", keywords)
     # print("Machine type: ", machine_types)
