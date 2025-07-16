@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from db.database import get_db
-from db import crud, schemas
+from db import crud, schemas, models
 from agents.command_agent import CommandAgent
 from agents import agent_schemas
 from prompts import command_agent_system_prompt
@@ -602,11 +602,63 @@ def _build_toshiba_agent_from_workflow(db: Session, workflow, agent_config):
     )
 
 
-def _build_single_agent_from_workflow(db: Session, workflow, agent_config):
-    """Build a single agent from workflow configuration"""
-    # For now, fall back to CommandAgent for other single-agent types
-    # This can be extended for other specific agent types
-    return _build_command_agent_from_workflow(db, workflow)
+def _build_single_agent_from_workflow(
+    db: Session, workflow: models.Workflow, agent_config
+):
+    """Build a single agent from workflow configuration using its configured prompt and tools"""
+    from agents.agent_base import Agent
+
+    # Get agent type and ID from config
+    agent_type = agent_config.get("agent_type", "CommandAgent")
+    agent_id = agent_config.get("agent_id")
+
+    # Try to get the agent from database if agent_id is provided
+    db_agent = None
+    if agent_id:
+        try:
+            db_agent = crud.get_agent(db, uuid.UUID(agent_id))
+        except (ValueError, TypeError):
+            # If agent_id is invalid, try to find by name
+            db_agent = crud.get_agent_by_name(db, agent_type)
+    else:
+        # Find agent by type/name
+        db_agent = crud.get_agent_by_name(db, agent_type)
+
+    if not db_agent:
+        # Fallback to CommandAgent if agent not found
+        return _build_command_agent_from_workflow(db, workflow)
+
+    # Build generic agent using database configuration with proper type casting
+    from typing import cast
+    from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
+
+    return Agent(
+        name=db_agent.name,
+        agent_id=db_agent.agent_id,
+        system_prompt=db_agent.system_prompt,  # Uses agent's configured prompt
+        persona=db_agent.persona,
+        functions=cast(
+            List[ChatCompletionToolParam], db_agent.functions or []
+        ),  # Uses agent's configured tools
+        routing_options=db_agent.routing_options or {},
+        model=db_agent.model or "gpt-4o-mini",
+        temperature=db_agent.temperature or 0.7,
+        short_term_memory=db_agent.short_term_memory or False,
+        long_term_memory=db_agent.long_term_memory or False,
+        reasoning=db_agent.reasoning or False,
+        input_type=["text", "voice"],  # Use safe defaults
+        output_type=["text", "voice"],  # Use safe defaults
+        response_type="json",  # Use safe default
+        max_retries=db_agent.max_retries or 3,
+        timeout=db_agent.timeout,
+        deployed=True,
+        status="active",
+        priority=db_agent.priority,
+        failure_strategies=db_agent.failure_strategies or [],
+        session_id=None,
+        last_active=datetime.now(),
+        collaboration_mode="single",  # Use safe default
+    )
 
 
 def _build_command_agent_from_workflow(db: Session, workflow) -> CommandAgent:
