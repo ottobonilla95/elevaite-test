@@ -81,7 +81,7 @@ function PromptRightSidebarTestingConsole(): JSX.Element {
 					<button className="font-medium text-sm px-4 py-3 flex items-center gap-2" onClick={handleAddTab}>
 						<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 							<g opacity="0.56">
-								<path d="M8.00016 3.33301V12.6663M3.3335 7.99967H12.6668" stroke="#212124" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+								<path d="M8.00016 3.33301V12.6663M3.3335 7.99967H12.6668" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
 							</g>
 						</svg>
 						Add input

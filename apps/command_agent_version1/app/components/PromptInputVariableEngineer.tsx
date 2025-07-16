@@ -126,7 +126,7 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 						<div>{props.name}</div>
 						<button onClick={handleEditVariable} title="Edit Variable">
 							<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-								<path d="M14.0003 14H8.66701M1.66699 14.3334L5.36651 12.9105C5.60313 12.8195 5.72145 12.774 5.83214 12.7146C5.93046 12.6618 6.02419 12.6009 6.11235 12.5324C6.21161 12.4554 6.30124 12.3658 6.48051 12.1865L14.0003 4.66671C14.7367 3.93033 14.7367 2.73642 14.0003 2.00004C13.264 1.26366 12.0701 1.26366 11.3337 2.00004L3.81385 9.51985C3.63458 9.69912 3.54494 9.78876 3.46792 9.88801C3.39951 9.97617 3.33859 10.0699 3.28582 10.1682C3.2264 10.2789 3.18089 10.3972 3.08988 10.6339L1.66699 14.3334ZM1.66699 14.3334L3.03907 10.766C3.13726 10.5107 3.18635 10.3831 3.27055 10.3246C3.34414 10.2735 3.43519 10.2542 3.52319 10.271C3.62388 10.2902 3.72058 10.3869 3.91398 10.5803L5.42004 12.0864C5.61344 12.2798 5.71014 12.3765 5.72937 12.4772C5.74617 12.5652 5.72685 12.6562 5.67576 12.7298C5.61729 12.814 5.48965 12.8631 5.23437 12.9613L1.66699 14.3334Z" stroke="#212124" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+								<path d="M14.0003 14H8.66701M1.66699 14.3334L5.36651 12.9105C5.60313 12.8195 5.72145 12.774 5.83214 12.7146C5.93046 12.6618 6.02419 12.6009 6.11235 12.5324C6.21161 12.4554 6.30124 12.3658 6.48051 12.1865L14.0003 4.66671C14.7367 3.93033 14.7367 2.73642 14.0003 2.00004C13.264 1.26366 12.0701 1.26366 11.3337 2.00004L3.81385 9.51985C3.63458 9.69912 3.54494 9.78876 3.46792 9.88801C3.39951 9.97617 3.33859 10.0699 3.28582 10.1682C3.2264 10.2789 3.18089 10.3972 3.08988 10.6339L1.66699 14.3334ZM1.66699 14.3334L3.03907 10.766C3.13726 10.5107 3.18635 10.3831 3.27055 10.3246C3.34414 10.2735 3.43519 10.2542 3.52319 10.271C3.62388 10.2902 3.72058 10.3869 3.91398 10.5803L5.42004 12.0864C5.61344 12.2798 5.71014 12.3765 5.72937 12.4772C5.74617 12.5652 5.72685 12.6562 5.67576 12.7298C5.61729 12.814 5.48965 12.8631 5.23437 12.9613L1.66699 14.3334Z" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 							</svg>
 						</button>
 					</div>
@@ -154,13 +154,13 @@ const PromptInputVariableEngineer = (props: PromptInputVariableEngineerProps) =>
 							<div className="flex items-center gap-2">
 								<button onClick={handleSaveVariable} disabled={!allFilled} title="Save Variable">
 									<svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-										<path d="M16.8 5.69971L8 14.4997L4 10.4997" stroke="#FF681F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+										<path d="M16.8 5.69971L8 14.4997L4 10.4997" stroke="#FF681F" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
 									</svg>
 								</button>
 								{edit && (
 									<button onClick={handleCancelEditVariable} title="Cancel Edit">
 										<svg width="12" height="13" viewBox="0 0 12 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-											<path d="M11 1.5L1 11.5M1 1.5L11 11.5" stroke="#FF681F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+											<path d="M11 1.5L1 11.5M1 1.5L11 11.5" stroke="#FF681F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
 										</svg>
 									</button>
 								)}

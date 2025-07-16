@@ -81,7 +81,7 @@ const PromptRightSidebarTabs = () => {
 											<button onClick={() => setShowVersionsDropdown(!showVersionsDropdown)}>
 												<svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
 													<g clipPath="url(#clip0_1492_7596)">
-														<path d="M8.59991 4.1999V8.3999L11.3999 9.7999M15.5999 8.3999C15.5999 12.2659 12.4659 15.3999 8.59991 15.3999C4.73392 15.3999 1.59991 12.2659 1.59991 8.3999C1.59991 4.53391 4.73392 1.3999 8.59991 1.3999C12.4659 1.3999 15.5999 4.53391 15.5999 8.3999Z" stroke="#6C8271" strokeWidth="1.4" stroke-linecap="round" stroke-linejoin="round" />
+														<path d="M8.59991 4.1999V8.3999L11.3999 9.7999M15.5999 8.3999C15.5999 12.2659 12.4659 15.3999 8.59991 15.3999C4.73392 15.3999 1.59991 12.2659 1.59991 8.3999C1.59991 4.53391 4.73392 1.3999 8.59991 1.3999C12.4659 1.3999 15.5999 4.53391 15.5999 8.3999Z" stroke="#6C8271" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
 													</g>
 													<defs>
 														<clipPath id="clip0_1492_7596">

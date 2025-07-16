@@ -27,7 +27,7 @@ const SingleCheckbox = ({title, page, checkedPages, onChange}: SingleCheckboxPro
 				<span>4 versions</span>
 				<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
 					<g opacity="0.56">
-						<path d="M5.42004 7.57007L10.28 12.4301L15.14 7.57007" stroke="#212124" stroke-width="1.215" stroke-linecap="round" stroke-linejoin="round"/>
+						<path d="M5.42004 7.57007L10.28 12.4301L15.14 7.57007" stroke="#212124" strokeWidth="1.215" strokeLinecap="round" strokeLinejoin="round"/>
 					</g>
 				</svg>
 			</button>
@@ -99,7 +99,7 @@ const PromptRightSidebarTestingConsoleNavigation = () => {
 							<button onClick={handlePageChange} className="current-page flex justify-between items-center rounded-md px-3 py-2 text-sm w-[300px]">
 								{'page ' + promptsContext.currentPage}
 								<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-									<path d="M3.5 5.25L7 8.75L10.5 5.25" stroke="#4A5567" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+									<path d="M3.5 5.25L7 8.75L10.5 5.25" stroke="#4A5567" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
 								</svg>
 							</button>
 							{isPagesDropdownVisible && (

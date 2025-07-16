@@ -128,7 +128,7 @@ function PromptDetailView({ prompt, onBack, disabledFields }: PromptDetailViewPr
 					<div className="left flex items-center justify-between gap-2">
 						<div className="icon-container">
 							<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-								<path d="M11 20.7412C16.3799 20.7412 20.7412 16.3799 20.7412 11C20.7412 5.62008 16.3799 1.25879 11 1.25879C5.62008 1.25879 1.25879 5.62008 1.25879 11C1.25879 12.7743 1.73316 14.4378 2.56199 15.8706L1.74585 20.2542L6.1294 19.4381C7.56221 20.2668 9.22575 20.7412 11 20.7412Z" stroke="#FE854B" stroke-width="1.46118" stroke-linecap="round" stroke-linejoin="round"/>
+								<path d="M11 20.7412C16.3799 20.7412 20.7412 16.3799 20.7412 11C20.7412 5.62008 16.3799 1.25879 11 1.25879C5.62008 1.25879 1.25879 5.62008 1.25879 11C1.25879 12.7743 1.73316 14.4378 2.56199 15.8706L1.74585 20.2542L6.1294 19.4381C7.56221 20.2668 9.22575 20.7412 11 20.7412Z" stroke="#FE854B" strokeWidth="1.46118" strokeLinecap="round" strokeLinejoin="round"/>
 							</svg>
 						</div>
 						<div>
@@ -142,9 +142,9 @@ function PromptDetailView({ prompt, onBack, disabledFields }: PromptDetailViewPr
 						</button>
 						<button>
 							<svg width="4" height="18" viewBox="0 0 4 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-								<path d="M2 10C2.55228 10 3 9.55228 3 9C3 8.44772 2.55228 8 2 8C1.44772 8 1 8.44772 1 9C1 9.55228 1.44772 10 2 10Z" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-								<path d="M2 3C2.55228 3 3 2.55228 3 2C3 1.44772 2.55228 1 2 1C1.44772 1 1 1.44772 1 2C1 2.55228 1.44772 3 2 3Z" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-								<path d="M2 17C2.55228 17 3 16.5523 3 16C3 15.4477 2.55228 15 2 15C1.44772 15 1 15.4477 1 16C1 16.5523 1.44772 17 2 17Z" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+								<path d="M2 10C2.55228 10 3 9.55228 3 9C3 8.44772 2.55228 8 2 8C1.44772 8 1 8.44772 1 9C1 9.55228 1.44772 10 2 10Z" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+								<path d="M2 3C2.55228 3 3 2.55228 3 2C3 1.44772 2.55228 1 2 1C1.44772 1 1 1.44772 1 2C1 2.55228 1.44772 3 2 3Z" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+								<path d="M2 17C2.55228 17 3 16.5523 3 16C3 15.4477 2.55228 15 2 15C1.44772 15 1 15.4477 1 16C1 16.5523 1.44772 17 2 17Z" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 							</svg>
 						</button>
 						<button className="btn-toggle" onClick={ () => setSidebarRightOpen(!sidebarRightOpen) }>

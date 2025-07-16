@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
+import { ToastContainer } from 'react-toastify';
 import PromptDashboard from "../components/PromptDashboard";
 import "./page.scss";
-import { ToastContainer } from 'react-toastify';
 
 const CloseButton = ({ closeToast }) => (
 	<button onClick={closeToast	}>

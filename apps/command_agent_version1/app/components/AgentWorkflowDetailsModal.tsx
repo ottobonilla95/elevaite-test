@@ -17,7 +17,7 @@ const AnalysisCol = () => {
 
 				<svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
 					<g opacity="0.8">
-						<path d="M4 6.5L8 10.5L12 6.5" stroke="#212124" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+						<path d="M4 6.5L8 10.5L12 6.5" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 					</g>
 				</svg>
 			</button>
@@ -58,7 +58,7 @@ const AgentWorkflowDetailsModal = ({ onClose }: AgentWorkflowDetailsModalProps) 
 				<h2 className="text-lg font-medium">Agent Workflow Details</h2>
 				<button onClick={onClose}>
 					<svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M15 5.5L5 15.5M5 5.5L15 15.5" stroke="#97A3B6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+						<path d="M15 5.5L5 15.5M5 5.5L15 15.5" stroke="#97A3B6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 					</svg>
 				</button>
 			</div>
@@ -69,7 +69,7 @@ const AgentWorkflowDetailsModal = ({ onClose }: AgentWorkflowDetailsModalProps) 
 						<button>
 							<svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
 								<g opacity="0.8">
-									<path d="M4 6.5L8 10.5L12 6.5" stroke="#212124" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+									<path d="M4 6.5L8 10.5L12 6.5" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 								</g>
 							</svg>
 						</button>
@@ -100,7 +100,7 @@ const AgentWorkflowDetailsModal = ({ onClose }: AgentWorkflowDetailsModalProps) 
 						<button>
 							<svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
 								<g opacity="0.8">
-									<path d="M4 6.5L8 10.5L12 6.5" stroke="#212124" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+									<path d="M4 6.5L8 10.5L12 6.5" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 								</g>
 							</svg>
 						</button>
@@ -126,7 +126,7 @@ const AgentWorkflowDetailsModal = ({ onClose }: AgentWorkflowDetailsModalProps) 
 				<div className="flex items-center justify-between">
 					<div>Input</div>
 					<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M7 5L10.5 1.5M10.5 1.5H7.5M10.5 1.5V4.5M5 7L1.5 10.5M1.5 10.5H4.5M1.5 10.5L1.5 7.5" stroke="black" stroke-linecap="round" stroke-linejoin="round"/>
+						<path d="M7 5L10.5 1.5M10.5 1.5H7.5M10.5 1.5V4.5M5 7L1.5 10.5M1.5 10.5H4.5M1.5 10.5L1.5 7.5" stroke="black" strokeLinecap="round" strokeLinejoin="round"/>
 					</svg>
 				</div>
 				<div className="mt-2">Raw Invoice Text</div>
@@ -136,7 +136,7 @@ const AgentWorkflowDetailsModal = ({ onClose }: AgentWorkflowDetailsModalProps) 
 				<div className="flex items-center justify-between">
 					<div>Output</div>
 					<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M7 5L10.5 1.5M10.5 1.5H7.5M10.5 1.5V4.5M5 7L1.5 10.5M1.5 10.5H4.5M1.5 10.5L1.5 7.5" stroke="black" stroke-linecap="round" stroke-linejoin="round"/>
+						<path d="M7 5L10.5 1.5M10.5 1.5H7.5M10.5 1.5V4.5M5 7L1.5 10.5M1.5 10.5H4.5M1.5 10.5L1.5 7.5" stroke="black" strokeLinecap="round" strokeLinejoin="round"/>
 					</svg>
 				</div>
 				<div className="mt-2">{'{"total": "$325.00"}'}</div>
