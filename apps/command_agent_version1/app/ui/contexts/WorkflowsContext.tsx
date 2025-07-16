@@ -1,8 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { getWorkflows, getWorkflowDetails, createWorkflow, updateWorkflow, deleteWorkflow, deployWorkflowModern } from "../../lib/actions";
-import type { SavedWorkflow, WorkflowResponse, WorkflowCreateRequest, WorkflowDeployment, WorkflowDeploymentRequest } from "../../lib/interfaces";
+import { getWorkflows, getWorkflowDetails, createWorkflow, updateWorkflow, deleteWorkflow, deployWorkflowModern, getChatDetails } from "../../lib/actions";
+import type { SavedWorkflow, WorkflowResponse, WorkflowCreateRequest, WorkflowDeployment, WorkflowDeploymentRequest, WorkflowExecuteResponseObject } from "../../lib/interfaces";
 
 interface WorkflowsContextType {
 	// State
@@ -19,6 +19,7 @@ interface WorkflowsContextType {
 	deployWorkflowAndRefresh: (workflowId: string, deploymentData: WorkflowDeploymentRequest) => Promise<WorkflowDeployment>;
 	getWorkflowById: (workflowId: string) => SavedWorkflow | undefined;
 	getWorkflowDetails: (workflowId: string) => Promise<WorkflowResponse>;
+	executeWorkflowToGetChatDetails: (workflowId: string) => Promise<WorkflowExecuteResponseObject | null>;
 
 	// Filters
 	filteredWorkflows: SavedWorkflow[];
@@ -75,6 +76,20 @@ export function WorkflowsProvider({
 	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
 	const [expandChat, setExpandChat] = useState(false);
+
+	// Get chat details
+	async function executeWorkflowToGetChatDetails(workflowId: string): Promise<WorkflowExecuteResponseObject | null> {
+		setIsLoading(true);
+		try {
+		  const result = await getChatDetails(workflowId);
+		  return result;
+		} catch (error) {
+		  console.error("Going to the previous page failed:", error);
+		  return null;
+		} finally {
+		  setIsLoading(false);
+		}
+	  }
 
 	// Fetch workflows function
 	const refreshWorkflows = useCallback(async () => {
@@ -297,6 +312,7 @@ export function WorkflowsProvider({
 		deployWorkflowAndRefresh,
 		getWorkflowById,
 		getWorkflowDetails: getWorkflowDetailsById,
+		executeWorkflowToGetChatDetails,
 
 		// Filters
 		filteredWorkflows,

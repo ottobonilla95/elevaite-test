@@ -1,14 +1,12 @@
 import React, { useState } from "react";
-import PromptRightSidebarTestingConsole from "../../PromptRightSidebarTestingConsole";
-import PromptLoading from "../../PromptLoading";
-import PromptRightColToggleVisilityStatus from "../../PromptRightColToggleVisilityStatus";
-import PromptInputVariableEngineer from "../../PromptInputVariableEngineer";
-import { PromptInputEngineer } from "../../PromptInputEngineer";
+import { usePrompt } from "@/ui/contexts/PromptContext";
+import PromptRightColToggleVisilityStatus from "@/components/PromptRightColToggleVisilityStatus";
+import { PromptInputEngineer } from "@/components/PromptInputEngineer";
+import PromptRightSidebarTestingConsole from "@/components/PromptRightSidebarTestingConsole";
+import PromptRightSidebarTabs from "@/components/PromptRightSidebarTabs";
 import PromptDetailActionButtons from "./PromptDetailActionButtons";
-import PromptRightSidebarTabs from "../../PromptRightSidebarTabs";
-import { PromptInput } from "../../PromptInput";
-import { LoadingKeys, usePrompt } from "../../../ui/contexts/PromptContext";
-import "../../PromptDashboard";
+import PromptInputVariableEngineer from "@/components/PromptInputVariableEngineer";
+import "app/components/PromptDashboard.scss"
 
 function PromptDetailTestingConsole() {
 	const [activeTab, setActiveTab] = useState("tab1"); //variables
@@ -22,21 +20,8 @@ function PromptDetailTestingConsole() {
 		}
 	}
 
-	function handleReset(): void {
-		console.log("Reset!");
-		promptContext.handleReset();
-	}
-
-	function handleRun(): void {
-		promptContext.run();
-	}
-
-	function handleDeploy(): void {
-		promptContext.deploy();
-	}
-
 	return (
-		<div>
+		<div className="w-full flex flex-col">
 			<div className="prompt-col prompt-right flex-1 flex flex-col rounded-2xl bg-white overflow-y-auto">
 				<div className="flex flex-1 gap-2 p-2 h-full min-h-0">
 					<div className={`card relative ${promptContext.isRightColOutputColExpanded ? 'hidden' : 'flex'} flex-col flex-1 bg-white rounded-xl`}>

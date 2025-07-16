@@ -46,7 +46,14 @@
 	@include scrollbar(#71717366, #71717326);
 
 	&.editing {
+		display: flex;
 		width: 840px;
+
+		.config-panel {
+			display: flex;
+			width: 100%;
+		}
+
 	}
 
 	&.shrinked {

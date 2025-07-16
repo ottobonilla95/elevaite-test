@@ -100,17 +100,14 @@ function ToolsTab({
             </button>
 
             {toolsOpen ? <div>
-
-				<MockupTools />
-
                 {/* Selected Tools */}
                 {selectedFunctions.length > 0 && (
                     <div className="flex flex-wrap">
                         {selectedFunctions.map(func => (
-                            <div key={func.function.name} className="flex flex-col gap-3 p-2">
+                            <div key={func.function.name} className="flex flex-col gap-3">
                                 <div className="flex justify-between">
                                     <div
-                                        className="flex items-center gap-2 rounded-md bg-[#FF681F1F] text-[#FF681F] py-1 pr-[10px] pl-2"
+                                        className="flex items-center gap-2 rounded-md text-xs bg-[#FF681F1F] text-[#FF681F] py-1 pr-[10px] pl-2"
                                     >
                                         {getToolIcon(func.function.name)}
                                         <span className="tool-name">{func.function.name}</span>
@@ -124,7 +121,7 @@ function ToolsTab({
                                         <Trash2 size={16} />
                                     </button> : null}
                                 </div>
-                                <span className="text-xs text-[#212124]">{func.function.description}</span>
+                                <span className="text-xs text-gray-500">{func.function.description}</span>
                             </div>
                         ))}
                     </div>

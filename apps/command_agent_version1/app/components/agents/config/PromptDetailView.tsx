@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight, ArrowLeft, PenLine } from "lucide-react";
 import { type PromptResponse, type PromptUpdate, type PromptCreate } from "../../../lib/interfaces";
-import { usePrompts } from "../../../ui/contexts/PromptsContext";
-import { useAgents } from "../../../ui/contexts/AgentsContext";
 import PromptDetailEditingForm from "./PromptDetailEditingForm";
-import PromptDetailTestingConsole from "./PromptDetailTestingConsole";
+import PromptDetailTestingConsole from "@/components/agents/config/PromptDetailTestingConsole";
+import { usePrompts } from "@/ui/contexts/PromptsContext";
+import { useAgents } from "@/ui/contexts/AgentsContext";
+import { PromptContextProvider } from "@/ui/contexts/PromptContext";
+
 
 interface PromptDetailViewProps {
     prompt: PromptResponse;
@@ -120,7 +122,7 @@ function PromptDetailView({ prompt, onBack, disabledFields }: PromptDetailViewPr
     };
 
 	return(
-		<div>
+		<div className="flex flex-col h-full">
 			<div className="prompt-details config-panel-header">
 				<div className="flex flex-1 items-center justify-between">
 					<div className="left flex items-center justify-between gap-2">
@@ -152,7 +154,7 @@ function PromptDetailView({ prompt, onBack, disabledFields }: PromptDetailViewPr
 				</div>
 			</div>
 			{isEditingPrompt ? (
-				<div className="tabs-wrapper flex flex-col w-full bg-white">
+				<div className="tabs-wrapper flex flex-col grow w-full bg-white">
 					<div className="tabs flex my-1 text-xs text-gray-500 font-medium h-[34px]">
 						<div className="tabs-inner p-1 flex flex-1">
 							<button className={`tab rounded-sm px-2 flex-1${ 'tab1' == activeTab ? ' tab-active text-orange-500 bg-white' : '' }`} onClick={() => setActiveTab("tab1")}>
@@ -172,10 +174,11 @@ function PromptDetailView({ prompt, onBack, disabledFields }: PromptDetailViewPr
 							</div>
 						)}
 						{activeTab === "tab2" && (
-							<div className="tab-panel mt-4 flex-col flex-grow">
-								<div className="tab-content">
-									{/* <PromptDetailTestingConsole /> */}
-									content here
+							<div className="tab-panel mt-4 flex flex-col flex-grow w-full">
+								<div className="tab-content flex w-full h-full">
+									<PromptContextProvider>
+										<PromptDetailTestingConsole />
+									</PromptContextProvider>
 								</div>
 							</div>
 						)}

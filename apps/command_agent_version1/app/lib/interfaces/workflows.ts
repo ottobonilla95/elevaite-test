@@ -185,3 +185,12 @@ export interface SavedWorkflow {
   agent_count?: number;
   connection_count?: number;
 }
+
+export interface WorkflowExecuteResponseObject {
+  status: string;
+  response: string;
+  execution_id: string,
+  workflow_id: string,
+  deployment_id: string,
+  timestamp: string
+}

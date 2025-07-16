@@ -53,9 +53,9 @@ function WorkflowsTab({
 	}
 
 	/*For testing*/
-	useEffect(() => {
+	/* useEffect(() => {
 	  setWorkflows(mockupWorkflows);
-	}, []);
+	}, []); */
 	/*For testing*/
 
     const handleDeleteWorkflow = async (workflowId: string): Promise<void> => {
@@ -148,6 +148,7 @@ function WorkflowsTab({
                     savedWorkflows.map((workflow) => (
                         <div
                             key={workflow.workflow_id}
+							data-test1={`workflow-item-${workflow.workflow_id}`}
                             className="workflow-item border border-gray-200 rounded-xl py-3 px-4 hover:border-orange-300 transition-colors cursor-pointer"
                             onClick={() => void handleLoadWorkflow(workflow)}
                             onKeyDown={(e) => {

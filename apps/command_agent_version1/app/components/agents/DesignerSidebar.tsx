@@ -103,16 +103,16 @@ function DesignerSidebar({
 	}, [searchQuery, setContextSearchQuery]);
 
 	// Filter agents based on search query and agent types
-	/* const filteredAgents = contextFilteredAgents.filter((agent): agent is AgentResponse & { agent_type: AgentType } =>
+	const filteredAgents = contextFilteredAgents.filter((agent): agent is AgentResponse & { agent_type: AgentType } =>
 		isValidAgentType(agent.agent_type) &&
 		['router', 'web_search', 'api', 'data', 'toshiba'].includes(agent.agent_type)
-	); */
+	);
 
 	/*Testing*/
-	useEffect(() => {
+	/* useEffect(() => {
 		setAgents(mockupAgents)
 	}, []);
-	const filteredAgents = agents;
+	const filteredAgents = agents; */
 	/*Testing*/
 
 	const [sidebarOpen, setSidebarOpen] = useState(true);
