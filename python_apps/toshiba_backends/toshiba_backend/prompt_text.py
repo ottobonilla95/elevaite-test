@@ -676,6 +676,10 @@ VALID LIST OF CUSTOMERS THAT HAVE A DATABASE:
 10. BJs or BJ's
 11. Alex Lee
 12. Badger
+13. Best Buy
+14. GNC
+15. Coach
+16. CAM
 
 If a query comes in for a customer, always use the customer retriever tool to search and then answer the question.
 

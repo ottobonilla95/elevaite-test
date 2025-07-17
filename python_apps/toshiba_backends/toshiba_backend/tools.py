@@ -189,6 +189,11 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
     12. Badger: toshiba_badger
     13. Best Buy: toshiba_best_buy
     14. GNC: toshiba_GNC
+    15. Coach: toshiba_coach
+    16. QuickChek: toshiba_quickchek
+    16. CAM: toshiba_cameras_al
+    17. Hudson News: toshiba_hudson_news
+    18. IDKIDS: toshiba_idkids
 
     Use toshiba_demo_4 if the customer retriever fails to return any relevant results
 

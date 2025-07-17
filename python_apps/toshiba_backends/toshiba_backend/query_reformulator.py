@@ -69,7 +69,7 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
 
     ### CUSTOMER NAMES:
     Walgreens, Kroger, Sam's Club (Sams), Tractor Supply, Dollar General, Wegmans, Ross, Costco, Whole Foods, BJ's, Alex Lee, Badger,
-    Best Buy, GNC.
+    Best Buy, GNC, QuickChek, CAM, Hudson News, Coach, IDKIDS.
 
     ### DO NOT EXPAND:
     - Invalid machine types (not in the list)
@@ -108,7 +108,7 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
     Chat History: {chat_history}
     
     IMPORTANT:
-    - If the query begins with "KG:" or "SQL:", do not rewrite it. These are special queries that should be passed through exactly.
+    - If the query begins with "KG:", "CAM: " or "SQL:", do not rewrite it. These are special queries that should be passed through exactly.
     - For example, if the query is "KG: What are the SR tickets closed on 2024-11-06 and who resolved them?", do not rewrite it.
 
     Rewrite the query as follows:
