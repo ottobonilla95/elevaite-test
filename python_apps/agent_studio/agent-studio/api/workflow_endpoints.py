@@ -524,14 +524,23 @@ def execute_workflow(
         # Ensure response is in JSON format expected by frontend
         import json
 
-        if isinstance(result, str):
-            # Wrap plain text response in JSON format
-            formatted_response = json.dumps({"content": result})
-        else:
-            # If already a dict/object, convert to JSON string
-            formatted_response = (
-                json.dumps(result) if not isinstance(result, str) else result
-            )
+        def safe_json_serialize(obj):
+            """Safely serialize object to JSON, handling generators and other non-serializable types"""
+            try:
+                if isinstance(obj, str):
+                    return json.dumps({"content": obj})
+                elif isinstance(obj, (dict, list, int, float, bool)) or obj is None:
+                    return json.dumps(obj)
+                elif hasattr(obj, "__iter__") and not isinstance(obj, str):
+                    # Handle generators and other iterables
+                    return json.dumps({"content": str(list(obj))})
+                else:
+                    return json.dumps({"content": str(obj)})
+            except (TypeError, ValueError) as e:
+                # Fallback for any remaining serialization issues
+                return json.dumps({"content": str(obj), "serialization_error": str(e)})
+
+        formatted_response = safe_json_serialize(result)
 
         return schemas.WorkflowExecutionResponse(
             status="success",
@@ -810,7 +819,20 @@ def _build_dynamic_agent_store(db: Session, workflow):
                             agent = _build_single_agent_from_workflow(
                                 db, workflow, {"agent_id": str(agent_id)}
                             )
-                            return agent.execute(query=query, enable_analytics=False)
+                            result = agent.execute(query=query, enable_analytics=False)
+
+                            # Ensure result is JSON serializable
+                            if isinstance(result, (dict, list)):
+                                import json
+
+                                return json.dumps(result)
+                            elif hasattr(result, "__iter__") and not isinstance(
+                                result, str
+                            ):
+                                # Handle generators and other iterables
+                                return str(list(result))
+                            else:
+                                return str(result)
                         except Exception as e:
                             return f"Error executing agent: {str(e)}"
 
