@@ -1,0 +1,84 @@
+
+
+.tools-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    & > button {
+        margin: 0;
+    }
+
+    & .tools-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+
+        & .tools-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+
+            & .tool-name {
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            & .tool-description {
+                white-space: pre-wrap;
+                max-width: 100%;
+                display: -webkit-box;
+                -webkit-line-clamp: 5;
+                line-clamp: 5;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                text-align: start;
+            }
+        }
+    }
+
+    & .scroller  {
+        overflow-y: auto;
+        max-height: 400px;
+
+        @include scrollbar();
+    }
+
+
+    & .item-text-container {
+        & > span {
+            word-break: break-word;
+            // overflow-wrap: anywhere;
+        }
+
+        & .item-text-overflow {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+}
+
+
+.common-modal-contents {
+    & .common-dialog-contents {
+        max-width: 900px;
+
+        & .controls-container {
+            justify-content: flex-end;
+
+            color: var(--ev-colors-primary);
+        }
+    }
+}
+
+.description-dialog {
+    overflow-y: auto;
+    white-space: pre-wrap;
+
+    @include scrollbar();
+}

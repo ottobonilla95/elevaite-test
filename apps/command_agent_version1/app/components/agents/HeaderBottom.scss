@@ -24,19 +24,31 @@
 			height: 32px;
 			border: none;
 			border-radius: 50%;
+
+			&:hover {
+				svg {
+					stroke: var(--ev-colors-highlight);
+					// fill: var(--orange);
+				}
+			}
 		}
 
 		.active {
-			background-color: white;
-			border: 1px solid #E2E8ED;
-			color: var(--orange)
+			background-color: var(--ev-colors-background);
+			border: 1px solid var(--ev-colors-borderColor);
+			color: var(--ev-colors-highlight)
 		}
+	}
 
-		&:hover {
-			path {
-				stroke: var(--orange);
-				fill: var(--orange);
-			}
+	& .action-button {
+		background-color: var(--ev-colors-highlight);
+		color: var(--ev-colors-primary);
+		padding: 0.4rem 1rem;
+
+		&.secondary {
+			background-color: var(--ev-colors-primary);
+			color: var(--ev-colors-highlight);
+			border: 1px solid var(--ev-colors-highlight);
 		}
 	}
 }

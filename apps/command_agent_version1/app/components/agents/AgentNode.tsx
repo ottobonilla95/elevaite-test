@@ -6,6 +6,7 @@ import { PenLine, Trash2, EllipsisVertical, GripHorizontal } from "lucide-react"
 import "./AgentNode.scss";
 import { type AgentNodeData, type ChatCompletionToolParam } from "../../lib/interfaces";
 import { getAgentIcon, getToolIcon } from "./iconUtils";
+import { CommonButton } from "@repo/ui/components";
 
 interface NodeProps {
     id: string;
@@ -14,7 +15,7 @@ interface NodeProps {
 }
 
 const AgentNode = memo(({ id, data, selected }: NodeProps) => {
-    const { type, name, tools = [], config, onDelete, onConfigure, agent } = data;
+    const { type, name, tools = [], config, onDelete, onAction, agent } = data;
     // const styles = AGENT_STYLES[type] || { bgClass: "bg-gray-100", textClass: "text-gray-600" };
 
     // Extract tool names from ChatCompletionToolParam array
@@ -26,10 +27,36 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
         onDelete(id);
     };
 
-    const handleOpenConfig = (e: React.MouseEvent): void => {
+    function handlePanelView(e: React.MouseEvent): void {
         e.stopPropagation();
-        onConfigure(id);
-    };
+        handleAction("config");
+    }
+
+    function handleToolsView(e: React.MouseEvent): void {
+        e.stopPropagation();
+        handleAction("tools");
+    }
+
+    function handlePanelEdit(e: React.MouseEvent): void {
+        e.stopPropagation();
+        handleAction("configEdit");
+    }
+
+    function handleToolsEdit(e: React.MouseEvent): void {
+        e.stopPropagation();
+        handleAction("toolsEdit");
+    }
+
+    function handleAction(action: string): void {
+        if (onAction) onAction(id, action);
+    }
+
+    // const handleOpenConfig = (e: React.MouseEvent): void => {
+    //     e.stopPropagation();
+    //     onConfigure(id);
+    // };
+
+    
 
     // Get model display name
     const getModelName = (): string => {
@@ -55,7 +82,7 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
                 </div>
                 <div className="agent-controls pt-3">
                     <button
-                        onClick={handleOpenConfig}
+                        onClick={handlePanelEdit}
                         className="control-button edit-button"
                         type="button"
                     >
@@ -68,20 +95,22 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
                     >
                         <Trash2 size={16} />
                     </button>
-                    <button
+                    {/* <button
                         onClick={(e) => { e.stopPropagation(); }}
                         className="control-button disabled-button"
                         type="button"
                         disabled
                     >
                         <EllipsisVertical size={16} />
-                    </button>
+                    </button> */}
                 </div>
             </div>
 
             {/* Badge section */}
             <div className="agent-badges px-4 border-gray-200 border-b-[1px] py-1">
-                <span className="badge">{getModelName()}</span>
+                <CommonButton className="pill-button" onClick={handlePanelView}>
+                    <span className="badge">{getModelName()}</span>
+                </CommonButton>
             </div>
 
             {/* Tools Section */}
@@ -90,7 +119,7 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
                     <div className="tools-header">
                         <span className="tools-title">Tools</span>
                         <button
-                            onClick={handleOpenConfig}
+                            onClick={handleToolsEdit}
                             className="edit-tools-button"
                             type="button"
                         >
@@ -99,10 +128,12 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
                     </div>
                     <div className="tools-list">
                         {toolNames.map((toolName, index) => (
-                            <span key={`tool-${index.toString()}`} className="tool-badge">
-                                {getToolIcon(toolName)}
-                                <span className="tool-name">{toolName}</span>
-                            </span>
+                            <CommonButton key={`tool-${index.toString()}`} className="pill-button" onClick={handleToolsView}>
+                                <span className="tool-badge">
+                                    {getToolIcon(toolName)}
+                                    <span className="tool-name">{toolName}</span>
+                                </span>
+                            </CommonButton>
                         ))}
                     </div>
                 </div>

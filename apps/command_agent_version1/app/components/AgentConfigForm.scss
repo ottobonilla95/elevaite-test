@@ -57,7 +57,13 @@
 	}
 
 	&.shrinked {
-		width: 40px;
+    width: 60px;
+    height: auto;
+    min-height: 85px;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 
 		.config-panel {
 			padding: 16px 0;
@@ -79,6 +85,7 @@
 
 		.config-panel-header {
 			justify-content: center;
+      margin-bottom: 0;
 		}
 	}
 

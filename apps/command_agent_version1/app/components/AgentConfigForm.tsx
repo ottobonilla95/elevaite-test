@@ -1,26 +1,26 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // eslint-disable-next-line import/named -- Seems to be a problem with eslint
-import { v4 as uuidv4 } from "uuid";
 import { ReactFlowProvider, type ReactFlowInstance } from "react-flow-renderer";
-import { type AgentConfigData, type AgentResponse, type AgentCreate, type AgentUpdate, type AgentFunction, type ChatCompletionToolParam, type Edge, type Node, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowResponse, type WorkflowDeployment } from "../lib/interfaces";
-import { mapActionTypeToConnectionType, mapConnectionTypeToActionType } from "../lib/interfaces/workflows";
+import { v4 as uuidv4 } from "uuid";
 import { getWorkflowDeploymentDetails } from "../lib/actions";
-import { useWorkflows } from "../ui/contexts/WorkflowsContext";
-import { useAgents } from "../ui/contexts/AgentsContext";
 import { isAgentResponse } from "../lib/discriminators";
-import DesignerSidebar from "./agents/DesignerSidebar";
-import DesignerCanvas from "./agents/DesignerCanvas";
-import ConfigPanel from "./agents/ConfigPanel";
+import { type AgentConfigData, type AgentCreate, type AgentFunction, type AgentResponse, type AgentUpdate, type ChatCompletionToolParam, type Edge, type Node, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowDeployment, type WorkflowResponse } from "../lib/interfaces";
+import { mapActionTypeToConnectionType, mapConnectionTypeToActionType } from "../lib/interfaces/workflows";
+import { useAgents } from "../ui/contexts/AgentsContext";
+import { usePrompts } from "../ui/contexts/PromptsContext.tsx";
+import { useWorkflows } from "../ui/contexts/WorkflowsContext";
 import AgentConfigModal from "./agents/AgentConfigModal";
-import ChatSidebar from "./agents/ChatSidebar";
 import ChatInterface from "./agents/ChatInterface";
+import ChatSidebar from "./agents/ChatSidebar";
+import ConfigPanel, { type ConfigPanelHandle } from "./agents/ConfigPanel";
+import DesignerCanvas from "./agents/DesignerCanvas";
+import DesignerSidebar from "./agents/DesignerSidebar";
 // Import styles
 import "./AgentConfigForm.scss";
 import HeaderBottom from "./agents/HeaderBottom.tsx";
 import AgentTestingPanel from "./AgentTestingPanel.tsx";
-import { usePrompts } from "../ui/contexts/PromptsContext.tsx";
 
 // TODO: Implement chat functionality
 // interface ChatMessage {
@@ -95,6 +95,7 @@ function convertConfigToAgentCreate(
 function AgentConfigForm(): JSX.Element {
 	// First, let's handle the client-side initialization properly
 	const [mounted, setMounted] = useState(false);
+	const panelRef = useRef<ConfigPanelHandle>(null);
 
 	// Use workflows context
 	const {
@@ -254,6 +255,17 @@ function AgentConfigForm(): JSX.Element {
 			setShowConfigPanel(false);
 		}
 	}, [selectedNode]);
+	
+	const handleNodeAction = useCallback((_nodeId: string, action: string) => {
+		panelRef.current?.showPromptDetail(); 
+		switch (action) {
+			case "tools": panelRef.current?.setTab("tools"); panelRef.current?.disableEdit(); break;
+			case "config": panelRef.current?.setTab("config"); panelRef.current?.disableEdit(); break;
+			case "toolsEdit": panelRef.current?.setTab("tools"); panelRef.current?.enableEdit(); break;
+			case "configEdit": panelRef.current?.setTab("config"); panelRef.current?.enableEdit(); break;
+			default: break;
+		}
+	}, [selectedNode]);
 
 	// Handle dropping an agent onto the canvas
 	const onDrop = useCallback(
@@ -299,6 +311,7 @@ function AgentConfigForm(): JSX.Element {
 						prompt: "", // Initialize with empty prompt
 						tools: agentData.functions, // ChatCompletionToolParam array
 						tags: [agentData.agent_type ?? "custom"], // Initialize tags with the type
+						onAction: handleNodeAction,
 						onDelete: handleDeleteNode,
 						onConfigure: () => {
 							handleNodeSelect({
@@ -313,6 +326,7 @@ function AgentConfigForm(): JSX.Element {
 									prompt: agentData.system_prompt.prompt || "",
 									tools: agentData.functions, // ChatCompletionToolParam array
 									tags: [agentData.agent_type ?? "custom"],
+									onAction: handleNodeAction,
 									onDelete: handleDeleteNode,
 									// eslint-disable-next-line @typescript-eslint/no-empty-function -- Will be overwritten
 									onConfigure: () => { }, // This will be overwritten
@@ -631,6 +645,22 @@ function AgentConfigForm(): JSX.Element {
 		void createWorkflowAndRefresh(workflow);
 	};
 
+	function handleClearAll(): void {		
+		setNodes([]);
+		setEdges([]);
+		setSelectedNode(null);
+		setShowConfigPanel(false);
+		setWorkflowName("");
+		setWorkflowDescription("");
+		setWorkflowTags([]);
+		setCurrentWorkflowData(null);
+		setIsExistingWorkflow(false);
+		setHasUnsavedChanges(false);
+		setLastSavedState("");
+		setDeploymentStatus({ isDeployed: false });
+		setDeploymentResult(null);
+	}
+
 	// Create a new workflow
 	const handleCreateNewWorkflow = () => {
 		workflowIdRef.current = uuidv4();
@@ -699,7 +729,7 @@ function AgentConfigForm(): JSX.Element {
 	}, [nodes]);
 
 	// Create a new empty agent on the canvas
-	const handleCreateNewAgent = () => {
+	function handleCreateNewAgent(): void {
 		if (!reactFlowWrapper.current || !reactFlowInstanceRef.current) {
 			console.error("React Flow wrapper or instance not ready");
 			return;
@@ -778,6 +808,7 @@ function AgentConfigForm(): JSX.Element {
 				prompt: "",
 				tools: [],
 				tags: ["new"],
+				onAction: handleNodeAction,
 				onDelete: handleDeleteNode,
 				onConfigure: () => {
 					handleNodeSelect(newNode);
@@ -804,7 +835,7 @@ function AgentConfigForm(): JSX.Element {
 	};
 
 	// Load an existing workflow
-	const handleLoadWorkflow = (workflowDetails: WorkflowResponse) => {
+	function handleLoadWorkflow(workflowDetails: WorkflowResponse): void {
 		try {
 			// Set workflow metadata
 			workflowIdRef.current = workflowDetails.workflow_id;
@@ -834,7 +865,8 @@ function AgentConfigForm(): JSX.Element {
 							prompt: agent.system_prompt.prompt || "",
 							tools: agent.functions ?? [], // Keep as ChatCompletionToolParam array
 							tags: [agent.agent_type ?? "custom"],
-							config: { model: agent.system_prompt.ai_model_name, agentName: agent.name, deploymentType: "", modelProvider: agent.system_prompt.ai_model_provider, outputFormat: "", selectedTools: agent.functions },
+							config: { model: agent.system_prompt.ai_model_name, agentName: agent.name, deploymentType: "", modelProvider: agent.system_prompt.ai_model_provider, outputFormat: "", selectedTools: agent.functions },							
+							onAction: handleNodeAction,
 							onDelete: handleDeleteNode,
 							onConfigure: () => { handleNodeSelect(newNode); },
 							agent
@@ -1038,6 +1070,7 @@ function AgentConfigForm(): JSX.Element {
 				isLoading={isLoading}
 				onSaveWorkflow={handleSaveWorkflowCallback}
 				onDeployWorkflow={handleDeployWorkflowCallback}
+				onClearAll={handleClearAll}
 				// New props for advanced deployment flow
 				isExistingWorkflow={isExistingWorkflow}
 				hasUnsavedChanges={hasUnsavedChanges}
@@ -1086,6 +1119,7 @@ function AgentConfigForm(): JSX.Element {
 								{/* Configuration Panel - shown when a node is selected */}
 								{showConfigPanel && selectedNode ? <div className={`config-panel-container${!sidebarRightOpen ? ' shrinked' : ''}${isEditingPrompt ? ' editing' : ''}`}>
 									<ConfigPanel
+										ref={panelRef}
 										agent={selectedNode.data}
 										agentConfig={selectedNode.data.config}
 										agentName={selectedNode.data.name}
@@ -1150,8 +1184,8 @@ function AgentConfigForm(): JSX.Element {
 							</div>
 						</>
 					)}
-					{showTestingSidebar && (
-						<AgentTestingPanel workflowId={currentWorkflowData?.workflow_id || ""} />
+					{Boolean(showTestingSidebar) && (
+						<AgentTestingPanel workflowId={currentWorkflowData?.workflow_id ?? ""} />
 					)}
 				</div>
 			</ReactFlowProvider>

@@ -98,6 +98,10 @@
       gap: 0.5rem;
       padding: 0.75rem 1rem;
 
+      .pill-button {
+        padding: 0;
+      }
+
       .badge {
         display: inline-block;
         padding: 4px 10px;
@@ -145,12 +149,16 @@
         flex-wrap: wrap;
         gap: 0.5rem;
 
+        .pill-button {
+          padding: 0;
+        }
+
         .tool-badge {
           display: inline-flex;
           align-items: center;
           padding: 0.25rem 0.5rem;
           font-size: 0.75rem;
-		  font-weight: 500;;
+		      font-weight: 500;;
           border-radius: 6px;
           background-color: #FF681F1F; // orange-50
           color: var(--orange); // orange-500

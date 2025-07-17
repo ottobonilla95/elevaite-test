@@ -1,19 +1,26 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import TabHeader, { type Tab } from "../TabHeader";
-import { type AgentNodeData, type AgentConfigData, type AgentType, type ChatCompletionToolParam, type PromptResponse } from "../../lib/interfaces";
+import { ChevronsLeft, ChevronsRight, PenLine } from "lucide-react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from "react";
+import { type AgentConfigData, type AgentNodeData, type AgentType, type ChatCompletionToolParam, type PromptResponse } from "../../lib/interfaces";
 import { fetchToolSchemasAsArray } from "../../lib/toolActions";
 import { usePrompts } from "../../ui/contexts/PromptsContext";
-import { getAgentIcon } from "./iconUtils";
-import { ConfigurationTab, ToolsTab, getAgentTypeDisplay, getModelProviders, getModels } from "./config";
+import TabHeader, { type Tab } from "../TabHeader";
+import { ConfigurationTab, ToolsTab, getModelProviders, getModels } from "./config";
 import PromptDetailView from "./config/PromptDetailView";
 import "./ConfigPanel.scss";
-import { ChevronsLeft, ChevronsRight, PenLine } from "lucide-react";
+import { getAgentIcon } from "./iconUtils";
 
 
 
 
+export interface ConfigPanelHandle {
+    setTab: (tab: "config" | "tools") => void;
+    enableEdit: () => void;
+    disableEdit: () => void;
+    showPromptDetail: (prompt?: PromptResponse) => void;
+    resetView: () => void;
+}
 
 
 
@@ -34,7 +41,7 @@ interface ConfigPanelProps {
     onFunctionsChange?: (functions: ChatCompletionToolParam[]) => void; // Callback for function changes
 }
 
-function ConfigPanel({
+const ConfigPanel = forwardRef<ConfigPanelHandle, ConfigPanelProps>(function ConfigPanel({
     agent,
     agentName,
     agentType,
@@ -46,7 +53,7 @@ function ConfigPanel({
     currentFunctions = [],
     onFunctionsChange,
     agentConfig
-}: ConfigPanelProps): JSX.Element {
+}, ref): JSX.Element {
     // State for editable fields
     const [deploymentType, setDeploymentType] = useState("Elevaite");
     const [modelProvider, setModelProvider] = useState("meta");
@@ -132,6 +139,8 @@ function ConfigPanel({
 
         void loadToolSchemas();
     }, []);
+
+
     // Define tabs for TabHeader component
     const sidebarTabs: Tab[] = [
         { id: "config", label: "Configuration" },
@@ -191,6 +200,31 @@ function ConfigPanel({
             onFunctionsChange(updatedFunctions);
         }
     };
+
+
+    useImperativeHandle(ref, () => ({
+        setTab(tab: "config" | "tools") {
+            setActiveTab(tab);
+        },
+        enableEdit() {
+            setDisabledFields(false);
+        },
+        disableEdit() {
+            setDisabledFields(true);
+        },
+        showPromptDetail(prompt?: PromptResponse) {
+            setSelectedPromptForView(prompt ?? null);
+            if (prompt !== undefined) {
+                setSidebarView("prompt");
+            }
+        },
+        resetView() {
+            setSidebarView("config");
+            setSelectedPromptForView(null);
+        }
+    }));
+
+
 
     // Handle save button click
     const handleSave = useCallback((): void => {
@@ -277,7 +311,7 @@ function ConfigPanel({
                 disabledFields={disabledFields}
                 setDisabledFields={setDisabledFields}
             /> : <>
-                <div className="config-panel-header">
+                <div className={["config-panel-header", !disabledFields ? "editing" : undefined].filter(Boolean).join(" ")}>
                     <div className="flex flex-1 items-center pr-3">
                         {!disabledFields ? (
                             <div className="flex flex-col gap-3 flex-1">
@@ -320,13 +354,13 @@ function ConfigPanel({
                                 <button className="activate-fields" type="button" onClick={() => { setDisabledFields(!disabledFields); }}>
                                     <PenLine size={20} />
                                 </button>
-								<button>
+								{/* <button type="button">
 									<svg width="4" height="18" viewBox="0 0 4 18" fill="none" xmlns="http://www.w3.org/2000/svg">
 										<path d="M2 10C2.55228 10 3 9.55228 3 9C3 8.44772 2.55228 8 2 8C1.44772 8 1 8.44772 1 9C1 9.55228 1.44772 10 2 10Z" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 										<path d="M2 3C2.55228 3 3 2.55228 3 2C3 1.44772 2.55228 1 2 1C1.44772 1 1 1.44772 1 2C1 2.55228 1.44772 3 2 3Z" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 										<path d="M2 17C2.55228 17 3 16.5523 3 16C3 15.4477 2.55228 15 2 15C1.44772 15 1 15.4477 1 16C1 16.5523 1.44772 17 2 17Z" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 									</svg>
-								</button>
+								</button> */}
                             </div>
                         )}
                     </div>
@@ -335,8 +369,8 @@ function ConfigPanel({
                         {sidebarOpen ? <ChevronsRight /> : <ChevronsLeft />}
                     </button>
                 </div>
-                <div className="flex flex-col justify-between flex-1">
-                    <div>
+                <div className="nav-wrapper flex flex-col justify-between flex-1">
+                    <div className="nav-container">
                         {/* Navigation Tabs */}
                         <TabHeader
                             tabs={sidebarTabs}
@@ -430,6 +464,6 @@ function ConfigPanel({
             </>}
         </div>
     );
-};
+});
 
 export default ConfigPanel;

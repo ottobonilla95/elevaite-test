@@ -1,17 +1,16 @@
 // HeaderBottom.tsx
 "use client";
 
-import React, { useState } from "react";
+import { CommonButton } from "@repo/ui/components";
 import { FileText, LayoutGrid, PenLine } from "lucide-react";
-import type { WorkflowDeployment, WorkflowResponse } from "../../lib/interfaces/workflows";
+import { useState } from "react";
 import type { ChatCompletionToolParam } from "../../lib/interfaces/common";
-import WorkflowSaveModal from "./WorkflowSaveModal";
-import WorkflowEditModal from "./WorkflowEditModal";
-import PreDeploymentModal from "./PreDeploymentModal";
-import PostDeploymentSuccessDialog from "./PostDeploymentSuccessDialog";
+import type { WorkflowDeployment, WorkflowResponse } from "../../lib/interfaces/workflows";
 import "./HeaderBottom.scss";
-import { useWorkflows } from "@/ui/contexts/WorkflowsContext";
-import { executeWorkflowModern } from "@/lib/actions";
+import PostDeploymentSuccessDialog from "./PostDeploymentSuccessDialog";
+import PreDeploymentModal from "./PreDeploymentModal";
+import WorkflowEditModal from "./WorkflowEditModal";
+import WorkflowSaveModal from "./WorkflowSaveModal";
 
 interface HeaderBottomProps {
 	workflowName: string;
@@ -31,6 +30,7 @@ interface HeaderBottomProps {
 	currentWorkflowData?: WorkflowResponse | null;
 	tools?: ChatCompletionToolParam[];
 	onUpdateExistingWorkflow: () => void;
+	onClearAll?: () => void;
 	onCreateNewWorkflow: (name: string, description: string, tags: string[]) => void;
 	// New props for deployment result handling
 	deploymentResult?: {
@@ -51,18 +51,17 @@ function HeaderBottom({
 	workflowTags = [],
 	onSaveWorkflow,
 	onDeployWorkflow,
+	onClearAll,
 	isLoading,
 	isExistingWorkflow,
 	hasUnsavedChanges,
 	deploymentStatus: _deploymentStatus,
-	currentWorkflowData,
 	tools = [],
 	onUpdateExistingWorkflow,
 	onCreateNewWorkflow,
 	deploymentResult,
 	onClearDeploymentResult,
 	onEditWorkflow,
-	showTestingSidebar,
 	setShowTestingSidebar
 }: HeaderBottomProps): JSX.Element {
 
@@ -71,6 +70,13 @@ function HeaderBottom({
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [isPreDeploymentDialogOpen, setIsPreDeploymentDialogOpen] = useState(false);
 	const [isCreatingNewWorkflow, setIsCreatingNewWorkflow] = useState(false);
+
+
+	function handleClearAll(): void {
+		setShowTestingSidebar(false);
+		if (onClearAll) onClearAll();
+	}
+
 
 	// Function to handle deploy button click - starts the advanced deployment flow
 	const handleDeployClick = (): void => {
@@ -181,10 +187,15 @@ function HeaderBottom({
 					<FileText size={17} />
 				</button>
 			</div>
-			<div className="flex justify-end">
-				<button type="button" className="btn btn-primary" onClick={handleDeployClick} disabled={isLoading}>
+			<div className="flex justify-end gap-2">
+				{Boolean(onClearAll) && 
+					<CommonButton className="action-button secondary" onClick={handleClearAll}>
+						Clear All
+					</CommonButton>
+				}
+				<CommonButton className="action-button" onClick={handleDeployClick} disabled={isLoading}>
 					{isLoading ? 'Deploying...' : 'Deploy'}
-				</button>
+				</CommonButton>
 			</div>
 
 			{/* Workflow Save Modal */}

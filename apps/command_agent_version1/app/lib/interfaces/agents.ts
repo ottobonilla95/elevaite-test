@@ -170,6 +170,7 @@ export interface AgentNodeData {
 	prompt?: string;
 	tools?: ChatCompletionToolParam[];
 	config?: AgentConfigData;
+	onAction?: (id: string, action: string) => void;
 	onDelete: (id: string) => void;
 	onConfigure: (id: string) => void;
 	tags?: string[];

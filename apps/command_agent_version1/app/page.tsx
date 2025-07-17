@@ -11,7 +11,7 @@ export default function CommandAgent(): JSX.Element {
     <AgentsProvider autoRefreshInterval={60000}>
       <WorkflowsProvider autoRefreshInterval={60000}>
         <main style={{
-          height: '100vh',
+          height: '100vh !important',
           width: '100vw',
           overflow: 'auto',
           position: 'relative',

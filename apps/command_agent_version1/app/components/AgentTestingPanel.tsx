@@ -1,8 +1,9 @@
-import { executeWorkflowModern } from "@/lib/actions";
 import { AlertCircle, Bot, User } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { executeWorkflowModern } from "../lib/actions";
 import { useWorkflows } from "../ui/contexts/WorkflowsContext";
 import "./AgentTestingPanel.scss";
+import { AgentTestingParser } from "./AgentTestingParser";
 import AgentWorkflowDetailsModal from "./AgentWorkflowDetailsModal";
 import { type ChatMessage } from "./type";
 
@@ -39,7 +40,7 @@ const rows = [
 	},
 ]
 
-function AgentTestingPanel({ workflowId } : { workflowId: string }) {
+function AgentTestingPanel({ workflowId } : { workflowId: string }): React.ReactElement {
 	const { expandChat, setExpandChat } = useWorkflows();
 	const [showAgentWorkflowModal, setShowAgentWorkflowModal] = useState(false);
 	const [showAgentWorkflowDetails, setShowAgentWorkflowDetails] = useState(true);
@@ -48,22 +49,38 @@ function AgentTestingPanel({ workflowId } : { workflowId: string }) {
 	const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
 		{
 			id: Date.now(),
-			text: `Workflow deployed successfully with ID: ${workflowId.substring(0, 8)}. You can now ask questions.`,
+			text: workflowId ? `Workflow deployed successfully with ID: ${workflowId.substring(0, 8)}. You can now ask questions.` :
+								"No workflow detected. Please select a workflow from the left panel.",
 			sender: "bot",
 		},
 	]);
 
-	const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+	useEffect(() => {
+		if (chatMessages.length === 1) {
+			setChatMessages([
+				{
+					id: Date.now(),
+					text: workflowId ? `Workflow deployed successfully with ID: ${workflowId.substring(0, 8)}. You can now ask questions.` :
+										"No workflow detected. Please select a workflow from the left panel.",
+					sender: "bot",
+				},
+			]);
+		}
+	}, [workflowId]);
+
+
+
+	function handleInputChange (event: React.ChangeEvent<HTMLInputElement>): void {
 		setChatInput(event.target.value);
 	};
 
-	const handleKeyPress = (e: React.KeyboardEvent) => {
+	function handleKeyPress(e: React.KeyboardEvent): void {
 		if (e.key === "Enter" && !isLoading && chatInput.trim()) {
-			handleSendMessage();
+			void handleSendMessage();
 		}
 	};
 
-	const handleSendMessage = async () => {
+	async function handleSendMessage(): Promise<void> {
 		if (!chatInput.trim()) return;
 
 		// Add user message to chat
@@ -165,8 +182,8 @@ function AgentTestingPanel({ workflowId } : { workflowId: string }) {
 				<div className="top flex-1 rounded-lg flex flex-col justify-between overflow-auto" style={{ border: '1px solid #E2E8ED' }}>
 					<div>
 						<div className="flex items-center justify-between py-2 px-6 sticky top-0 z-10 bg-white" style={{ borderBottom: '1px solid #E2E8ED' }}>
-							<div className="font-bold">CoPilot</div>
-							<button onClick={() => setExpandChat(!expandChat)}>
+							<div className="font-bold">Testing Workflow</div>
+							<button onClick={() => { setExpandChat(!expandChat); }} type="button">
 								{expandChat ? (
 									<svg width="17" height="18" viewBox="0 0 17 18" fill="none" xmlns="http://www.w3.org/2000/svg">
 										<path d="M2.83773 10.417H7.08773M7.08773 10.417V14.667M7.08773 10.417L2.12939 15.3753M14.1711 7.58364H9.92106M9.92106 7.58364V3.33364M9.92106 7.58364L14.8794 2.62531" stroke="#4D4D50" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
@@ -190,11 +207,11 @@ function AgentTestingPanel({ workflowId } : { workflowId: string }) {
 										? renderUserAvatar()
 										: renderBotAvatar(message.error)}
 									<div>
-										<div className="text-xs text-[#FF681F]">
+										<div className={`text-xs text-[#FF681F] ${message.sender === "user" ? "user-time" : "bot-time"}`}>
 											{formatTime(message.id)}
 										</div>
 										<div className="text-sm text-[#212124] opacity-75">
-											{message.text}
+											<AgentTestingParser message={message.text}/>
 										</div>
 									</div>
 								</div>
@@ -202,11 +219,11 @@ function AgentTestingPanel({ workflowId } : { workflowId: string }) {
 						</div>
 					</div>
 
-					<div className="my-4 px-6 sticky bg-white bottom-4 z-1">
+					{/* <div className="my-4 px-6 sticky bg-white bottom-4 z-1">
 						<div className="details rounded-xl" style={{ border: '1px solid #E2E8ED' }}>
 							<div className="flex items-center justify-between py-2 px-4" style={showAgentWorkflowDetails ? { borderBottom: '1px solid #E2E8ED' } : undefined}>
 								<div className="font-medium text-sm">CoPilot</div>
-								<button onClick={() => setShowAgentWorkflowDetails(!showAgentWorkflowDetails)}>
+								<button onClick={() => { setShowAgentWorkflowDetails(!showAgentWorkflowDetails); }} type="button">
 									<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 										<g opacity="0.8">
 											<path d="M4 6L8 10L12 6" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -214,56 +231,58 @@ function AgentTestingPanel({ workflowId } : { workflowId: string }) {
 									</svg>
 								</button>
 							</div>
-							{showAgentWorkflowDetails && (
+							{Boolean(showAgentWorkflowDetails) && (
 								<div className="p-4">
 									{rows.map(row => (
 										<div key={row.id} className="flex items-center justify-between py-1 mb-3">
 											<div className="font-medium text-sm opacity-75">
 												{row.heading}
 											</div>
-											{row.value && (
+											{Boolean(row.value) && (
 												<div className="font-medium text-sm">
 													{row.value}
 												</div>
 											)}
-											{row.tag && (
+											{Boolean(row.tag) && (
 												<div className="tag-blue">
 													{row.tag}
 												</div>
 											)}
 										</div>
 									))}
-									<button className="font-medium text-xs text-[#FF681F]" onClick={() => setShowAgentWorkflowModal(true)}>
+									<button className="font-medium text-xs text-[#FF681F]" onClick={() => { setShowAgentWorkflowModal(true); }} type="button">
 										See Full Workflow Details
 									</button>
 								</div>
 							)}
 						</div>
-					</div>
+					</div> */}
 				</div>
 
-				<div className="bottom p-6 rounded-md bg-[#F8FAFC]" style={{ border: '1px solid #E2E8ED' }}>
-					<div className="relative">
-						<input type="text" className="h-[48px] w-full rounded-lg" value={chatInput} placeholder="Type message here" onChange={handleInputChange} onKeyDown={handleKeyPress} />
-						<div className="actions flex items-center gap-2 absolute right-6 top-1/2 -translate-y-1/2">
-							<button>
-								<svg width="11" height="18" viewBox="0 0 11 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-									<path d="M9.31548 3.64493L9.67967 12.8244C9.72434 13.949 9.3204 15.0452 8.55677 15.8719C7.79314 16.6987 6.73236 17.1882 5.60778 17.2328C4.48324 17.2774 3.38701 16.8735 2.56027 16.1098C1.73353 15.3462 1.24405 14.2854 1.19941 13.1608L0.835202 3.98139C0.805476 3.23167 1.07478 2.50085 1.58384 1.94972C2.09295 1.39854 2.80014 1.07219 3.54981 1.04248C4.29954 1.01272 5.03037 1.28199 5.58152 1.79107C6.13268 2.30016 6.459 3.00737 6.48873 3.75709L6.84814 12.9417C6.86302 13.3166 6.72835 13.682 6.47381 13.9576C6.21927 14.2331 5.86569 14.3963 5.49083 14.4112C5.11597 14.4261 4.75061 14.2915 4.47499 14.0369C4.19943 13.7823 4.03626 13.4287 4.02137 13.0539L3.6901 4.57843" stroke="#FF681F" strokeWidth="1.06028" strokeLinecap="round" strokeLinejoin="round"/>
-									<path d="M9.31548 3.64493L9.67967 12.8244C9.72434 13.949 9.3204 15.0452 8.55677 15.8719C7.79314 16.6987 6.73236 17.1882 5.60778 17.2328C4.48324 17.2774 3.38701 16.8735 2.56027 16.1098C1.73353 15.3462 1.24405 14.2854 1.19941 13.1608L0.835202 3.98139C0.805476 3.23167 1.07478 2.50085 1.58384 1.94972C2.09295 1.39854 2.80014 1.07219 3.54981 1.04248C4.29954 1.01272 5.03037 1.28199 5.58152 1.79107C6.13268 2.30016 6.459 3.00737 6.48873 3.75709L6.84814 12.9417C6.86302 13.3166 6.72835 13.682 6.47381 13.9576C6.21927 14.2331 5.86569 14.3963 5.49083 14.4112C5.11597 14.4261 4.75061 14.2915 4.47499 14.0369C4.19943 13.7823 4.03626 13.4287 4.02137 13.0539L3.6901 4.57843" stroke="#FF681F" strokeWidth="1.06028" strokeLinecap="round" strokeLinejoin="round"/>
-								</svg>
-							</button>
-							<button onClick={handleSendMessage} disabled={isLoading || !chatInput.trim()}>
-								<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-									<path d="M18.4386 10.554C18.6112 10.2048 18.6112 9.79514 18.4386 9.44597C18.2866 9.13852 18.0198 8.97731 17.8816 8.89954C17.7328 8.81581 17.5421 8.73003 17.352 8.64451L3.36552 2.35063C3.17099 2.26305 2.97706 2.17575 2.81347 2.11908C2.66328 2.06705 2.36088 1.972 2.02608 2.06515C1.64773 2.17043 1.34085 2.44739 1.19746 2.813C1.07058 3.13653 1.13423 3.44705 1.17063 3.60178C1.21029 3.77032 1.27733 3.97219 1.34457 4.17467L2.6983 8.25327C2.8073 8.58166 2.8618 8.74586 2.96315 8.86727C3.05264 8.97448 3.16764 9.05748 3.29759 9.10865C3.44474 9.16659 3.61774 9.16659 3.96375 9.16659H10.0002C10.4604 9.16659 10.8335 9.53968 10.8335 9.99992C10.8335 10.4602 10.4604 10.8333 10.0002 10.8333H3.97951C3.63437 10.8333 3.46181 10.8333 3.31492 10.891C3.1852 10.9419 3.07034 11.0246 2.98084 11.1314C2.87949 11.2524 2.82471 11.416 2.71515 11.7433L1.35052 15.8196C1.28255 16.0225 1.21484 16.2247 1.17467 16.3934C1.13785 16.5481 1.07314 16.8592 1.19968 17.1835C1.34258 17.5498 1.64948 17.8275 2.02819 17.9332C2.36354 18.0268 2.66662 17.9314 2.81686 17.8794C2.98078 17.8226 3.17519 17.7351 3.37036 17.6472L17.352 11.3555C17.5421 11.2699 17.7328 11.1842 17.8816 11.1004C18.0198 11.0227 18.2866 10.8615 18.4386 10.554Z" fill="#FF681F"/>
-								</svg>
-							</button>
+				{!workflowId ? undefined :
+					<div className="bottom p-6 rounded-md bg-[#F8FAFC]" style={{ border: '1px solid #E2E8ED' }}>
+						<div className="relative">
+							<input type="text" className="h-[48px] w-full rounded-lg" value={chatInput} placeholder="Type message here" onChange={handleInputChange} onKeyDown={handleKeyPress} />
+							<div className="actions flex items-center gap-2 absolute right-6 top-1/2 -translate-y-1/2">
+								<button type="button">
+									<svg width="11" height="18" viewBox="0 0 11 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+										<path d="M9.31548 3.64493L9.67967 12.8244C9.72434 13.949 9.3204 15.0452 8.55677 15.8719C7.79314 16.6987 6.73236 17.1882 5.60778 17.2328C4.48324 17.2774 3.38701 16.8735 2.56027 16.1098C1.73353 15.3462 1.24405 14.2854 1.19941 13.1608L0.835202 3.98139C0.805476 3.23167 1.07478 2.50085 1.58384 1.94972C2.09295 1.39854 2.80014 1.07219 3.54981 1.04248C4.29954 1.01272 5.03037 1.28199 5.58152 1.79107C6.13268 2.30016 6.459 3.00737 6.48873 3.75709L6.84814 12.9417C6.86302 13.3166 6.72835 13.682 6.47381 13.9576C6.21927 14.2331 5.86569 14.3963 5.49083 14.4112C5.11597 14.4261 4.75061 14.2915 4.47499 14.0369C4.19943 13.7823 4.03626 13.4287 4.02137 13.0539L3.6901 4.57843" stroke="#FF681F" strokeWidth="1.06028" strokeLinecap="round" strokeLinejoin="round"/>
+										<path d="M9.31548 3.64493L9.67967 12.8244C9.72434 13.949 9.3204 15.0452 8.55677 15.8719C7.79314 16.6987 6.73236 17.1882 5.60778 17.2328C4.48324 17.2774 3.38701 16.8735 2.56027 16.1098C1.73353 15.3462 1.24405 14.2854 1.19941 13.1608L0.835202 3.98139C0.805476 3.23167 1.07478 2.50085 1.58384 1.94972C2.09295 1.39854 2.80014 1.07219 3.54981 1.04248C4.29954 1.01272 5.03037 1.28199 5.58152 1.79107C6.13268 2.30016 6.459 3.00737 6.48873 3.75709L6.84814 12.9417C6.86302 13.3166 6.72835 13.682 6.47381 13.9576C6.21927 14.2331 5.86569 14.3963 5.49083 14.4112C5.11597 14.4261 4.75061 14.2915 4.47499 14.0369C4.19943 13.7823 4.03626 13.4287 4.02137 13.0539L3.6901 4.57843" stroke="#FF681F" strokeWidth="1.06028" strokeLinecap="round" strokeLinejoin="round"/>
+									</svg>
+								</button>
+								<button onClick={handleSendMessage} disabled={isLoading || !chatInput.trim()} type="button">
+									<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+										<path d="M18.4386 10.554C18.6112 10.2048 18.6112 9.79514 18.4386 9.44597C18.2866 9.13852 18.0198 8.97731 17.8816 8.89954C17.7328 8.81581 17.5421 8.73003 17.352 8.64451L3.36552 2.35063C3.17099 2.26305 2.97706 2.17575 2.81347 2.11908C2.66328 2.06705 2.36088 1.972 2.02608 2.06515C1.64773 2.17043 1.34085 2.44739 1.19746 2.813C1.07058 3.13653 1.13423 3.44705 1.17063 3.60178C1.21029 3.77032 1.27733 3.97219 1.34457 4.17467L2.6983 8.25327C2.8073 8.58166 2.8618 8.74586 2.96315 8.86727C3.05264 8.97448 3.16764 9.05748 3.29759 9.10865C3.44474 9.16659 3.61774 9.16659 3.96375 9.16659H10.0002C10.4604 9.16659 10.8335 9.53968 10.8335 9.99992C10.8335 10.4602 10.4604 10.8333 10.0002 10.8333H3.97951C3.63437 10.8333 3.46181 10.8333 3.31492 10.891C3.1852 10.9419 3.07034 11.0246 2.98084 11.1314C2.87949 11.2524 2.82471 11.416 2.71515 11.7433L1.35052 15.8196C1.28255 16.0225 1.21484 16.2247 1.17467 16.3934C1.13785 16.5481 1.07314 16.8592 1.19968 17.1835C1.34258 17.5498 1.64948 17.8275 2.02819 17.9332C2.36354 18.0268 2.66662 17.9314 2.81686 17.8794C2.98078 17.8226 3.17519 17.7351 3.37036 17.6472L17.352 11.3555C17.5421 11.2699 17.7328 11.1842 17.8816 11.1004C18.0198 11.0227 18.2866 10.8615 18.4386 10.554Z" fill="#FF681F"/>
+									</svg>
+								</button>
+							</div>
 						</div>
 					</div>
-				</div>
+				}
 			</div>
 
-			{showAgentWorkflowModal && (
-				<AgentWorkflowDetailsModal onClose={() => setShowAgentWorkflowModal(false)}  />
+			{Boolean(showAgentWorkflowModal) && (
+				<AgentWorkflowDetailsModal onClose={() => { setShowAgentWorkflowModal(false); }}  />
 			)}
 		</>
   	)

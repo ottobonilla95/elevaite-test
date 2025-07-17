@@ -16,13 +16,17 @@
 		}
 	}
 
+	.user-time {
+		text-align: end;
+	}
+
 	.top {
 		@include scrollbar(#71717366, #71717326);
 	}
 
 	.bottom {
 		input {
-			padding: 0 24px;
+			padding: 0 75px 0 24px;
 
 			&::placeholder {
 				font-size: 14px;

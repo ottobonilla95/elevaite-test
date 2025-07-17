@@ -1,16 +1,17 @@
 .workflows-tab {
     height: 100%;
-    overflow-y: auto;
+    overflow-y: scroll;
 	@include scrollbar(#71717366, #71717326);
 
     .workflow-item {
-        border: 1px solid #E2E8ED;
+        border: 1px solid var(--ev-colors-borderColor);
         margin-bottom: 12px;
         transition: all 0.2s ease;
-        background: white;
+        background: var(--ev-colors-background);
+        user-select: none;
 
         &:hover {
-            border-color: #f97316;
+            border-color: var(--ev-colors-highlight);
             box-shadow: 0 2px 8px rgba(249, 115, 22, 0.1);
         }
 

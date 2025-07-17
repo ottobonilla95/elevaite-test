@@ -88,9 +88,10 @@
   align-items: center;
 
   .item-details {
-	h3 + p {
-		margin-top: 4px;
-	}
+    text-align: start;
+    h3 + p {
+      margin-top: 4px;
+    }
   }
 }
 
@@ -399,7 +400,8 @@ html, body, #__next {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
+  // overflow-y: auto;
+  overflow: hidden;
 }
 
 /* Ensure the flow canvas takes up available space but doesn't overflow */

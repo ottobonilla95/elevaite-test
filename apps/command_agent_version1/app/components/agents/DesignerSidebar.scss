@@ -12,8 +12,15 @@
     flex-direction: column;
 
 	&.shrinked {
-		width: 40px;
-		padding-top: 16px;
+    position: absolute;
+    width: 60px;
+    height: auto;
+    min-height: 85px;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;    
+
 
 		.sidebar-header-tabs-inner,
 		.sidebar-header-tabs ~ * {
@@ -39,19 +46,21 @@
   }
 
   .sidebar-header-tabs {
-    //position: sticky;
-  	//top: 0;
-    //z-index: 10;
-	//padding: 4px;
+    display: flex;
+    gap: 5px;
+	  padding: 4px;
+    position: sticky;
+  	top: 0;
+    z-index: 10;
 
-	&-inner {
-		background: #F1F4F8;
-		border: 1px solid #E6EBF0;
-	}
+    &-inner {
+      background: #F1F4F8;
+      border: 1px solid #E6EBF0;
+    }
 
-	.active {
-		filter: drop-shadow(0 1px 2px #0C111C14) drop-shadow(0 1px 3px #0C111C0A);
-	}
+    .active {
+      filter: drop-shadow(0 1px 2px #0C111C14) drop-shadow(0 1px 3px #0C111C0A);
+    }
   }
 
   /* Tab navigation */

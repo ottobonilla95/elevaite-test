@@ -93,7 +93,7 @@ function DesignerSidebar({
 
 	// Define tabs for TabHeader component
 	const sidebarTabs: Tab[] = [
-		{ id: "actions", label: "Actions" },
+		{ id: "actions", label: "Agents" },
 		{ id: "workflows", label: "Templates" }
 	];
 

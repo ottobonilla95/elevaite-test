@@ -1,27 +1,29 @@
+/* eslint no-console: ["error", { allow: ["error"] }] -- We actually do like console errors for backend actions */
 "use server";
 
+import { BACKEND_URL } from "../constants";
+import { isDeploymentOperationResponse } from "../discriminators/common";
 import {
+  isWorkflowDeployment,
   isWorkflowDeployResponse,
   isWorkflowExecutionResponse,
   isWorkflowResponse,
   isWorkflowResponseArray,
-  isWorkflowDeployment,
 } from "../discriminators/workflows";
-import { isDeploymentOperationResponse } from "../discriminators/common";
+import type { DeploymentOperationResponse } from "../interfaces/common";
 import type {
+  NewWorkflowExecutionRequest,
+  WorkflowCreateRequest,
+  WorkflowDeployment,
+  WorkflowDeploymentRequest,
   WorkflowDeployRequest,
   WorkflowDeployResponse,
   WorkflowExecutionRequest,
   WorkflowExecutionResponse,
-  WorkflowResponse,
-  WorkflowCreateRequest,
-  WorkflowDeploymentRequest,
-  NewWorkflowExecutionRequest,
-  WorkflowDeployment,
-  WorkflowExecuteResponseObject,
+  WorkflowResponse
 } from "../interfaces/workflows";
-import type { DeploymentOperationResponse } from "../interfaces/common";
-import { BACKEND_URL } from "../constants";
+
+
 
 export async function getWorkflows(): Promise<WorkflowResponse[]> {
   const url = new URL(`${BACKEND_URL ?? ""}api/workflows/`);
@@ -83,9 +85,9 @@ export async function getWorkflowDetails(
   workflowId: string
 ): Promise<WorkflowResponse> {
   try {
-    const response = await fetch(`${BACKEND_URL}api/workflows/${workflowId}`);
+    const response = await fetch(`${BACKEND_URL ?? ""}api/workflows/${workflowId}`);
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status.toString()}`);
     }
 
     const data: unknown = await response.json();
@@ -99,11 +101,11 @@ export async function getWorkflowDetails(
 
 export async function deleteWorkflow(workflowId: string): Promise<void> {
   try {
-    const response = await fetch(`${BACKEND_URL}api/workflows/${workflowId}`, {
+    const response = await fetch(`${BACKEND_URL ?? ""}api/workflows/${workflowId}`, {
       method: "DELETE",
     });
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status.toString()}`);
     }
   } catch (error) {
     console.error("Error deleting workflow:", error);
@@ -115,7 +117,7 @@ export async function createWorkflow(
   workflowRequest: WorkflowCreateRequest
 ): Promise<WorkflowResponse> {
   try {
-    const response = await fetch(`${BACKEND_URL}api/workflows/`, {
+    const response = await fetch(`${BACKEND_URL ?? ""}api/workflows/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -124,7 +126,7 @@ export async function createWorkflow(
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status.toString()}`);
     }
 
     const data: unknown = await response.json();
@@ -141,7 +143,7 @@ export async function updateWorkflow(
   workflowRequest: WorkflowCreateRequest
 ): Promise<WorkflowResponse> {
   try {
-    const response = await fetch(`${BACKEND_URL}api/workflows/${workflowId}`, {
+    const response = await fetch(`${BACKEND_URL ?? ""}api/workflows/${workflowId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -150,7 +152,7 @@ export async function updateWorkflow(
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status.toString()}`);
     }
 
     const data: unknown = await response.json();
@@ -167,8 +169,7 @@ export async function deployWorkflowModern(
   deploymentRequest: WorkflowDeploymentRequest
 ): Promise<WorkflowDeployment> {
   try {
-    const response = await fetch(
-      `${BACKEND_URL}api/workflows/${workflowId}/deploy`,
+    const response = await fetch(`${BACKEND_URL ?? ""}api/workflows/${workflowId}/deploy`,
       {
         method: "POST",
         headers: {
@@ -179,7 +180,7 @@ export async function deployWorkflowModern(
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status.toString()}`);
     }
 
     const data: unknown = await response.json();
@@ -197,7 +198,7 @@ export async function executeWorkflowModern(
   executionRequest: NewWorkflowExecutionRequest
 ): Promise<WorkflowExecutionResponse> {
   try {
-    const response = await fetch(`${BACKEND_URL}api/workflows/${workflowId}/execute`, {
+    const response = await fetch(`${BACKEND_URL ?? ""}api/workflows/${workflowId}/execute`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -206,7 +207,7 @@ export async function executeWorkflowModern(
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status.toString()}`);
     }
 
     const data: unknown = await response.json();
@@ -223,7 +224,7 @@ export async function executeWorkflowStream(
   executionRequest: NewWorkflowExecutionRequest
 ): Promise<ReadableStream<Uint8Array> | null> {
   try {
-    const response = await fetch(`${BACKEND_URL}api/workflows/${workflowId}/stream`, {
+    const response = await fetch(`${BACKEND_URL ?? ""}api/workflows/${workflowId}/stream`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -232,7 +233,7 @@ export async function executeWorkflowStream(
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status.toString()}`);
     }
 
     return response.body;
@@ -246,8 +247,7 @@ export async function stopWorkflowDeployment(
   deploymentName: string
 ): Promise<DeploymentOperationResponse> {
   try {
-    const response = await fetch(
-      `${BACKEND_URL}api/workflows/deployments/${deploymentName}/stop`,
+    const response = await fetch(`${BACKEND_URL ?? ""}api/workflows/deployments/${deploymentName}/stop`,
       {
         method: "POST",
         headers: {
@@ -257,7 +257,7 @@ export async function stopWorkflowDeployment(
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status.toString()}`);
     }
 
     const data: unknown = await response.json();
@@ -275,8 +275,7 @@ export async function deleteWorkflowDeployment(
   deploymentName: string
 ): Promise<DeploymentOperationResponse> {
   try {
-    const response = await fetch(
-      `${BACKEND_URL}api/workflows/deployments/${deploymentName}`,
+    const response = await fetch(`${BACKEND_URL ?? ""}api/workflows/deployments/${deploymentName}`,
       {
         method: "DELETE",
         headers: {
@@ -286,7 +285,7 @@ export async function deleteWorkflowDeployment(
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status.toString()}`);
     }
 
     const data: unknown = await response.json();
@@ -302,12 +301,10 @@ export async function deleteWorkflowDeployment(
 
 export async function getActiveDeployments(): Promise<WorkflowDeployment[]> {
   try {
-    const response = await fetch(
-      `${BACKEND_URL}api/workflows/deployments/active`
-    );
+    const response = await fetch(`${BACKEND_URL ?? ""}api/workflows/deployments/active`);
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status.toString()}`);
     }
 
     const data: unknown = await response.json();
@@ -337,7 +334,7 @@ export async function getWorkflowDeploymentStatus(
 export async function isWorkflowDeployed(workflowId: string): Promise<boolean> {
   try {
     const deployment = await getWorkflowDeploymentStatus(workflowId);
-    return deployment !== null;
+    return deployment !== undefined;
   } catch (error) {
     console.error("Error checking if workflow is deployed:", error);
     return false;
@@ -353,12 +350,12 @@ export async function getWorkflowDeploymentDetails(
 }> {
   try {
     const deployment = await getWorkflowDeploymentStatus(workflowId);
-    const isDeployed = deployment !== null;
+    const isDeployed = deployment !== undefined;
 
     let inferenceUrl: string | undefined;
     if (deployment) {
       // Generate inference URL based on workflow ID (webhook-style)
-      inferenceUrl = `${BACKEND_URL}api/workflows/${workflowId}/execute`;
+      inferenceUrl = `${BACKEND_URL ?? ""}api/workflows/${workflowId}/execute`;
     }
 
     return {

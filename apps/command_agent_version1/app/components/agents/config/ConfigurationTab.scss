@@ -1,0 +1,22 @@
+
+.configuration-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+
+    & .parameter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+
+        & .parameter-title  {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        & .parameters-grid {
+            margin-bottom: 0;
+        }
+    }
+}
