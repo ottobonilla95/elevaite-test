@@ -105,22 +105,20 @@ class Agent(BaseModel):
 
         print("🔧 AGENT EXECUTE: Imported client and tool_store")
 
-        # Try to import agent_store, fallback to empty dict if not available
-        print("🔧 AGENT EXECUTE: Importing agent_store...")
-        try:
-            from . import agent_store
+        # Skip Redis-dependent agent_store, use dynamic agent store if available
+        print("🔧 AGENT EXECUTE: Skipping Redis-dependent agent_store")
 
-            if agent_store is None:
-                print("🔧 AGENT EXECUTE: agent_store is None, ensuring agent_store...")
-                from . import _ensure_agent_store
+        # Check if we have a dynamic agent store passed in kwargs
+        agent_store = kwargs.get("dynamic_agent_store", {})
 
-                agent_store = _ensure_agent_store()
+        if agent_store:
             print(
-                f"🔧 AGENT EXECUTE: agent_store loaded with {len(agent_store)} agents"
+                f"🔧 AGENT EXECUTE: Using dynamic agent_store with {len(agent_store)} agents"
             )
-        except ImportError as e:
-            print(f"🔧 AGENT EXECUTE: ImportError loading agent_store: {e}")
-            agent_store = {}
+        else:
+            print(
+                "🔧 AGENT EXECUTE: No dynamic agent_store provided, using empty fallback"
+            )
 
         # Analytics setup if enabled
         print(f"🔧 AGENT EXECUTE: Analytics enabled: {enable_analytics}")

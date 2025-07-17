@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 from db.database import get_db
 from db import crud, schemas, models
 from agents.command_agent import CommandAgent
-from agents import agent_schemas
+
+# from agents import agent_schemas  # Commented out - Redis dependent
 from prompts import command_agent_system_prompt
 from services.workflow_service import workflow_service
 from datetime import datetime
@@ -459,6 +460,10 @@ def execute_workflow(
                 print(f"🔍 DEBUG: Building generic agent for type: {agent_type}")
                 agent = _build_single_agent_from_workflow(db, workflow, agent_config)
 
+            # Build dynamic agent store for inter-agent communication
+            print("🔍 DEBUG: Building dynamic agent store for workflow")
+            dynamic_agent_store = _build_dynamic_agent_store(db, workflow)
+
             print(f"🔍 DEBUG: Agent built successfully: {agent.name}")
             print(f"🔍 DEBUG: Starting agent execution...")
             print(f"🔍 DEBUG: Query: {execution_request.query[:100]}...")
@@ -485,6 +490,7 @@ def execute_workflow(
                     query=execution_request.query,
                     chat_history=execution_request.chat_history,
                     enable_analytics=False,  # Disable analytics to avoid potential issues
+                    dynamic_agent_store=dynamic_agent_store,  # Pass dynamic agent store
                 )
 
                 try:
@@ -516,6 +522,10 @@ def execute_workflow(
             print("🔍 DEBUG: Building CommandAgent for multi-agent workflow")
             command_agent = _build_command_agent_from_workflow(db, workflow)
 
+            # Build dynamic agent store for inter-agent communication
+            print("🔍 DEBUG: Building dynamic agent store for workflow")
+            dynamic_agent_store = _build_dynamic_agent_store(db, workflow)
+
             print("🔍 DEBUG: Starting CommandAgent execution")
             print(
                 f"🔍 DEBUG: CommandAgent functions: {len(command_agent.functions) if command_agent.functions else 0}"
@@ -544,6 +554,7 @@ def execute_workflow(
                         command_agent.execute,
                         query=execution_request.query,
                         enable_analytics=False,  # Disable analytics to avoid potential issues
+                        dynamic_agent_store=dynamic_agent_store,  # Pass dynamic agent store
                     )
 
                 try:
@@ -826,6 +837,74 @@ def _build_single_agent_from_workflow(
     )
 
 
+def _build_openai_schema_from_db_agent(db_agent):
+    """Build OpenAI function schema from database agent"""
+    try:
+        # Create a basic OpenAI function schema for the agent
+        schema = {
+            "type": "function",
+            "function": {
+                "name": db_agent.name,
+                "description": db_agent.description or f"Execute {db_agent.name} agent",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "The query or task to send to the agent",
+                        },
+                        "context": {
+                            "type": "string",
+                            "description": "Additional context for the agent (optional)",
+                        },
+                    },
+                    "required": ["query"],
+                },
+            },
+        }
+        print(f"🔧 Built OpenAI schema for agent: {db_agent.name}")
+        return schema
+    except Exception as e:
+        print(f"🔧 Error building OpenAI schema for agent {db_agent.name}: {e}")
+        return None
+
+
+def _build_dynamic_agent_store(db: Session, workflow):
+    """Build agent store dynamically from database agents in the workflow"""
+    agent_store = {}
+
+    try:
+        # Get all agents in this workflow
+        workflow_agents = crud.get_workflow_agents(db, workflow.workflow_id)
+
+        for workflow_agent in workflow_agents:
+            db_agent = crud.get_agent(db, workflow_agent.agent_id)
+            if db_agent:
+                # Create a callable function for this agent
+                def create_agent_executor(agent_id):
+                    def execute_agent(query: str, context: str = ""):
+                        # Build the agent dynamically and execute
+                        try:
+                            agent = _build_single_agent_from_workflow(
+                                db, workflow, {"agent_id": str(agent_id)}
+                            )
+                            return agent.execute(query=query, enable_analytics=False)
+                        except Exception as e:
+                            return f"Error executing agent: {str(e)}"
+
+                    return execute_agent
+
+                agent_store[db_agent.name] = create_agent_executor(db_agent.agent_id)
+                print(f"🔧 Added dynamic agent to store: {db_agent.name}")
+
+        print(f"🔧 Built dynamic agent_store with {len(agent_store)} agents")
+        return agent_store
+
+    except Exception as e:
+        print(f"🔧 Error building dynamic agent store: {e}")
+        return {}
+
+
 def _build_command_agent_from_workflow(db: Session, workflow) -> CommandAgent:
     """Build a CommandAgent from a workflow configuration"""
     # Get workflow agents and connections
@@ -839,8 +918,15 @@ def _build_command_agent_from_workflow(db: Session, workflow) -> CommandAgent:
         target_agent = crud.get_agent(db, connection.target_agent_id)
 
         if source_agent and source_agent.name == "CommandAgent":
-            if target_agent and target_agent.name in agent_schemas:
-                functions.append(agent_schemas[target_agent.name])
+            # Comment out Redis-dependent agent_schemas lookup
+            # if target_agent and target_agent.name in agent_schemas:
+            #     functions.append(agent_schemas[target_agent.name])
+
+            # Instead, build OpenAI schema dynamically from database agent
+            if target_agent:
+                dynamic_schema = _build_openai_schema_from_db_agent(target_agent)
+                if dynamic_schema:
+                    functions.append(dynamic_schema)
 
     # Create CommandAgent
     command_agent = CommandAgent(
