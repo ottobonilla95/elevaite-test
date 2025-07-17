@@ -9,11 +9,16 @@ from sqlalchemy.orm import Session
 from db.database import get_db
 from db import crud, schemas, models
 from agents.command_agent import CommandAgent
+from agents.agent_base import Agent
 
 # from agents import agent_schemas  # Commented out - Redis dependent
 from prompts import command_agent_system_prompt
 from services.workflow_service import workflow_service
 from datetime import datetime
+
+# from utils import agent_schema
+import inspect
+from typing import Any, Callable, Dict, List, Protocol, Union, cast, get_type_hints
 
 router = APIRouter(prefix="/api/workflows", tags=["workflows"])
 
@@ -552,6 +557,7 @@ def execute_workflow(
         )
 
     except Exception as e:
+        print(str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error executing workflow: {str(e)}",
@@ -795,35 +801,79 @@ def _sanitize_function_name(name: str) -> str:
     return sanitized or "unknown_agent"
 
 
-def _build_openai_schema_from_db_agent(db_agent):
+def _build_openai_schema_from_db_agent(db_agent: models.Agent):
     """Build OpenAI function schema from database agent"""
     try:
         # Sanitize the agent name for use as function name
         function_name = _sanitize_function_name(db_agent.name)
 
-        # Create a basic OpenAI function schema for the agent
-        schema = {
-            "type": "function",
-            "function": {
-                "name": function_name,
-                "description": db_agent.description or f"Execute {db_agent.name} agent",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "The query or task to send to the agent",
-                        },
-                        "context": {
-                            "type": "string",
-                            "description": "Additional context for the agent (optional)",
-                        },
-                    },
-                    "required": ["query"],
+        def python_function_to_openai_schema(agent_cls: models.Agent) -> Dict[str, Any]:
+            """Converts an agent class into an OpenAI JSON schema based on its `execute` method."""
+            execute_method = getattr(Agent, "execute", None)
+            if execute_method is None:
+                raise ValueError(f"{agent_cls.name} must have an 'execute' method.")
+
+            signature = inspect.signature(execute_method)
+            type_hints = get_type_hints(execute_method)
+
+            schema = {
+                "type": "function",
+                "function": {
+                    "name": _sanitize_function_name(
+                        agent_cls.name
+                    ),  # Tool name = Class name
+                    "description": execute_method.__doc__
+                    or f"Agent {agent_cls.name} execution function",
+                    "parameters": {"type": "object", "properties": {}, "required": []},
                 },
-            },
-        }
-        return schema
+            }
+
+            for param_name, param in signature.parameters.items():
+                if param_name == "self":
+                    continue  # Skip 'self' parameter
+
+                param_type = type_hints.get(param_name, Any)
+                openai_type, is_optional = python_type_to_openai_type(param_type)
+
+                schema["function"]["parameters"]["properties"][param_name] = {
+                    "type": openai_type,
+                    "description": f"{param_name} parameter",
+                }
+                if openai_type == "array":
+                    schema["function"]["parameters"]["properties"][param_name][
+                        "items"
+                    ] = {"type": "string"}
+
+                if not is_optional and param.default is inspect.Parameter.empty:
+                    schema["function"]["parameters"]["required"].append(param_name)
+
+            return schema
+
+        def python_type_to_openai_type(py_type) -> tuple[str, bool]:
+            """Maps Python types to OpenAI JSON schema types, handling Optional and List types."""
+            from typing import get_origin, get_args
+
+            if get_origin(py_type) is Union:
+                args = get_args(py_type)
+                non_none_types = [t for t in args if t is not type(None)]
+                if len(non_none_types) == 1:
+                    openai_type, _ = python_type_to_openai_type(non_none_types[0])
+                    return openai_type, True  # It's Optional
+
+            if get_origin(py_type) is list or get_origin(py_type) is List:
+                return "array", False
+
+            mapping = {
+                int: "integer",
+                float: "number",
+                str: "string",
+                bool: "boolean",
+                dict: "object",
+            }
+
+            return mapping.get(py_type, "string"), False  # Default to string
+
+        return python_function_to_openai_schema(db_agent)
     except Exception as e:
         print(f"❌ Error building OpenAI schema for agent {db_agent.name}: {e}")
         return None
@@ -886,20 +936,25 @@ def _build_command_agent_from_workflow(db: Session, workflow) -> CommandAgent:
 
     # Build functions list for CommandAgent
     functions = []
+    print("workflow connections")
+    print(workflow_connections)
     for connection in workflow_connections:
         source_agent = crud.get_agent(db, connection.source_agent_id)
         target_agent = crud.get_agent(db, connection.target_agent_id)
 
-        if source_agent and source_agent.name == "CommandAgent":
-            # Comment out Redis-dependent agent_schemas lookup
-            # if target_agent and target_agent.name in agent_schemas:
-            #     functions.append(agent_schemas[target_agent.name])
+        # if source_agent and source_agent.name == "CommandAgent":
+        # Comment out Redis-dependent agent_schemas lookup
+        # if target_agent and target_agent.name in agent_schemas:
+        #     functions.append(agent_schemas[target_agent.name])
 
-            # Instead, build OpenAI schema dynamically from database agent
-            if target_agent:
-                dynamic_schema = _build_openai_schema_from_db_agent(target_agent)
-                if dynamic_schema:
-                    functions.append(dynamic_schema)
+        # Instead, build OpenAI schema dynamically from database agent
+        if target_agent:
+            dynamic_schema = _build_openai_schema_from_db_agent(target_agent)
+            if dynamic_schema:
+                functions.append(dynamic_schema)
+
+    print("functions after parsing")
+    print(functions)
 
     # Create CommandAgent
     command_agent = CommandAgent(
