@@ -114,7 +114,7 @@ export function AgentTestingParser({message}: AgentTestingParserProps): JSX.Elem
 
 
     function linkify(text: string): string {
-        return text.replace(/(?:https?:\/\/|www\.)[^\s<>"']+/g, (match) => {
+        return text.replace(/(?:https?:\/\/|www\.)[^\s<>"')\],.]+[^\s<>"')\],.]/g, (match) => {
             const href = match.startsWith("http") ? match : `https://${match}`;
             return `<a href="${href}" target="_blank" rel="noopener noreferrer">${match}</a>`;
         });
