@@ -499,6 +499,7 @@ def execute_workflow(
                         command_agent.execute_stream,
                         execution_request.query,
                         execution_request.chat_history,
+                        dynamic_agent_store,  # Pass dynamic agent store to execute_stream
                     )
                 else:
                     future = executor.submit(
@@ -619,18 +620,26 @@ async def execute_workflow_stream(
                 # Multi-agent workflow - use CommandAgent for orchestration
                 command_agent = _build_command_agent_from_workflow(db, workflow)
 
+                # Build dynamic agent store for inter-agent communication
+                dynamic_agent_store = _build_dynamic_agent_store(db, workflow)
+
                 # Execute with streaming
                 if execution_request.chat_history:
                     # Use streaming execution with chat history
                     for chunk in command_agent.execute_stream(
-                        execution_request.query, execution_request.chat_history
+                        execution_request.query,
+                        execution_request.chat_history,
+                        dynamic_agent_store,
                     ):
                         if chunk:
                             yield f"data: {json.dumps({'type': 'content', 'data': chunk, 'timestamp': datetime.now().isoformat()})}\n\n"
                             await asyncio.sleep(0.01)
                 else:
                     # For non-streaming execution, simulate streaming by chunking the response
-                    result = command_agent.execute(query=execution_request.query)
+                    result = command_agent.execute(
+                        query=execution_request.query,
+                        dynamic_agent_store=dynamic_agent_store,
+                    )
                     yield f"data: {json.dumps({'type': 'content', 'data': result, 'timestamp': datetime.now().isoformat()})}\n\n"
 
             # Send completion status

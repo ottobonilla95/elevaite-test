@@ -30,7 +30,9 @@ class CommandAgent(Agent):
             **kwargs,
         )
 
-    def execute_stream(self, query: Any, chat_history: Any) -> Any:
+    def execute_stream(
+        self, query: Any, chat_history: Any, dynamic_agent_store: Optional[dict] = None
+    ) -> Any:
         tries = 0
         tool_call_count = 0  # Track tool calls to prevent infinite loops
         max_tool_calls = 5  # Limit tool calls per conversation
@@ -99,8 +101,13 @@ class CommandAgent(Agent):
                         arguments = json.loads(tool.function.arguments)
                         function_name = tool.function.name
 
-                        if function_name in agent_store:
-                            result = agent_store[function_name](**arguments)
+                        # Use dynamic_agent_store if provided, otherwise fall back to imported agent_store
+                        current_agent_store = (
+                            dynamic_agent_store if dynamic_agent_store else agent_store
+                        )
+
+                        if function_name in current_agent_store:
+                            result = current_agent_store[function_name](**arguments)
                         else:
                             result = tool_store[function_name](**arguments)
 
