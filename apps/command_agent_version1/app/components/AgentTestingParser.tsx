@@ -88,10 +88,16 @@ export function AgentTestingParser({message}: AgentTestingParserProps): JSX.Elem
 
         const html = text
             // Headings
-            .replace(/^### (?:.*?)$/gm, (match, offset) => {
-                const heading = match.slice(4).trim();
-                const prefix = offset === 0 ? "" : "<br/>";
-                return `${prefix}<h3>${heading}</h3>`;
+           .replace(/^(?<hashes>#{2,6}) (?<content>.*)$/gm, (
+                _match: string,
+                _g1: string,
+                _offset: number,
+                _str: string,
+                groups?: { hashes?: string, content?: string }
+            ): string => {
+                const level = groups?.hashes?.length ?? 3;
+                const prefix = _offset === 0 ? "" : "<br/>";
+                return `${prefix}<h${level.toString()}>${groups?.content?.trim() ?? ""}</h${level.toString()}>`;
             })
             // Bold **text**
             .replace(/\*\*(?:.*?)\*\*/g, (match) => {
@@ -99,9 +105,14 @@ export function AgentTestingParser({message}: AgentTestingParserProps): JSX.Elem
                 return `<strong>${boldText}</strong>`;
             })
             // Break between adjacent **bold** sections
-            // .replace(/(\*\*[^*]+?\*\*)(?=\s*\*\*)/g, "$1<br/>")
-            .replace(/(?<bold>\*\*[^*]+?\*\*)(?=\s*\*\*)/g, (match: string, _g1: string, _offset: number, _str: string, groups?: { bold?: string }): string => {
-                return `${groups?.bold ?? match}<br/>`;
+            .replace(/(?<bold>\*\*[^*]+?\*\*)(?=[\s:;,]*\*\*)/g, (
+                _match: string,
+                _g1: string,
+                _offset: number,
+                _str: string,
+                groups?: { bold?: string }
+            ): string => {
+                return `${groups?.bold ?? _match}<br/>`;
             })
             // Horizontal Rulers
             .replace(/^\s*-{3,}\s*$/gm, "<hr/>")
