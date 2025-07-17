@@ -436,51 +436,27 @@ def execute_workflow(
         )
 
     try:
-        print(f"🔍 DEBUG: Starting workflow execution for {workflow_id}")
-
         # Determine if this is a single-agent or multi-agent workflow
         agents = workflow.configuration.get("agents", [])
         is_single_agent = len(agents) == 1
-        print(
-            f"🔍 DEBUG: Found {len(agents)} agents, is_single_agent: {is_single_agent}"
-        )
 
         if is_single_agent:
             # Single-agent workflow - execute agent directly with its own prompt
             agent_config = agents[0]
             agent_type = agent_config.get("agent_type", "CommandAgent")
-            print(f"🔍 DEBUG: Building single agent of type: {agent_type}")
 
             if agent_type == "ToshibaAgent":
                 # Build ToshibaAgent directly
-                print("🔍 DEBUG: Building ToshibaAgent")
                 agent = _build_toshiba_agent_from_workflow(db, workflow, agent_config)
             else:
                 # Build other single agents directly
-                print(f"🔍 DEBUG: Building generic agent for type: {agent_type}")
                 agent = _build_single_agent_from_workflow(db, workflow, agent_config)
 
             # Build dynamic agent store for inter-agent communication
-            print("🔍 DEBUG: Building dynamic agent store for workflow")
             dynamic_agent_store = _build_dynamic_agent_store(db, workflow)
 
-            print(f"🔍 DEBUG: Agent built successfully: {agent.name}")
-            print(f"🔍 DEBUG: Starting agent execution...")
-            print(f"🔍 DEBUG: Query: {execution_request.query[:100]}...")
-            print(
-                f"🔍 DEBUG: Chat history length: {len(execution_request.chat_history) if execution_request.chat_history else 0}"
-            )
-
             # Add timeout to agent execution using concurrent.futures (thread-safe)
-            import time
             import concurrent.futures
-
-            start_time = time.time()
-            print("🔍 DEBUG: About to call agent.execute()...")
-            print(
-                f"🔍 DEBUG: Agent functions: {len(agent.functions) if agent.functions else 0}"
-            )
-            print(f"🔍 DEBUG: Agent max_retries: {agent.max_retries}")
 
             # Execute with timeout using ThreadPoolExecutor
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
@@ -496,15 +472,7 @@ def execute_workflow(
                 try:
                     # Wait for result with 60 second timeout
                     result = future.result(timeout=60)
-                    execution_time = time.time() - start_time
-                    print(
-                        f"🔍 DEBUG: Agent execution completed in {execution_time:.2f} seconds"
-                    )
-                    print(
-                        f"🔍 DEBUG: Result type: {type(result)}, length: {len(str(result)) if result else 0}"
-                    )
                 except concurrent.futures.TimeoutError:
-                    print("🔍 DEBUG: Agent execution TIMED OUT after 60 seconds!")
                     # Cancel the future
                     future.cancel()
                     raise HTTPException(
@@ -512,44 +480,27 @@ def execute_workflow(
                         detail="Agent execution timed out after 60 seconds",
                     )
                 except Exception as e:
-                    execution_time = time.time() - start_time
-                    print(
-                        f"🔍 DEBUG: Agent execution failed after {execution_time:.2f} seconds: {e}"
-                    )
                     raise
         else:
             # Multi-agent workflow - use CommandAgent for orchestration
-            print("🔍 DEBUG: Building CommandAgent for multi-agent workflow")
             command_agent = _build_command_agent_from_workflow(db, workflow)
 
             # Build dynamic agent store for inter-agent communication
-            print("🔍 DEBUG: Building dynamic agent store for workflow")
             dynamic_agent_store = _build_dynamic_agent_store(db, workflow)
 
-            print("🔍 DEBUG: Starting CommandAgent execution")
-            print(
-                f"🔍 DEBUG: CommandAgent functions: {len(command_agent.functions) if command_agent.functions else 0}"
-            )
-            print(f"🔍 DEBUG: CommandAgent max_retries: {command_agent.max_retries}")
-
             # Add timeout to CommandAgent execution using concurrent.futures (thread-safe)
-            import time
             import concurrent.futures
-
-            start_time = time.time()
 
             # Execute with timeout using ThreadPoolExecutor
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                 # Submit the CommandAgent execution to the thread pool
                 if execution_request.chat_history:
-                    print("🔍 DEBUG: Using execute_stream with chat history")
                     future = executor.submit(
                         command_agent.execute_stream,
                         execution_request.query,
                         execution_request.chat_history,
                     )
                 else:
-                    print("🔍 DEBUG: Using regular execute without chat history")
                     future = executor.submit(
                         command_agent.execute,
                         query=execution_request.query,
@@ -560,14 +511,7 @@ def execute_workflow(
                 try:
                     # Wait for result with 60 second timeout
                     result = future.result(timeout=60)
-                    execution_time = time.time() - start_time
-                    print(
-                        f"🔍 DEBUG: CommandAgent execution completed in {execution_time:.2f} seconds"
-                    )
                 except concurrent.futures.TimeoutError:
-                    print(
-                        "🔍 DEBUG: CommandAgent execution TIMED OUT after 60 seconds!"
-                    )
                     # Cancel the future
                     future.cancel()
                     raise HTTPException(
@@ -575,10 +519,6 @@ def execute_workflow(
                         detail="CommandAgent execution timed out after 60 seconds",
                     )
                 except Exception as e:
-                    execution_time = time.time() - start_time
-                    print(
-                        f"🔍 DEBUG: CommandAgent execution failed after {execution_time:.2f} seconds: {e}"
-                    )
                     raise
 
         # Ensure response is in JSON format expected by frontend
@@ -733,39 +673,24 @@ def _build_single_agent_from_workflow(
     """Build a single agent from workflow configuration using its configured prompt and tools"""
     from agents.agent_base import Agent
 
-    print(
-        f"🔍 DEBUG: _build_single_agent_from_workflow called with agent_config: {agent_config}"
-    )
-
     # Get agent type and ID from config
     agent_type = agent_config.get("agent_type", "CommandAgent")
     agent_id = agent_config.get("agent_id")
-    print(f"🔍 DEBUG: agent_type: {agent_type}, agent_id: {agent_id}")
-
     # Try to get the agent from database if agent_id is provided
     db_agent = None
     if agent_id:
         try:
-            print(f"🔍 DEBUG: Looking up agent by ID: {agent_id}")
+            import uuid
+
             db_agent = crud.get_agent(db, uuid.UUID(agent_id))
-            print(
-                f"🔍 DEBUG: Found agent by ID: {db_agent.name if db_agent else 'None'}"
-            )
         except (ValueError, TypeError) as e:
-            print(f"🔍 DEBUG: Error looking up by ID: {e}, trying by name")
             # If agent_id is invalid, try to find by name
             db_agent = crud.get_agent_by_name(db, agent_type)
-            print(
-                f"🔍 DEBUG: Found agent by name: {db_agent.name if db_agent else 'None'}"
-            )
     else:
         # Find agent by type/name
-        print(f"🔍 DEBUG: Looking up agent by name: {agent_type}")
         db_agent = crud.get_agent_by_name(db, agent_type)
-        print(f"🔍 DEBUG: Found agent by name: {db_agent.name if db_agent else 'None'}")
 
     if not db_agent:
-        print("🔍 DEBUG: No agent found, falling back to CommandAgent")
         # Fallback to CommandAgent if agent not found
         return _build_command_agent_from_workflow(db, workflow)
 
@@ -773,23 +698,23 @@ def _build_single_agent_from_workflow(
     from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
     from data_classes import PromptObject
 
-    print("🔍 DEBUG: Starting PromptObject construction")
-    print(f"🔍 DEBUG: db_agent.system_prompt type: {type(db_agent.system_prompt)}")
-
     try:
         # Check if system_prompt exists and has required attributes
         if not hasattr(db_agent, "system_prompt") or db_agent.system_prompt is None:
-            print("🔍 DEBUG: No system_prompt found, using fallback")
             # Use a simple fallback
             system_prompt = db_agent.system_prompt
         else:
-            print("🔍 DEBUG: Constructing PromptObject with all fields")
+            from datetime import datetime
+            import uuid
+
             system_prompt = PromptObject(
                 appName="",
-                createdTime=getattr(db_agent.system_prompt, "created_time", None),
+                createdTime=getattr(
+                    db_agent.system_prompt, "created_time", datetime.now()
+                ),
                 prompt=getattr(db_agent.system_prompt, "prompt", ""),
                 uniqueLabel=getattr(db_agent.system_prompt, "unique_label", ""),
-                pid=getattr(db_agent.system_prompt, "pid", None),
+                pid=getattr(db_agent.system_prompt, "pid", uuid.uuid4()),
                 last_deployed=getattr(db_agent.system_prompt, "last_deployed", None),
                 deployedTime=getattr(db_agent.system_prompt, "deployed_time", None),
                 isDeployed=getattr(db_agent.system_prompt, "is_deployed", False),
@@ -804,10 +729,8 @@ def _build_single_agent_from_workflow(
                 ),
                 prompt_label=getattr(db_agent.system_prompt, "prompt_label", ""),
             )
-        print("🔍 DEBUG: PromptObject constructed successfully")
     except Exception as e:
-        print(f"🔍 DEBUG: Error constructing PromptObject: {e}")
-        print("🔍 DEBUG: Using original system_prompt as fallback")
+        print(f"❌ Error constructing PromptObject: {e}")
         system_prompt = db_agent.system_prompt
 
     return Agent(
@@ -862,10 +785,9 @@ def _build_openai_schema_from_db_agent(db_agent):
                 },
             },
         }
-        print(f"🔧 Built OpenAI schema for agent: {db_agent.name}")
         return schema
     except Exception as e:
-        print(f"🔧 Error building OpenAI schema for agent {db_agent.name}: {e}")
+        print(f"❌ Error building OpenAI schema for agent {db_agent.name}: {e}")
         return None
 
 
@@ -895,13 +817,11 @@ def _build_dynamic_agent_store(db: Session, workflow):
                     return execute_agent
 
                 agent_store[db_agent.name] = create_agent_executor(db_agent.agent_id)
-                print(f"🔧 Added dynamic agent to store: {db_agent.name}")
 
-        print(f"🔧 Built dynamic agent_store with {len(agent_store)} agents")
         return agent_store
 
     except Exception as e:
-        print(f"🔧 Error building dynamic agent store: {e}")
+        print(f"❌ Error building dynamic agent store: {e}")
         return {}
 
 

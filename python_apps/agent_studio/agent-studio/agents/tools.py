@@ -47,7 +47,9 @@ def get_customer_order(customer_id: int) -> str:
     """ "
     Returns the order number for a given customer ID."""
     if customer_id in [i["customer_id"] for i in EXAMPLE_DATA]:
-        order_number = [i["order_number"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id][0]
+        order_number = [
+            i["order_number"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id
+        ][0]
         return f"The order number for customer ID {customer_id} is {order_number}"
     return f"No order found for customer ID {customer_id}"
 
@@ -57,7 +59,9 @@ def get_customer_location(customer_id: int) -> str:
     """ "
     Returns the location for a given customer ID."""
     if customer_id in [i["customer_id"] for i in EXAMPLE_DATA]:
-        location = [i["location"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id][0]
+        location = [
+            i["location"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id
+        ][0]
         return f"The location for customer ID {customer_id} is {location}"
     return f"No location found for customer ID {customer_id}"
 
@@ -66,7 +70,9 @@ def get_customer_location(customer_id: int) -> str:
 def add_customer(customer_id: int, order_number: int, location: str) -> str:
     """ "
     Adds a new customer to the database."""
-    EXAMPLE_DATA.append({"customer_id": customer_id, "order_number": order_number, "location": location})
+    EXAMPLE_DATA.append(
+        {"customer_id": customer_id, "order_number": order_number, "location": location}
+    )
     return f"Customer ID {customer_id} added successfully."
 
 
@@ -95,7 +101,9 @@ def url_to_markdown(url):
         content = soup.find("body")
 
         if content:
-            markdown_content = markdownify.markdownify(str(content), heading_style="ATX")
+            markdown_content = markdownify.markdownify(
+                str(content), heading_style="ATX"
+            )
             return markdown_content[:20000]
         else:
             return "No content found in the webpage body."
@@ -157,7 +165,9 @@ def query_retriever2(query: str) -> list:
     """
     RETRIEVER_URL = os.getenv("RETRIEVER_URL")
     if RETRIEVER_URL is None:
-        raise ValueError("RETRIEVER_URL not found. Please set it in the environment variables.")
+        raise ValueError(
+            "RETRIEVER_URL not found. Please set it in the environment variables."
+        )
     url = RETRIEVER_URL + "/query-chunks"
     params = {"query": query, "top_k": 60}
 
@@ -170,7 +180,11 @@ def query_retriever2(query: str) -> list:
         res += "*" * 5 + f"\n\nSegment {i}" + "\n" + "Contextual Header: "
         contextual_header = segment["chunks"][0].get("contextual_header", "")
         skip_length = len(contextual_header) if contextual_header else 0
-        res += contextual_header if contextual_header else "No contextual header" + "\n" + "Context: " + "\n"
+        res += (
+            contextual_header
+            if contextual_header
+            else "No contextual header" + "\n" + "Context: " + "\n"
+        )
         # print(segment["score"])
         print("Segment Done")
         references = ""
@@ -187,7 +201,12 @@ def query_retriever2(query: str) -> list:
 
 
 @function_schema
-def media_context_retriever(query: str, collection_name: str = "media_data_standardized_v2", limit: Optional[int] = 10, filter_params: Optional[str] = None) -> str:
+def media_context_retriever(
+    query: str,
+    collection_name: str = "media_data_standardized_v2",
+    limit: Optional[int] = 10,
+    filter_params: Optional[str] = None,
+) -> str:
     """
     MEDIA CONTEXT RETRIEVER TOOL
 
@@ -206,7 +225,6 @@ def media_context_retriever(query: str, collection_name: str = "media_data_stand
     Example: media_context_retriever("Nike campaigns with high CTR", "media_data_standardized_v2", 8, '{"brand": "nike"}')
     """
 
-
     try:
         from qdrant_client import QdrantClient
 
@@ -224,8 +242,7 @@ def media_context_retriever(query: str, collection_name: str = "media_data_stand
 
         # Get embedding for query using OpenAI
         embedding_response = client.embeddings.create(
-            model="text-embedding-ada-002",
-            input=query
+            model="text-embedding-ada-002", input=query
         )
         query_vector = embedding_response.data[0].embedding
 
@@ -243,14 +260,16 @@ def media_context_retriever(query: str, collection_name: str = "media_data_stand
             query_vector=query_vector,
             limit=limit,
             query_filter=filter_dict,
-            with_payload=True
+            with_payload=True,
         )
 
         # Format results
         if search_results is None or not search_results:
             return f"No results found for query: '{query}' in collection '{collection}'"
 
-        result_text = f"QDRANT SEARCH RESULTS for '{query}' (Collection: {collection}):\n\n"
+        result_text = (
+            f"QDRANT SEARCH RESULTS for '{query}' (Collection: {collection}):\n\n"
+        )
         for i, result in enumerate(search_results):
             payload = result.payload
             score = result.score
@@ -271,17 +290,21 @@ def media_context_retriever(query: str, collection_name: str = "media_data_stand
             result_text += f"Industry: {payload.get('industry', 'Unknown Industry')}\n"
             result_text += f"File Type: {payload.get('file_type', 'Unknown')}\n"
             result_text += f"Duration: {payload.get('duration_days', 0)} days\n"
-            result_text += f"Duration Category: {payload.get('duration_category', 'Unknown')}\n"
-            result_text += f"Season/Holiday: {payload.get('season_holiday', 'Unknown')}\n"
+            result_text += (
+                f"Duration Category: {payload.get('duration_category', 'Unknown')}\n"
+            )
+            result_text += (
+                f"Season/Holiday: {payload.get('season_holiday', 'Unknown')}\n"
+            )
             result_text += f"Ad Objective: {payload.get('ad_objective', 'Unknown')}\n"
             result_text += f"Targeting: {payload.get('targeting', 'Unknown')}\n"
             result_text += f"Tone/Mood: {payload.get('tone_mood', 'Unknown')}\n"
 
             # Performance metrics
-            booked_impressions = payload.get('booked_measure_impressions', 0)
-            delivered_impressions = payload.get('delivered_measure_impressions', 0)
-            clicks = payload.get('clicks', 0)
-            conversion = payload.get('conversion', 0)
+            booked_impressions = payload.get("booked_measure_impressions", 0)
+            delivered_impressions = payload.get("delivered_measure_impressions", 0)
+            clicks = payload.get("clicks", 0)
+            conversion = payload.get("conversion", 0)
 
             result_text += f"Booked Impressions: {booked_impressions:,}\n"
             result_text += f"Delivered Impressions: {delivered_impressions:,}\n"
@@ -302,6 +325,7 @@ def media_context_retriever(query: str, collection_name: str = "media_data_stand
     except Exception as e:
         print(f"Qdrant search error: {e}")
         import traceback
+
         traceback.print_exc()
         # Fallback to mock data for development
         mock_results = [
@@ -314,7 +338,7 @@ def media_context_retriever(query: str, collection_name: str = "media_data_stand
                 "ctr": 2.1,
                 "conversion_rate": 1.8,
                 "impressions": 850000,
-                "score": 0.95
+                "score": 0.95,
             },
             {
                 "campaign_name": "Adidas Athletic Wear Campaign",
@@ -325,11 +349,13 @@ def media_context_retriever(query: str, collection_name: str = "media_data_stand
                 "ctr": 1.9,
                 "conversion_rate": 1.6,
                 "impressions": 720000,
-                "score": 0.87
-            }
+                "score": 0.87,
+            },
         ]
 
-        result_text = f"QDRANT SEARCH RESULTS for '{query}' (MOCK DATA - Connection Error):\n\n"
+        result_text = (
+            f"QDRANT SEARCH RESULTS for '{query}' (MOCK DATA - Connection Error):\n\n"
+        )
         for i, result in enumerate(mock_results[:limit]):
             result_text += f"Result {i+1} (Score: {result['score']}):\n"
             result_text += f"Campaign: {result['campaign_name']}\n"
@@ -346,7 +372,9 @@ def media_context_retriever(query: str, collection_name: str = "media_data_stand
 
 
 @function_schema
-def redis_cache_operation(operation: str, key: str, value: Optional[str] = None, ttl: Optional[int] = None) -> str:
+def redis_cache_operation(
+    operation: str, key: str, value: Optional[str] = None, ttl: Optional[int] = None
+) -> str:
     """
     REDIS CACHE TOOL
 
@@ -381,7 +409,7 @@ def redis_cache_operation(operation: str, key: str, value: Optional[str] = None,
             "campaign:nike:performance": '{"ctr": 0.045, "clicks": 15420, "impressions": 342000}',
             "campaign:cocacola:metrics": '{"ctr": 0.038, "clicks": 12800, "impressions": 337000}',
             "user:session:12345": '{"user_id": 12345, "login_time": "2024-01-15T10:30:00Z"}',
-            "targeting:config:tech_professionals": '{"age_range": ["25-44"], "interests": ["Technology"]}'
+            "targeting:config:tech_professionals": '{"age_range": ["25-44"], "interests": ["Technology"]}',
         }
 
         if key in mock_cache:
@@ -395,7 +423,11 @@ def redis_cache_operation(operation: str, key: str, value: Optional[str] = None,
 
     elif operation == "exists":
         # Mock existence check
-        existing_keys = ["campaign:nike:performance", "user:session:12345", "targeting:config:tech_professionals"]
+        existing_keys = [
+            "campaign:nike:performance",
+            "user:session:12345",
+            "targeting:config:tech_professionals",
+        ]
         exists = key in existing_keys
         return f"Key '{key}' {'exists' if exists else 'does not exist'} in Redis"
 
@@ -406,7 +438,7 @@ def redis_cache_operation(operation: str, key: str, value: Optional[str] = None,
             "campaign:cocacola:metrics",
             "campaign:disney:analytics",
             "user:session:12345",
-            "targeting:config:tech_professionals"
+            "targeting:config:tech_professionals",
         ]
 
         if "*" in key:
@@ -421,7 +453,13 @@ def redis_cache_operation(operation: str, key: str, value: Optional[str] = None,
 
 
 @function_schema
-def postgres_query(query_type: str, table: str, conditions: Optional[str] = None, data: Optional[str] = None, limit: Optional[int] = 10) -> str:
+def postgres_query(
+    query_type: str,
+    table: str,
+    conditions: Optional[str] = None,
+    data: Optional[str] = None,
+    limit: Optional[int] = 10,
+) -> str:
     """
     POSTGRES DATABASE TOOL
 
@@ -450,15 +488,59 @@ def postgres_query(query_type: str, table: str, conditions: Optional[str] = None
 
     # Mock database tables and data
     mock_campaigns = [
-        {"id": 1, "name": "Summer Fashion 2024", "brand": "nike", "industry": "Fashion & Retail", "conversion_rate": 0.045, "budget": 25000, "status": "active"},
-        {"id": 2, "name": "Holiday Beverages", "brand": "coca-cola", "industry": "Food & Beverage", "conversion_rate": 0.038, "budget": 18000, "status": "completed"},
-        {"id": 3, "name": "Tech Innovation", "brand": "apple", "industry": "Technology & Telecommunications", "conversion_rate": 0.052, "budget": 35000, "status": "active"},
-        {"id": 4, "name": "Automotive Excellence", "brand": "toyota", "industry": "Automotive", "conversion_rate": 0.041, "budget": 22000, "status": "paused"}
+        {
+            "id": 1,
+            "name": "Summer Fashion 2024",
+            "brand": "nike",
+            "industry": "Fashion & Retail",
+            "conversion_rate": 0.045,
+            "budget": 25000,
+            "status": "active",
+        },
+        {
+            "id": 2,
+            "name": "Holiday Beverages",
+            "brand": "coca-cola",
+            "industry": "Food & Beverage",
+            "conversion_rate": 0.038,
+            "budget": 18000,
+            "status": "completed",
+        },
+        {
+            "id": 3,
+            "name": "Tech Innovation",
+            "brand": "apple",
+            "industry": "Technology & Telecommunications",
+            "conversion_rate": 0.052,
+            "budget": 35000,
+            "status": "active",
+        },
+        {
+            "id": 4,
+            "name": "Automotive Excellence",
+            "brand": "toyota",
+            "industry": "Automotive",
+            "conversion_rate": 0.041,
+            "budget": 22000,
+            "status": "paused",
+        },
     ]
 
     mock_users = [
-        {"id": 101, "username": "john_doe", "email": "john@example.com", "role": "campaign_manager", "created_at": "2024-01-10"},
-        {"id": 102, "username": "jane_smith", "email": "jane@example.com", "role": "analyst", "created_at": "2024-01-12"}
+        {
+            "id": 101,
+            "username": "john_doe",
+            "email": "john@example.com",
+            "role": "campaign_manager",
+            "created_at": "2024-01-10",
+        },
+        {
+            "id": 102,
+            "username": "jane_smith",
+            "email": "jane@example.com",
+            "role": "analyst",
+            "created_at": "2024-01-12",
+        },
     ]
 
     if query_type == "select":
@@ -478,7 +560,9 @@ def postgres_query(query_type: str, table: str, conditions: Optional[str] = None
             return f"Mock data not available for table '{table}'"
 
     elif query_type == "insert":
-        return f"Successfully inserted new record into '{table}' table with data: {data}"
+        return (
+            f"Successfully inserted new record into '{table}' table with data: {data}"
+        )
 
     elif query_type == "update":
         return f"Successfully updated records in '{table}' table where {conditions} with data: {data}"
@@ -500,7 +584,15 @@ def postgres_query(query_type: str, table: str, conditions: Optional[str] = None
 
 
 @function_schema
-def image_generation(prompt: str, operation_type: str, dimensions: Optional[str] = "1024x1024", reference_image_url: Optional[str] = None, aspect_ratio: Optional[str] = "1:1", count: Optional[int] = 1, iab_size: Optional[str] = None) -> str:
+def image_generation(
+    prompt: str,
+    operation_type: str,
+    dimensions: Optional[str] = "1024x1024",
+    reference_image_url: Optional[str] = None,
+    aspect_ratio: Optional[str] = "1:1",
+    count: Optional[int] = 1,
+    iab_size: Optional[str] = None,
+) -> str:
     """
     IMAGE GENERATION TOOL
 
@@ -547,19 +639,25 @@ def image_generation(prompt: str, operation_type: str, dimensions: Optional[str]
 
     # Mock response based on operation type
     if operation_type == "generate":
-        mock_image_url = f"https://mock-api.com/generated-image-{hash(prompt) % 10000}.jpg"
+        mock_image_url = (
+            f"https://mock-api.com/generated-image-{hash(prompt) % 10000}.jpg"
+        )
         return f"Successfully generated image with prompt: '{prompt}'\nDimensions: {dimensions}\nAspect Ratio: {aspect_ratio}\nGenerated Image URL: {mock_image_url}\nImage ID: IMG_{hash(prompt) % 100000}"
 
     elif operation_type == "multi_generate":
         mock_urls = []
         for i in range(min(count, 4)):
-            mock_urls.append(f"https://mock-api.com/generated-image-{hash(prompt) % 10000}-variant-{i+1}.jpg")
+            mock_urls.append(
+                f"https://mock-api.com/generated-image-{hash(prompt) % 10000}-variant-{i+1}.jpg"
+            )
 
         result = f"Successfully generated {len(mock_urls)} image variations with prompt: '{prompt}'\n"
         result += f"Dimensions: {dimensions}\nAspect Ratio: {aspect_ratio}\n"
         result += "Generated Images:\n"
         for i, url in enumerate(mock_urls):
-            result += f"  Variant {i+1}: {url} (ID: IMG_{hash(prompt + str(i)) % 100000})\n"
+            result += (
+                f"  Variant {i+1}: {url} (ID: IMG_{hash(prompt + str(i)) % 100000})\n"
+            )
         return result
 
     elif operation_type == "resize":
@@ -582,7 +680,7 @@ def image_generation(prompt: str, operation_type: str, dimensions: Optional[str]
             "Skyscraper": "160x600",
             "Wide Skyscraper": "300x600",
             "Mobile Banner": "320x50",
-            "Large Mobile Banner": "320x100"
+            "Large Mobile Banner": "320x100",
         }
 
         if iab_size in iab_dimensions:
@@ -595,21 +693,22 @@ def image_generation(prompt: str, operation_type: str, dimensions: Optional[str]
     else:
         return f"Error: Unsupported operation type '{operation_type}'. Supported: generate, resize, multi_generate, resize_to_iab"
 
+
 def _get_google_credentials():
     """Get OAuth credentials from token.pickle with automatic refresh"""
     logger = logging.getLogger(__name__)
 
     creds = None
-    if os.path.exists('token.pickle'):
+    if os.path.exists("token.pickle"):
         try:
-            with open('token.pickle', 'rb') as token:
+            with open("token.pickle", "rb") as token:
                 creds = pickle.load(token)
 
             # Refresh if expired
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
                 # Save refreshed credentials
-                with open('token.pickle', 'wb') as token:
+                with open("token.pickle", "wb") as token:
                     pickle.dump(creds, token)
 
         except Exception as e:
@@ -619,25 +718,26 @@ def _get_google_credentials():
     return creds
 
 
-def _create_google_drive_folder(service, folder_name: str, parent_folder_id: str) -> Dict[str, Any]:
+def _create_google_drive_folder(
+    service, folder_name: str, parent_folder_id: str
+) -> Dict[str, Any]:
     """Create a folder in Google Drive"""
     try:
         file_metadata = {
-            'name': folder_name,
-            'mimeType': 'application/vnd.google-apps.folder',
-            'parents': [parent_folder_id]
+            "name": folder_name,
+            "mimeType": "application/vnd.google-apps.folder",
+            "parents": [parent_folder_id],
         }
 
-        folder = service.files().create(
-            body=file_metadata,
-            supportsAllDrives=True,
-            fields='id, webViewLink'
-        ).execute()
+        folder = (
+            service.files()
+            .create(
+                body=file_metadata, supportsAllDrives=True, fields="id, webViewLink"
+            )
+            .execute()
+        )
 
-        return {
-            'id': folder.get('id'),
-            'link': folder.get('webViewLink')
-        }
+        return {"id": folder.get("id"), "link": folder.get("webViewLink")}
     except Exception as e:
         raise Exception(f"Failed to create folder: {str(e)}")
 
@@ -647,98 +747,137 @@ def _share_folder_with_users(service, folder_id: str, emails: List[str]):
     for email in emails:
         if email:  # Only share if email is provided
             try:
-                permission = {
-                    'type': 'user',
-                    'role': 'writer',
-                    'emailAddress': email
-                }
+                permission = {"type": "user", "role": "writer", "emailAddress": email}
                 service.permissions().create(
-                    fileId=folder_id,
-                    body=permission,
-                    supportsAllDrives=True
+                    fileId=folder_id, body=permission, supportsAllDrives=True
                 ).execute()
             except Exception as e:
-                logging.getLogger(__name__).warning(f"Failed to share with {email}: {str(e)}")
+                logging.getLogger(__name__).warning(
+                    f"Failed to share with {email}: {str(e)}"
+                )
 
 
-def _extract_targeting_info_from_placement(placement_info: Dict[str, Any]) -> Dict[str, str]:
+def _extract_targeting_info_from_placement(
+    placement_info: Dict[str, Any],
+) -> Dict[str, str]:
     """Extract targeting information from placement data"""
     # Default values
     targeting_info = {
-        'age_range': 'Not specified',
-        'gender': 'Not specified',
-        'income_level': 'Not specified',
-        'interests': 'Not specified',
-        'location': 'Not specified',
-        'behavioral_data': 'Not specified'
+        "age_range": "Not specified",
+        "gender": "Not specified",
+        "income_level": "Not specified",
+        "interests": "Not specified",
+        "location": "Not specified",
+        "behavioral_data": "Not specified",
     }
 
     # Check for new targeting configuration format
-    if 'new_targeting_configuration' in placement_info:
-        config = placement_info['new_targeting_configuration']
-        targeting_info.update({
-            'age_range': ', '.join(config.get('age_range', [])) if config.get('age_range') else 'Not specified',
-            'gender': ', '.join(config.get('gender', [])) if config.get('gender') else 'Not specified',
-            'income_level': ', '.join(config.get('income_level', [])) if config.get('income_level') else 'Not specified',
-            'interests': ', '.join(config.get('interests', [])) if config.get('interests') else 'Not specified',
-            'location': ', '.join(config.get('location', [])) if config.get('location') else 'Not specified',
-            'behavioral_data': ', '.join(config.get('behavioral_data', [])) if config.get('behavioral_data') else 'Not specified'
-        })
+    if "new_targeting_configuration" in placement_info:
+        config = placement_info["new_targeting_configuration"]
+        targeting_info.update(
+            {
+                "age_range": (
+                    ", ".join(config.get("age_range", []))
+                    if config.get("age_range")
+                    else "Not specified"
+                ),
+                "gender": (
+                    ", ".join(config.get("gender", []))
+                    if config.get("gender")
+                    else "Not specified"
+                ),
+                "income_level": (
+                    ", ".join(config.get("income_level", []))
+                    if config.get("income_level")
+                    else "Not specified"
+                ),
+                "interests": (
+                    ", ".join(config.get("interests", []))
+                    if config.get("interests")
+                    else "Not specified"
+                ),
+                "location": (
+                    ", ".join(config.get("location", []))
+                    if config.get("location")
+                    else "Not specified"
+                ),
+                "behavioral_data": (
+                    ", ".join(config.get("behavioral_data", []))
+                    if config.get("behavioral_data")
+                    else "Not specified"
+                ),
+            }
+        )
     # Check for legacy targeting suggestions format
-    elif 'targeting_suggestions' in placement_info:
-        suggestions = placement_info['targeting_suggestions']
-        targeting_info.update({
-            'age_range': suggestions.get('age_range', 'Not specified'),
-            'gender': suggestions.get('gender', 'Not specified'),
-            'income_level': suggestions.get('income_level', 'Not specified'),
-            'interests': ', '.join(suggestions.get('interests', [])) if suggestions.get('interests') else 'Not specified',
-            'location': suggestions.get('location', 'Not specified'),
-            'behavioral_data': suggestions.get('behavioral_data', 'Not specified')
-        })
+    elif "targeting_suggestions" in placement_info:
+        suggestions = placement_info["targeting_suggestions"]
+        targeting_info.update(
+            {
+                "age_range": suggestions.get("age_range", "Not specified"),
+                "gender": suggestions.get("gender", "Not specified"),
+                "income_level": suggestions.get("income_level", "Not specified"),
+                "interests": (
+                    ", ".join(suggestions.get("interests", []))
+                    if suggestions.get("interests")
+                    else "Not specified"
+                ),
+                "location": suggestions.get("location", "Not specified"),
+                "behavioral_data": suggestions.get("behavioral_data", "Not specified"),
+            }
+        )
 
     return targeting_info
 
 
-def _generate_pdf_with_media_plan_table(drive_service, docs_service, template_id: str, folder_id: str, filename: str, template_variables: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_pdf_with_media_plan_table(
+    drive_service,
+    docs_service,
+    template_id: str,
+    folder_id: str,
+    filename: str,
+    template_variables: Dict[str, Any],
+) -> Dict[str, Any]:
     """Generate PDF from template with Media Plan table support"""
     try:
         # Copy the template document (as Google Doc first)
-        copied_doc = drive_service.files().copy(
-            fileId=template_id,
-            body={
-                'name': f"{filename}_temp_doc",
-                'parents': [folder_id]
-            },
-            supportsAllDrives=True
-        ).execute()
+        copied_doc = (
+            drive_service.files()
+            .copy(
+                fileId=template_id,
+                body={"name": f"{filename}_temp_doc", "parents": [folder_id]},
+                supportsAllDrives=True,
+            )
+            .execute()
+        )
 
-        doc_id = copied_doc['id']
+        doc_id = copied_doc["id"]
 
         # Handle regular text replacements first (excluding media_plan_table)
         requests = []
         table_data = None
 
         for key, value in template_variables.items():
-            if key == 'media_plan_table':
+            if key == "media_plan_table":
                 # Store table data for special handling
                 table_data = value
             else:
                 # Regular text replacement
-                requests.append({
-                    'replaceAllText': {
-                        'containsText': {
-                            'text': '{{' + key + '}}',
-                            'matchCase': True
-                        },
-                        'replaceText': str(value)
+                requests.append(
+                    {
+                        "replaceAllText": {
+                            "containsText": {
+                                "text": "{{" + key + "}}",
+                                "matchCase": True,
+                            },
+                            "replaceText": str(value),
+                        }
                     }
-                })
+                )
 
         # Execute regular text replacements first
         if requests:
             docs_service.documents().batchUpdate(
-                documentId=doc_id,
-                body={'requests': requests}
+                documentId=doc_id, body={"requests": requests}
             ).execute()
 
         # Handle table insertion if media_plan_table data exists
@@ -746,13 +885,17 @@ def _generate_pdf_with_media_plan_table(drive_service, docs_service, template_id
             _insert_media_plan_table_simple(docs_service, doc_id, table_data)
 
         # Export the Google Doc as PDF
-        pdf_export_url = f"https://docs.google.com/document/d/{doc_id}/export?format=pdf"
+        pdf_export_url = (
+            f"https://docs.google.com/document/d/{doc_id}/export?format=pdf"
+        )
 
         # Download the PDF content
         import io
         from googleapiclient.http import MediaIoBaseDownload
 
-        request = drive_service.files().export_media(fileId=doc_id, mimeType='application/pdf')
+        request = drive_service.files().export_media(
+            fileId=doc_id, mimeType="application/pdf"
+        )
         pdf_content = io.BytesIO()
         downloader = MediaIoBaseDownload(pdf_content, request)
 
@@ -764,50 +907,54 @@ def _generate_pdf_with_media_plan_table(drive_service, docs_service, template_id
         pdf_content.seek(0)
         from googleapiclient.http import MediaIoBaseUpload
 
-        media = MediaIoBaseUpload(pdf_content, mimetype='application/pdf')
-        pdf_file = drive_service.files().create(
-            body={
-                'name': f"{filename}.pdf",
-                'parents': [folder_id]
-            },
-            media_body=media,
-            supportsAllDrives=True,
-            fields='id, webViewLink'
-        ).execute()
+        media = MediaIoBaseUpload(pdf_content, mimetype="application/pdf")
+        pdf_file = (
+            drive_service.files()
+            .create(
+                body={"name": f"{filename}.pdf", "parents": [folder_id]},
+                media_body=media,
+                supportsAllDrives=True,
+                fields="id, webViewLink",
+            )
+            .execute()
+        )
 
         # Delete the temporary Google Doc
         drive_service.files().delete(fileId=doc_id, supportsAllDrives=True).execute()
 
-        return {
-            'pdf_file_id': pdf_file['id'],
-            'pdf_link': pdf_file['webViewLink']
-        }
+        return {"pdf_file_id": pdf_file["id"], "pdf_link": pdf_file["webViewLink"]}
 
     except Exception as e:
         raise Exception(f"Failed to generate PDF: {str(e)}")
 
 
-def _insert_media_plan_table_simple(docs_service, doc_id: str, table_data: Dict[str, Any]):
+def _insert_media_plan_table_simple(
+    docs_service, doc_id: str, table_data: Dict[str, Any]
+):
     """Insert a proper Google Docs table using the approach from tanaikech's implementation"""
     try:
         logger = logging.getLogger(__name__)
         logger.info("Starting media plan table insertion...")
 
         # Prepare table data
-        headers = table_data.get('headers', [])
-        rows = table_data.get('rows', [])
+        headers = table_data.get("headers", [])
+        rows = table_data.get("rows", [])
 
         if not headers or not rows:
             logger.warning("No table headers or rows provided for media_plan_table")
             _fallback_text_replacement(docs_service, doc_id, table_data)
             return
 
-        logger.info(f"Creating table with {len(headers)} columns and {len(rows) + 1} rows")
+        logger.info(
+            f"Creating table with {len(headers)} columns and {len(rows) + 1} rows"
+        )
         logger.info(f"Headers: {headers}")
 
         # Find the {{media_plan_table}} placeholder
         placeholder_text = "{{media_plan_table}}"
-        placeholder_index = _find_placeholder_index(docs_service, doc_id, placeholder_text)
+        placeholder_index = _find_placeholder_index(
+            docs_service, doc_id, placeholder_text
+        )
 
         if placeholder_index is None:
             logger.warning("{{media_plan_table}} placeholder not found in document")
@@ -817,7 +964,9 @@ def _insert_media_plan_table_simple(docs_service, doc_id: str, table_data: Dict[
         logger.info(f"Found placeholder at index {placeholder_index}")
 
         # Create and populate table
-        _create_and_populate_table(docs_service, doc_id, placeholder_index, placeholder_text, headers, rows)
+        _create_and_populate_table(
+            docs_service, doc_id, placeholder_index, placeholder_text, headers, rows
+        )
 
     except Exception as e:
         logging.getLogger(__name__).error(f"Error inserting media plan table: {str(e)}")
@@ -829,18 +978,25 @@ def _find_placeholder_index(docs_service, doc_id: str, placeholder_text: str) ->
     """Find the index of the placeholder text in the document"""
     doc = docs_service.documents().get(documentId=doc_id).execute()
 
-    for element in doc.get('body', {}).get('content', []):
-        if 'paragraph' in element:
-            paragraph = element['paragraph']
-            for text_element in paragraph.get('elements', []):
-                if 'textRun' in text_element:
-                    text_content = text_element['textRun'].get('content', '')
+    for element in doc.get("body", {}).get("content", []):
+        if "paragraph" in element:
+            paragraph = element["paragraph"]
+            for text_element in paragraph.get("elements", []):
+                if "textRun" in text_element:
+                    text_content = text_element["textRun"].get("content", "")
                     if placeholder_text in text_content:
-                        return text_element.get('startIndex')
+                        return text_element.get("startIndex")
     return None
 
 
-def _create_and_populate_table(docs_service, doc_id: str, placeholder_index: int, placeholder_text: str, headers: list, rows: list):
+def _create_and_populate_table(
+    docs_service,
+    doc_id: str,
+    placeholder_index: int,
+    placeholder_text: str,
+    headers: list,
+    rows: list,
+):
     """Create table and populate it using the Tanaikech approach with calculated indices"""
     try:
         logger = logging.getLogger(__name__)
@@ -854,22 +1010,29 @@ def _create_and_populate_table(docs_service, doc_id: str, placeholder_index: int
         all_table_data = [headers] + rows
 
         # Create requests using the Tanaikech approach
-        requests = _create_table_requests(placeholder_index, placeholder_text, all_table_data)
+        requests = _create_table_requests(
+            placeholder_index, placeholder_text, all_table_data
+        )
 
         # Execute all requests in one batch
         docs_service.documents().batchUpdate(
-            documentId=doc_id,
-            body={'requests': requests}
+            documentId=doc_id, body={"requests": requests}
         ).execute()
 
-        logger.info(f"Successfully created and populated table with {len(headers)} headers and {len(rows)} data rows")
+        logger.info(
+            f"Successfully created and populated table with {len(headers)} headers and {len(rows)} data rows"
+        )
 
     except Exception as e:
-        logging.getLogger(__name__).error(f"Error creating and populating table: {str(e)}")
+        logging.getLogger(__name__).error(
+            f"Error creating and populating table: {str(e)}"
+        )
         raise
 
 
-def _create_table_requests(placeholder_index: int, placeholder_text: str, table_data: list):
+def _create_table_requests(
+    placeholder_index: int, placeholder_text: str, table_data: list
+):
     """Create requests for table creation and population using the Tanaikech approach"""
     try:
         logger = logging.getLogger(__name__)
@@ -879,25 +1042,27 @@ def _create_table_requests(placeholder_index: int, placeholder_text: str, table_
         num_rows = len(table_data)
         max_cols = max(len(row) for row in table_data)
 
-        logger.info(f"Creating table requests for {num_rows} rows and {max_cols} columns")
+        logger.info(
+            f"Creating table requests for {num_rows} rows and {max_cols} columns"
+        )
 
         # Start with deleting the placeholder and creating the table
         requests = [
             {
-                'deleteContentRange': {
-                    'range': {
-                        'startIndex': placeholder_index,
-                        'endIndex': placeholder_index + len(placeholder_text)
+                "deleteContentRange": {
+                    "range": {
+                        "startIndex": placeholder_index,
+                        "endIndex": placeholder_index + len(placeholder_text),
                     }
                 }
             },
             {
-                'insertTable': {
-                    'location': {'index': placeholder_index},
-                    'rows': num_rows,
-                    'columns': max_cols
+                "insertTable": {
+                    "location": {"index": placeholder_index},
+                    "rows": num_rows,
+                    "columns": max_cols,
                 }
-            }
+            },
         ]
 
         # Calculate cell indices and create insertion requests using the improved Tanaikech approach
@@ -908,35 +1073,43 @@ def _create_table_requests(placeholder_index: int, placeholder_text: str, table_
 
         # Process each row to calculate indices correctly
         for row_idx, row_data in enumerate(table_data):
-            row_index = index + (0 if row_idx == 0 else 3) - 1  # First row: index, subsequent rows: index + 3 - 1
+            row_index = (
+                index + (0 if row_idx == 0 else 3) - 1
+            )  # First row: index, subsequent rows: index + 3 - 1
 
             # Process each cell in the row
             for col_idx, cell_value in enumerate(row_data):
                 cell_index = row_index + col_idx * 2
                 cell_value_str = str(cell_value)
 
-                logger.info(f"Adding cell [{row_idx}][{col_idx}] = '{cell_value_str}' at index {cell_index}")
+                logger.info(
+                    f"Adding cell [{row_idx}][{col_idx}] = '{cell_value_str}' at index {cell_index}"
+                )
 
                 # Add text insertion request
-                cell_requests.append({
-                    'insertText': {
-                        'text': cell_value_str,
-                        'location': {'index': cell_index}
+                cell_requests.append(
+                    {
+                        "insertText": {
+                            "text": cell_value_str,
+                            "location": {"index": cell_index},
+                        }
                     }
-                })
+                )
 
                 # Make header row bold
                 if row_idx == 0:
-                    cell_requests.append({
-                        'updateTextStyle': {
-                            'range': {
-                                'startIndex': cell_index,
-                                'endIndex': cell_index + len(cell_value_str)
-                            },
-                            'textStyle': {'bold': True},
-                            'fields': 'bold'
+                    cell_requests.append(
+                        {
+                            "updateTextStyle": {
+                                "range": {
+                                    "startIndex": cell_index,
+                                    "endIndex": cell_index + len(cell_value_str),
+                                },
+                                "textStyle": {"bold": True},
+                                "fields": "bold",
+                            }
                         }
-                    })
+                    )
 
                 index = cell_index + 1
 
@@ -950,7 +1123,9 @@ def _create_table_requests(placeholder_index: int, placeholder_text: str, table_
         # Add cell requests to the main requests
         requests.extend(cell_requests)
 
-        logger.info(f"Created {len(requests)} total requests for table creation and population")
+        logger.info(
+            f"Created {len(requests)} total requests for table creation and population"
+        )
         return requests
 
     except Exception as e:
@@ -961,8 +1136,8 @@ def _create_table_requests(placeholder_index: int, placeholder_text: str, table_
 def _fallback_text_replacement(docs_service, doc_id: str, table_data: Dict[str, Any]):
     """Fallback method to replace {{media_plan_table}} with formatted text if table insertion fails"""
     try:
-        headers = table_data.get('headers', [])
-        rows = table_data.get('rows', [])
+        headers = table_data.get("headers", [])
+        rows = table_data.get("rows", [])
 
         if not headers or not rows:
             fallback_text = "No table data available"
@@ -984,148 +1159,160 @@ def _fallback_text_replacement(docs_service, doc_id: str, table_data: Dict[str, 
             fallback_text = "\n".join(lines)
 
         # Replace the placeholder with formatted text
-        requests = [{
-            'replaceAllText': {
-                'containsText': {
-                    'text': '{{media_plan_table}}',
-                    'matchCase': True
-                },
-                'replaceText': fallback_text
+        requests = [
+            {
+                "replaceAllText": {
+                    "containsText": {"text": "{{media_plan_table}}", "matchCase": True},
+                    "replaceText": fallback_text,
+                }
             }
-        }]
+        ]
 
         docs_service.documents().batchUpdate(
-            documentId=doc_id,
-            body={'requests': requests}
+            documentId=doc_id, body={"requests": requests}
         ).execute()
 
     except Exception as e:
-        logging.getLogger(__name__).error(f"Error in fallback text replacement: {str(e)}")
+        logging.getLogger(__name__).error(
+            f"Error in fallback text replacement: {str(e)}"
+        )
 
 
-def _create_sheet_from_template(drive_service, sheets_service, folder_id: str, sheet_name: str, template_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+def _create_sheet_from_template(
+    drive_service,
+    sheets_service,
+    folder_id: str,
+    sheet_name: str,
+    template_id: str,
+    data: Dict[str, Any],
+) -> Dict[str, Any]:
     """Create a new sheet by copying a template and populating it with data"""
     try:
         # Copy the template to create a new sheet
-        copied_sheet = drive_service.files().copy(
-            fileId=template_id,
-            body={
-                'name': sheet_name,
-                'parents': [folder_id]
-            },
-            supportsAllDrives=True,
-            fields='id, webViewLink'
-        ).execute()
+        copied_sheet = (
+            drive_service.files()
+            .copy(
+                fileId=template_id,
+                body={"name": sheet_name, "parents": [folder_id]},
+                supportsAllDrives=True,
+                fields="id, webViewLink",
+            )
+            .execute()
+        )
 
-        sheet_id = copied_sheet['id']
+        sheet_id = copied_sheet["id"]
 
         # Get the template headers from row 1
-        header_result = sheets_service.spreadsheets().values().get(
-            spreadsheetId=sheet_id,
-            range='A1:AA1',  # Headers from A to AA
-            majorDimension='ROWS'
-        ).execute()
+        header_result = (
+            sheets_service.spreadsheets()
+            .values()
+            .get(
+                spreadsheetId=sheet_id,
+                range="A1:AA1",  # Headers from A to AA
+                majorDimension="ROWS",
+            )
+            .execute()
+        )
 
-        headers = header_result.get('values', [[]])[0] if header_result.get('values') else []
+        headers = (
+            header_result.get("values", [[]])[0] if header_result.get("values") else []
+        )
 
         # Create a mapping of data to column positions
         updates = []
         for col_index, header in enumerate(headers):
-            if header.lower().replace(' ', '_') in data:
+            if header.lower().replace(" ", "_") in data:
                 col_letter = chr(65 + col_index)  # Convert to A, B, C, etc.
-                cell_range = f'{col_letter}2'  # Row 2 for data
-                value = str(data[header.lower().replace(' ', '_')])
-                updates.append({
-                    'range': cell_range,
-                    'values': [[value]]
-                })
+                cell_range = f"{col_letter}2"  # Row 2 for data
+                value = str(data[header.lower().replace(" ", "_")])
+                updates.append({"range": cell_range, "values": [[value]]})
 
         # Batch update the sheet
         if updates:
-            body = {
-                'valueInputOption': 'RAW',
-                'data': updates
-            }
+            body = {"valueInputOption": "RAW", "data": updates}
             sheets_service.spreadsheets().values().batchUpdate(
-                spreadsheetId=sheet_id,
-                body=body
+                spreadsheetId=sheet_id, body=body
             ).execute()
 
-        return {
-            'sheet_id': sheet_id,
-            'sheet_link': copied_sheet['webViewLink']
-        }
+        return {"sheet_id": sheet_id, "sheet_link": copied_sheet["webViewLink"]}
     except Exception as e:
         raise Exception(f"Failed to create sheet from template: {str(e)}")
 
 
-def _generate_pdf_from_template(drive_service, docs_service, template_id: str, output_folder_id: str, filename: str, template_variables: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_pdf_from_template(
+    drive_service,
+    docs_service,
+    template_id: str,
+    output_folder_id: str,
+    filename: str,
+    template_variables: Dict[str, Any],
+) -> Dict[str, Any]:
     """Generate PDF from Google Docs template"""
     try:
         # Create a copy of the template
-        copied_doc = drive_service.files().copy(
-            fileId=template_id,
-            body={
-                'name': f'{filename}_temp_doc',
-                'parents': [output_folder_id]
-            },
-            supportsAllDrives=True
-        ).execute()
+        copied_doc = (
+            drive_service.files()
+            .copy(
+                fileId=template_id,
+                body={"name": f"{filename}_temp_doc", "parents": [output_folder_id]},
+                supportsAllDrives=True,
+            )
+            .execute()
+        )
 
-        doc_id = copied_doc['id']
+        doc_id = copied_doc["id"]
 
         # Replace placeholders in the document
         requests_list = []
         for placeholder, value in template_variables.items():
-            requests_list.append({
-                'replaceAllText': {
-                    'containsText': {
-                        'text': f'{{{{{placeholder}}}}}',  # {{placeholder}} format
-                        'matchCase': False
-                    },
-                    'replaceText': str(value)
+            requests_list.append(
+                {
+                    "replaceAllText": {
+                        "containsText": {
+                            "text": f"{{{{{placeholder}}}}}",  # {{placeholder}} format
+                            "matchCase": False,
+                        },
+                        "replaceText": str(value),
+                    }
                 }
-            })
+            )
 
         if requests_list:
             docs_service.documents().batchUpdate(
-                documentId=doc_id,
-                body={'requests': requests_list}
+                documentId=doc_id, body={"requests": requests_list}
             ).execute()
 
         # Export as PDF
-        pdf_export = drive_service.files().export(
-            fileId=doc_id,
-            mimeType='application/pdf'
-        ).execute()
+        pdf_export = (
+            drive_service.files()
+            .export(fileId=doc_id, mimeType="application/pdf")
+            .execute()
+        )
 
         # Create PDF file in Drive
-        pdf_metadata = {
-            'name': f'{filename}.pdf',
-            'parents': [output_folder_id]
-        }
+        pdf_metadata = {"name": f"{filename}.pdf", "parents": [output_folder_id]}
 
         # Upload PDF content
         from googleapiclient.http import MediaIoBaseUpload
         import io
 
-        pdf_file = drive_service.files().create(
-            body=pdf_metadata,
-            media_body=MediaIoBaseUpload(
-                io.BytesIO(pdf_export),
-                mimetype='application/pdf'
-            ),
-            supportsAllDrives=True,
-            fields='id, webViewLink'
-        ).execute()
+        pdf_file = (
+            drive_service.files()
+            .create(
+                body=pdf_metadata,
+                media_body=MediaIoBaseUpload(
+                    io.BytesIO(pdf_export), mimetype="application/pdf"
+                ),
+                supportsAllDrives=True,
+                fields="id, webViewLink",
+            )
+            .execute()
+        )
 
         # Delete the temporary document
         drive_service.files().delete(fileId=doc_id, supportsAllDrives=True).execute()
 
-        return {
-            'pdf_file_id': pdf_file['id'],
-            'pdf_link': pdf_file['webViewLink']
-        }
+        return {"pdf_file_id": pdf_file["id"], "pdf_link": pdf_file["webViewLink"]}
     except Exception as e:
         raise Exception(f"Failed to generate PDF: {str(e)}")
 
@@ -1145,7 +1332,7 @@ def create_insertion_order(
     placement_data: str,
     base_folder_id: Optional[str] = None,
     sheet_template_id: Optional[str] = None,
-    pdf_template_id: Optional[str] = None
+    pdf_template_id: Optional[str] = None,
 ) -> str:
     """
     CREATE INSERTION ORDER IN GOOGLE DRIVE
@@ -1216,9 +1403,9 @@ def create_insertion_order(
             return "Error: Google OAuth credentials not found. Please ensure token.pickle file exists and contains valid credentials."
 
         # Build Google services
-        drive_service = build('drive', 'v3', credentials=credentials)
-        sheets_service = build('sheets', 'v4', credentials=credentials)
-        docs_service = build('docs', 'v1', credentials=credentials)
+        drive_service = build("drive", "v3", credentials=credentials)
+        sheets_service = build("sheets", "v4", credentials=credentials)
+        docs_service = build("docs", "v1", credentials=credentials)
 
         # Get configuration from environment variables or use provided values
         base_folder = base_folder_id or os.getenv("BASE_GOOGLE_DRIVE_FOLDER_ID")
@@ -1234,46 +1421,66 @@ def create_insertion_order(
 
         # Parse placement data - FIX: Handle array of placements
         try:
-            placement_list = json.loads(placement_data) if isinstance(placement_data, str) else placement_data
+            placement_list = (
+                json.loads(placement_data)
+                if isinstance(placement_data, str)
+                else placement_data
+            )
             if not isinstance(placement_list, list):
-                return "Error: placement_data must be a JSON array of placement objects."
+                return (
+                    "Error: placement_data must be a JSON array of placement objects."
+                )
         except json.JSONDecodeError:
             return "Error: Invalid placement_data JSON format."
 
         # Create campaign folder
         folder_name = f"{campaign_name}_{datetime.now().strftime('%Y%m%d')}"
-        campaign_folder = _create_google_drive_folder(drive_service, folder_name, base_folder)
+        campaign_folder = _create_google_drive_folder(
+            drive_service, folder_name, base_folder
+        )
 
         # Create PDF subfolder
-        pdf_folder = _create_google_drive_folder(drive_service, "PDF Files", campaign_folder['id'])
+        pdf_folder = _create_google_drive_folder(
+            drive_service, "PDF Files", campaign_folder["id"]
+        )
 
         # Share folders with stakeholders
-        stakeholder_emails = [customer_approver_email, sales_owner_email, fulfillment_owner_email]
-        _share_folder_with_users(drive_service, campaign_folder['id'], stakeholder_emails)
+        stakeholder_emails = [
+            customer_approver_email,
+            sales_owner_email,
+            fulfillment_owner_email,
+        ]
+        _share_folder_with_users(
+            drive_service, campaign_folder["id"], stakeholder_emails
+        )
 
         # Prepare data for sheet (use first placement for sheet data)
         first_placement = placement_list[0] if placement_list else {}
         sheet_data = {
-            'order_number': order_number,
-            'brand': brand,
-            'campaign_name': campaign_name,
-            'customer_approver': customer_approver,
-            'customer_approver_email': customer_approver_email,
-            'sales_owner': sales_owner,
-            'sales_owner_email': sales_owner_email,
-            'fulfillment_owner': fulfillment_owner,
-            'fulfillment_owner_email': fulfillment_owner_email,
-            'objective_description': objective_description,
-            'placement_name': first_placement.get('name', ''),
-            'placement_destination': first_placement.get('destination', ''),
-            'start_date': first_placement.get('start_date', ''),
-            'end_date': first_placement.get('end_date', '')
+            "order_number": order_number,
+            "brand": brand,
+            "campaign_name": campaign_name,
+            "customer_approver": customer_approver,
+            "customer_approver_email": customer_approver_email,
+            "sales_owner": sales_owner,
+            "sales_owner_email": sales_owner_email,
+            "fulfillment_owner": fulfillment_owner,
+            "fulfillment_owner_email": fulfillment_owner_email,
+            "objective_description": objective_description,
+            "placement_name": first_placement.get("name", ""),
+            "placement_destination": first_placement.get("destination", ""),
+            "start_date": first_placement.get("start_date", ""),
+            "end_date": first_placement.get("end_date", ""),
         }
 
         # Create Google Sheet from template
         sheet_result = _create_sheet_from_template(
-            drive_service, sheets_service, campaign_folder['id'],
-            f"Order_{order_number}", sheet_template, sheet_data
+            drive_service,
+            sheets_service,
+            campaign_folder["id"],
+            f"Order_{order_number}",
+            sheet_template,
+            sheet_data,
         )
 
         # NEW: Prepare Media Plan table data and PDF variables with proper targeting info
@@ -1285,24 +1492,24 @@ def create_insertion_order(
 
         for i, placement_info in enumerate(placement_list, 1):
             # Extract placement data
-            name = placement_info.get('name', f'Placement {i}')
-            destination = placement_info.get('destination', '')
-            start_date = placement_info.get('start_date', '')
-            end_date = placement_info.get('end_date', '')
+            name = placement_info.get("name", f"Placement {i}")
+            destination = placement_info.get("destination", "")
+            start_date = placement_info.get("start_date", "")
+            end_date = placement_info.get("end_date", "")
 
             # Extract metrics
-            metrics = placement_info.get('metrics', {})
-            impressions = metrics.get('impressions', 0)
-            clicks = metrics.get('clicks', 0)
+            metrics = placement_info.get("metrics", {})
+            impressions = metrics.get("impressions", 0)
+            clicks = metrics.get("clicks", 0)
 
             # Extract bid rates
-            bid_rate = placement_info.get('bid_rate', {})
-            cpm = bid_rate.get('cpm', 0.0)
-            cpc = bid_rate.get('cpc', 0.0)
+            bid_rate = placement_info.get("bid_rate", {})
+            cpm = bid_rate.get("cpm", 0.0)
+            cpc = bid_rate.get("cpc", 0.0)
 
             # Extract budget
-            budget = placement_info.get('budget', {})
-            amount = budget.get('amount', 0.0)
+            budget = placement_info.get("budget", {})
+            amount = budget.get("amount", 0.0)
 
             # Add to totals
             total_impressions += impressions
@@ -1345,69 +1552,86 @@ Placement {i}: {name}
                 f"{impressions:,}",  # target impressions
                 f"{clicks:,}",  # target clicks
                 f"${cpm}",  # cpm
-                f"${cpc}"  # cpc
+                f"${cpc}",  # cpc
             ]
             media_plan_table_rows.append(table_row)
 
         # Get overall date range
-        start_dates = [p.get('start_date', '') for p in placement_list if p.get('start_date')]
-        end_dates = [p.get('end_date', '') for p in placement_list if p.get('end_date')]
+        start_dates = [
+            p.get("start_date", "") for p in placement_list if p.get("start_date")
+        ]
+        end_dates = [p.get("end_date", "") for p in placement_list if p.get("end_date")]
         earliest_start = min(start_dates) if start_dates else ""
         latest_end = max(end_dates) if end_dates else ""
 
         # Create media plan table data structure
         media_plan_table = {
-            'headers': [
-                'Budget', 'Start Date', 'End Date', 'Placement Name', 'Placement Destination',
-                'Targeting', 'Objective Description', 'Target Impressions', 'Target Clicks', 'CPM', 'CPC'
+            "headers": [
+                "Budget",
+                "Start Date",
+                "End Date",
+                "Placement Name",
+                "Placement Destination",
+                "Targeting",
+                "Objective Description",
+                "Target Impressions",
+                "Target Clicks",
+                "CPM",
+                "CPC",
             ],
-            'rows': media_plan_table_rows
+            "rows": media_plan_table_rows,
         }
 
         # Prepare enhanced PDF template variables with Media Plan table
         pdf_variables = {
-            'order_number': order_number,
-            'brand': brand,
-            'campaign_name': campaign_name,
-            'customer_approver': customer_approver,
-            'customer_approver_email': customer_approver_email,
-            'sales_owner': sales_owner,
-            'sales_owner_email': sales_owner_email,
-            'fulfillment_owner': fulfillment_owner,
-            'fulfillment_owner_email': fulfillment_owner_email,
-            'start_date': earliest_start,
-            'end_date': latest_end,
-            'placement_details': "\n\n".join(placement_details),
-            'media_plan_table': media_plan_table,  # This is the key addition!
-            'impressions': str(total_impressions),
-            'clicks': str(total_clicks),
-            'cpm': "Multiple CPM rates (see placement details)",
-            'cpc': "Multiple CPC rates (see placement details)",
-            'budget_amount': str(total_budget),
-            'age_range': "Multiple (see placement details)",
-            'gender': "Multiple (see placement details)",
-            'income_level': "Multiple (see placement details)",
-            'interests': "Multiple (see placement details)",
-            'location': "Multiple (see placement details)",
-            'audience_segments': "Multiple (see placement details)",
-            'device_targeting': "All Devices",
-            'objective_description': objective_description,
-            'generation_date': datetime.now().strftime("%Y-%m-%d")
+            "order_number": order_number,
+            "brand": brand,
+            "campaign_name": campaign_name,
+            "customer_approver": customer_approver,
+            "customer_approver_email": customer_approver_email,
+            "sales_owner": sales_owner,
+            "sales_owner_email": sales_owner_email,
+            "fulfillment_owner": fulfillment_owner,
+            "fulfillment_owner_email": fulfillment_owner_email,
+            "start_date": earliest_start,
+            "end_date": latest_end,
+            "placement_details": "\n\n".join(placement_details),
+            "media_plan_table": media_plan_table,  # This is the key addition!
+            "impressions": str(total_impressions),
+            "clicks": str(total_clicks),
+            "cpm": "Multiple CPM rates (see placement details)",
+            "cpc": "Multiple CPC rates (see placement details)",
+            "budget_amount": str(total_budget),
+            "age_range": "Multiple (see placement details)",
+            "gender": "Multiple (see placement details)",
+            "income_level": "Multiple (see placement details)",
+            "interests": "Multiple (see placement details)",
+            "location": "Multiple (see placement details)",
+            "audience_segments": "Multiple (see placement details)",
+            "device_targeting": "All Devices",
+            "objective_description": objective_description,
+            "generation_date": datetime.now().strftime("%Y-%m-%d"),
         }
 
         # Generate PDF with Media Plan table support
         pdf_result = _generate_pdf_with_media_plan_table(
-            drive_service, docs_service, pdf_template, pdf_folder['id'],
-            f"{order_number}_v0", pdf_variables
+            drive_service,
+            docs_service,
+            pdf_template,
+            pdf_folder["id"],
+            f"{order_number}_v0",
+            pdf_variables,
         )
 
-        return f"✅ Insertion order created successfully!\n\n" \
-               f"📁 Campaign Folder: {campaign_folder['link']}\n" \
-               f"📊 Google Sheet: {sheet_result['sheet_link']}\n" \
-               f"📄 PDF Document: {pdf_result['pdf_link']}\n\n" \
-               f"Order Number: {order_number}\n" \
-               f"Campaign: {campaign_name}\n" \
-               f"All stakeholders have been granted access to the resources."
+        return (
+            f"✅ Insertion order created successfully!\n\n"
+            f"📁 Campaign Folder: {campaign_folder['link']}\n"
+            f"📊 Google Sheet: {sheet_result['sheet_link']}\n"
+            f"📄 PDF Document: {pdf_result['pdf_link']}\n\n"
+            f"Order Number: {order_number}\n"
+            f"Campaign: {campaign_name}\n"
+            f"All stakeholders have been granted access to the resources."
+        )
 
     except Exception as e:
         logger.error(f"Error creating insertion order: {str(e)}")
@@ -1423,140 +1647,172 @@ def _connect_to_salesforce():
         username = os.getenv("SALESFORCE_USERNAME")
         password = os.getenv("SALESFORCE_PASSWORD")
         security_token = os.getenv("SALESFORCE_SECURITY_TOKEN")
-        domain = os.getenv("SALESFORCE_DOMAIN", "test")  # test for sandbox, login for production
+        domain = os.getenv(
+            "SALESFORCE_DOMAIN", "test"
+        )  # test for sandbox, login for production
 
         if not all([username, password, security_token]):
-            raise Exception("Missing Salesforce credentials. Please set SALESFORCE_USERNAME, SALESFORCE_PASSWORD, and SALESFORCE_SECURITY_TOKEN environment variables.")
+            raise Exception(
+                "Missing Salesforce credentials. Please set SALESFORCE_USERNAME, SALESFORCE_PASSWORD, and SALESFORCE_SECURITY_TOKEN environment variables."
+            )
 
         sf = Salesforce(
             username=username,
             password=password,
             security_token=security_token,
-            domain=domain
+            domain=domain,
         )
 
         return sf
     except ImportError:
-        raise Exception("simple-salesforce library not installed. Please install it with: pip install simple-salesforce")
+        raise Exception(
+            "simple-salesforce library not installed. Please install it with: pip install simple-salesforce"
+        )
     except Exception as e:
         raise Exception(f"Failed to connect to Salesforce: {str(e)}")
 
 
-def _create_salesforce_insertion_order_direct(sf, order_data: Dict[str, Any]) -> Dict[str, Any]:
+def _create_salesforce_insertion_order_direct(
+    sf, order_data: Dict[str, Any]
+) -> Dict[str, Any]:
     """Create insertion order record directly in Salesforce (replicating connector service logic)"""
     try:
         # Prepare the insertion order record data - using only core fields that should exist
         sf_data = {
-            'Name': f"{order_data['Brand']} - {order_data['CampaignName']}",
-            'Order_Number__c': order_data['OrderNo'],
-            'Brand__c': order_data['Brand'],
-            'Campaign_Name__c': order_data['CampaignName'],
-            'Customer_Approver__c': order_data['CustomerApprover'],
-            'Customer_Approver_Email__c': order_data['CustomerApproverEmail'],
-            'Sales_Owner__c': order_data['SalesOwner'],
-            'Sales_Owner_Email__c': order_data['SalesOwnerEmail'],
-            'Fulfillment_Owner__c': order_data['FulfillmentOwner'],
-            'Fulfillment_Owner_Email__c': order_data['FulfillmentOwnerEmail'],
-            'Objective_Description__c': order_data['ObjectiveDetails']['Description'],
-            'Status__c': 'Draft'
+            "Name": f"{order_data['Brand']} - {order_data['CampaignName']}",
+            "Order_Number__c": order_data["OrderNo"],
+            "Brand__c": order_data["Brand"],
+            "Campaign_Name__c": order_data["CampaignName"],
+            "Customer_Approver__c": order_data["CustomerApprover"],
+            "Customer_Approver_Email__c": order_data["CustomerApproverEmail"],
+            "Sales_Owner__c": order_data["SalesOwner"],
+            "Sales_Owner_Email__c": order_data["SalesOwnerEmail"],
+            "Fulfillment_Owner__c": order_data["FulfillmentOwner"],
+            "Fulfillment_Owner_Email__c": order_data["FulfillmentOwnerEmail"],
+            "Objective_Description__c": order_data["ObjectiveDetails"]["Description"],
+            "Status__c": "Draft",
         }
 
         # Add lookup fields - only if valid Salesforce IDs and accessible
         # Try to add Account lookup, but continue if it fails due to permissions
-        if order_data.get('account_id') and _is_valid_salesforce_id(order_data['account_id']):
+        if order_data.get("account_id") and _is_valid_salesforce_id(
+            order_data["account_id"]
+        ):
             try:
                 # Test if we can access this account first
-                sf.Account.get(order_data['account_id'])
-                sf_data['Account__c'] = order_data['account_id']
+                sf.Account.get(order_data["account_id"])
+                sf_data["Account__c"] = order_data["account_id"]
             except Exception as e:
-                logging.getLogger(__name__).warning(f"Cannot access Account {order_data['account_id']}: {str(e)}")
+                logging.getLogger(__name__).warning(
+                    f"Cannot access Account {order_data['account_id']}: {str(e)}"
+                )
                 # Continue without the Account lookup
 
         # Try to add Opportunity lookup, but continue if it fails due to permissions
-        if order_data.get('opportunity_id') and _is_valid_salesforce_id(order_data['opportunity_id']):
+        if order_data.get("opportunity_id") and _is_valid_salesforce_id(
+            order_data["opportunity_id"]
+        ):
             try:
                 # Test if we can access this opportunity first
-                sf.Opportunity.get(order_data['opportunity_id'])
-                sf_data['Opportunity__c'] = order_data['opportunity_id']
+                sf.Opportunity.get(order_data["opportunity_id"])
+                sf_data["Opportunity__c"] = order_data["opportunity_id"]
             except Exception as e:
-                logging.getLogger(__name__).warning(f"Cannot access Opportunity {order_data['opportunity_id']}: {str(e)}")
+                logging.getLogger(__name__).warning(
+                    f"Cannot access Opportunity {order_data['opportunity_id']}: {str(e)}"
+                )
                 # Continue without the Opportunity lookup
 
         # Add PDF link if available
-        if order_data.get('PDF_View_Link_c'):
-            sf_data['PDF_View_Link__c'] = order_data['PDF_View_Link_c']
+        if order_data.get("PDF_View_Link_c"):
+            sf_data["PDF_View_Link__c"] = order_data["PDF_View_Link_c"]
 
         # Create the main insertion order record
         result = sf.Insertion_Order__c.create(sf_data)
-        io_id = result['id']
+        io_id = result["id"]
 
         # Create placement records for each placement (replicating connector service logic)
-        for placement in order_data.get('Placement', []):
+        for placement in order_data.get("Placement", []):
             _create_placement_record_direct(sf, io_id, placement)
 
         return {
-            'id': io_id,
-            'success': result['success'],
-            'message': 'Insertion order created successfully in Salesforce'
+            "id": io_id,
+            "success": result["success"],
+            "message": "Insertion order created successfully in Salesforce",
         }
 
     except Exception as e:
         raise Exception(f"Failed to create Salesforce insertion order: {str(e)}")
 
 
-def _create_placement_record_direct(sf, insertion_order_id: str, placement_data: Dict[str, Any]):
+def _create_placement_record_direct(
+    sf, insertion_order_id: str, placement_data: Dict[str, Any]
+):
     """Create placement record linked to insertion order (replicating connector service logic)"""
     try:
         placement_record = {
-            'Name': placement_data.get('Name', 'Placement'),
-            'Insertion_Order__c': insertion_order_id,
-            'Destination__c': placement_data.get('Destination'),
-            'Start_Date__c': placement_data.get('StartDate'),
-            'End_Date__c': placement_data.get('EndDate')
+            "Name": placement_data.get("Name", "Placement"),
+            "Insertion_Order__c": insertion_order_id,
+            "Destination__c": placement_data.get("Destination"),
+            "Start_Date__c": placement_data.get("StartDate"),
+            "End_Date__c": placement_data.get("EndDate"),
         }
 
         # Add metrics if available
-        if placement_data.get('Metrics'):
-            metrics = placement_data['Metrics']
-            if metrics.get('Impressions'):
-                placement_record['Impressions__c'] = metrics['Impressions']
-            if metrics.get('Clicks'):
-                placement_record['Clicks__c'] = metrics['Clicks']
+        if placement_data.get("Metrics"):
+            metrics = placement_data["Metrics"]
+            if metrics.get("Impressions"):
+                placement_record["Impressions__c"] = metrics["Impressions"]
+            if metrics.get("Clicks"):
+                placement_record["Clicks__c"] = metrics["Clicks"]
 
         # Add budget if available
-        if placement_data.get('Budget') and placement_data['Budget'].get('Amount'):
-            placement_record['Budget_Amount__c'] = placement_data['Budget']['Amount']
+        if placement_data.get("Budget") and placement_data["Budget"].get("Amount"):
+            placement_record["Budget_Amount__c"] = placement_data["Budget"]["Amount"]
 
         # Add bid rates if available
-        if placement_data.get('BidRate'):
-            bid_rate = placement_data['BidRate']
-            if bid_rate.get('CPM'):
-                placement_record['CPM__c'] = bid_rate['CPM']
-            if bid_rate.get('CPC'):
-                placement_record['CPC__c'] = bid_rate['CPC']
+        if placement_data.get("BidRate"):
+            bid_rate = placement_data["BidRate"]
+            if bid_rate.get("CPM"):
+                placement_record["CPM__c"] = bid_rate["CPM"]
+            if bid_rate.get("CPC"):
+                placement_record["CPC__c"] = bid_rate["CPC"]
 
         # Add targeting configuration if available
-        if placement_data.get('new_targeting_configuration'):
-            targeting = placement_data['new_targeting_configuration']
-            if targeting.get('age_range'):
-                placement_record['target_audience_age_range__c'] = ', '.join(targeting['age_range'])
-            if targeting.get('gender'):
-                placement_record['target_audience_gender__c'] = ', '.join(targeting['gender'])
-            if targeting.get('income_level'):
-                placement_record['target_audience_income_level__c'] = ', '.join(targeting['income_level'])
-            if targeting.get('location'):
-                placement_record['target_audience_location__c'] = ', '.join(targeting['location'])
-            if targeting.get('interests'):
-                placement_record['target_audience_interests__c'] = ', '.join(targeting['interests'])
-            if targeting.get('behavioral_data'):
-                placement_record['target_audience_behavioral_data__c'] = ', '.join(targeting['behavioral_data'])
+        if placement_data.get("new_targeting_configuration"):
+            targeting = placement_data["new_targeting_configuration"]
+            if targeting.get("age_range"):
+                placement_record["target_audience_age_range__c"] = ", ".join(
+                    targeting["age_range"]
+                )
+            if targeting.get("gender"):
+                placement_record["target_audience_gender__c"] = ", ".join(
+                    targeting["gender"]
+                )
+            if targeting.get("income_level"):
+                placement_record["target_audience_income_level__c"] = ", ".join(
+                    targeting["income_level"]
+                )
+            if targeting.get("location"):
+                placement_record["target_audience_location__c"] = ", ".join(
+                    targeting["location"]
+                )
+            if targeting.get("interests"):
+                placement_record["target_audience_interests__c"] = ", ".join(
+                    targeting["interests"]
+                )
+            if targeting.get("behavioral_data"):
+                placement_record["target_audience_behavioral_data__c"] = ", ".join(
+                    targeting["behavioral_data"]
+                )
 
         # Create the placement record
         result = sf.Placement__c.create(placement_record)
         return result
 
     except Exception as e:
-        logging.getLogger(__name__).warning(f"Failed to create placement record: {str(e)}")
+        logging.getLogger(__name__).warning(
+            f"Failed to create placement record: {str(e)}"
+        )
         # Don't fail the entire operation if placement creation fails
         return None
 
@@ -1597,7 +1853,7 @@ def get_salesforce_accounts() -> str:
         query = "SELECT Id, Name, Type, Industry FROM Account ORDER BY Name LIMIT 1000"
         result = sf.query(query)
 
-        accounts = result['records']
+        accounts = result["records"]
         logger.info(f"Retrieved {len(accounts)} Salesforce accounts")
 
         if not accounts:
@@ -1607,10 +1863,10 @@ def get_salesforce_accounts() -> str:
         response = f"✅ Found {len(accounts)} Salesforce Accounts:\n\n"
 
         for i, account in enumerate(accounts, 1):
-            account_id = account.get('Id', 'N/A')
-            account_name = account.get('Name', 'N/A')
-            account_type = account.get('Type', 'N/A')
-            industry = account.get('Industry', 'N/A')
+            account_id = account.get("Id", "N/A")
+            account_name = account.get("Name", "N/A")
+            account_type = account.get("Type", "N/A")
+            industry = account.get("Industry", "N/A")
 
             response += f"{i:3d}. {account_name}\n"
             response += f"     ID: {account_id}\n"
@@ -1669,7 +1925,7 @@ def get_salesforce_opportunities() -> str:
                    LIMIT 1000"""
         result = sf.query(query)
 
-        opportunities = result['records']
+        opportunities = result["records"]
         logger.info(f"Retrieved {len(opportunities)} Salesforce opportunities")
 
         if not opportunities:
@@ -1679,19 +1935,19 @@ def get_salesforce_opportunities() -> str:
         response = f"✅ Found {len(opportunities)} Salesforce Opportunities:\n\n"
 
         for i, opp in enumerate(opportunities, 1):
-            opp_id = opp.get('Id', 'N/A')
-            opp_name = opp.get('Name', 'N/A')
-            stage = opp.get('StageName', 'N/A')
-            amount = opp.get('Amount', 0)
-            close_date = opp.get('CloseDate', 'N/A')
-            opp_type = opp.get('Type', 'N/A')
+            opp_id = opp.get("Id", "N/A")
+            opp_name = opp.get("Name", "N/A")
+            stage = opp.get("StageName", "N/A")
+            amount = opp.get("Amount", 0)
+            close_date = opp.get("CloseDate", "N/A")
+            opp_type = opp.get("Type", "N/A")
 
             # Get account name (try different fields)
-            account_name = 'N/A'
-            if opp.get('Account') and opp['Account'].get('Name'):
-                account_name = opp['Account']['Name']
-            elif opp.get('Account__r') and opp['Account__r'].get('Name'):
-                account_name = opp['Account__r']['Name']
+            account_name = "N/A"
+            if opp.get("Account") and opp["Account"].get("Name"):
+                account_name = opp["Account"]["Name"]
+            elif opp.get("Account__r") and opp["Account__r"].get("Name"):
+                account_name = opp["Account__r"]["Name"]
 
             # Format amount
             amount_str = f"${amount:,.2f}" if amount else "N/A"
@@ -1752,16 +2008,20 @@ def get_salesforce_opportunities_by_account(account_id: str) -> str:
             return f"❌ Invalid Salesforce Account ID format: {account_id}. Expected 15 or 18 character alphanumeric ID."
 
         # Connect to Salesforce directly
-        logger.info(f"Connecting to Salesforce to retrieve opportunities for account: {account_id}")
+        logger.info(
+            f"Connecting to Salesforce to retrieve opportunities for account: {account_id}"
+        )
         sf = _connect_to_salesforce()
 
         # First, try to get the account name to verify it exists
         account_name = "Unknown Account"
         try:
             account_result = sf.Account.get(account_id)
-            account_name = account_result.get('Name', 'Unknown Account')
+            account_name = account_result.get("Name", "Unknown Account")
         except Exception as account_error:
-            logger.warning(f"Could not retrieve account details for {account_id}: {str(account_error)}")
+            logger.warning(
+                f"Could not retrieve account details for {account_id}: {str(account_error)}"
+            )
 
         # Query for opportunities using both standard AccountId and custom Account__c lookup field
         query = f"""SELECT Id, Name, StageName, Amount, CloseDate, Type, Description,
@@ -1772,24 +2032,30 @@ def get_salesforce_opportunities_by_account(account_id: str) -> str:
                     LIMIT 1000"""
         result = sf.query(query)
 
-        opportunities = result['records']
-        logger.info(f"Retrieved {len(opportunities)} Salesforce opportunities for account: {account_id}")
+        opportunities = result["records"]
+        logger.info(
+            f"Retrieved {len(opportunities)} Salesforce opportunities for account: {account_id}"
+        )
 
         if not opportunities:
-            return f"No opportunities found for Account: {account_name} (ID: {account_id})"
+            return (
+                f"No opportunities found for Account: {account_name} (ID: {account_id})"
+            )
 
         # Format the results for display
-        response = f"✅ Found {len(opportunities)} Opportunities for Account: {account_name}\n"
+        response = (
+            f"✅ Found {len(opportunities)} Opportunities for Account: {account_name}\n"
+        )
         response += f"🏢 Account ID: {account_id}\n\n"
 
         total_amount = 0
         for i, opp in enumerate(opportunities, 1):
-            opp_id = opp.get('Id', 'N/A')
-            opp_name = opp.get('Name', 'N/A')
-            stage = opp.get('StageName', 'N/A')
-            amount = opp.get('Amount', 0)
-            close_date = opp.get('CloseDate', 'N/A')
-            opp_type = opp.get('Type', 'N/A')
+            opp_id = opp.get("Id", "N/A")
+            opp_name = opp.get("Name", "N/A")
+            stage = opp.get("StageName", "N/A")
+            amount = opp.get("Amount", 0)
+            close_date = opp.get("CloseDate", "N/A")
+            opp_type = opp.get("Type", "N/A")
 
             # Add to total amount if numeric
             if isinstance(amount, (int, float)) and amount > 0:
@@ -1815,7 +2081,9 @@ def get_salesforce_opportunities_by_account(account_id: str) -> str:
         return response
 
     except Exception as e:
-        logger.error(f"Error retrieving opportunities for account {account_id}: {str(e)}")
+        logger.error(
+            f"Error retrieving opportunities for account {account_id}: {str(e)}"
+        )
         return f"❌ Error retrieving opportunities for account {account_id}: {str(e)}"
 
 
@@ -1836,7 +2104,7 @@ def create_salesforce_insertion_order(
     salesforce_opportunity_id: str,
     salesforce_base_url: Optional[str] = None,
     base_folder_id: Optional[str] = None,
-    pdf_template_id: Optional[str] = None
+    pdf_template_id: Optional[str] = None,
 ) -> str:
     """
     CREATE INSERTION ORDER IN SALESFORCE (DIRECT API)
@@ -1910,13 +2178,15 @@ def create_salesforce_insertion_order(
             return "Error: Google OAuth credentials not found. Please ensure token.pickle file exists and contains valid credentials."
 
         # Build Google services
-        drive_service = build('drive', 'v3', credentials=credentials)
-        docs_service = build('docs', 'v1', credentials=credentials)
+        drive_service = build("drive", "v3", credentials=credentials)
+        docs_service = build("docs", "v1", credentials=credentials)
 
         # Get configuration from environment variables or use provided values
         base_folder = base_folder_id or os.getenv("BASE_GOOGLE_DRIVE_FOLDER_ID")
         pdf_template = pdf_template_id or os.getenv("PDF_GENERATION_TEMPLATE_ID")
-        sf_base_url = salesforce_base_url or os.getenv("SALESFORCE_BASE_URL", "https://flow-business-5971.lightning.force.com")
+        sf_base_url = salesforce_base_url or os.getenv(
+            "SALESFORCE_BASE_URL", "https://flow-business-5971.lightning.force.com"
+        )
 
         if not base_folder:
             return "Error: BASE_GOOGLE_DRIVE_FOLDER_ID not configured. Please set environment variable or provide base_folder_id parameter."
@@ -1925,9 +2195,15 @@ def create_salesforce_insertion_order(
 
         # Parse placement data - FIX: Handle array of placements
         try:
-            placement_list = json.loads(placement_data) if isinstance(placement_data, str) else placement_data
+            placement_list = (
+                json.loads(placement_data)
+                if isinstance(placement_data, str)
+                else placement_data
+            )
             if not isinstance(placement_list, list):
-                return "Error: placement_data must be a JSON array of placement objects."
+                return (
+                    "Error: placement_data must be a JSON array of placement objects."
+                )
         except json.JSONDecodeError:
             return "Error: Invalid placement_data JSON format."
 
@@ -1936,14 +2212,24 @@ def create_salesforce_insertion_order(
 
         # Create campaign folder for Salesforce
         folder_name = f"{campaign_name}_{datetime.now().strftime('%Y%m%d')}_Salesforce"
-        campaign_folder = _create_google_drive_folder(drive_service, folder_name, base_folder)
+        campaign_folder = _create_google_drive_folder(
+            drive_service, folder_name, base_folder
+        )
 
         # Create PDF subfolder
-        pdf_folder = _create_google_drive_folder(drive_service, "PDF Files", campaign_folder['id'])
+        pdf_folder = _create_google_drive_folder(
+            drive_service, "PDF Files", campaign_folder["id"]
+        )
 
         # Share folders with stakeholders
-        stakeholder_emails = [customer_approver_email, sales_owner_email, fulfillment_owner_email]
-        _share_folder_with_users(drive_service, campaign_folder['id'], stakeholder_emails)
+        stakeholder_emails = [
+            customer_approver_email,
+            sales_owner_email,
+            fulfillment_owner_email,
+        ]
+        _share_folder_with_users(
+            drive_service, campaign_folder["id"], stakeholder_emails
+        )
 
         # NEW: Prepare Media Plan table data and PDF variables with proper targeting info
         media_plan_table_rows = []
@@ -1954,24 +2240,24 @@ def create_salesforce_insertion_order(
 
         for i, placement_info in enumerate(placement_list, 1):
             # Extract placement data
-            name = placement_info.get('name', f'Placement {i}')
-            destination = placement_info.get('destination', '')
-            start_date = placement_info.get('start_date', '')
-            end_date = placement_info.get('end_date', '')
+            name = placement_info.get("name", f"Placement {i}")
+            destination = placement_info.get("destination", "")
+            start_date = placement_info.get("start_date", "")
+            end_date = placement_info.get("end_date", "")
 
             # Extract metrics
-            metrics = placement_info.get('metrics', {})
-            impressions = metrics.get('impressions', 0)
-            clicks = metrics.get('clicks', 0)
+            metrics = placement_info.get("metrics", {})
+            impressions = metrics.get("impressions", 0)
+            clicks = metrics.get("clicks", 0)
 
             # Extract bid rates
-            bid_rate = placement_info.get('bid_rate', {})
-            cpm = bid_rate.get('cpm', 0.0)
-            cpc = bid_rate.get('cpc', 0.0)
+            bid_rate = placement_info.get("bid_rate", {})
+            cpm = bid_rate.get("cpm", 0.0)
+            cpc = bid_rate.get("cpc", 0.0)
 
             # Extract budget
-            budget = placement_info.get('budget', {})
-            amount = budget.get('amount', 0.0)
+            budget = placement_info.get("budget", {})
+            amount = budget.get("amount", 0.0)
 
             # Add to totals
             total_impressions += impressions
@@ -2014,60 +2300,75 @@ Placement {i}: {name}
                 f"{impressions:,}",  # target impressions
                 f"{clicks:,}",  # target clicks
                 f"${cpm}",  # cpm
-                f"${cpc}"  # cpc
+                f"${cpc}",  # cpc
             ]
             media_plan_table_rows.append(table_row)
 
         # Get overall date range
-        start_dates = [p.get('start_date', '') for p in placement_list if p.get('start_date')]
-        end_dates = [p.get('end_date', '') for p in placement_list if p.get('end_date')]
+        start_dates = [
+            p.get("start_date", "") for p in placement_list if p.get("start_date")
+        ]
+        end_dates = [p.get("end_date", "") for p in placement_list if p.get("end_date")]
         earliest_start = min(start_dates) if start_dates else ""
         latest_end = max(end_dates) if end_dates else ""
 
         # Create media plan table data structure
         media_plan_table = {
-            'headers': [
-                'Budget', 'Start Date', 'End Date', 'Placement Name', 'Placement Destination',
-                'Targeting', 'Objective Description', 'Target Impressions', 'Target Clicks', 'CPM', 'CPC'
+            "headers": [
+                "Budget",
+                "Start Date",
+                "End Date",
+                "Placement Name",
+                "Placement Destination",
+                "Targeting",
+                "Objective Description",
+                "Target Impressions",
+                "Target Clicks",
+                "CPM",
+                "CPC",
             ],
-            'rows': media_plan_table_rows
+            "rows": media_plan_table_rows,
         }
 
         # Prepare enhanced PDF template variables with Media Plan table
         pdf_variables = {
-            'order_number': order_number,
-            'brand': brand,
-            'campaign_name': campaign_name,
-            'customer_approver': customer_approver,
-            'customer_approver_email': customer_approver_email,
-            'sales_owner': sales_owner,
-            'sales_owner_email': sales_owner_email,
-            'fulfillment_owner': fulfillment_owner,
-            'fulfillment_owner_email': fulfillment_owner_email,
-            'start_date': earliest_start,
-            'end_date': latest_end,
-            'placement_details': "\n\n".join(placement_details),
-            'media_plan_table': media_plan_table,  # This is the key addition!
-            'impressions': str(total_impressions),
-            'clicks': str(total_clicks),
-            'cpm': "Multiple CPM rates (see placement details)",
-            'cpc': "Multiple CPC rates (see placement details)",
-            'budget_amount': str(total_budget),
-            'age_range': "Multiple (see placement details)",
-            'gender': "Multiple (see placement details)",
-            'income_level': "Multiple (see placement details)",
-            'interests': "Multiple (see placement details)",
-            'location': "Multiple (see placement details)",
-            'audience_segments': "Multiple (see placement details)",
-            'device_targeting': "All Devices",
-            'objective_description': objective_description,
-            'generation_date': datetime.now().strftime("%Y-%m-%d")
+            "order_number": order_number,
+            "brand": brand,
+            "campaign_name": campaign_name,
+            "customer_approver": customer_approver,
+            "customer_approver_email": customer_approver_email,
+            "sales_owner": sales_owner,
+            "sales_owner_email": sales_owner_email,
+            "fulfillment_owner": fulfillment_owner,
+            "fulfillment_owner_email": fulfillment_owner_email,
+            "start_date": earliest_start,
+            "end_date": latest_end,
+            "placement_details": "\n\n".join(placement_details),
+            "media_plan_table": media_plan_table,  # This is the key addition!
+            "impressions": str(total_impressions),
+            "clicks": str(total_clicks),
+            "cpm": "Multiple CPM rates (see placement details)",
+            "cpc": "Multiple CPC rates (see placement details)",
+            "budget_amount": str(total_budget),
+            "age_range": "Multiple (see placement details)",
+            "gender": "Multiple (see placement details)",
+            "income_level": "Multiple (see placement details)",
+            "interests": "Multiple (see placement details)",
+            "location": "Multiple (see placement details)",
+            "audience_segments": "Multiple (see placement details)",
+            "device_targeting": "All Devices",
+            "objective_description": objective_description,
+            "generation_date": datetime.now().strftime("%Y-%m-%d"),
         }
 
         # Generate PDF with Media Plan table support
         pdf_result = _generate_pdf_with_media_plan_table(
-            drive_service, docs_service, pdf_template, pdf_folder['id'],
-            f"{order_number}_Salesforce_v0", pdf_variables
+            drive_service,
+            docs_service,
+            pdf_template,
+            pdf_folder["id"],
+            f"{order_number}_Salesforce_v0",
+            pdf_variables,
         )
 
         logger.info(f"PDF created successfully: {pdf_result['pdf_file_id']}")
@@ -2087,14 +2388,16 @@ Placement {i}: {name}
             "FulfillmentOwnerEmail": fulfillment_owner_email,
             "ObjectiveDetails": {"Description": objective_description},
             "Placement": placement_list,  # Use the full placement list
-            "PDF_View_Link_c": pdf_result['pdf_link']  # Include the PDF link
+            "PDF_View_Link_c": pdf_result["pdf_link"],  # Include the PDF link
         }
 
         # Step 3: Connect to Salesforce and create insertion order directly
         logger.info("Connecting to Salesforce and creating insertion order record")
         try:
             sf = _connect_to_salesforce()
-            salesforce_response = _create_salesforce_insertion_order_direct(sf, salesforce_data)
+            salesforce_response = _create_salesforce_insertion_order_direct(
+                sf, salesforce_data
+            )
         except Exception as sf_error:
             logger.error(f"Salesforce integration error: {str(sf_error)}")
             return f"❌ Error creating Salesforce insertion order: {str(sf_error)}"
@@ -2102,19 +2405,23 @@ Placement {i}: {name}
         logger.info(f"Salesforce insertion order created: {salesforce_response}")
 
         # Step 4: Generate Salesforce Lightning URL
-        salesforce_record_id = salesforce_response.get('id', '')
-        salesforce_record_url = f"{sf_base_url}/lightning/r/Insertion_Order__c/{salesforce_record_id}/view"
+        salesforce_record_id = salesforce_response.get("id", "")
+        salesforce_record_url = (
+            f"{sf_base_url}/lightning/r/Insertion_Order__c/{salesforce_record_id}/view"
+        )
 
         # Prepare success response
-        return f"✅ Salesforce insertion order created successfully!\n\n" \
-               f"🏢 Salesforce Record: {salesforce_record_url}\n" \
-               f"📄 PDF Document: {pdf_result['pdf_link']}\n" \
-               f"📁 Campaign Folder: {campaign_folder['link']}\n\n" \
-               f"Order Number: {order_number}\n" \
-               f"Campaign: {campaign_name}\n" \
-               f"Salesforce Account: {salesforce_account}\n" \
-               f"Salesforce Opportunity: {salesforce_opportunity_id}\n" \
-               f"Record ID: {salesforce_record_id}"
+        return (
+            f"✅ Salesforce insertion order created successfully!\n\n"
+            f"🏢 Salesforce Record: {salesforce_record_url}\n"
+            f"📄 PDF Document: {pdf_result['pdf_link']}\n"
+            f"📁 Campaign Folder: {campaign_folder['link']}\n\n"
+            f"Order Number: {order_number}\n"
+            f"Campaign: {campaign_name}\n"
+            f"Salesforce Account: {salesforce_account}\n"
+            f"Salesforce Opportunity: {salesforce_opportunity_id}\n"
+            f"Record ID: {salesforce_record_id}"
+        )
 
     except Exception as e:
         logger.error(f"Error creating Salesforce insertion order: {str(e)}")
@@ -2140,8 +2447,9 @@ tool_store = {
     "get_salesforce_accounts": get_salesforce_accounts,
     "get_salesforce_opportunities": get_salesforce_opportunities,
     "get_salesforce_opportunities_by_account": get_salesforce_opportunities_by_account,
+    # Backward compatibility aliases for renamed functions
+    "qdrant_search": media_context_retriever,  # Alias for backward compatibility
 }
-
 
 
 tool_schemas = {
@@ -2163,4 +2471,6 @@ tool_schemas = {
     "get_salesforce_accounts": get_salesforce_accounts.openai_schema,
     "get_salesforce_opportunities": get_salesforce_opportunities.openai_schema,
     "get_salesforce_opportunities_by_account": get_salesforce_opportunities_by_account.openai_schema,
+    # Backward compatibility aliases for renamed functions
+    "qdrant_search": media_context_retriever.openai_schema,  # Alias for backward compatibility
 }
