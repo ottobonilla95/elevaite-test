@@ -461,27 +461,110 @@ def execute_workflow(
 
             print(f"🔍 DEBUG: Agent built successfully: {agent.name}")
             print(f"🔍 DEBUG: Starting agent execution...")
-
-            # Execute the agent directly (preserves agent's own prompt)
-            result = agent.execute(
-                query=execution_request.query,
-                chat_history=execution_request.chat_history,
+            print(f"🔍 DEBUG: Query: {execution_request.query[:100]}...")
+            print(
+                f"🔍 DEBUG: Chat history length: {len(execution_request.chat_history) if execution_request.chat_history else 0}"
             )
-            print(f"🔍 DEBUG: Agent execution completed")
+
+            # Add timeout to agent execution
+            import signal
+            import time
+
+            def timeout_handler(signum, frame):
+                print("🔍 DEBUG: Agent execution TIMED OUT after 60 seconds!")
+                raise TimeoutError("Agent execution timed out after 60 seconds")
+
+            # Set up timeout
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(60)  # 60 second timeout
+
+            start_time = time.time()
+            try:
+                print("🔍 DEBUG: About to call agent.execute()...")
+                print(
+                    f"🔍 DEBUG: Agent functions: {len(agent.functions) if agent.functions else 0}"
+                )
+                print(f"🔍 DEBUG: Agent max_retries: {agent.max_retries}")
+
+                # Execute the agent directly (preserves agent's own prompt)
+                # Add enable_analytics=False to avoid potential analytics issues
+                result = agent.execute(
+                    query=execution_request.query,
+                    chat_history=execution_request.chat_history,
+                    enable_analytics=False,  # Disable analytics to avoid potential issues
+                )
+                execution_time = time.time() - start_time
+                print(
+                    f"🔍 DEBUG: Agent execution completed in {execution_time:.2f} seconds"
+                )
+                print(
+                    f"🔍 DEBUG: Result type: {type(result)}, length: {len(str(result)) if result else 0}"
+                )
+            except TimeoutError as e:
+                print(f"🔍 DEBUG: Timeout error: {e}")
+                raise HTTPException(status_code=504, detail="Agent execution timed out")
+            except Exception as e:
+                execution_time = time.time() - start_time
+                print(
+                    f"🔍 DEBUG: Agent execution failed after {execution_time:.2f} seconds: {e}"
+                )
+                raise
+            finally:
+                signal.alarm(0)  # Cancel timeout
         else:
             # Multi-agent workflow - use CommandAgent for orchestration
             print("🔍 DEBUG: Building CommandAgent for multi-agent workflow")
             command_agent = _build_command_agent_from_workflow(db, workflow)
 
             print("🔍 DEBUG: Starting CommandAgent execution")
-            # Execute via CommandAgent
-            if execution_request.chat_history:
-                result = command_agent.execute_stream(
-                    execution_request.query, execution_request.chat_history
+            print(
+                f"🔍 DEBUG: CommandAgent functions: {len(command_agent.functions) if command_agent.functions else 0}"
+            )
+            print(f"🔍 DEBUG: CommandAgent max_retries: {command_agent.max_retries}")
+
+            # Add timeout to CommandAgent execution
+            import signal
+            import time
+
+            def timeout_handler(signum, frame):
+                print("🔍 DEBUG: CommandAgent execution TIMED OUT after 60 seconds!")
+                raise TimeoutError("CommandAgent execution timed out after 60 seconds")
+
+            # Set up timeout
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(60)  # 60 second timeout
+
+            start_time = time.time()
+            try:
+                # Execute via CommandAgent
+                if execution_request.chat_history:
+                    print("🔍 DEBUG: Using execute_stream with chat history")
+                    result = command_agent.execute_stream(
+                        execution_request.query, execution_request.chat_history
+                    )
+                else:
+                    print("🔍 DEBUG: Using regular execute without chat history")
+                    result = command_agent.execute(
+                        query=execution_request.query,
+                        enable_analytics=False,  # Disable analytics to avoid potential issues
+                    )
+                execution_time = time.time() - start_time
+                print(
+                    f"🔍 DEBUG: CommandAgent execution completed in {execution_time:.2f} seconds"
                 )
-            else:
-                result = command_agent.execute(query=execution_request.query)
-            print("🔍 DEBUG: CommandAgent execution completed")
+            except TimeoutError as e:
+                print(f"🔍 DEBUG: Timeout error: {e}")
+                raise HTTPException(
+                    status_code=504, detail="CommandAgent execution timed out"
+                )
+            except Exception as e:
+                execution_time = time.time() - start_time
+                print(
+                    f"🔍 DEBUG: CommandAgent execution failed after {execution_time:.2f} seconds: {e}"
+                )
+                raise
+            finally:
+                signal.alarm(0)  # Cancel timeout
 
         # Ensure response is in JSON format expected by frontend
         import json
