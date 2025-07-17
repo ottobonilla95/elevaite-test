@@ -79,6 +79,11 @@ def init_tools(db, categories):
         "qdrant_search": "Search & Retrieval",
         "redis_cache_operation": "Cache & Storage",
         "postgres_query": "Database",
+        "create_insertion_order": "Web & API",
+        "create_salesforce_insertion_order": "Web & API",
+        "get_salesforce_accounts": "Web & API",
+        "get_salesforce_opportunities": "Web & API",
+        "get_salesforce_opportunities_by_account": "Web & API",
     }
 
     migrated_count = 0

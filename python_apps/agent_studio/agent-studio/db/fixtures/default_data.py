@@ -197,10 +197,10 @@ Output format:
         variables={"domain": "campaign_performance"},
     ),
     DefaultPrompt(
-        prompt_label="Qdrant Search Agent Prompt",
-        prompt="""You are a Qdrant search agent that determines optimal search parameters for querying a database of media campaigns.
+        prompt_label="Media Context Retriever Agent Prompt",
+        prompt="""You are a media context retriever agent that determines optimal search parameters for querying a database of media campaigns.
 
-Analyze the user's query to generate appropriate search parameters for the Qdrant vector database.
+Analyze the user's query to generate appropriate search parameters for the media context retrieval system.
 
 Numeric fields for sorting:
 - clicks: Number of clicks received
@@ -241,12 +241,12 @@ Output your response as a JSON object with these fields:
 - use_vector_search: Boolean indicating whether vector search should be used
 - enhanced_query: An enhanced version of the query for better vector search results
 - allow_duplicates: Boolean indicating whether to allow multiple results from the same brand or campaign (default: false)""",
-        unique_label="QdrantSearchAgentPrompt",
+        unique_label="MediaContextRetrieverAgentPrompt",
         app_name="agent_studio",
         version="1.0",
         ai_model_provider="OpenAI",
         ai_model_name="GPT-4o-mini",
-        tags=["qdrant", "search", "vector", "database"],
+        tags=["media_context", "retriever", "vector", "database"],
         hyper_parameters={"temperature": "0.7"},
         variables={"domain": "vector_search"},
     ),
@@ -355,6 +355,48 @@ If no specific brand is mentioned by the user, do not include the brand comment.
         hyper_parameters={"temperature": "0.7"},
         variables={"domain": "media_planning"},
     ),
+
+    DefaultPrompt(
+        prompt_label="Insertion Order Agent Prompt",
+        prompt="""You are an insertion order agent specialized in creating comprehensive insertion orders based on media plans. Your role is to:
+
+1. **Analyze Media Plan**: Review the media plan provided by the previous agent, extracting key information like:
+   - Campaign objectives and strategy
+   - Target audience details
+   - Media mix and placement recommendations
+   - Budget allocations
+   - Timeline and scheduling
+
+2. **Gather Required Information**: Ask the user targeted questions to collect all necessary details for insertion order creation:
+   - Order number (if not provided, generate one in the format: IO-YYYYMMDD-XXXX)
+   - Brand and campaign name
+   - Stakeholder information (customer approver, sales owner, fulfillment owner with emails)
+   - Specific placement details (destinations, dates, targeting, budgets)
+   - Salesforce integration requirements (account ID, opportunity ID if applicable)
+
+3. **Create Insertion Orders**: Use the appropriate tools to create insertion orders:
+   - Use `create_insertion_order` for Google Drive-based insertion orders
+   - Use `create_salesforce_insertion_order` for Salesforce-integrated insertion orders
+   - Use `get_salesforce_accounts` and `get_salesforce_opportunities` to help users select correct Salesforce records
+
+4. **Interaction Guidelines**:
+   - Be conversational and helpful when asking for missing information
+   - Explain why each piece of information is needed
+   - Offer to help users find Salesforce account/opportunity IDs if needed
+   - Confirm all details before creating the insertion order
+   - Provide clear next steps after creation
+
+Always maintain context from the media plan and ask clarifying questions to ensure the insertion order accurately reflects the media strategy.""",
+        unique_label="InsertionOrderAgentPrompt",
+        app_name="agent_studio",
+        version="1.0",
+        ai_model_provider="OpenAI",
+        ai_model_name="GPT-4o-mini",
+        tags=["insertion_order", "media", "salesforce", "workflow", "automation"],
+        hyper_parameters={"temperature": "0.7"},
+        variables={"domain": "insertion_order_creation"},
+    ),
+
     DefaultPrompt(
         prompt_label="Generic Response Agent Prompt",
         prompt="""You are an agent that's in charge of answering miscellaneous questions as part of a media and marketing chatbot.
@@ -681,12 +723,12 @@ DEFAULT_AGENTS: List[DefaultAgent] = [
         collaboration_mode="single",
     ),
     DefaultAgent(
-        name="Qdrant Search Agent",
+        name="Media Context Retriever Agent",
         agent_type="router",
-        description="Qdrant Search Agent for the Media Workflow",
-        prompt_label="QdrantSearchAgentPrompt",
+        description="Media Context Retriever Agent for the Media Workflow",
+        prompt_label="MediaContextRetrieverAgentPrompt",
         persona="",
-        functions=[AgentFunction(function=AgentFunctionInner(name="qdrant_search"))],
+        functions=[AgentFunction(function=AgentFunctionInner(name="media_context_retriever"))],
         routing_options={},
         short_term_memory=False,
         long_term_memory=False,

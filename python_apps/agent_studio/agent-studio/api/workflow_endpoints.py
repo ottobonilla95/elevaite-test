@@ -468,11 +468,20 @@ def execute_workflow(
             else:
                 result = command_agent.execute(query=execution_request.query)
 
+        # Ensure response is in JSON format expected by frontend
+        import json
+        if isinstance(result, str):
+            # Wrap plain text response in JSON format
+            formatted_response = json.dumps({"content": result})
+        else:
+            # If already a dict/object, convert to JSON string
+            formatted_response = json.dumps(result) if not isinstance(result, str) else result
+
         return schemas.WorkflowExecutionResponse(
             status="success",
-            response=result,
+            response=formatted_response,
             workflow_id=str(workflow_id),
-            deployment_id=None,  # No deployment check for now
+            deployment_id="",  # Empty string instead of None
             timestamp=datetime.now().isoformat(),
         )
 
@@ -628,27 +637,44 @@ def _build_single_agent_from_workflow(
         # Fallback to CommandAgent if agent not found
         return _build_command_agent_from_workflow(db, workflow)
 
-    # Build generic agent using database configuration with proper type casting
     from typing import cast
     from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
+    from data_classes import PromptObject
+
+    system_prompt = PromptObject(
+        appName="",
+        createdTime=db_agent.system_prompt.created_time,
+        prompt=db_agent.system_prompt.prompt,
+        uniqueLabel=db_agent.system_prompt.unique_label,
+        pid=db_agent.system_prompt.pid,
+        last_deployed=db_agent.system_prompt.last_deployed,
+        deployedTime=db_agent.system_prompt.deployed_time,
+        isDeployed=db_agent.system_prompt.is_deployed,
+        modelProvider=db_agent.system_prompt.ai_model_provider,
+        modelName=db_agent.system_prompt.ai_model_name,
+        sha_hash=db_agent.system_prompt.sha_hash,
+        tags=db_agent.system_prompt.tags,
+        version=db_agent.system_prompt.version,
+        variables=db_agent.system_prompt.variables,
+        hyper_parameters=db_agent.system_prompt.hyper_parameters,
+        prompt_label=db_agent.system_prompt.prompt_label,
+    )
 
     return Agent(
         name=db_agent.name,
         agent_id=db_agent.agent_id,
-        system_prompt=db_agent.system_prompt,  # Uses agent's configured prompt
+        system_prompt=system_prompt,
         persona=db_agent.persona,
-        functions=cast(
-            List[ChatCompletionToolParam], db_agent.functions or []
-        ),  # Uses agent's configured tools
+        functions=cast(List[ChatCompletionToolParam], db_agent.functions or []),
         routing_options=db_agent.routing_options or {},
-        model=db_agent.model or "gpt-4o-mini",
-        temperature=db_agent.temperature or 0.7,
+        model="gpt-4o-mini",
+        temperature=0.7,
         short_term_memory=db_agent.short_term_memory or False,
         long_term_memory=db_agent.long_term_memory or False,
         reasoning=db_agent.reasoning or False,
-        input_type=["text", "voice"],  # Use safe defaults
-        output_type=["text", "voice"],  # Use safe defaults
-        response_type="json",  # Use safe default
+        input_type=["text", "voice"],
+        output_type=["text", "voice"],
+        response_type="json",
         max_retries=db_agent.max_retries or 3,
         timeout=db_agent.timeout,
         deployed=True,
@@ -657,7 +683,7 @@ def _build_single_agent_from_workflow(
         failure_strategies=db_agent.failure_strategies or [],
         session_id=None,
         last_active=datetime.now(),
-        collaboration_mode="single",  # Use safe default
+        collaboration_mode="single",
     )
 
 
@@ -689,6 +715,8 @@ def _build_command_agent_from_workflow(db: Session, workflow) -> CommandAgent:
             "respond": "If you think you have the answer, you can stop here.",
             "give_up": "If you think you can't answer the query, you can give up and let the user know.",
         },
+        model="gpt-4o",
+        temperature=0.7,
         short_term_memory=True,
         long_term_memory=False,
         reasoning=False,

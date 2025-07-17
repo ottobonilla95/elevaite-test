@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
-from ..data_classes import PromptObject
+from data_classes import PromptObject
 
 # Add the parent directory to the Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -92,6 +92,8 @@ def _create_agent_instance_from_db(db: Session, db_agent: models.Agent):
             List[Any], db_agent.functions
         ),  # Cast to List[Any] for compatibility
         routing_options=db_agent.routing_options,
+        model="gpt-4o-mini",
+        temperature=0.7,
         short_term_memory=db_agent.short_term_memory,
         long_term_memory=db_agent.long_term_memory,
         reasoning=db_agent.reasoning,

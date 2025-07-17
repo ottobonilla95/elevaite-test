@@ -280,12 +280,15 @@ def update_tool_usage_stats(
     db_tool.usage_count += 1
     db_tool.last_used = datetime.now()
 
-    if success:
-        db_tool.success_count += 1
-    else:
-        db_tool.error_count += 1
+    # Only update success/error counts if the attributes exist (graceful handling)
+    if hasattr(db_tool, 'success_count') and hasattr(db_tool, 'error_count'):
+        if success:
+            db_tool.success_count += 1
+        else:
+            db_tool.error_count += 1
 
-    if execution_time_ms is not None:
+    # Only update average execution time if the attribute exists
+    if hasattr(db_tool, 'average_execution_time_ms') and execution_time_ms is not None:
         if db_tool.average_execution_time_ms is None:
             db_tool.average_execution_time_ms = execution_time_ms
         else:

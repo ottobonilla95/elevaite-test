@@ -472,6 +472,8 @@ class WorkflowService:
                 "respond": "If you think you have the answer, you can stop here.",
                 "give_up": "If you think you can't answer the query, you can give up and let the user know.",
             },
+            model="gpt-4o-mini",
+            temperature=0.7,
             short_term_memory=True,
             long_term_memory=False,
             reasoning=False,

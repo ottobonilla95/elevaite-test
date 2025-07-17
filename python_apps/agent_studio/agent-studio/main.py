@@ -93,6 +93,20 @@ async def lifespan(app_instance: fastapi.FastAPI):  # noqa: ARG001
     Base.metadata.create_all(bind=engine)
     # Note: Database initialization moved to /admin/initialize endpoint
 
+    # Initialize tool registry
+    from services.tool_registry import tool_registry
+    try:
+        # Get a database session for initialization
+        db_gen = get_db()
+        db = next(db_gen)
+        try:
+            tool_registry.initialize(db)
+            logging.info("Tool registry initialized successfully")
+        finally:
+            db.close()
+    except Exception as e:
+        logging.error(f"Failed to initialize tool registry: {e}")
+        raise
     # Start background tasks (MCP health monitoring, etc.)
     from services.background_tasks import start_background_tasks
 

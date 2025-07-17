@@ -92,6 +92,8 @@ def test_command_agent_uses_base_execution():
         persona="Commander",
         functions=[],
         routing_options={"respond": "Respond to the user"},
+        model="gpt-4o-mini",
+        temperature=0.7,
         failure_strategies=["retry"],
     )
     

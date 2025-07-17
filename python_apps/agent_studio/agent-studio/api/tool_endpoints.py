@@ -277,13 +277,31 @@ async def execute_tool(tool_id: uuid.UUID, execution_request: schemas.ToolExecut
         # Execute the tool using the tool registry
         result = await tool_registry.execute_tool(tool_name=tool.name, parameters=execution_request.parameters, db=db)
 
-        return schemas.ToolExecutionResponse(
-            status=result["status"],
-            result=result["result"],
-            execution_time_ms=result["execution_time_ms"],
-            tool_id=tool_id,
-            timestamp=datetime.fromisoformat(result["timestamp"]),
-        )
+        if result["status"] == "success":
+            # Ensure result is a dictionary - wrap strings in a dict
+            tool_result = result["result"]
+            if isinstance(tool_result, str):
+                tool_result = {"output": tool_result}
+            elif not isinstance(tool_result, dict):
+                tool_result = {"result": tool_result}
+
+            return schemas.ToolExecutionResponse(
+                status=result["status"],
+                result=tool_result,
+                execution_time_ms=result["execution_time_ms"],
+                tool_id=tool_id,
+                timestamp=datetime.fromisoformat(result["timestamp"]),
+            )
+        else:
+            # Handle error case from tool registry
+            return schemas.ToolExecutionResponse(
+                status=result["status"],
+                result={"error": result.get("error_message", "Unknown error")},
+                execution_time_ms=result["execution_time_ms"],
+                tool_id=tool_id,
+                timestamp=datetime.fromisoformat(result["timestamp"]),
+                error_message=result.get("error_message"),
+            )
 
     except Exception as e:
         logger.error(f"Tool execution failed for {tool.name}: {e}")
@@ -293,4 +311,5 @@ async def execute_tool(tool_id: uuid.UUID, execution_request: schemas.ToolExecut
             execution_time_ms=0,
             tool_id=tool_id,
             timestamp=datetime.now(),
+            error_message=str(e),
         )

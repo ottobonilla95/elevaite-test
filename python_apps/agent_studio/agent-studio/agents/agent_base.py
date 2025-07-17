@@ -96,6 +96,9 @@ class Agent(BaseModel):
         # Try to import agent_store, fallback to empty dict if not available
         try:
             from . import agent_store
+            if agent_store is None:
+                from . import _ensure_agent_store
+                agent_store = _ensure_agent_store()
         except ImportError:
             agent_store = {}
 
@@ -156,10 +159,29 @@ class Agent(BaseModel):
 
             # Add chat history if provided
             if chat_history:
+                # Convert chat history to proper OpenAI format
+                converted_history = []
+                for msg in chat_history:
+                    if isinstance(msg, dict):
+                        # Handle different possible formats
+                        if 'actor' in msg:
+                            # Convert 'actor' format to 'role' format
+                            role = 'assistant' if msg['actor'] == 'bot' else msg['actor']
+                            converted_history.append({
+                                "role": role,
+                                "content": msg.get('content', '')
+                            })
+                        elif 'role' in msg:
+                            # Already in correct format
+                            converted_history.append(msg)
+                        else:
+                            # Skip malformed messages
+                            continue
+
                 # Insert chat history before the current query
                 messages = [
                     {"role": "system", "content": system_prompt}
-                ] + cast(List[ChatCompletionMessageParam], chat_history) + [
+                ] + cast(List[ChatCompletionMessageParam], converted_history) + [
                     {"role": "user", "content": query}
                 ]
 
@@ -236,10 +258,22 @@ class Agent(BaseModel):
 
                             try:
                                 # Execute tool or agent
-                                if function_name in agent_store:
-                                    result = agent_store[function_name](**arguments)
-                                else:
-                                    result = tool_store[function_name](**arguments)
+                                print(f"🔧 Executing tool: {function_name}")
+                                try:
+                                    if function_name in agent_store:
+                                        result = agent_store[function_name](**arguments)
+                                        print(f"✅ Agent tool '{function_name}' completed successfully")
+                                    else:
+                                        result = tool_store[function_name](**arguments)
+                                        print(f"✅ Tool '{function_name}' completed successfully")
+                                except Exception as tool_error:
+                                    # If tool execution fails, still provide a response to maintain conversation flow
+                                    print(f"❌ Tool '{function_name}' failed: {str(tool_error)}")
+                                    result = f"Error executing tool {function_name}: {str(tool_error)}"
+                                    if enable_analytics and analytics_service:
+                                        analytics_service.logger.error(
+                                            f"Tool execution failed for {function_name}: {str(tool_error)}"
+                                        )
 
                                 # Update tool metrics if analytics enabled
                                 if enable_analytics and analytics_service and usage_id:
@@ -260,6 +294,11 @@ class Agent(BaseModel):
                                     }
                                 )
 
+                                # Log tool result preview
+                                result_preview = str(result)[:200] + "..." if len(str(result)) > 200 else str(result)
+                                print(f"📋 Tool result preview: {result_preview}")
+
+                                # Always add tool response message to maintain conversation flow
                                 messages.append(
                                     {
                                         "role": "tool",

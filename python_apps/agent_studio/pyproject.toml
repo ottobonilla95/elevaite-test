@@ -20,6 +20,9 @@ dependencies = [
     "redis>=4.5.1",
     "elevaite-logger",
     "pytest-asyncio>=0.26.0",
+    "google-auth>=2.40.0",
+    "google-api-python-client>=2.0.0",
+    "qdrant-client>=1.7.0",
 ]
 
 [project.optional-dependencies]

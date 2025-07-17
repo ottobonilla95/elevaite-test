@@ -141,7 +141,7 @@ class ToolRegistry:
 
             # Update usage statistics
             execution_time = int((datetime.now() - start_time).total_seconds() * 1000)
-            crud.update_tool_usage_stats(db, tool.tool_id, execution_time, True)
+            crud.update_tool_usage_stats(db, tool.tool_id, True, execution_time)
 
             return {
                 "status": "success",
@@ -154,7 +154,7 @@ class ToolRegistry:
         except Exception as e:
             # Update error statistics
             execution_time = int((datetime.now() - start_time).total_seconds() * 1000)
-            crud.update_tool_usage_stats(db, tool.tool_id, execution_time, False)
+            crud.update_tool_usage_stats(db, tool.tool_id, False, execution_time)
 
             return {
                 "status": "error",

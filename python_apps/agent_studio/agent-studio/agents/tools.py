@@ -4,8 +4,16 @@ import requests
 import markdownify
 from bs4 import BeautifulSoup
 from utils import function_schema
-from typing import Optional
+from typing import Optional, Dict, Any, List
 from utils import client
+import pickle
+import logging
+from datetime import datetime, timezone
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+import json
 
 dotenv.load_dotenv(".env.local")
 
@@ -179,71 +187,137 @@ def query_retriever2(query: str) -> list:
 
 
 @function_schema
-def qdrant_search(query: str, collection_name: str, limit: Optional[int] = 10, filter_params: Optional[str] = None) -> str:
+def media_context_retriever(query: str, collection_name: str = "media_data_standardized_v2", limit: Optional[int] = 10, filter_params: Optional[str] = None) -> str:
     """
-    QDRANT VECTOR SEARCH TOOL
+    MEDIA CONTEXT RETRIEVER TOOL
 
-    Use this tool to perform vector similarity search on Qdrant database for media campaigns and creatives.
+    Use this tool to retrieve relevant media campaign context and data using semantic search.
+    Searches through historical media campaigns, creatives, and performance data to find similar contexts.
 
     Args:
-        query: The search query text for semantic similarity search
-        collection_name: Name of the Qdrant collection to search (e.g., 'campaigns', 'creatives')
+        query: The search query text for finding relevant media context
+        collection_name: Name of the media data collection to search (default: 'media_data_standardized_v2')
         limit: Maximum number of results to return (default: 10)
         filter_params: Optional JSON string with filter parameters (e.g., '{"brand": "nike", "industry": "Fashion & Retail"}')
 
     EXAMPLES:
-    Example: qdrant_search("high performing fashion campaigns", "campaigns", 5)
-    Example: qdrant_search("summer beverage ads", "creatives", 10, '{"season": "summer", "industry": "Food & Beverage"}')
-    Example: qdrant_search("Nike campaigns with high CTR", "campaigns", 8, '{"brand": "nike"}')
+    Example: media_context_retriever("high performing fashion campaigns")
+    Example: media_context_retriever("summer beverage ads", "media_data_standardized_v2", 10, '{"season": "summer", "industry": "Food & Beverage"}')
+    Example: media_context_retriever("Nike campaigns with high CTR", "media_data_standardized_v2", 8, '{"brand": "nike"}')
     """
-    # Mock implementation - in real scenario this would connect to Qdrant
-    print(f"Searching Qdrant collection '{collection_name}' with query: '{query}'")
-    print(f"Limit: {limit}, Filters: {filter_params}")
 
-    # Mock response data
-    mock_results = [
-        {
-            "id": "campaign_001",
-            "score": 0.95,
-            "payload": {
-                "campaign_name": "Summer Fashion Collection 2024",
+
+    try:
+        from qdrant_client import QdrantClient
+
+        # Get environment variables
+        QDRANT_HOST = os.getenv("QDRANT_HOST", "http://3.101.65.253")
+        QDRANT_PORT = os.getenv("QDRANT_PORT", "5333")
+        COLLECTION_NAME = os.getenv("COLLECTION_NAME", "media_data_standardized_v2")
+
+        # Use provided collection_name or default
+        collection = collection_name or COLLECTION_NAME
+
+        # Initialize Qdrant client
+        qdrant_url = f"{QDRANT_HOST}:{QDRANT_PORT}"
+        qdrant_client = QdrantClient(url=qdrant_url)
+
+        # Get embedding for query using OpenAI
+        embedding_response = client.embeddings.create(
+            model="text-embedding-ada-002",
+            input=query
+        )
+        query_vector = embedding_response.data[0].embedding
+
+        # Parse filter parameters
+        filter_dict = None
+        if filter_params:
+            try:
+                filter_dict = json.loads(filter_params)
+            except json.JSONDecodeError:
+                print(f"Warning: Invalid filter_params JSON: {filter_params}")
+
+        # Perform search
+        search_results = qdrant_client.search(
+            collection_name=collection,
+            query_vector=query_vector,
+            limit=limit,
+            query_filter=filter_dict,
+            with_payload=True
+        )
+
+        # Format results
+        if search_results is None or not search_results:
+            return f"No results found for query: '{query}' in collection '{collection}'"
+
+        result_text = f"QDRANT SEARCH RESULTS for '{query}' (Collection: {collection}):\n\n"
+        for i, result in enumerate(search_results):
+            payload = result.payload
+            score = result.score
+
+            # Handle case where payload might be None
+            if payload is None:
+                result_text += f"Result {i+1} (Score: {round(score, 3)}):\n"
+                result_text += "No payload data available\n"
+                result_text += "-" * 50 + "\n"
+                continue
+            result_text += f"Result {i+1} (Score: {round(score, 3)}):\n"
+            result_text += f"Campaign: {payload.get('campaign_name', 'Unknown Campaign')}\n"
+            result_text += f"Brand: {payload.get('brand', 'Unknown Brand')}\n"
+            result_text += f"Industry: {payload.get('industry', 'Unknown Industry')}\n"
+            result_text += f"Budget: ${payload.get('budget', 0):,}\n"
+            result_text += f"Duration: {payload.get('duration_days', payload.get('duration', 0))} days\n"
+            result_text += f"CTR: {payload.get('ctr', payload.get('click_through_rate', 0))}%\n"
+            result_text += f"Conversion Rate: {payload.get('conversion_rate', 0)}%\n"
+            result_text += f"Impressions: {payload.get('impressions', 0):,}\n"
+            result_text += "-" * 50 + "\n"
+
+        return result_text
+
+    except Exception as e:
+        print(f"Qdrant search error: {e}")
+        import traceback
+        traceback.print_exc()
+        # Fallback to mock data for development
+        mock_results = [
+            {
+                "campaign_name": "Nike Summer Collection 2024",
                 "brand": "Nike",
                 "industry": "Fashion & Retail",
-                "season": "summer",
-                "conversion_rate": 0.045,
-                "clicks": 15420,
-                "impressions": 342000,
-                "budget": 25000
+                "budget": 45000,
+                "duration": 30,
+                "ctr": 2.1,
+                "conversion_rate": 1.8,
+                "impressions": 850000,
+                "score": 0.95
+            },
+            {
+                "campaign_name": "Adidas Athletic Wear Campaign",
+                "brand": "Adidas",
+                "industry": "Fashion & Retail",
+                "budget": 38000,
+                "duration": 25,
+                "ctr": 1.9,
+                "conversion_rate": 1.6,
+                "impressions": 720000,
+                "score": 0.87
             }
-        },
-        {
-            "id": "campaign_002",
-            "score": 0.87,
-            "payload": {
-                "campaign_name": "Holiday Beverage Campaign",
-                "brand": "Coca-Cola",
-                "industry": "Food & Beverage",
-                "season": "winter",
-                "conversion_rate": 0.038,
-                "clicks": 12800,
-                "impressions": 337000,
-                "budget": 18000
-            }
-        }
-    ]
+        ]
 
-    result_text = f"QDRANT SEARCH RESULTS for '{query}':\n\n"
-    for i, result in enumerate(mock_results[:limit]):
-        result_text += f"Result {i+1} (Score: {result['score']}):\n"
-        result_text += f"Campaign: {result['payload']['campaign_name']}\n"
-        result_text += f"Brand: {result['payload']['brand']}\n"
-        result_text += f"Industry: {result['payload']['industry']}\n"
-        result_text += f"Conversion Rate: {result['payload']['conversion_rate']}\n"
-        result_text += f"Clicks: {result['payload']['clicks']}\n"
-        result_text += f"Budget: ${result['payload']['budget']}\n"
-        result_text += "-" * 40 + "\n"
+        result_text = f"QDRANT SEARCH RESULTS for '{query}' (MOCK DATA - Connection Error):\n\n"
+        for i, result in enumerate(mock_results[:limit]):
+            result_text += f"Result {i+1} (Score: {result['score']}):\n"
+            result_text += f"Campaign: {result['campaign_name']}\n"
+            result_text += f"Brand: {result['brand']}\n"
+            result_text += f"Industry: {result['industry']}\n"
+            result_text += f"Budget: ${result['budget']:,}\n"
+            result_text += f"Duration: {result['duration']} days\n"
+            result_text += f"CTR: {result['ctr']}%\n"
+            result_text += f"Conversion Rate: {result['conversion_rate']}%\n"
+            result_text += f"Impressions: {result['impressions']:,}\n"
+            result_text += "-" * 50 + "\n"
 
-    return result_text
+        return result_text
 
 
 @function_schema
@@ -496,6 +570,938 @@ def image_generation(prompt: str, operation_type: str, dimensions: Optional[str]
     else:
         return f"Error: Unsupported operation type '{operation_type}'. Supported: generate, resize, multi_generate, resize_to_iab"
 
+def _get_google_credentials():
+    """Get OAuth credentials from token.pickle with automatic refresh"""
+    logger = logging.getLogger(__name__)
+
+    creds = None
+    if os.path.exists('token.pickle'):
+        try:
+            with open('token.pickle', 'rb') as token:
+                creds = pickle.load(token)
+
+            # Refresh if expired
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+                # Save refreshed credentials
+                with open('token.pickle', 'wb') as token:
+                    pickle.dump(creds, token)
+
+        except Exception as e:
+            logger.error(f"Error loading credentials: {str(e)}")
+            return None
+
+    return creds
+
+
+def _create_google_drive_folder(service, folder_name: str, parent_folder_id: str) -> Dict[str, Any]:
+    """Create a folder in Google Drive"""
+    try:
+        file_metadata = {
+            'name': folder_name,
+            'mimeType': 'application/vnd.google-apps.folder',
+            'parents': [parent_folder_id]
+        }
+
+        folder = service.files().create(
+            body=file_metadata,
+            supportsAllDrives=True,
+            fields='id, webViewLink'
+        ).execute()
+
+        return {
+            'id': folder.get('id'),
+            'link': folder.get('webViewLink')
+        }
+    except Exception as e:
+        raise Exception(f"Failed to create folder: {str(e)}")
+
+
+def _share_folder_with_users(service, folder_id: str, emails: List[str]):
+    """Share a folder with specified email addresses"""
+    for email in emails:
+        if email:  # Only share if email is provided
+            try:
+                permission = {
+                    'type': 'user',
+                    'role': 'writer',
+                    'emailAddress': email
+                }
+                service.permissions().create(
+                    fileId=folder_id,
+                    body=permission,
+                    supportsAllDrives=True
+                ).execute()
+            except Exception as e:
+                logging.getLogger(__name__).warning(f"Failed to share with {email}: {str(e)}")
+
+
+def _create_sheet_from_template(drive_service, sheets_service, folder_id: str, sheet_name: str, template_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    """Create a new sheet by copying a template and populating it with data"""
+    try:
+        # Copy the template to create a new sheet
+        copied_sheet = drive_service.files().copy(
+            fileId=template_id,
+            body={
+                'name': sheet_name,
+                'parents': [folder_id]
+            },
+            supportsAllDrives=True,
+            fields='id, webViewLink'
+        ).execute()
+
+        sheet_id = copied_sheet['id']
+
+        # Get the template headers from row 1
+        header_result = sheets_service.spreadsheets().values().get(
+            spreadsheetId=sheet_id,
+            range='A1:AA1',  # Headers from A to AA
+            majorDimension='ROWS'
+        ).execute()
+
+        headers = header_result.get('values', [[]])[0] if header_result.get('values') else []
+
+        # Create a mapping of data to column positions
+        updates = []
+        for col_index, header in enumerate(headers):
+            if header.lower().replace(' ', '_') in data:
+                col_letter = chr(65 + col_index)  # Convert to A, B, C, etc.
+                cell_range = f'{col_letter}2'  # Row 2 for data
+                value = str(data[header.lower().replace(' ', '_')])
+                updates.append({
+                    'range': cell_range,
+                    'values': [[value]]
+                })
+
+        # Batch update the sheet
+        if updates:
+            body = {
+                'valueInputOption': 'RAW',
+                'data': updates
+            }
+            sheets_service.spreadsheets().values().batchUpdate(
+                spreadsheetId=sheet_id,
+                body=body
+            ).execute()
+
+        return {
+            'sheet_id': sheet_id,
+            'sheet_link': copied_sheet['webViewLink']
+        }
+    except Exception as e:
+        raise Exception(f"Failed to create sheet from template: {str(e)}")
+
+
+def _generate_pdf_from_template(drive_service, docs_service, template_id: str, output_folder_id: str, filename: str, template_variables: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate PDF from Google Docs template"""
+    try:
+        # Create a copy of the template
+        copied_doc = drive_service.files().copy(
+            fileId=template_id,
+            body={
+                'name': f'{filename}_temp_doc',
+                'parents': [output_folder_id]
+            },
+            supportsAllDrives=True
+        ).execute()
+
+        doc_id = copied_doc['id']
+
+        # Replace placeholders in the document
+        requests_list = []
+        for placeholder, value in template_variables.items():
+            requests_list.append({
+                'replaceAllText': {
+                    'containsText': {
+                        'text': f'{{{{{placeholder}}}}}',  # {{placeholder}} format
+                        'matchCase': False
+                    },
+                    'replaceText': str(value)
+                }
+            })
+
+        if requests_list:
+            docs_service.documents().batchUpdate(
+                documentId=doc_id,
+                body={'requests': requests_list}
+            ).execute()
+
+        # Export as PDF
+        pdf_export = drive_service.files().export(
+            fileId=doc_id,
+            mimeType='application/pdf'
+        ).execute()
+
+        # Create PDF file in Drive
+        pdf_metadata = {
+            'name': f'{filename}.pdf',
+            'parents': [output_folder_id]
+        }
+
+        # Upload PDF content
+        from googleapiclient.http import MediaIoBaseUpload
+        import io
+
+        pdf_file = drive_service.files().create(
+            body=pdf_metadata,
+            media_body=MediaIoBaseUpload(
+                io.BytesIO(pdf_export),
+                mimetype='application/pdf'
+            ),
+            supportsAllDrives=True,
+            fields='id, webViewLink'
+        ).execute()
+
+        # Delete the temporary document
+        drive_service.files().delete(fileId=doc_id, supportsAllDrives=True).execute()
+
+        return {
+            'pdf_file_id': pdf_file['id'],
+            'pdf_link': pdf_file['webViewLink']
+        }
+    except Exception as e:
+        raise Exception(f"Failed to generate PDF: {str(e)}")
+
+
+@function_schema
+def create_insertion_order(
+    order_number: str,
+    campaign_name: str,
+    brand: str,
+    customer_approver: str,
+    customer_approver_email: str,
+    sales_owner: str,
+    sales_owner_email: str,
+    fulfillment_owner: str,
+    fulfillment_owner_email: str,
+    objective_description: str,
+    placement_data: str,
+    base_folder_id: Optional[str] = None,
+    sheet_template_id: Optional[str] = None,
+    pdf_template_id: Optional[str] = None
+) -> str:
+    """
+    CREATE INSERTION ORDER IN GOOGLE DRIVE
+
+    Creates a complete insertion order with Google Drive folder, Google Sheet, and PDF document.
+    This tool automates the entire insertion order creation process including:
+    - Creating a campaign folder in Google Drive
+    - Generating a Google Sheet from a template with order details
+    - Creating a PDF document from a template
+    - Sharing all resources with stakeholders
+
+    Args:
+        order_number: The insertion order number (e.g., "IO-340371-3439")
+        campaign_name: Name of the marketing campaign
+        brand: Brand name for the campaign
+        customer_approver: Name of the customer approver
+        customer_approver_email: Email address of the customer approver
+        sales_owner: Name of the sales owner
+        sales_owner_email: Email address of the sales owner
+        fulfillment_owner: Name of the fulfillment owner
+        fulfillment_owner_email: Email address of the fulfillment owner
+        objective_description: Description of the campaign objectives
+        placement_data: JSON string containing placement information (name, destination, dates, metrics, etc.)
+        base_folder_id: Google Drive folder ID where campaign folder will be created (optional, uses env var if not provided)
+        sheet_template_id: Google Sheets template ID to copy (optional, uses env var if not provided)
+        pdf_template_id: Google Docs template ID for PDF generation (optional, uses env var if not provided)
+
+    EXAMPLES:
+    Example: create_insertion_order("IO-123456", "Summer Campaign 2024", "Example Brand", "John Smith", "john@company.com", "Sarah Johnson", "sarah@agency.com", "Mike Davis", "mike@agency.com", "Launch summer product line", '{"name": "Social Media", "destination": "Instagram", "start_date": "2024-06-01", "end_date": "2024-08-31"}')
+    """
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Get credentials
+        credentials = _get_google_credentials()
+        if not credentials:
+            return "Error: Google OAuth credentials not found. Please ensure token.pickle file exists and contains valid credentials."
+
+        # Build Google services
+        drive_service = build('drive', 'v3', credentials=credentials)
+        sheets_service = build('sheets', 'v4', credentials=credentials)
+        docs_service = build('docs', 'v1', credentials=credentials)
+
+        # Get configuration from environment variables or use provided values
+        base_folder = base_folder_id or os.getenv("BASE_GOOGLE_DRIVE_FOLDER_ID")
+        sheet_template = sheet_template_id or os.getenv("GOOGLE_SHEET_TEMPLATE_ID")
+        pdf_template = pdf_template_id or os.getenv("PDF_GENERATION_TEMPLATE_ID")
+
+        if not base_folder:
+            return "Error: BASE_GOOGLE_DRIVE_FOLDER_ID not configured. Please set environment variable or provide base_folder_id parameter."
+        if not sheet_template:
+            return "Error: GOOGLE_SHEET_TEMPLATE_ID not configured. Please set environment variable or provide sheet_template_id parameter."
+        if not pdf_template:
+            return "Error: PDF_GENERATION_TEMPLATE_ID not configured. Please set environment variable or provide pdf_template_id parameter."
+
+        # Parse placement data
+        try:
+            placement_info = json.loads(placement_data) if isinstance(placement_data, str) else placement_data
+        except json.JSONDecodeError:
+            return "Error: Invalid placement_data JSON format."
+
+        # Create campaign folder
+        folder_name = f"{campaign_name}_{datetime.now().strftime('%Y%m%d')}"
+        campaign_folder = _create_google_drive_folder(drive_service, folder_name, base_folder)
+
+        # Create PDF subfolder
+        pdf_folder = _create_google_drive_folder(drive_service, "PDF Files", campaign_folder['id'])
+
+        # Share folders with stakeholders
+        stakeholder_emails = [customer_approver_email, sales_owner_email, fulfillment_owner_email]
+        _share_folder_with_users(drive_service, campaign_folder['id'], stakeholder_emails)
+
+        # Prepare data for sheet
+        sheet_data = {
+            'order_number': order_number,
+            'brand': brand,
+            'campaign_name': campaign_name,
+            'customer_approver': customer_approver,
+            'customer_approver_email': customer_approver_email,
+            'sales_owner': sales_owner,
+            'sales_owner_email': sales_owner_email,
+            'fulfillment_owner': fulfillment_owner,
+            'fulfillment_owner_email': fulfillment_owner_email,
+            'objective_description': objective_description,
+            'placement_name': placement_info.get('name', ''),
+            'placement_destination': placement_info.get('destination', ''),
+            'start_date': placement_info.get('start_date', ''),
+            'end_date': placement_info.get('end_date', '')
+        }
+
+        # Create Google Sheet from template
+        sheet_result = _create_sheet_from_template(
+            drive_service, sheets_service, campaign_folder['id'],
+            f"Order_{order_number}", sheet_template, sheet_data
+        )
+
+        # Prepare template variables for PDF
+        pdf_variables = {
+            'ORDER_NUMBER': order_number,
+            'CAMPAIGN_NAME': campaign_name,
+            'BRAND': brand,
+            'CUSTOMER_APPROVER': customer_approver,
+            'CUSTOMER_APPROVER_EMAIL': customer_approver_email,
+            'SALES_OWNER': sales_owner,
+            'SALES_OWNER_EMAIL': sales_owner_email,
+            'FULFILLMENT_OWNER': fulfillment_owner,
+            'FULFILLMENT_OWNER_EMAIL': fulfillment_owner_email,
+            'OBJECTIVE_DESCRIPTION': objective_description,
+            'PLACEMENT_NAME': placement_info.get('name', ''),
+            'PLACEMENT_DESTINATION': placement_info.get('destination', ''),
+            'START_DATE': placement_info.get('start_date', ''),
+            'END_DATE': placement_info.get('end_date', ''),
+            'CREATION_DATE': datetime.now().strftime('%Y-%m-%d')
+        }
+
+        # Generate PDF
+        pdf_result = _generate_pdf_from_template(
+            drive_service, docs_service, pdf_template, pdf_folder['id'],
+            f"{order_number}_v0", pdf_variables
+        )
+
+        # Prepare response
+        result = {
+            'status': 'success',
+            'order_number': order_number,
+            'campaign_folder_id': campaign_folder['id'],
+            'campaign_folder_link': campaign_folder['link'],
+            'sheet_id': sheet_result['sheet_id'],
+            'sheet_link': sheet_result['sheet_link'],
+            'pdf_file_id': pdf_result['pdf_file_id'],
+            'pdf_link': pdf_result['pdf_link'],
+            'pdf_folder_id': pdf_folder['id'],
+            'pdf_folder_link': pdf_folder['link']
+        }
+
+        return f"✅ Insertion order created successfully!\n\n" \
+               f"📁 Campaign Folder: {campaign_folder['link']}\n" \
+               f"📊 Google Sheet: {sheet_result['sheet_link']}\n" \
+               f"📄 PDF Document: {pdf_result['pdf_link']}\n\n" \
+               f"Order Number: {order_number}\n" \
+               f"Campaign: {campaign_name}\n" \
+               f"All stakeholders have been granted access to the resources."
+
+    except Exception as e:
+        logger.error(f"Error creating insertion order: {str(e)}")
+        return f"❌ Error creating insertion order: {str(e)}"
+
+
+def _connect_to_salesforce():
+    """Connect to Salesforce using simple-salesforce library"""
+    try:
+        from simple_salesforce import Salesforce
+
+        # Get Salesforce credentials from environment
+        username = os.getenv("SALESFORCE_USERNAME")
+        password = os.getenv("SALESFORCE_PASSWORD")
+        security_token = os.getenv("SALESFORCE_SECURITY_TOKEN")
+        domain = os.getenv("SALESFORCE_DOMAIN", "test")  # test for sandbox, login for production
+
+        if not all([username, password, security_token]):
+            raise Exception("Missing Salesforce credentials. Please set SALESFORCE_USERNAME, SALESFORCE_PASSWORD, and SALESFORCE_SECURITY_TOKEN environment variables.")
+
+        sf = Salesforce(
+            username=username,
+            password=password,
+            security_token=security_token,
+            domain=domain
+        )
+
+        return sf
+    except ImportError:
+        raise Exception("simple-salesforce library not installed. Please install it with: pip install simple-salesforce")
+    except Exception as e:
+        raise Exception(f"Failed to connect to Salesforce: {str(e)}")
+
+
+def _create_salesforce_insertion_order_direct(sf, order_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Create insertion order record directly in Salesforce (replicating connector service logic)"""
+    try:
+        # Prepare the insertion order record data - using only core fields that should exist
+        sf_data = {
+            'Name': f"{order_data['Brand']} - {order_data['CampaignName']}",
+            'Order_Number__c': order_data['OrderNo'],
+            'Brand__c': order_data['Brand'],
+            'Campaign_Name__c': order_data['CampaignName'],
+            'Customer_Approver__c': order_data['CustomerApprover'],
+            'Customer_Approver_Email__c': order_data['CustomerApproverEmail'],
+            'Sales_Owner__c': order_data['SalesOwner'],
+            'Sales_Owner_Email__c': order_data['SalesOwnerEmail'],
+            'Fulfillment_Owner__c': order_data['FulfillmentOwner'],
+            'Fulfillment_Owner_Email__c': order_data['FulfillmentOwnerEmail'],
+            'Objective_Description__c': order_data['ObjectiveDetails']['Description'],
+            'Status__c': 'Draft'
+        }
+
+        # Add lookup fields - only if valid Salesforce IDs and accessible
+        # Try to add Account lookup, but continue if it fails due to permissions
+        if order_data.get('account_id') and _is_valid_salesforce_id(order_data['account_id']):
+            try:
+                # Test if we can access this account first
+                sf.Account.get(order_data['account_id'])
+                sf_data['Account__c'] = order_data['account_id']
+            except Exception as e:
+                logging.getLogger(__name__).warning(f"Cannot access Account {order_data['account_id']}: {str(e)}")
+                # Continue without the Account lookup
+
+        # Try to add Opportunity lookup, but continue if it fails due to permissions
+        if order_data.get('opportunity_id') and _is_valid_salesforce_id(order_data['opportunity_id']):
+            try:
+                # Test if we can access this opportunity first
+                sf.Opportunity.get(order_data['opportunity_id'])
+                sf_data['Opportunity__c'] = order_data['opportunity_id']
+            except Exception as e:
+                logging.getLogger(__name__).warning(f"Cannot access Opportunity {order_data['opportunity_id']}: {str(e)}")
+                # Continue without the Opportunity lookup
+
+        # Add PDF link if available
+        if order_data.get('PDF_View_Link_c'):
+            sf_data['PDF_View_Link__c'] = order_data['PDF_View_Link_c']
+
+        # Create the main insertion order record
+        result = sf.Insertion_Order__c.create(sf_data)
+        io_id = result['id']
+
+        # Create placement records for each placement (replicating connector service logic)
+        for placement in order_data.get('Placement', []):
+            _create_placement_record_direct(sf, io_id, placement)
+
+        return {
+            'id': io_id,
+            'success': result['success'],
+            'message': 'Insertion order created successfully in Salesforce'
+        }
+
+    except Exception as e:
+        raise Exception(f"Failed to create Salesforce insertion order: {str(e)}")
+
+
+def _create_placement_record_direct(sf, insertion_order_id: str, placement_data: Dict[str, Any]):
+    """Create placement record linked to insertion order (replicating connector service logic)"""
+    try:
+        placement_record = {
+            'Name': placement_data.get('Name', 'Placement'),
+            'Insertion_Order__c': insertion_order_id,
+            'Destination__c': placement_data.get('Destination'),
+            'Start_Date__c': placement_data.get('StartDate'),
+            'End_Date__c': placement_data.get('EndDate')
+        }
+
+        # Add metrics if available
+        if placement_data.get('Metrics'):
+            metrics = placement_data['Metrics']
+            if metrics.get('Impressions'):
+                placement_record['Impressions__c'] = metrics['Impressions']
+            if metrics.get('Clicks'):
+                placement_record['Clicks__c'] = metrics['Clicks']
+
+        # Add budget if available
+        if placement_data.get('Budget') and placement_data['Budget'].get('Amount'):
+            placement_record['Budget_Amount__c'] = placement_data['Budget']['Amount']
+
+        # Add bid rates if available
+        if placement_data.get('BidRate'):
+            bid_rate = placement_data['BidRate']
+            if bid_rate.get('CPM'):
+                placement_record['CPM__c'] = bid_rate['CPM']
+            if bid_rate.get('CPC'):
+                placement_record['CPC__c'] = bid_rate['CPC']
+
+        # Add targeting configuration if available
+        if placement_data.get('new_targeting_configuration'):
+            targeting = placement_data['new_targeting_configuration']
+            if targeting.get('age_range'):
+                placement_record['target_audience_age_range__c'] = ', '.join(targeting['age_range'])
+            if targeting.get('gender'):
+                placement_record['target_audience_gender__c'] = ', '.join(targeting['gender'])
+            if targeting.get('income_level'):
+                placement_record['target_audience_income_level__c'] = ', '.join(targeting['income_level'])
+            if targeting.get('location'):
+                placement_record['target_audience_location__c'] = ', '.join(targeting['location'])
+            if targeting.get('interests'):
+                placement_record['target_audience_interests__c'] = ', '.join(targeting['interests'])
+            if targeting.get('behavioral_data'):
+                placement_record['target_audience_behavioral_data__c'] = ', '.join(targeting['behavioral_data'])
+
+        # Create the placement record
+        result = sf.Placement__c.create(placement_record)
+        return result
+
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Failed to create placement record: {str(e)}")
+        # Don't fail the entire operation if placement creation fails
+        return None
+
+
+def _is_valid_salesforce_id(sf_id: str) -> bool:
+    """Check if a string is a valid Salesforce ID format"""
+    if not sf_id or not isinstance(sf_id, str):
+        return False
+    # Salesforce IDs are 15 or 18 characters long and alphanumeric
+    return len(sf_id) in [15, 18] and sf_id.isalnum()
+
+
+@function_schema
+def get_salesforce_accounts() -> str:
+    """
+    GET SALESFORCE ACCOUNTS
+
+    Retrieves a list of all Salesforce Accounts for dropdown population or selection.
+    This tool uses direct Salesforce API calls to fetch account data.
+
+    Returns:
+        A formatted string containing account information including:
+        - Account ID
+        - Account Name
+        - Total number of accounts found
+
+    EXAMPLES:
+    Example: get_salesforce_accounts()
+    """
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Connect to Salesforce directly
+        logger.info("Connecting to Salesforce to retrieve accounts")
+        sf = _connect_to_salesforce()
+
+        # Query for accounts
+        query = "SELECT Id, Name, Type, Industry FROM Account ORDER BY Name LIMIT 1000"
+        result = sf.query(query)
+
+        accounts = result['records']
+        logger.info(f"Retrieved {len(accounts)} Salesforce accounts")
+
+        if not accounts:
+            return "No Salesforce accounts found."
+
+        # Format the results for display
+        response = f"✅ Found {len(accounts)} Salesforce Accounts:\n\n"
+
+        for i, account in enumerate(accounts, 1):
+            account_id = account.get('Id', 'N/A')
+            account_name = account.get('Name', 'N/A')
+            account_type = account.get('Type', 'N/A')
+            industry = account.get('Industry', 'N/A')
+
+            response += f"{i:3d}. {account_name}\n"
+            response += f"     ID: {account_id}\n"
+            response += f"     Type: {account_type}\n"
+            response += f"     Industry: {industry}\n\n"
+
+            # Limit display to first 20 accounts to avoid overwhelming output
+            if i >= 20:
+                remaining = len(accounts) - 20
+                if remaining > 0:
+                    response += f"... and {remaining} more accounts\n\n"
+                break
+
+        response += f"📊 Total Accounts: {len(accounts)}\n"
+        response += f"🔗 Use Account IDs with other Salesforce tools"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error retrieving Salesforce accounts: {str(e)}")
+        return f"❌ Error retrieving Salesforce accounts: {str(e)}"
+
+
+@function_schema
+def get_salesforce_opportunities() -> str:
+    """
+    GET SALESFORCE OPPORTUNITIES
+
+    Retrieves a list of all Salesforce Opportunities with key details.
+    This tool uses direct Salesforce API calls to fetch opportunity data.
+
+    Returns:
+        A formatted string containing opportunity information including:
+        - Opportunity ID
+        - Opportunity Name
+        - Stage Name
+        - Amount
+        - Close Date
+        - Associated Account
+
+    EXAMPLES:
+    Example: get_salesforce_opportunities()
+    """
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Connect to Salesforce directly
+        logger.info("Connecting to Salesforce to retrieve opportunities")
+        sf = _connect_to_salesforce()
+
+        # Query for opportunities with account information
+        query = """SELECT Id, Name, StageName, Amount, CloseDate, Type, Description,
+                          AccountId, Account.Name, Account__c, Account__r.Name
+                   FROM Opportunity
+                   ORDER BY CloseDate DESC, Name
+                   LIMIT 1000"""
+        result = sf.query(query)
+
+        opportunities = result['records']
+        logger.info(f"Retrieved {len(opportunities)} Salesforce opportunities")
+
+        if not opportunities:
+            return "No Salesforce opportunities found."
+
+        # Format the results for display
+        response = f"✅ Found {len(opportunities)} Salesforce Opportunities:\n\n"
+
+        for i, opp in enumerate(opportunities, 1):
+            opp_id = opp.get('Id', 'N/A')
+            opp_name = opp.get('Name', 'N/A')
+            stage = opp.get('StageName', 'N/A')
+            amount = opp.get('Amount', 0)
+            close_date = opp.get('CloseDate', 'N/A')
+            opp_type = opp.get('Type', 'N/A')
+
+            # Get account name (try different fields)
+            account_name = 'N/A'
+            if opp.get('Account') and opp['Account'].get('Name'):
+                account_name = opp['Account']['Name']
+            elif opp.get('Account__r') and opp['Account__r'].get('Name'):
+                account_name = opp['Account__r']['Name']
+
+            # Format amount
+            amount_str = f"${amount:,.2f}" if amount else "N/A"
+
+            response += f"{i:3d}. {opp_name}\n"
+            response += f"     ID: {opp_id}\n"
+            response += f"     Account: {account_name}\n"
+            response += f"     Stage: {stage}\n"
+            response += f"     Amount: {amount_str}\n"
+            response += f"     Close Date: {close_date}\n"
+            response += f"     Type: {opp_type}\n\n"
+
+            # Limit display to first 15 opportunities to avoid overwhelming output
+            if i >= 15:
+                remaining = len(opportunities) - 15
+                if remaining > 0:
+                    response += f"... and {remaining} more opportunities\n\n"
+                break
+
+        response += f"📊 Total Opportunities: {len(opportunities)}\n"
+        response += f"🔗 Use Opportunity IDs with other Salesforce tools"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error retrieving Salesforce opportunities: {str(e)}")
+        return f"❌ Error retrieving Salesforce opportunities: {str(e)}"
+
+
+@function_schema
+def get_salesforce_opportunities_by_account(account_id: str) -> str:
+    """
+    GET SALESFORCE OPPORTUNITIES BY ACCOUNT
+
+    Retrieves Salesforce Opportunities associated with a specific Account.
+    This tool uses direct Salesforce API calls to fetch filtered opportunity data.
+
+    Args:
+        account_id: The Salesforce Account ID to filter opportunities by
+
+    Returns:
+        A formatted string containing opportunity information for the specified account including:
+        - Opportunity ID
+        - Opportunity Name
+        - Stage Name
+        - Amount
+        - Close Date
+        - Account Name
+
+    EXAMPLES:
+    Example: get_salesforce_opportunities_by_account("001XX000003DHP0YAO")
+    """
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Validate account ID format
+        if not _is_valid_salesforce_id(account_id):
+            return f"❌ Invalid Salesforce Account ID format: {account_id}. Expected 15 or 18 character alphanumeric ID."
+
+        # Connect to Salesforce directly
+        logger.info(f"Connecting to Salesforce to retrieve opportunities for account: {account_id}")
+        sf = _connect_to_salesforce()
+
+        # First, try to get the account name to verify it exists
+        account_name = "Unknown Account"
+        try:
+            account_result = sf.Account.get(account_id)
+            account_name = account_result.get('Name', 'Unknown Account')
+        except Exception as account_error:
+            logger.warning(f"Could not retrieve account details for {account_id}: {str(account_error)}")
+
+        # Query for opportunities using both standard AccountId and custom Account__c lookup field
+        query = f"""SELECT Id, Name, StageName, Amount, CloseDate, Type, Description,
+                           AccountId, Account.Name, Account__c, Account__r.Name
+                    FROM Opportunity
+                    WHERE AccountId = '{account_id}' OR Account__c = '{account_id}'
+                    ORDER BY CloseDate DESC, Name
+                    LIMIT 1000"""
+        result = sf.query(query)
+
+        opportunities = result['records']
+        logger.info(f"Retrieved {len(opportunities)} Salesforce opportunities for account: {account_id}")
+
+        if not opportunities:
+            return f"No opportunities found for Account: {account_name} (ID: {account_id})"
+
+        # Format the results for display
+        response = f"✅ Found {len(opportunities)} Opportunities for Account: {account_name}\n"
+        response += f"🏢 Account ID: {account_id}\n\n"
+
+        total_amount = 0
+        for i, opp in enumerate(opportunities, 1):
+            opp_id = opp.get('Id', 'N/A')
+            opp_name = opp.get('Name', 'N/A')
+            stage = opp.get('StageName', 'N/A')
+            amount = opp.get('Amount', 0)
+            close_date = opp.get('CloseDate', 'N/A')
+            opp_type = opp.get('Type', 'N/A')
+
+            # Add to total amount if numeric
+            if isinstance(amount, (int, float)) and amount > 0:
+                total_amount += amount
+
+            # Format amount
+            amount_str = f"${amount:,.2f}" if amount else "N/A"
+
+            response += f"{i:3d}. {opp_name}\n"
+            response += f"     ID: {opp_id}\n"
+            response += f"     Stage: {stage}\n"
+            response += f"     Amount: {amount_str}\n"
+            response += f"     Close Date: {close_date}\n"
+            response += f"     Type: {opp_type}\n\n"
+
+        # Add summary information
+        response += f"📊 Summary:\n"
+        response += f"   • Total Opportunities: {len(opportunities)}\n"
+        response += f"   • Total Pipeline Value: ${total_amount:,.2f}\n"
+        response += f"   • Account: {account_name}\n\n"
+        response += f"🔗 Use Opportunity IDs with other Salesforce tools"
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error retrieving opportunities for account {account_id}: {str(e)}")
+        return f"❌ Error retrieving opportunities for account {account_id}: {str(e)}"
+
+
+@function_schema
+def create_salesforce_insertion_order(
+    order_number: str,
+    campaign_name: str,
+    brand: str,
+    customer_approver: str,
+    customer_approver_email: str,
+    sales_owner: str,
+    sales_owner_email: str,
+    fulfillment_owner: str,
+    fulfillment_owner_email: str,
+    objective_description: str,
+    placement_data: str,
+    salesforce_account: str,
+    salesforce_opportunity_id: str,
+    salesforce_base_url: Optional[str] = None,
+    base_folder_id: Optional[str] = None,
+    pdf_template_id: Optional[str] = None
+) -> str:
+    """
+    CREATE INSERTION ORDER IN SALESFORCE (DIRECT API)
+
+    Creates a complete insertion order in Salesforce with PDF documentation in Google Drive.
+    This tool uses direct Salesforce API calls (no external connector service required) and automates:
+    - Creating a PDF document in Google Drive for documentation
+    - Creating an insertion order record directly in Salesforce via API
+    - Creating placement records with targeting and budget data
+    - Linking the PDF to the Salesforce record
+    - Returning URLs for both Salesforce record and PDF document
+
+    Args:
+        order_number: The insertion order number (e.g., "IO-340371-3439")
+        campaign_name: Name of the marketing campaign
+        brand: Brand name for the campaign
+        customer_approver: Name of the customer approver
+        customer_approver_email: Email address of the customer approver
+        sales_owner: Name of the sales owner
+        sales_owner_email: Email address of the sales owner
+        fulfillment_owner: Name of the fulfillment owner
+        fulfillment_owner_email: Email address of the fulfillment owner
+        objective_description: Description of the campaign objectives
+        placement_data: JSON string containing placement information (name, destination, dates, metrics, etc.)
+        salesforce_account: Salesforce Account ID for the insertion order
+        salesforce_opportunity_id: Salesforce Opportunity ID for the insertion order
+        salesforce_base_url: Base URL for Salesforce Lightning (optional, uses env var if not provided)
+        base_folder_id: Google Drive folder ID where PDF will be created (optional, uses env var if not provided)
+        pdf_template_id: Google Docs template ID for PDF generation (optional, uses env var if not provided)
+
+    EXAMPLES:
+    Example: create_salesforce_insertion_order("IO-123456", "Summer Campaign 2024", "Example Brand", "John Smith", "john@company.com", "Sarah Johnson", "sarah@agency.com", "Mike Davis", "mike@agency.com", "Launch summer product line", '{"name": "Social Media", "destination": "Instagram", "start_date": "2024-06-01", "end_date": "2024-08-31"}', "001XX000003DHP0", "006XX000004TMi2")
+    """
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Get credentials for Google Drive PDF generation
+        credentials = _get_google_credentials()
+        if not credentials:
+            return "Error: Google OAuth credentials not found. Please ensure token.pickle file exists and contains valid credentials."
+
+        # Build Google services
+        drive_service = build('drive', 'v3', credentials=credentials)
+        docs_service = build('docs', 'v1', credentials=credentials)
+
+        # Get configuration from environment variables or use provided values
+        base_folder = base_folder_id or os.getenv("BASE_GOOGLE_DRIVE_FOLDER_ID")
+        pdf_template = pdf_template_id or os.getenv("PDF_GENERATION_TEMPLATE_ID")
+        sf_base_url = salesforce_base_url or os.getenv("SALESFORCE_BASE_URL", "https://flow-business-5971.lightning.force.com")
+
+        if not base_folder:
+            return "Error: BASE_GOOGLE_DRIVE_FOLDER_ID not configured. Please set environment variable or provide base_folder_id parameter."
+        if not pdf_template:
+            return "Error: PDF_GENERATION_TEMPLATE_ID not configured. Please set environment variable or provide pdf_template_id parameter."
+
+        # Parse placement data
+        try:
+            placement_info = json.loads(placement_data) if isinstance(placement_data, str) else placement_data
+        except json.JSONDecodeError:
+            return "Error: Invalid placement_data JSON format."
+
+        # Step 1: Create PDF documentation in Google Drive
+        logger.info("Creating Salesforce PDF documentation")
+
+        # Create campaign folder for Salesforce
+        folder_name = f"{campaign_name}_{datetime.now().strftime('%Y%m%d')}_Salesforce"
+        campaign_folder = _create_google_drive_folder(drive_service, folder_name, base_folder)
+
+        # Create PDF subfolder
+        pdf_folder = _create_google_drive_folder(drive_service, "PDF Files", campaign_folder['id'])
+
+        # Share folders with stakeholders
+        stakeholder_emails = [customer_approver_email, sales_owner_email, fulfillment_owner_email]
+        _share_folder_with_users(drive_service, campaign_folder['id'], stakeholder_emails)
+
+        # Prepare template variables for PDF
+        pdf_variables = {
+            'ORDER_NUMBER': order_number,
+            'CAMPAIGN_NAME': campaign_name,
+            'BRAND': brand,
+            'CUSTOMER_APPROVER': customer_approver,
+            'CUSTOMER_APPROVER_EMAIL': customer_approver_email,
+            'SALES_OWNER': sales_owner,
+            'SALES_OWNER_EMAIL': sales_owner_email,
+            'FULFILLMENT_OWNER': fulfillment_owner,
+            'FULFILLMENT_OWNER_EMAIL': fulfillment_owner_email,
+            'OBJECTIVE_DESCRIPTION': objective_description,
+            'PLACEMENT_NAME': placement_info.get('name', ''),
+            'PLACEMENT_DESTINATION': placement_info.get('destination', ''),
+            'START_DATE': placement_info.get('start_date', ''),
+            'END_DATE': placement_info.get('end_date', ''),
+            'CREATION_DATE': datetime.now().strftime('%Y-%m-%d'),
+            'SALESFORCE_ACCOUNT': salesforce_account,
+            'SALESFORCE_OPPORTUNITY': salesforce_opportunity_id
+        }
+
+        # Generate PDF
+        pdf_result = _generate_pdf_from_template(
+            drive_service, docs_service, pdf_template, pdf_folder['id'],
+            f"{order_number}_Salesforce_v0", pdf_variables
+        )
+
+        logger.info(f"PDF created successfully: {pdf_result['pdf_file_id']}")
+
+        # Step 2: Prepare Salesforce data with PDF link
+        salesforce_data = {
+            "account_id": salesforce_account,
+            "opportunity_id": salesforce_opportunity_id,
+            "OrderNo": order_number,
+            "Brand": brand,
+            "CampaignName": campaign_name,
+            "CustomerApprover": customer_approver,
+            "CustomerApproverEmail": customer_approver_email,
+            "SalesOwner": sales_owner,
+            "SalesOwnerEmail": sales_owner_email,
+            "FulfillmentOwner": fulfillment_owner,
+            "FulfillmentOwnerEmail": fulfillment_owner_email,
+            "ObjectiveDetails": {"Description": objective_description},
+            "Placement": [placement_info],
+            "PDF_View_Link_c": pdf_result['pdf_link']  # Include the PDF link
+        }
+
+        # Step 3: Connect to Salesforce and create insertion order directly
+        logger.info("Connecting to Salesforce and creating insertion order record")
+        try:
+            sf = _connect_to_salesforce()
+            salesforce_response = _create_salesforce_insertion_order_direct(sf, salesforce_data)
+        except Exception as sf_error:
+            logger.error(f"Salesforce integration error: {str(sf_error)}")
+            return f"❌ Error creating Salesforce insertion order: {str(sf_error)}"
+
+        logger.info(f"Salesforce insertion order created: {salesforce_response}")
+
+        # Step 4: Generate Salesforce Lightning URL
+        salesforce_record_id = salesforce_response.get('id', '')
+        salesforce_record_url = f"{sf_base_url}/lightning/r/Insertion_Order__c/{salesforce_record_id}/view"
+
+        # Prepare success response
+        return f"✅ Salesforce insertion order created successfully!\n\n" \
+               f"🏢 Salesforce Record: {salesforce_record_url}\n" \
+               f"📄 PDF Document: {pdf_result['pdf_link']}\n" \
+               f"📁 Campaign Folder: {campaign_folder['link']}\n\n" \
+               f"Order Number: {order_number}\n" \
+               f"Campaign: {campaign_name}\n" \
+               f"Salesforce Account: {salesforce_account}\n" \
+               f"Salesforce Opportunity: {salesforce_opportunity_id}\n" \
+               f"Record ID: {salesforce_record_id}"
+
+    except Exception as e:
+        logger.error(f"Error creating Salesforce insertion order: {str(e)}")
+        return f"❌ Error creating Salesforce insertion order: {str(e)}"
+
 
 tool_store = {
     "add_numbers": add_numbers,
@@ -507,11 +1513,18 @@ tool_store = {
     "add_customer": add_customer,
     "print_to_console": print_to_console,
     "query_retriever2": query_retriever2,
-    "qdrant_search": qdrant_search,
+    "media_context_retriever": media_context_retriever,
     "redis_cache_operation": redis_cache_operation,
     "postgres_query": postgres_query,
     "image_generation": image_generation,
+    "create_insertion_order": create_insertion_order,
+    "create_salesforce_insertion_order": create_salesforce_insertion_order,
+    "get_salesforce_accounts": get_salesforce_accounts,
+    "get_salesforce_opportunities": get_salesforce_opportunities,
+    "get_salesforce_opportunities_by_account": get_salesforce_opportunities_by_account,
 }
+
+
 
 tool_schemas = {
     "add_numbers": add_numbers.openai_schema,
@@ -523,8 +1536,13 @@ tool_schemas = {
     "add_customer": add_customer.openai_schema,
     "print_to_console": print_to_console.openai_schema,
     "query_retriever2": query_retriever2.openai_schema,
-    "qdrant_search": qdrant_search.openai_schema,
+    "media_context_retriever": media_context_retriever.openai_schema,
     "redis_cache_operation": redis_cache_operation.openai_schema,
     "postgres_query": postgres_query.openai_schema,
     "image_generation": image_generation.openai_schema,
+    "create_insertion_order": create_insertion_order.openai_schema,
+    "create_salesforce_insertion_order": create_salesforce_insertion_order.openai_schema,
+    "get_salesforce_accounts": get_salesforce_accounts.openai_schema,
+    "get_salesforce_opportunities": get_salesforce_opportunities.openai_schema,
+    "get_salesforce_opportunities_by_account": get_salesforce_opportunities_by_account.openai_schema,
 }
