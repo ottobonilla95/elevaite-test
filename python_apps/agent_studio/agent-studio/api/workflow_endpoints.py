@@ -435,31 +435,45 @@ def execute_workflow(
         )
 
     try:
+        print(f"🔍 DEBUG: Starting workflow execution for {workflow_id}")
+
         # Determine if this is a single-agent or multi-agent workflow
         agents = workflow.configuration.get("agents", [])
         is_single_agent = len(agents) == 1
+        print(
+            f"🔍 DEBUG: Found {len(agents)} agents, is_single_agent: {is_single_agent}"
+        )
 
         if is_single_agent:
             # Single-agent workflow - execute agent directly with its own prompt
             agent_config = agents[0]
             agent_type = agent_config.get("agent_type", "CommandAgent")
+            print(f"🔍 DEBUG: Building single agent of type: {agent_type}")
 
             if agent_type == "ToshibaAgent":
                 # Build ToshibaAgent directly
+                print("🔍 DEBUG: Building ToshibaAgent")
                 agent = _build_toshiba_agent_from_workflow(db, workflow, agent_config)
             else:
                 # Build other single agents directly
+                print(f"🔍 DEBUG: Building generic agent for type: {agent_type}")
                 agent = _build_single_agent_from_workflow(db, workflow, agent_config)
+
+            print(f"🔍 DEBUG: Agent built successfully: {agent.name}")
+            print(f"🔍 DEBUG: Starting agent execution...")
 
             # Execute the agent directly (preserves agent's own prompt)
             result = agent.execute(
                 query=execution_request.query,
                 chat_history=execution_request.chat_history,
             )
+            print(f"🔍 DEBUG: Agent execution completed")
         else:
             # Multi-agent workflow - use CommandAgent for orchestration
+            print("🔍 DEBUG: Building CommandAgent for multi-agent workflow")
             command_agent = _build_command_agent_from_workflow(db, workflow)
 
+            print("🔍 DEBUG: Starting CommandAgent execution")
             # Execute via CommandAgent
             if execution_request.chat_history:
                 result = command_agent.execute_stream(
@@ -467,15 +481,19 @@ def execute_workflow(
                 )
             else:
                 result = command_agent.execute(query=execution_request.query)
+            print("🔍 DEBUG: CommandAgent execution completed")
 
         # Ensure response is in JSON format expected by frontend
         import json
+
         if isinstance(result, str):
             # Wrap plain text response in JSON format
             formatted_response = json.dumps({"content": result})
         else:
             # If already a dict/object, convert to JSON string
-            formatted_response = json.dumps(result) if not isinstance(result, str) else result
+            formatted_response = (
+                json.dumps(result) if not isinstance(result, str) else result
+            )
 
         return schemas.WorkflowExecutionResponse(
             status="success",
@@ -617,23 +635,39 @@ def _build_single_agent_from_workflow(
     """Build a single agent from workflow configuration using its configured prompt and tools"""
     from agents.agent_base import Agent
 
+    print(
+        f"🔍 DEBUG: _build_single_agent_from_workflow called with agent_config: {agent_config}"
+    )
+
     # Get agent type and ID from config
     agent_type = agent_config.get("agent_type", "CommandAgent")
     agent_id = agent_config.get("agent_id")
+    print(f"🔍 DEBUG: agent_type: {agent_type}, agent_id: {agent_id}")
 
     # Try to get the agent from database if agent_id is provided
     db_agent = None
     if agent_id:
         try:
+            print(f"🔍 DEBUG: Looking up agent by ID: {agent_id}")
             db_agent = crud.get_agent(db, uuid.UUID(agent_id))
-        except (ValueError, TypeError):
+            print(
+                f"🔍 DEBUG: Found agent by ID: {db_agent.name if db_agent else 'None'}"
+            )
+        except (ValueError, TypeError) as e:
+            print(f"🔍 DEBUG: Error looking up by ID: {e}, trying by name")
             # If agent_id is invalid, try to find by name
             db_agent = crud.get_agent_by_name(db, agent_type)
+            print(
+                f"🔍 DEBUG: Found agent by name: {db_agent.name if db_agent else 'None'}"
+            )
     else:
         # Find agent by type/name
+        print(f"🔍 DEBUG: Looking up agent by name: {agent_type}")
         db_agent = crud.get_agent_by_name(db, agent_type)
+        print(f"🔍 DEBUG: Found agent by name: {db_agent.name if db_agent else 'None'}")
 
     if not db_agent:
+        print("🔍 DEBUG: No agent found, falling back to CommandAgent")
         # Fallback to CommandAgent if agent not found
         return _build_command_agent_from_workflow(db, workflow)
 
@@ -641,24 +675,42 @@ def _build_single_agent_from_workflow(
     from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
     from data_classes import PromptObject
 
-    system_prompt = PromptObject(
-        appName="",
-        createdTime=db_agent.system_prompt.created_time,
-        prompt=db_agent.system_prompt.prompt,
-        uniqueLabel=db_agent.system_prompt.unique_label,
-        pid=db_agent.system_prompt.pid,
-        last_deployed=db_agent.system_prompt.last_deployed,
-        deployedTime=db_agent.system_prompt.deployed_time,
-        isDeployed=db_agent.system_prompt.is_deployed,
-        modelProvider=db_agent.system_prompt.ai_model_provider,
-        modelName=db_agent.system_prompt.ai_model_name,
-        sha_hash=db_agent.system_prompt.sha_hash,
-        tags=db_agent.system_prompt.tags,
-        version=db_agent.system_prompt.version,
-        variables=db_agent.system_prompt.variables,
-        hyper_parameters=db_agent.system_prompt.hyper_parameters,
-        prompt_label=db_agent.system_prompt.prompt_label,
-    )
+    print("🔍 DEBUG: Starting PromptObject construction")
+    print(f"🔍 DEBUG: db_agent.system_prompt type: {type(db_agent.system_prompt)}")
+
+    try:
+        # Check if system_prompt exists and has required attributes
+        if not hasattr(db_agent, "system_prompt") or db_agent.system_prompt is None:
+            print("🔍 DEBUG: No system_prompt found, using fallback")
+            # Use a simple fallback
+            system_prompt = db_agent.system_prompt
+        else:
+            print("🔍 DEBUG: Constructing PromptObject with all fields")
+            system_prompt = PromptObject(
+                appName="",
+                createdTime=getattr(db_agent.system_prompt, "created_time", None),
+                prompt=getattr(db_agent.system_prompt, "prompt", ""),
+                uniqueLabel=getattr(db_agent.system_prompt, "unique_label", ""),
+                pid=getattr(db_agent.system_prompt, "pid", None),
+                last_deployed=getattr(db_agent.system_prompt, "last_deployed", None),
+                deployedTime=getattr(db_agent.system_prompt, "deployed_time", None),
+                isDeployed=getattr(db_agent.system_prompt, "is_deployed", False),
+                modelProvider=getattr(db_agent.system_prompt, "ai_model_provider", ""),
+                modelName=getattr(db_agent.system_prompt, "ai_model_name", ""),
+                sha_hash=getattr(db_agent.system_prompt, "sha_hash", ""),
+                tags=getattr(db_agent.system_prompt, "tags", []),
+                version=getattr(db_agent.system_prompt, "version", ""),
+                variables=getattr(db_agent.system_prompt, "variables", {}),
+                hyper_parameters=getattr(
+                    db_agent.system_prompt, "hyper_parameters", {}
+                ),
+                prompt_label=getattr(db_agent.system_prompt, "prompt_label", ""),
+            )
+        print("🔍 DEBUG: PromptObject constructed successfully")
+    except Exception as e:
+        print(f"🔍 DEBUG: Error constructing PromptObject: {e}")
+        print("🔍 DEBUG: Using original system_prompt as fallback")
+        system_prompt = db_agent.system_prompt
 
     return Agent(
         name=db_agent.name,
