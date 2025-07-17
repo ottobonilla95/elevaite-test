@@ -41,44 +41,30 @@ def function_schema(func: Callable[..., Any]) -> OpenAISchemaFunction:
         signature = inspect.signature(func)
         type_hints = get_type_hints(func)
 
-        schema = ChatCompletionToolParam(
-            type="function",
-            function=FunctionDefinition(
-                name=func.__name__,
-                description=func.__doc__ or f"Function {func.__name__}",
-                parameters={
-                    "type": "object",
-                    "properties": {},
-                    "required": [],
-                },
-            ),
-        )
+        schema = {
+            "type": "function",
+            "function": {
+                "name": func.__name__,
+                "description": func.__doc__ or f"Function {func.__name__}",
+                "parameters": {"type": "object", "properties": {}, "required": []},
+            },
+        }
 
         for param_name, param in signature.parameters.items():
             param_type = type_hints.get(param_name, Any)
-            openai_type, is_optional = python_type_to_openai_type(param_type)
+            openai_type, is_optional, items_type = python_type_to_openai_type(
+                param_type
+            )
 
-            # schema["parameters"]["properties"][param_name] = {
-            if "parameters" not in schema["function"]:
-                schema["function"]["parameters"] = {
-                    "type": "object",
-                    "properties": {},
-                    "required": [],
-                }
-            if "properties" not in schema["function"]["parameters"] or not isinstance(
-                schema["function"]["parameters"]["properties"], Dict
-            ):
-                schema["function"]["parameters"]["properties"] = {}
-            schema["function"]["parameters"]["properties"][param_name] = {
+            prop: Dict[str, Any] = {
                 "type": openai_type,
                 "description": f"{param_name} parameter",
             }
-            if (
-                "required" not in schema["function"]["parameters"]
-                or schema["function"]["parameters"]["required"] is None
-                or not isinstance(schema["function"]["parameters"]["required"], List)
-            ):
-                schema["function"]["parameters"]["required"] = []
+            if openai_type == "array":
+                prop["items"] = {"type": items_type}
+
+            # schema["parameters"]["properties"][param_name] = {
+            schema["function"]["parameters"]["properties"][param_name] = prop
 
             # Add to required list only if it's not Optional and has no default value
             if not is_optional and param.default is inspect.Parameter.empty:
@@ -87,7 +73,7 @@ def function_schema(func: Callable[..., Any]) -> OpenAISchemaFunction:
 
         return schema
 
-    def python_type_to_openai_type(py_type) -> tuple[str, bool]:
+    def python_type_to_openai_type(py_type) -> tuple[str, bool, str]:
         """Maps Python types to OpenAI JSON schema types, supporting Optional and List."""
         from typing import get_origin, get_args
 
@@ -96,12 +82,22 @@ def function_schema(func: Callable[..., Any]) -> OpenAISchemaFunction:
             args = get_args(py_type)
             non_none_types = [t for t in args if t is not type(None)]
             if len(non_none_types) == 1:
-                openai_type, _ = python_type_to_openai_type(non_none_types[0])
-                return openai_type, True  # It's Optional
+                openai_type, _, items_type = python_type_to_openai_type(
+                    non_none_types[0]
+                )
+                return openai_type, True, items_type
 
         # Handle List[X]
         if get_origin(py_type) is list or get_origin(py_type) is List:
-            return "array", False
+            item_type = get_args(py_type)[0] if get_args(py_type) else str
+            mapping = {
+                int: "integer",
+                float: "number",
+                str: "string",
+                bool: "boolean",
+                dict: "object",
+            }
+            return "array", False, mapping.get(item_type, "string")
 
         # Base type mapping
         mapping = {
@@ -112,7 +108,7 @@ def function_schema(func: Callable[..., Any]) -> OpenAISchemaFunction:
             dict: "object",
         }
 
-        return mapping.get(py_type, "string"), False  # Default to string
+        return mapping.get(py_type, "string"), False, None  # Default to string
 
     # Cast the function to a type that allows attribute assignment
     decorated_func = cast(OpenAISchemaFunction, func)
@@ -148,7 +144,8 @@ def agent_schema(cls: type[Agent]) -> AgentWithSchema:
             "type": "function",
             "function": {
                 "name": agent_cls.__name__,  # Tool name = Class name
-                "description": execute_method.__doc__ or f"Agent {agent_cls.__name__} execution function",
+                "description": execute_method.__doc__
+                or f"Agent {agent_cls.__name__} execution function",
                 "parameters": {"type": "object", "properties": {}, "required": []},
             },
         }
