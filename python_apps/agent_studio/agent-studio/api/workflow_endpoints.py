@@ -873,7 +873,52 @@ def _build_openai_schema_from_db_agent(db_agent: models.Agent):
 
             return mapping.get(py_type, "string"), False  # Default to string
 
-        return python_function_to_openai_schema(db_agent)
+        # Use the sophisticated schema generation, but fall back to simple schema if it fails
+        try:
+            return python_function_to_openai_schema(db_agent)
+        except Exception as schema_error:
+            print(
+                f"⚠️ Advanced schema generation failed for {db_agent.name}: {schema_error}"
+            )
+            print(f"   Falling back to simple schema...")
+
+            # Fallback to simple, reliable schema that matches base Agent.execute signature
+            return {
+                "type": "function",
+                "function": {
+                    "name": function_name,
+                    "description": db_agent.description
+                    or f"Execute {db_agent.name} agent - {db_agent.agent_type} type agent",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The query or task to send to the agent",
+                            },
+                            "session_id": {
+                                "type": "string",
+                                "description": "Optional session ID for the agent execution",
+                            },
+                            "user_id": {
+                                "type": "string",
+                                "description": "Optional user ID for the agent execution",
+                            },
+                            "chat_history": {
+                                "type": "array",
+                                "description": "Optional chat history for the agent execution",
+                                "items": {"type": "object"},
+                            },
+                            "enable_analytics": {
+                                "type": "boolean",
+                                "description": "Whether to enable analytics for this execution",
+                            },
+                        },
+                        "required": ["query"],
+                    },
+                },
+            }
+
     except Exception as e:
         print(f"❌ Error building OpenAI schema for agent {db_agent.name}: {e}")
         return None
@@ -892,13 +937,27 @@ def _build_dynamic_agent_store(db: Session, workflow):
             if db_agent:
                 # Create a callable function for this agent
                 def create_agent_executor(agent_id):
-                    def execute_agent(query: str, context: str = ""):
+                    def execute_agent(
+                        query: str,
+                        session_id: Optional[str] = None,
+                        user_id: Optional[str] = None,
+                        chat_history: Optional[list] = None,
+                        enable_analytics: bool = False,
+                        **kwargs,
+                    ):
                         # Build the agent dynamically and execute
                         try:
                             agent = _build_single_agent_from_workflow(
                                 db, workflow, {"agent_id": str(agent_id)}
                             )
-                            result = agent.execute(query=query, enable_analytics=False)
+                            result = agent.execute(
+                                query=query,
+                                session_id=session_id,
+                                user_id=user_id,
+                                chat_history=chat_history,
+                                enable_analytics=enable_analytics,
+                                **kwargs,
+                            )
 
                             # Ensure result is JSON serializable
                             if isinstance(result, (dict, list)):

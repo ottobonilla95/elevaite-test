@@ -86,7 +86,8 @@ class CommandAgent(Agent):
                         return
 
                     tool_call_count += 1
-                    tool_calls = response.choices[0].message.tool_calls[:1]
+                    tool_calls = response.choices[0].message.tool_calls
+
                     messages.append(
                         {
                             "role": "assistant",
@@ -131,6 +132,7 @@ class CommandAgent(Agent):
                         except json.JSONDecodeError:
                             yield str(result) + "\n"
 
+                    print(f"✅ Processed all {len(tool_calls)} tool calls successfully")
                     # After processing all tool calls, continue the conversation to get assistant's final response
                     # The loop will continue and make another API call with the updated messages
                     # Increment tries to ensure conversation progresses and doesn't loop infinitely
