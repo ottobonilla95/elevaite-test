@@ -2716,6 +2716,30 @@ def sql_database(query: str) -> list:
         print(f"Failed to call SR database: {e}")
         return []
 
+@function_schema
+def arlo_api(query:str)->str:
+    """
+    Use this tool to ask questions to the Arlo customer support agent.
+    """
+    url = "https://elevaite-arlocb-api.iopex.ai/chat"
+    headers = {
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "message": query,
+        "session_id": "3973740a-404d-4924-9cf4-c71cf9ffd219",
+        "user_id": "Jojo",
+        "chat_history": [
+            {"actor": "user", "content": "Hello"},
+            {"actor": "assistant", "content": "How are you"}
+        ],
+        "enable_web_search": True,
+        "fetched_knowledge": ""
+    }
+
+    response = requests.post(url, headers=headers, json=payload)
+    return response.json()['response']
+
 
 tool_store = {
     "add_numbers": add_numbers,
@@ -2741,6 +2765,7 @@ tool_store = {
     "query_retriever": query_retriever,
     "customer_query_retriever": customer_query_retriever,
     "sql_database": sql_database,
+    "arlo_api": arlo_api,
 }
 
 
@@ -2768,4 +2793,5 @@ tool_schemas = {
     "query_retriever": query_retriever.openai_schema,
     "customer_query_retriever": customer_query_retriever.openai_schema,
     "sql_database": sql_database.openai_schema,
+    "arlo_api": arlo_api.openai_schema,
 }
