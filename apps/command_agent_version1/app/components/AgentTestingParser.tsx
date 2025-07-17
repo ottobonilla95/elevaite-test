@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import "./AgentTestingParser.scss";
 
 
@@ -7,16 +8,25 @@ interface AgentTestingParserProps {
 }
 
 export function AgentTestingParser({message}: AgentTestingParserProps): JSX.Element {
+    const [formattedText, setFormattedText] = useState<string>("");
 
-    const formatters: ((text: string) => string | undefined)[] = [
-        matchArrayOfStringsFormat,
-        matchJsonContentMessage,
-        matchRichTextFormat,
-    ];
 
-    const formattedText: string | undefined = formatters.reduce<string | undefined>(
-        (result, fn) => result ?? fn(message), undefined
-    ) ?? message;
+    useEffect(() => {
+        const extractors: ((text: string) => string | undefined)[] = [
+            matchArrayOfStringsFormat,
+            matchJsonContentMessage,
+        ];
+
+        const extracted = extractors.reduce<string | undefined>(
+            (result, fn) => result ?? fn(message), undefined
+        ) ?? message;
+
+        const rich = matchRichTextFormat(extracted) ?? extracted;
+        const final = linkify(rich);
+
+        setFormattedText(final);
+    }, [message]);
+
 
 
 
