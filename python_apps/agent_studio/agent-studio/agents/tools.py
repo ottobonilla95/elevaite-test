@@ -16,6 +16,8 @@ from googleapiclient.errors import HttpError
 import json
 import re
 
+SEGMENT_NUM = 5
+
 dotenv.load_dotenv(".env.local")
 
 GOOGLE_API = os.getenv("GOOGLE_API_PERSONAL")
