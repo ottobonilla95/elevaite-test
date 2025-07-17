@@ -42,7 +42,9 @@ def get_workflow_by_id(db: Session, workflow_id: uuid.UUID) -> Optional[Workflow
     return get_workflow(db, workflow_id)
 
 
-def get_workflow_by_name(db: Session, name: str, version: Optional[str] = None) -> Optional[Workflow]:
+def get_workflow_by_name(
+    db: Session, name: str, version: Optional[str] = None
+) -> Optional[Workflow]:
     query = db.query(Workflow).filter(Workflow.name == name)
     if version:
         query = query.filter(Workflow.version == version)
@@ -50,7 +52,11 @@ def get_workflow_by_name(db: Session, name: str, version: Optional[str] = None) 
 
 
 def get_workflows(
-    db: Session, skip: int = 0, limit: int = 100, is_active: Optional[bool] = None, is_deployed: Optional[bool] = None
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    is_active: Optional[bool] = None,
+    is_deployed: Optional[bool] = None,
 ) -> List[Workflow]:
     query = db.query(Workflow)
     if is_active is not None:
@@ -64,7 +70,9 @@ def get_deployed_workflows(db: Session) -> List[Workflow]:
     return db.query(Workflow).filter(Workflow.is_deployed).all()
 
 
-def update_workflow(db: Session, workflow_id: uuid.UUID, workflow_update: WorkflowUpdate) -> Optional[Workflow]:
+def update_workflow(
+    db: Session, workflow_id: uuid.UUID, workflow_update: WorkflowUpdate
+) -> Optional[Workflow]:
     db_workflow = get_workflow(db, workflow_id)
     if not db_workflow:
         return None
@@ -80,16 +88,47 @@ def update_workflow(db: Session, workflow_id: uuid.UUID, workflow_update: Workfl
 
 
 def delete_workflow(db: Session, workflow_id: uuid.UUID) -> bool:
+    """
+    Delete a workflow and all its related data (agents, connections, deployments)
+
+    The cascade="all, delete-orphan" relationships will automatically handle:
+    - workflow_agents
+    - workflow_connections
+    - workflow_deployments
+    """
     db_workflow = get_workflow(db, workflow_id)
     if not db_workflow:
         return False
 
-    db.delete(db_workflow)
-    db.commit()
-    return True
+    try:
+        # Log what we're about to delete for debugging
+        agents_count = len(db_workflow.workflow_agents)
+        connections_count = len(db_workflow.workflow_connections)
+        deployments_count = len(db_workflow.workflow_deployments)
+
+        print(f"Deleting workflow '{db_workflow.name}' with:")
+        print(f"  - {agents_count} workflow agents")
+        print(f"  - {connections_count} workflow connections")
+        print(f"  - {deployments_count} workflow deployments")
+
+        # Delete the workflow (cascade will handle related records)
+        db.delete(db_workflow)
+        db.commit()
+
+        print(
+            f"✅ Successfully deleted workflow '{db_workflow.name}' and all related data"
+        )
+        return True
+
+    except Exception as e:
+        print(f"❌ Error deleting workflow: {e}")
+        db.rollback()
+        return False
 
 
-def create_workflow_agent(db: Session, workflow_agent: WorkflowAgentCreate) -> WorkflowAgent:
+def create_workflow_agent(
+    db: Session, workflow_agent: WorkflowAgentCreate
+) -> WorkflowAgent:
     db_workflow_agent = WorkflowAgent(
         workflow_id=workflow_agent.workflow_id,
         agent_id=workflow_agent.agent_id,
@@ -105,15 +144,28 @@ def create_workflow_agent(db: Session, workflow_agent: WorkflowAgentCreate) -> W
 
 
 def get_workflow_agents(db: Session, workflow_id: uuid.UUID) -> List[WorkflowAgent]:
-    return db.query(WorkflowAgent).filter(WorkflowAgent.workflow_id == workflow_id).all()
+    return (
+        db.query(WorkflowAgent).filter(WorkflowAgent.workflow_id == workflow_id).all()
+    )
 
 
-def get_workflow_agent(db: Session, workflow_id: uuid.UUID, agent_id: uuid.UUID) -> Optional[WorkflowAgent]:
-    return db.query(WorkflowAgent).filter(WorkflowAgent.workflow_id == workflow_id, WorkflowAgent.agent_id == agent_id).first()
+def get_workflow_agent(
+    db: Session, workflow_id: uuid.UUID, agent_id: uuid.UUID
+) -> Optional[WorkflowAgent]:
+    return (
+        db.query(WorkflowAgent)
+        .filter(
+            WorkflowAgent.workflow_id == workflow_id, WorkflowAgent.agent_id == agent_id
+        )
+        .first()
+    )
 
 
 def update_workflow_agent(
-    db: Session, workflow_id: uuid.UUID, agent_id: uuid.UUID, update_data: WorkflowAgentUpdate
+    db: Session,
+    workflow_id: uuid.UUID,
+    agent_id: uuid.UUID,
+    update_data: WorkflowAgentUpdate,
 ) -> Optional[WorkflowAgent]:
     db_workflow_agent = get_workflow_agent(db, workflow_id, agent_id)
     if not db_workflow_agent:
@@ -128,7 +180,9 @@ def update_workflow_agent(
     return db_workflow_agent
 
 
-def delete_workflow_agent(db: Session, workflow_id: uuid.UUID, agent_id: uuid.UUID) -> bool:
+def delete_workflow_agent(
+    db: Session, workflow_id: uuid.UUID, agent_id: uuid.UUID
+) -> bool:
     db_workflow_agent = get_workflow_agent(db, workflow_id, agent_id)
     if not db_workflow_agent:
         return False
@@ -138,7 +192,9 @@ def delete_workflow_agent(db: Session, workflow_id: uuid.UUID, agent_id: uuid.UU
     return True
 
 
-def create_workflow_connection(db: Session, connection: WorkflowConnectionCreate) -> WorkflowConnection:
+def create_workflow_connection(
+    db: Session, connection: WorkflowConnectionCreate
+) -> WorkflowConnection:
     db_connection = WorkflowConnection(
         workflow_id=connection.workflow_id,
         source_agent_id=connection.source_agent_id,
@@ -155,12 +211,21 @@ def create_workflow_connection(db: Session, connection: WorkflowConnectionCreate
     return db_connection
 
 
-def get_workflow_connections(db: Session, workflow_id: uuid.UUID) -> List[WorkflowConnection]:
-    return db.query(WorkflowConnection).filter(WorkflowConnection.workflow_id == workflow_id).all()
+def get_workflow_connections(
+    db: Session, workflow_id: uuid.UUID
+) -> List[WorkflowConnection]:
+    return (
+        db.query(WorkflowConnection)
+        .filter(WorkflowConnection.workflow_id == workflow_id)
+        .all()
+    )
 
 
 def get_workflow_connection(
-    db: Session, workflow_id: uuid.UUID, source_agent_id: uuid.UUID, target_agent_id: uuid.UUID
+    db: Session,
+    workflow_id: uuid.UUID,
+    source_agent_id: uuid.UUID,
+    target_agent_id: uuid.UUID,
 ) -> Optional[WorkflowConnection]:
     return (
         db.query(WorkflowConnection)
@@ -176,7 +241,11 @@ def get_workflow_connection(
 def update_workflow_connection(
     db: Session, connection_id: int, update_data: WorkflowConnectionUpdate
 ) -> Optional[WorkflowConnection]:
-    db_connection = db.query(WorkflowConnection).filter(WorkflowConnection.id == connection_id).first()
+    db_connection = (
+        db.query(WorkflowConnection)
+        .filter(WorkflowConnection.id == connection_id)
+        .first()
+    )
     if not db_connection:
         return None
 
@@ -190,9 +259,14 @@ def update_workflow_connection(
 
 
 def delete_workflow_connection(
-    db: Session, workflow_id: uuid.UUID, source_agent_id: uuid.UUID, target_agent_id: uuid.UUID
+    db: Session,
+    workflow_id: uuid.UUID,
+    source_agent_id: uuid.UUID,
+    target_agent_id: uuid.UUID,
 ) -> bool:
-    db_connection = get_workflow_connection(db, workflow_id, source_agent_id, target_agent_id)
+    db_connection = get_workflow_connection(
+        db, workflow_id, source_agent_id, target_agent_id
+    )
     if not db_connection:
         return False
 
@@ -201,7 +275,9 @@ def delete_workflow_connection(
     return True
 
 
-def create_workflow_deployment(db: Session, deployment: WorkflowDeploymentCreate) -> WorkflowDeployment:
+def create_workflow_deployment(
+    db: Session, deployment: WorkflowDeploymentCreate
+) -> WorkflowDeployment:
     db_deployment = WorkflowDeployment(
         workflow_id=deployment.workflow_id,
         environment=deployment.environment,
@@ -215,8 +291,14 @@ def create_workflow_deployment(db: Session, deployment: WorkflowDeploymentCreate
     return db_deployment
 
 
-def get_workflow_deployment(db: Session, deployment_id: uuid.UUID) -> Optional[WorkflowDeployment]:
-    return db.query(WorkflowDeployment).filter(WorkflowDeployment.deployment_id == deployment_id).first()
+def get_workflow_deployment(
+    db: Session, deployment_id: uuid.UUID
+) -> Optional[WorkflowDeployment]:
+    return (
+        db.query(WorkflowDeployment)
+        .filter(WorkflowDeployment.deployment_id == deployment_id)
+        .first()
+    )
 
 
 def get_workflow_deployment_by_name(
@@ -224,13 +306,19 @@ def get_workflow_deployment_by_name(
 ) -> Optional[WorkflowDeployment]:
     return (
         db.query(WorkflowDeployment)
-        .filter(WorkflowDeployment.deployment_name == deployment_name, WorkflowDeployment.environment == environment)
+        .filter(
+            WorkflowDeployment.deployment_name == deployment_name,
+            WorkflowDeployment.environment == environment,
+        )
         .first()
     )
 
 
 def get_workflow_deployments(
-    db: Session, workflow_id: Optional[uuid.UUID] = None, environment: Optional[str] = None, status: Optional[str] = None
+    db: Session,
+    workflow_id: Optional[uuid.UUID] = None,
+    environment: Optional[str] = None,
+    status: Optional[str] = None,
 ) -> List[WorkflowDeployment]:
     query = db.query(WorkflowDeployment)
     if workflow_id:
@@ -242,7 +330,9 @@ def get_workflow_deployments(
     return query.all()
 
 
-def get_active_workflow_deployments(db: Session, workflow_id: Optional[uuid.UUID] = None) -> List[WorkflowDeployment]:
+def get_active_workflow_deployments(
+    db: Session, workflow_id: Optional[uuid.UUID] = None
+) -> List[WorkflowDeployment]:
     query = db.query(WorkflowDeployment).filter(WorkflowDeployment.status == "active")
     if workflow_id:
         query = query.filter(WorkflowDeployment.workflow_id == workflow_id)
@@ -291,7 +381,9 @@ def delete_workflow_deployment(db: Session, deployment_id: uuid.UUID) -> bool:
     return True
 
 
-def stop_workflow_deployment(db: Session, deployment_id: uuid.UUID) -> Optional[WorkflowDeployment]:
+def stop_workflow_deployment(
+    db: Session, deployment_id: uuid.UUID
+) -> Optional[WorkflowDeployment]:
     db_deployment = get_workflow_deployment(db, deployment_id)
     if not db_deployment:
         return None

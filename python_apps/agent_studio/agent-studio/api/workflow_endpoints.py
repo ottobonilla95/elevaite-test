@@ -363,62 +363,62 @@ def stop_workflow_deployment(deployment_name: str, db: Session = Depends(get_db)
         )
 
 
-@router.delete("/deployments/{deployment_name}")
-def delete_workflow_deployment_by_name(
-    deployment_name: str, db: Session = Depends(get_db)
-):
-    """Completely delete a workflow deployment by name"""
-    try:
-        # Find the deployment by name (try development first, then production)
-        deployment = crud.get_workflow_deployment_by_name(
-            db, deployment_name, "development"
-        )
-        if not deployment:
-            deployment = crud.get_workflow_deployment_by_name(
-                db, deployment_name, "production"
-            )
+# @router.delete("/deployments/{deployment_name}")
+# def delete_workflow_deployment_by_name(
+#     deployment_name: str, db: Session = Depends(get_db)
+# ):
+#     """Completely delete a workflow deployment by name"""
+#     try:
+#         # Find the deployment by name (try development first, then production)
+#         deployment = crud.get_workflow_deployment_by_name(
+#             db, deployment_name, "development"
+#         )
+#         if not deployment:
+#             deployment = crud.get_workflow_deployment_by_name(
+#                 db, deployment_name, "production"
+#             )
 
-        if not deployment:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Deployment '{deployment_name}' not found in development or production environment",
-            )
+#         if not deployment:
+#             raise HTTPException(
+#                 status_code=status.HTTP_404_NOT_FOUND,
+#                 detail=f"Deployment '{deployment_name}' not found in development or production environment",
+#             )
 
-        deployment_id = deployment.deployment_id
-        workflow_id = deployment.workflow_id
+#         deployment_id = deployment.deployment_id
+#         workflow_id = deployment.workflow_id
 
-        # Remove from active workflows memory first
-        if deployment_name in ACTIVE_WORKFLOWS:
-            del ACTIVE_WORKFLOWS[deployment_name]
-            print(f"Removed '{deployment_name}' from active workflows")
+#         # Remove from active workflows memory first
+#         if deployment_name in ACTIVE_WORKFLOWS:
+#             del ACTIVE_WORKFLOWS[deployment_name]
+#             print(f"Removed '{deployment_name}' from active workflows")
 
-        # Delete from database
-        success = crud.delete_workflow_deployment(db, deployment_id)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to delete deployment '{deployment_name}'",
-            )
+#         # Delete from database
+#         success = crud.delete_workflow_deployment(db, deployment_id)
+#         if not success:
+#             raise HTTPException(
+#                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#                 detail=f"Failed to delete deployment '{deployment_name}'",
+#             )
 
-        # Check if there are any other active deployments for this workflow
-        active_deployments = crud.workflows.get_active_workflow_deployments(
-            db, workflow_id
-        )
-        if not active_deployments:
-            # No more active deployments, update workflow's is_deployed flag
-            workflow_update = schemas.WorkflowUpdate(is_deployed=False)
-            crud.update_workflow(db, workflow_id, workflow_update)
+#         # Check if there are any other active deployments for this workflow
+#         active_deployments = crud.workflows.get_active_workflow_deployments(
+#             db, workflow_id
+#         )
+#         if not active_deployments:
+#             # No more active deployments, update workflow's is_deployed flag
+#             workflow_update = schemas.WorkflowUpdate(is_deployed=False)
+#             crud.update_workflow(db, workflow_id, workflow_update)
 
-        return {
-            "message": f"Deployment '{deployment_name}' deleted successfully",
-            "deployment_id": str(deployment_id),
-        }
+#         return {
+#             "message": f"Deployment '{deployment_name}' deleted successfully",
+#             "deployment_id": str(deployment_id),
+#         }
 
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error deleting deployment: {str(e)}",
-        )
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Error deleting deployment: {str(e)}",
+#         )
 
 
 @router.post("/{workflow_id}/execute", response_model=schemas.WorkflowExecutionResponse)
