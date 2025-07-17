@@ -175,18 +175,22 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
     Use this tool to query the Toshiba's Customer knowledge base.
     This tool is only used for customer-specific information.
     List of customers and their collection_ids:
-    1. Walgreens: toshiba_walgreens, use toshiba_demo_4 if toshiba_walgreens fails to return any relevant results
-    2. Kroger: toshiba_kroger (Note that Harris Teeter is also included in this collection), user toshiba_demo_4 if toshiba_kroger fails to return any relevant results
-    3. Sam's Club: toshiba_sams_club, user toshiba_demo_4 if toshiba_sams_club fails to return any relevant results
-    4. Tractor Supply: toshiba_tractor_supply, use toshiba_demo_4 if toshiba_tractor_supply fails to return any relevant results
-    5. Dollar General: toshiba_dollar_general, use toshiba_demo_4 if toshiba_dollar_general fails to return any relevant results
-    6. Wegmans: toshiba_wegmans, use toshiba_demo_4 if toshiba_wegmans fails to return any relevant results
-    7. Ross: toshiba_ross, use toshiba_demo_4 if toshiba_ross fails to return any relevant results
-    8. Costco: toshiba_costco, use toshiba_demo_4 if toshiba_costco fails to return any relevant results
-    9. Whole Foods: toshiba_whole_foods, use toshiba_demo_4 if toshiba_whole_foods fails to return any relevant results
-    10. BJs: toshiba_bjs, use toshiba_demo_4 if toshiba_bjs fails to return any relevant results
-    11. Alex Lee: toshiba_alex_lee, use toshiba_demo_4 if toshiba_alex_lee fails to return any relevant results
-    12. Badger: toshiba_badger, use toshiba_demo_4 if toshiba_badger fails to return any relevant results
+    1. Walgreens: toshiba_walgreens
+    2. Kroger: toshiba_kroger (Note that Harris Teeter is also included in this collection)
+    3. Sam's Club: toshiba_sams_club
+    4. Tractor Supply: toshiba_tractor_supply
+    5. Dollar General: toshiba_dollar_general
+    6. Wegmans: toshiba_wegmans
+    7. Ross: toshiba_ross
+    8. Costco: toshiba_costco
+    9. Whole Foods: toshiba_whole_foods
+    10. BJs: toshiba_bjs
+    11. Alex Lee: toshiba_alex_lee
+    12. Badger: toshiba_badger
+    13. Best Buy: toshiba_best_buy
+    14. GNC: toshiba_GNC
+
+    Use toshiba_demo_4 if the customer retriever fails to return any relevant results
 
     Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
 

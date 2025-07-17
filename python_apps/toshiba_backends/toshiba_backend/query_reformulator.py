@@ -68,7 +68,8 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
     {machine_types}
 
     ### CUSTOMER NAMES:
-    Walgreens, Kroger, Sam's Club (Sams), Tractor Supply, Dollar General, Wegmans, Ross, Costco, Whole Foods, BJ's, Alex Lee, Badger
+    Walgreens, Kroger, Sam's Club (Sams), Tractor Supply, Dollar General, Wegmans, Ross, Costco, Whole Foods, BJ's, Alex Lee, Badger,
+    Best Buy, GNC.
 
     ### DO NOT EXPAND:
     - Invalid machine types (not in the list)
