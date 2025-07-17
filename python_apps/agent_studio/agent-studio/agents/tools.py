@@ -261,15 +261,40 @@ def media_context_retriever(query: str, collection_name: str = "media_data_stand
                 result_text += "No payload data available\n"
                 result_text += "-" * 50 + "\n"
                 continue
+
             result_text += f"Result {i+1} (Score: {round(score, 3)}):\n"
-            result_text += f"Campaign: {payload.get('campaign_name', 'Unknown Campaign')}\n"
+
+            # Use correct field names based on AdCreative model
+            result_text += f"Campaign Folder: {payload.get('campaign_folder', 'Unknown Campaign')}\n"
+            result_text += f"File Name: {payload.get('file_name', 'Unknown File')}\n"
             result_text += f"Brand: {payload.get('brand', 'Unknown Brand')}\n"
             result_text += f"Industry: {payload.get('industry', 'Unknown Industry')}\n"
-            result_text += f"Budget: ${payload.get('budget', 0):,}\n"
-            result_text += f"Duration: {payload.get('duration_days', payload.get('duration', 0))} days\n"
-            result_text += f"CTR: {payload.get('ctr', payload.get('click_through_rate', 0))}%\n"
-            result_text += f"Conversion Rate: {payload.get('conversion_rate', 0)}%\n"
-            result_text += f"Impressions: {payload.get('impressions', 0):,}\n"
+            result_text += f"File Type: {payload.get('file_type', 'Unknown')}\n"
+            result_text += f"Duration: {payload.get('duration_days', 0)} days\n"
+            result_text += f"Duration Category: {payload.get('duration_category', 'Unknown')}\n"
+            result_text += f"Season/Holiday: {payload.get('season_holiday', 'Unknown')}\n"
+            result_text += f"Ad Objective: {payload.get('ad_objective', 'Unknown')}\n"
+            result_text += f"Targeting: {payload.get('targeting', 'Unknown')}\n"
+            result_text += f"Tone/Mood: {payload.get('tone_mood', 'Unknown')}\n"
+
+            # Performance metrics
+            booked_impressions = payload.get('booked_measure_impressions', 0)
+            delivered_impressions = payload.get('delivered_measure_impressions', 0)
+            clicks = payload.get('clicks', 0)
+            conversion = payload.get('conversion', 0)
+
+            result_text += f"Booked Impressions: {booked_impressions:,}\n"
+            result_text += f"Delivered Impressions: {delivered_impressions:,}\n"
+            result_text += f"Clicks: {clicks:,}\n"
+            result_text += f"Conversion: {conversion}\n"
+
+            # Calculate CTR if we have the data
+            if delivered_impressions > 0 and clicks > 0:
+                ctr = (clicks / delivered_impressions) * 100
+                result_text += f"CTR: {ctr:.2f}%\n"
+            else:
+                result_text += f"CTR: N/A\n"
+
             result_text += "-" * 50 + "\n"
 
         return result_text
@@ -636,6 +661,348 @@ def _share_folder_with_users(service, folder_id: str, emails: List[str]):
                 logging.getLogger(__name__).warning(f"Failed to share with {email}: {str(e)}")
 
 
+def _extract_targeting_info_from_placement(placement_info: Dict[str, Any]) -> Dict[str, str]:
+    """Extract targeting information from placement data"""
+    # Default values
+    targeting_info = {
+        'age_range': 'Not specified',
+        'gender': 'Not specified',
+        'income_level': 'Not specified',
+        'interests': 'Not specified',
+        'location': 'Not specified',
+        'behavioral_data': 'Not specified'
+    }
+
+    # Check for new targeting configuration format
+    if 'new_targeting_configuration' in placement_info:
+        config = placement_info['new_targeting_configuration']
+        targeting_info.update({
+            'age_range': ', '.join(config.get('age_range', [])) if config.get('age_range') else 'Not specified',
+            'gender': ', '.join(config.get('gender', [])) if config.get('gender') else 'Not specified',
+            'income_level': ', '.join(config.get('income_level', [])) if config.get('income_level') else 'Not specified',
+            'interests': ', '.join(config.get('interests', [])) if config.get('interests') else 'Not specified',
+            'location': ', '.join(config.get('location', [])) if config.get('location') else 'Not specified',
+            'behavioral_data': ', '.join(config.get('behavioral_data', [])) if config.get('behavioral_data') else 'Not specified'
+        })
+    # Check for legacy targeting suggestions format
+    elif 'targeting_suggestions' in placement_info:
+        suggestions = placement_info['targeting_suggestions']
+        targeting_info.update({
+            'age_range': suggestions.get('age_range', 'Not specified'),
+            'gender': suggestions.get('gender', 'Not specified'),
+            'income_level': suggestions.get('income_level', 'Not specified'),
+            'interests': ', '.join(suggestions.get('interests', [])) if suggestions.get('interests') else 'Not specified',
+            'location': suggestions.get('location', 'Not specified'),
+            'behavioral_data': suggestions.get('behavioral_data', 'Not specified')
+        })
+
+    return targeting_info
+
+
+def _generate_pdf_with_media_plan_table(drive_service, docs_service, template_id: str, folder_id: str, filename: str, template_variables: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate PDF from template with Media Plan table support"""
+    try:
+        # Copy the template document (as Google Doc first)
+        copied_doc = drive_service.files().copy(
+            fileId=template_id,
+            body={
+                'name': f"{filename}_temp_doc",
+                'parents': [folder_id]
+            },
+            supportsAllDrives=True
+        ).execute()
+
+        doc_id = copied_doc['id']
+
+        # Handle regular text replacements first (excluding media_plan_table)
+        requests = []
+        table_data = None
+
+        for key, value in template_variables.items():
+            if key == 'media_plan_table':
+                # Store table data for special handling
+                table_data = value
+            else:
+                # Regular text replacement
+                requests.append({
+                    'replaceAllText': {
+                        'containsText': {
+                            'text': '{{' + key + '}}',
+                            'matchCase': True
+                        },
+                        'replaceText': str(value)
+                    }
+                })
+
+        # Execute regular text replacements first
+        if requests:
+            docs_service.documents().batchUpdate(
+                documentId=doc_id,
+                body={'requests': requests}
+            ).execute()
+
+        # Handle table insertion if media_plan_table data exists
+        if table_data:
+            _insert_media_plan_table_simple(docs_service, doc_id, table_data)
+
+        # Export the Google Doc as PDF
+        pdf_export_url = f"https://docs.google.com/document/d/{doc_id}/export?format=pdf"
+
+        # Download the PDF content
+        import io
+        from googleapiclient.http import MediaIoBaseDownload
+
+        request = drive_service.files().export_media(fileId=doc_id, mimeType='application/pdf')
+        pdf_content = io.BytesIO()
+        downloader = MediaIoBaseDownload(pdf_content, request)
+
+        done = False
+        while done is False:
+            status, done = downloader.next_chunk()
+
+        # Upload the PDF content as a new file
+        pdf_content.seek(0)
+        from googleapiclient.http import MediaIoBaseUpload
+
+        media = MediaIoBaseUpload(pdf_content, mimetype='application/pdf')
+        pdf_file = drive_service.files().create(
+            body={
+                'name': f"{filename}.pdf",
+                'parents': [folder_id]
+            },
+            media_body=media,
+            supportsAllDrives=True,
+            fields='id, webViewLink'
+        ).execute()
+
+        # Delete the temporary Google Doc
+        drive_service.files().delete(fileId=doc_id, supportsAllDrives=True).execute()
+
+        return {
+            'pdf_file_id': pdf_file['id'],
+            'pdf_link': pdf_file['webViewLink']
+        }
+
+    except Exception as e:
+        raise Exception(f"Failed to generate PDF: {str(e)}")
+
+
+def _insert_media_plan_table_simple(docs_service, doc_id: str, table_data: Dict[str, Any]):
+    """Insert a proper Google Docs table using the approach from tanaikech's implementation"""
+    try:
+        logger = logging.getLogger(__name__)
+        logger.info("Starting media plan table insertion...")
+
+        # Prepare table data
+        headers = table_data.get('headers', [])
+        rows = table_data.get('rows', [])
+
+        if not headers or not rows:
+            logger.warning("No table headers or rows provided for media_plan_table")
+            _fallback_text_replacement(docs_service, doc_id, table_data)
+            return
+
+        logger.info(f"Creating table with {len(headers)} columns and {len(rows) + 1} rows")
+        logger.info(f"Headers: {headers}")
+
+        # Find the {{media_plan_table}} placeholder
+        placeholder_text = "{{media_plan_table}}"
+        placeholder_index = _find_placeholder_index(docs_service, doc_id, placeholder_text)
+
+        if placeholder_index is None:
+            logger.warning("{{media_plan_table}} placeholder not found in document")
+            _fallback_text_replacement(docs_service, doc_id, table_data)
+            return
+
+        logger.info(f"Found placeholder at index {placeholder_index}")
+
+        # Create and populate table
+        _create_and_populate_table(docs_service, doc_id, placeholder_index, placeholder_text, headers, rows)
+
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Error inserting media plan table: {str(e)}")
+        # Fallback to simple text replacement
+        _fallback_text_replacement(docs_service, doc_id, table_data)
+
+
+def _find_placeholder_index(docs_service, doc_id: str, placeholder_text: str) -> int:
+    """Find the index of the placeholder text in the document"""
+    doc = docs_service.documents().get(documentId=doc_id).execute()
+
+    for element in doc.get('body', {}).get('content', []):
+        if 'paragraph' in element:
+            paragraph = element['paragraph']
+            for text_element in paragraph.get('elements', []):
+                if 'textRun' in text_element:
+                    text_content = text_element['textRun'].get('content', '')
+                    if placeholder_text in text_content:
+                        return text_element.get('startIndex')
+    return None
+
+
+def _create_and_populate_table(docs_service, doc_id: str, placeholder_index: int, placeholder_text: str, headers: list, rows: list):
+    """Create table and populate it using the Tanaikech approach with calculated indices"""
+    try:
+        logger = logging.getLogger(__name__)
+        # Calculate required dimensions
+        num_rows = len(rows) + 1  # +1 for header row
+        num_cols = len(headers)
+
+        logger.info(f"Creating table with {num_rows} rows and {num_cols} columns")
+
+        # Prepare all table data (headers + rows)
+        all_table_data = [headers] + rows
+
+        # Create requests using the Tanaikech approach
+        requests = _create_table_requests(placeholder_index, placeholder_text, all_table_data)
+
+        # Execute all requests in one batch
+        docs_service.documents().batchUpdate(
+            documentId=doc_id,
+            body={'requests': requests}
+        ).execute()
+
+        logger.info(f"Successfully created and populated table with {len(headers)} headers and {len(rows)} data rows")
+
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Error creating and populating table: {str(e)}")
+        raise
+
+
+def _create_table_requests(placeholder_index: int, placeholder_text: str, table_data: list):
+    """Create requests for table creation and population using the Tanaikech approach"""
+    try:
+        logger = logging.getLogger(__name__)
+        if not table_data or not table_data[0]:
+            return []
+
+        num_rows = len(table_data)
+        max_cols = max(len(row) for row in table_data)
+
+        logger.info(f"Creating table requests for {num_rows} rows and {max_cols} columns")
+
+        # Start with deleting the placeholder and creating the table
+        requests = [
+            {
+                'deleteContentRange': {
+                    'range': {
+                        'startIndex': placeholder_index,
+                        'endIndex': placeholder_index + len(placeholder_text)
+                    }
+                }
+            },
+            {
+                'insertTable': {
+                    'location': {'index': placeholder_index},
+                    'rows': num_rows,
+                    'columns': max_cols
+                }
+            }
+        ]
+
+        # Calculate cell indices and create insertion requests using the improved Tanaikech approach
+        table_index = placeholder_index
+        index = table_index + 5  # Table starts at index + 5
+
+        cell_requests = []
+
+        # Process each row to calculate indices correctly
+        for row_idx, row_data in enumerate(table_data):
+            row_index = index + (0 if row_idx == 0 else 3) - 1  # First row: index, subsequent rows: index + 3 - 1
+
+            # Process each cell in the row
+            for col_idx, cell_value in enumerate(row_data):
+                cell_index = row_index + col_idx * 2
+                cell_value_str = str(cell_value)
+
+                logger.info(f"Adding cell [{row_idx}][{col_idx}] = '{cell_value_str}' at index {cell_index}")
+
+                # Add text insertion request
+                cell_requests.append({
+                    'insertText': {
+                        'text': cell_value_str,
+                        'location': {'index': cell_index}
+                    }
+                })
+
+                # Make header row bold
+                if row_idx == 0:
+                    cell_requests.append({
+                        'updateTextStyle': {
+                            'range': {
+                                'startIndex': cell_index,
+                                'endIndex': cell_index + len(cell_value_str)
+                            },
+                            'textStyle': {'bold': True},
+                            'fields': 'bold'
+                        }
+                    })
+
+                index = cell_index + 1
+
+            # Adjust index for missing columns in this row
+            if len(row_data) < max_cols:
+                index += (max_cols - len(row_data)) * 2
+
+        # Reverse the cell requests (insert from bottom-right to top-left)
+        cell_requests.reverse()
+
+        # Add cell requests to the main requests
+        requests.extend(cell_requests)
+
+        logger.info(f"Created {len(requests)} total requests for table creation and population")
+        return requests
+
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Error creating table requests: {str(e)}")
+        raise
+
+
+def _fallback_text_replacement(docs_service, doc_id: str, table_data: Dict[str, Any]):
+    """Fallback method to replace {{media_plan_table}} with formatted text if table insertion fails"""
+    try:
+        headers = table_data.get('headers', [])
+        rows = table_data.get('rows', [])
+
+        if not headers or not rows:
+            fallback_text = "No table data available"
+        else:
+            # Create a simple text table
+            lines = []
+
+            # Add headers
+            lines.append(" | ".join(str(header) for header in headers))
+            lines.append("-" * 50)  # Separator line
+
+            # Add rows
+            for row in rows:
+                if isinstance(row, list):
+                    lines.append(" | ".join(str(cell) for cell in row))
+                else:
+                    lines.append(str(row))
+
+            fallback_text = "\n".join(lines)
+
+        # Replace the placeholder with formatted text
+        requests = [{
+            'replaceAllText': {
+                'containsText': {
+                    'text': '{{media_plan_table}}',
+                    'matchCase': True
+                },
+                'replaceText': fallback_text
+            }
+        }]
+
+        docs_service.documents().batchUpdate(
+            documentId=doc_id,
+            body={'requests': requests}
+        ).execute()
+
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Error in fallback text replacement: {str(e)}")
+
+
 def _create_sheet_from_template(drive_service, sheets_service, folder_id: str, sheet_name: str, template_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     """Create a new sheet by copying a template and populating it with data"""
     try:
@@ -787,7 +1154,7 @@ def create_insertion_order(
     This tool automates the entire insertion order creation process including:
     - Creating a campaign folder in Google Drive
     - Generating a Google Sheet from a template with order details
-    - Creating a PDF document from a template
+    - Creating a PDF document from a template with Media Plan table
     - Sharing all resources with stakeholders
 
     Args:
@@ -801,13 +1168,44 @@ def create_insertion_order(
         fulfillment_owner: Name of the fulfillment owner
         fulfillment_owner_email: Email address of the fulfillment owner
         objective_description: Description of the campaign objectives
-        placement_data: JSON string containing placement information (name, destination, dates, metrics, etc.)
+        placement_data: JSON string containing placement information with COMPLETE targeting data structure
         base_folder_id: Google Drive folder ID where campaign folder will be created (optional, uses env var if not provided)
         sheet_template_id: Google Sheets template ID to copy (optional, uses env var if not provided)
         pdf_template_id: Google Docs template ID for PDF generation (optional, uses env var if not provided)
 
+    CRITICAL: For Media Plan table to populate correctly, placement_data MUST include targeting configuration:
+
+    PLACEMENT DATA STRUCTURE (JSON string):
+    [
+        {
+            "name": "Social Media Campaign",
+            "destination": "Instagram",
+            "start_date": "2024-06-01",
+            "end_date": "2024-08-31",
+            "metrics": {
+                "impressions": 500000,
+                "clicks": 25000
+            },
+            "bid_rate": {
+                "cpm": 2.50,
+                "cpc": 0.75
+            },
+            "budget": {
+                "amount": 100000.00
+            },
+            "new_targeting_configuration": {
+                "age_range": ["18-24", "25-34"],
+                "gender": ["Male", "Female"],
+                "income_level": ["Middle Income"],
+                "location": ["United States", "Canada"],
+                "interests": ["Technology", "Gaming"],
+                "behavioral_data": ["Tech Enthusiasts", "Early Adopters"]
+            }
+        }
+    ]
+
     EXAMPLES:
-    Example: create_insertion_order("IO-123456", "Summer Campaign 2024", "Example Brand", "John Smith", "john@company.com", "Sarah Johnson", "sarah@agency.com", "Mike Davis", "mike@agency.com", "Launch summer product line", '{"name": "Social Media", "destination": "Instagram", "start_date": "2024-06-01", "end_date": "2024-08-31"}')
+    Example: create_insertion_order("IO-123456", "Summer Campaign 2024", "Example Brand", "John Smith", "john@company.com", "Sarah Johnson", "sarah@agency.com", "Mike Davis", "mike@agency.com", "Launch summer product line", '[{"name": "Social Media", "destination": "Instagram", "start_date": "2024-06-01", "end_date": "2024-08-31", "metrics": {"impressions": 500000, "clicks": 25000}, "bid_rate": {"cpm": 2.50, "cpc": 0.75}, "budget": {"amount": 100000.00}, "new_targeting_configuration": {"age_range": ["18-24"], "gender": ["Male", "Female"], "income_level": ["Middle Income"], "location": ["United States"], "interests": ["Technology"], "behavioral_data": ["Tech Enthusiasts"]}}]')
     """
     logger = logging.getLogger(__name__)
 
@@ -834,9 +1232,11 @@ def create_insertion_order(
         if not pdf_template:
             return "Error: PDF_GENERATION_TEMPLATE_ID not configured. Please set environment variable or provide pdf_template_id parameter."
 
-        # Parse placement data
+        # Parse placement data - FIX: Handle array of placements
         try:
-            placement_info = json.loads(placement_data) if isinstance(placement_data, str) else placement_data
+            placement_list = json.loads(placement_data) if isinstance(placement_data, str) else placement_data
+            if not isinstance(placement_list, list):
+                return "Error: placement_data must be a JSON array of placement objects."
         except json.JSONDecodeError:
             return "Error: Invalid placement_data JSON format."
 
@@ -851,7 +1251,8 @@ def create_insertion_order(
         stakeholder_emails = [customer_approver_email, sales_owner_email, fulfillment_owner_email]
         _share_folder_with_users(drive_service, campaign_folder['id'], stakeholder_emails)
 
-        # Prepare data for sheet
+        # Prepare data for sheet (use first placement for sheet data)
+        first_placement = placement_list[0] if placement_list else {}
         sheet_data = {
             'order_number': order_number,
             'brand': brand,
@@ -863,10 +1264,10 @@ def create_insertion_order(
             'fulfillment_owner': fulfillment_owner,
             'fulfillment_owner_email': fulfillment_owner_email,
             'objective_description': objective_description,
-            'placement_name': placement_info.get('name', ''),
-            'placement_destination': placement_info.get('destination', ''),
-            'start_date': placement_info.get('start_date', ''),
-            'end_date': placement_info.get('end_date', '')
+            'placement_name': first_placement.get('name', ''),
+            'placement_destination': first_placement.get('destination', ''),
+            'start_date': first_placement.get('start_date', ''),
+            'end_date': first_placement.get('end_date', '')
         }
 
         # Create Google Sheet from template
@@ -875,44 +1276,130 @@ def create_insertion_order(
             f"Order_{order_number}", sheet_template, sheet_data
         )
 
-        # Prepare template variables for PDF
-        pdf_variables = {
-            'ORDER_NUMBER': order_number,
-            'CAMPAIGN_NAME': campaign_name,
-            'BRAND': brand,
-            'CUSTOMER_APPROVER': customer_approver,
-            'CUSTOMER_APPROVER_EMAIL': customer_approver_email,
-            'SALES_OWNER': sales_owner,
-            'SALES_OWNER_EMAIL': sales_owner_email,
-            'FULFILLMENT_OWNER': fulfillment_owner,
-            'FULFILLMENT_OWNER_EMAIL': fulfillment_owner_email,
-            'OBJECTIVE_DESCRIPTION': objective_description,
-            'PLACEMENT_NAME': placement_info.get('name', ''),
-            'PLACEMENT_DESTINATION': placement_info.get('destination', ''),
-            'START_DATE': placement_info.get('start_date', ''),
-            'END_DATE': placement_info.get('end_date', ''),
-            'CREATION_DATE': datetime.now().strftime('%Y-%m-%d')
+        # NEW: Prepare Media Plan table data and PDF variables with proper targeting info
+        media_plan_table_rows = []
+        placement_details = []
+        total_impressions = 0
+        total_clicks = 0
+        total_budget = 0
+
+        for i, placement_info in enumerate(placement_list, 1):
+            # Extract placement data
+            name = placement_info.get('name', f'Placement {i}')
+            destination = placement_info.get('destination', '')
+            start_date = placement_info.get('start_date', '')
+            end_date = placement_info.get('end_date', '')
+
+            # Extract metrics
+            metrics = placement_info.get('metrics', {})
+            impressions = metrics.get('impressions', 0)
+            clicks = metrics.get('clicks', 0)
+
+            # Extract bid rates
+            bid_rate = placement_info.get('bid_rate', {})
+            cpm = bid_rate.get('cpm', 0.0)
+            cpc = bid_rate.get('cpc', 0.0)
+
+            # Extract budget
+            budget = placement_info.get('budget', {})
+            amount = budget.get('amount', 0.0)
+
+            # Add to totals
+            total_impressions += impressions
+            total_clicks += clicks
+            total_budget += amount
+
+            # Extract targeting information - FIX: Handle targeting properly
+            targeting_info = _extract_targeting_info_from_placement(placement_info)
+
+            # Create detailed placement description
+            placement_detail = f"""
+Placement {i}: {name}
+  Destination: {destination}
+  Duration: {start_date} - {end_date}
+  Metrics: {impressions:,} impressions, {clicks:,} clicks
+  Bid Rate: ${cpm} CPM
+  CPC: ${cpc}
+  Budget: ${amount:,.2f}
+  Target Audience:
+    - Age Range: {targeting_info['age_range']}
+    - Gender: {targeting_info['gender']}
+    - Income Level: {targeting_info['income_level']}
+    - Interests: {targeting_info['interests']}
+    - Location: {targeting_info['location']}
+    - Behavioral Data: {targeting_info['behavioral_data']}
+            """.strip()
+            placement_details.append(placement_detail)
+
+            # Create table row for media plan table
+            targeting_summary = f"{targeting_info['age_range']}, {targeting_info['gender']}, {targeting_info['income_level']}, {targeting_info['location']}, {targeting_info['interests']}, {targeting_info['behavioral_data']}"
+
+            table_row = [
+                f"${amount:,.2f}",  # budget
+                start_date,  # start date
+                end_date,  # end date
+                name,  # placement name
+                destination,  # placement destination
+                targeting_summary,  # targeting
+                objective_description,  # objective description
+                f"{impressions:,}",  # target impressions
+                f"{clicks:,}",  # target clicks
+                f"${cpm}",  # cpm
+                f"${cpc}"  # cpc
+            ]
+            media_plan_table_rows.append(table_row)
+
+        # Get overall date range
+        start_dates = [p.get('start_date', '') for p in placement_list if p.get('start_date')]
+        end_dates = [p.get('end_date', '') for p in placement_list if p.get('end_date')]
+        earliest_start = min(start_dates) if start_dates else ""
+        latest_end = max(end_dates) if end_dates else ""
+
+        # Create media plan table data structure
+        media_plan_table = {
+            'headers': [
+                'Budget', 'Start Date', 'End Date', 'Placement Name', 'Placement Destination',
+                'Targeting', 'Objective Description', 'Target Impressions', 'Target Clicks', 'CPM', 'CPC'
+            ],
+            'rows': media_plan_table_rows
         }
 
-        # Generate PDF
-        pdf_result = _generate_pdf_from_template(
+        # Prepare enhanced PDF template variables with Media Plan table
+        pdf_variables = {
+            'order_number': order_number,
+            'brand': brand,
+            'campaign_name': campaign_name,
+            'customer_approver': customer_approver,
+            'customer_approver_email': customer_approver_email,
+            'sales_owner': sales_owner,
+            'sales_owner_email': sales_owner_email,
+            'fulfillment_owner': fulfillment_owner,
+            'fulfillment_owner_email': fulfillment_owner_email,
+            'start_date': earliest_start,
+            'end_date': latest_end,
+            'placement_details': "\n\n".join(placement_details),
+            'media_plan_table': media_plan_table,  # This is the key addition!
+            'impressions': str(total_impressions),
+            'clicks': str(total_clicks),
+            'cpm': "Multiple CPM rates (see placement details)",
+            'cpc': "Multiple CPC rates (see placement details)",
+            'budget_amount': str(total_budget),
+            'age_range': "Multiple (see placement details)",
+            'gender': "Multiple (see placement details)",
+            'income_level': "Multiple (see placement details)",
+            'interests': "Multiple (see placement details)",
+            'location': "Multiple (see placement details)",
+            'audience_segments': "Multiple (see placement details)",
+            'device_targeting': "All Devices",
+            'objective_description': objective_description,
+            'generation_date': datetime.now().strftime("%Y-%m-%d")
+        }
+
+        # Generate PDF with Media Plan table support
+        pdf_result = _generate_pdf_with_media_plan_table(
             drive_service, docs_service, pdf_template, pdf_folder['id'],
             f"{order_number}_v0", pdf_variables
         )
-
-        # Prepare response
-        result = {
-            'status': 'success',
-            'order_number': order_number,
-            'campaign_folder_id': campaign_folder['id'],
-            'campaign_folder_link': campaign_folder['link'],
-            'sheet_id': sheet_result['sheet_id'],
-            'sheet_link': sheet_result['sheet_link'],
-            'pdf_file_id': pdf_result['pdf_file_id'],
-            'pdf_link': pdf_result['pdf_link'],
-            'pdf_folder_id': pdf_folder['id'],
-            'pdf_folder_link': pdf_folder['link']
-        }
 
         return f"✅ Insertion order created successfully!\n\n" \
                f"📁 Campaign Folder: {campaign_folder['link']}\n" \
@@ -1356,7 +1843,7 @@ def create_salesforce_insertion_order(
 
     Creates a complete insertion order in Salesforce with PDF documentation in Google Drive.
     This tool uses direct Salesforce API calls (no external connector service required) and automates:
-    - Creating a PDF document in Google Drive for documentation
+    - Creating a PDF document in Google Drive with Media Plan table
     - Creating an insertion order record directly in Salesforce via API
     - Creating placement records with targeting and budget data
     - Linking the PDF to the Salesforce record
@@ -1373,15 +1860,46 @@ def create_salesforce_insertion_order(
         fulfillment_owner: Name of the fulfillment owner
         fulfillment_owner_email: Email address of the fulfillment owner
         objective_description: Description of the campaign objectives
-        placement_data: JSON string containing placement information (name, destination, dates, metrics, etc.)
+        placement_data: JSON string containing placement information with COMPLETE targeting data structure
         salesforce_account: Salesforce Account ID for the insertion order
         salesforce_opportunity_id: Salesforce Opportunity ID for the insertion order
         salesforce_base_url: Base URL for Salesforce Lightning (optional, uses env var if not provided)
         base_folder_id: Google Drive folder ID where PDF will be created (optional, uses env var if not provided)
         pdf_template_id: Google Docs template ID for PDF generation (optional, uses env var if not provided)
 
+    CRITICAL: For Media Plan table to populate correctly, placement_data MUST include targeting configuration:
+
+    PLACEMENT DATA STRUCTURE (JSON string):
+    [
+        {
+            "name": "Social Media Campaign",
+            "destination": "Instagram",
+            "start_date": "2024-06-01",
+            "end_date": "2024-08-31",
+            "metrics": {
+                "impressions": 500000,
+                "clicks": 25000
+            },
+            "bid_rate": {
+                "cpm": 2.50,
+                "cpc": 0.75
+            },
+            "budget": {
+                "amount": 100000.00
+            },
+            "new_targeting_configuration": {
+                "age_range": ["18-24", "25-34"],
+                "gender": ["Male", "Female"],
+                "income_level": ["Middle Income"],
+                "location": ["United States", "Canada"],
+                "interests": ["Technology", "Gaming"],
+                "behavioral_data": ["Tech Enthusiasts", "Early Adopters"]
+            }
+        }
+    ]
+
     EXAMPLES:
-    Example: create_salesforce_insertion_order("IO-123456", "Summer Campaign 2024", "Example Brand", "John Smith", "john@company.com", "Sarah Johnson", "sarah@agency.com", "Mike Davis", "mike@agency.com", "Launch summer product line", '{"name": "Social Media", "destination": "Instagram", "start_date": "2024-06-01", "end_date": "2024-08-31"}', "001XX000003DHP0", "006XX000004TMi2")
+    Example: create_salesforce_insertion_order("IO-123456", "Summer Campaign 2024", "Example Brand", "John Smith", "john@company.com", "Sarah Johnson", "sarah@agency.com", "Mike Davis", "mike@agency.com", "Launch summer product line", '[{"name": "Social Media", "destination": "Instagram", "start_date": "2024-06-01", "end_date": "2024-08-31", "metrics": {"impressions": 500000, "clicks": 25000}, "bid_rate": {"cpm": 2.50, "cpc": 0.75}, "budget": {"amount": 100000.00}, "new_targeting_configuration": {"age_range": ["18-24"], "gender": ["Male", "Female"], "income_level": ["Middle Income"], "location": ["United States"], "interests": ["Technology"], "behavioral_data": ["Tech Enthusiasts"]}}]', "001XX000003DHP0", "006XX000004TMi2")
     """
     logger = logging.getLogger(__name__)
 
@@ -1405,9 +1923,11 @@ def create_salesforce_insertion_order(
         if not pdf_template:
             return "Error: PDF_GENERATION_TEMPLATE_ID not configured. Please set environment variable or provide pdf_template_id parameter."
 
-        # Parse placement data
+        # Parse placement data - FIX: Handle array of placements
         try:
-            placement_info = json.loads(placement_data) if isinstance(placement_data, str) else placement_data
+            placement_list = json.loads(placement_data) if isinstance(placement_data, str) else placement_data
+            if not isinstance(placement_list, list):
+                return "Error: placement_data must be a JSON array of placement objects."
         except json.JSONDecodeError:
             return "Error: Invalid placement_data JSON format."
 
@@ -1425,29 +1945,127 @@ def create_salesforce_insertion_order(
         stakeholder_emails = [customer_approver_email, sales_owner_email, fulfillment_owner_email]
         _share_folder_with_users(drive_service, campaign_folder['id'], stakeholder_emails)
 
-        # Prepare template variables for PDF
-        pdf_variables = {
-            'ORDER_NUMBER': order_number,
-            'CAMPAIGN_NAME': campaign_name,
-            'BRAND': brand,
-            'CUSTOMER_APPROVER': customer_approver,
-            'CUSTOMER_APPROVER_EMAIL': customer_approver_email,
-            'SALES_OWNER': sales_owner,
-            'SALES_OWNER_EMAIL': sales_owner_email,
-            'FULFILLMENT_OWNER': fulfillment_owner,
-            'FULFILLMENT_OWNER_EMAIL': fulfillment_owner_email,
-            'OBJECTIVE_DESCRIPTION': objective_description,
-            'PLACEMENT_NAME': placement_info.get('name', ''),
-            'PLACEMENT_DESTINATION': placement_info.get('destination', ''),
-            'START_DATE': placement_info.get('start_date', ''),
-            'END_DATE': placement_info.get('end_date', ''),
-            'CREATION_DATE': datetime.now().strftime('%Y-%m-%d'),
-            'SALESFORCE_ACCOUNT': salesforce_account,
-            'SALESFORCE_OPPORTUNITY': salesforce_opportunity_id
+        # NEW: Prepare Media Plan table data and PDF variables with proper targeting info
+        media_plan_table_rows = []
+        placement_details = []
+        total_impressions = 0
+        total_clicks = 0
+        total_budget = 0
+
+        for i, placement_info in enumerate(placement_list, 1):
+            # Extract placement data
+            name = placement_info.get('name', f'Placement {i}')
+            destination = placement_info.get('destination', '')
+            start_date = placement_info.get('start_date', '')
+            end_date = placement_info.get('end_date', '')
+
+            # Extract metrics
+            metrics = placement_info.get('metrics', {})
+            impressions = metrics.get('impressions', 0)
+            clicks = metrics.get('clicks', 0)
+
+            # Extract bid rates
+            bid_rate = placement_info.get('bid_rate', {})
+            cpm = bid_rate.get('cpm', 0.0)
+            cpc = bid_rate.get('cpc', 0.0)
+
+            # Extract budget
+            budget = placement_info.get('budget', {})
+            amount = budget.get('amount', 0.0)
+
+            # Add to totals
+            total_impressions += impressions
+            total_clicks += clicks
+            total_budget += amount
+
+            # Extract targeting information
+            targeting_info = _extract_targeting_info_from_placement(placement_info)
+
+            # Create detailed placement description
+            placement_detail = f"""
+Placement {i}: {name}
+  Destination: {destination}
+  Duration: {start_date} - {end_date}
+  Metrics: {impressions:,} impressions, {clicks:,} clicks
+  Bid Rate: ${cpm} CPM
+  CPC: ${cpc}
+  Budget: ${amount:,.2f}
+  Target Audience:
+    - Age Range: {targeting_info['age_range']}
+    - Gender: {targeting_info['gender']}
+    - Income Level: {targeting_info['income_level']}
+    - Interests: {targeting_info['interests']}
+    - Location: {targeting_info['location']}
+    - Behavioral Data: {targeting_info['behavioral_data']}
+            """.strip()
+            placement_details.append(placement_detail)
+
+            # Create table row for media plan table
+            targeting_summary = f"{targeting_info['age_range']}, {targeting_info['gender']}, {targeting_info['income_level']}, {targeting_info['location']}, {targeting_info['interests']}, {targeting_info['behavioral_data']}"
+
+            table_row = [
+                f"${amount:,.2f}",  # budget
+                start_date,  # start date
+                end_date,  # end date
+                name,  # placement name
+                destination,  # placement destination
+                targeting_summary,  # targeting
+                objective_description,  # objective description
+                f"{impressions:,}",  # target impressions
+                f"{clicks:,}",  # target clicks
+                f"${cpm}",  # cpm
+                f"${cpc}"  # cpc
+            ]
+            media_plan_table_rows.append(table_row)
+
+        # Get overall date range
+        start_dates = [p.get('start_date', '') for p in placement_list if p.get('start_date')]
+        end_dates = [p.get('end_date', '') for p in placement_list if p.get('end_date')]
+        earliest_start = min(start_dates) if start_dates else ""
+        latest_end = max(end_dates) if end_dates else ""
+
+        # Create media plan table data structure
+        media_plan_table = {
+            'headers': [
+                'Budget', 'Start Date', 'End Date', 'Placement Name', 'Placement Destination',
+                'Targeting', 'Objective Description', 'Target Impressions', 'Target Clicks', 'CPM', 'CPC'
+            ],
+            'rows': media_plan_table_rows
         }
 
-        # Generate PDF
-        pdf_result = _generate_pdf_from_template(
+        # Prepare enhanced PDF template variables with Media Plan table
+        pdf_variables = {
+            'order_number': order_number,
+            'brand': brand,
+            'campaign_name': campaign_name,
+            'customer_approver': customer_approver,
+            'customer_approver_email': customer_approver_email,
+            'sales_owner': sales_owner,
+            'sales_owner_email': sales_owner_email,
+            'fulfillment_owner': fulfillment_owner,
+            'fulfillment_owner_email': fulfillment_owner_email,
+            'start_date': earliest_start,
+            'end_date': latest_end,
+            'placement_details': "\n\n".join(placement_details),
+            'media_plan_table': media_plan_table,  # This is the key addition!
+            'impressions': str(total_impressions),
+            'clicks': str(total_clicks),
+            'cpm': "Multiple CPM rates (see placement details)",
+            'cpc': "Multiple CPC rates (see placement details)",
+            'budget_amount': str(total_budget),
+            'age_range': "Multiple (see placement details)",
+            'gender': "Multiple (see placement details)",
+            'income_level': "Multiple (see placement details)",
+            'interests': "Multiple (see placement details)",
+            'location': "Multiple (see placement details)",
+            'audience_segments': "Multiple (see placement details)",
+            'device_targeting': "All Devices",
+            'objective_description': objective_description,
+            'generation_date': datetime.now().strftime("%Y-%m-%d")
+        }
+
+        # Generate PDF with Media Plan table support
+        pdf_result = _generate_pdf_with_media_plan_table(
             drive_service, docs_service, pdf_template, pdf_folder['id'],
             f"{order_number}_Salesforce_v0", pdf_variables
         )
@@ -1468,7 +2086,7 @@ def create_salesforce_insertion_order(
             "FulfillmentOwner": fulfillment_owner,
             "FulfillmentOwnerEmail": fulfillment_owner_email,
             "ObjectiveDetails": {"Description": objective_description},
-            "Placement": [placement_info],
+            "Placement": placement_list,  # Use the full placement list
             "PDF_View_Link_c": pdf_result['pdf_link']  # Include the PDF link
         }
 
