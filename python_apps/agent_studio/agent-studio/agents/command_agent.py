@@ -32,7 +32,11 @@ class CommandAgent(Agent):
 
     def execute_stream(self, query: Any, chat_history: Any) -> Any:
         tries = 0
-        routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
+        tool_call_count = 0  # Track tool calls to prevent infinite loops
+        max_tool_calls = 5  # Limit tool calls per conversation
+        routing_options = "\n".join(
+            [f"{k}: {v}" for k, v in self.routing_options.items()]
+        )
         system_prompt = (
             self.system_prompt.prompt
             + f"""
@@ -44,12 +48,18 @@ class CommandAgent(Agent):
 
         """
         )
-        messages: List[ChatCompletionMessageParam] = [{"role": "system", "content": system_prompt}]
-        messages.append({"role": "user", "content": f"Here is the chat history: {chat_history}"})
+        messages: List[ChatCompletionMessageParam] = [
+            {"role": "system", "content": system_prompt}
+        ]
+        messages.append(
+            {"role": "user", "content": f"Here is the chat history: {chat_history}"}
+        )
         messages.append(
             {
                 "role": "user",
-                "content": "Read the context and chat history and then answer the query." + "\n\nHere is the query: " + query,
+                "content": "Read the context and chat history and then answer the query."
+                + "\n\nHere is the query: "
+                + query,
             }
         )
 
@@ -64,12 +74,23 @@ class CommandAgent(Agent):
                 )
                 print("\n\nResponse: ", response)
 
-                if response.choices[0].finish_reason == "tool_calls" and response.choices[0].message.tool_calls is not None:
+                if (
+                    response.choices[0].finish_reason == "tool_calls"
+                    and response.choices[0].message.tool_calls is not None
+                ):
+                    # Check if we've exceeded max tool calls
+                    if tool_call_count >= max_tool_calls:
+                        yield f"Maximum tool calls ({max_tool_calls}) reached. Ending conversation.\n"
+                        return
+
+                    tool_call_count += 1
                     tool_calls = response.choices[0].message.tool_calls[:1]
                     messages.append(
                         {
                             "role": "assistant",
-                            "tool_calls": cast(List[ChatCompletionMessageToolCallParam], tool_calls),
+                            "tool_calls": cast(
+                                List[ChatCompletionMessageToolCallParam], tool_calls
+                            ),
                         },
                     )
                     for tool in tool_calls:
@@ -95,11 +116,18 @@ class CommandAgent(Agent):
                         try:
                             if isinstance(result, str):
                                 parsed_result = json.loads(result)
-                                yield parsed_result.get("content", "Agent Responded") + "\n"
+                                yield parsed_result.get(
+                                    "content", "Agent Responded"
+                                ) + "\n"
                             else:
                                 yield str(result) + "\n"
                         except json.JSONDecodeError:
                             yield str(result) + "\n"
+
+                    # After processing all tool calls, continue the conversation to get assistant's final response
+                    # The loop will continue and make another API call with the updated messages
+                    # Increment tries to ensure conversation progresses and doesn't loop infinitely
+                    tries += 1
 
                 else:
                     if response.choices[0].message.content is None:
@@ -108,7 +136,9 @@ class CommandAgent(Agent):
 
                     try:
                         parsed_content = json.loads(response.choices[0].message.content)
-                        yield parsed_content.get("content", "Command Agent Could Not Respond") + "\n\n"
+                        yield parsed_content.get(
+                            "content", "Command Agent Could Not Respond"
+                        ) + "\n\n"
                     except json.JSONDecodeError:
                         yield response.choices[0].message.content + "\n\n"
                     return
