@@ -17,9 +17,9 @@ import openai
 
 STOPWORDS = set(nltk.corpus.stopwords.words("english"))
 
-# load_dotenv("stage/.env")
+load_dotenv("stage/.env")
 # TBD - REMOVE BELOW LINE AFTER TESTING THE FUNCTION
-load_dotenv(".env")
+# load_dotenv(".env")
 # load_dotenv("../.env")
 api_key = os.getenv("OPENAI_API_KEY")
 
