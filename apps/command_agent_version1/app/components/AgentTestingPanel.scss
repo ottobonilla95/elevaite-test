@@ -16,6 +16,24 @@
 		}
 	}
 
+	& input:focus {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--ev-colors-highlight);
+	}
+
+	.send-button {
+		color: var(--ev-colors-highlight);
+
+		&.loading {
+			color: var(--ev-colors-primary);
+
+			& > svg {
+				height: 25px;
+				width: 25px;
+			}
+		}
+	}
+
 	.user-time {
 		text-align: end;
 	}

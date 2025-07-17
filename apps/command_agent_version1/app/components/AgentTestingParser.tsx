@@ -16,7 +16,7 @@ export function AgentTestingParser({message}: AgentTestingParserProps): JSX.Elem
 
     const formattedText: string | undefined = formatters.reduce<string | undefined>(
         (result, fn) => result ?? fn(message), undefined
-    );
+    ) ?? message;
 
 
 
@@ -69,7 +69,7 @@ export function AgentTestingParser({message}: AgentTestingParserProps): JSX.Elem
 
     function matchRichTextFormat(text: string): string | undefined {
         if (
-            !text.includes("###") &&
+            !(text.includes("###") || text.includes("**") ) &&
             !/\*\*(?:.*?)\*\*/.test(text) &&
             !/^(?:\d+\. |- |\* )/m.test(text)
         ) {
@@ -113,12 +113,18 @@ export function AgentTestingParser({message}: AgentTestingParserProps): JSX.Elem
     }
 
 
+    function linkify(text: string): string {
+        return text.replace(/(?:https?:\/\/|www\.)[^\s<>"']+/g, (match) => {
+            const href = match.startsWith("http") ? match : `https://${match}`;
+            return `<a href="${href}" target="_blank" rel="noopener noreferrer">${match}</a>`;
+        });
+    }
+
+
 
     return (
-        <div className="agent-testing-parser-container">
-            {formattedText === undefined ? message :
-                <div dangerouslySetInnerHTML={{ __html: formattedText }} />
-            }
+        <div className="agent-testing-parser-container">            
+            <div dangerouslySetInnerHTML={{ __html: linkify(formattedText) }} />
         </div>
     );
 }
