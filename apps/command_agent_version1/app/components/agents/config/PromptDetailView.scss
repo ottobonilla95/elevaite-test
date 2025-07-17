@@ -1,0 +1,96 @@
+
+
+.prompt-detail-view {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: relative;
+
+
+    & .prompt-detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        position: sticky;
+        top: 0;
+        margin: -16px;
+        padding: 16px;
+        background: var(--ev-colors-background);
+        z-index: 1;
+
+
+        & .details-title {
+            font-weight: 600;
+        }
+
+        & .details-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+    }
+
+
+    & .prompt-details-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+
+
+        & .info-block {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+
+
+            & .block-label {
+                font-weight: 500;
+            }
+
+
+            & .prompt-wrapper {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            & .prompt-controls {
+                display: flex;
+                justify-content: space-between;
+                gap: 0.5rem;
+
+                & svg {
+                    height: 15px;
+                    width: 15px;
+                }
+            }
+
+            & .prompt-container {
+                max-height: 300px;
+                overflow-y: scroll;
+                white-space: pre-wrap;
+                font-size: 14px;
+
+                @include scrollbar();
+
+                &.prompt-textarea {
+                    height: 300px;
+                    padding: 5px;
+                    resize: none;
+
+                    &:focus {
+                        outline: none;
+                        box-shadow: 0 0 0 1px var(--ev-colors-highlight);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+.prompt-display-dialog {
+    white-space: pre-wrap;
+}

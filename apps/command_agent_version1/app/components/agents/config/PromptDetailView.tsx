@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight, ArrowLeft, PenLine } from "lucide-react";
-import { type PromptResponse, type PromptUpdate, type PromptCreate } from "../../../lib/interfaces";
-import PromptDetailEditingForm from "./PromptDetailEditingForm";
-import PromptDetailTestingConsole from "@/components/agents/config/PromptDetailTestingConsole";
-import { usePrompts } from "@/ui/contexts/PromptsContext";
 import { useAgents } from "@/ui/contexts/AgentsContext";
-import { PromptContextProvider } from "@/ui/contexts/PromptContext";
+import { usePrompts } from "@/ui/contexts/PromptsContext";
+import { CommonButton, CommonDialog, ElevaiteIcons } from "@repo/ui/components";
+import { PenLine } from "lucide-react";
+import { useEffect, useState } from "react";
+import { type PromptCreate, type PromptResponse, type PromptUpdate } from "../../../lib/interfaces";
+import "./PromptDetailView.scss";
 
 
 interface PromptDetailViewProps {
@@ -24,6 +23,7 @@ function PromptDetailView({ prompt, onBack, disabledFields }: PromptDetailViewPr
     const [hasChanges, setHasChanges] = useState(false);
 	const [activeTab, setActiveTab] = useState("tab1");
 	const [parametersOpen, setParametersOpen] = useState(false);
+    const [isPromptDisplayOpen, setIsPromptDisplayOpen] = useState(false);
 
     // Prompts context for save operations
     const { updateExistingPrompt, createNewPrompt, isEditingPrompt, setIsEditingPrompt } = usePrompts();
@@ -51,6 +51,11 @@ function PromptDetailView({ prompt, onBack, disabledFields }: PromptDetailViewPr
 
         setHasChanges(hasChanged);
     }, [editedPrompt, prompt]);
+
+
+    function handlePromptZoom(): void {
+        setIsPromptDisplayOpen(true);
+    }
 
     // Handle field changes
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- yy
@@ -242,38 +247,36 @@ function PromptDetailView({ prompt, onBack, disabledFields }: PromptDetailViewPr
 	// )
 
     return (
-        <div className="prompt-detail-view flex flex-col h-full">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={onBack}
-                        className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
-                        type="button"
-                    >
-                        <ArrowLeft size={16} />
-                        Back
-                    </button>
-                    <div className="h-4 w-px bg-gray-300" />
-                    <h2 className="text-lg font-medium">Prompt Details</h2>
-                </div>
+        <div className="prompt-detail-view">
 
-                {!disabledFields && (
-                    <button
-                        onClick={() => { setIsEditing(!isEditing); }}
-                        className="px-3 py-1 text-sm border border-[#FF681F] text-[#FF681F] rounded-md hover:bg-[#FF681F] hover:text-white transition-colors"
-                        type="button"
-                    >
-                        {isEditing ? "Cancel Edit" : "Edit"}
-                    </button>
-                )}
+            {!isPromptDisplayOpen || !editedPrompt.prompt ? undefined :
+                <CommonDialog 
+                    title="Prompt"
+                    confirmLabel="Okay"
+                    onConfirm={() => { setIsPromptDisplayOpen(false); }}
+                >
+                    <div className="prompt-display-dialog">{editedPrompt.prompt}</div>
+                </CommonDialog>
+            }
+
+            {/* Header */}
+            <div className="prompt-detail-header">                
+                <span className="details-title">Prompt Details</span>
+                <div className="details-controls">                    
+                    <CommonButton onClick={() => { setIsEditing(!isEditing); }} noBackground>
+                        <PenLine size={20} />
+                    </CommonButton>      
+                    <CommonButton onClick={onBack} noBackground>
+                        <ElevaiteIcons.SVGXmark/>
+                    </CommonButton>                    
+                </div>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            <div className="prompt-details-content">
                 {/* Basic Information */}
-                <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-gray-900">Basic Information</h3>
+                <div className="info-block">
+                    <h3 className="block-label">Basic Information</h3>
 
                     {/* Prompt Label */}
                     <div>
@@ -348,8 +351,8 @@ function PromptDetailView({ prompt, onBack, disabledFields }: PromptDetailViewPr
                 </div>
 
                 {/* Model Information */}
-                <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-gray-900">Model Configuration</h3>
+                <div className="info-block">
+                    <h3 className="block-label">Model Configuration</h3>
 
                     {/* AI Model Provider */}
                     <div>
@@ -391,25 +394,32 @@ function PromptDetailView({ prompt, onBack, disabledFields }: PromptDetailViewPr
                 </div>
 
                 {/* Prompt Content */}
-                <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-gray-900">Prompt Content</h3>
+                <div className="info-block">
+                    <h3 className="block-label">Prompt Content</h3>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Prompt
-                            {isEditing ? (
-                                <textarea
-                                    value={editedPrompt.prompt}
-                                    onChange={(e) => { handleFieldChange('prompt', e.target.value); }}
-                                    rows={8}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#FF681F] focus:border-transparent resize-vertical"
-                                />
-                            ) : (
-                                <div className="px-3 py-2 bg-gray-50 rounded-md text-sm whitespace-pre-wrap max-h-60 overflow-y-auto">
-                                    {editedPrompt.prompt}
-                                </div>
-                            )}
-                        </label>
+                    <div className="prompt-wrapper">
+                        <div className="prompt-controls">
+                            <span className="block text-sm font-medium text-gray-700 mb-1">
+                                Prompt
+                            </span>
+                            {!editedPrompt.prompt ? undefined :
+                                <CommonButton onClick={handlePromptZoom} noBackground>
+                                    <ElevaiteIcons.SVGZoom/>
+                                </CommonButton>
+                            }
+                        </div>
+                        {isEditing ? (
+                            <textarea
+                                value={editedPrompt.prompt}
+                                onChange={(e) => { handleFieldChange('prompt', e.target.value); }}
+                                rows={8}
+                                className="prompt-container prompt-textarea"
+                            />
+                        ) : (
+                            <div className="prompt-container">
+                                {editedPrompt.prompt}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

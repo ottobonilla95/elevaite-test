@@ -69,8 +69,8 @@ export function AgentTestingParser({message}: AgentTestingParserProps): JSX.Elem
 
     function matchRichTextFormat(text: string): string | undefined {
         if (
-            !(text.includes("###") || text.includes("**") ) &&
-            !/\*\*(?:.*?)\*\*/.test(text) &&
+            !text.includes("###") &&
+            !text.includes("**") &&
             !/^(?:\d+\. |- |\* )/m.test(text)
         ) {
             return undefined;

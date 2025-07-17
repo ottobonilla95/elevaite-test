@@ -247,7 +247,7 @@ function ToolsTab({
                         onClick={() => onPromptClick?.(selectedPrompt)}
                         className="flex flex-col border rounded-[10px] px-4 py-3 hover:bg-gray-50 transition-colors text-left w-full"
                         type="button"
-                        disabled //TODO: Re-enable when functionality is restored
+                        // disabled //TODO: Re-enable when functionality is restored
                     >
                         <div className="flex items-center justify-between gap-2">
 							<div className="flex justify-between border-l-2 border-orange-500 pl-3">
