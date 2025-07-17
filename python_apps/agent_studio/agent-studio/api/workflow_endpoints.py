@@ -778,14 +778,34 @@ def _build_single_agent_from_workflow(
     )
 
 
+def _sanitize_function_name(name: str) -> str:
+    """Convert agent name to valid OpenAI function name"""
+    # Remove spaces and special characters, convert to camelCase
+    import re
+
+    # Replace spaces and special chars with underscores, then remove multiple underscores
+    sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", name)
+    sanitized = re.sub(r"_+", "_", sanitized)  # Remove multiple underscores
+    sanitized = sanitized.strip("_")  # Remove leading/trailing underscores
+
+    # Ensure it starts with a letter
+    if sanitized and not sanitized[0].isalpha():
+        sanitized = f"agent_{sanitized}"
+
+    return sanitized or "unknown_agent"
+
+
 def _build_openai_schema_from_db_agent(db_agent):
     """Build OpenAI function schema from database agent"""
     try:
+        # Sanitize the agent name for use as function name
+        function_name = _sanitize_function_name(db_agent.name)
+
         # Create a basic OpenAI function schema for the agent
         schema = {
             "type": "function",
             "function": {
-                "name": db_agent.name,
+                "name": function_name,
                 "description": db_agent.description or f"Execute {db_agent.name} agent",
                 "parameters": {
                     "type": "object",
@@ -847,7 +867,9 @@ def _build_dynamic_agent_store(db: Session, workflow):
 
                     return execute_agent
 
-                agent_store[db_agent.name] = create_agent_executor(db_agent.agent_id)
+                # Use sanitized function name to match OpenAI schema
+                function_name = _sanitize_function_name(db_agent.name)
+                agent_store[function_name] = create_agent_executor(db_agent.agent_id)
 
         return agent_store
 
