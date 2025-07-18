@@ -33,6 +33,7 @@ app = FastAPI()
 async def query_kb(request: QueryRequest):
     try:
         total_start_time = time.time()
+        print("Got query")
 
         retrieval_start_time = time.time()
         retrieved_chunks, chunk_values = rerank_separately_then_merge(
@@ -41,6 +42,7 @@ async def query_kb(request: QueryRequest):
             machine_types=request.machine_types,
             collection_id=request.collection_id
         )
+        print("Retrieved chunks", retrieved_chunks)
         retrieval_time = (time.time() - retrieval_start_time) * 1000
 
         if not retrieved_chunks:

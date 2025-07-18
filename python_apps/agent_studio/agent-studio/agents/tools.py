@@ -2528,6 +2528,10 @@ def query_retriever(query: str, machine_types: Optional[List[str]] = None) -> li
             response = requests.post(url, params=params)
             res = ""
             sources = []
+            print("^"*100)
+            print("Response")
+            print(response.json())
+            print("^" * 100)
             segments = response.json()["selected_segments"][:SEGMENT_NUM]
             for i, segment in enumerate(segments):
                 res += "*" * 5 + f"\n\nSegment Begins: " + "\n"  # +"Contextual Header: "
@@ -2565,6 +2569,11 @@ def query_retriever(query: str, machine_types: Optional[List[str]] = None) -> li
     }
     try:
         first_response, sources = get_response(url, params)
+        print("-" * 100)
+        print("\nGot response")
+        print(first_response[:200])
+        print(sources)
+        print("-" * 100)
     except Exception as e:
         print(f"Failed to call retriever: {e}")
         first_response, sources = ["", []]
@@ -2676,6 +2685,11 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
     first_response, sources = ["", []]
     try:
         first_response, sources = get_response(url, params)
+        print("-"*100)
+        print("\nGot response")
+        print(first_response[:200])
+        print(sources)
+        print("-"*100)
     except Exception as e:
         print(f"Failed to call retriever: {e}")
 
@@ -2683,6 +2697,7 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
         print(f"Failed to call retriever: {e}")
         second_response, second_sources = ["", []]
     res = "CONTEXT FROM RETRIEVER: \n\n"
+    print(res + first_response)
     return [res + first_response, sources]
 
 
