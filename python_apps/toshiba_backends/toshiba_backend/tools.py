@@ -199,6 +199,9 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
     21. At Home: toshiba_at_home
     22. Harbour Freight: toshiba_harbour_freight
     23. TCA: toshiba_tca
+    24. Spartan Nash: toshiba_spartan_nash
+    25. Event network: toshiba_event_network
+    26. Bass Pro: toshiba_bass_pro
 
     Use toshiba_demo_4 if the customer retriever fails to return any relevant results
 
