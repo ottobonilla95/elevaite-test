@@ -12,7 +12,7 @@ from openai.types.chat.chat_completion_message_tool_call_param import (
     ChatCompletionMessageToolCallParam,
 )
 from data_classes import PromptObject
-from serices.shared_state import update_status, get_status, session_status
+from services.shared_state import update_status, get_status, session_status
 
 
 
