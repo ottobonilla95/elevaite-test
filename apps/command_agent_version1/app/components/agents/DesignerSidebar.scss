@@ -50,8 +50,11 @@
     gap: 5px;
 	  padding: 4px;
     position: sticky;
-  	top: 0;
+  	top: -8px;
     z-index: 10;
+    margin: -8px;
+    padding: 8px;
+    background-color: var(--ev-colors-background);
 
     &-inner {
       background: #F1F4F8;

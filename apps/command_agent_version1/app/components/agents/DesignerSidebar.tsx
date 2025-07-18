@@ -23,6 +23,7 @@ import TabHeader, { type Tab } from "../TabHeader";
 import WorkflowsTab from "./WorkflowsTab";
 import "./DesignerSidebar.scss";
 import { mockupAgents } from "../../lib/mockup";
+import { ToolsTabViewOnly } from "./config/ToolsTabViewOnly";
 
 
 // SidebarItem component for draggable items
@@ -94,6 +95,7 @@ function DesignerSidebar({
 	// Define tabs for TabHeader component
 	const sidebarTabs: Tab[] = [
 		{ id: "actions", label: "Agents" },
+		{ id: "tools", label: "Tools" },
 		{ id: "workflows", label: "Templates" }
 	];
 
@@ -233,6 +235,11 @@ function DesignerSidebar({
 					</div>
 				</div>
 			)}
+
+			{/* Tools View */}
+			{activeTab === "tools" && 
+				<ToolsTabViewOnly/>
+			}
 
 			{/* Workflows Content */}
 			{activeTab === "workflows" && (

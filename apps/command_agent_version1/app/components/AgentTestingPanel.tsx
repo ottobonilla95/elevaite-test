@@ -7,6 +7,7 @@ import "./AgentTestingPanel.scss";
 import { AgentTestingParser } from "./AgentTestingParser";
 import AgentWorkflowDetailsModal from "./AgentWorkflowDetailsModal";
 import { type ChatMessage } from "./type";
+import { ChatLoading } from "./ui/ChatLoading";
 
 const rows = [
 	{
@@ -41,13 +42,14 @@ const rows = [
 	},
 ]
 
-function AgentTestingPanel({ workflowId } : { workflowId: string }): React.ReactElement {
+function AgentTestingPanel({ workflowId, sessionId } : { workflowId: string, sessionId?: string }): React.ReactElement {
 	const chatEndRef = useRef<HTMLDivElement | null>(null);
 	const { expandChat, setExpandChat } = useWorkflows();
 	const [showAgentWorkflowModal, setShowAgentWorkflowModal] = useState(false);
 	const [showAgentWorkflowDetails, setShowAgentWorkflowDetails] = useState(true);
 	const [chatInput, setChatInput] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
+	const [agentStatus, setAgentStatus] = useState("Processing...");
 	const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
 		{
 			id: Date.now(),
@@ -76,6 +78,54 @@ function AgentTestingPanel({ workflowId } : { workflowId: string }): React.React
 		}
 	}, [chatMessages]);
 
+	useEffect(() => {
+		if (!sessionId || !process.env.NEXT_PUBLIC_BACKEND_URL) return;
+
+		//TODO: Testing!
+		// simulateAgentStatusUpdates();
+
+		const userId = "superuser@iopex.com";
+		const eventSource = new EventSource(
+			`${process.env.NEXT_PUBLIC_BACKEND_URL}currentStatus?uid=${userId}&sid=${sessionId}`
+		);
+
+		eventSource.onmessage = (event) => {
+			if (typeof event.data === "string") {
+				setAgentStatus(event.data);
+			}
+		};
+
+		return () => {
+			eventSource.close();
+		};
+	}, [sessionId]);
+
+
+	// useEffect(() => {
+	// 	console.log("Agent Status:", agentStatus);
+	// }, [agentStatus]);
+
+
+		//TODO: Testing!
+	// function simulateAgentStatusUpdates(): void {
+	// 	const statuses = [
+	// 		"Initializing agent...",
+	// 		"Loading modules...",
+	// 		"Connecting to backend...",
+	// 		"Running pre-checks...",
+	// 		"Agent ready.",
+	// 	];
+
+	// 	let index = 0;
+
+	// 	function updateStatus(): void {
+	// 		setAgentStatus(statuses[index]);
+	// 		index = (index + 1) % statuses.length;
+	// 		setTimeout(updateStatus, 2000);
+	// 	}
+
+	// 	updateStatus();
+	// }
 
 
 	function handleInputChange (event: React.ChangeEvent<HTMLInputElement>): void {
@@ -192,85 +242,90 @@ function AgentTestingPanel({ workflowId } : { workflowId: string }): React.React
 	return (
 		<>
 			<div className={`agent-testing-panel absolute top-4 right-4 bg-white z-10 flex flex-col gap-3 rounded-xl p-2${expandChat ? ' is-expanded' : ''}`}>
-				<div className="top flex-1 rounded-lg flex flex-col justify-between overflow-auto" style={{ border: '1px solid #E2E8ED' }}>
-					<div>
-						<div className="flex items-center justify-between py-2 px-6 sticky top-0 z-10 bg-white" style={{ borderBottom: '1px solid #E2E8ED' }}>
-							<div className="font-bold">Testing Workflow</div>
-							<button onClick={() => { setExpandChat(!expandChat); }} type="button">
-								{expandChat ? (
-									<svg width="17" height="18" viewBox="0 0 17 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-										<path d="M2.83773 10.417H7.08773M7.08773 10.417V14.667M7.08773 10.417L2.12939 15.3753M14.1711 7.58364H9.92106M9.92106 7.58364V3.33364M9.92106 7.58364L14.8794 2.62531" stroke="#4D4D50" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-										<path d="M2.83773 10.417H7.08773M7.08773 10.417V14.667M7.08773 10.417L2.12939 15.3753M14.1711 7.58364H9.92106M9.92106 7.58364V3.33364M9.92106 7.58364L14.8794 2.62531" stroke="#4D4D50" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-									</svg>
-								) : (
-									<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-										<g opacity="0.8">
-											<path d="M10.6667 5.33333L14 2M14 2H10.6667M14 2V5.33333M5.33333 5.33333L2 2M2 2L2 5.33333M2 2L5.33333 2M5.33333 10.6667L2 14M2 14H5.33333M2 14L2 10.6667M10.6667 10.6667L14 14M14 14V10.6667M14 14H10.6667" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-											<path d="M10.6667 5.33333L14 2M14 2H10.6667M14 2V5.33333M5.33333 5.33333L2 2M2 2L2 5.33333M2 2L5.33333 2M5.33333 10.6667L2 14M2 14H5.33333M2 14L2 10.6667M10.6667 10.6667L14 14M14 14V10.6667M14 14H10.6667" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-										</g>
-									</svg>
-								)}
-							</button>
-						</div>
-
-						<div className="chat-bubbles my-4 px-6">
-							{chatMessages.map((message) => (
-								<div key={message.id} className={`chat-bubble rounded-lg bg-[#F8FAFC] flex items-center gap-4 p-4 ${message.sender === "user" ? "user-message" : "bot-message"} ${message.error ? "error-message" : ""}`}>
-									{message.sender === "user"
-										? renderUserAvatar()
-										: renderBotAvatar(message.error)}
-									<div>
-										<div className={`text-xs text-[#FF681F] ${message.sender === "user" ? "user-time" : "bot-time"}`}>
-											{formatTime(message.id)}
-										</div>
-										<div className="text-sm text-[#212124] opacity-75">
-											<AgentTestingParser message={message.text}/>
-										</div>
-									</div>
-								</div>
-							))}							
-							<div ref={chatEndRef} />
-						</div>
-					</div>
-
-					{/* <div className="my-4 px-6 sticky bg-white bottom-4 z-1">
-						<div className="details rounded-xl" style={{ border: '1px solid #E2E8ED' }}>
-							<div className="flex items-center justify-between py-2 px-4" style={showAgentWorkflowDetails ? { borderBottom: '1px solid #E2E8ED' } : undefined}>
-								<div className="font-medium text-sm">CoPilot</div>
-								<button onClick={() => { setShowAgentWorkflowDetails(!showAgentWorkflowDetails); }} type="button">
-									<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-										<g opacity="0.8">
-											<path d="M4 6L8 10L12 6" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-										</g>
-									</svg>
+				<div className="top flex-1 rounded-lg flex flex-col justify-between overflow-hidden" style={{ border: '1px solid #E2E8ED' }}>
+					<div className="chat-scroll flex-1 overflow-auto">
+						<div>
+							<div className="flex items-center justify-between py-2 px-6 sticky top-0 z-10 bg-white" style={{ borderBottom: '1px solid #E2E8ED' }}>
+								<div className="font-bold">Testing Workflow</div>
+								<button onClick={() => { setExpandChat(!expandChat); }} type="button">
+									{expandChat ? (
+										<svg width="17" height="18" viewBox="0 0 17 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<path d="M2.83773 10.417H7.08773M7.08773 10.417V14.667M7.08773 10.417L2.12939 15.3753M14.1711 7.58364H9.92106M9.92106 7.58364V3.33364M9.92106 7.58364L14.8794 2.62531" stroke="#4D4D50" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+											<path d="M2.83773 10.417H7.08773M7.08773 10.417V14.667M7.08773 10.417L2.12939 15.3753M14.1711 7.58364H9.92106M9.92106 7.58364V3.33364M9.92106 7.58364L14.8794 2.62531" stroke="#4D4D50" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+										</svg>
+									) : (
+										<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<g opacity="0.8">
+												<path d="M10.6667 5.33333L14 2M14 2H10.6667M14 2V5.33333M5.33333 5.33333L2 2M2 2L2 5.33333M2 2L5.33333 2M5.33333 10.6667L2 14M2 14H5.33333M2 14L2 10.6667M10.6667 10.6667L14 14M14 14V10.6667M14 14H10.6667" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+												<path d="M10.6667 5.33333L14 2M14 2H10.6667M14 2V5.33333M5.33333 5.33333L2 2M2 2L2 5.33333M2 2L5.33333 2M5.33333 10.6667L2 14M2 14H5.33333M2 14L2 10.6667M10.6667 10.6667L14 14M14 14V10.6667M14 14H10.6667" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+											</g>
+										</svg>
+									)}
 								</button>
 							</div>
-							{Boolean(showAgentWorkflowDetails) && (
-								<div className="p-4">
-									{rows.map(row => (
-										<div key={row.id} className="flex items-center justify-between py-1 mb-3">
-											<div className="font-medium text-sm opacity-75">
-												{row.heading}
+
+							<div className="chat-bubbles my-4 px-6">
+								{chatMessages.map((message) => (
+									<div key={message.id} className={`chat-bubble rounded-lg bg-[#F8FAFC] flex items-center gap-4 p-4 ${message.sender === "user" ? "user-message" : "bot-message"} ${message.error ? "error-message" : ""}`}>
+										{message.sender === "user"
+											? renderUserAvatar()
+											: renderBotAvatar(message.error)}
+										<div>
+											<div className={`text-xs text-[#FF681F] ${message.sender === "user" ? "user-time" : "bot-time"}`}>
+												{formatTime(message.id)}
 											</div>
-											{Boolean(row.value) && (
-												<div className="font-medium text-sm">
-													{row.value}
-												</div>
-											)}
-											{Boolean(row.tag) && (
-												<div className="tag-blue">
-													{row.tag}
-												</div>
-											)}
+											<div className="text-sm text-[#212124] opacity-75">
+												<AgentTestingParser message={message.text}/>
+											</div>
 										</div>
-									))}
-									<button className="font-medium text-xs text-[#FF681F]" onClick={() => { setShowAgentWorkflowModal(true); }} type="button">
-										See Full Workflow Details
+									</div>
+								))}							
+								<div ref={chatEndRef} />
+							</div>
+						</div>
+
+						{/* <div className="my-4 px-6 sticky bg-white bottom-4 z-1">
+							<div className="details rounded-xl" style={{ border: '1px solid #E2E8ED' }}>
+								<div className="flex items-center justify-between py-2 px-4" style={showAgentWorkflowDetails ? { borderBottom: '1px solid #E2E8ED' } : undefined}>
+									<div className="font-medium text-sm">CoPilot</div>
+									<button onClick={() => { setShowAgentWorkflowDetails(!showAgentWorkflowDetails); }} type="button">
+										<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+											<g opacity="0.8">
+												<path d="M4 6L8 10L12 6" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+											</g>
+										</svg>
 									</button>
 								</div>
-							)}
-						</div>
-					</div> */}
+								{Boolean(showAgentWorkflowDetails) && (
+									<div className="p-4">
+										{rows.map(row => (
+											<div key={row.id} className="flex items-center justify-between py-1 mb-3">
+												<div className="font-medium text-sm opacity-75">
+													{row.heading}
+												</div>
+												{Boolean(row.value) && (
+													<div className="font-medium text-sm">
+														{row.value}
+													</div>
+												)}
+												{Boolean(row.tag) && (
+													<div className="tag-blue">
+														{row.tag}
+													</div>
+												)}
+											</div>
+										))}
+										<button className="font-medium text-xs text-[#FF681F]" onClick={() => { setShowAgentWorkflowModal(true); }} type="button">
+											See Full Workflow Details
+										</button>
+									</div>
+								)}
+							</div>
+						</div> */}
+					</div>
+
+					<ChatLoading isLoading={isLoading} loadingMessage={agentStatus} />
+
 				</div>
 
 				{!workflowId ? undefined :

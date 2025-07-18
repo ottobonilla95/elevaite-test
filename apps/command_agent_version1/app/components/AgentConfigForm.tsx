@@ -1185,7 +1185,7 @@ function AgentConfigForm(): JSX.Element {
 						</>
 					)}
 					{Boolean(showTestingSidebar) && (
-						<AgentTestingPanel workflowId={currentWorkflowData?.workflow_id ?? ""} />
+						<AgentTestingPanel workflowId={currentWorkflowData?.workflow_id ?? ""} sessionId={currentWorkflowData?.id.toString()} />
 					)}
 				</div>
 			</ReactFlowProvider>
