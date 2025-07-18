@@ -3,7 +3,6 @@ import React, { useRef } from 'react';
 import { FileUploader } from "react-drag-drop-files";
 import { toast } from 'react-toastify';
 import { LoadingKeys, usePrompt } from '../ui/contexts/PromptContext';
-import { PromptInputTypes } from '../lib/interfaces';
 import PromptLoading from './PromptLoading';
 
 
@@ -14,9 +13,10 @@ function PromptToast({ data }: { data: { num_pages: number } }): React.ReactElem
 	</div>
 }
 
-function PromptFileUploadModal() {
+function PromptFileUploadModal(): React.ReactElement {
 	const fileTypes = ["PDF", "JPG", "PNG"];
 	const promptsContext = usePrompt();
+	let isImage = false;
 
 	const handleChange = (newFile: File | File[] | FileList): void => {
 		let file: File | undefined;
@@ -35,25 +35,37 @@ function PromptFileUploadModal() {
 
 		promptsContext.setFile(file);
 	};
+	
+	function handleRemoveFile(): void {
+		promptsContext.setFile(null);
+	}
 
-	let isImage = false;
-
-	const handleUpload = async (e: React.MouseEvent<HTMLButtonElement>) => {
+	const handleUpload = async (e: React.MouseEvent<HTMLButtonElement>): Promise<void> => {
 		e.preventDefault();
 
 		if (promptsContext.file && promptsContext.file.type !== "application/pdf") {
 			isImage = true;
 		}
 
-		const data = await promptsContext.fileUpload(true, promptsContext.file as File, isImage);
+		if (!promptsContext.file) {
+			toast.error(
+				<div className="prompt-toast rounded-md font-bold text-sm flex items-center justify-between w-full">
+					File is missing
+				</div>,
+				{position: 'bottom-right',}
+			)
+			return;
+		}
+
+		const data = await promptsContext.fileUpload(true, promptsContext.file, isImage);
 		const finalData = await promptsContext.processCurrentPage();
 		console.log("File uploaded:", data);
 		console.log("Processed Current Page:", finalData);
 
 		if (data && finalData) {
 			//promptsContext.setTestingConsoleActiveClass('half-expanded');
-			promptsContext.setInvoiceImage(data.image as string);
-			promptsContext.setInvoiceNumPages(data.num_pages as number);
+			promptsContext.setInvoiceImage(data.image);
+			promptsContext.setInvoiceNumPages(data.num_pages);
 			promptsContext.setShowFileUploadModal(false);
 /* 			promptsContext.setPromptInputs(
 				promptsContext.defaultPromptInputs.map(input => {
@@ -131,12 +143,12 @@ function PromptFileUploadModal() {
 								<div className="w-[3px] h-[3px] rounded-full" style={{ background: '#CDD5E0' }}/>
 								<div className="text-gray-500 text-xs font-medium">
 									{typeof promptsContext.file.size === "number"
-										? (promptsContext.file.size / (1024 * 1024)).toFixed(2) + "MB"
+										? `${(promptsContext.file.size / (1024 * 1024)).toFixed(2)  }MB`
 										: "Unknown size"
 										}
 								</div>
 							</div>
-							<button>
+							<button type="button" onClick={handleRemoveFile}>
 								<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
 									<path d="M6.5 1.5H11.5M1.5 4H16.5M14.8333 4L14.2489 12.7661C14.1612 14.0813 14.1174 14.7389 13.8333 15.2375C13.5833 15.6765 13.206 16.0294 12.7514 16.2497C12.235 16.5 11.5759 16.5 10.2578 16.5H7.74221C6.42409 16.5 5.76503 16.5 5.24861 16.2497C4.79396 16.0294 4.41674 15.6765 4.16665 15.2375C3.88259 14.7389 3.83875 14.0813 3.75107 12.7661L3.16667 4M7.33333 7.75V11.9167M10.6667 7.75V11.9167" stroke="#DF1C41" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
 								</svg>
@@ -150,8 +162,8 @@ function PromptFileUploadModal() {
 
 					<input type="file" name="my-file" ref={hiddenFileInput} className="absolute" style={{ left: '-999px' }} />
 					<div className="flex justify-end gap-2 mt-5">
-						<button className="btn btn-outline" onClick={() => promptsContext.setShowFileUploadModal(false)}>Back</button>
-						<button className="btn btn-primary" onClick={handleUpload}>Attach</button>
+						<button type="button" className="btn btn-outline" onClick={() => { promptsContext.setShowFileUploadModal(false); }}>Back</button>
+						<button type="button" className="btn btn-primary" onClick={handleUpload}>Attach</button>
 					</div>
 				</form>
 			</div>

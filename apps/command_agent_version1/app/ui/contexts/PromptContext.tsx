@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/require-await -- Placeholder functions*/
 "use client";
-import { type ChangeEvent, createContext, type SetStateAction, useContext, useEffect, useState } from "react";
-import { toast } from "react-toastify";
-import { deploy, nextPage, previousPage, processCurrentPage, reRun, run, uploadFile } from "../../lib/actionsPrompt";
-import { type PageChangeResponseObject, type ProcessCurrentPageResponseObject, type PromptInputItem, PromptInputTypes, PromptInputVariableEngineerItem, type regenerateResponseObject, type UploadFileResponseObject } from "../../lib/interfaces";
 import { usePathname } from "next/navigation";
+import { type ChangeEvent, createContext, useContext, useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import { deploy, nextPage, previousPage, processCurrentPage, reRun, uploadFile } from "../../lib/actionsPrompt";
+import { ExtractionResult, type PageChangeResponseObject, type ProcessCurrentPageResponseObject, ProcessedPage, type PromptInputItem, PromptInputTypes, PromptInputVariableEngineerItem, type regenerateResponseObject, type UploadFileResponseObject } from "../../lib/interfaces";
 
 
 // ENUMS and INTERFACES
@@ -44,6 +44,7 @@ export interface PromptContextStructure {
   loading: Record<string, boolean>;
   fileUpload: (useYolo: boolean, file: File, isImage?: boolean) => Promise<UploadFileResponseObject | null>;
   processCurrentPage: () => Promise<ProcessCurrentPageResponseObject | null>;
+  processedCurrentPage: ProcessedPage | null;
   showFileUploadModal: boolean,
   setShowFileUploadModal: (show: boolean) => void;
   invoiceImage: string | null;
@@ -95,6 +96,7 @@ export const PromptContext = createContext<PromptContextStructure>({
   loading: {},
   fileUpload: async () => null,
   processCurrentPage: async () => null,
+  processedCurrentPage: null,
   showFileUploadModal: false,
   setShowFileUploadModal: () => undefined,
   invoiceImage: null,
@@ -119,7 +121,7 @@ export const PromptContext = createContext<PromptContextStructure>({
   outputVersions: [],
   setOutputVersions: () => undefined,
   handleReset: () => undefined,
-  turnToJSON: async () => { },
+  turnToJSON: async () => { /** */ },
   jsonOutput: '',
   setJsonOutput: () => undefined,
   defaultPromptInputs: [],
@@ -155,6 +157,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   const [testingConsoleActiveClass, setTestingConsoleActiveClass] = useState<string>('');
   const [promptInputs, setPromptInputs] = useState<PromptInputItem[]>(defaultPromptInputs);
   const [output, setOutput] = useState<regenerateResponseObject | null>(null);
+  const [processedCurrentPage, setProcessedCurrentPage] = useState<ProcessedPage|null>(null);
   const [isRightColExpanded, setIsRightColExpanded] = useState<boolean>(!isEngineerPage);
   const [isRightColPromptInputsColExpanded, setIsRightColPromptInputsColExpanded] = useState<boolean>(false);
   const [isRightColOutputColExpanded, setIsRightColOutputColExpanded] = useState<boolean>(false);
@@ -166,7 +169,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     setSessionId(`sid-${crypto.randomUUID().toString()}`);
   }, []);
 
-  function addPromptInputVariableEngineer() {
+  function addPromptInputVariableEngineer(): void {
     const newVariable: PromptInputVariableEngineerItem = {
       id: crypto.randomUUID().toString(),
       name: "",
@@ -183,19 +186,19 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     });
   }
 
-  function savePromptInputVariableEngineer(id: string, updates: Partial<PromptInputVariableEngineerItem>) {
+  function savePromptInputVariableEngineer(id: string, updates: Partial<PromptInputVariableEngineerItem>): void {
     setPromptInputVariablesEngineer((current) =>
       current.map(input => (input.id === id ? { ...input, ...updates } : input))
     );
   }
 
-  function editPromptInputVariableEngineer(id: string) {
+  function editPromptInputVariableEngineer(id: string): void {
     setPromptInputVariablesEngineer((current) =>
       current.map(input => (input.id === id ? { ...input, saved: false } : input))
     );
   }
 
-  function removePromptInputVariableEngineer(id: string) {
+  function removePromptInputVariableEngineer(id: string): void {
     setPromptInputVariablesEngineer(current => current.filter(input => input.id !== id))
   }
 
@@ -228,7 +231,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     lineItems?: string;
     expectedOutput?: string;
   } | undefined {
-    if (!promptInputs || promptInputs.length === 0) return;
+    if (promptInputs.length === 0) return;
 
     const options: {
       documentHeader?: string,
@@ -257,6 +260,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
         case PromptInputTypes.ExpectedOutput:
           options.expectedOutput = options.expectedOutput ? `${options.expectedOutput}\n${input.prompt}` : input.prompt;
           break;
+        default: break;
       }
     }
 
@@ -270,9 +274,9 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   }
 
 
-  function handleReset() {
+  function handleReset(): void {
     setLoadingState(LoadingKeys.Resetting, true);
-    setTimeout(function () {
+    setTimeout(() => {
       setInvoiceNumPages(null);
       setFile(null);
       setInvoiceImage(null);
@@ -291,14 +295,38 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   }
 
 
+  function populatePromptInputsFromHeaders(result: ExtractionResult | undefined): void {
+    if (!result) return;
+
+    const documentHeaders = Object.keys(result).filter(key => key !== 'line_items');
+    const lineItemHeaders = Array.isArray(result.line_items) && result.line_items.length > 0
+      ? Object.keys(result.line_items[0])
+      : [];
+
+    const updatedInputs = [...defaultPromptInputs];
+
+    for (const input of updatedInputs) {
+      if (input.type === PromptInputTypes.DocumentHeader) {
+        input.values = documentHeaders;
+      }
+      if (input.type === PromptInputTypes.LineItemHeader) {
+        input.values = lineItemHeaders;
+      }
+  }
+
+    setPromptInputs(updatedInputs);
+  }
+
+
+
   // Server Actions
 
-  async function actionFileUpload(useYolo: boolean, file: File, isImage = false): Promise<UploadFileResponseObject | null> {
+  async function actionFileUpload(useYolo: boolean, passedFile: File, isImage = false): Promise<UploadFileResponseObject | null> {
     setLoadingState(LoadingKeys.Uploading, true);
 
     try {
-      const result = await uploadFile(sessionId, useYolo, file, isImage);
-      if (result) setOutput(null);
+      const result = await uploadFile(sessionId, useYolo, passedFile, isImage);
+      setOutput(null);
       return result;
     } catch (error) {
       // eslint-disable-next-line no-console -- placeholder for error logging
@@ -327,7 +355,9 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
 
     try {
       const result = await processCurrentPage(sessionId);
-      if (result) setOutput(null);
+      setProcessedCurrentPage(result);
+      setOutput(null);
+      populatePromptInputsFromHeaders(result.result);
       return result;
     } catch (error) {
       // eslint-disable-next-line no-console -- placeholder for error logging
@@ -373,10 +403,11 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
 
   async function actionRun(): Promise<void> {
     setLoadingState(LoadingKeys.Running, true);
-    console.log(getPromptInputsOptions())
+    // console.log(getPromptInputsOptions())
     try {
       const result = await reRun(sessionId, getPromptInputsOptions());
       console.log("RE Run result", result);
+      populatePromptInputsFromHeaders(result.result);
       setOutput(result);
       setOutputVersions((prev) => [
         ...prev,
@@ -461,8 +492,8 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     }
   }
 
-  function actionRunOnSelectedPages(pages: number[]) {
-    console.log("run action for pages " + pages.join(','));
+  function actionRunOnSelectedPages(pages: number[]): void {
+    console.log(`run action for pages ${  pages.join(',')}`);
   }
 
   return (
@@ -479,6 +510,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
         loading,
         fileUpload: actionFileUpload,
         processCurrentPage: actionProcessCurrentPage,
+        processedCurrentPage,
         showFileUploadModal, // Placeholder for file upload modal state
         setShowFileUploadModal,
         invoiceImage,

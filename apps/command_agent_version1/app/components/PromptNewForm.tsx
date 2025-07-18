@@ -1,9 +1,9 @@
+import { CommonSelect, type CommonSelectOption, SimpleInput, SimpleTextarea } from "@repo/ui/components";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from 'react-dom';
 import RangeSlider from 'react-range-slider-input';
 import 'react-range-slider-input/dist/style.css';
-import { useEffect, useRef, useState } from "react";
-import { CommonSelect, CommonSelectOption, SimpleInput, SimpleTextarea } from "@repo/ui/components";
-import { NewPromptInputExecution, NewPromptInputOutputFormat, NewPromptInputParameter, NewPromptInputSelectedModelOnHover, NewPromptInputStatus, NewPromptInputVersion } from "../lib/interfaces";
+import { type NewPromptInputExecution, type NewPromptInputOutputFormat, type NewPromptInputParameter, type NewPromptInputSelectedModelOnHover, type NewPromptInputStatus, type NewPromptInputVersion } from "../lib/interfaces";
 import PromptMultiTagInputs from "./PromptMultiTagInputs";
 
 const parameters: CommonSelectOption[] = [
@@ -50,7 +50,7 @@ const outputs: CommonSelectOption[] = [
 	{ value: 'HTML'},
 ];
 
-const PromptNewForm = () => {
+function PromptNewForm(): React.ReactElement {
 	const [name, setName] = useState("");
 	const [tags, setTags] = useState<string[]>([]);
 	const [description, setDescription] = useState("");
@@ -69,7 +69,7 @@ const PromptNewForm = () => {
 	const hoverTargetRef = useRef<HTMLDivElement | null>(null);
 
 	useEffect(() => {
-		function updatePosition() {
+		function updatePosition(): void {
 			if (hoverTargetRef.current) {
 				const rect = hoverTargetRef.current.getBoundingClientRect();
 
@@ -92,67 +92,67 @@ const PromptNewForm = () => {
 		}
 	}, [showHover]);
 
-	const selectedModelObject = availableModels.find(model => model.id === selectedModelOnHover);
+	const selectedModelObject = availableModels.find(foundModel => foundModel.id === selectedModelOnHover);
 
-	const handleNameChange = (text: string) => {
+	const handleNameChange = (text: string): void => {
 		setName(text);
 	}
 
-	const handleDescriptionChange = (text: string) => {
+	const handleDescriptionChange = (text: string): void => {
 		setDescription(text);
 	}
 
-	const handleParameterChange = (text: NewPromptInputParameter) => {
+	const handleParameterChange = (text: NewPromptInputParameter): void => {
 		setParameter(text);
 	}
 
-	const handleStatusChange = (text: NewPromptInputStatus) => {
+	const handleStatusChange = (text: NewPromptInputStatus): void => {
 		setStatus(text);
 	}
 
-	const handleVersionChange = (text: NewPromptInputVersion) => {
+	const handleVersionChange = (text: NewPromptInputVersion): void => {
 		setVersion(text);
 	}
 
-	const handleModelChange = (text: string) => {
+	const handleModelChange = (text: string): void => {
 		setModel(text);
 	}
 
-	const handleModelOnHover = (text: string) => {
+	const handleModelOnHover = (text: string): void => {
 		setShowHover(true);
 		setSelectedModelOnHover(text);
 	}
 
-	const handleModelOnLeave = (text: string) => {
+	const handleModelOnLeave = (): void => {
 		setShowHover(false);
 		setSelectedModelOnHover("");
 	}
 
-	const handleExecutionChange = (text: NewPromptInputExecution) => {
+	const handleExecutionChange = (text: NewPromptInputExecution): void => {
 		setExecution(text);
 	}
 
-	const handleOutputChange = (text: NewPromptInputOutputFormat) => {
+	const handleOutputChange = (text: NewPromptInputOutputFormat): void => {
 		setOutputFormat(text);
 	}
 
-	const handleTagsChange = (tags: string[]) => {
-		setTags(tags);
+	const handleTagsChange = (passedTags: string[]): void => {
+		setTags(passedTags);
 	}
 
-	const handleTemperatureChange = (text: string) => {
+	const handleTemperatureChange = (text: string): void => {
 		setTemperature(text);
 	}
 
-	const handleMaxTokensChange = (text: string) => {
+	const handleMaxTokensChange = (text: string): void => {
 		setMaxTokens(text);
 	}
 
-	const handleRangeSliderTemperatureChange = (value: number[]) => {
+	const handleRangeSliderTemperatureChange = (value: number[]): void => {
 		setTemperature(value[1].toString());
 	}
 
-	const handleRangeSliderMaxTokensChange = (value: number[]) => {
+	const handleRangeSliderMaxTokensChange = (value: number[]): void => {
 		setMaxTokens(value[1].toString());
 	}
 
@@ -167,7 +167,7 @@ const PromptNewForm = () => {
 				</div>
 
 				<div className="flex items-center gap-3">
-					<button>
+					{/* <button>
 						<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 							<g opacity="0.8">
 								<path d="M8.00004 8.66663C8.36823 8.66663 8.66671 8.36815 8.66671 7.99996C8.66671 7.63177 8.36823 7.33329 8.00004 7.33329C7.63185 7.33329 7.33337 7.63177 7.33337 7.99996C7.33337 8.36815 7.63185 8.66663 8.00004 8.66663Z" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -175,7 +175,7 @@ const PromptNewForm = () => {
 								<path d="M8.00004 13.3333C8.36823 13.3333 8.66671 13.0348 8.66671 12.6666C8.66671 12.2984 8.36823 12 8.00004 12C7.63185 12 7.33337 12.2984 7.33337 12.6666C7.33337 13.0348 7.63185 13.3333 8.00004 13.3333Z" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 							</g>
 						</svg>
-					</button>
+					</button> */}
 				</div>
 			</div>
 			<div className="prompt-form">
@@ -186,7 +186,7 @@ const PromptNewForm = () => {
 					</div>
 				</div>
 				<div className="mb-4">
-					<label className="inline-block text-sm font-medium mb-2">Tags</label>
+					<span className="inline-block text-sm font-medium mb-2">Tags</span>
 					<div className="prompt-input-container prompt-multi-tag-container no-margin rounded-md">
 						<PromptMultiTagInputs onChange={handleTagsChange} />
 					</div>
@@ -194,7 +194,7 @@ const PromptNewForm = () => {
 				<div className="mb-4">
 					<label className="inline-block text-sm font-medium mb-2" htmlFor="description">Description</label>
 					<div className="prompt-input-container prompt-textarea-container no-margin">
-						<SimpleTextarea id="description" wrapperClassName="prompt-input" value={description} placeholder="e.g. Extracts information from invoices" useCommonStyling onChange={handleDescriptionChange}></SimpleTextarea>
+						<SimpleTextarea id="description" wrapperClassName="prompt-input" value={description} placeholder="e.g. Extracts information from invoices" useCommonStyling onChange={handleDescriptionChange} />
 					</div>
 				</div>
 				<div className="grid grid-cols-2 gap-4 mb-4">
@@ -211,7 +211,7 @@ const PromptNewForm = () => {
 					ref={hoverTargetRef} className="prompt-select-container-hover prompt-input-container prompt-select-container no-margin rounded-md">
 						<CommonSelect defaultValue={model} options={models} onSelectedValueChange={handleModelChange} onHover={handleModelOnHover} onLeave={handleModelOnLeave} />
 					</div>
-					{showHover && portalRoot && createPortal(
+					{showHover && portalRoot ? createPortal(
 						<div className="card-on-hover text-sm p-3 absolute w-[270px] bg-white rounded-xl" style={{ zIndex: 100, top: hoverPosition.top, left: hoverPosition.left }}>
 							<div className="font-semibold">
 								{selectedModelObject?.name}
@@ -235,7 +235,7 @@ const PromptNewForm = () => {
 							</div>
 						</div>,
 						portalRoot
-					)}
+					) : null}
 				</div>
 				<div className="mb-4">
 					<div className="prompt-input-container prompt-select-container no-margin rounded-md">
@@ -286,10 +286,10 @@ const PromptNewForm = () => {
 		</div>
 
 		<div className="grid gap-3 justify-end my-5" style={{ gridTemplateColumns: 'auto auto' }}>
-			<button className="btn btn-outline disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400">
+			<button type="button" className="btn btn-outline disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400">
 				Cancel
 			</button>
-			<button className="btn btn-primary disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400">
+			<button type="button" className="btn btn-primary disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400">
 				Save
 			</button>
 		</div>

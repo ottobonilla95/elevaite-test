@@ -7,8 +7,13 @@ import PromptMultiTagInputs from "./PromptMultiTagInputs";
 
 
 const promptInputTypeLabels: Record<PromptInputTypes, string> = {
-    [PromptInputTypes.System]: "System",
-    [PromptInputTypes.UserInstructions]: "User Instructions",
+    [PromptInputTypes.DocumentHeader]: "Document Header",
+    [PromptInputTypes.LineItemHeader]: "Line Item Header",
+    [PromptInputTypes.UserFeedback]: "User Feedback",
+    [PromptInputTypes.LineItems]: "Line Items",
+    [PromptInputTypes.ExpectedOutput]: "Expected Output",
+    // [PromptInputTypes.System]: "System",
+    // [PromptInputTypes.UserInstructions]: "User Instructions",
 };
 
 type PromptInputProps = PromptInputItem;

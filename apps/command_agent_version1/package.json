@@ -23,6 +23,7 @@
     "react-drag-drop-files": "^3.0.1",
     "react-flow-renderer": "^10.3.17",
     "react-markdown": "^10.1.0",
+    "react-range-slider-input": "^3.2.1",
     "react-toastify": "^11.0.5",
     "reactflow": "^11.11.4",
     "uuid": "^11.1.0"

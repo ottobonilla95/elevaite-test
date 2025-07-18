@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { CommonSelect, type CommonSelectOption } from "@repo/ui/components";
+import React, { useEffect, useState } from "react";
 import { LoadingKeys, usePrompt } from "../ui/contexts/PromptContext";
 import PromptLoading from "./PromptLoading";
 import PromptRightColToggleVisilityStatus from "./PromptRightColToggleVisilityStatus";
-import { CommonSelect, CommonSelectOption } from "@repo/ui/components";
+import { ParsersManager } from "./outputParsers/ParsersManager";
 
 const models: CommonSelectOption[] = [
 	{ value: 'GPT4o-Mini' },
@@ -11,21 +12,27 @@ const models: CommonSelectOption[] = [
 	{ value: 'Claude 3 Opus' },
 ];
 
-const PromptRightSidebarTabs = () => {
+function PromptRightSidebarTabs(): React.ReactElement {
 	const promptContext = usePrompt();
 	const [activeTab, setActiveTab] = useState("tab1");
 	const [showVersionsDropdown, setShowVersionsDropdown] = useState(false);
 	const [activeItem, setActiveItem] = useState('');
+
+
+	function handleModelChange(value: string): void {
+		console.log("Model changed:", value);
+	}
+
 
 	return (
 		<div className={`card ${promptContext.isRightColPromptInputsColExpanded ? 'hidden' : 'flex'} flex-1 bg-white rounded-xl`}>
 			<div className="tabs-wrapper flex flex-col w-full">
 				<div className="tabs flex my-1 ml-1 text-xs text-gray-500 font-medium rounded-md h-[48px]">
 					<div className="tabs-inner p-1 flex flex-1">
-						<button className={`tab rounded-sm p-2 flex-1${'tab1' === activeTab ? ' tab-active text-orange-500 bg-white' : ''}`} onClick={() => setActiveTab("tab1")}>
+						<button type="button" className={`tab rounded-sm p-2 flex-1${activeTab === 'tab1' ? ' tab-active text-orange-500 bg-white' : ''}`} onClick={() => { setActiveTab("tab1"); }}>
 							Output
 						</button>
-						<button className={`tab rounded-sm p-2 flex-1${'tab2' === activeTab ? ' tab-active text-orange-500 bg-white' : ''}`} onClick={() => setActiveTab("tab2")}>
+						<button type="button" className={`tab rounded-sm p-2 flex-1${activeTab === 'tab2' ? ' tab-active text-orange-500 bg-white' : ''}`} onClick={() => { setActiveTab("tab2"); }}>
 							Generated Prompt
 						</button>
 					</div>
@@ -34,31 +41,33 @@ const PromptRightSidebarTabs = () => {
 				<div className="tab-panels flex flex-1 text-sm w-full rounded-b-xl overflow-auto">
 					{activeTab === "tab1" && (
 						<div className="tab-panel flex flex-col flex-grow">
-							<div className="tab-content p-4">
+							<div className="tab-content p-4 flex flex-col flex-grow items-start gap-2">
 
 								<CommonSelect
 									className="common-select-green"
 									defaultValue="GPT4o-Mini"
 									options={models}
-									onSelectedValueChange={(value) => console.log(value)}
+									onSelectedValueChange={handleModelChange}
 								/>
 
-								{promptContext.output && (
+								<ParsersManager display="output"/>
+
+								{/* {!promptContext.output ? undefined :
 									<div className="flex items-center gap-2 mb-4">
 										<label className="flex items-center gap-2" htmlFor="json">
 											<input id="json" type="checkbox" onChange={promptContext.turnToJSON} />
 											JSON
 										</label>
-										{promptContext.loading[LoadingKeys.ConvertingToJSON] && (
+										{!promptContext.loading[LoadingKeys.ConvertingToJSON] ? undefined : 
 											<PromptLoading className="no-offset m-0" width={20} height={20} />
-										)}
+										}
 									</div>
-								)}
+								}
 
 								<pre className="whitespace-pre-wrap break-words mb-4 text-sm font-sans">
 									{promptContext.jsonOutput}
 									{!promptContext.jsonOutput && JSON.stringify(promptContext.output?.result)}
-								</pre>
+								</pre> */}
 							</div>
 
 							{/* <div className="details pt-4 mt-auto">
@@ -73,12 +82,14 @@ const PromptRightSidebarTabs = () => {
 					)}
 					{activeTab === "tab2" && (
 						<div className="tab-panel flex-col flex-grow">
-							<div className="tab-content p-4">
+							<div className="tab-content p-4 flex flex-col flex-grow items-start gap-2">
+								
+								<ParsersManager display="prompt"/>
 
-								{promptContext.outputVersions.length > 0 && promptContext.outputVersions && (
+								{/* {promptContext.outputVersions.length <= 0 ? undefined : (
 									<div className="flex justify-end">
 										<div className="dropdown-wrapper relative">
-											<button onClick={() => setShowVersionsDropdown(!showVersionsDropdown)}>
+											<button type="button" onClick={() => { setShowVersionsDropdown(!showVersionsDropdown); }}>
 												<svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
 													<g clipPath="url(#clip0_1492_7596)">
 														<path d="M8.59991 4.1999V8.3999L11.3999 9.7999M15.5999 8.3999C15.5999 12.2659 12.4659 15.3999 8.59991 15.3999C4.73392 15.3999 1.59991 12.2659 1.59991 8.3999C1.59991 4.53391 4.73392 1.3999 8.59991 1.3999C12.4659 1.3999 15.5999 4.53391 15.5999 8.3999Z" stroke="#6C8271" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -90,10 +101,10 @@ const PromptRightSidebarTabs = () => {
 													</defs>
 												</svg>
 											</button>
-											{showVersionsDropdown && (
+											{!showVersionsDropdown ? undefined :
 												<div className="dropdown absolute">
 													{promptContext.outputVersions.map((version) => (
-														<button className={activeItem === version.id ? "active" : ""} key={version.id} onClick={() => {
+														<button type="button" className={activeItem === version.id ? "active" : ""} key={version.id} onClick={() => {
 															setActiveItem(String(version.id));
 															setShowVersionsDropdown(false);
 															promptContext.setJsonOutput('');
@@ -101,10 +112,10 @@ const PromptRightSidebarTabs = () => {
 														}}>{version.id}</button>
 													))}
 												</div>
-											)}
+											}
 										</div>
 									</div>
-								)}
+								)} */}
 
 								<pre className="whitespace-pre-wrap break-words text-sm font-sans">
 									{promptContext.output?.prompt}

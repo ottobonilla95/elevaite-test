@@ -3,16 +3,17 @@ import { useState } from "react";
 import { type PromptInputItem, PromptInputTypes } from "../lib/interfaces";
 import { usePrompt } from "../ui/contexts/PromptContext";
 import "./PromptInput.scss";
+import PromptMultiTagInputs from "./PromptMultiTagInputs";
 
 
 const promptInputTypeLabels: Record<PromptInputTypes, string> = {
-    // [PromptInputTypes.DocumentHeader]: "Document Header",
-    // [PromptInputTypes.LineItemHeader]: "Line Item Header",
-    // [PromptInputTypes.UserFeedback]: "User Feedback",
-    // [PromptInputTypes.LineItems]: "Line Items",
-    // [PromptInputTypes.ExpectedOutput]: "Expected Output",
-    [PromptInputTypes.System]: "System",
-    [PromptInputTypes.UserInstructions]: "User Instructions",
+    [PromptInputTypes.DocumentHeader]: "Document Header",
+    [PromptInputTypes.LineItemHeader]: "Line Item Header",
+    [PromptInputTypes.UserFeedback]: "User Feedback",
+    [PromptInputTypes.LineItems]: "Line Items",
+    [PromptInputTypes.ExpectedOutput]: "Expected Output",
+    // [PromptInputTypes.System]: "System",
+    // [PromptInputTypes.UserInstructions]: "User Instructions",
 };
 
 
@@ -64,13 +65,13 @@ export function PromptInput(props: PromptInputProps): JSX.Element {
                 </div>
             </div>
 
-            {/* {(type === PromptInputTypes.DocumentHeader || type === PromptInputTypes.LineItemHeader) ? (
+            {(type as PromptInputTypes === PromptInputTypes.DocumentHeader || type as PromptInputTypes === PromptInputTypes.LineItemHeader) ? (
                 <PromptMultiTagInputs
                     placeholder="Add content..."
                     values={props.values ?? []}
                     onChange={values => promptContext.updatePromptInput(props.id, { values })}
                 />
-            ) : ( */}
+            ) : (
                 <SimpleTextarea
                     wrapperClassName="prompt-input"
                     value={props.prompt}
@@ -78,7 +79,7 @@ export function PromptInput(props: PromptInputProps): JSX.Element {
                     placeholder="Enter prompt text..."
                     useCommonStyling
                 />
-            {/* // )} */}
+            )}
         </div>
     );
 }

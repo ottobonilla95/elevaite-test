@@ -155,16 +155,16 @@ function DesignerCanvas({
 	);
 
 	// Debug: Monitor edge data changes
-	useEffect(() => {
-		console.log("Current edges with data:", edges.map(edge => ({
-			id: edge.id,
-			source: edge.source,
-			target: edge.target,
-			actionType: edge.data?.actionType,
-			type: edge.type,
-			fullData: edge.data
-		})));
-	}, [edges]);
+	// useEffect(() => {
+	// 	console.log("Current edges with data:", edges.map(edge => ({
+	// 		id: edge.id,
+	// 		source: edge.source,
+	// 		target: edge.target,
+	// 		actionType: edge.data?.actionType,
+	// 		type: edge.type,
+	// 		fullData: edge.data
+	// 	})));
+	// }, [edges]);
 
 	// Handle edge changes
 	const onEdgesChange = useCallback(

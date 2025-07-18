@@ -1,11 +1,11 @@
 export enum PromptInputTypes {
-/*   DocumentHeader = "documentHeader",
+  DocumentHeader = "documentHeader",
   LineItemHeader = "lineItemHeader",
   UserFeedback = "userFeedback",
   LineItems = "lineItems",
-  ExpectedOutput = "expectedOutput", */
-  System = "system",
-  UserInstructions = "userInstructions",
+  ExpectedOutput = "expectedOutput",
+  // System = "system",
+  // UserInstructions = "userInstructions",
 }
 
 export interface UploadFileResponseObject {
@@ -21,9 +21,21 @@ export interface UploadFileResponseObject {
 export interface ProcessCurrentPageResponseObject {
   document_headers: string[];
   line_item_headers: string[];
-  result: string;
+  result: ExtractionResult;
   prompt: string;
 }
+
+export interface ProcessedPage extends ProcessCurrentPageResponseObject {
+  contains_header_error?: boolean;  
+  // header is duplicate; kept here for reference only
+  // header?: {
+  //   document_headers: string[];
+  //   line_item_headers: string[];
+  // };
+}
+export type ExtractionResult = Record<string, string> & {
+  line_items: Record<string, string>[];
+};
 
 export interface PageChangeResponseObject {
   image: string;
@@ -33,7 +45,8 @@ export interface PageChangeResponseObject {
 export interface regenerateResponseObject {
   id?: string;
   prompt: string;
-  result: string;
+  result: ExtractionResult;
+  line_item_error?: string;
 }
 
 export type RunResponseObject = string[];

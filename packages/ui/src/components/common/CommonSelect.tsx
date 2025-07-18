@@ -35,7 +35,7 @@ export interface CommonSelectProps extends React.HTMLAttributes<HTMLDivElement> 
 
 export function CommonSelect({
     options, defaultValue, controlledValue, callbackOnDefaultValue, noSelectionMessage,
-    anchor, showTitles, showSelected, emptyListLabel, onSelectedValueChange, onAdd, addLabel, useCommonStyling,
+    anchor, showTitles, showSelected, emptyListLabel, onSelectedValueChange, onAdd, onHover, onLeave, addLabel, useCommonStyling,
     noDoubleClick, isLoading, AdvancedOptionComponent, ...props}: CommonSelectProps): React.ReactElement<CommonSelectProps> {
     const [selectedOption, setSelectedOption] = useState<CommonSelectOption>();
     const [isOpen, setIsOpen] = useState(false);
@@ -163,8 +163,8 @@ export function CommonSelect({
                                     onClick={() => { handleClick(option); } }
                                     noBackground
                                     disabled={option.disabled}
-									onMouseEnter={() => { if (props.onHover) props.onHover(option.value); }}
-									onMouseLeave={() => { if (props.onLeave) props.onLeave(option.value); }}
+									onMouseEnter={() => { if (onHover) onHover(option.value); }}
+									onMouseLeave={() => { if (onLeave) onLeave(option.value); }}
                                     title={showTitles ? (option.label ? option.label : option.value) : ""}
                                 >
                                     {!showSelected || selectedOption?.value !== option.value ? undefined :

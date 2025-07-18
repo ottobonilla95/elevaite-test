@@ -1,5 +1,5 @@
 import { isDeployResponse, isPageChangeResponse, isProcessCurrentPageResponse, isReRunResponse, isRunResponse, isUploadFileResponse } from "./discriminatorsPrompt";
-import type { DeployResponse, PageChangeResponseObject, ProcessCurrentPageResponseObject, RunResponseObject, UploadFileResponseObject } from "./interfaces";
+import type { DeployResponse, PageChangeResponseObject, ProcessCurrentPageResponseObject, regenerateResponseObject, RunResponseObject, UploadFileResponseObject } from "./interfaces";
 
 
 
@@ -85,7 +85,7 @@ export async function run(sessionId: string): Promise<RunResponseObject> {
   throw new Error("Unexpected extraction response");
 }
 
-export async function reRun(sessionId: string, options?: { documentHeader?: string; lineItemHeader?: string; userFeedback?: string; }): Promise<unknown> {
+export async function reRun(sessionId: string, options?: { documentHeader?: string; lineItemHeader?: string; userFeedback?: string; }): Promise<regenerateResponseObject> {
   const url = new URL(`${BACKEND_URL ?? ""}regenerate/`);
   url.searchParams.set("session_id", sessionId);
   url.searchParams.set("document_header", options?.documentHeader ?? "");

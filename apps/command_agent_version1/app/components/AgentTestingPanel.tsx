@@ -1,3 +1,4 @@
+import { ChatbotIcons } from "@repo/ui/components";
 import { AlertCircle, Bot, User } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { executeWorkflowModern } from "../lib/actions";
@@ -6,7 +7,6 @@ import "./AgentTestingPanel.scss";
 import { AgentTestingParser } from "./AgentTestingParser";
 import AgentWorkflowDetailsModal from "./AgentWorkflowDetailsModal";
 import { type ChatMessage } from "./type";
-import { ChatbotIcons } from "@repo/ui/components";
 
 const rows = [
 	{
@@ -52,7 +52,7 @@ function AgentTestingPanel({ workflowId } : { workflowId: string }): React.React
 		{
 			id: Date.now(),
 			text: workflowId ? `Workflow deployed successfully with ID: ${workflowId.substring(0, 8)}. You can now ask questions.` :
-								"No workflow detected. Please select a workflow from the left panel.",
+								"No workflow detected. Please select a workflow from the left panel or save a new one.",
 			sender: "bot",
 		},
 	]);
@@ -63,7 +63,7 @@ function AgentTestingPanel({ workflowId } : { workflowId: string }): React.React
 				{
 					id: Date.now(),
 					text: workflowId ? `Workflow deployed successfully with ID: ${workflowId.substring(0, 8)}. You can now ask questions.` :
-										"No workflow detected. Please select a workflow from the left panel.",
+										"No workflow detected. Please select a workflow from the left panel or save a new one.",
 					sender: "bot",
 				},
 			]);
@@ -122,10 +122,15 @@ function AgentTestingPanel({ workflowId } : { workflowId: string }): React.React
 
 			let responseText = "No response received";
 
-			if (result?.response) {
+			if (result.response) {
 				try {
-					const parsedResponse = JSON.parse(result.response);
-					responseText = parsedResponse.content || "No content found";
+					const parsedResponse = JSON.parse(result.response) as unknown;
+					responseText = typeof parsedResponse === "object" 
+									&& parsedResponse !== null 
+									&& "content" in parsedResponse 
+									&& parsedResponse.content
+									&& typeof parsedResponse.content === "string"
+									? parsedResponse.content :  "No content found";
 				} catch (parseError) {
 					console.error("Failed to parse response JSON:", parseError);
 					responseText = result.response || "No response received";
@@ -157,7 +162,7 @@ function AgentTestingPanel({ workflowId } : { workflowId: string }): React.React
 		}
 	};
 
-	const renderUserAvatar = () => {
+	const renderUserAvatar = (): React.ReactElement => {
 		return (
 			<div className="message-avatar rounded-full shrink-0 bg-[#FF681F]">
 				<User size={16} />
