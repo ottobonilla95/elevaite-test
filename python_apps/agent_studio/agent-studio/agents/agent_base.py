@@ -12,8 +12,6 @@ from openai.types.chat.chat_completion_message_tool_call_param import (
     ChatCompletionMessageToolCallParam,
 )
 from data_classes import PromptObject
-from services.shared_state import update_status, get_status, session_status
-
 
 
 # Lazy import to avoid Redis connection at import time
@@ -240,9 +238,6 @@ class Agent(BaseModel):
                             tool_id = tool.id
                             arguments = json.loads(tool.function.arguments)
                             function_name = tool.function.name
-                            status = "Calling: "+function_name+" with arguments: "+str(arguments)
-                            update_status("superuser@iopex.com", "Calling: "+status[:30])
-                            yield session_status
 
                             # Track tool usage
                             usage_id = None

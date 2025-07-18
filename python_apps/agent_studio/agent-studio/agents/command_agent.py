@@ -9,7 +9,6 @@ from openai.types.chat.chat_completion_message_tool_call_param import (
 from .agent_base import Agent
 from .tools import tool_store
 from . import agent_store
-from services.shared_state import update_status, get_status, session_status
 
 
 class CommandAgent(Agent):
@@ -102,9 +101,6 @@ class CommandAgent(Agent):
                         tool_id = tool.id
                         arguments = json.loads(tool.function.arguments)
                         function_name = tool.function.name
-                        status = "Calling: "+function_name+" with arguments: "+str(arguments)
-                        update_status("superuser@iopex.com", status[:30])
-                        yield session_status
 
                         # Use dynamic_agent_store if provided, otherwise fall back to imported agent_store
                         current_agent_store = (
