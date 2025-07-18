@@ -67,6 +67,12 @@ function PromptNewForm(): React.ReactElement {
 	const [showHover, setShowHover] = useState(false);
   	const [hoverPosition, setHoverPosition] = useState<{top: number, left: number}>({top: 0, left: 0});
 	const hoverTargetRef = useRef<HTMLDivElement | null>(null);
+	const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+
+
+	useEffect(() => {
+		setPortalRoot(document.getElementById("portal-root"));
+	}, []);
 
 	useEffect(() => {
 		function updatePosition(): void {
@@ -156,7 +162,6 @@ function PromptNewForm(): React.ReactElement {
 		setMaxTokens(value[1].toString());
 	}
 
-	const portalRoot = document.getElementById("portal-root");
 
   return (
 	<div className="flex flex-col w-full">

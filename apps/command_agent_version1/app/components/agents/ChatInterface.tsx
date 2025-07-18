@@ -88,17 +88,17 @@ function ChatInterface({
 				runtime_overrides: {},
 			};
 
-			if (deploymentName) {
-				// Use deployment-based execution
-				console.log("Executing workflow by deployment:", deploymentName);
-				executionRequest.deployment_name = deploymentName;
-			} else {
-				// Use workflow ID
-				console.log("Executing workflow by ID:", workflowId);
-				executionRequest.workflow_id = workflowId;
-			}
+			// if (deploymentName) {
+			// 	// Use deployment-based execution
+			// 	console.log("Executing workflow by deployment:", deploymentName);
+			// 	executionRequest.deployment_name = deploymentName;
+			// } else {
+			// 	// Use workflow ID
+			// 	console.log("Executing workflow by ID:", workflowId);
+			// 	executionRequest.workflow_id = workflowId;
+			// }
 
-			const result = await executeWorkflowModern(executionRequest);
+			const result = await executeWorkflowModern(workflowId, executionRequest);
 
 			const botMessage = {
 				id: Date.now() + 1,
