@@ -134,18 +134,31 @@ export function AgentTestingParser({message}: AgentTestingParserProps): JSX.Elem
     }
 
 
-    function linkify(text: string): string {
-        return text.replace(/(?:https?:\/\/|www\.)[^\s<>"')\],.]+[^\s<>"')\],.]/g, (match) => {
-            const href = match.startsWith("http") ? match : `https://${match}`;
-            return `<a href="${href}" target="_blank" rel="noopener noreferrer">${match}</a>`;
+    function linkify(text: string): string {        
+        // Convert markdown-style links first
+        let html = text.replace(/\[(?<label>[^\]]+)]\((?<url>https?:\/\/[^\s)]+)\)/g, (
+            _match, _p1, _p2, _offset, _string, groups: { label?: string; url?: string }
+        ) => {
+            if (!groups.label || !groups.url) return _match;
+            return `<a href="${groups.url}" title="${groups.url}" target="_blank" rel="noopener noreferrer">${groups.label}</a>`;
         });
+
+        // Then linkify any remaining plain URLs not already inside an anchor
+        html = html.replace(/(?<!["'>])\b(?<url>https?:\/\/[^\s<>"')\],.]+[^\s<>"')\],.])/g, (
+            _match, _p1, _offset, _string, groups: { label?: string; url?: string }
+        ) => {
+            if (!groups.url) return _match;
+            return `<a href="${groups.url}" target="_blank" rel="noopener noreferrer">${groups.url}</a>`;
+        });
+
+        return html;
     }
 
 
 
     return (
-        <div className="agent-testing-parser-container">            
-            <div dangerouslySetInnerHTML={{ __html: linkify(formattedText) }} />
+        <div className="agent-testing-parser-container">
+            <div dangerouslySetInnerHTML={{ __html: formattedText }} />
         </div>
     );
 }
