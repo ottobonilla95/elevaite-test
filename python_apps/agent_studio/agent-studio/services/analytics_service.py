@@ -24,7 +24,9 @@ class AnalyticsService:
         try:
             if db:
                 existing_session = (
-                    db.query(models.SessionMetrics).filter(models.SessionMetrics.session_id == session_id).first()
+                    db.query(models.SessionMetrics)
+                    .filter(models.SessionMetrics.session_id == session_id)
+                    .first()
                 )
 
                 if not existing_session:
@@ -54,20 +56,52 @@ class AnalyticsService:
         user_id: Optional[str] = None,
         session_id: Optional[str] = None,
         query: Optional[str] = None,
+        agent_id: Optional[str] = None,
+        db: Optional[Session] = None,
     ) -> None:
         try:
+            start_time = datetime.now()
             execution_data = {
                 "execution_id": execution_id,
                 "agent_name": agent_name,
                 "user_id": user_id,
                 "session_id": session_id,
                 "query": query,
-                "start_time": datetime.now(),
+                "agent_id": agent_id,
+                "start_time": start_time,
                 "tool_count": 0,
             }
 
             self.current_executions[execution_id] = execution_data
-            self.logger.info(f"Started tracking execution: {execution_id} for agent: {agent_name}")
+
+            # Create the database record immediately so tools can reference it
+            if db and agent_id:
+                try:
+                    metrics = models.AgentExecutionMetrics(
+                        execution_id=execution_id,
+                        agent_name=agent_name,
+                        agent_id=agent_id,
+                        start_time=start_time,
+                        status="running",  # Initial status
+                        query=query,
+                        session_id=session_id,
+                        user_id=user_id,
+                        tool_count=0,
+                    )
+                    db.add(metrics)
+                    db.commit()
+                    self.logger.info(
+                        f"Created initial execution record: {execution_id}"
+                    )
+                except Exception as db_error:
+                    self.logger.error(
+                        f"Failed to create initial execution record: {db_error}"
+                    )
+                    # Continue without database record - fallback to old behavior
+
+            self.logger.info(
+                f"Started tracking execution: {execution_id} for agent: {agent_name}"
+            )
 
         except Exception as e:
             self.logger.error(f"Error starting agent execution tracking: {e}")
@@ -82,30 +116,67 @@ class AnalyticsService:
     ) -> None:
         try:
             if execution_id not in self.current_executions:
-                self.logger.warning(f"Execution {execution_id} not found in current executions")
+                self.logger.warning(
+                    f"Execution {execution_id} not found in current executions"
+                )
                 return
 
             execution_data = self.current_executions[execution_id]
             end_time = datetime.now()
-            duration_ms = int((end_time - execution_data["start_time"]).total_seconds() * 1000)
+            duration_ms = int(
+                (end_time - execution_data["start_time"]).total_seconds() * 1000
+            )
 
             if db:
-                metrics = models.AgentExecutionMetrics(
-                    execution_id=execution_id,
-                    agent_name=execution_data["agent_name"],
-                    start_time=execution_data["start_time"],
-                    end_time=end_time,
-                    duration_ms=duration_ms,
-                    status=status,
-                    query=execution_data.get("query"),
-                    response=response,
-                    tool_count=tool_count or execution_data.get("tool_count", 0),
-                    session_id=execution_data.get("session_id"),
-                    user_id=execution_data.get("user_id"),
-                    agent_id=execution_data.get("agent_id"),
-                )
-                db.add(metrics)
-                db.commit()
+                # Try to update existing record first, create new one if it doesn't exist
+                try:
+                    existing_metrics = (
+                        db.query(models.AgentExecutionMetrics)
+                        .filter(
+                            models.AgentExecutionMetrics.execution_id == execution_id
+                        )
+                        .first()
+                    )
+
+                    if existing_metrics:
+                        # Update existing record
+                        existing_metrics.end_time = end_time
+                        existing_metrics.duration_ms = duration_ms
+                        existing_metrics.status = status
+                        existing_metrics.response = response
+                        existing_metrics.tool_count = tool_count or execution_data.get(
+                            "tool_count", 0
+                        )
+                        db.commit()
+                        self.logger.info(
+                            f"Updated existing execution record: {execution_id}"
+                        )
+                    else:
+                        # Create new record (fallback for cases where start didn't create one)
+                        metrics = models.AgentExecutionMetrics(
+                            execution_id=execution_id,
+                            agent_name=execution_data["agent_name"],
+                            agent_id=execution_data.get("agent_id"),
+                            start_time=execution_data["start_time"],
+                            end_time=end_time,
+                            duration_ms=duration_ms,
+                            status=status,
+                            query=execution_data.get("query"),
+                            response=response,
+                            tool_count=tool_count
+                            or execution_data.get("tool_count", 0),
+                            session_id=execution_data.get("session_id"),
+                            user_id=execution_data.get("user_id"),
+                        )
+                        db.add(metrics)
+                        db.commit()
+                        self.logger.info(
+                            f"Created new execution record: {execution_id}"
+                        )
+                except Exception as db_error:
+                    self.logger.error(
+                        f"Failed to update/create execution record: {db_error}"
+                    )
 
             del self.current_executions[execution_id]
             self.logger.info(f"Completed tracking execution: {execution_id}")
@@ -134,7 +205,9 @@ class AnalyticsService:
             if execution_id in self.current_executions:
                 self.current_executions[execution_id]["tool_count"] += 1
 
-            self.logger.info(f"Started tracking tool usage: {usage_id} for tool: {tool_name}")
+            self.logger.info(
+                f"Started tracking tool usage: {usage_id} for tool: {tool_name}"
+            )
 
         except Exception as e:
             self.logger.error(f"Error starting tool usage tracking: {e}")
@@ -153,22 +226,32 @@ class AnalyticsService:
 
             tool_data = self.current_tools[usage_id]
             end_time = datetime.now()
-            duration_ms = int((end_time - tool_data["start_time"]).total_seconds() * 1000)
+            duration_ms = int(
+                (end_time - tool_data["start_time"]).total_seconds() * 1000
+            )
 
             if db:
-                metrics = models.ToolUsageMetrics(
-                    usage_id=usage_id,
-                    tool_name=tool_data["tool_name"],
-                    execution_id=tool_data["execution_id"],
-                    start_time=tool_data["start_time"],
-                    end_time=end_time,
-                    duration_ms=duration_ms,
-                    status=status,
-                    input_data=tool_data.get("parameters"),
-                    output_data={"result": result} if result else None,
-                )
-                db.add(metrics)
-                db.commit()
+                try:
+                    metrics = models.ToolUsageMetrics(
+                        usage_id=usage_id,
+                        tool_name=tool_data["tool_name"],
+                        execution_id=tool_data["execution_id"],
+                        start_time=tool_data["start_time"],
+                        end_time=end_time,
+                        duration_ms=duration_ms,
+                        status=status,
+                        input_data=tool_data.get("parameters"),
+                        output_data={"result": result} if result else None,
+                    )
+                    db.add(metrics)
+                    db.commit()
+                    self.logger.info(f"Created tool usage record: {usage_id}")
+                except Exception as commit_error:
+                    db.rollback()
+                    self.logger.error(
+                        f"Failed to create tool usage record: {commit_error}"
+                    )
+                    # Don't raise the exception to avoid crashing the workflow
 
             del self.current_tools[usage_id]
             self.logger.info(f"Completed tracking tool usage: {usage_id}")
@@ -196,7 +279,9 @@ class AnalyticsService:
             }
 
             self.current_workflows[workflow_id] = workflow_data
-            self.logger.info(f"Started tracking workflow: {workflow_id} of type: {workflow_type}")
+            self.logger.info(
+                f"Started tracking workflow: {workflow_id} of type: {workflow_type}"
+            )
 
         except Exception as e:
             self.logger.error(f"Error starting workflow tracking: {e}")
@@ -209,12 +294,16 @@ class AnalyticsService:
     ) -> None:
         try:
             if workflow_id not in self.current_workflows:
-                self.logger.warning(f"Workflow {workflow_id} not found in current workflows")
+                self.logger.warning(
+                    f"Workflow {workflow_id} not found in current workflows"
+                )
                 return
 
             workflow_data = self.current_workflows[workflow_id]
             end_time = datetime.now()
-            duration_ms = int((end_time - workflow_data["start_time"]).total_seconds() * 1000)
+            duration_ms = int(
+                (end_time - workflow_data["start_time"]).total_seconds() * 1000
+            )
 
             if db:
                 metrics = models.WorkflowMetrics(
@@ -251,7 +340,9 @@ class AnalyticsService:
                     tool_data["output_data"] = output_data
                 self.logger.debug(f"Updated tool metrics for usage_id: {usage_id}")
             else:
-                self.logger.warning(f"Tool usage {usage_id} not found for metrics update")
+                self.logger.warning(
+                    f"Tool usage {usage_id} not found for metrics update"
+                )
 
         except Exception as e:
             self.logger.error(f"Error updating tool metrics: {e}")
@@ -280,9 +371,13 @@ class AnalyticsService:
                 if api_calls_count is not None:
                     execution_data["api_calls_count"] = api_calls_count
 
-                self.logger.debug(f"Updated execution metrics for execution_id: {execution_id}")
+                self.logger.debug(
+                    f"Updated execution metrics for execution_id: {execution_id}"
+                )
             else:
-                self.logger.warning(f"Execution {execution_id} not found for metrics update")
+                self.logger.warning(
+                    f"Execution {execution_id} not found for metrics update"
+                )
 
         except Exception as e:
             self.logger.error(f"Error updating execution metrics: {e}")
@@ -350,6 +445,8 @@ class AnalyticsService:
                 user_id=user_id,
                 session_id=session_id,
                 query=query,
+                agent_id=agent_id,
+                db=db,
             )
 
             yield execution_id
