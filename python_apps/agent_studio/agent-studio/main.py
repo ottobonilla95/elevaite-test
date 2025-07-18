@@ -322,7 +322,49 @@ async def get_background_task_status():
 #     Modern workflow deployment endpoint - temporarily disabled
 #     """
 #     return {"status": "error", "message": "Deploy endpoint temporarily disabled"}
+@app.get("/currentStatus")
+async def get_current_status(uid: str, sid: str):
+    """Endpoint to report real-time agent status updates based on actual processing."""
+    print("uid", uid)
+    print("sid", sid)
+    print("session_status", session_status)
 
+    async def status_generator():
+        print("uid in generator", uid)
+        print("sid in generator", sid)
+        print("session_status", session_status)
+        if uid not in session_status:
+            update_status(uid, "Thinking...")
+            yield f"data: Thinking...\n\n"
+
+        last_status = None
+        counter = 0
+        while True:
+            current_status = get_status(uid)
+            counter += 1
+
+            # Only send updates when status changes
+            if current_status != last_status:
+                yield f"data: {current_status}\n\n"
+                last_status = current_status
+
+            # Short polling interval
+            await asyncio.sleep(0.1)
+
+            # If status indicates completion, finish the stream
+            if counter > 100:
+                break
+
+    return StreamingResponse(
+        status_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 if __name__ == "__main__":
     import uvicorn

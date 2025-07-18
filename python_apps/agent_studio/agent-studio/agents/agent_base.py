@@ -12,6 +12,7 @@ from openai.types.chat.chat_completion_message_tool_call_param import (
     ChatCompletionMessageToolCallParam,
 )
 from data_classes import PromptObject
+from services.shared_state import update_status
 
 
 # Lazy import to avoid Redis connection at import time
@@ -92,6 +93,7 @@ class Agent(BaseModel):
         """
         from utils import client
         from .tools import tool_store
+        update_status("superuser@iopex.com", "Thinking...")
 
         # Skip Redis-dependent agent_store, use dynamic agent store if available
         agent_store = kwargs.get("dynamic_agent_store", {})
@@ -202,12 +204,14 @@ class Agent(BaseModel):
                         "temperature": self.temperature,
                     }
 
+
                     # Add tools if available
                     if self.functions:
                         api_params["tools"] = self.functions
                         api_params["tool_choice"] = "auto"
 
                     response = client.chat.completions.create(**api_params)
+                    update_status("superuser@iopex.com", "Thinking...")
 
                     if enable_analytics and analytics_service:
                         analytics_service.logger.debug(
@@ -238,6 +242,7 @@ class Agent(BaseModel):
                             tool_id = tool.id
                             arguments = json.loads(tool.function.arguments)
                             function_name = tool.function.name
+                            update_status("superuser@iopex.com", function_name)
 
                             # Track tool usage
                             usage_id = None
@@ -293,6 +298,7 @@ class Agent(BaseModel):
                                         "usage_id": str(usage_id) if usage_id else None,
                                     }
                                 )
+                                update_status("superuser@iopex.com", "Thinking...")
 
                                 # Always add tool response message to maintain conversation flow
                                 messages.append(

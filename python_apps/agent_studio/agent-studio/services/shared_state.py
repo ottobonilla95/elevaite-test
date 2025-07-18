@@ -5,13 +5,13 @@ if not os.getenv("KUBERNETES_SERVICE_HOST"):
     load_dotenv()
 # Initialize Redis database connection whenever its created TBD
 
-session_status = {"superuser@iopex.com": "Testing..."}
+session_status = {"superuser@iopex.com": ""}
 
-async def update_status(user_if: str, status: str):
+def update_status(user_if: str, status: str):
     """Update the status for a specific session."""
     session_status[user_if] = status
 
-async def get_status(uid: str) -> str:
+def get_status(uid: str) -> str:
     """Get the status for a specific session."""
     return session_status.get(uid, "Status not found...")
 
