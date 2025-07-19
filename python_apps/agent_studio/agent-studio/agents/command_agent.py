@@ -9,6 +9,7 @@ from openai.types.chat.chat_completion_message_tool_call_param import (
 from .agent_base import Agent
 from .tools import tool_store
 from . import agent_store
+from services.shared_state import update_status
 
 
 class CommandAgent(Agent):
@@ -101,6 +102,7 @@ class CommandAgent(Agent):
                         tool_id = tool.id
                         arguments = json.loads(tool.function.arguments)
                         function_name = tool.function.name
+                        update_status("superuser@iopex.com", function_name)
 
                         # Use dynamic_agent_store if provided, otherwise fall back to imported agent_store
                         current_agent_store = (
