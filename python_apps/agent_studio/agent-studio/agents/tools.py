@@ -249,20 +249,20 @@ def media_context_retriever(
         )
         query_vector = embedding_response.data[0].embedding
 
-        # Parse filter parameters
-        filter_dict = None
-        if filter_params:
-            try:
-                filter_dict = json.loads(filter_params)
-            except json.JSONDecodeError:
-                print(f"Warning: Invalid filter_params JSON: {filter_params}")
+        # Parse filter parameters - temporarily disabled due to Qdrant compatibility issues
+        # filter_dict = None
+        # if filter_params:
+        #     try:
+        #         filter_dict = json.loads(filter_params)
+        #     except json.JSONDecodeError:
+        #         print(f"Warning: Invalid filter_params JSON: {filter_params}")
 
-        # Perform search
+        # Perform search without filters for now
         search_results = qdrant_client.search(
             collection_name=collection,
             query_vector=query_vector,
             limit=limit,
-            query_filter=filter_dict,
+            # query_filter=filter_dict,  # Temporarily disabled
             with_payload=True,
         )
 
@@ -292,7 +292,7 @@ def media_context_retriever(
             result_text += f"Brand: {payload.get('brand', 'Unknown Brand')}\n"
             result_text += f"Industry: {payload.get('industry', 'Unknown Industry')}\n"
             result_text += f"File Type: {payload.get('file_type', 'Unknown')}\n"
-            result_text += f"Duration: {payload.get('duration_days', 0)} days\n"
+            result_text += f"Duration: {payload.get('duration(days)', 0)} days\n"
             result_text += (
                 f"Duration Category: {payload.get('duration_category', 'Unknown')}\n"
             )
@@ -309,10 +309,14 @@ def media_context_retriever(
             clicks = payload.get("clicks", 0)
             conversion = payload.get("conversion", 0)
 
+            # Calculate budget as 0.05 * booked_impressions
+            budget = 0.05 * booked_impressions if booked_impressions else 0
+
             result_text += f"Booked Impressions: {booked_impressions:,}\n"
             result_text += f"Delivered Impressions: {delivered_impressions:,}\n"
             result_text += f"Clicks: {clicks:,}\n"
             result_text += f"Conversion: {conversion}\n"
+            result_text += f"Budget: ${budget:,.2f}\n"
 
             # Calculate CTR if we have the data
             if delivered_impressions > 0 and clicks > 0:
@@ -746,18 +750,22 @@ def _create_google_drive_folder(
 
 
 def _share_folder_with_users(service, folder_id: str, emails: List[str]):
-    """Share a folder with specified email addresses"""
-    for email in emails:
-        if email:  # Only share if email is provided
-            try:
-                permission = {"type": "user", "role": "writer", "emailAddress": email}
-                service.permissions().create(
-                    fileId=folder_id, body=permission, supportsAllDrives=True
-                ).execute()
-            except Exception as e:
-                logging.getLogger(__name__).warning(
-                    f"Failed to share with {email}: {str(e)}"
-                )
+    """Share a folder with iopex.com domain (ignores individual emails)"""
+    try:
+        # Share with entire iopex.com domain instead of individual emails
+        permission = {
+            "type": "domain",
+            "role": "writer",
+            "domain": "iopex.com"
+        }
+        service.permissions().create(
+            fileId=folder_id, body=permission, supportsAllDrives=True
+        ).execute()
+        logging.getLogger(__name__).info(f"Shared folder {folder_id} with iopex.com domain")
+    except Exception as e:
+        logging.getLogger(__name__).warning(
+            f"Failed to share with iopex.com domain: {str(e)}"
+        )
 
 
 def _extract_targeting_info_from_placement(
@@ -774,60 +782,30 @@ def _extract_targeting_info_from_placement(
         "behavioral_data": "Not specified",
     }
 
-    # Check for new targeting configuration format
-    if "new_targeting_configuration" in placement_info:
-        config = placement_info["new_targeting_configuration"]
-        targeting_info.update(
-            {
-                "age_range": (
-                    ", ".join(config.get("age_range", []))
-                    if config.get("age_range")
-                    else "Not specified"
-                ),
-                "gender": (
-                    ", ".join(config.get("gender", []))
-                    if config.get("gender")
-                    else "Not specified"
-                ),
-                "income_level": (
-                    ", ".join(config.get("income_level", []))
-                    if config.get("income_level")
-                    else "Not specified"
-                ),
-                "interests": (
-                    ", ".join(config.get("interests", []))
-                    if config.get("interests")
-                    else "Not specified"
-                ),
-                "location": (
-                    ", ".join(config.get("location", []))
-                    if config.get("location")
-                    else "Not specified"
-                ),
-                "behavioral_data": (
-                    ", ".join(config.get("behavioral_data", []))
-                    if config.get("behavioral_data")
-                    else "Not specified"
-                ),
+    # Check for simple targeting format
+    if "targeting" in placement_info:
+        targeting = placement_info["targeting"]
+        if isinstance(targeting, dict):
+            targeting_info.update(
+                {
+                    "age_range": targeting.get("age_range", "Not specified"),
+                    "gender": targeting.get("gender", "Not specified"),
+                    "income_level": targeting.get("income_level", "Not specified"),
+                    "interests": targeting.get("interests", "Not specified"),
+                    "location": targeting.get("location", "Not specified"),
+                    "behavioral_data": targeting.get("behavioral_data", "Not specified"),
+                }
+            )
+        elif isinstance(targeting, str):
+            # If targeting is a string, use it for all fields
+            targeting_info = {
+                "age_range": targeting,
+                "gender": targeting,
+                "income_level": targeting,
+                "interests": targeting,
+                "location": targeting,
+                "behavioral_data": targeting,
             }
-        )
-    # Check for legacy targeting suggestions format
-    elif "targeting_suggestions" in placement_info:
-        suggestions = placement_info["targeting_suggestions"]
-        targeting_info.update(
-            {
-                "age_range": suggestions.get("age_range", "Not specified"),
-                "gender": suggestions.get("gender", "Not specified"),
-                "income_level": suggestions.get("income_level", "Not specified"),
-                "interests": (
-                    ", ".join(suggestions.get("interests", []))
-                    if suggestions.get("interests")
-                    else "Not specified"
-                ),
-                "location": suggestions.get("location", "Not specified"),
-                "behavioral_data": suggestions.get("behavioral_data", "Not specified"),
-            }
-        )
 
     return targeting_info
 
@@ -1383,19 +1361,19 @@ def create_insertion_order(
             "budget": {
                 "amount": 100000.00
             },
-            "new_targeting_configuration": {
-                "age_range": ["18-24", "25-34"],
-                "gender": ["Male", "Female"],
-                "income_level": ["Middle Income"],
-                "location": ["United States", "Canada"],
-                "interests": ["Technology", "Gaming"],
-                "behavioral_data": ["Tech Enthusiasts", "Early Adopters"]
+            "targeting": {
+                "age_range": "18-34",
+                "gender": "Male, Female",
+                "income_level": "Middle Income",
+                "location": "United States, Canada",
+                "interests": "Technology, Gaming",
+                "behavioral_data": "Tech Enthusiasts, Early Adopters"
             }
         }
     ]
 
     EXAMPLES:
-    Example: create_insertion_order("IO-123456", "Summer Campaign 2024", "Example Brand", "John Smith", "john@company.com", "Sarah Johnson", "sarah@agency.com", "Mike Davis", "mike@agency.com", "Launch summer product line", '[{"name": "Social Media", "destination": "Instagram", "start_date": "2024-06-01", "end_date": "2024-08-31", "metrics": {"impressions": 500000, "clicks": 25000}, "bid_rate": {"cpm": 2.50, "cpc": 0.75}, "budget": {"amount": 100000.00}, "new_targeting_configuration": {"age_range": ["18-24"], "gender": ["Male", "Female"], "income_level": ["Middle Income"], "location": ["United States"], "interests": ["Technology"], "behavioral_data": ["Tech Enthusiasts"]}}]')
+    Example: create_insertion_order("IO-123456", "Summer Campaign 2024", "Example Brand", "John Smith", "john@company.com", "Launch summer product line", '[{"name": "Social Media", "destination": "Instagram", "start_date": "2024-06-01", "end_date": "2024-08-31", "metrics": {"impressions": 500000, "clicks": 25000}, "bid_rate": {"cpm": 2.50, "cpc": 0.75}, "budget": {"amount": 100000.00}, "targeting": {"age_range": "18-24", "gender": "Male, Female", "income_level": "Middle Income", "location": "United States", "interests": "Technology", "behavioral_data": "Tech Enthusiasts"}}]')
     """
     logger = logging.getLogger(__name__)
 
@@ -1781,28 +1759,18 @@ def _create_placement_record_direct(
                 placement_record["CPC__c"] = bid_rate["CPC"]
 
         # Add targeting configuration if available
-        if placement_data.get("new_targeting_configuration"):
-            targeting = placement_data["new_targeting_configuration"]
+        if placement_data.get("targeting"):
+            targeting = placement_data["targeting"]
             if targeting.get("age_range"):
-                placement_record["target_audience_age_range__c"] = ", ".join(
-                    targeting["age_range"]
-                )
+                placement_record["target_audience_age_range__c"] = targeting["age_range"]
             if targeting.get("gender"):
-                placement_record["target_audience_gender__c"] = ", ".join(
-                    targeting["gender"]
-                )
+                placement_record["target_audience_gender__c"] = targeting["gender"]
             if targeting.get("income_level"):
-                placement_record["target_audience_income_level__c"] = ", ".join(
-                    targeting["income_level"]
-                )
+                placement_record["target_audience_income_level__c"] = targeting["income_level"]
             if targeting.get("location"):
-                placement_record["target_audience_location__c"] = ", ".join(
-                    targeting["location"]
-                )
+                placement_record["target_audience_location__c"] = targeting["location"]
             if targeting.get("interests"):
-                placement_record["target_audience_interests__c"] = ", ".join(
-                    targeting["interests"]
-                )
+                placement_record["target_audience_interests__c"] = targeting["interests"]
             if targeting.get("behavioral_data"):
                 placement_record["target_audience_behavioral_data__c"] = ", ".join(
                     targeting["behavioral_data"]
@@ -2158,19 +2126,19 @@ def create_salesforce_insertion_order(
             "budget": {
                 "amount": 100000.00
             },
-            "new_targeting_configuration": {
-                "age_range": ["18-24", "25-34"],
-                "gender": ["Male", "Female"],
-                "income_level": ["Middle Income"],
-                "location": ["United States", "Canada"],
-                "interests": ["Technology", "Gaming"],
-                "behavioral_data": ["Tech Enthusiasts", "Early Adopters"]
+            "targeting": {
+                "age_range": "18-34",
+                "gender": "Male, Female",
+                "income_level": "Middle Income",
+                "location": "United States, Canada",
+                "interests": "Technology, Gaming",
+                "behavioral_data": "Tech Enthusiasts, Early Adopters"
             }
         }
     ]
 
     EXAMPLES:
-    Example: create_salesforce_insertion_order("IO-123456", "Summer Campaign 2024", "Example Brand", "John Smith", "john@company.com", "Sarah Johnson", "sarah@agency.com", "Mike Davis", "mike@agency.com", "Launch summer product line", '[{"name": "Social Media", "destination": "Instagram", "start_date": "2024-06-01", "end_date": "2024-08-31", "metrics": {"impressions": 500000, "clicks": 25000}, "bid_rate": {"cpm": 2.50, "cpc": 0.75}, "budget": {"amount": 100000.00}, "new_targeting_configuration": {"age_range": ["18-24"], "gender": ["Male", "Female"], "income_level": ["Middle Income"], "location": ["United States"], "interests": ["Technology"], "behavioral_data": ["Tech Enthusiasts"]}}]', "001XX000003DHP0", "006XX000004TMi2")
+    Example: create_salesforce_insertion_order("IO-123456", "Summer Campaign 2024", "Example Brand", "John Smith", "john@company.com", "Launch summer product line", '[{"name": "Social Media", "destination": "Instagram", "start_date": "2024-06-01", "end_date": "2024-08-31", "metrics": {"impressions": 500000, "clicks": 25000}, "bid_rate": {"cpm": 2.50, "cpc": 0.75}, "budget": {"amount": 100000.00}, "targeting": {"age_range": "18-24", "gender": "Male, Female", "income_level": "Middle Income", "location": "United States", "interests": "Technology", "behavioral_data": "Tech Enthusiasts"}}]', "001XX000003DHP0", "006XX000004TMi2")
     """
     logger = logging.getLogger(__name__)
 
