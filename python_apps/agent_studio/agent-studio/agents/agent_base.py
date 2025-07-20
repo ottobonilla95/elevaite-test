@@ -93,7 +93,7 @@ class Agent(BaseModel):
         """
         from utils import client
         from .tools import tool_store
-        update_status("superuser@iopex.com", "Thinking...")
+        # update_status("superuser@iopex.com", "Thinking...")
 
         # Skip Redis-dependent agent_store, use dynamic agent store if available
         agent_store = kwargs.get("dynamic_agent_store", {})
