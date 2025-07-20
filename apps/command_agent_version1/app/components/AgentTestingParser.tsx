@@ -88,16 +88,11 @@ export function AgentTestingParser({message}: AgentTestingParserProps): JSX.Elem
 
         const html = text
             // Headings
-           .replace(/^(?<hashes>#{2,6}) (?<content>.*)$/gm, (
-                _match: string,
-                _g1: string,
-                _offset: number,
-                _str: string,
-                groups?: { hashes?: string, content?: string }
-            ): string => {
-                const level = groups?.hashes?.length ?? 3;
-                const prefix = _offset === 0 ? "" : "<br/>";
-                return `${prefix}<h${level.toString()}>${groups?.content?.trim() ?? ""}</h${level.toString()}>`;
+           .replace(/^(#{2,6}) (.*)$/gm, (match, hashes, content) => {
+                console.log("🔍 Heading match:", { match, hashes, content });
+                const level = hashes.length;
+                const prefix = match.indexOf(hashes) === 0 ? "" : "<br/>";
+                return `${prefix}<h${level}>${content.trim()}</h${level}>`;
             })
             // Bold **text**
             .replace(/\*\*(?:.*?)\*\*/g, (match) => {
