@@ -155,9 +155,12 @@ const appLinks: Record<string, { development: string; production: string; test: 
     development: "https://elevaite-media-analytics.iopex.ai",
     production: "https://elevaite-media-analytics.iopex.ai",
     test: "",
+  },
+  adoptDashboard: {
+    development: "https://elevaite-adopt.iopex.ai/",
+    production: "https://elevaite-adopt.iopex.ai/",
+    test: "",
   }
-
-
 };
 
 export function getApplications(
@@ -308,23 +311,23 @@ export function getApplications(
       key: "revenue",
       cards: [
         {
-          icon: ApplicationIcons.applications.insights.src,
-          description: "Leverage AI-powered analytics to gain actionable insights on your campaigns and creatives to optimize performance.",
-          iconAlt: ApplicationIcons.applications.insights.alt,
-          title: "Campaign & Creative Insights",
-          link: appLinks.insights[env],
-          id: "insights",
-          miscLabel: "Version 2.0",
+          icon: ApplicationIcons.applications.campaignBuilder.src,
+          description: "Analyze creatives, generate tailored media plans, and unlock insights from your creative data.",
+          iconAlt: ApplicationIcons.applications.campaignBuilder.alt,
+          title: "Media and Marketing AI Agents",
+          link: appLinks.mediaplan[env],
+          id: "mediaplan",
+          miscLabel: "Version 1.0",
           subtitle: "By Elevaite",
           openInNewTab: true,
         },
         {
-          icon: ApplicationIcons.applications.campaignBuilder.src,
-          description: "Analyze creatives, generate tailored media plans, and unlock insights from your creative data.",
-          iconAlt: ApplicationIcons.applications.campaignBuilder.alt,
-          title: "Media and Marketing",
-          link: appLinks.mediaplan[env],
-          id: "mediaplan",
+          icon: ApplicationIcons.applications.campaignOptimization.src,
+          description: "Tracking Media Plan Progress and Measuring Campaign Impact.",
+          iconAlt: ApplicationIcons.applications.campaignOptimization.alt,
+          title: "Media Campaign Workflow Analytics",
+          link: appLinks.adoptDashboard[env],
+          id: "adoptDashboard",
           miscLabel: "Version 1.0",
           subtitle: "By Elevaite",
           openInNewTab: true,
@@ -333,13 +336,24 @@ export function getApplications(
           icon: ApplicationIcons.applications.analytics.src,
           description: "Gain actionable insights and feedback analytics to monitor Media Plan Co-pilot effectiveness and drive performance optimization.",
           iconAlt: ApplicationIcons.applications.analytics.alt,
-          title: "Agentic AI Session Analytics",
+          title: "Media Agents Session Analytics",
           link: appLinks.mediaAnalytics[env],
           id: "mediaAnalytics",
           miscLabel: "Version 1.0",
           subtitle: "By Elevaite",
           openInNewTab: true,
         },
+        {
+          icon: ApplicationIcons.applications.insights.src,
+          description: "Leverage AI-powered analytics to gain actionable insights on your campaigns and creatives to optimize performance.",
+          iconAlt: ApplicationIcons.applications.insights.alt,
+          title: "Media Campaign & Creative Insights",
+          link: appLinks.insights[env],
+          id: "insights",
+          miscLabel: "Version 2.0",
+          subtitle: "By Elevaite",
+          openInNewTab: true,
+        }
       ],
     },
   ];

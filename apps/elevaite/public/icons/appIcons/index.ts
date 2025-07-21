@@ -8,6 +8,7 @@ import insights from "./insights.svg";
 import campaignBuilder from "./campaignBuilder.svg";
 import contracts from "./contracts.svg";
 import analytics from "./analytics.svg";
+import campaignOptimization from "./campaignOptimize.svg";    
 
 interface SvgType {
   src: string;
@@ -33,5 +34,6 @@ export const ApplicationIcons = {
     insights: { src: (insights as SvgType).src, alt: "ElevAIte Insights" },
     campaignBuilder: { src: (campaignBuilder as SvgType).src, alt: "Campaign Builder" },
     analytics: { src: (analytics as SvgType).src, alt: "Analytics Dashboard" },
+    campaignOptimization: { src: (campaignOptimization as SvgType).src, alt: "Campaign Optimization" },    
   },
 };
