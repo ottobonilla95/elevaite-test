@@ -129,24 +129,27 @@ export function AgentTestingParser({message}: AgentTestingParserProps): JSX.Elem
     }
 
 
-    function linkify(text: string): string {        
+    function linkify(text: string): string {
         // Convert markdown-style links first
-        let html = text.replace(/\[(?<label>[^\]]+)]\((?<url>https?:\/\/[^\s)]+)\)/g, (
-            _match, _p1, _p2, _offset, _string, groups: { label?: string; url?: string }
-        ) => {
-            if (!groups.label || !groups.url) return _match;
-            return `<a href="${groups.url}" title="${groups.url}" target="_blank" rel="noopener noreferrer">${groups.label}</a>`;
-        });
+        let html = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+            '<a href="$2" title="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+        );
 
-        // Then linkify any remaining plain URLs not already inside an anchor
-        html = html.replace(/(?<!["'>])\b(?<url>https?:\/\/[^\s<>"')\],.]+[^\s<>"')\],.])/g, (
-            _match, _p1, _offset, _string, groups: { label?: string; url?: string }
-        ) => {
-            if (!groups.url) return _match;
-            return `<a href="${groups.url}" target="_blank" rel="noopener noreferrer">${groups.url}</a>`;
-        });
+        // Then linkify any remaining plain URLs - FIXED to capture full URLs including dots
+        html = html.replace(/(^|[^"'>])(https?:\/\/[^\s<>"'\[\]()]+)/g,
+            '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>'
+        );
 
         return html;
+
+        // OLD CODE (commented out):
+        // Original problematic URL regex that was cutting off URLs at dots:
+        // html = html.replace(/(?<!["'>])\b(?<url>https?:\/\/[^\s<>"')\],.]+[^\s<>"')\],.])/g, (
+        //     _match, _p1, _offset, _string, groups: { label?: string; url?: string }
+        // ) => {
+        //     if (!groups.url) return _match;
+        //     return `<a href="${groups.url}" target="_blank" rel="noopener noreferrer">${groups.url}</a>`;
+        // });
     }
 
 
