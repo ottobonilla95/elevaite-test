@@ -69,10 +69,10 @@ class CommandAgent(Agent):
         while tries < self.max_retries:
             try:
                 response = client.chat.completions.create(
-                    model=self.model,
+                    model="o4-mini",
                     messages=messages,
                     tools=self.functions,
-                    temperature=self.temperature,
+                    # temperature=self.temperature,
                     stream=False,
                 )
                 print("\n\nResponse: ", response)
