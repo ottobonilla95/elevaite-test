@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-// eslint-disable-next-line import/named -- Seems to be a problem with eslint
 import { ReactFlowProvider, type ReactFlowInstance } from "react-flow-renderer";
+// eslint-disable-next-line import/named -- Seems to be a problem with eslint
 import { v4 as uuidv4 } from "uuid";
 import { getWorkflowDeploymentDetails } from "../lib/actions";
 import { isAgentResponse } from "../lib/discriminators";
-import { type AgentConfigData, type AgentCreate, type AgentFunction, type AgentResponse, type AgentUpdate, type ChatCompletionToolParam, type Edge, type Node, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowDeployment, type WorkflowResponse } from "../lib/interfaces";
+import { type AgentConfigData, type AgentCreate, type AgentFunction, type AgentNodeData, type AgentResponse, type AgentUpdate, type ChatCompletionToolParam, type Edge, type Node, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowDeployment, type WorkflowResponse } from "../lib/interfaces";
 import { mapActionTypeToConnectionType, mapConnectionTypeToActionType } from "../lib/interfaces/workflows";
 import { useAgents } from "../ui/contexts/AgentsContext";
 import { usePrompts } from "../ui/contexts/PromptsContext.tsx";
@@ -61,6 +61,7 @@ function convertConfigToAgentCreate(
 			case "markdown": return "markdown";
 			case "html": return "HTML";
 			case "none": return "None";
+			case "text": return "None"; // Map "text" to "None" since "text" is not valid
 			default: return "json";
 		}
 	};
@@ -176,6 +177,8 @@ function AgentConfigForm(): JSX.Element {
 	const getCurrentWorkflowState = useCallback(() => {
 		return JSON.stringify({
 			name: workflowName,
+			description: workflowDescription,
+			tags: workflowTags,
 			nodes: nodes.map(node => ({
 				id: node.id,
 				position: node.position,
@@ -191,7 +194,7 @@ function AgentConfigForm(): JSX.Element {
 				target: edge.target
 			}))
 		});
-	}, [workflowName, nodes, edges]);
+	}, [workflowName, workflowDescription, workflowTags, nodes, edges]);
 
 
 
@@ -231,14 +234,18 @@ function AgentConfigForm(): JSX.Element {
 	}, [mounted, checkDeploymentStatus]);
 
 	// Update saved state after workflow is loaded (when currentWorkflowData changes)
+	// But only when we're actually loading a workflow, not when editing properties
+	const [workflowLoadedId, setWorkflowLoadedId] = useState<string | null>(null);
+
 	useEffect(() => {
 		if (mounted && currentWorkflowData && isExistingWorkflow) {
-			// Use setTimeout to ensure state updates have completed
-			setTimeout(() => {
+			// Only update saved state if this is a new workflow being loaded
+			if (workflowLoadedId !== currentWorkflowData.workflow_id) {
+				setWorkflowLoadedId(currentWorkflowData.workflow_id);
 				updateLastSavedState();
-			}, 0);
+			}
 		}
-	}, [mounted, currentWorkflowData, isExistingWorkflow, updateLastSavedState]);
+	}, [mounted, currentWorkflowData, isExistingWorkflow, updateLastSavedState, workflowLoadedId]);
 
 	// Node operations
 	const handleDeleteNode = useCallback((nodeId: string) => {
@@ -255,17 +262,52 @@ function AgentConfigForm(): JSX.Element {
 			setShowConfigPanel(false);
 		}
 	}, [selectedNode]);
-	
-	const handleNodeAction = useCallback((_nodeId: string, action: string) => {
-		panelRef.current?.showPromptDetail(); 
-		switch (action) {
-			case "tools": panelRef.current?.setTab("tools"); panelRef.current?.disableEdit(); break;
-			case "config": panelRef.current?.setTab("config"); panelRef.current?.disableEdit(); break;
-			case "toolsEdit": panelRef.current?.setTab("tools"); panelRef.current?.enableEdit(); break;
-			case "configEdit": panelRef.current?.setTab("config"); panelRef.current?.enableEdit(); break;
-			default: break;
+
+	const handleNodeAction = useCallback((nodeId: string, action: string, nodeData?: AgentNodeData) => {
+		// If nodeData is provided, use it directly to create a node object
+		let targetNode: Node | undefined;
+
+		if (nodeData) {
+			// Create a node object from the provided data
+			targetNode = {
+				id: nodeId,
+				type: "agent",
+				position: { x: 0, y: 0 }, // Position doesn't matter for this use case
+				data: nodeData
+			};
+		} else {
+			// Fallback: try to find in nodes array
+			targetNode = nodes.find(node => node.id === nodeId);
+			if (!targetNode) {
+				targetNode = nodes.find(node => node.data.id === nodeId);
+			}
+
+			if (!targetNode) {
+				return;
+			}
 		}
-	}, [selectedNode]);
+
+		// Ensure the node is selected and config panel is shown
+		setSelectedNode(targetNode);
+		setShowConfigPanel(true);
+
+		// Ensure the sidebar is open
+		if (!sidebarRightOpen) {
+			setSidebarRightOpen(true);
+		}
+
+		// Use setTimeout to ensure state updates have completed before calling panel methods
+		setTimeout(() => {
+			panelRef.current?.showPromptDetail();
+			switch (action) {
+				case "tools": panelRef.current?.setTab("tools"); panelRef.current?.disableEdit(); break;
+				case "config": panelRef.current?.setTab("config"); panelRef.current?.disableEdit(); break;
+				case "toolsEdit": panelRef.current?.setTab("tools"); panelRef.current?.enableEdit(); break;
+				case "configEdit": panelRef.current?.setTab("config"); panelRef.current?.enableEdit(); break;
+				default: break;
+			}
+		}, 100);
+	}, [nodes, sidebarRightOpen, setSidebarRightOpen, showConfigPanel]);
 
 	// Handle dropping an agent onto the canvas
 	const onDrop = useCallback(
@@ -604,7 +646,7 @@ function AgentConfigForm(): JSX.Element {
 		}
 	};
 	// Save workflow
-	const handleSaveWorkflow = (_workflowName?: string, _description?: string) => {
+	const handleSaveWorkflow = async (_workflowName?: string, _description?: string) => {
 		if (nodes.length === 0) {
 			alert("Please add at least one agent to your workflow before saving.");
 			return;
@@ -614,6 +656,7 @@ function AgentConfigForm(): JSX.Element {
 			// workflowId: workflowIdRef.current,
 			name: _workflowName ?? workflowName,
 			description: _description ?? "",
+			tags: workflowTags,
 			configuration: {
 				agents: nodes.map(node => ({
 					agent_id: node.data.agent.agent_id,
@@ -642,10 +685,37 @@ function AgentConfigForm(): JSX.Element {
 			}
 		};
 
-		void createWorkflowAndRefresh(workflow);
+		try {
+			let workflowData: WorkflowResponse;
+
+			if (currentWorkflowData && isExistingWorkflow) {
+				// Update existing workflow
+				workflowData = await updateWorkflowAndRefresh(currentWorkflowData.workflow_id, workflow);
+				setCurrentWorkflowData(workflowData);
+			} else {
+				// Create new workflow
+				workflowData = await createWorkflowAndRefresh(workflow);
+				setCurrentWorkflowData(workflowData);
+				setIsExistingWorkflow(true);
+				workflowIdRef.current = workflowData.workflow_id;
+			}
+
+			// Update workflow name and description if they were provided
+			if (_workflowName && _workflowName !== workflowName) {
+				setWorkflowName(_workflowName);
+			}
+			if (_description !== undefined && _description !== workflowDescription) {
+				setWorkflowDescription(_description);
+			}
+
+			updateLastSavedState();
+		} catch (error) {
+			console.error("Error saving workflow:", error);
+			alert(`Error saving workflow: ${(error as Error).message}`);
+		}
 	};
 
-	function handleClearAll(): void {		
+	function handleClearAll(): void {
 		setNodes([]);
 		setEdges([]);
 		setSelectedNode(null);
@@ -673,6 +743,13 @@ function AgentConfigForm(): JSX.Element {
 		// setChatMessages([]);
 		setSelectedNode(null);
 		setShowConfigPanel(false);
+		setCurrentWorkflowData(null);
+		setIsExistingWorkflow(false);
+		setHasUnsavedChanges(false);
+		setLastSavedState("");
+		setWorkflowLoadedId(null);
+		setDeploymentStatus({ isDeployed: false });
+		setDeploymentResult(null);
 	};
 
 	// Handle editing workflow properties (name, description, tags)
@@ -865,7 +942,7 @@ function AgentConfigForm(): JSX.Element {
 							prompt: agent.system_prompt.prompt || "",
 							tools: agent.functions ?? [], // Keep as ChatCompletionToolParam array
 							tags: [agent.agent_type ?? "custom"],
-							config: { model: agent.system_prompt.ai_model_name, agentName: agent.name, deploymentType: "", modelProvider: agent.system_prompt.ai_model_provider, outputFormat: "", selectedTools: agent.functions },							
+							config: { model: agent.system_prompt.ai_model_name, agentName: agent.name, deploymentType: "", modelProvider: agent.system_prompt.ai_model_provider, outputFormat: "", selectedTools: agent.functions },
 							onAction: handleNodeAction,
 							onDelete: handleDeleteNode,
 							onConfigure: () => { handleNodeSelect(newNode); },
@@ -965,12 +1042,27 @@ function AgentConfigForm(): JSX.Element {
 			throw new Error("No agent ID found for update");
 		}
 
+		// Convert output format to valid response_type
+		const getValidResponseType = (outputFormat?: string): "json" | "yaml" | "markdown" | "HTML" | "None" => {
+			if (!outputFormat) return "json";
+			const format = outputFormat.toLowerCase();
+			switch (format) {
+				case "json": return "json";
+				case "yaml": return "yaml";
+				case "markdown": return "markdown";
+				case "html": return "HTML";
+				case "none": return "None";
+				case "text": return "None"; // Map "text" to "None" since "text" is not valid
+				default: return "json";
+			}
+		};
+
 		const agentUpdateData: AgentUpdate = {
 			name: agentName,
 			agent_type: configData.agentType,
 			description: configData.description,
 			functions: convertToolsToAgentFunctions(tools),
-			response_type: configData.outputFormat?.toLowerCase() as "json" | "yaml" | "markdown" | "HTML" | "None" || "json"
+			response_type: getValidResponseType(configData.outputFormat)
 		};
 
 		// Include prompt update if a new prompt was selected
@@ -1036,19 +1128,7 @@ function AgentConfigForm(): JSX.Element {
 			alert(`Configuration saved for ${agentName}`);
 		} catch (error) {
 			console.error("Error saving agent configuration:", error);
-
-			// Enhanced error handling for 422 validation errors
-			let errorMessage = "Unknown error";
-			if (error instanceof Error) {
-				errorMessage = error.message;
-
-				// If it's a fetch error, try to extract more details
-				if (error.message.includes("422") || error.message.includes("validation")) {
-					errorMessage = `Validation Error (422): ${error.message}\n\nPlease check the console for the data being sent.`;
-				}
-			}
-
-			alert(`Error saving configuration: ${errorMessage}`);
+			alert(`Error saving configuration: ${error instanceof Error ? error.message : "Unknown error"}`);
 		}
 	};
 

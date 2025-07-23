@@ -48,7 +48,7 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
     }
 
     function handleAction(action: string): void {
-        if (onAction) onAction(id, action);
+        if (onAction) onAction(id, action, data);
     }
 
     // const handleOpenConfig = (e: React.MouseEvent): void => {
@@ -56,7 +56,7 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
     //     onConfigure(id);
     // };
 
-    
+
 
     // Get model display name
     const getModelName = (): string => {
