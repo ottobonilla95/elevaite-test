@@ -6,9 +6,96 @@ import re
 from typing import List, Optional
 from abbreviation_dict import MACHINE_ABBREVIATIONS
 SEGMENT_NUM = 5
+TOP_GUN_SEGMENT_NUM = 2
 
 if not os.getenv("KUBERNETES_SERVICE_HOST"):
     dotenv.load_dotenv(".env.local")
+
+def customer_resolver(collection_id: str) -> str:
+    customer_mapping = {
+            "toshiba_demo_4": "All Customers", #
+            "toshiba_alex_lee": "Alex Lee",
+            "toshiba_at_home": "At Home", #
+            "toshiba_badger": "Badger", #
+            "toshiba_bass_pro": "Bass Pro",
+            "toshiba_bjs": "BJS", #
+            "toshiba_best_buy": "Best Buy", #
+            "toshiba_camers_al": "CAM",
+            "toshiba_coach": "Coach",
+            "toshiba_costco": "Costco", #
+            "toshiba_cost_plus_world_market": "Cost Plus World Market",
+            "toshiba_cvs": "CVS",
+            "toshiba_dollar_general": "Dollar General", #
+            "toshiba_enterprise": "Enterprise",
+            "toshiba_event_network": "Event network",
+            "toshiba_foodland": "Foodland",
+            "toshiba_GNC": "GNC",
+            "toshiba_harbor_freight": "Harbor Freight",
+            "toshiba_hudson_news": "Hudson News",
+            "toshiba_idkids": "IDKIDS",
+            "toshiba_kroger": "Kroger", #
+            "toshiba_quickchek": "QuickChek",
+            "toshiba_ross": "Ross", #
+            "toshiba_saks": "Saks",
+            "toshiba_sams_club": "Sams Club", #
+            "toshiba_spartan_nash": "Spartan Nash",
+            "toshiba_tca": "Travel Centers of America TCA", #
+            "toshiba_tractor_supply": "TSC Tractor Supply", #
+            "toshiba_walgreens": "Walgreens", #
+            "toshiba_wegmans": "Wegmans",
+            "toshiba_whole_foods": "Whole Foods" #
+    }
+    return customer_mapping.get(collection_id, "All Customers")
+
+
+def top_gun_query_retriever(query: str, collection_id: Optional[str] = None, machine_types: Optional[List[str]] = None) -> list:
+    def get_response(url, params):
+        try:
+            response = requests.post(url, params=params)
+            res = ""
+            sources = []
+            segments = response.json()["selected_segments"][:TOP_GUN_SEGMENT_NUM]
+            for i,segment in enumerate(segments):
+                res += "*"*5+f"\n\nSegment Begins: "+"\n" #+"Contextual Header: "
+                references = ""
+                for j,chunk in enumerate(segment["chunks"]):
+                    res += f"\nChunk {j}: "+chunk["chunk_text"]+"\n"+"Datetime: "+chunk.get("email_sent_datetime", "")
+                    pages = re.findall(r"\d+", str(chunk['page_info']))
+                    res += f"\nSource for Chunk {j}: "
+                    for page in pages:
+                        print(chunk["filename"] + f" page {page}")
+                        filename = chunk["filename"].strip(".pdf")
+                        if "page" in filename:
+                            res += f"{filename} page {page}" + f" [aws_id: {filename}]\n"
+                        else:
+                            res += f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}]\n"
+                    if "page" in filename:
+                        sources.append(f"{filename}" + f" [aws_id: {filename}] score: [{round(segment['score'], 2)}]")
+                    else:
+                        sources.append(
+                            f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}] score: [{round(segment['score'], 2)}]")
+
+            res += "Segment Ends\n"+"-"*5+"\n\n"
+
+            return [res, sources]
+        except Exception as e:
+            print(f"Failed to call retriever: {e}")
+            return ["",[]]
+    url = os.getenv("TOP_GUN_RETRIEVER_URL") + "/query-chunks"
+    params = {
+        "query": query,
+        "top_k": 60,
+        # "machine_types": machine_types,
+        "customer_name": customer_resolver(collection_id)
+
+    }
+    try:
+        first_response, sources = get_response(url, params)
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+        first_response, sources = ["",[]]
+    return [first_response, sources]
+
 
 @function_schema
 def query_retriever(query: str, machine_types: Optional[List[str]] = None) -> list:
@@ -149,22 +236,20 @@ def query_retriever(query: str, machine_types: Optional[List[str]] = None) -> li
         print(f"Failed to call retriever: {e}")
         first_response, sources = ["",[]]
 
-    # params = {
-    #     "query": alt_query,
-    #     "top_k": 60,
-    #     "machine_types": machine_types
-    # }
     try:
         # second_response, second_sources = get_response(url, params)
-        second_response, second_sources = ["", []]
+        # second_response, second_sources = top_gun_query_retriever(query, collection_id="toshiba_demo_4")
+        second_response, second_sources = ["",[]]
+
     except Exception as e:
         print(f"Failed to call retriever: {e}")
         second_response, second_sources = ["",[]]
     # print(first_response+second_response)
     # print(sources+second_sources)
     res = "CONTEXT FROM RETRIEVER: \n\n"
-    print(res+first_response+second_response)
-    return [res+first_response+second_response, sources+second_sources]
+    # top_gun_header = "\n\nCONTEXT FROM TOSHIBA TOP GUN EMAILS: \n\n"
+    # return [res+first_response+top_gun_header+second_response, sources+second_sources]
+    return [res+first_response, sources]
 
 
 @function_schema
@@ -194,14 +279,27 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
     16. CAM: toshiba_cameras_al
     17. Hudson News: toshiba_hudson_news
     18. IDKIDS: toshiba_idkids
-    19. Saks: toshiba_saks
+    19. Saks: toshiba_saks * For Saks, if the user asks for client advocates, use query "Client Advocate" instead of "Client Advocates list"
     20. CVS: toshiba_cvs
     21. At Home: toshiba_at_home
-    22. Harbour Freight: toshiba_harbour_freight
-    23. TCA: toshiba_tca
+    22. Harbor Freight: toshiba_harbor_freight
+    23. TCA: toshiba_tca * TCA is also known as Travel Centers of America
     24. Spartan Nash: toshiba_spartan_nash
     25. Event network: toshiba_event_network
-    26. Bass Pro: toshiba_bass_pro
+    26. Bass Pro: toshiba_bass_pro * For Bass Pro, if the user asks for client advocates, use query "Client Advocate" instead of "Client Advocates list"
+    27. Foodland: toshiba_foodland
+    28. Cost Plus World Market: toshiba_cost_plus_world_market
+    29. Enterprise: toshiba_enterprise
+    30. Red Apple: toshiba_red_apple
+    31. Yum Brands: toshiba_yum_brands * Note that KFC is also included in this collection
+    32. Bealls: toshiba_bealls
+    33. Disney: toshiba_disney
+    34. Ovation Foods: toshiba_ovation_foods
+    35. Nike: toshiba_nike
+    36. ABC Stores: toshiba_abc_stores
+    37. Tommy Bahama: toshiba_tommy_bahama
+    38. Gordon Food Service: toshiba_gordon_food_service
+    39. Michaels: toshiba_michaels
 
     Use toshiba_demo_4 if the customer retriever fails to return any relevant results
 
@@ -238,7 +336,9 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
                     res += f"\nSource for Chunk {j}: "
                     for page in pages:
                         # print(chunk["filename"]+f" page {page}")
-                        filename = chunk["filename"].strip(".pdf")
+                        print(chunk["filename"])
+                        filename = chunk["filename"].removesuffix(".pdf")
+                        print(filename)
                         if "page" in filename:
                             res+=f"{filename}" + f" [aws_id: {filename}]\n"
                         else:
@@ -257,6 +357,10 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
             return ["",[]]
 
     url = os.getenv("CUSTOMER_RETRIEVER_URL") + "/query-chunks"
+    if collection_id == "toshiba_walgreens":
+        collection_id = "toshiba_walgreen"
+    if collection_id == "toshiba_harbor_freight":
+        collection_id = "toshiba_harbour_frieght"
     params = {
         "query": query,
         "top_k": 60,
@@ -268,10 +372,15 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
     except Exception as e:
         print(f"Failed to call retriever: {e}")
 
+    try:
+        # second_response, second_sources = top_gun_query_retriever(query, collection_id=collection_id)
+        second_response, second_sources = ["",[]]
     except Exception as e:
         print(f"Failed to call retriever: {e}")
         second_response, second_sources = ["",[]]
     res = "CONTEXT FROM RETRIEVER: \n\n"
+    # top_gun_header = "\n\nCONTEXT FROM TOSHIBA TOP GUN EMAILS: \n\n"
+    # return [res+first_response+top_gun_header+second_response, sources+second_sources]
     return [res+first_response, sources]
 
 
@@ -318,10 +427,5 @@ tool_schemas = {
     "customer_query_retriever": customer_query_retriever.openai_schema,
 }
 
-# for key in query_retriever.openai_schema["function"]:
-#     print(key)
-#     print(query_retriever.openai_schema["function"][key])
-# print(query_retriever("What is loader", "what is loader", ["6800"]))
-# print(query_retriever.openai_schema)
-# print("\n".join(f"{i+1}. {k}" for i, (k, v) in enumerate(MACHINE_ABBREVIATIONS.items())))
-# print(tool_schemas["kroger_query_retriever"])
+
+print(customer_query_retriever("Client advocates list", collection_id="toshiba_event_network")[0])

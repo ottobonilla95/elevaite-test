@@ -1025,7 +1025,6 @@ abbreviations = {
     "TBD": "To Be Determined",
     "TBT": "WTO Agreement on Technical Barriers to Trade",
     "TC": "Technical Committee",
-    "TCA": "German PSCU & Notified Body that may issue GS marks",
     "TCM": "Terminal Condition Models",
     "TCO": "Total Cost of Ownership",
     "TCV": "Total Contract Value",

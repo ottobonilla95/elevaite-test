@@ -235,7 +235,7 @@ async def run(request: Request):
                     agent_flow_id=agent_flow_id,
                     sr_ticket_id=""
                 )
-                print("Data Log: ",data_log)
+                print("Data Log: ", data_log)
                 try:
                     success = await database_connection.save_chat_request(data_log)
                     if success:

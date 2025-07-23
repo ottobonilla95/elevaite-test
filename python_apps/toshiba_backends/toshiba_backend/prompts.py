@@ -5,7 +5,7 @@ from prompt_text import *
 
 toshiba_agent_system_prompt = PromptObject(pid=uuid.uuid4(),
                                              prompt_label="Toshiba Agent Prompt",
-                                             prompt=TOSHIBA_AGENT_PROMPT,
+                                             prompt=TOSHIBA_AGENT_PROMPT6,
                                              sha_hash="000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8c",
                                              uniqueLabel="WebAgentDemo",
                                              appName="iOPEX",

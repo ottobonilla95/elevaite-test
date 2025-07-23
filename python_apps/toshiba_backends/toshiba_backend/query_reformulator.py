@@ -69,7 +69,8 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
 
     ### CUSTOMER NAMES:
     Walgreens, Kroger, Sam's Club (Sams), Tractor Supply, Dollar General, Wegmans, Ross, Costco, Whole Foods, BJ's, Alex Lee, Badger,
-    Best Buy, GNC, QuickChek, CAM, Hudson News, Coach, IDKIDS.
+    Best Buy, GNC, QuickChek, CAM, Hudson News, Coach, IDKIDS, Saks, CVS, At Home, Harbor Freight, TCA (Travel Centers of America), Spartan Nash, Event network, Bass Pro, Foodland, Cost Plus World Market, Enterprise,
+    Red Apple, Yum Brands, Bealls, Disney, Ovation Foods, Nike, ABC Stores, Tommy Bahama, Gordon Food Service, Michaels, KFC. 
 
     ### DO NOT EXPAND:
     - Invalid machine types (not in the list)

@@ -73,7 +73,8 @@ class ToshibaAgent(Agent):
                         try:
                             arguments = json.loads(tool.function.arguments)
                             print(f"Arguments: {arguments}")
-                            await update_status(user_id, "Searching: "+arguments.get("query", query))
+                            collection_id = " | "+ arguments.get("collection_id", "")
+                            await update_status(user_id, "Searching: "+arguments.get("query", query)+collection_id)
                             yield session_status
                             retriever_time = datetime.now()
 

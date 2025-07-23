@@ -40,14 +40,6 @@ def get_embedding(text: str) -> List[float]:
         return [0] * 1536
 
 
-# logger = get_logger(__name__)
-
-# qdrant_config = VECTOR_DB_CONFIG.get("qdrant", {})
-# qdrant_url = qdrant_config.get("host")
-# qdrant_port = qdrant_config.get("port")
-# collection_name = qdrant_config.get("collection_name")
-
-
 
 def extract_part_numbers(text: str) -> List[str]:
     patterns = [
@@ -55,6 +47,7 @@ def extract_part_numbers(text: str) -> List[str]:
         # r'\b\d[A-Z]{2}\d{7}\b',
         # r'(?=.*?[0-9])(?=.*?[A-Za-z]).+',
         r'^(?=.*[0-9])(?=.*[a-zA-Z])[a-zA-Z0-9]{11}$',
+        r'^(?=.*[0-9])(?=.*[a-zA-Z])[a-zA-Z0-9]{8}$',
         r'^(?=.*[0-9])(?=.*[a-zA-Z])[a-zA-Z0-9]{7}$',
         r'^[mM][sS]\d{3}$',
     ]
@@ -99,6 +92,18 @@ def process_match(match) -> Dict:
         page_info = payload.get("page_range")
         context_header = payload.get("contextual_header")
         image_path = None
+    if payload.get("customer_name"):
+        customer_name = payload.get("customer_name")
+    else:
+        customer_name = ""
+    print("Customer name: ", customer_name)
+
+    if payload.get("email_sent_datetime"):
+        email_sent_datetime = payload.get("email_sent_datetime")
+    else:
+        email_sent_datetime = ""
+    print("Customer name: ", customer_name)
+    print("Email sent datetime: ", email_sent_datetime)
     return {
         "chunk_id": chunk_id,
         "score": getattr(match, "score", 0.0),
@@ -107,14 +112,16 @@ def process_match(match) -> Dict:
         "filename": filename,
         "page_info": page_info,
         "contextual_header": context_header,
-        "matched_image_path": image_path
+        "matched_image_path": image_path,
+        "customer_name": customer_name,
+        "email_sent_datetime": email_sent_datetime
     }
 
-def retrieve_chunks_semantic(query: str, top_k: int = 30, machine_types: Optional[List[str]] = None, collection_id: Optional[str] = None) -> List[Dict]:
+def retrieve_chunks_semantic(query: str, top_k: int = 30, machine_types: Optional[List[str]] = None, collection_id: Optional[str] = None, customer_name: Optional[List[str]] = None) -> List[Dict]:
     qdrant_url = "http://3.101.65.253"
     qdrant_port = 5333
-    collection_name = "toshiba_demo_4" if not collection_id else collection_id
-    print("Collection id in semantic: ",collection_id)
+    collection_name = "toshiba_top_gun_emails" if not collection_id else collection_id
+    print("Collection id in semantic: ",collection_name)
 
     client = QdrantClient(url=qdrant_url, port=qdrant_port, timeout=300.0, check_compatibility=False)
     try:
@@ -136,6 +143,32 @@ def retrieve_chunks_semantic(query: str, top_k: int = 30, machine_types: Optiona
                         key="table_filename",
                         match=models.MatchText(text=mt)
                     ) for mt in machine_types
+                ]+
+                [
+                    models.FieldCondition(
+                        key="customer_name",
+                        match=models.MatchText(text=customer_name)
+                    ) for customer_name in customer_name
+                ]
+            )
+            filtered_response = client.search(
+                collection_name=collection_name,
+                query_vector=query_embedding,
+                limit=top_k,
+                with_payload=True,
+                query_filter=filters
+            )
+            for m in filtered_response:
+                match = process_match(m) | {"search_type": "semantic"}
+                results.append(match)
+                seen_ids.add(match["chunk_id"])
+        elif customer_name:
+            filters = models.Filter(
+                should=[
+                    models.FieldCondition(
+                        key="customer_name",
+                        match=models.MatchText(text=customer_name)
+                    ) for customer_name in customer_name
                 ]
             )
             filtered_response = client.search(
@@ -170,44 +203,12 @@ def retrieve_chunks_semantic(query: str, top_k: int = 30, machine_types: Optiona
     except Exception as e:
         # logger.error(f"Semantic search failed: {str(e)}")
         return []
-# def retrieve_chunks_semantic(query: str, top_k: int = 30, machine_types: Optional[List[str]] = None) -> List[Dict]:
-#     try:
-#         query_embedding = get_embedding(query)
-#
-#         # Create a filter where filename contains any of the machine types
-#         filters = None
-#         if machine_types:
-#             filters = models.Filter(
-#                 should=[
-#                     models.FieldCondition(
-#                         key="filename",
-#                         match=models.MatchText(text=mt)
-#                     ) for mt in machine_types
-#                 ]+[
-#                     models.FieldCondition(
-#                         key="table_filename",
-#                         match=models.MatchText(text=mt)
-#                     ) for mt in machine_types
-#                 ]
-#             )
-#
-#         response = client.search(
-#             collection_name=collection_name,
-#             query_vector=query_embedding,
-#             limit=top_k,
-#             with_payload=True,
-#             query_filter=filters
-#         )
-#         return [process_match(m) | {"search_type": "semantic"} for m in response]
-#     except Exception as e:
-#         # logger.error(f"Semantic search failed: {str(e)}")
-#         return []
 
-def retrieve_by_payload(part_number: str, top_k: int = 20, machine_types: Optional[List[str]] = None, collection_id: Optional[str] = None) -> List[Dict]:
+def retrieve_by_payload(part_number: str, top_k: int = 20, machine_types: Optional[List[str]] = None, collection_id: Optional[str] = None, customer_name: Optional[List[str]] = None) -> List[Dict]:
     qdrant_url = "http://3.101.65.253"
     qdrant_port = 5333
-    collection_name = "toshiba_demo_4" if not collection_id else collection_id
-    print("Collection id in payload: ", collection_id)
+    collection_name = "toshiba_top_gun_emails" if not collection_id else collection_id
+    print("Collection id in payload: ", collection_name)
 
     client = QdrantClient(url=qdrant_url, port=qdrant_port, timeout=300.0, check_compatibility=False)
     if machine_types:
@@ -225,7 +226,27 @@ def retrieve_by_payload(part_number: str, top_k: int = 20, machine_types: Option
             # Filter by filename
         models.Filter(should=[
             models.FieldCondition(key="filename", match=models.MatchAny(any=machine_types))
+        ]),
+            models.Filter(should=[
+                models.FieldCondition(key="customer_name", match=models.MatchAny(any=customer_name))
+            ])
         ])
+    elif customer_name:
+        filters = models.Filter(should=[
+            models.Filter(must=[
+                models.FieldCondition(key="is_table", match=models.MatchValue(value=True)),
+                models.FieldCondition(key="table_factual_sentences", match=models.MatchText(text=part_number))
+            ]),
+            models.Filter(must=[
+                models.FieldCondition(key="is_table", match=models.MatchValue(value=False)),
+                models.FieldCondition(key="chunk_text", match=models.MatchText(text=part_number))
+            ]),
+            models.Filter(should=[
+                    models.FieldCondition(
+                        key="customer_name",
+                        match=models.MatchText(text=customer_name)
+                    ) for customer_name in customer_name
+                ])
         ])
     else:
         filters = models.Filter(should=[
@@ -237,7 +258,7 @@ def retrieve_by_payload(part_number: str, top_k: int = 20, machine_types: Option
                 models.FieldCondition(key="is_table", match=models.MatchValue(value=False)),
                 models.FieldCondition(key="chunk_text", match=models.MatchText(text=part_number))
             ])
-        ])
+            ])
     try:
         response = client.scroll(
             collection_name=collection_name,
@@ -251,86 +272,14 @@ def retrieve_by_payload(part_number: str, top_k: int = 20, machine_types: Option
         # logger.error(f"Payload (exact match) retrieval failed: {str(e)}")
         return []
 
-# def retrieve_by_keywords(keywords: List[str], top_k: int = 20, machine_types: Optional[List[str]] = None) -> List[Dict]:
-#     if not keywords:
-#         return []
-#
-#     # keyword_conditions = [
-#     #     [
-#     #     models.FieldCondition(key="is_table", match=models.MatchValue(value=True)),
-#     #     models.FieldCondition(
-#     #         key="chunk_text",
-#     #         match=models.MatchText(text=kw)
-#     #
-#     #     )] for kw in keywords
-#     # ]
-#     # filters = models.Filter(should=[
-#     #     models.Filter(must=[
-#     #         models.FieldCondition(key="is_table", match=models.MatchValue(value=True)),
-#     #         models.FieldCondition(key="table_factual_sentences", match=models.MatchText(text=kw[0]))
-#     #     ]),
-#     #     models.Filter(must=[
-#     #         models.FieldCondition(key="is_table", match=models.MatchValue(value=False)),
-#     #         models.FieldCondition(key="chunk_text", match=models.MatchText(text=kw[1]))
-#     #     ])
-#     # ],
-#     #     # Filter by filename
-#     #     must=[
-#     #     models.Filter(should=[
-#     #         models.FieldCondition(key="filename", match=models.MatchAny(any=machine_types))
-#     #     ])
-#     # ])
-#     print("Keywords: ", keywords)
-#     print("Machine type: ", machine_types)
-#
-#     try:
-#         matches = []
-#         for kw in keywords:
-#             for mt in machine_types:
-#                 filters = models.Filter(should=[
-#                     models.Filter(must=[
-#                         models.FieldCondition(key="is_table", match=models.MatchValue(value=True)),
-#                                 models.FieldCondition(key="table_factual_sentences", match=models.MatchText(text=kw)),
-#                         models.FieldCondition(key="table_filename", match=models.MatchText(text=mt)),
-#
-#                     ]),
-#                     models.Filter(must=[
-#                                 models.FieldCondition(key="is_table", match=models.MatchValue(value=False)),
-#                                 models.FieldCondition(key="chunk_text", match=models.MatchText(text=kw)),
-#                         models.FieldCondition(key="filename", match=models.MatchText(text=mt)),
-#
-#                     ]),
-#                     # models.FieldCondition(key="filename", match=models.MatchAny(any=machine_types))
-#                 ],
-#                     # Filter by filename
-#                     # must=[
-#                     # models.FieldCondition(key="filename", match=models.MatchText(text=mt))
-#                 # ]
-#                 )
-#
-#                 response = client.scroll(
-#                     collection_name=collection_name,
-#                     scroll_filter=filters,
-#                     limit=top_k,
-#                     with_payload=True,
-#                     with_vectors=False
-#                 )
-#                 print("Response: ", response)
-#                 matches.extend(response[0])
-#                 print("Matches: ", len(matches))
-#         print("Matches: ", len(matches))
-#         return [process_match(m) | {"search_type": "sparse_keyword"} for m in matches]
-#     except Exception as e:
-#         # logger.error(f"Sparse keyword retrieval failed: {str(e)}")
-#         return []
-def retrieve_by_keywords(keywords: List[str], top_k: int = 20, machine_types: Optional[List[str]] = None, collection_id: Optional[str] = None) -> List[Dict]:
+def retrieve_by_keywords(keywords: List[str], top_k: int = 20, machine_types: Optional[List[str]] = None, collection_id: Optional[str] = None, customer_name: Optional[str] = None) -> List[Dict]:
     if not keywords:
         return []
 
     qdrant_url = "http://3.101.65.253"
     qdrant_port = 5333
-    collection_name = "toshiba_demo_4" if not collection_id else collection_id
-    print("Collection id in keyword: ", collection_id)
+    collection_name = "toshiba_top_gun_emails" if not collection_id else collection_id
+    print("Collection id in keyword: ", collection_name)
 
     client = QdrantClient(url=qdrant_url, port=qdrant_port, timeout=300.0, check_compatibility=False)
 
@@ -343,32 +292,34 @@ def retrieve_by_keywords(keywords: List[str], top_k: int = 20, machine_types: Op
                 models.Filter(must=[
                     models.FieldCondition(key="is_table", match=models.MatchValue(value=True)),
                     models.FieldCondition(key="table_factual_sentences", match=models.MatchText(text=kw)),
-                    models.Filter(should=[
-                    models.FieldCondition(key="table_filename", match=models.MatchText(text=mt)),
-                        models.FieldCondition(key="filename", match=models.MatchText(text=mt)),
-                        ]),
+                    # models.Filter(should=[
+                    # models.FieldCondition(key="table_filename", match=models.MatchText(text=mt)),
+                    #     models.FieldCondition(key="filename", match=models.MatchText(text=mt)),
+                    #     ]),
                 ])
                 for kw in keywords for mt in machine_types
             ] + [
                 models.Filter(must=[
                     models.FieldCondition(key="is_table", match=models.MatchValue(value=True)),
                     models.FieldCondition(key="chunk_text", match=models.MatchText(text=kw)),
-                    models.Filter(should=[
-                        models.FieldCondition(key="table_filename", match=models.MatchText(text=mt)),
-                        models.FieldCondition(key="filename", match=models.MatchText(text=mt)),
-                    ]),
+                    # models.Filter(should=[
+                    #     models.FieldCondition(key="table_filename", match=models.MatchText(text=mt)),
+                    #     models.FieldCondition(key="filename", match=models.MatchText(text=mt)),
+                    # ]),
                 ])
                 for kw in keywords for mt in machine_types
             ]+[
                 models.Filter(must=[
                     models.FieldCondition(key="is_table", match=models.MatchValue(value=False)),
                     models.FieldCondition(key="chunk_text", match=models.MatchText(text=kw)),
-                    models.Filter(should=[
-                        models.FieldCondition(key="table_filename", match=models.MatchText(text=mt)),
-                        models.FieldCondition(key="filename", match=models.MatchText(text=mt)),
-                    ]),
+                    # models.Filter(should=[
+                    #     models.FieldCondition(key="table_filename", match=models.MatchText(text=mt)),
+                    #     models.FieldCondition(key="filename", match=models.MatchText(text=mt)),
+                    # ]),
                 ])
                 for kw in keywords for mt in machine_types
+            ]+[
+                models.FieldCondition(key="customer_name", match=models.MatchText(text=customer_name))
             ]
 
                                     )
@@ -392,7 +343,9 @@ def retrieve_by_keywords(keywords: List[str], top_k: int = 20, machine_types: Op
                     models.FieldCondition(key="chunk_text", match=models.MatchText(text=kw)),
                 ])
                 for kw in keywords
-            ])
+            ]+
+            [models.FieldCondition(key="customer_name", match=models.MatchText(text=customer_name))]
+                )
 
         response = client.scroll(
             collection_name=collection_name,
@@ -409,7 +362,7 @@ def retrieve_by_keywords(keywords: List[str], top_k: int = 20, machine_types: Op
         return []
 
 # multi-search mechanism
-def multi_strategy_search(query: str, top_k: int = 30, machine_types: Optional[List[str]] = None) -> List[Dict]:
+def multi_strategy_search(query: str, top_k: int = 30, machine_types: Optional[List[str]] = None, customer_name: Optional[str] = None) -> List[Dict]:
     seen_ids = set()
     results = []
 
