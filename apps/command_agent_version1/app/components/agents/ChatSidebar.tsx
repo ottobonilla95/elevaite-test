@@ -19,14 +19,14 @@ interface ChatSidebarProps {
     isLoading: boolean;
 }
 
-const ChatSidebar: React.FC<ChatSidebarProps> = ({
+function ChatSidebar({
     workflowName,
     workflowId,
     onExitChat,
     onCreateNewWorkflow,
     onSwitchWorkflow,
     isLoading
-}) => {
+}: ChatSidebarProps): JSX.Element {
     const [activeTab, setActiveTab] = useState<"Actions" | "Workflows">("Actions");
     const [savedWorkflows, setSavedWorkflows] = useState<WorkflowItem[]>([]);
 
@@ -73,13 +73,13 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
             <div className="chat-sidebar-tabs">
                 <div
                     className={`chat-sidebar-tab ${activeTab === "Actions" ? "active" : ""}`}
-                    onClick={() => setActiveTab("Actions")}
+                    onClick={() => { setActiveTab("Actions"); }}
                 >
                     Actions
                 </div>
                 <div
                     className={`chat-sidebar-tab ${activeTab === "Workflows" ? "active" : ""}`}
-                    onClick={() => setActiveTab("Workflows")}
+                    onClick={() => { setActiveTab("Workflows"); }}
                 >
                     Workflows
                 </div>
@@ -117,7 +117,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                 <div
                                     key={workflow.id}
                                     className={`workflow-item ${workflow.id === workflowId ? "active" : ""}`}
-                                    onClick={() => handleWorkflowSelect(workflow.id)}
+                                    onClick={() => { handleWorkflowSelect(workflow.id); }}
                                 >
                                     <div className="workflow-item-content">
                                         <List size={16} className="workflow-icon" />

@@ -7,7 +7,7 @@ interface AgentTestingParserProps {
     message: string;
 }
 
-export function AgentTestingParser({message}: AgentTestingParserProps): JSX.Element {
+export function AgentTestingParser({ message }: AgentTestingParserProps): JSX.Element {
     const [formattedText, setFormattedText] = useState<string>("");
 
 
@@ -88,11 +88,17 @@ export function AgentTestingParser({message}: AgentTestingParserProps): JSX.Elem
 
         const html = text
             // Headings
-           .replace(/^(#{2,6}) (.*)$/gm, (match, hashes, content) => {
+            .replace(/^(?<hashes>#{2,6}) (?<content>.*)$/gm, (match: string) => {
+                // Use RegExp.exec() to get named groups with proper typing
+                const regex = /^(?<hashes>#{2,6}) (?<content>.*)$/;
+                const result = regex.exec(match);
+                if (!result?.groups) return match;
+
+                const { hashes, content } = result.groups;
+                // eslint-disable-next-line no-console -- Debug logging
                 console.log("🔍 Heading match:", { match, hashes, content });
-                const level = hashes.length;
-                const prefix = match.indexOf(hashes) === 0 ? "" : "<br/>";
-                return `${prefix}<h${level}>${content.trim()}</h${level}>`;
+                const level = hashes.length.toString();
+                return `<h${level}>${content.trim()}</h${level}>`;
             })
             // Bold **text**
             .replace(/\*\*(?:.*?)\*\*/g, (match) => {
@@ -131,13 +137,19 @@ export function AgentTestingParser({message}: AgentTestingParserProps): JSX.Elem
 
     function linkify(text: string): string {
         // Convert markdown-style links first
-        let html = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-            '<a href="$2" title="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+        let html = text.replace(/\[(?<linkText>[^\]]+)\]\((?<url>https?:\/\/[^\s)]+)\)/g,
+            (_match, ...args) => {
+                const groups = args[args.length - 1] as { linkText: string; url: string };
+                return `<a href="${groups.url}" title="${groups.url}" target="_blank" rel="noopener noreferrer">${groups.linkText}</a>`;
+            }
         );
 
         // Then linkify any remaining plain URLs - FIXED to capture full URLs including dots
-        html = html.replace(/(^|[^"'>])(https?:\/\/[^\s<>"'\[\]()]+)/g,
-            '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>'
+        html = html.replace(/(?<prefix>^|[^"'>])(?<url>https?:\/\/[^\s<>"'[\]()]+)/g,
+            (_match, ...args) => {
+                const groups = args[args.length - 1] as { prefix: string; url: string };
+                return `${groups.prefix}<a href="${groups.url}" target="_blank" rel="noopener noreferrer">${groups.url}</a>`;
+            }
         );
 
         return html;

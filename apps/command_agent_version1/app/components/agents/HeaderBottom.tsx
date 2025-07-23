@@ -80,6 +80,16 @@ function HeaderBottom({
 
 	// Function to handle deploy button click - starts the advanced deployment flow
 	const handleDeployClick = (): void => {
+		// Debug logging
+		console.log("🚀 Deploy button clicked!");
+		console.log("📊 Deploy state:", {
+			isExistingWorkflow,
+			hasUnsavedChanges,
+			workflowName,
+			workflowDescription,
+			workflowTags
+		});
+
 		// Check if this is an existing workflow and if there are changes
 		if (isExistingWorkflow) {
 			// If there are unsaved changes, show the pre-deployment dialog to choose save vs save-as
@@ -188,7 +198,7 @@ function HeaderBottom({
 				</button>
 			</div>
 			<div className="flex justify-end gap-2">
-				{Boolean(onClearAll) && 
+				{Boolean(onClearAll) &&
 					<CommonButton className="action-button secondary" onClick={handleClearAll}>
 						Clear All
 					</CommonButton>

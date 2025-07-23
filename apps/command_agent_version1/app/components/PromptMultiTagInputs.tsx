@@ -7,8 +7,8 @@ interface PromptMultiTagInputsProps {
   disabled?: boolean;
 }
 
-const PromptMultiTagInputs = ({ placeholder, values, onChange, disabled }: PromptMultiTagInputsProps) => {
-  const [inputs, setInputs] = useState<string[]>(values || []);
+function PromptMultiTagInputs({ placeholder, values, onChange, disabled }: PromptMultiTagInputsProps): JSX.Element {
+  const [inputs, setInputs] = useState<string[]>(values ?? []);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -61,7 +61,7 @@ const PromptMultiTagInputs = ({ placeholder, values, onChange, disabled }: Promp
             <button
               type="button"
               className="ml-1 text-gray-500 hover:text-red-500"
-              onClick={() => removeInput(index)}
+              onClick={() => { removeInput(index); }}
               aria-label="Remove"
             >
               &times;

@@ -157,7 +157,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   const [testingConsoleActiveClass, setTestingConsoleActiveClass] = useState<string>('');
   const [promptInputs, setPromptInputs] = useState<PromptInputItem[]>(defaultPromptInputs);
   const [output, setOutput] = useState<regenerateResponseObject | null>(null);
-  const [processedCurrentPage, setProcessedCurrentPage] = useState<ProcessedPage|null>(null);
+  const [processedCurrentPage, setProcessedCurrentPage] = useState<ProcessedPage | null>(null);
   const [isRightColExpanded, setIsRightColExpanded] = useState<boolean>(!isEngineerPage);
   const [isRightColPromptInputsColExpanded, setIsRightColPromptInputsColExpanded] = useState<boolean>(false);
   const [isRightColOutputColExpanded, setIsRightColOutputColExpanded] = useState<boolean>(false);
@@ -243,14 +243,16 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
 
     for (const input of promptInputs) {
       switch (input.type) {
-        case PromptInputTypes.DocumentHeader:
+        case PromptInputTypes.DocumentHeader: {
           const joinedDocumentHeaderValues = Array.isArray(input.values) ? input.values.join(",") : input.values;
           options.documentHeader = options.documentHeader ? options.documentHeader + "," + joinedDocumentHeaderValues : joinedDocumentHeaderValues;
           break;
-        case PromptInputTypes.LineItemHeader:
+        }
+        case PromptInputTypes.LineItemHeader: {
           const joinedLineItemHeaderValues = Array.isArray(input.values) ? input.values.join(",") : input.values;
           options.lineItemHeader = options.lineItemHeader ? options.lineItemHeader + "," + joinedLineItemHeaderValues : joinedLineItemHeaderValues;
           break;
+        }
         case PromptInputTypes.UserFeedback:
           options.userFeedback = options.userFeedback ? options.userFeedback + "\n" + input.prompt : input.prompt;
           break;
@@ -312,7 +314,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
       if (input.type === PromptInputTypes.LineItemHeader) {
         input.values = lineItemHeaders;
       }
-  }
+    }
 
     setPromptInputs(updatedInputs);
   }
@@ -455,7 +457,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     'Total of Current Account (with VAT)': '47,8822 €',
     'Amount to be Paid (with VAT)': '47.88 €'
   }<|end_dict|> */
-  async function turnToJSON(e: ChangeEvent<HTMLInputElement>) {
+  async function turnToJSON(e: ChangeEvent<HTMLInputElement>): Promise<void> {
     if (e.target.checked) {
       setLoadingState(LoadingKeys.ConvertingToJSON, true);
       try {
@@ -480,8 +482,14 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
             ]
           })
         });
-        const data = await response.json();
-        setJsonOutput(data?.choices[0]?.message?.content);
+        const data: unknown = await response.json();
+        if (typeof data === "object" && data !== null && "choices" in data) {
+          const parsedData = data as { choices: { message: { content: string } }[] };
+          setJsonOutput(parsedData.choices[0].message.content);
+        } else {
+          console.error("Invalid data type - expected choices array");
+        }
+        // setJsonOutput(data?.choices[0]?.message?.content);
       } catch (error) {
         console.error("Error turning the output to JSON:", error);
       } finally {
@@ -493,7 +501,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   }
 
   function actionRunOnSelectedPages(pages: number[]): void {
-    console.log(`run action for pages ${  pages.join(',')}`);
+    console.log(`run action for pages ${pages.join(',')}`);
   }
 
   return (

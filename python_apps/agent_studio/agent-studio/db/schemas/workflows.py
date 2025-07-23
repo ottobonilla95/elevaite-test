@@ -39,7 +39,7 @@ class WorkflowUpdate(BaseModel):
     is_active: Optional[bool] = None
     is_editable: Optional[bool] = None
     tags: Optional[List[str]] = None
-    is_deployed: bool
+    is_deployed: Optional[bool] = None
     deployed_at: Optional[datetime] = None
 
 
