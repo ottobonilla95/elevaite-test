@@ -106,8 +106,8 @@ class Settings(BaseSettings):
     SMTP_PORT: int = int(
         os.environ.get("SMTP_PORT", "587")
     )  # Default to port 587 (TLS)
-    SMTP_HOST: str = os.environ.get("SMTP_HOST", "outbound.mailhop.org")
-    SMTP_USER: str = os.environ.get("SMTP_USER", "elevaite")
+    SMTP_HOST: str = os.environ.get("SMTP_HOST", "")
+    SMTP_USER: str = os.environ.get("SMTP_USER", "")
     SMTP_PASSWORD: str = os.environ.get("SMTP_PASSWORD", "")
     EMAILS_FROM_EMAIL: str = os.environ.get("EMAILS_FROM_EMAIL", "")
     EMAILS_FROM_NAME: str = os.environ.get("EMAILS_FROM_NAME", "")

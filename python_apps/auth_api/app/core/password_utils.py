@@ -55,3 +55,16 @@ def is_password_temporary(email: str, password: str) -> Tuple[bool, str]:
         Tuple[bool, str]: (is_temporary, message)
     """
     return False, ""
+def normalize_email(email: str) -> str:
+    """
+    Normalize email address to lowercase and strip whitespace
+    
+    Args:
+        email: Email address to normalize
+        
+    Returns:
+        str: Normalized email address (lowercase, no leading/trailing spaces)
+    """
+    if not email:
+        return email
+    return email.lower().strip()

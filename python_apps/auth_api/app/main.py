@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request  
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.security import HTTPBearer
 
 from db_core.middleware import add_tenant_middleware
@@ -18,6 +19,19 @@ attach_logger_to_app()
 
 security = HTTPBearer()
 
+class NoCacheMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+
+        if (request.url.path.startswith("/api/auth") or 
+            request.url.path.startswith("/api/email-mfa") or
+            request.url.path.startswith("/api/sms-mfa")):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        
+        return response
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):  # pylint: disable=unused-argument
@@ -37,7 +51,6 @@ async def lifespan(_app: FastAPI):  # pylint: disable=unused-argument
     finally:
         logger.info("Shutting down Auth API application")
 
-
 app = FastAPI(
     title="Minimal Auth API",
     description="Minimal test version",
@@ -45,7 +58,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add tenant middleware with excluded paths for health and docs endpoints
 excluded_paths = {
     r"^/api/health$": {"default_tenant": "default"},
     r"^/docs.*": {"default_tenant": "default"},
@@ -67,6 +79,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(NoCacheMiddleware)
+
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
@@ -80,13 +94,11 @@ from app.routers import email_mfa
 
 app.include_router(email_mfa.router, prefix="/api/email-mfa", tags=["email-mfa"])
 
-
 @app.get("/api/health", tags=["health"])
 def health_check():
     """Health check endpoint."""
     logger.info("Health check endpoint called")
     return {"status": "healthy"}
-
 
 @app.get("/api/test-logs", tags=["testing"])
 def test_logs():
@@ -97,7 +109,6 @@ def test_logs():
     logger.error("This is an error message")
     logger.critical("This is a critical message")
     return {"message": "Check the logs to see different colored log levels!"}
-
 
 if __name__ == "__main__":
     import uvicorn

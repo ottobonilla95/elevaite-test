@@ -273,33 +273,18 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
     11. Alex Lee: toshiba_alex_lee
     12. Badger: toshiba_badger
     13. Best Buy: toshiba_best_buy
-    14. GNC: toshiba_GNC
-    15. Coach: toshiba_coach
-    16. QuickChek: toshiba_quickchek
-    16. CAM: toshiba_cameras_al
-    17. Hudson News: toshiba_hudson_news
-    18. IDKIDS: toshiba_idkids
-    19. Saks: toshiba_saks * For Saks, if the user asks for client advocates, use query "Client Advocate" instead of "Client Advocates list"
-    20. CVS: toshiba_cvs
-    21. At Home: toshiba_at_home
-    22. Harbor Freight: toshiba_harbor_freight
-    23. TCA: toshiba_tca * TCA is also known as Travel Centers of America
-    24. Spartan Nash: toshiba_spartan_nash
-    25. Event network: toshiba_event_network
-    26. Bass Pro: toshiba_bass_pro * For Bass Pro, if the user asks for client advocates, use query "Client Advocate" instead of "Client Advocates list"
-    27. Foodland: toshiba_foodland
-    28. Cost Plus World Market: toshiba_cost_plus_world_market
-    29. Enterprise: toshiba_enterprise
-    30. Red Apple: toshiba_red_apple
-    31. Yum Brands: toshiba_yum_brands * Note that KFC is also included in this collection
-    32. Bealls: toshiba_bealls
-    33. Disney: toshiba_disney
-    34. Ovation Foods: toshiba_ovation_foods
-    35. Nike: toshiba_nike
-    36. ABC Stores: toshiba_abc_stores
-    37. Tommy Bahama: toshiba_tommy_bahama
-    38. Gordon Food Service: toshiba_gordon_food_service
-    39. Michaels: toshiba_michaels
+    14. CAM: toshiba_cameras_al
+    15. IDKIDS: toshiba_idkids
+    16. Saks: toshiba_saks * For Saks, if the user asks for client advocates, use query "Client Advocate" instead of "Client Advocates list"
+    17. CVS: toshiba_cvs
+    18. Spartan Nash: toshiba_spartan_nash
+    19. Event network: toshiba_event_network
+    20. Foodland: toshiba_foodland
+    21. Cost Plus World Market: toshiba_cost_plus_world_market
+    22. Enterprise: toshiba_enterprise
+    23. Red Apple: toshiba_red_apple
+    24. Bealls: toshiba_bealls
+    25. Ovation Foods: toshiba_ovation_foods
 
     Use toshiba_demo_4 if the customer retriever fails to return any relevant results
 

@@ -261,7 +261,7 @@ class EmailMFAService:
         </body>
         </html>
         """
-
+        normalized_email = user.email.lower().strip()
         return await send_email(user.email, subject, text_body, html_body)
 
     async def _send_auto_enabled_notification(self, user: User) -> bool:

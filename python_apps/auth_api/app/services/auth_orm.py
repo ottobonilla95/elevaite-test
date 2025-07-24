@@ -3,6 +3,7 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple, TypeVar
+from app.core.password_utils import is_password_temporary, normalize_email
 
 from fastapi import HTTPException, Request
 from fastapi import status as http_status
@@ -34,9 +35,9 @@ T = TypeVar("T", bound=User)
 
 async def get_user_by_email(session: AsyncSession, email: str) -> Optional[User]:
     """Get user by email in the current tenant context."""
-    # This function is automatically tenant-aware because the session
-    # is created with the tenant schema set in the search_path
-    result = await session.execute(select(User).where(User.email == email))
+    # Use the normalize_email helper
+    normalized_email = normalize_email(email)
+    result = await session.execute(select(User).where(User.email == normalized_email))
     return result.scalars().first()
 
 
@@ -464,7 +465,8 @@ async def authenticate_user(
 async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
     """Create a new user."""
     # Check if user with this email already exists
-    existing_user = await get_user_by_email(session, user_data.email)
+    normalized_email = normalize_email(user_data.email)
+    existing_user = await get_user_by_email(session, normalized_email)
     if existing_user:
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
@@ -486,7 +488,7 @@ async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
 
     # Create user
     new_user = User(
-        email=user_data.email,
+        email=normalized_email,
         hashed_password=get_password_hash(password),
         full_name=user_data.full_name,
         status=UserStatus.ACTIVE.value,  # Set to active by default

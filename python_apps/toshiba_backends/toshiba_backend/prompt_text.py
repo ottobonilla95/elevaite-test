@@ -337,32 +337,18 @@ VALID LIST OF CUSTOMERS THAT HAVE A DATABASE:
 11. Alex Lee
 12. Badger
 13. Best Buy
-14. GNC
-15. Coach
-16. CAM
-17. Hudson News
-18. IDKIDS
-19. Saks
-20. CVS
-21. At Home
-22. Harbor Freight 
-23. TCA
-24. Spartan Nash
-25. Event network
-26. Bass Pro
-27. Foodland
-28. Cost Plus World Market
-29. Enterprise
-30. Red Apple
-31. Bealls
-32. Disney
-33. Ovation Foods
-34. Yum Brands
-35. Nike
-36. ABC Stores
-37. Tommy Bahama
-38. Gordon Food Service
-39. Michaels
+14. CAM
+15. IDKIDS
+16. Saks
+17. CVS
+18. Spartan Nash
+19. Event network
+20. Foodland
+21. Cost Plus World Market
+22. Enterprise
+23. Red Apple
+24. Bealls 
+25. Ovation Foods
 
 If a query comes in for a customer, always use the customer retriever tool to search and then answer the question.
 
