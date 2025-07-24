@@ -18,6 +18,25 @@ $mainGap: 20px;
     & > .navbar-container {
         grid-area: nav;
         margin-left: -$mainGap;
+
+        & .navbar-left {
+            & a {
+                height: 20px;
+            }
+            & .breadcrumbs {
+                padding-left: 30px;
+                margin-left: 10px;
+                border-left-color: var(--ev-colors-uiBorder);
+            }
+        }
+
+        & .navbar-right {
+            & .common-menu-container {
+                & .icon-container {
+                    color: var(--ev-colors-tertiaryText);
+                }
+            }
+        }
     }
 
     & > main {
@@ -25,5 +44,12 @@ $mainGap: 20px;
     }
     
 
+    & .right-side-logo {
+        height: 50px;
+
+        & > img {
+            height: 100%;
+        }
+    }
 
 }

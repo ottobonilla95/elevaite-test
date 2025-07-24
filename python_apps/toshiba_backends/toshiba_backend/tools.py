@@ -285,6 +285,9 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
     23. Red Apple: toshiba_red_apple
     24. Bealls: toshiba_bealls
     25. Ovation Foods: toshiba_ovation_foods
+    26. Nike: toshiba_nike
+    27. Harbor Freight: toshiba_harbor_freight
+    28. ABC Stores: toshiba_abc_stores
 
     Use toshiba_demo_4 if the customer retriever fails to return any relevant results
 

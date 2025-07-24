@@ -349,6 +349,9 @@ VALID LIST OF CUSTOMERS THAT HAVE A DATABASE:
 23. Red Apple
 24. Bealls 
 25. Ovation Foods
+26. Nike
+27. Harbor Freight
+28. ABC Stores (also known as ABC)
 
 If a query comes in for a customer, always use the customer retriever tool to search and then answer the question.
 

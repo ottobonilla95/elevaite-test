@@ -70,10 +70,13 @@ function setThemePropertiesToBody(theme: ColorScheme): void {
 interface ColorContextProviderProps {
   children: React.ReactNode;
   themes?: ThemeObject[];
+  hideDefaultThemes?: boolean;
 }
 
-export function ColorContextProvider({ children, themes }: ColorContextProviderProps): React.ReactElement {
-  const combinedThemes = [...(themes ?? []), ...defaultThemeList];
+export function ColorContextProvider({ children, themes, hideDefaultThemes }: ColorContextProviderProps): React.ReactElement {
+  const combinedThemes = useMemo(() => {
+    return (themes ?? []).concat(hideDefaultThemes ? [] : defaultThemeList);
+  }, [themes, hideDefaultThemes]);
   const themesList = useMemo(() => combinedThemes, [combinedThemes]);
   const [selectedTheme, setSelectedTheme] = useState<ThemeObject>(combinedThemes[0]);
 

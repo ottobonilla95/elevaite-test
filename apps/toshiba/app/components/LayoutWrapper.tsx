@@ -71,7 +71,7 @@ export function LayoutWrapper({
   const shouldRenderAdminLayout = shouldShowAdminLayout;
 
   return (
-    <ColorContextProvider themes={customThemes}>
+    <ColorContextProvider themes={customThemes} hideDefaultThemes>
       {shouldRenderAdminLayout ? (
         <RolesContextProvider>
           <ClientAppLayout

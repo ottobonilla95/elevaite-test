@@ -70,7 +70,7 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
     ### CUSTOMER NAMES:
     Walgreens, Kroger, Sam's Club, Tractor Supply, Dollar General, Wegmans, Ross, Costco, Whole Foods, BJ's, Alex Lee, 
     Badger, Best Buy, CAM, IDKIDS, Saks, CVS, Spartan Nash, Event network, Foodland, Cost Plus World Market, Enterprise,
-    Red Apple, Bealls, Ovation Foods.
+    Red Apple, Bealls, Ovation Foods, Nike, Harbor Freight, ABC Stores (also known as ABC).
 
     ### DO NOT EXPAND:
     - Invalid machine types (not in the list)

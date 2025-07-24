@@ -40,7 +40,6 @@ abbreviations = {
     "3PL/TPL": "Third-Party Logistics",
     "4PL/FPL": "Fourth-Party Logistics",
     "AAS": "Advanced Administrative System",
-    "ABC": "Activity Based Costing",
     "ABS": "Air Bearing Slider",
     "ACE": "Re-write of SA in C/C++ language.",
     "ACS": "Air Courier Service",

@@ -26,11 +26,13 @@ interface NavbarMenuItem {
 interface NavBarProps {
   breadcrumbLabels?: Record<string, { label: string; link: string }>;
   hideBreadcrumbs?: boolean;
+  hideHelp?: boolean;
   customBreadcrumbs?: React.ReactNode;
   customLogo?: React.ReactElement;
+  customRightSide?: React.ReactElement;
   user?: User;
-  handleSearchInput: (term: string) => void;
-  searchResults: { key: string; link: string; label: string }[];
+  handleSearchInput?: (term: string) => void;
+  searchResults?: { key: string; link: string; label: string }[];
   logOut: () => void;
   children?: React.ReactNode;
   additionalMenuItems?: CommonMenuItem<NavbarMenuItem>[];
@@ -133,21 +135,27 @@ export function NavBar(props: NavBarProps): JSX.Element {
         </div>
 
         <div className="navbar-right">
-          <Searchbar
-            handleInput={props.handleSearchInput}
-            isJump
-            results={props.searchResults}
-            resultsTopOffset="70px"
-          />
+          {!props.handleSearchInput || !props.searchResults ? undefined :
+            <Searchbar
+              handleInput={props.handleSearchInput}
+              isJump
+              results={props.searchResults}
+              resultsTopOffset="70px"
+            />
+          }
 
-          <CommonButton
-            className={["help-button", isHelpActive ? "active" : undefined]
-              .filter(Boolean)
-              .join(" ")}
-            onClick={handleHelpClick}
-          >
-            <SVGHelp />
-          </CommonButton>
+          {props.hideHelp ? undefined :
+            <CommonButton
+              className={["help-button", isHelpActive ? "active" : undefined]
+                .filter(Boolean)
+                .join(" ")}
+              onClick={handleHelpClick}
+            >
+              <SVGHelp />
+            </CommonButton>
+          }
+
+          {props.customRightSide}
 
           <div className="separator" />
 

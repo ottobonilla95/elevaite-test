@@ -13,7 +13,7 @@ export default async function RootLayout({
       link: "/",
     },
     chatbot: {
-      label: "Toshiba Field Service Assistant",
+      label: "Field Service Assistant",
       link: "/chatbot",
     },
   };
