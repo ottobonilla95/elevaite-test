@@ -68,9 +68,14 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
     {machine_types}
 
     ### CUSTOMER NAMES:
-    Walgreens, Kroger, Sam's Club, Tractor Supply, Dollar General, Wegmans, Ross, Costco, Whole Foods, BJ's, Alex Lee, 
-    Badger, Best Buy, CAM, IDKIDS, Saks, CVS, Spartan Nash, Event network, Foodland, Cost Plus World Market, Enterprise,
-    Red Apple, Bealls, Ovation Foods, Nike, Harbor Freight, ABC Stores (also known as ABC).
+    Walgreens, Kroger (note that Harris Teeter is the same as Kroger, so refer to it as Kroger), Sam's Club, Tractor Supply, 
+    Dollar General, Wegmans, Ross, Costco, Whole Foods, BJs or BJ's, Alex Lee, Badger, Best Buy, CAM, Hudson News, IDKIDS, 
+    Saks, CVS, At Home, Harbor Freight, Spartan Nash, Event network, Foodland, Cost Plus World Market, Enterprise, 
+    Red Apple, Bealls, Disney, Ovation Foods, 
+    Yum Brands (note that KFC is the same as Yum Brands, so refer to it as Yum Brands), Nike, ABC Stores, 
+    Tommy Bahama, Gordon Food Service, Michaels, Dunn Edwards, BP, Northern Tool, Winn Dixie, PVH, 
+    Tommy Hilfiger, Calvin Klein, Ahold, Stop & Shop, Giant Martin's, Bfresh, Fresh Market, Times Supermarkets, 
+    and MLSE (Maple Leaf Sports & Entertainment).
 
     ### DO NOT EXPAND:
     - Invalid machine types (not in the list)
@@ -90,12 +95,18 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
     Original: "foyer part number"
     Chat history: "search in 7610"
     → Rewritten: "Foyer part number in System 42 (Machine Type: 7610)"
+    NOTICE HOW NO MODEL NUMBER IS PROVIDED, SO IT IS NOT INCLUDED IN THE QUERY.
 
     Original: "4694 244 motor part"
     → Rewritten: "4694 (Machine Type: 4694 Model: 244) motor part"
+    NOTICE HOW THE MODEL NUMBER IS PROVIDED, SO IT IS INCLUDED IN THE QUERY.
 
     Original: "MTM 036-W04"
     → Rewritten: "MTM 036-W04" (invalid machine type, no expansion)
+    
+    Original: "conveyor belt part number in 6200"
+    → Rewritten: "Foyer part number in System 42 (Machine Type: 7610)"
+    NOTICE HOW NO MODEL NUMBER IS PROVIDED, SO IT IS NOT INCLUDED IN THE QUERY.
 
     Rewritten queries must be natural and complete, as if a human rephrased them for clarity — but only when needed.
 

@@ -338,20 +338,42 @@ VALID LIST OF CUSTOMERS THAT HAVE A DATABASE:
 12. Badger
 13. Best Buy
 14. CAM
-15. IDKIDS
-16. Saks
-17. CVS
-18. Spartan Nash
-19. Event network
-20. Foodland
-21. Cost Plus World Market
-22. Enterprise
-23. Red Apple
-24. Bealls 
-25. Ovation Foods
-26. Nike
-27. Harbor Freight
-28. ABC Stores (also known as ABC)
+15. Hudson News
+16. IDKIDS
+17. Saks
+18. CVS
+19. At Home
+20. Harbor Freight
+21. Spartan Nash
+22. Event network
+23. Foodland
+24. Cost Plus World Market
+25. Enterprise
+26. Red Apple
+27. Bealls
+28. Disney
+29. Ovation Foods
+30. Yum Brands - Note that KFC is the same as Yum Brands so refer to it as Yum Brands
+31. Nike
+32. ABC Stores
+33. Tommy Bahama
+34. Gordon Food Service
+35. Michaels
+36. Dunn Edwards
+37. BP
+38. Northern Tool
+39. Winn Dixie
+40. PVH
+41. Tommy Hilfiger
+42. Calvin Klein
+43. Ahold
+44. Stop & Shop
+45. Giant Martin's
+46. Bfresh
+47. Fresh Market
+48. Times Supermarkets
+49. MLSE (Maple Leaf Sports & Entertainment)
+
 
 If a query comes in for a customer, always use the customer retriever tool to search and then answer the question.
 

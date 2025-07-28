@@ -123,6 +123,7 @@ def query_retriever(query: str, machine_types: Optional[List[str]] = None) -> li
     ADD "6800" TO THE MACHINE TYPES LIST.
     AND THEN QUERY WITH "part number for the Motorized Controller System 7"
     NOTICE HOW THE MACHINE NAME "SYSTEM 7" IS INCLUDED IN THE QUERY.
+    NOTICE HOW THE MODEL NUMBER IS NOT INCLUDED IN THE QUERY BECAUSE IT IS NOT MENTIONED BY THE USER.
 
     INCLUDE THE MODEL NUMBER AND NAME IN THE QUERY IF AVAILABLE.
     FOR EXAMPLE, IF THE USER ASKS "SureBase (Machine Type: 4800 Model: 0xx) SLO motor part"
@@ -274,20 +275,41 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
     12. Badger: toshiba_badger
     13. Best Buy: toshiba_best_buy
     14. CAM: toshiba_cameras_al
-    15. IDKIDS: toshiba_idkids
-    16. Saks: toshiba_saks * For Saks, if the user asks for client advocates, use query "Client Advocate" instead of "Client Advocates list"
-    17. CVS: toshiba_cvs
-    18. Spartan Nash: toshiba_spartan_nash
-    19. Event network: toshiba_event_network
-    20. Foodland: toshiba_foodland
-    21. Cost Plus World Market: toshiba_cost_plus_world_market
-    22. Enterprise: toshiba_enterprise
-    23. Red Apple: toshiba_red_apple
-    24. Bealls: toshiba_bealls
-    25. Ovation Foods: toshiba_ovation_foods
-    26. Nike: toshiba_nike
-    27. Harbor Freight: toshiba_harbor_freight
-    28. ABC Stores: toshiba_abc_stores
+    15. Hudson News: toshiba_hudson_news
+    16. IDKIDS: toshiba_idkids
+    17. Saks: toshiba_saks * For Saks, if the user asks for client advocates, use query "Client Advocate" instead of "Client Advocates list"
+    18. CVS: toshiba_cvs
+    19. At Home: toshiba_at_home
+    20. Harbor Freight: toshiba_harbor_freight
+    21. Spartan Nash: toshiba_spartan_nash
+    22. Event network: toshiba_event_network
+    23. Foodland: toshiba_foodland
+    24. Cost Plus World Market: toshiba_cost_plus_world_market
+    25. Enterprise: toshiba_enterprise
+    26. Red Apple: toshiba_red_apple
+    27. Yum Brands: toshiba_yum_brands * Note that KFC is also included in this collection
+    28. Bealls: toshiba_bealls
+    29. Disney: toshiba_disney
+    30. Ovation Foods: toshiba_ovation_foods
+    31. Nike: toshiba_nike
+    32. ABC Stores: toshiba_abc_stores
+    33. Tommy Bahama: toshiba_tommy_bahama
+    34. Gordon Food Service: toshiba_gordon_food_service
+    35. Michaels: toshiba_michaels
+    36. Dunn Edwards: toshiba_dunn_edwards
+    37. BP: toshiba_bp
+    38. Northern Tool: toshiba_northern_tool
+    39. Winn Dixie: toshiba_winn_dixie
+    40. PVH: toshiba_pvh_tommy_hilfiger_and_calvin_klein
+    41. Tommy Hilfiger: toshiba_pvh_tommy_hilfiger_and_calvin_klein
+    42. Calvin Klein: toshiba_pvh_tommy_hilfiger_and_calvin_klein
+    43. Ahold: toshiba_ahold_stopshop_giant_martins_bfresh
+    44. Stop & Shop: toshiba_ahold_stopshop_giant_martins_bfresh
+    45. Giant Martin's: toshiba_ahold_stopshop_giant_martins_bfresh
+    46. Bfresh: toshiba_ahold_stopshop_giant_martins_bfresh
+    47. Fresh Market: toshiba_fresh_market
+    48. Times Supermarkets: toshiba_times_supermarkets
+    49. MLSE (Maple Leaf Sports & Entertainment): toshiba_mlse
 
     Use toshiba_demo_4 if the customer retriever fails to return any relevant results
 

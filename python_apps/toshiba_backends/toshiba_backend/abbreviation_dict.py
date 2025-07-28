@@ -106,7 +106,6 @@ abbreviations = {
     "BOD": "Branch Office Directory",
     "BOM": "Bill of Material",
     "BOP": "Business Optimization Program",
-    "BP": "Business partner",
     "BPA": "Blanket Purchase Agreement (Oracle PO type) goods/svcs/pricing defined for time period - issue Purchase Releases against the BPA",
     "ΒΡΟ": "Business Process Owner",
     "BPR": "Business Process Re-Engineering",
