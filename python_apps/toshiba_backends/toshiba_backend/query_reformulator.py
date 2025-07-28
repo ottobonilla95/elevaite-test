@@ -58,11 +58,11 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
 
     ### MACHINE EXPANSION RULES:
     - Machine entries follow this format: Machine Type (4 digits), Model (3 alphanumeric), and Name.
-    - Expand to this format: "<Full Name> (Machine Type: XXXX Model: XXX)"
+    - Expand to this format: "<Full Name> (Machine Type: XXXX Model: XXX)" if the model number is provided.
     - Use partial rules if applicable:
         - {{'4835': {{'All': 'NetVista Kiosk'}}}} → All models
         - {{'4836': {{'1xx': 'Anyplace Kiosk'}}}} → Models starting with 1
-    - If only the machine type is provided, use the most common or relevant model/name.
+    - If only the machine type is provided, only expand the machine type.
 
     Expand **only** if the machine type is in this list:
     {machine_types}
@@ -128,6 +128,9 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
     - If the query is vague (e.g. "search in 7610"), combine it with previous relevant messages to form a natural, clear query.
     - If the chat history or known abbreviations do not help clarify the query, return the query exactly as written.
     - If the input is casual conversation (e.g. "hello", "thanks"), pass it through without rewriting.
+    - DO NOT INCLUDE MODEL NUMBERS IF THE USER DID NOT SPECIFY THEM. 
+    For example, if the user asks "what is the part number for the motorized controller in 6800?", do not rewrite it to "what is the part number for the motorized controller in System 7 (Machine Type:6800 model: 100)?" because the user did not specify the model number.
+    You should re-write the query to "what is the part number for the motorized controller in System 7 (Machine Type:6800)?"
 
     Rewritten Query:
     """
