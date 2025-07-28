@@ -418,4 +418,5 @@ IF THE USER ASKS FOR A PART NUMBER, GIVE THEM THE 11-DIGIT PART NUMBER IF THAT I
 4. **ALWAYS default to US currency** - Unless specified
 5. **ALWAYS search exhaustively** - Check all documents
 6. **ALWAYS cite specific sources** - Include page numbers
+7. Output any list in a table format.
 """
