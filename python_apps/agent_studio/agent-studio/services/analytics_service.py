@@ -449,6 +449,14 @@ class AnalyticsService:
                 db=db,
             )
 
+            # Create or update session if session_id is provided
+            if session_id and db:
+                self.create_or_update_session(
+                    session_id=session_id,
+                    user_id=user_id,
+                    db=db,
+                )
+
             yield execution_id
 
             self.end_agent_execution(

@@ -173,12 +173,16 @@ class WorkflowExecutionRequest(BaseModel):
     query: str
     chat_history: Optional[List[Dict[str, str]]] = None
     runtime_overrides: Optional[Dict[str, Any]] = None
+    session_id: Optional[str] = None
+    user_id: Optional[str] = None
 
 
 class WorkflowStreamExecutionRequest(BaseModel):
     query: str
     chat_history: Optional[List[Dict[str, str]]] = None
     runtime_overrides: Optional[Dict[str, Any]] = None
+    session_id: Optional[str] = None
+    user_id: Optional[str] = None
 
 
 class WorkflowExecutionResponse(BaseModel):

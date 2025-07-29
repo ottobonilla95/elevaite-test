@@ -1,6 +1,7 @@
 import uuid
 import json
 import asyncio
+import time
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -507,10 +508,18 @@ def execute_workflow(
                         dynamic_agent_store,  # Pass dynamic agent store to execute_stream
                     )
                 else:
+                    # Use provided session_id or generate one
+                    session_id = (
+                        execution_request.session_id
+                        or f"workflow_{workflow_id}_{int(time.time())}"
+                    )
+                    user_id = execution_request.user_id or "workflow_user"
                     future = executor.submit(
                         command_agent.execute,
                         query=execution_request.query,
-                        enable_analytics=False,  # Disable analytics to avoid potential issues
+                        enable_analytics=True,  # Enable analytics to track executions
+                        session_id=session_id,
+                        user_id=user_id,
                         dynamic_agent_store=dynamic_agent_store,  # Pass dynamic agent store
                     )
 
@@ -608,7 +617,7 @@ async def execute_workflow_stream(
                 if hasattr(agent, "execute_stream") and callable(
                     getattr(agent, "execute_stream")
                 ):
-                    # Use agent's streaming execution
+                    # Use agent's streaming execution (note: streaming doesn't support analytics yet)
                     for chunk in agent.execute_stream(
                         execution_request.query, execution_request.chat_history
                     ):
@@ -616,10 +625,18 @@ async def execute_workflow_stream(
                             yield f"data: {json.dumps({'type': 'content', 'data': chunk, 'timestamp': datetime.now().isoformat()})}\n\n"
                             await asyncio.sleep(0.01)
                 else:
-                    # Fallback to regular execution
+                    # Fallback to regular execution with analytics
+                    session_id = (
+                        execution_request.session_id
+                        or f"workflow_{workflow_id}_{int(time.time())}"
+                    )
+                    user_id = execution_request.user_id or "workflow_user"
                     result = agent.execute(
                         query=execution_request.query,
                         chat_history=execution_request.chat_history,
+                        session_id=session_id,
+                        user_id=user_id,
+                        enable_analytics=True,
                     )
                     yield f"data: {json.dumps({'type': 'content', 'data': result, 'timestamp': datetime.now().isoformat()})}\n\n"
             else:
@@ -629,7 +646,7 @@ async def execute_workflow_stream(
                 # Build dynamic agent store for inter-agent communication
                 dynamic_agent_store = _build_dynamic_agent_store(db, workflow)
 
-                # Execute with streaming
+                # Execute with streaming (note: streaming doesn't support analytics yet)
                 if execution_request.chat_history:
                     # Use streaming execution with chat history
                     for chunk in command_agent.execute_stream(
@@ -642,8 +659,16 @@ async def execute_workflow_stream(
                             await asyncio.sleep(0.01)
                 else:
                     # For non-streaming execution, simulate streaming by chunking the response
+                    session_id = (
+                        execution_request.session_id
+                        or f"workflow_{workflow_id}_{int(time.time())}"
+                    )
+                    user_id = execution_request.user_id or "workflow_user"
                     result = command_agent.execute(
                         query=execution_request.query,
+                        session_id=session_id,
+                        user_id=user_id,
+                        enable_analytics=True,
                         dynamic_agent_store=dynamic_agent_store,
                     )
                     yield f"data: {json.dumps({'type': 'content', 'data': result, 'timestamp': datetime.now().isoformat()})}\n\n"

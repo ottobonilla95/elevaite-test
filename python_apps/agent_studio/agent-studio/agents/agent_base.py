@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Literal, Optional, cast
+from typing import Any, Callable, Dict, List, Literal, Optional, cast, Generator
 import uuid
 import json
 from pydantic import BaseModel, Field, ConfigDict
@@ -78,6 +78,46 @@ class Agent(BaseModel):
     consumer_name: Optional[str] = None
     message_handlers: Dict[str, Callable] = Field(default_factory=dict)
 
+    def _process_chat_history(
+        self,
+        chat_history: Optional[List[Dict[str, Any]]],
+        system_prompt: str,
+        query: str,
+    ) -> List[ChatCompletionMessageParam]:
+        """
+        Process chat history and build messages array for both execution methods.
+        """
+        messages: List[ChatCompletionMessageParam] = [
+            {"role": "system", "content": system_prompt},
+        ]
+
+        # Add chat history if provided
+        if chat_history:
+            # Convert chat history to proper OpenAI format
+            converted_history = []
+            for msg in chat_history:
+                if isinstance(msg, dict):
+                    # Handle different possible formats
+                    if "actor" in msg:
+                        # Convert 'actor' format to 'role' format
+                        role = "assistant" if msg["actor"] == "bot" else msg["actor"]
+                        converted_history.append(
+                            {"role": role, "content": msg.get("content", "")}
+                        )
+                    elif "role" in msg:
+                        # Already in correct format
+                        converted_history.append(msg)
+                    else:
+                        # Skip malformed messages
+                        continue
+
+            # Add converted history to messages
+            messages.extend(cast(List[ChatCompletionMessageParam], converted_history))
+
+        # Add current query
+        messages.append({"role": "user", "content": query})
+        return messages
+
     def execute(
         self,
         query: str,
@@ -85,6 +125,7 @@ class Agent(BaseModel):
         user_id: Optional[str] = None,
         chat_history: Optional[List[Dict[str, Any]]] = None,
         enable_analytics: bool = False,
+        max_tool_calls: int = 10,  # Higher limit for non-streaming to maintain compatibility
         **kwargs: Any,
     ) -> str:
         """
@@ -93,6 +134,7 @@ class Agent(BaseModel):
         """
         from utils import client
         from .tools import tool_store
+
         # update_status("superuser@iopex.com", "Thinking...")
 
         # Skip Redis-dependent agent_store, use dynamic agent store if available
@@ -130,6 +172,7 @@ class Agent(BaseModel):
 
         try:
             tries = 0
+            tool_call_count = 0
 
             if self.routing_options:
                 routing_options = "\n".join(
@@ -148,42 +191,8 @@ class Agent(BaseModel):
             else:
                 system_prompt = self.system_prompt.prompt
 
-            # Build messages array
-            messages: List[ChatCompletionMessageParam] = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": query},
-            ]
-
-            # Add chat history if provided
-            if chat_history:
-                # Convert chat history to proper OpenAI format
-                converted_history = []
-                for msg in chat_history:
-                    if isinstance(msg, dict):
-                        # Handle different possible formats
-                        if "actor" in msg:
-                            # Convert 'actor' format to 'role' format
-                            role = (
-                                "assistant" if msg["actor"] == "bot" else msg["actor"]
-                            )
-                            converted_history.append(
-                                {"role": role, "content": msg.get("content", "")}
-                            )
-                        elif "role" in msg:
-                            # Already in correct format
-                            converted_history.append(msg)
-                        else:
-                            # Skip malformed messages
-                            continue
-
-                # Insert chat history before the current query
-                messages: List[ChatCompletionMessageParam] = [
-                    {"role": "system", "content": system_prompt}
-                ]
-                messages.extend(
-                    cast(List[ChatCompletionMessageParam], converted_history)
-                )
-                messages.append({"role": "user", "content": query})
+            # Build messages array using shared chat history processing
+            messages = self._process_chat_history(chat_history, system_prompt, query)
 
             # Main retry loop
             while tries < self.max_retries:
@@ -204,7 +213,6 @@ class Agent(BaseModel):
                         "temperature": self.temperature,
                     }
 
-
                     # Add tools if available
                     if self.functions:
                         api_params["tools"] = self.functions
@@ -223,6 +231,21 @@ class Agent(BaseModel):
                         response.choices[0].finish_reason == "tool_calls"
                         and response.choices[0].message.tool_calls is not None
                     ):
+                        # Check if we've exceeded max tool calls
+                        if tool_call_count >= max_tool_calls:
+                            if enable_analytics and analytics_service and execution_id:
+                                analytics_service.update_execution_metrics(
+                                    execution_id=execution_id,
+                                    response=f"Maximum tool calls ({max_tool_calls}) reached.",
+                                    tools_called=tools_called,
+                                    tool_count=len(tools_called),
+                                    retry_count=tries,
+                                    api_calls_count=api_calls_count,
+                                    db=db,
+                                )
+                            return f"Maximum tool calls ({max_tool_calls}) reached. Ending conversation."
+
+                        tool_call_count += 1
                         tool_calls = response.choices[0].message.tool_calls
 
                         _message: ChatCompletionAssistantMessageParam = {
@@ -357,6 +380,286 @@ class Agent(BaseModel):
                         return self._get_fallback_response()
 
             return self._get_fallback_response()
+
+        finally:
+            # Exit analytics tracking context if it was entered
+            if execution_context:
+                execution_context.__exit__(None, None, None)
+
+    def execute_stream(
+        self,
+        query: str,
+        chat_history: Optional[List[Dict[str, Any]]] = None,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        enable_analytics: bool = False,
+        max_tool_calls: int = 5,
+        **kwargs: Any,
+    ) -> Generator[str, None, None]:
+        """
+        Streaming execution method that yields incremental responses.
+        """
+        from utils import client
+        from .tools import tool_store
+
+        # Skip Redis-dependent agent_store, use dynamic agent store if available
+        agent_store = kwargs.get("dynamic_agent_store", {})
+
+        # Analytics setup if enabled
+        analytics_service = None
+        db = None
+        execution_id = None
+        tools_called = []
+        api_calls_count = 0
+
+        if enable_analytics:
+            try:
+                from services.analytics_service import analytics_service as analytics
+                from db.database import get_db
+
+                analytics_service = analytics
+                db = next(get_db())
+            except ImportError:
+                enable_analytics = False
+
+        # Start analytics tracking if enabled
+        execution_context = None
+        if enable_analytics and analytics_service:
+            execution_context = analytics_service.track_agent_execution(
+                agent_id=str(self.agent_id),
+                agent_name=self.name,
+                query=query,
+                session_id=session_id,
+                user_id=user_id,
+                db=db,
+            )
+            execution_id = execution_context.__enter__()
+
+        try:
+            tries = 0
+            tool_call_count = 0
+
+            # Build system prompt with routing options
+            if self.routing_options:
+                routing_options = "\n".join(
+                    [f"{k}: {v}" for k, v in self.routing_options.items()]
+                )
+                system_prompt = (
+                    self.system_prompt.prompt
+                    + f"""
+                Here are the routing options:
+                {routing_options}
+
+                Your response should be in the format:
+                {{ "routing": "respond", "content": "The answer to the query."}}
+                """
+                )
+            else:
+                system_prompt = self.system_prompt.prompt
+
+            # Build messages array using shared chat history processing
+            messages = self._process_chat_history(chat_history, system_prompt, query)
+
+            # Main retry loop
+            while tries < self.max_retries:
+                if enable_analytics and analytics_service:
+                    analytics_service.logger.info(
+                        f"{self.name} streaming attempt {tries + 1}/{self.max_retries}"
+                    )
+
+                try:
+                    # Track API call
+                    api_calls_count += 1
+
+                    # Prepare API call parameters
+                    api_params = {
+                        "model": self.model,  # Use configured model
+                        "messages": messages,
+                        "temperature": self.temperature,
+                        "stream": False,
+                    }
+
+                    # Add tools if available
+                    if self.functions:
+                        api_params["tools"] = self.functions
+                        api_params["tool_choice"] = "auto"
+
+                    response = client.chat.completions.create(**api_params)
+                    update_status("superuser@iopex.com", "Thinking...")
+
+                    if enable_analytics and analytics_service:
+                        analytics_service.logger.debug(
+                            f"OpenAI API response received for streaming execution {execution_id}"
+                        )
+
+                    # Handle tool calls
+                    if (
+                        response.choices[0].finish_reason == "tool_calls"
+                        and response.choices[0].message.tool_calls is not None
+                    ):
+                        # Check if we've exceeded max tool calls
+                        if tool_call_count >= max_tool_calls:
+                            yield f"Maximum tool calls ({max_tool_calls}) reached. Ending conversation.\n"
+                            break
+
+                        tool_call_count += 1
+                        tool_calls = response.choices[0].message.tool_calls
+
+                        _message: ChatCompletionAssistantMessageParam = {
+                            "role": "assistant",
+                            "tool_calls": cast(
+                                List[ChatCompletionMessageToolCallParam], tool_calls
+                            ),
+                        }
+                        messages.append(_message)
+
+                        for tool in tool_calls:
+                            yield f"Agent Called: {tool.function.name}\n"
+
+                            if enable_analytics and analytics_service:
+                                analytics_service.logger.info(
+                                    f"Executing tool: {tool.function.name}"
+                                )
+
+                            tool_id = tool.id
+                            arguments = json.loads(tool.function.arguments)
+                            function_name = tool.function.name
+                            update_status("superuser@iopex.com", function_name)
+
+                            # Track tool usage
+                            usage_id = None
+                            tool_context = None
+                            if enable_analytics and analytics_service and execution_id:
+                                external_api = None
+                                if function_name in ["web_search", "weather_forecast"]:
+                                    external_api = function_name
+
+                                tool_context = analytics_service.track_tool_usage(
+                                    tool_name=function_name,
+                                    execution_id=execution_id,
+                                    input_data=arguments,
+                                    external_api_called=external_api,
+                                    db=db,
+                                )
+                                usage_id = tool_context.__enter__()
+
+                            try:
+                                # Execute tool or agent
+                                try:
+                                    if function_name in agent_store:
+                                        result = agent_store[function_name](**arguments)
+                                    else:
+                                        result = tool_store[function_name](**arguments)
+
+                                except Exception as tool_error:
+                                    print(
+                                        f"❌ Tool '{function_name}' failed: {str(tool_error)}"
+                                    )
+                                    result = f"Error executing tool {function_name}: {str(tool_error)}"
+                                    if enable_analytics and analytics_service:
+                                        analytics_service.logger.error(
+                                            f"Tool execution failed for {function_name}: {str(tool_error)}"
+                                        )
+
+                                # Update tool metrics if analytics enabled
+                                if enable_analytics and analytics_service and usage_id:
+                                    analytics_service.update_tool_metrics(
+                                        usage_id=usage_id,
+                                        output_data={"result": str(result)[:1000]},
+                                        db=db,
+                                    )
+
+                                # Track tool call for execution metrics
+                                tools_called.append(
+                                    {
+                                        "tool_name": function_name,
+                                        "arguments": arguments,
+                                        "usage_id": str(usage_id) if usage_id else None,
+                                    }
+                                )
+                                update_status("superuser@iopex.com", "Thinking...")
+
+                                # Add tool response message
+                                messages.append(
+                                    {
+                                        "role": "tool",
+                                        "tool_call_id": tool_id,
+                                        "content": str(result),
+                                    }
+                                )
+
+                                # Yield tool result
+                                try:
+                                    if isinstance(result, str):
+                                        parsed_result = json.loads(result)
+                                        yield parsed_result.get(
+                                            "content", "Agent Responded"
+                                        ) + "\n"
+                                    else:
+                                        yield str(result) + "\n"
+                                except json.JSONDecodeError:
+                                    yield str(result) + "\n"
+
+                            finally:
+                                # Exit tool tracking context if it was entered
+                                if tool_context:
+                                    tool_context.__exit__(None, None, None)
+
+                        # Continue the conversation after processing all tool calls
+                        tries += 1
+
+                    else:
+                        if response.choices[0].message.content is None:
+                            raise Exception("No content in response")
+
+                        yield "Agent Responded\n"
+
+                        # Update execution metrics before yielding final response
+                        if enable_analytics and analytics_service and execution_id:
+                            analytics_service.update_execution_metrics(
+                                execution_id=execution_id,
+                                response=response.choices[0].message.content,
+                                tools_called=tools_called,
+                                tool_count=len(tools_called),
+                                retry_count=tries,
+                                api_calls_count=api_calls_count,
+                                db=db,
+                            )
+
+                        # Yield final response
+                        try:
+                            parsed_content = json.loads(
+                                response.choices[0].message.content
+                            )
+                            yield parsed_content.get(
+                                "content", "Agent Could Not Respond"
+                            ) + "\n\n"
+                        except json.JSONDecodeError:
+                            yield response.choices[0].message.content + "\n\n"
+                        return
+
+                except Exception as e:
+                    if enable_analytics and analytics_service:
+                        analytics_service.logger.error(
+                            f"Error in {self.name} streaming execution: {str(e)}"
+                        )
+
+                    print(f"❌ Error in streaming agent execution: {e}")
+                    tries += 1
+
+                    if tries >= self.max_retries:
+                        # Update execution metrics with final retry count
+                        if enable_analytics and analytics_service and execution_id:
+                            analytics_service.update_execution_metrics(
+                                execution_id=execution_id,
+                                tools_called=tools_called,
+                                tool_count=len(tools_called),
+                                retry_count=tries,
+                                api_calls_count=api_calls_count,
+                                db=db,
+                            )
+                        yield f"Error after {self.max_retries} attempts: {str(e)}\n"
+                        return
 
         finally:
             # Exit analytics tracking context if it was entered

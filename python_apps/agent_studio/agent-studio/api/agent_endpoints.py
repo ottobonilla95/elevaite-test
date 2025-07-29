@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import sys
 import json
@@ -10,6 +12,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
 from data_classes import PromptObject
+
 
 # Add the parent directory to the Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -143,6 +146,29 @@ class AgentStreamExecutionRequest(BaseModel):
     chat_history: Optional[List[Dict[str, Any]]] = None
 
 
+class AgentOpenAISchemaResponse(BaseModel):
+    # Core OpenAI Assistant-compatible fields
+    id: str  # agent_id
+    name: str  # agent_name
+    instructions: str  # system_prompt
+    model: str
+    tools: List[Dict[str, Any]]  # functions as generic dicts
+
+    # OpenAI Assistant additional fields
+    description: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+    # Extended configuration (your custom fields)
+    temperature: float
+    max_retries: int
+    response_type: str
+
+    # Additional agent-specific fields
+    agent_type: Optional[str] = None
+    routing_options: Optional[Dict[str, str]] = None
+    collaboration_mode: Optional[str] = None
+
+
 @router.post("/", response_model=schemas.AgentResponse)
 def create_agent(agent: schemas.AgentCreate, db: Session = Depends(get_db)):
     """
@@ -184,6 +210,107 @@ def read_agent_by_name(name: str, db: Session = Depends(get_db)):
     if db_agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
     return db_agent
+
+
+@router.get("/{agent_id}/schema", response_model=AgentOpenAISchemaResponse)
+def get_agent_schema(agent_id: uuid.UUID, db: Session = Depends(get_db)):
+    """
+    Get the OpenAI API schema for a specific agent.
+
+    Returns the agent's complete configuration in OpenAI-compatible format including:
+    - System prompt text
+    - Functions/tools in ChatCompletionToolParam format
+    - Model name and parameters (temperature, max_retries)
+    - Response type configuration
+
+    This endpoint is useful for integrating agents with OpenAI-compatible clients
+    or for generating configuration files for external systems.
+    """
+    # Get the agent from database
+    db_agent = crud.get_agent(db=db, agent_id=agent_id)
+    if db_agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    try:
+        # Create an agent instance to get the functions
+        agent_instance = _create_agent_instance_from_db(db, db_agent)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create agent instance: {str(e)}"
+        )
+
+    # Extract model and temperature from system prompt
+    model = db_agent.system_prompt.ai_model_name
+    temperature = 0.7  # Default temperature
+    if (
+        db_agent.system_prompt.hyper_parameters
+        and "temperature" in db_agent.system_prompt.hyper_parameters
+    ):
+        try:
+            temperature = float(db_agent.system_prompt.hyper_parameters["temperature"])
+        except (ValueError, TypeError):
+            # Keep default temperature if conversion fails
+            temperature = 0.7
+
+    # Build the OpenAI schema response
+    return AgentOpenAISchemaResponse(
+        id=str(agent_id),
+        name=db_agent.name,
+        instructions=db_agent.system_prompt.prompt,
+        tools=[
+            dict(tool) for tool in agent_instance.functions
+        ],  # Convert to dict format
+        model=model,
+        temperature=temperature,
+        max_retries=db_agent.max_retries,
+        response_type=db_agent.response_type,
+        description=db_agent.description,
+        agent_type=db_agent.agent_type,
+        routing_options=db_agent.routing_options,
+        collaboration_mode=db_agent.collaboration_mode,
+        metadata={
+            "agent_id": str(agent_id),
+            "system_prompt_id": str(db_agent.system_prompt_id),
+            "created_time": (
+                db_agent.system_prompt.created_time.isoformat()
+                if db_agent.system_prompt.created_time
+                else None
+            ),
+            "deployed": db_agent.deployed,
+            "status": db_agent.status,
+        },
+    )
+
+
+@router.get("/{agent_id}/functions")
+def get_agent_functions(agent_id: uuid.UUID, db: Session = Depends(get_db)):
+    """
+    Get the OpenAI function/tool schemas for a specific agent.
+
+    Returns only the functions/tools array in OpenAI ChatCompletionToolParam format.
+    This is useful when you only need the tool definitions without the full agent
+    configuration, for example when building custom OpenAI API calls or when
+    integrating agent tools into other systems.
+
+    Each function includes:
+    - Function name and description
+    - Parameter schema in JSON Schema format
+    - Required parameters list
+    """
+    # Get the agent from database
+    db_agent = crud.get_agent(db=db, agent_id=agent_id)
+    if db_agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    try:
+        # Create an agent instance to get the functions
+        agent_instance = _create_agent_instance_from_db(db, db_agent)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create agent instance: {str(e)}"
+        )
+
+    return [dict(tool) for tool in agent_instance.functions]
 
 
 @router.put("/{agent_id}", response_model=schemas.AgentResponse)

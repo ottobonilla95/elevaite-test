@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime, timedelta
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from db.database import get_db
@@ -30,7 +31,7 @@ def analytics_health():
     }
 
 
-@router.get("/agents/usage", response_model=List[schemas.AgentUsageStats])
+@router.get("/agents/usage")
 def get_agent_usage_statistics(
     days: Optional[int] = Query(None, description="Number of days to look back"),
     start_date: Optional[datetime] = Query(
@@ -48,16 +49,18 @@ def get_agent_usage_statistics(
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days)
 
-        return crud.get_agent_usage_stats(
+        # Use the analytics summary function which provides agent stats
+        summary = crud.get_analytics_summary(
             db=db, start_date=start_date, end_date=end_date
         )
+        return summary.get("agent_stats", [])
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error retrieving agent usage statistics: {str(e)}"
         )
 
 
-@router.get("/tools/usage", response_model=List[schemas.ToolUsageStats])
+@router.get("/tools/usage")
 def get_tool_usage_statistics(
     days: Optional[int] = Query(None, description="Number of days to look back"),
     start_date: Optional[datetime] = Query(
@@ -75,18 +78,18 @@ def get_tool_usage_statistics(
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days)
 
-        return crud.get_tool_usage_stats(
+        # Use the analytics summary function which provides tool stats
+        summary = crud.get_analytics_summary(
             db=db, start_date=start_date, end_date=end_date
         )
+        return summary.get("tool_stats", [])
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error retrieving tool usage statistics: {str(e)}"
         )
 
 
-@router.get(
-    "/workflows/performance", response_model=List[schemas.WorkflowPerformanceStats]
-)
+@router.get("/workflows/performance")
 def get_workflow_performance_statistics(
     days: Optional[int] = Query(None, description="Number of days to look back"),
     start_date: Optional[datetime] = Query(
@@ -104,9 +107,9 @@ def get_workflow_performance_statistics(
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days)
 
-        return crud.get_workflow_performance_stats(
-            db=db, start_date=start_date, end_date=end_date
-        )
+        # For now, return empty list as workflow stats are not implemented in analytics summary
+        # TODO: Implement workflow performance stats in crud.get_analytics_summary
+        return []
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -114,7 +117,7 @@ def get_workflow_performance_statistics(
         )
 
 
-@router.get("/errors/summary", response_model=List[schemas.ErrorSummary])
+@router.get("/errors/summary")
 def get_error_summary(
     days: Optional[int] = Query(None, description="Number of days to look back"),
     start_date: Optional[datetime] = Query(
@@ -132,14 +135,16 @@ def get_error_summary(
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days)
 
-        return crud.get_error_summary(db=db, start_date=start_date, end_date=end_date)
+        # For now, return empty list as error summary is not implemented
+        # TODO: Implement error summary stats
+        return []
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error retrieving error summary: {str(e)}"
         )
 
 
-@router.get("/sessions/activity", response_model=schemas.SessionActivityStats)
+@router.get("/sessions/activity")
 def get_session_activity_statistics(
     days: Optional[int] = Query(None, description="Number of days to look back"),
     start_date: Optional[datetime] = Query(
@@ -157,9 +162,11 @@ def get_session_activity_statistics(
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days)
 
-        return crud.get_session_activity_stats(
+        # Use the analytics summary function which provides session stats
+        summary = crud.get_analytics_summary(
             db=db, start_date=start_date, end_date=end_date
         )
+        return summary.get("session_stats", {})
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -187,23 +194,18 @@ def get_analytics_summary(
 
         time_period = f"{start_date.strftime('%Y-%m-%d') if start_date else 'N/A'} to {end_date.strftime('%Y-%m-%d') if end_date else 'N/A'}"
 
+        # Get the analytics summary from CRUD
+        summary = crud.get_analytics_summary(
+            db=db, start_date=start_date, end_date=end_date
+        )
+
         return {
             "time_period": time_period,
-            "agent_stats": crud.get_agent_usage_stats(
-                db=db, start_date=start_date, end_date=end_date
-            ),
-            "tool_stats": crud.get_tool_usage_stats(
-                db=db, start_date=start_date, end_date=end_date
-            ),
-            "workflow_stats": crud.get_workflow_performance_stats(
-                db=db, start_date=start_date, end_date=end_date
-            ),
-            "error_summary": crud.get_error_summary(
-                db=db, start_date=start_date, end_date=end_date
-            ),
-            "session_stats": crud.get_session_activity_stats(
-                db=db, start_date=start_date, end_date=end_date
-            ),
+            "agent_stats": summary.get("agent_stats", []),
+            "tool_stats": summary.get("tool_stats", []),
+            "workflow_stats": [],  # TODO: Implement workflow stats
+            "error_summary": [],  # TODO: Implement error summary
+            "session_stats": summary.get("session_stats", {}),
         }
     except Exception as e:
         raise HTTPException(
@@ -217,10 +219,14 @@ def get_execution_details(execution_id: str, db: Session = Depends(get_db)):
     Get detailed information about a specific agent execution.
     """
     try:
-        execution = crud.get_agent_execution_by_id(db=db, execution_id=execution_id)
+        # Convert string to UUID
+        execution_uuid = uuid.UUID(execution_id)
+        execution = crud.get_agent_execution_metrics(db=db, execution_id=execution_uuid)
         if not execution:
             raise HTTPException(status_code=404, detail="Execution not found")
         return execution
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid execution ID format")
     except HTTPException:
         raise
     except Exception as e:
@@ -235,7 +241,7 @@ def get_session_details(session_id: str, db: Session = Depends(get_db)):
     Get detailed information about a specific session.
     """
     try:
-        session = crud.get_session_by_id(db=db, session_id=session_id)
+        session = crud.get_session_metrics(db=db, session_id=session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
         return session
