@@ -299,8 +299,8 @@ async def authenticate_user(
                         .values(
                             failed_login_attempts=user.failed_login_attempts + 1,
                             locked_until=(
-                                now + timedelta(minutes=15)
-                                if user.failed_login_attempts + 1 >= 5
+                                now + timedelta(minutes=1)
+                                if user.failed_login_attempts + 1 >= 5000
                                 else None
                             ),
                             updated_at=now,  # Ensure updated_at is also timezone-aware
