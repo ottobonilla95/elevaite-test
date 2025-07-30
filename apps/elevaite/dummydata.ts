@@ -325,7 +325,7 @@ export function getApplications(
           icon: ApplicationIcons.applications.campaignOptimization.src,
           description: "Tracking Media Plan Progress and Measuring Campaign Impact.",
           iconAlt: ApplicationIcons.applications.campaignOptimization.alt,
-          title: "Command Agent Workflow",
+          title: "Command Agent Workflows",
           link: appLinks.adoptDashboard[env],
           id: "adoptDashboard",
           miscLabel: "Version 1.0",
