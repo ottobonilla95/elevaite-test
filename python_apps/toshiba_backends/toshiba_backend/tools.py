@@ -310,6 +310,13 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
     47. Fresh Market: toshiba_fresh_market
     48. Times Supermarkets: toshiba_times_supermarkets
     49. MLSE (Maple Leaf Sports & Entertainment): toshiba_mlse
+    50. Coach: toshiba_coach
+    51. TCA (Travel Centers of America): toshiba_tca
+    52. Bass Pro: toshiba_bass_pro * For Bass Pro, if the user asks for client advocates, use query "Client Advocate" instead of "Client Advocates list"
+    53. Kirkland: toshiba_kirklands
+    54. Simmons Bank: toshiba_simmons_bank
+    55. GNC: toshiba_GNC
+    56. Zara: toshiba_Zara
 
     Use toshiba_demo_4 if the customer retriever fails to return any relevant results
 

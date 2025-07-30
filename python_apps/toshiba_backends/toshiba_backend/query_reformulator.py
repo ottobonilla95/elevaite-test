@@ -75,7 +75,8 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
     Yum Brands (note that KFC is the same as Yum Brands, so refer to it as Yum Brands), Nike, ABC Stores, 
     Tommy Bahama, Gordon Food Service, Michaels, Dunn Edwards, BP, Northern Tool, Winn Dixie, PVH, 
     Tommy Hilfiger, Calvin Klein, Ahold, Stop & Shop, Giant Martin's, Bfresh, Fresh Market, Times Supermarkets, 
-    and MLSE (Maple Leaf Sports & Entertainment).
+    MLSE (Maple Leaf Sports & Entertainment), Coach, TCA (Travel Centers of America), Bass Pro, Kirkland, 
+    Simmons Bank, GNC, Zara.
 
     ### DO NOT EXPAND:
     - Invalid machine types (not in the list)

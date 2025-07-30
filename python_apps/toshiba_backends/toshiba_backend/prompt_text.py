@@ -373,7 +373,13 @@ VALID LIST OF CUSTOMERS THAT HAVE A DATABASE:
 47. Fresh Market
 48. Times Supermarkets
 49. MLSE (Maple Leaf Sports & Entertainment)
-
+50. Coach
+51. TCA (Travel Centers of America)
+52. Bass Pro
+53. Kirkland
+54. Simmons Bank
+55. GNC
+56. Zara
 
 If a query comes in for a customer, always use the customer retriever tool to search and then answer the question.
 
