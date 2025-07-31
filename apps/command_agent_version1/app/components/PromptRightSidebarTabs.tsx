@@ -1,7 +1,6 @@
 import { CommonSelect, type CommonSelectOption } from "@repo/ui/components";
-import React, { useEffect, useState } from "react";
-import { LoadingKeys, usePrompt } from "../ui/contexts/PromptContext";
-import PromptLoading from "./PromptLoading";
+import React, { useState } from "react";
+import { usePrompt } from "../ui/contexts/PromptContext";
 import PromptRightColToggleVisilityStatus from "./PromptRightColToggleVisilityStatus";
 import { ParsersManager } from "./outputParsers/ParsersManager";
 
@@ -15,8 +14,8 @@ const models: CommonSelectOption[] = [
 function PromptRightSidebarTabs(): React.ReactElement {
 	const promptContext = usePrompt();
 	const [activeTab, setActiveTab] = useState("tab1");
-	const [showVersionsDropdown, setShowVersionsDropdown] = useState(false);
-	const [activeItem, setActiveItem] = useState('');
+	// const [showVersionsDropdown, setShowVersionsDropdown] = useState(false);
+	// const [activeItem, setActiveItem] = useState('');
 
 
 	function handleModelChange(value: string): void {
@@ -43,31 +42,17 @@ function PromptRightSidebarTabs(): React.ReactElement {
 						<div className="tab-panel flex flex-col flex-grow">
 							<div className="tab-content p-4 flex flex-col flex-grow items-start gap-2">
 
-								<CommonSelect
-									className="common-select-green"
-									defaultValue="GPT4o-Mini"
-									options={models}
-									onSelectedValueChange={handleModelChange}
-								/>
+								{!promptContext.isEngineerPage ? undefined :
+									<CommonSelect
+										className="common-select-green"
+										defaultValue="GPT4o-Mini"
+										options={models}
+										onSelectedValueChange={handleModelChange}
+									/>
+								}
 
 								<ParsersManager display="output"/>
 
-								{/* {!promptContext.output ? undefined :
-									<div className="flex items-center gap-2 mb-4">
-										<label className="flex items-center gap-2" htmlFor="json">
-											<input id="json" type="checkbox" onChange={promptContext.turnToJSON} />
-											JSON
-										</label>
-										{!promptContext.loading[LoadingKeys.ConvertingToJSON] ? undefined : 
-											<PromptLoading className="no-offset m-0" width={20} height={20} />
-										}
-									</div>
-								}
-
-								<pre className="whitespace-pre-wrap break-words mb-4 text-sm font-sans">
-									{promptContext.jsonOutput}
-									{!promptContext.jsonOutput && JSON.stringify(promptContext.output?.result)}
-								</pre> */}
 							</div>
 
 							{/* <div className="details pt-4 mt-auto">
@@ -85,37 +70,6 @@ function PromptRightSidebarTabs(): React.ReactElement {
 							<div className="tab-content p-4 flex flex-col flex-grow items-start gap-2">
 								
 								<ParsersManager display="prompt"/>
-
-								{/* {promptContext.outputVersions.length <= 0 ? undefined : (
-									<div className="flex justify-end">
-										<div className="dropdown-wrapper relative">
-											<button type="button" onClick={() => { setShowVersionsDropdown(!showVersionsDropdown); }}>
-												<svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-													<g clipPath="url(#clip0_1492_7596)">
-														<path d="M8.59991 4.1999V8.3999L11.3999 9.7999M15.5999 8.3999C15.5999 12.2659 12.4659 15.3999 8.59991 15.3999C4.73392 15.3999 1.59991 12.2659 1.59991 8.3999C1.59991 4.53391 4.73392 1.3999 8.59991 1.3999C12.4659 1.3999 15.5999 4.53391 15.5999 8.3999Z" stroke="#6C8271" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-													</g>
-													<defs>
-														<clipPath id="clip0_1492_7596">
-															<rect width="16.8" height="16.8" fill="white" transform="translate(0.200012)" />
-														</clipPath>
-													</defs>
-												</svg>
-											</button>
-											{!showVersionsDropdown ? undefined :
-												<div className="dropdown absolute">
-													{promptContext.outputVersions.map((version) => (
-														<button type="button" className={activeItem === version.id ? "active" : ""} key={version.id} onClick={() => {
-															setActiveItem(String(version.id));
-															setShowVersionsDropdown(false);
-															promptContext.setJsonOutput('');
-															promptContext.setOutput(version);
-														}}>{version.id}</button>
-													))}
-												</div>
-											}
-										</div>
-									</div>
-								)} */}
 
 								<pre className="whitespace-pre-wrap break-words text-sm font-sans">
 									{promptContext.output?.prompt}

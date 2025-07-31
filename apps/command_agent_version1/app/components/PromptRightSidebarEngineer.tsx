@@ -1,14 +1,13 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { LoadingKeys, usePrompt } from "../ui/contexts/PromptContext";
-import PromptRightSidebarTabs from "./PromptRightSidebarTabs";
-import PromptRightSidebarTestingConsole from "./PromptRightSidebarTestingConsole";
-import { PromptInput } from "./PromptInput";
+import { PromptInputEngineer } from "./PromptInputEngineer";
+import PromptInputVariableEngineer from "./PromptInputVariableEngineer";
 import PromptLoading from "./PromptLoading";
 import PromptRightColToggleVisilityStatus from "./PromptRightColToggleVisilityStatus";
-import PromptInputVariableEngineer from "./PromptInputVariableEngineer";
-import { PromptInputEngineer } from "./PromptInputEngineer";
+import PromptRightSidebarTabs from "./PromptRightSidebarTabs";
+import PromptRightSidebarTestingConsole from "./PromptRightSidebarTestingConsole";
 
-function PromptRightSidebarEngineer() {
+function PromptRightSidebarEngineer(): JSX.Element {
 	const [activeTab, setActiveTab] = useState("tab1"); //variables
 	const promptContext = usePrompt();
 
@@ -21,16 +20,15 @@ function PromptRightSidebarEngineer() {
 	}
 
 	function handleReset(): void {
-		console.log("Reset!");
 		promptContext.handleReset();
 	}
 
 	function handleRun(): void {
-		promptContext.run();
+		void promptContext.run();
 	}
 
 	function handleDeploy(): void {
-		promptContext.deploy();
+		void promptContext.deploy();
 	}
 
 	return (
@@ -56,6 +54,7 @@ function PromptRightSidebarEngineer() {
 						className="btn btn-outline btn-small flex items-center justify-center gap-1 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 px-0"
 						onClick={handleReset}
 						disabled={promptContext.loading[LoadingKeys.Resetting]}
+						type="button"
 					>
 						<span>Reset</span>
 						{promptContext.loading[LoadingKeys.Resetting] ? <PromptLoading className="center" width={20} height={20} /> : null}
@@ -64,6 +63,7 @@ function PromptRightSidebarEngineer() {
 						className="btn btn-outline btn-small flex items-center justify-center gap-1 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 px-0"
 						onClick={handleDeploy}
 						disabled={promptContext.loading[LoadingKeys.Deploying]}
+						type="button"
 					>
 						<span>Deploy</span>
 						{promptContext.loading[LoadingKeys.Deploying] ? <PromptLoading className="center" width={20} height={20} /> : null}
@@ -72,6 +72,7 @@ function PromptRightSidebarEngineer() {
 						className="btn btn-primary btn-small flex items-center justify-center gap-1 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 px-0"
 						onClick={handleRun}
 						disabled={promptContext.loading[LoadingKeys.Running]}
+						type="button"
 					>
 						<span>Run</span>
 						{promptContext.loading[LoadingKeys.Running] ? <PromptLoading className="center" width={20} height={20} /> : null}
@@ -98,15 +99,15 @@ function PromptRightSidebarEngineer() {
 						<div className="tabs-wrapper flex flex-col w-full bg-white">
 							<div className="tabs flex my-1 ml-1 text-xs text-gray-500 font-medium h-[48px]">
 								<div className="tabs-inner p-1 flex flex-1">
-									<button className={`tab rounded-sm p-2 flex-1${activeTab === 'tab1' ? ' tab-active text-orange-500 bg-white' : ''}`} onClick={() => { setActiveTab("tab1"); }}>
+									<button className={`tab rounded-sm p-2 flex-1${activeTab === 'tab1' ? ' tab-active text-orange-500 bg-white' : ''}`} onClick={() => { setActiveTab("tab1"); }} type="button">
 										Prompt Inputs
 									</button>
-									<button className={`tab rounded-sm p-2 flex-1${activeTab === 'tab2' ? ' tab-active text-orange-500 bg-white' : ''}`} onClick={() => { setActiveTab("tab2"); }}>
+									<button className={`tab rounded-sm p-2 flex-1${activeTab === 'tab2' ? ' tab-active text-orange-500 bg-white' : ''}`} onClick={() => { setActiveTab("tab2"); }} type="button">
 										Variables
 									</button>
 								</div>
 								<div className="flex items-center ml-4">
-									<button onClick={handleAddPromptInput}>
+									<button onClick={handleAddPromptInput} type="button">
 										<svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 											<g opacity="0.8">
 												<path d="M8.49992 3.33337V12.6667M3.83325 8.00004H13.1666" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

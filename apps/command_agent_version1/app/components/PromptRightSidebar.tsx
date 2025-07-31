@@ -1,12 +1,11 @@
-import React, { useEffect } from "react";
-import PromptRightSidebarTabs from "./PromptRightSidebarTabs";
-import PromptRightSidebarTestingConsole from "./PromptRightSidebarTestingConsole";
 import { LoadingKeys, usePrompt } from "../ui/contexts/PromptContext";
 import { PromptInput } from "./PromptInput";
 import PromptLoading from "./PromptLoading";
 import PromptRightColToggleVisilityStatus from "./PromptRightColToggleVisilityStatus";
+import PromptRightSidebarTabs from "./PromptRightSidebarTabs";
+import PromptRightSidebarTestingConsole from "./PromptRightSidebarTestingConsole";
 
-function PromptRightSidebar() {
+function PromptRightSidebar(): JSX.Element {
 	const promptContext = usePrompt();
 
 	function handleAddPromptInput(): void {
@@ -14,23 +13,22 @@ function PromptRightSidebar() {
 	}
 
 	function handleReset(): void {
-		console.log("Reset!");
 		promptContext.handleReset();
 	}
 
 	function handleRun(): void {
-		promptContext.run();
+		void promptContext.run();
 	}
 
 	function handleDeploy(): void {
-		promptContext.deploy();
+		void promptContext.deploy();
 	}
 
 	return (
 		<div className="prompt-col prompt-right flex-1 flex flex-col rounded-2xl bg-white overflow-y-auto">
 			<div className="btn-wrapper bg-white px-4 py-3 gap-3 flex items-center justify-between">
 				{promptContext.isEngineerPage ? (
-					<button type="button" onClick={() => promptContext.setIsRightColExpanded(!promptContext.isRightColExpanded)}>
+					<button type="button" onClick={() => { promptContext.setIsRightColExpanded(!promptContext.isRightColExpanded); }}>
 						{
 						promptContext.isRightColExpanded
 						?
@@ -53,9 +51,10 @@ function PromptRightSidebar() {
 						className="btn btn-outline btn-small flex items-center justify-center gap-1 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 px-0"
 						onClick={handleReset}
 						disabled={promptContext.loading[LoadingKeys.Resetting]}
+						type="button"
 					>
 						<span>Reset</span>
-						{promptContext.loading[LoadingKeys.Resetting] && (
+						{!promptContext.loading[LoadingKeys.Resetting] ? undefined : (
 							<PromptLoading className="center" width={20} height={20} />
 						)}
 					</button>
@@ -63,9 +62,10 @@ function PromptRightSidebar() {
 						className="btn btn-outline btn-small flex items-center justify-center gap-1 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 px-0"
 						onClick={handleDeploy}
 						disabled={promptContext.loading[LoadingKeys.Deploying]}
+						type="button"
 					>
 						<span>Deploy</span>
-						{promptContext.loading[LoadingKeys.Deploying] && (
+						{!promptContext.loading[LoadingKeys.Deploying] ? undefined : (
 							<PromptLoading className="center" width={20} height={20} />
 						)}
 					</button>
@@ -73,9 +73,10 @@ function PromptRightSidebar() {
 						className="btn btn-primary btn-small flex items-center justify-center gap-1 disabled:bg-gray-100 disabled:text-gray-400 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 px-0"
 						onClick={handleRun}
 						disabled={promptContext.loading[LoadingKeys.Running]}
+						type="button"
 					>
 						<span>Run</span>
-						{promptContext.loading[LoadingKeys.Running] && (
+						{!promptContext.loading[LoadingKeys.Running] ? undefined : (
 							<PromptLoading className="center" width={20} height={20} />
 						)}
 						<svg
@@ -100,13 +101,13 @@ function PromptRightSidebar() {
 						<div className="top flex items-center justify-between py-4 pl-4 h-[48px]">
 							<div className="flex items-center gap-2">
 								<div className="text-sm font-medium bg-white sticky top-0 z-10">Prompt Inputs</div>
-								<button onClick={handleAddPromptInput}>
+								{/* <button onClick={handleAddPromptInput} type="button">
 									<svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 										<g opacity="0.8">
 											<path d="M8.49992 3.33337V12.6667M3.83325 8.00004H13.1666" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
 										</g>
 									</svg>
-								</button>
+								</button> */}
 							</div>
 							<PromptRightColToggleVisilityStatus isColExpanded={promptContext.isRightColPromptInputsColExpanded} toggleColStatus={promptContext.setIsRightColPromptInputsColExpanded} />
 						</div>

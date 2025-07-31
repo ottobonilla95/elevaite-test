@@ -10,7 +10,7 @@ export enum PromptInputTypes {
 
 export interface UploadFileResponseObject {
   image: string;
-  doc_type: string;
+  document_type: string;
   num_pages: number;
   prompt: string;
   line_items: string;

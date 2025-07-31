@@ -1,0 +1,27 @@
+
+
+.testing-console {
+
+    .draggable {
+        position: relative;
+        height: 15px;
+        
+        &:hover { cursor: grab; }
+        &:active { cursor: grabbing; }
+
+        &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-color: var(--ev-colors-highlight);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1;
+            transition: opacity 150ms ease;
+        }
+
+        &:hover::after, &:active::after {
+            opacity: 0.3;
+        }
+    }
+}

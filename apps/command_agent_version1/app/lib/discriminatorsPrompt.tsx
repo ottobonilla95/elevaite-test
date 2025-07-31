@@ -50,7 +50,7 @@ function isObject(item: unknown): item is object {
 function isUploadFileResponseObject(item: unknown): item is UploadFileResponseObject {
   return isObject(item) &&
     "image" in item &&
-    "doc_type" in item &&
+    "document_type" in item &&
     "num_pages" in item &&
     "prompt" in item &&
     'table_header' in item &&

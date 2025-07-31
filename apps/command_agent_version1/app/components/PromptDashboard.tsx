@@ -4,7 +4,7 @@ import PromptLeftSidebar from "./PromptLeftSidebar";
 import PromptRightSidebar from "./PromptRightSidebar";
 import PromptRightSidebarEngineer from "./PromptRightSidebarEngineer";
 
-const PromptDashboard = () => {
+function PromptDashboard(): React.ReactElement {
   const promptContext = usePrompt();
   return (
 	<div className="prompt-dashboard p-4 gap-4 flex w-full">

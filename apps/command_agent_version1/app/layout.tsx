@@ -26,7 +26,7 @@ export default async function RootLayout({ children, }: Readonly<{ children: Rea
   };
 
   return (
-    <html lang="en" className={inter.className}>
+    <html lang="en" className={inter.className} suppressHydrationWarning>
       <body>
 
         <SessionProvider session={session}>

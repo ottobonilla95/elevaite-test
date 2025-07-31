@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/require-await -- Placeholder functions*/
 "use client";
 import { usePathname } from "next/navigation";
-import { type ChangeEvent, createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { deploy, nextPage, previousPage, processCurrentPage, reRun, uploadFile } from "../../lib/actionsPrompt";
-import { ExtractionResult, type PageChangeResponseObject, type ProcessCurrentPageResponseObject, ProcessedPage, type PromptInputItem, PromptInputTypes, PromptInputVariableEngineerItem, type regenerateResponseObject, type UploadFileResponseObject } from "../../lib/interfaces";
+import { type ExtractionResult, type PageChangeResponseObject, type ProcessCurrentPageResponseObject, type ProcessedPage, type PromptInputItem, PromptInputTypes, type PromptInputVariableEngineerItem, type regenerateResponseObject, type UploadFileResponseObject } from "../../lib/interfaces";
 
 
 // ENUMS and INTERFACES
@@ -70,9 +70,6 @@ export interface PromptContextStructure {
   outputVersions: regenerateResponseObject[];
   setOutputVersions: React.Dispatch<React.SetStateAction<regenerateResponseObject[]>>;
   handleReset: () => void,
-  turnToJSON: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
-  jsonOutput: string,
-  setJsonOutput: (output: string) => void,
   defaultPromptInputs: PromptInputItem[],
   actionRunOnSelectedPages: (pages: number[]) => void,
   isEngineerPage: boolean,
@@ -121,9 +118,6 @@ export const PromptContext = createContext<PromptContextStructure>({
   outputVersions: [],
   setOutputVersions: () => undefined,
   handleReset: () => undefined,
-  turnToJSON: async () => { /** */ },
-  jsonOutput: '',
-  setJsonOutput: () => undefined,
   defaultPromptInputs: [],
   actionRunOnSelectedPages: () => undefined,
   isEngineerPage: false,
@@ -162,7 +156,6 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
   const [isRightColPromptInputsColExpanded, setIsRightColPromptInputsColExpanded] = useState<boolean>(false);
   const [isRightColOutputColExpanded, setIsRightColOutputColExpanded] = useState<boolean>(false);
   const [outputVersions, setOutputVersions] = useState<regenerateResponseObject[]>([]);
-  const [jsonOutput, setJsonOutput] = useState('');
   const [promptInputVariablesEngineer, setPromptInputVariablesEngineer] = useState<PromptInputVariableEngineerItem[]>([]);
 
   useEffect(() => {
@@ -245,16 +238,16 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
       switch (input.type) {
         case PromptInputTypes.DocumentHeader: {
           const joinedDocumentHeaderValues = Array.isArray(input.values) ? input.values.join(",") : input.values;
-          options.documentHeader = options.documentHeader ? options.documentHeader + "," + joinedDocumentHeaderValues : joinedDocumentHeaderValues;
+          options.documentHeader = options.documentHeader ? `${options.documentHeader  },${  joinedDocumentHeaderValues}` : joinedDocumentHeaderValues;
           break;
         }
         case PromptInputTypes.LineItemHeader: {
           const joinedLineItemHeaderValues = Array.isArray(input.values) ? input.values.join(",") : input.values;
-          options.lineItemHeader = options.lineItemHeader ? options.lineItemHeader + "," + joinedLineItemHeaderValues : joinedLineItemHeaderValues;
+          options.lineItemHeader = options.lineItemHeader ? `${options.lineItemHeader  },${  joinedLineItemHeaderValues}` : joinedLineItemHeaderValues;
           break;
         }
         case PromptInputTypes.UserFeedback:
-          options.userFeedback = options.userFeedback ? options.userFeedback + "\n" + input.prompt : input.prompt;
+          options.userFeedback = options.userFeedback ? `${options.userFeedback  }\n${  input.prompt}` : input.prompt;
           break;
         case PromptInputTypes.LineItems:
           options.lineItems = options.lineItems ? `${options.lineItems}\n${input.prompt}` : input.prompt;
@@ -284,7 +277,6 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
       setInvoiceImage(null);
       setOutput(null);
       setOutputVersions([]);
-      setJsonOutput('');
       setPromptInputs(
         defaultPromptInputs.map(input => ({
           ...input,
@@ -345,7 +337,6 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
     if (output?.result) {
       setOutput(null);
       setOutputVersions([]);
-      setJsonOutput('');
       setPromptInputs(
         defaultPromptInputs.map(input => ({
           ...input,
@@ -421,6 +412,7 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
       ]);
 
     } catch (error) {
+      // eslint-disable-next-line no-console -- We want this for now
       console.error("Run action failed:", error);
     } finally {
       setLoadingState(LoadingKeys.Running, false);
@@ -438,65 +430,10 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
         { position: 'bottom-right', }
       )
     } catch (error) {
+      // eslint-disable-next-line no-console -- We want this for now
       console.error("Deploy action failed:", error);
     } finally {
       setLoadingState(LoadingKeys.Deploying, false);
-    }
-  }
-
-  /* **Output:**
-  <|dict|>{
-    'Period of Account': '01/08/24 - 31/08/24',
-    'Previous Balance': '0.0000 €',
-    'Fixed Charges': '48,2200 €',
-    'Additional Charges': '8,7243 €',
-    'Discounts': '-21,8400 €',
-    'Total of Current Account (without VAT)': '35,1043 €',
-    'End of Mobile Subscription Fee': '3,5104 €',
-    'Total VAT': '9,2675 €',
-    'Total of Current Account (with VAT)': '47,8822 €',
-    'Amount to be Paid (with VAT)': '47.88 €'
-  }<|end_dict|> */
-  async function turnToJSON(e: ChangeEvent<HTMLInputElement>): Promise<void> {
-    if (e.target.checked) {
-      setLoadingState(LoadingKeys.ConvertingToJSON, true);
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_OPENROUTER_BASE_ENDPOINT}`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            "model": `${process.env.NEXT_PUBLIC_OPENROUTER_AI_MODEL}`,
-            'response_format': {
-              'type': 'json_object'
-            },
-            "messages": [
-              {
-                "role": "user",
-                "content": `turn this to json
-						${output?.result}
-					`
-              }
-            ]
-          })
-        });
-        const data: unknown = await response.json();
-        if (typeof data === "object" && data !== null && "choices" in data) {
-          const parsedData = data as { choices: { message: { content: string } }[] };
-          setJsonOutput(parsedData.choices[0].message.content);
-        } else {
-          console.error("Invalid data type - expected choices array");
-        }
-        // setJsonOutput(data?.choices[0]?.message?.content);
-      } catch (error) {
-        console.error("Error turning the output to JSON:", error);
-      } finally {
-        setLoadingState(LoadingKeys.ConvertingToJSON, false);
-      }
-    } else {
-      setJsonOutput('');
     }
   }
 
@@ -543,9 +480,6 @@ export function PromptContextProvider(props: PromptContextProviderProps): React.
         outputVersions,
         setOutputVersions,
         handleReset,
-        turnToJSON,
-        jsonOutput,
-        setJsonOutput,
         defaultPromptInputs,
         actionRunOnSelectedPages,
         isEngineerPage,

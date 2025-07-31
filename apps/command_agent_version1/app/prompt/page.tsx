@@ -6,11 +6,11 @@ import { ToastContainer } from 'react-toastify';
 import PromptDashboard from "../components/PromptDashboard";
 import "./page.scss";
 
-const CloseButton = ({ closeToast }: { closeToast: () => void }) => (
-	<button type="button" onClick={closeToast}>
+function CloseButton({ closeToast }: { closeToast: () => void }): React.ReactElement {
+  return <button type="button" onClick={closeToast}>
 		<X size={12} color="white" />
 	</button>
-);
+}
 
 export default function Prompt(): JSX.Element {
 	return (
